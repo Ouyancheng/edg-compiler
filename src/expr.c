@@ -5158,7 +5158,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             operand_1_is_const = FALSE;
   a_boolean             operand_1_is_zero  = FALSE;
   a_boolean             result_is_an_lvalue = FALSE;
-  a_boolean             err = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type, ptr_result_type, operation_type;
   an_expression_kind    expr2_kind, expr3_kind;
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
@@ -5240,91 +5240,113 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
   } else {
     /* Not C++ mode, or the operand types are not the same. */
-    conv_lvalue_to_rvalue(&operand_2, expr2_kind);
-    conv_lvalue_to_rvalue(&operand_3, expr3_kind);
-    operand_2_is_pointer = is_pointer_type(operand_2.type);
-    operand_3_is_pointer = is_pointer_type(operand_3.type);
-    if (operand_2_is_pointer || operand_3_is_pointer) {
-      /* At least one of the operands is a pointer.  See if the operands are
-         compatible.  In C, the operands must be pointers to qualified or
-         unqualified versions of compatible types (i.e., object, incomplete,
-         or function types), and null pointer constants and "void *" pointers
-         are specially handled (ANSI C 3.3.15).  Ditto in C++ (ARM 5.16). */
-      if (check_compatibility_of_pointer_operands(
+    if (C_dialect == C_dialect_cplusplus &&
+        (is_class_struct_union_type(operand_2.type) ||
+         is_class_struct_union_type(operand_3.type))) {
+      /* Look for C++ operator overloading cases.  The operator itself
+         cannot be overloaded, but this also checks for cases where conversion
+         functions can be used to convert the operands to types suitable for
+         the built-in meaning of the operator. */
+      check_for_operator_overloading((an_opname_kind)onk_question,
+                                     /*unary_operator=*/FALSE,
+                                     /*must_be_member_function=*/FALSE,
+                                     /*has_predef_meaning=*/FALSE,
+                                     &operand_2, &operand_3,
+                                     expression_kind, &operator_position,
+                                     result, &processed);
+    }  /* if */
+    /* "processed" at this point indicates an error already handled. */
+    if (processed) {
+      err = TRUE;
+    } else {
+      conv_lvalue_to_rvalue(&operand_2, expr2_kind);
+      conv_lvalue_to_rvalue(&operand_3, expr3_kind);
+      operand_2_is_pointer = is_pointer_type(operand_2.type);
+      operand_3_is_pointer = is_pointer_type(operand_3.type);
+      if (operand_2_is_pointer || operand_3_is_pointer) {
+        /* At least one of the operands is a pointer.  See if the operands are
+           compatible.  In C, the operands must be pointers to qualified or
+           unqualified versions of compatible types (i.e., object, incomplete,
+           or function types), and null pointer constants and "void *" pointers
+           are specially handled (ANSI C 3.3.15).  Ditto in C++ (ARM 5.16). */
+        if (check_compatibility_of_pointer_operands(
                            &operand_2, &operand_3, &operator_position,
                            /*pointer_normalization_standard_in_C=*/TRUE,
                            /*pointers_to_functions_standard_in_C=*/TRUE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,
                            /*mixed_object_and_incomplete_standard_in_C=*/TRUE,
                            &operation_type)) {
-        /* The operands are compatible.  Determine the result type.  Usually,
-          it's the operation type just determined, but it can be a different
-          type (a composite) if the two operands are pointers to compatible
-          but not identical types. */
-        if (!operand_2_is_pointer || !operand_3_is_pointer) {
-          /* One of the operands is not a pointer (e.g., it's a null pointer
-             constant).  Use the operation type. */
-          result_type = operation_type;
-        } else {
-          /* Both operands are pointers. */
-          type_pointed_to_2 = type_pointed_to(operand_2.type);
-          unqual_type_pointed_to_2 = skip_typerefs(type_pointed_to_2);
-          type_pointed_to_3 = type_pointed_to(operand_3.type);
-          unqual_type_pointed_to_3 = skip_typerefs(type_pointed_to_3);
-          if (types_are_compatible(unqual_type_pointed_to_2,
-                                   unqual_type_pointed_to_3)) {
-            /* The pointers point to compatible types, so form a composite
-               type. */
-            ptr_result_type = composite_type(unqual_type_pointed_to_2,
-                                             unqual_type_pointed_to_3);
+          /* The operands are compatible.  Determine the result type.  Usually,
+            it's the operation type just determined, but it can be a different
+            type (a composite) if the two operands are pointers to compatible
+            but not identical types. */
+          if (!operand_2_is_pointer || !operand_3_is_pointer) {
+            /* One of the operands is not a pointer (e.g., it's a null pointer
+               constant).  Use the operation type. */
+            result_type = operation_type;
           } else {
-            /* The pointers do not point to compatible types (e.g., one
-               was "void *").  Use the operation type with qualifiers
-               rebuilt below. */
-            ptr_result_type = type_pointed_to(operation_type);
-            ptr_result_type = skip_typerefs(ptr_result_type);
-          }  /* if */
-          /* Add to the type pointed to any qualifiers present on either of
-             the operand types pointed to. */
-          ptr_result_type =
+            /* Both operands are pointers. */
+            type_pointed_to_2 = type_pointed_to(operand_2.type);
+            unqual_type_pointed_to_2 = skip_typerefs(type_pointed_to_2);
+            type_pointed_to_3 = type_pointed_to(operand_3.type);
+            unqual_type_pointed_to_3 = skip_typerefs(type_pointed_to_3);
+            if (types_are_compatible(unqual_type_pointed_to_2,
+                                     unqual_type_pointed_to_3)) {
+              /* The pointers point to compatible types, so form a composite
+                 type. */
+              ptr_result_type = composite_type(unqual_type_pointed_to_2,
+                                               unqual_type_pointed_to_3);
+            } else {
+              /* The pointers do not point to compatible types (e.g., one
+                 was "void *").  Use the operation type with qualifiers
+                 rebuilt below. */
+              ptr_result_type = type_pointed_to(operation_type);
+              ptr_result_type = skip_typerefs(ptr_result_type);
+            }  /* if */
+            /* Add to the type pointed to any qualifiers present on either of
+               the operand types pointed to. */
+            ptr_result_type =
                       type_plus_qualifiers_from_second_type(ptr_result_type,
                                                             type_pointed_to_2);
-          ptr_result_type =
+            ptr_result_type =
                       type_plus_qualifiers_from_second_type(ptr_result_type,
                                                             type_pointed_to_3);
-          /* The result type is an unqualified pointer to the
-             properly-qualified underlying type. */
-          result_type = make_pointer_type(ptr_result_type);
+            /* The result type is an unqualified pointer to the
+               properly-qualified underlying type. */
+            result_type = make_pointer_type(ptr_result_type);
+          }  /* if */
+        }  else {
+          /* The operands are incompatible. */
+          err = TRUE;
         }  /* if */
-      }  else {
-        /* The operands are incompatible. */
-        err = TRUE;
-      }  /* if */
-    } else if (is_arithmetic_type(operand_2.type)) {
-      /* Both operands should be arithmetic. */
-      (void)check_arithmetic_operand(&operand_3);
-      result_type = determine_arithmetic_conversions(&operand_2, &operand_3);
-      /* If both operands have the same enumerated type, keep that
-         information in the result.  The "?" operator is unusual in that
-         regard. */
-      keep_enum_in_result_type(operand_2.type, operand_3.type, &result_type);
-    } else if (is_class_struct_union_type(operand_2.type) ||
-               is_void_type(operand_2.type)) {
-      /* The second operand has class, struct, union, or void type; the
-         third operand must have a compatible type. */
-      if (!types_are_compatible(operand_2.type, operand_3.type)) {
+      } else if (is_arithmetic_type(operand_2.type)) {
+        /* Both operands should be arithmetic. */
+        (void)check_arithmetic_operand(&operand_3);
+        result_type = determine_arithmetic_conversions(&operand_2, &operand_3);
+        /* If both operands have the same enumerated type, keep that
+           information in the result.  The "?" operator is unusual in that
+           regard. */
+        keep_enum_in_result_type(operand_2.type, operand_3.type, &result_type);
+      } else if (is_class_struct_union_type(operand_2.type) ||
+                 is_void_type(operand_2.type)) {
+        /* The second operand has class, struct, union, or void type; the
+           third operand must have a compatible type.  C struct/union cases
+           are recognized here.  C++ class cases are handled above; this
+           code deals only with error cases in C++. */
+        if (!types_are_compatible(operand_2.type, operand_3.type)) {
+          pos_error(ec_incompatible_operands, &operator_position);
+          err = TRUE;
+        }  /* if */
+      } else {
+        /* Incompatible operands. */
         pos_error(ec_incompatible_operands, &operator_position);
         err = TRUE;
       }  /* if */
-    } else {
-      /* Incompatible operands. */
-      pos_error(ec_incompatible_operands, &operator_position);
-      err = TRUE;
-    }  /* if */
-    /* Cast operands 2 and 3 to the result type if necessary. */
-    if (!err) {
-      change_binary_operand_types(result_type, &operand_2, &operand_3,
-                                  expression_kind);
+      /* Cast operands 2 and 3 to the result type if necessary. */
+      if (!err) {
+        change_binary_operand_types(result_type, &operand_2, &operand_3,
+                                    expression_kind);
+      }  /* if */
     }  /* if */
   }  /* if */
 
