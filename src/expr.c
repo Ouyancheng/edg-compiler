@@ -9027,7 +9027,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
              is_imaginary_type(operand_2.type)) &&
             !(is_complex_type(operand_1->type) ||
               is_complex_type(operand_2.type))) {
-          /* Imaginary arithmetic need special treatment. */
+          /* Imaginary arithmetic needs special treatment. */
           imaginary_arithmetic = TRUE;
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
