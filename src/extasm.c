@@ -671,14 +671,19 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).  */
     (void)get_token();
   }  /* if */
   while (curr_token == tok_string_literal) {
-    /* There is a hard limit of ten operands per assembly instruction. */
-    if (n == 10) {
+    /* There is a hard limit of thirty operands per assembly instruction. */
+    if (n == 30) {
       error(ec_too_many_asm_operands);
     }  /* if */
     *p_operands = alloc_asm_operand();
     asm_operand(*p_operands, output);
     p_operands = &(*p_operands)->next;
-    n++;
+    ++n;
+    if (operands->modifiers == (an_asm_operand_modifier)aom_modify) {
+      /* GNU compilers seem to count '+' modifiers as two operands.  Presumably
+         because it involves a read and a write operation. */
+      ++n;
+    }  /* if */
     /* Next must be a comma, colon, or right paren. */
     if (curr_token == tok_colon) {
       if (output) {

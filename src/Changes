@@ -1,5 +1,13 @@
 Version 3.6
 
+4/6/05   Limit on number of operands in GNU extended asm constructs
+
+In GNU modes, the front end formerly imposed a limit of no more than 10
+operands in extended asm constructs.  This limit has been raised to 30.
+Furthermore, it appears that GNU compilers count operands with the '+'
+modifier as being double operands (presumably to model both a read and
+a write operation): This is now also emulated by the front end.
+
 4/6/05   Selection of copy operations in generated members for mutable fields
 
 Previously, when the front end generated a copy constructor or a copy
