@@ -75,15 +75,6 @@ If variable != NULL, transfer the position from it into stmt.
 }  /* transfer_pos_from_var_to_statement */
 
 
-static a_type_ptr void_star_type(void)
-/*
-Make and return a "void *" type.
-*/
-{
-  return make_pointer_type(void_type());
-}  /* void_star_type */
-
-
 static a_type_ptr make_function_type(a_type_ptr return_type,
                                      a_type_ptr param_1_type)
 /*
@@ -435,10 +426,10 @@ and return pointer to it.
 }  /* make_call_statement */
 
 
-static an_expr_node_ptr make_runtime_rout_call(char             *name,
-                                               a_routine_ptr    *routine,
-                                               a_type_ptr       return_type,
-                                               an_expr_node_ptr arg_expr_list)
+an_expr_node_ptr make_runtime_rout_call(char             *name,
+                                        a_routine_ptr    *routine,
+                                        a_type_ptr       return_type,
+                                        an_expr_node_ptr arg_expr_list)
 /*
 Make an expression node that calls the runtime routine "name" with the
 arguments given by arg_expr_list.  *routine is set to point to the runtime
