@@ -30,6 +30,10 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "lower_init.h"
 
 
+#define array_element_count(array_type, elem_type)                      \
+  ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
+
+
 static void set_initialized_array_size(a_type_ptr    *type,
                                        a_targ_size_t size)
 /*
@@ -230,12 +234,15 @@ routine is called in C++ mode only.
     if (is_class_struct_union_type(element_type)) {
       /* It is an array of class objects. */
       cssp = symbol_supplement_for_class(element_type);
-      if (cssp->constructor == NULL &&
-          (element_type->variant.class_struct_union.any_const_member ||
-           cssp->any_ref_member)) {
-        /* An array element of class type with no constructor but with
-           const or ref member will end up uninitialized. */
-        *incomplete_init = TRUE;
+      if (cssp->constructor == NULL) {
+        /* An array element of class type with no constructor but with a ref
+           member will end up uninitialized; set the flag in C mode for a
+           const member -- a warning will be issued. */
+        if (C_mode() ?
+              element_type->variant.class_struct_union.any_const_member :
+              cssp->any_ref_member) {
+          *incomplete_init = TRUE;
+        }  /* if */
       }  /* if */
       if (cssp->constructor != NULL || cssp->destructor != NULL) {
         /* Initialization is required. */
@@ -302,6 +309,190 @@ routine is called in C++ mode only.
   db_exit();
   return init_done;
 }  /* init_remaining_array_elements */
+
+
+static a_boolean any_constructible_fields_remaining(a_field_ptr  fp,
+                                                    a_boolean *incomplete_init)
+/*
+Examine each field in the linked list headed by fp, returning TRUE if any
+is of class-struct-union type (or array thereof).  Set *incomplete_init if
+any member of reference type is encountered.
+*/
+{
+  a_type_ptr                     tp;
+  a_boolean                      ctor_found = FALSE;
+  a_class_symbol_supplement_ptr  cssp;
+
+  /* Make a pass over the remaining fields. */
+  for (; fp != NULL; fp = fp->next) {
+    tp = fp->type;
+    if (is_reference_type(tp)) {
+      /* Field is a reference -- an error should be put out. */
+      *incomplete_init = TRUE;
+    } else if (C_mode() && is_const_qualified_type(tp)) {
+      /* Const field in C mode -- a warning will be issued. */
+      *incomplete_init = TRUE;
+      break;
+    } else {
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      tp = skip_typerefs(tp);
+      if (is_immediate_class_type(tp)) {
+        /* Field is a class type (or an array of class-type elements). */
+        cssp = symbol_supplement_for_class(tp);
+        if (C_mode() && tp->variant.class_struct_union.any_const_member) {
+          /* In C mode, the field's type is a struct with a const field. */
+          *incomplete_init = TRUE;
+          break;
+        } else if (cssp->constructor != NULL || cssp->destructor != NULL) {
+          ctor_found = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return ctor_found;
+}  /* any_constructible_fields_remaining */
+
+
+static a_boolean init_remaining_fields(a_field_ptr    *curr_field,
+                                       a_boolean      static_lifetime,
+                                       a_constant_ptr *con_list,
+                                       a_constant_ptr *end_of_con_list,
+                                       a_boolean      *incomplete_init)
+/*
+This routine is called from get_initializer to deal with the case where a
+class object is only partially initialized.  It checks whether any of the
+uninitialized fields is itself of class (or array of class) type and if so
+does the appropriate default initialization (i.e., looks for and calls the
+default constructor).  *curr_field is the first of the uninitialized fields.
+If static_lifetime is TRUE, the underlying entity has static storage duration.
+*con_list is a list of constant entries that represents the initialization of
+the array; *end_of_con_list points to the terminal entry on the list.
+*incomplete_init is set to TRUE if a reference or const member remains
+uninitialized.  TRUE is returned if any of the remaining fields is indeed
+initialized.  This routine is called in C++ mode only.
+*/
+{
+  a_field_ptr                    fp = *curr_field;
+  a_type_ptr                     tp;
+  a_constant_ptr                 cp;
+  a_dynamic_init_ptr             dip;
+  a_class_symbol_supplement_ptr  cssp;
+  a_param_type_ptr               ptp;
+  a_routine_ptr                  ctor_rp;
+  a_boolean                      init_done = FALSE;
+  a_boolean                      found_constructible_field = FALSE;
+
+  db_enter(4, "init_remaining_fields");
+  /* Before looping through the fields, do a preliminary pass to determine
+     whether there is anything requiring default initialization. */
+  if (any_constructible_fields_remaining(fp, incomplete_init)) {
+    /* Yes, so make another pass over the remaining fields. */
+    for (; fp != NULL; fp = fp->next) {
+      tp = fp->type;
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      tp = skip_typerefs(tp);
+      if (is_immediate_class_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
+      } else {
+        cssp = NULL;
+      }  /* if */
+      if (cssp == NULL ||
+          (cssp->constructor == NULL && cssp->destructor == NULL)) {
+        /* Zero-initialize the field and then continue looping.  There is
+           a field later in the list for which the default constructor has to
+           be called, but we can't leave list field uninitialized. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+        /* Create the constant entry that will point to the new dynamic
+           init entry. */
+        cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        cp->variant.dynamic_init = dip;
+        cp->type = fp->type;
+      } else {
+        /* Default initialization is required -- this must be the field found
+           by the call to any_constructible_fields_remaining. */
+        found_constructible_field = TRUE;
+        if (cssp->constructor != NULL) {
+          /* Get the default constructor.  Note that it is an error if it
+             is missing. */
+          ctor_rp = select_default_constructor(tp, &pos_curr_token, tp,
+                                               /*evaluated=*/TRUE);
+        } else {
+          ctor_rp = NULL;
+        }  /* if */
+        if (ctor_rp != NULL) {
+          /* If there's a constructor routine create a dik_constructor
+             dynamic init entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          dip->variant.constructor.ptr = ctor_rp;
+          /* A user defined default constructor may have default args that
+             should be incorporated into the constructor call. */
+          ptp = (skip_typerefs(ctor_rp->type))->
+                                   variant.routine.extra_info->param_type_list;
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+        } else {
+          /* If there's no constructor routine we use a dik_none dynamic
+             init entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        }  /* if */
+        /* Register the destructor if there's one there. */
+        dip->destructor = select_destructor(tp, tp, &pos_curr_token,
+                                            /*honor_virtual=*/FALSE,
+                                            /*evaluated=*/TRUE,
+                                            /*suppress_access_check=*/FALSE);
+        /* Since the destructor may have been added to a dynamic init entry
+           that will not be "on top" when gen_dynamic_initialization is called,
+           record the destruction, if needed, with the appropriate
+           object-lifetime entry. */
+        record_end_of_lifetime_destruction(dip, static_lifetime,
+                                           /*block_lifetime=*/TRUE);
+        if (is_array_type(fp->type)) {
+          /* This field is an array, so each of its elements has to be
+             constructed. */
+          a_type_ptr          array_type = skip_typerefs(fp->type);
+          a_dynamic_init_ptr  orig_dip = dip;
+
+          dip = alloc_dynamic_init(
+                           (a_dynamic_init_kind)dik_nonconstant_aggregate);
+          /* Build the looping constant entry. */
+          repeat_nonconstant_init(orig_dip, array_type, tp, dip,
+                                  array_element_count(array_type, tp));
+        }  /* if */
+        /* Now create the constant entry that will point to the new dynamic
+           init entry. */
+        cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        cp->variant.dynamic_init = dip;
+        cp->type = tp;
+      }  /* if */
+      /* Add the constant entry to the list of constants. */
+      if (*con_list == NULL) {
+        *con_list = cp;
+      } else {
+        (*end_of_con_list)->next = cp;
+      }  /* if */
+      *end_of_con_list = cp;
+      init_done = TRUE;
+      /* Continue looping only if there are other constructible fields that
+         remain uninitialized. */
+      if (found_constructible_field) {
+        if (any_constructible_fields_remaining(fp->next, incomplete_init)) {
+          /* There is another field requiring default initialization, so
+             keep looping. */
+          found_constructible_field = FALSE;
+        } else {
+          /* No additional processing is required. */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Return a pointer to the field following the one that was just
+       processed. */
+    check_assertion(fp != NULL);
+    *curr_field = fp->next;
+  }  /* if */
+  db_exit();
+  return init_done;
+}  /* init_remaining_fields */
 
 
 static a_constant_ptr scan_initializer_of_simple_object(
@@ -785,64 +976,7 @@ ref field of a class object (or an array of same) remains uninitialized.
       }  /* while */
       /* There are no more initializers in the source (at least, none
          that should be considered part of the current aggregate). */
-      if (any_more_members) {
-        /* Set *any_const_or_ref_member_uninitialized if (1) there are more
-           fields or array elements and (2) those fields or array elements
-           are const or ref or have const or ref components. */
-        if (kind == (a_type_kind)tk_error) {
-          /* No action required. */
-          any_more_members = FALSE;
-        } else if (kind == (a_type_kind)tk_array) {
-          /* We have been initializing the elements of an array, but we
-             ran out of initializers before reaching the end of the array.
-             However, in the aggregate case all remaining elements are
-             initialized to zero by default (ARM 8.4.1), so an array of const
-             elements does get properly initialized in this case; the
-             nonaggregate case (that is, an array of nonaggregate classes) is
-             handled by init_remaining_array_elements. */
-        } else if (kind == (a_type_kind)tk_union) {
-          /* No action required. */
-        } else {
-          check_assertion(kind == (a_type_kind)tk_struct ||
-                          kind == (a_type_kind)tk_class);
-          /* We have been initializing the fields of a class object, but we
-             ran out of initializers before reaching the last field.  See if
-             any of the remaining fields are const or ref types. */
-          if (local_type->variant.class_struct_union.any_const_member ||
-              (C_dialect == C_dialect_cplusplus &&
-               symbol_supplement_for_class(local_type)->any_ref_member)) {
-            /* We know there is at least one const or ref member.  Check the
-               remaining fields (the ones that have not yet been matched up
-               with an initial value in the initializer list) for one that
-               needs to be initialized. */
-            a_field_ptr  fp = curr_field;
-            a_type_ptr   tp;
-
-            /* Make a pass over the remaining fields.  Break out of the loop
-             if a const or ref type is encountered. */
-            for (; fp != NULL; fp = fp->next) {
-              tp = fp->type;
-              if (is_const_qualified_type(tp) || is_reference_type(tp)) {
-                /* Const qualified type or reference type. */
-                *any_const_or_ref_member_uninitialized = TRUE;
-                break;
-              } else if (is_class_struct_union_type(tp)) {
-                /* Field is a class type (or an array of class-type
-                   elements). */
-                tp = skip_typerefs(tp);
-                if (tp->variant.class_struct_union.any_const_member ||
-                    (C_dialect == C_dialect_cplusplus &&
-                     symbol_supplement_for_class(tp)->any_ref_member)) {
-                  /* At least one sub-field of the field is a const or
-                     ref. */
-                  *any_const_or_ref_member_uninitialized = TRUE;
-                  break;
-                }  /* if */
-              }  /* if */
-            }  /* for */
-          }  /* if */
-        }  /* if */
-      }  /* if */
+      if (kind == (a_type_kind)tk_error) any_more_members = FALSE;
       /* The entire list of values for the entity being initialized has
          now been read.  We stopped either because we exhausted the
          initial values or because we ran out of members to initialize. */
@@ -850,7 +984,7 @@ ref field of a class object (or an array of same) remains uninitialized.
         /* An error has been issued on the missing {...} list.  Although
            the initializer was scanned anyway, don't create an aggregate
            constant to represent the initialization -- just an error constant
-           will do (the default upon exiting the routine. */
+           will do (the default upon exiting the routine). */
       } else {
         /* Set the size of an incomplete array from the number of elements
            in its initial value.  Note that arrays of char initialized
@@ -862,19 +996,28 @@ ref field of a class object (or an array of same) remains uninitialized.
           set_initialized_array_size(&local_type, curr_array_element);
           *type = local_type;
           any_more_members = FALSE;
-        } else if (C_dialect == C_dialect_cplusplus && brace_flag &&
-                   kind == (a_type_kind)tk_array) {
-          /* When the number of initializers is fewer than the number of
-             array elements to be initialized, and when the element type is
-             such that a constructor is required to initialize the elements,
-             we are required to provide default initialization by calling
-             the default constructor. */
-          if (init_remaining_array_elements(
+        } else if (C_dialect == C_dialect_cplusplus) {
+          if (brace_flag && kind == (a_type_kind)tk_array) {
+            /* When the number of initializers is fewer than the number of
+               array elements to be initialized, and when the element type is
+               such that a constructor is required to initialize the elements,
+               we are required to provide default initialization by calling
+               the default constructor. */
+            if (init_remaining_array_elements(
                                   local_type, curr_array_element,
                                   static_lifetime, &con_list, &end_of_con_list,
                                   any_const_or_ref_member_uninitialized)) {
-            any_more_members = FALSE;
-            *any_dynamic_initialization = TRUE;
+              any_more_members = FALSE;
+              *any_dynamic_initialization = TRUE;
+            }  /* if */
+          } else if (kind == (a_type_kind)tk_struct ||
+                     kind == (a_type_kind)tk_class) {
+            if (init_remaining_fields(&curr_field, static_lifetime,
+                                      &con_list, &end_of_con_list,
+                                      any_const_or_ref_member_uninitialized)) {
+              if (curr_field == NULL) any_more_members = FALSE;
+              *any_dynamic_initialization = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Allocate the aggregate constant that is the value for the
@@ -1705,10 +1848,6 @@ arrays are treated as one-dimensional arrays.
   dynamic_init_con->variant.dynamic_init = ctor_dip;
   dynamic_init_con->type = elem_type;
 }  /* repeat_nonconstant_init */
-
-
-#define array_element_count(array_type, elem_type)                      \
-  ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
 
 
 a_boolean def_initializer(a_symbol_ptr       sym,
