@@ -3,7 +3,7 @@ Version 2.33
 9/25/96 Scope of an uncaught exception now conforms to the Working Paper
 
 The Working Paper specifies that an exception is "uncaught" from the
-time that object to be thrown is completely evaluated until the time
+time that the object to be thrown is completely evaluated until the time
 that the initialization of the catch parameter is complete.  The EH runtime
 has been updated to conform to this definition.  A new routine named
 __exception_caught is now called to mark the completion of the
