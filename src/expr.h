@@ -95,12 +95,14 @@ extern void scan_new_array_dimension_expression(a_boolean        *is_constant,
                                                 an_expr_node_ptr *expression,
                                                 a_constant       *constant);
 
-extern void scan_initializer_expression(a_type_ptr       required_type,
-                                        a_boolean        static_lifetime,
-                                        a_boolean        force_object_lifetime,
-                                        a_boolean        *is_constant,
-                                        an_expr_node_ptr *expression,
-                                        a_constant       *constant);
+extern void scan_initializer_expression(
+                                       a_type_ptr       required_type,
+                                       a_boolean        static_lifetime,
+                                       a_boolean        force_object_lifetime,
+                                       a_boolean        is_copy_initialization,
+                                       a_boolean        *is_constant,
+                                       an_expr_node_ptr *expression,
+                                       a_constant       *constant);
 
 extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
                                              a_param_type_ptr  param,

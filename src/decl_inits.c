@@ -496,11 +496,12 @@ initialized.  This routine is called in C++ mode only.
 
 
 static a_constant_ptr scan_initializer_of_simple_object(
-                                     a_boolean           nonconst_allowed,
-                                     a_boolean           static_lifetime,
-                                     a_boolean           force_object_lifetime,
-                                     a_type_ptr          type,
-                                     a_dynamic_init_ptr  *dip_ptr)
+                                    a_boolean           nonconst_allowed,
+                                    a_boolean           static_lifetime,
+                                    a_boolean           force_object_lifetime,
+                                    a_boolean           is_copy_initialization,
+                                    a_type_ptr          type,
+                                    a_dynamic_init_ptr  *dip_ptr)
 /*
 Scan a initializer for a non-aggregate object (i.e., not an array and not
 a class/struct/union object).  If nonconst_allowed is TRUE (always the case
@@ -510,16 +511,19 @@ has static storage duration.  force_object_lifetime is TRUE only in C++ mode
 and only when this function is called in scanning a entry in a ctor
 initializer list; it is passed on to scan_initializer_expression to force
 creation of an object lifetime for expression temporaries even if
-long_lifetime_temps is TRUE.  type is the data type of the object being
-initialized.  dip_ptr is a pointer to a dynamic init pointer; if the latter
-is NULL, a dynamic init entry may be allocated and returned, but if *dip_ptr
-is non-NULL, build the initialization information into the object it points
-to.  A (possibly NULL) constant pointer is returned; iff *dip_ptr is updated,
-NULL is returned.  Thus, if nonconst_allowed is TRUE, return a pointer to a
-constant entry.  Otherwise, if the initializer is a constant value then
-return a pointer to a constant only if *dip_ptr is NULL.  If the initializer
-is nonconstant or *dip_ptr is non-NULL, return a NULL constant pointer
-and build *dip_ptr to represent the initialization.
+long_lifetime_temps is TRUE.  If is_copy_initialization is TRUE, this
+is copy-initialization ("="-form); otherwise, it's direct-initialization
+("()"-form).  type is the data type of the object being initialized.
+dip_ptr is a pointer to a dynamic init pointer; if the latter is NULL,
+a dynamic init entry may be allocated and returned, but if *dip_ptr is
+non-NULL, build the initialization information into the object it
+points to.  A (possibly NULL) constant pointer is returned; iff
+*dip_ptr is updated, NULL is returned.  Thus, if nonconst_allowed is
+TRUE, return a pointer to a constant entry.  Otherwise, if the
+initializer is a constant value then return a pointer to a constant
+only if *dip_ptr is NULL.  If the initializer is nonconstant or
+*dip_ptr is non-NULL, return a NULL constant pointer and build
+*dip_ptr to represent the initialization.
 */
 {
   an_expr_node_ptr expression;
@@ -531,6 +535,7 @@ and build *dip_ptr to represent the initialization.
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
     scan_initializer_expression(type, static_lifetime, force_object_lifetime,
+                                is_copy_initialization,
                                 &is_constant, &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
@@ -1062,6 +1067,8 @@ ref field of a class object (or an array of same) remains uninitialized.
                                                  static_lifetime,
                                                  /*force_object_lifetime=*/
                                                                       FALSE,
+                                                 /*is_copy_initialization=*/
+                                                                      TRUE,
                                                  local_type, &dip);
     if (init_con == NULL) {
       /* Returning NULL means a nonconstant expression was scanned, and so
@@ -1601,6 +1608,8 @@ returned set to TRUE.
             scan_initializer_of_simple_object(nonconstant_allowed,
                                               static_lifetime,
                                               /*force_object_lifetime=*/FALSE,
+                                              /*is_copy_initialization=*/
+                                                                        FALSE,
                                               vp_type, &init_dip);
       /* The closing right paren will not have been consumed, as it is
          the arg list for a constructor call is scanned, so bypass it
@@ -1665,6 +1674,7 @@ returned set to TRUE.
             scan_initializer_of_simple_object(nonconstant_allowed,
                                               static_lifetime,
                                               /*force_object_lifetime=*/FALSE,
+                                              /*is_copy_initialization=*/TRUE,
                                               vp_type, &init_dip);
     /* If an extra opening brace was ignored earlier, ignore the matching
        closing brace now.  Check also for an extra comma (required in C++
@@ -2610,6 +2620,8 @@ scan_paren:
                                                 /*nonconst_allowed=*/TRUE,
                                                 /*static_lifetime=*/FALSE,
                                                 /*force_object_lifetime=*/TRUE,
+                                                /*is_copy_initialization=*/
+                                                                         FALSE,
                                                 init_type, &dip);
                 /* If the initializer produced an object lifetime for the full
                    expression, remove it temporarily from the object lifetime

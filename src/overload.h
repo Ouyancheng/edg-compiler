@@ -71,6 +71,15 @@ typedef struct a_conv_descr {
 		unusable;
 			/* If TRUE the conversion is unusable, e.g., it is
 			   ambiguous. */
+  a_byte_boolean
+		class_object_adjustment_required;
+			/* If TRUE, the result type of the conversion routine
+			   is a class type.  It differs from the desired
+			   type in being a derived class or in having different
+			   cv-qualifiers, but such adjustment is not a standard
+			   conversion; it's part of reference binding.
+			   std.cast_base_class indicates the derived --> base
+			   part of the adjustment. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
@@ -327,8 +336,7 @@ extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           a_source_position *position,
                                           an_operand        *result);
 
-extern void temp_init_from_operand(a_type_ptr temp_type,
-                                   an_operand *operand);
+extern void temp_init_from_operand(an_operand *operand);
 
 extern void overloaded_function_catch_up(
                                   a_symbol_ptr      function_symbol,
@@ -380,6 +388,7 @@ a_boolean conversion_from_class_possible(
                             a_type_ptr               dest_type,
                             a_builtin_type_kind_set  builtin_types_allowed,
                             a_boolean                need_lvalue_result,
+                            a_boolean                is_copy_initialization,
                             a_boolean                is_reference_binding,
                             a_conv_descr             *conversion,
                             a_boolean                *ambiguous,
@@ -435,6 +444,7 @@ extern void prep_initializer_operand(
                                   a_boolean     initializing_return_value,
                                   a_boolean     initializing_variable,
                                   a_boolean     static_lifetime,
+                                  a_boolean     is_copy_initialization,
                                   a_boolean     try_user_conversions,
                                   an_error_code incompatible_err);
 

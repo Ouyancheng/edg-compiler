@@ -1264,6 +1264,7 @@ variable.
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
+                           /*is_copy_initialization=*/FALSE,
                            /*try_user_conversions=*/TRUE, err_code);
    /* Check for the required closing parenthesis. */
   check_closing_paren_after_expr_list();
@@ -5330,6 +5331,7 @@ error with that, set *err TRUE as well.
         if (conversion_from_class_possible(operand, eff_type_cast_to,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/TRUE,
+                                           /*is_copy_initialization=*/FALSE,
                                            /*is_reference_binding=*/TRUE,
                                            &conversion, &ambiguous,
                                            (a_candidate_function_ptr *)NULL)) {
@@ -9989,6 +9991,7 @@ the appropriate dynamic initialization entry and return NULL.
                                /*initializing_return_value=*/TRUE,
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
+                               /*is_copy_initialization=*/TRUE,
                                /*try_user_conversions=*/TRUE,
                                err_code);
     }  /* if */
@@ -10239,6 +10242,7 @@ Return the constant in *constant.
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
+                           /*is_copy_initialization=*/TRUE,
                            /*try_user_conversions=*/FALSE,
                            ec_bad_nontype_template_arg);
   /* Make a constant from the operand. */
@@ -10273,7 +10277,8 @@ void scan_member_constant_initializer_expression(a_type_ptr required_type,
 Scan a member constant initializer expression.  Convert the constant to
 required_type (an integral or enumeration type, or an error or template
 type); issue an error if it is incompatible with that type.  Used in C++
-for scanning member constants in classes (in the standard form).
+for scanning member constants in classes (in the standard form).  Assumes
+copy-initialization ("="-form).
 */
 {
   an_operand          result;
@@ -10291,6 +10296,7 @@ for scanning member constants in classes (in the standard form).
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/TRUE,  /* Arbitrary. */
                            /*static_lifetime=*/FALSE,
+                           /*is_copy_initialization=*/TRUE,
                            /*try_user_conversions=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
@@ -10313,7 +10319,8 @@ void scan_constant_initializer_expression(a_type_ptr required_type,
 Scan a constant initializer expression.  Convert the constant to
 required_type; issue an error if it is incompatible with that type.
 See section 3.4 in the ANSI C standard.  Used in C++ for scanning
-nonstandard class member constants.
+nonstandard class member constants.  Assumes copy-initialization
+("="-form).
 */
 {
   an_operand          result;
@@ -10331,6 +10338,7 @@ nonstandard class member constants.
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/TRUE,  /* Arbitrary. */
                            /*static_lifetime=*/FALSE,
+                           /*is_copy_initialization=*/TRUE,
                            /*try_user_conversions=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
@@ -10350,6 +10358,7 @@ nonstandard class member constants.
 void scan_initializer_expression(a_type_ptr       required_type,
                                  a_boolean        static_lifetime,
                                  a_boolean        force_object_lifetime,
+                                 a_boolean        is_copy_initialization,
                                  a_boolean        *is_constant,
                                  an_expr_node_ptr *expression,
                                  a_constant       *constant)
@@ -10358,12 +10367,13 @@ Scan an initializer expression.  See sections 3.4 and 3.5.7 in the standard.
 The expression is converted to required_type; an error is issued if it
 is incompatible with that type.  The entity being initialized has static
 lifetime if static_lifetime is TRUE.  Force an object lifetime around the
-expression if force_object_lifetime is TRUE.  The expression can be constant
+expression if force_object_lifetime is TRUE.  This initialization is
+copy-initialization ("="-form) if is_copy_initialization is TRUE; otherwise,
+it is direct_initialization ("()"-form).  The expression can be constant
 or nonconstant; on return, *is_constant is set accordingly, and the result
 is returned either in *expression or in *constant.  Note that the
 required_type may not be an array type.  This routine is not used when
 copy constructor elision is possible; see scan_class_initializer_expression.
-This routine does copy-initialization ("="-form initialization).
 */
 {
   an_operand          result;
@@ -10391,6 +10401,7 @@ This routine does copy-initialization ("="-form initialization).
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/TRUE,
                            static_lifetime,
+                           is_copy_initialization,
                            /*try_user_conversions=*/TRUE,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */

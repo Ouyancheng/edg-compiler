@@ -1992,17 +1992,9 @@ which is mostly a no-op.
              change its type in place.  Otherwise, add a cast expression
              node. */
           node = operand->variant.expression;
-          if (is_class_struct_union_type(new_type)) {
-            /* An expression for an rvalue of class type can be cast to
-               class type here only to adjust the cv-qualifiers.  The IL
-               cannot represent that (nor does it need to), so just change the
-               type of the operand and leave the node alone. */
-            operand->type = new_type;
-          } else {
-            cast_node(&node, new_type, check_cast_access, is_implicit_cast,
-                      &operand->position);
-            make_expression_operand(node, new_type, operand);
-          }  /* if */
+          cast_node(&node, new_type, check_cast_access, is_implicit_cast,
+                    &operand->position);
+          make_expression_operand(node, new_type, operand);
           break;
         case ok_constant:
           /* Cast the constant by changing its type.  In a nonconstant
@@ -4819,7 +4811,7 @@ address of the temporary is returned.  This routine is only used in C++ mode.
     if (!optimized_case) {
       /* Create a temporary, copy the rvalue into the temporary, and return
          the address of the temporary. */
-      temp_init_from_operand(operand->type, operand);
+      temp_init_from_operand(operand);
     }  /* if */
 #if CHECKING
   } else {
