@@ -2400,7 +2400,11 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
       /* Ignore carriage return right before newline. */
       if (*(loc_in_line-1) == '\r') {
         loc_in_line--;
-        goto add_newline_and_null_and_return;
+        /* Avoid the line splice test if the line is empty except for the
+           carriage return. */
+        if (loc_in_line == curr_source_line) {
+          goto add_newline_and_null_and_return;
+        }  /* if */
       }  /* if */
 #endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
       /* End of a line containing at least one character.  Check to see
@@ -2607,7 +2611,11 @@ entry_for_expand_buffer:
     /* Ignore carriage return right before newline. */
     if (*(loc_in_line-1) == '\r') {
       loc_in_line--;
-      goto add_newline_and_null_and_return;
+      /* Avoid the line splice test if the line is empty except for the
+         carriage return. */
+      if (loc_in_line == curr_source_line) {
+        goto add_newline_and_null_and_return;
+      }  /* if */
     }  /* if */
 #endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
     /* Check for backslash indicating line-splice.  Go add trailing newline
