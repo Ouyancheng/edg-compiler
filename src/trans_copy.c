@@ -30,6 +30,7 @@ trans_copy.c -- Copy IL from secondary translation units to the
 #include "trans_corresp.h"
 #include "il_walk.h"
 #include "scope_stk.h"
+#include "templates.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #include "lower_name.h"
@@ -807,6 +808,8 @@ entity associated with the scope should be kept on the caller's list
        routine = routine->next) {
     keep_on_list = TRUE;
     if (has_corresp(routine)) {
+      a_routine_ptr corresp_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
       /* This entry corresponds to something in the primary IL. */
       keep_on_list = FALSE;
       if (check_member_merges &&
@@ -815,6 +818,26 @@ entity associated with the scope should be kept on the caller's list
         mark_to_merge(routine);
         keep_on_list = TRUE;
       }  /* if */
+      /* Update some information regarding inline functions. */
+#if INSTANTIATE_EXTERN_INLINE
+      corresp_routine->inline_instance_required |=
+                                             routine->inline_instance_required;
+#endif /* INSTANTIATE_EXTERN_INLINE */
+      corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
+      { a_symbol_ptr sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
+        a_symbol_ptr corresp_sym =
+                    (a_symbol_ptr)(corresp_routine->source_corresp.assoc_info);
+        if (sym != NULL && corresp_sym != NULL) {
+          a_template_instance_ptr instance = sym->variant.routine.instance_ptr;
+          a_template_instance_ptr corresp_instance =
+                                     corresp_sym->variant.routine.instance_ptr;
+          if (instance != NULL && corresp_instance != NULL) {
+            /* Transfer some information regarding instantiations. */
+            corresp_instance->instantiation_required |=
+                                              instance->instantiation_required;
+          }  /* if */
+        }  /* if */
+      }
     } else {
       /* This routine has no correspondence in the primary file IL. */
       if (translation_unit_needed_only_for_exported_templates) {
@@ -1077,10 +1100,9 @@ primary file IL.
 
 
 /*
-primary_entry points to an IL entry in the primary translation unit IL,
-which has no definition.  corresp_entry points to an IL entry in a secondary
-translation unit, which corresponds to primary_entry, does have a definition,
-and should overwrite primary_entry.  Do the overwriting.
+Macros that do saves/restores needed for each overwrite_primary_xxx
+routine, used when an IL entry in the secondary translation unit
+IL is copied on top of an existing entry in the primary IL.
 */
 #if MAINTAIN_NEEDED_FLAGS
 #define save_needed_flag_for_overwrite(primary_entry) \
@@ -1104,15 +1126,129 @@ and should overwrite primary_entry.  Do the overwriting.
 #define restore_per_instantiation_needed_flags_for_overwrite(primary_entry) \
   /* Nothing */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#define overwrite_primary_entry(primary_entry, corresp_entry, entry_ptr_type) \
-{ save_needed_flag_for_overwrite(primary_entry) \
-  save_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+#define do_saves_for_overwrite(primary_entry, entry_ptr_type) \
   entry_ptr_type saved_next = (primary_entry)->next; \
-  *(primary_entry) = *(corresp_entry); \
-  restore_needed_flag_for_overwrite(primary_entry) \
-  restore_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+  save_needed_flag_for_overwrite(primary_entry) \
+  save_per_instantiation_needed_flags_for_overwrite(primary_entry)
+#define do_restores_for_overwrite(primary_entry) \
   (primary_entry)->next = saved_next; \
-}  /* overwrite_primary_entry */
+  restore_needed_flag_for_overwrite(primary_entry) \
+  restore_per_instantiation_needed_flags_for_overwrite(primary_entry)
+
+
+static void overwrite_primary_type(a_type_ptr type,
+                                   a_type_ptr primary_type)
+/*
+Overwrite the type primary_type (in the primary IL) with type (in
+the secondary translation unit IL).
+*/
+{
+  do_saves_for_overwrite(primary_type, a_type_ptr);
+  *primary_type = *type;
+  do_restores_for_overwrite(primary_type);
+}  /* overwrite_primary_type */
+
+
+static void overwrite_primary_variable(a_variable_ptr var,
+                                       a_variable_ptr primary_var)
+/*
+Overwrite the variable primary_var (in the primary IL) with var (in
+the secondary translation unit IL).
+*/
+{
+  do_saves_for_overwrite(primary_var, a_variable_ptr);
+  *primary_var = *var;
+  do_restores_for_overwrite(primary_var);
+}  /* overwrite_primary_variable */
+
+
+static void overwrite_primary_routine(a_routine_ptr rout,
+                                      a_routine_ptr primary_rout)
+/*
+Overwrite the routine primary_rout (in the primary IL) with rout (in
+the secondary translation unit IL).
+*/
+{
+#if INSTANTIATE_EXTERN_INLINE
+  a_boolean saved_inline_instance_required =
+                                        primary_rout->inline_instance_required;
+#endif /* INSTANTIATE_EXTERN_INLINE */
+  a_boolean saved_suppress_inline_body = primary_rout->suppress_inline_body;
+  do_saves_for_overwrite(primary_rout, a_routine_ptr);
+  *primary_rout = *rout;
+  do_restores_for_overwrite(primary_rout);
+  /* Note that inline_instance_required etc. were previously updated in
+     the primary routine, so we just save the value determined. */
+#if INSTANTIATE_EXTERN_INLINE
+  primary_rout->inline_instance_required = saved_inline_instance_required;
+#endif /* INSTANTIATE_EXTERN_INLINE */
+  primary_rout->suppress_inline_body = saved_suppress_inline_body;
+}  /* overwrite_primary_routine */
+
+
+static void copy_instantiation_info_for_routine(a_routine_ptr routine,
+                                                a_routine_ptr copy_routine,
+                                                a_boolean     overwrite)
+/*
+The indicated routine will be copied from routine (in the secondary
+translation unit IL) to copy_routine (in the primary IL).  If overwrite
+is TRUE, routine will overwrite copy_routine.  Update any instantiation
+list information associated with the routine.  Also handle the
+"instantiation" lists for extern inline functions, if appropriate.
+*/
+{
+ a_symbol_ptr sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
+ a_symbol_ptr copy_sym =
+                    (a_symbol_ptr)(copy_routine->source_corresp.assoc_info);
+
+  if (instantiate_extern_inline && routine->is_inline &&
+      routine->storage_class == (a_storage_class)sc_unspecified) {
+    /* extern inline functions are put on a list so they can be
+       "instantiated".  If a function is both a template instance and
+       extern inline, it goes on both lists. */
+    check_assertion(copy_routine->is_inline &&
+                    copy_routine->storage_class != (a_storage_class)sc_static);
+    if (overwrite && copy_routine->assoc_scope != NULL_region_number) {
+      /* The corresponding routine already has a definition, so there is
+         already a list entry for the routine in the primary IL. */
+    } else {
+      /* Add an entry for the routine. */
+      add_to_inline_function_list(copy_routine);
+    }  /* if */
+  }  /* if */
+  if (sym != NULL) {
+    a_template_instance_ptr instance = sym->variant.routine.instance_ptr;
+    if (instance != NULL) {
+      a_template_instance_ptr copy_instance;
+      a_template_instance_ptr saved_next, saved_next_in_instantiation_list;
+      /* The routine is a template instance. */
+      if (overwrite) {
+        /* There is already a copy of this instance in the primary IL,
+           which must have an associated template instance entry.  We
+           will overwrite that instance entry. */
+        check_assertion(copy_sym != NULL);
+        copy_instance = copy_sym->variant.routine.instance_ptr;
+        check_assertion(copy_instance != NULL);
+        saved_next = copy_instance->next;
+        saved_next_in_instantiation_list =
+                     copy_instance->next_in_instantiation_list;
+      } else {
+        /* This is a new instance, for which there is no copy in the primary
+           IL.  Create a new instantiation list entry by making a copy of the
+           one from the secondary translation unit. */
+        copy_instance = alloc_template_instance();
+        saved_next = NULL;
+        saved_next_in_instantiation_list = NULL;
+      }  /* if */
+      *copy_instance = *instance;
+      copy_instance->next = saved_next;
+      copy_instance->next_in_instantiation_list =
+                            saved_next_in_instantiation_list;
+      copy_instance->referencing_namespace = NULL;
+      if (!overwrite) add_to_instantiations_required_list(copy_instance);
+    }  /* if */
+  }  /* if */
+}  /* copy_instantiation_info_for_routine */
 
 
 static void finish_trans_unit_copy(a_scope_ptr scope)
@@ -1187,7 +1323,7 @@ secondary scope to the primary file IL.
           if (!is_class_scope) {
             move_to_end_of_primary_file_types_list(primary_type);
           }  /* if */
-          overwrite_primary_entry(primary_type, corresp_type, a_type_ptr);
+          overwrite_primary_type(corresp_type, primary_type);
           corresp_type = primary_type;
           if (is_class_scope) goto end_of_type_list_add;
         } /* if */
@@ -1231,8 +1367,7 @@ end_of_type_list_add:;
             remove_from_primary_file_variables_list(primary_variable);
             last_variable = pointers_block->last_variable;
           }  /* if */
-          overwrite_primary_entry(primary_variable, corresp_variable,
-                                  a_variable_ptr);
+          overwrite_primary_variable(corresp_variable, primary_variable);
           corresp_variable = primary_variable;
           if (is_class_scope) goto end_of_variable_list_add;
         }  /* if */
@@ -1304,7 +1439,12 @@ end_of_variable_list_add:;
            routine = routine->next) {
         a_routine_ptr corresp_routine =
                  (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
-        if (entry_to_be_merged(routine)) {
+        a_boolean     overwrite = entry_to_be_merged(routine);
+        /* If the routine is a template (or an extern inline function),
+           copy instantiation information. */
+        copy_instantiation_info_for_routine(routine, corresp_routine,
+                                            overwrite);
+        if (overwrite) {
           /* Merge the information from this routine into the primary IL
              routine (the secondary translation unit instance has a
              definition and the primary translation unit instance does not).
@@ -1324,8 +1464,7 @@ end_of_variable_list_add:;
             remove_from_primary_file_routines_list(primary_routine);
             last_routine = pointers_block->last_routine;
           }  /* if */
-          overwrite_primary_entry(primary_routine, corresp_routine,
-                                  a_routine_ptr);
+          overwrite_primary_routine(corresp_routine, primary_routine);
           corresp_routine = primary_routine;
           if (is_class_scope) goto end_of_routine_list_add;
         }  /* if */
@@ -1535,6 +1674,12 @@ secondary translation unit IL and therefore will not be copied.
   a_translation_unit_ptr saved_translation_unit = curr_translation_unit;
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
+#if DEBUG
+  if (debug_level >= 1) {
+    fprintf(f_debug, "Beginning copy from secondary translation unit %s:\n",
+            curr_translation_unit->source_file->name_as_written);
+  }  /* if */
+#endif /* DEBUG */
   check_assertion(total_errors == 0 && !is_primary_translation_unit);
   /* This code doesn't handle source sequence lists, so the result won't
      work with the C++-generating back end. */
@@ -1552,6 +1697,12 @@ secondary translation unit IL and therefore will not be copied.
   finish_moved_function_processing(top_scope);
   switch_translation_unit(saved_translation_unit);
   merge_il_headers();
+#if DEBUG
+  if (debug_level >= 1) {
+    fprintf(f_debug, "Done with copy from secondary translation unit %s\n",
+            curr_translation_unit->source_file->name_as_written);
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
 

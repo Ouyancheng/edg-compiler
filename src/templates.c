@@ -14288,7 +14288,7 @@ specified by "tip" depend on a template parameter.
 #endif /* EXPENSIVE_CHECKING */
 
 
-static void add_to_instantiations_required_list(a_template_instance_ptr  tip)
+void add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
 Add a template instance entry to the end of the instantiations_required
 list.
@@ -17437,6 +17437,7 @@ per object mode is used, assign a needed bit number to this routine.
 {
   a_routine_list_entry_ptr	rlep;
 
+  check_assertion(instantiate_extern_inline && rout_ptr->is_inline);
   /* Only add extern inline functions. */
   if (rout_ptr->storage_class != (a_storage_class)sc_static) {
     rlep = alloc_list_entry_for_routine();
@@ -17445,9 +17446,12 @@ per object mode is used, assign a needed bit number to this routine.
     inline_function_list = rlep;
 #if ONE_INSTANTIATION_PER_OBJECT
     if (one_instantiation_per_object) {
-      /* Get a "needed bit number" for the routine. */
-      rout_ptr->instantiation_needed_bit_number =
+      /* Get a "needed bit number" for the routine if it doesn't have one
+         already. */
+      if (rout_ptr->instantiation_needed_bit_number == 0) {
+        rout_ptr->instantiation_needed_bit_number =
                                       assign_instantiation_needed_bit_number();
+      }  /* if */
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
