@@ -4402,7 +4402,7 @@ pointer to non-shared, or if the conversion is between two pointer to UPC
     result = FALSE;
   }  /* if */
   return result;
-}  /* if */
+}  /* check_implicit_upc_pointer_conversion */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
