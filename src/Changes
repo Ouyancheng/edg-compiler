@@ -1,5 +1,18 @@
 Version 2.41
 
+2/10/99   Incorrect lookup in partial specialization
+
+In a partial specialization, a reference such as "A<T1,T2>" in the example
+below should refer to a "nonreal" instance of the template, and the
+reference to "B" should be accepted.  Instead, the front end was looking
+up the name in the primary template and issuing an error.  This has been
+fixed.
+
+  template <class T1, class T2> struct A { };
+  template <class T1, class T2> struct A<T1*, T2*> {
+    typedef typename A<T1,T2>::B B;
+  };
+
 2/8/99    Abort in Microsoft 16-bit mode
 
 When MAINTAIN_NEEDED_FLAGS is configured to TRUE, an abort could occur with
