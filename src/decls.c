@@ -3604,7 +3604,8 @@ namespace-extension scope.
     find_linked_symbol(idlbp);
     linked_symbol = idlbp->linked_symbol;
     storage_class = idlbp->storage_class;
-    if (linked_symbol != NULL) {
+    if (linked_symbol != NULL &&
+        linked_symbol->kind != (a_symbol_kind)sk_overloaded_function) {
       /* A linked symbol was found -- set the storage class and linkage
          appropriately. */
       switch (linked_symbol->kind) {
