@@ -27,7 +27,7 @@ wrong anyway.
 In a configuration with DO_IL_LOWERING and RECORD_CONSTANT_EXPRESSIONS_IN_IL
 both TRUE, an abort could happen when the IL walk routines walked the
 unlowered expression attached to a lowered constant and encountered
-a lowered dpointer-to-member type attached to an unlowered
+a lowered pointer-to-member type attached to an unlowered
 pointer-to-member operation.  The abort was in pm_class_type,
 called from walk_entry.h/il_walk.c.  Now fixed.
 
