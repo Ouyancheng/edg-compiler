@@ -1841,16 +1841,19 @@ one step instead of class-by-class, return TRUE.
 }  /* pm_cast_is_unambiguous */
 
 
-static void gen_designator(a_constant_ptr con)
+static void gen_designator(a_constant_ptr con,
+                           a_field_ptr    *field)
 /*
 Generate code for a ck_designator constant, i.e., a designator in a
-designated initializer.
+designated initializer.  If the designator is for a field, set *field to
+the field.
 */
 {
-  if (con->variant.designator.field != NULL) {
+  *field = con->variant.designator.field;
+  if (*field != NULL) {
     /* Field designator. */
     write_tok_ch('.');
-    gen_field_name(con->variant.designator.field);
+    gen_field_name(*field);
   } else {
     /* Array element designator. */
     write_tok_ch('[');
@@ -1905,7 +1908,7 @@ initialized is not a reference.
       for (; sub_con != NULL;) {
         if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
           /* Put out the introduction for a designated initializer. */
-          gen_designator(sub_con);
+          gen_designator(sub_con, &field);
           sub_con = sub_con->next;
           check_assertion(sub_con != NULL &&
                           sub_con->kind!=(a_constant_repr_kind)ck_designator);
