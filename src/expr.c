@@ -2484,6 +2484,7 @@ nonstatic_member_function:
           }  /* if */
 #endif /* CHECKING */
           first_func_sym = member_sym->variant.overloaded_function.symbols;
+          reduce_projection_symbol_to_fundamental_symbol(first_func_sym);
           routine_type = routine_symbol_type(first_func_sym);
           if (member_sym->variant.overloaded_function.mixed_static_nonstatic ||
               routine_type_is_nonstatic_member_function(routine_type)) {
