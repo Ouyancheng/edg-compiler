@@ -4662,7 +4662,7 @@ declaration.
   a_source_correspondence  *source_corresp_ptr;
   a_scope_depth            effective_decl_level;
   a_boolean                template_function_specific_decl = FALSE;
-  a_boolean		   explicit_template_reference = FALSE;
+  a_boolean                explicit_template_reference = FALSE;
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
@@ -4674,6 +4674,7 @@ declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
+  a_boolean                notify_correspondence_processing = FALSE;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -5621,7 +5622,7 @@ skip_overloading:;
       /* This routine entry might have been generated during the instantiation
          of another template.  The correspondence checking process must
          therefore be notified of its existence. */
-      establish_block_extern_function_correspondence(routine_ptr);
+      notify_correspondence_processing = TRUE;
     }  /* if */
   } else {
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
@@ -5692,6 +5693,10 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
+  if (notify_correspondence_processing) {
+    /* This had to be delated until the name linkage was set. */
+    establish_block_extern_function_correspondence(routine_ptr);
+  }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (!C_mode()) {
     /* Set the "name linkage environment" for this routine.  This is used by
