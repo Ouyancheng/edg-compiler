@@ -4708,11 +4708,6 @@ the error on the final identifier not being found on lookup.
                with specific_symbol pointing to a newly-created error
                symbol of kind sk_undefined. */
             make_specific_symbol_error_locator(&locator_for_curr_id);
-            /* It is occasionally useful to record the class qualifier in
-               the sk_undefined symbol.  This is expected, after all, when
-               the locator is flagged as is_qualified_name. */
-            locator_for_curr_id.specific_symbol->class_of_which_a_member =
-                                                                  class_type;
           }  /* if */
           locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;
           locator_for_curr_id.is_global_qualified_name = has_global_qualifier;
