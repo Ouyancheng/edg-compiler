@@ -1608,7 +1608,7 @@ of the global variable named_registers_enabled.
 #endif /* DEFAULT_NAMED_REGISTERS_ENABLED */
 #if !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ENABLED
  #error -- Enabling of named registers not allowed
-#endif /* !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ALLOWED */
+#endif /* !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ENABLED */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
