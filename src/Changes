@@ -1,3 +1,15 @@
+6/3/92  Added support for the nested class anachronism.
+
+The nested class anachronism in ARM 18.3.5 has been added as part of the
+name lookup algorithm in normal_id_lookup.  A search for qualifying
+nested classes is resorted to only if no symbol is found by the normal
+lookup procedure; this occasionally results in behavior that is different
+from cfront's (e.g., cfront will prefer a nested class in an inner scope
+to a name from an outer scope).  A warning is issued when a "semivisible"
+nested class is used.  No attempt is made to duplicate other diagnostics
+issued by cfront; only uses of the feature consistent with ARM 18.3.5
+are supported.
+
 6/1/92  Fixed bug in computing offsets for zero-length unnamed bit field.
 
 The bug caused too much padding to be added.
