@@ -162,33 +162,32 @@ Dump the name from a source correspondence (if any).
 }  /* db_name */
 
 
-void db_field(a_field *fp)
+static void db_abbreviated_type(a_type *tp)
 /*
-Dump a field entry, for debug purposes.
+Dump a type in abbreviated form.  This is particularly required for
+classes, structs, unions, which may contain fields that point to
+objects of their own type.
 */
 {
-  fputs("field, name = ", f_debug);
-  db_name(&fp->source_corresp);
-  fputs(", type =", f_debug);
-  db_type(fp->type);
-  fprintf(f_debug, ", bit_offset = %lu, bit_size = %d\n",
-                   fp->bit_offset, fp->bit_size);
-}  /* db_field */
-
-
-static void db_base_class_field(a_field *fp,
-				a_type *tp)
-/*
-Dump field *fp derived from base class *tp, for debug purposes.
-*/
-{
-  fprintf(f_debug, "\n\tfield %s::", tp->source_corresp.name);
-  db_name(&fp->source_corresp);
-  fputs(", type = ", f_debug);
-  db_type(fp->type);
-  fprintf(f_debug, ", bit_offset = %lu, bit_size = %d",
-                   fp->bit_offset, fp->bit_size);
-}  /* db_base_class_field */
+  switch (tp->kind) {
+    case tk_class:
+      fputs("class", f_debug);
+      goto print_name;
+    case tk_struct:
+      fputs("struct", f_debug);
+      goto print_name;
+    case tk_union:
+      fputs("union", f_debug);
+print_name:
+      if (tp->source_corresp.name != NULL) {
+        fprintf(f_debug, " \"%s\"", tp->source_corresp.name);
+      }  /* if */
+      break;
+    default:
+      db_type(tp);
+      break;
+  }  /* switch */
+}  /* db_abbreviated_type */
 
 
 static void db_access_control(an_access_specifier as)
@@ -203,6 +202,55 @@ Dump an access control specifier.
     case as_inaccessible: fputs("inaccessible", f_debug); break;
   }  /* switch */
 }  /* db_access_control */
+
+
+void db_field(a_field *fp)
+/*
+Dump a field entry, for debug purposes.
+*/
+{
+  fputc(' ', f_debug);
+  if (C_dialect = C_dialect_cplusplus) {
+    fputc(' ', f_debug);
+    db_access_control(fp->source_corresp.access);
+  }  /* if */
+  fputs(" field \"", f_debug);
+  db_name(&fp->source_corresp);
+  fputs("\", type = ", f_debug);
+  db_abbreviated_type(fp->type);
+  fprintf(f_debug, " -- bit offset %lu, bit size %d\n",
+                   fp->bit_offset, fp->bit_size);
+}  /* db_field */
+
+
+void db_static_data_member(a_variable_ptr vp)
+/*
+Dump a static data member (a variable entry), for debug purposes.
+*/
+{
+  fputs("  ", f_debug);
+  db_access_control(vp->source_corresp.access);
+  fputs(" static data member \"", f_debug);
+  db_name(&vp->source_corresp);
+  fputs("\", type = ", f_debug);
+  db_abbreviated_type(vp->type);
+  fputc('\n', f_debug);
+}  /* db_static_data_member */
+
+
+static void db_base_class_field(a_field *fp,
+				a_type *tp)
+/*
+Dump field *fp derived from base class *tp, for debug purposes.
+*/
+{
+  fprintf(f_debug, "\n\tfield %s::", tp->source_corresp.name);
+  db_name(&fp->source_corresp);
+  fputs(", type = ", f_debug);
+  db_abbreviated_type(fp->type);
+  fprintf(f_debug, " -- bit offset %lu, bit size %d",
+                   fp->bit_offset, fp->bit_size);
+}  /* db_base_class_field */
 
 
 static void db_base_class(a_base_class *bcp)
@@ -237,9 +285,10 @@ void db_type(a_type *tp)
 Dump the contents of the indicated type entry, for debug purposes.
 */
 {
-  a_field_ptr      fp;
-  a_param_type_ptr ptp;
-  a_boolean	   comma_required;
+  a_field_ptr                   fp;
+  a_param_type_ptr              ptp;
+  a_class_type_supplement_ptr	ctsp;
+  a_boolean	                comma_required;
 
   switch (tp->kind) {
     case tk_error:
@@ -266,27 +315,7 @@ Dump the contents of the indicated type entry, for debug purposes.
 pointer_or_reference:
       /* Dump classes/structs/unions specially to avoid recursive loops
          when then contain pointers to themselves. */
-      {
-	a_type_ptr ptp = tp->variant.pointer_type_pointed_to;
-	switch (ptp->kind) {
-	  case tk_class:
-	    fputs("class", f_debug);
-	    goto print_name;
-	  case tk_struct:
-	    fputs("struct", f_debug);
-	    goto print_name;
-	  case tk_union:
-	    fputs("union", f_debug);
-print_name:
-	    if (ptp->source_corresp.name != NULL) {
-	      fprintf(f_debug, " %s", ptp->source_corresp.name);
-	    }  /* if */
-	    break;
-	  default:
-            db_type(tp->variant.pointer_type_pointed_to);
-	    break;
-        }  /* switch */
-      }
+      db_abbreviated_type(tp->variant.pointer_type_pointed_to);
       fputc(')', f_debug);
       break;
     case tk_array:
@@ -295,17 +324,17 @@ print_name:
       fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
     case tk_struct:
-      fputs("struct {", f_debug);
+      fputs("struct {\n", f_debug);
       goto class_struct_union;
     case tk_union:
-      fputs("union {", f_debug);
+      fputs("union {\n", f_debug);
       goto class_struct_union;
     case tk_class:
-      fputs("class {", f_debug);
+      fputs("class {\n", f_debug);
 class_struct_union:
-      if (tp->variant.class.extra_info != NULL) {
-        a_base_class_ptr bcp = tp->variant.class.extra_info->base_classes;
-
+      ctsp = tp->variant.class.extra_info;
+      if (ctsp != NULL && tp->kind != (a_type_kind)tk_union) {
+        a_base_class_ptr bcp = ctsp->base_classes;
         while (bcp != NULL) {
           db_base_class(bcp);
           bcp = bcp->next;
@@ -316,6 +345,13 @@ class_struct_union:
         db_field(fp);
         fp = fp->next;
       }  /* while */
+      if (ctsp != NULL) {
+	a_variable_ptr	vp = ctsp->static_data_members;
+	while (vp != NULL) {
+	  db_static_data_member(vp);
+	  vp = vp->next;
+	}  /* while */
+      }  /* if */
       fputc('}', f_debug);
       break;
     case tk_routine:
@@ -2577,6 +2613,17 @@ of the front end.
   curr_il_region_number = NULL_region_number;
 
   /* Static variables in il.c: */
+#if CHECKING && DEBUG
+  /* Check that the table of storage class names is correctly initialized.
+     This guards against someone changing the enumeration and forgetting to
+     update db_storage_class_names. */
+
+  if (db_storage_class_names[(int)sc_last] == NULL ||
+      strcmp(db_storage_class_names[(int)sc_last], "last") != 0) {
+    internal_error(
+              "il_init: incorrect initialization of db_storage_class_names");
+  }  /* if */
+#endif /* CHECKING && DEBUG */
   /* Depending on NULL represented as zero bits here. */
   memzero((char *)int_types, sizeof(int_types));
   memzero((char *)float_types, sizeof(float_types));
