@@ -2103,24 +2103,23 @@ error code.
       break;
     case ec_cl_vtbl_option_only_in_cplusplus:
       m =
-      "virtual function tables can only be suppressed (-V) when compiling C++";
+      "virtual function tables can only be suppressed when compiling C++";
       break;
     case ec_cl_anachronism_option_only_in_cplusplus:
-      m = "anachronism option (-O) can be used only when compiling C++";
+      m = "anachronism option can be used only when compiling C++";
       break;
     case ec_cl_instantiation_option_only_in_cplusplus:
-      m = "instantiation mode (-t) can be used only when compiling C++";
+      m = "instantiation mode option can be used only when compiling C++";
       break;
     case ec_cl_auto_instantiation_option_only_in_cplusplus:
-      m =
-       "automatic instantiation mode (-T) can be used only when compiling C++";
+      m = "automatic instantiation mode can be used only when compiling C++";
       break;
     case ec_cl_implicit_inclusion_option_only_in_cplusplus:
       m =
-   "implicit template inclusion mode (-B) can be used only when compiling C++";
+        "implicit template inclusion mode can be used only when compiling C++";
       break;
     case ec_cl_exceptions_option_only_in_cplusplus:
-      m = "exception handling option (-x) can be used only when compiling C++";
+      m = "exception handling option can be used only when compiling C++";
       break;
     case ec_cl_strict_ansi_incompatible_with_pcc:
       m = "strict ANSI mode is incompatible with K&R mode";
@@ -2139,7 +2138,7 @@ error code.
       m = "too many arguments on command line";
       break;
     case ec_cl_no_output_file_needed:
-      m = "-o was specified, but no output file is needed";
+      m = "an output file was specified, but none is needed";
       break;
     case ec_cl_il_display_requires_il_file_name:
       m = "IL display requires name of IL file";
@@ -2158,7 +2157,8 @@ error code.
       m = "a throw expression may not have void type";
       break;
     case ec_cl_tim_local_conflicts_with_auto_instantiation:
-      m = "-tlocal mode is incompatible with automatic instantiation";
+      m =
+       "local instantiation mode is incompatible with automatic instantiation";
       break;
     case ec_abstract_class_param_type:
       m = "parameter of abstract class type is not allowed";
