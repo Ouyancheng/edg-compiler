@@ -7049,6 +7049,11 @@ that follows.
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
+
+          sym->variant.static_data_member.variable->
+                           storage_class = (a_storage_class)sc_unspecified;
+          /* Advance past "=". */
+          (void)get_token();
           initializer(sym, &locator.source_position,
                       (an_id_linkage_kind)idl_external,
                       /*has_parenthesized_initializer=*/FALSE,
