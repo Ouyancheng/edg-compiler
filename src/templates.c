@@ -3463,14 +3463,17 @@ updated but not removed from the list.
   if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
   } else if (value) {
+    a_template_symbol_supplement_ptr tssp;
     sym = tip->instance_sym;
+    tssp = template_supplement_for_symbol(tip->template_sym);
     if (sym == tip->template_sym) {
       /* Somehow a member function of a nonreal class (e.g., a prototype
          instantiation of a class template) has been referenced.  (This
-         can occur in a sizeof operation applied to the address of a
+ s        can occur in a sizeof operation applied to the address of a
          static member function -- anywhere else?).  Do not instantiate
          the function. */
-    } else if (is_function_symbol(sym) && sym->defined &&
+    } else if (is_function_symbol(sym) &&
+               tssp->token_cache.first_token != NULL &&
                sym->variant.routine.ptr->is_inline) {
       /* Inline (member or nonmember) functions are instantiated at the
          point of first use, in case the back end requires the function
