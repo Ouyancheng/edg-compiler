@@ -1,10 +1,10 @@
 Version 2.34
 
-12/12/96 Microsoft comaptibility: binding reference to pointer when there
+12/12/96 Microsoft compatibility: binding reference to pointer when there
          are extra cv-qualifiers
 
 Cases like the following, which were formerly accepted as extensions in
-cfront mode, are now accepted in Microsoft mode too:
+cfront mode, are now accepted in Microsoft mode also:
 
   void f(const char*& k);
   void g() {
