@@ -600,6 +600,7 @@ and for the instantiation of template functions.
   a_param_id_ptr                 param_id;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_param_id_ptr                 orig_param_id = NULL;
+  a_boolean                      instantiate_param_declared_type = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_ptr                    scope_ptr;
   a_struct_stmt_stack_state      saved_sss_state;
@@ -810,30 +811,46 @@ and for the instantiation of template functions.
         }  /* for */
       }  /* if */
     }  /* if */
+    param_id = func_info->param_id_list;
+    ptp = rtsp->param_type_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (is_instantiation) {
+    if (is_instantiation && param_id != NULL) {
       /* When source sequence list generation is enabled, we save the param-id
          list of the instantiation.  This allows a meaningful record of the
          declared_type information later on.  If that record is unneeded, the
-         param-id list of the template suffices. */
+         param-id list of the template suffices.  If a guiding template
+         declaration preceded the template declaration, we may not have
+         rescanned the substituted template, and hence the declared_type must
+         be instantiated separately. */
       a_symbol_ptr  rout_sym =
                             (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
       a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
-      orig_param_id = tip->param_id_list;
+      if (tip->param_id_list != NULL) {
+        orig_param_id = tip->param_id_list;
+      } else {
+        /* We only have the declared parameter types of the template, not the
+           instance.  We'll instantiate each type later on. */
+        check_assertion(tip->is_guiding_decl);
+        orig_param_id = func_info->param_id_list;
+        instantiate_param_declared_type = TRUE;
+      }  /* if */
     } else {
       orig_param_id = func_info->param_id_list;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    param_id = func_info->param_id_list;
-    ptp = rtsp->param_type_list;
     /* Be sure param-id and param-type lists are in sync. */
     check_assertion((param_id == NULL) == (ptp == NULL));
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      decl_parameter(param_id, orig_param_id->declared_type,
-                     ptp, is_instantiation);
+      a_type_ptr  declared_param_type = orig_param_id->declared_type;
+
+      if (instantiate_param_declared_type) {
+        declared_param_type = instantiate_type_for_template_function(
+                                               declared_param_type, rout_ptr);
+      }  /* if */
+      decl_parameter(param_id, declared_param_type, ptp, is_instantiation);
       orig_param_id = orig_param_id->next;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_parameter(param_id, ptp, is_instantiation);
