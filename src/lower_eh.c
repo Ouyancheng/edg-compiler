@@ -222,6 +222,14 @@ perhaps it will be completed later in this compilation).
   a_field_ptr last_field;
   char        *name, *ptr;
 
+  /* If the typeinfo type has not been made already, make it so it will
+     be in the right place on the type list relative to this type. */
+  if (typeinfo_type == NULL) {
+    /* The call here will result in a recursive call to the present routine,
+       but that one will find typeinfo_type != NULL and will get into a
+       recursion loop. */
+    (void)make_typeinfo_type();
+  }  /* if */
   /* If the type has been made already, we're done. */
   if (user_type_info_type == NULL) {
     /* Make the struct type. */
