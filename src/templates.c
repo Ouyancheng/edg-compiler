@@ -4366,6 +4366,9 @@ prototype instantiation is considered as a potential match.
        are always looked up through the template). */
     a_symbol_ptr			primary_template_sym;
     a_template_symbol_supplement_ptr	primary_tssp;
+    a_boolean				trans_unit_pushed;
+    /* Switch to the translation unit containing the template, if needed. */
+    trans_unit_pushed = push_translation_unit_if_needed(class_template_sym);
     sym = make_template_class_symbol(class_template_sym);
     /* Add the new symbol to the head of the instantiation list.  The
        instantiation list of the primary template is always used (i.e.,
@@ -4530,6 +4533,8 @@ prototype instantiation is considered as a potential match.
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    /* If the translation unit stack was pushed above, pop it now. */
+    if (trans_unit_pushed) pop_translation_unit_stack();
   } else {
     /* We are reusing a class type that already exists, so *new_list will not
        be used.  Return the entries to the available list for reuse. */
