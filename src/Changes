@@ -1,5 +1,19 @@
 Version 2.33
 
+9/27/96  Promotion cost for float operands of builtins in overload resolution
+
+On builtin operators that take a promoted arithmetic operand, a float
+operand should be considered to have a "promotion" cost for the promotion
+to double.
+
+  struct A {
+    operator double();
+  } a;
+  void operator+(const A&, double);
+  int main () {
+    a + 1.0f;  // a.operator+(double(1.0f)), not ambiguous
+  }
+
 9/27/96  Microsoft compatibility: multi-token type specifiers in cast
 
 Microsoft's MSVC++ allows functional-notation type conversions like

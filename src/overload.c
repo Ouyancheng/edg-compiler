@@ -4821,29 +4821,44 @@ match, promotion, etc.) for the operand and record it in arg_match.
           arg_match->conversion.std.ptr_or_pm_to_bool = TRUE;
         }  /* if */
       }  /* if */
-    } else if (!any_cfront_mode() && is_enum_type(operand_type)) {
-      /* An enum type is not an integral type, so there's always at least
-         a promotion cost.  There's also always at most a promotion cost,
-         because the type after promotion is both a promoted integral type
-         and a promoted arithmetic type. */
-      match_level = aml_promotion;
     } else if (type_code == PROMOTED_INTEGRAL_TYPE_CODE ||
-               type_code == PROMOTED_ARITH_TYPE_CODE) {
-      /* A promoted type is required.  See if the operand type is an integral
-         type affected by promotion. */
-      /* No special handling is needed here for bool operands. */
+               type_code == PROMOTED_ARITH_TYPE_CODE ||
+               type_code == INTEGRAL_TYPE_CODE ||
+               type_code == ARITH_TYPE_CODE) {
       if (is_integral_type(operand_type)) {
-        a_type_ptr promoted_type =
-                                operand_type_after_integral_promotion(operand);
-        if (!types_are_compatible(promoted_type, operand_type)) {
-          /* The type gets changed by promotion, so the cost is a promotion. */
-          if (any_cfront_mode() && is_enum_type(operand_type) &&
-              f_skip_typerefs(operand_type)->variant.integer.int_kind ==
-              f_skip_typerefs(promoted_type)->variant.integer.int_kind) {
-            /* In cfront mode promotion of an enum to the same integral type
-               doesn't count as a promotion. */
+        if (is_enum_type(operand_type)) {
+          if (any_cfront_mode()) {
+            /* In cfront mode promotion of an enum doesn't have any cost. */
             /* match_level = aml_exact -- already set. */
           } else {
+            /* An enum type is not an integral type, so there's always at
+               least a promotion cost. */
+            match_level = aml_promotion;
+          }  /* if */
+        } else {
+          /* The operand has a non-enum integral type. */
+          if (type_code == PROMOTED_INTEGRAL_TYPE_CODE ||
+              type_code == PROMOTED_ARITH_TYPE_CODE) {
+            /* The operand is a non-enum integral type, and a promoted type
+               is required.  See if the type gets changed by promotion. */
+            a_type_ptr promoted_type =
+                                operand_type_after_integral_promotion(operand);
+            if (!types_are_compatible(promoted_type, operand_type)) {
+              /* The type gets changed by promotion, so the cost is a
+                 promotion. */
+              match_level = aml_promotion;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else if (is_floating_type(operand_type)) {
+        /* The operand has a floating type. */
+        if (type_code == PROMOTED_ARITH_TYPE_CODE) {
+          /* A promoted type is required.  See if the type gets changed by
+             promotion. */
+          a_type_ptr promoted_type = default_argument_promotion(operand_type);
+          if (!types_are_compatible(promoted_type, operand_type)) {
+            /* The type gets changed by promotion, so the cost is a
+               promotion. */
             match_level = aml_promotion;
           }  /* if */
         }  /* if */
