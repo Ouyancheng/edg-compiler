@@ -12500,7 +12500,9 @@ it in the IL template entry.
          token != NULL; token = token->next) {
       unsigned long	value = 0;
       /* Ignore pragmas. */
-      if (token->extra_info_kind == teik_pragma) continue;
+      if (token->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+        continue;
+      }  /* if */
       switch (token->extra_info_kind) {
         case teik_identifier:
           /* Hash the identifier string. */
