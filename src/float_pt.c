@@ -926,6 +926,9 @@ fit in the indicated type.
       shift_left_mantissa(&mantissa, 1);
     }  /* if */
     exponent--;
+  } else {
+    /* There were no digits specified.  Reset the exponent. */
+    exponent = 0;
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("fp_hex_string_to_float")) {
