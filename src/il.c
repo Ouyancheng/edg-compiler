@@ -5099,7 +5099,7 @@ the routines in order of appearance of their definitions (bodies).
 
 
 void add_to_routines_list(a_routine_ptr rout_ptr,
-                          a_boolean    at_file_or_namespace_scope)
+                          a_boolean     at_file_or_namespace_scope)
 /*
 Add the given routine to the routines list for the current scope, or for
 the innermost namespace or file scope if at_file_or_namespace_scope is TRUE.
@@ -6156,52 +6156,62 @@ Copy a statement entry from "from" to "to".
 }  /* copy_statement */
 
 
-void add_to_pragma_list(a_pragma_ptr   pragma,
-                        a_boolean      at_file_scope,
-			a_type_ptr     class_type)
+void add_to_pragma_list(a_pragma_ptr             pragma,
+                        a_scope_depth            scope_depth,
+			a_source_correspondence  *scp)
 /*
-Add pragma to the end of the pragmas list of the appropriate scope.
-If class_type is not NULL, the scope of the class is used (in C++ mode).
-Otherwise, either the file scope or the current scope is used, depending
-on the value of at_file_scope.
+Add the indicated pragma entry to the end of the pragmas list of the
+appropriate scope.  scope_depth may be specified, in which case the
+corresponding IL scope is used.  Otherwise, *scp will point to the source
+correspondence of the entity (a class or namespace member) to which the
+pragma is bound, and the pragma will be entered in the IL scope associated
+with the class or namespace.
 */
 {
   a_scope_ptr                 sp;
   a_scope_stack_entry_ptr     ssep = NULL;
   a_scope_pointers_block_ptr  pointers_block;
 
-  if (class_type != NULL && !C_mode()) {
-    /* The pragma is bound to a member of a class.  The binding may be
-       taking place in the scope of the class or may be taking place in
-       some other scope.  A static data member definition may have a
-       pragma bound to it at file scope and a friend declaration may have
-       a pragma bound to it in the scope of some other class.  A pragma
-       bound to a class member is always entered on the pragma list of
-       the scope of the class. */
-    a_scope_depth	scope_depth;
-    sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
-    check_assertion_str2(sp != NULL, "add_to_pragma_list:",
-                         "scope for class is NULL");
-    /* If the scope of the class is still on the scope stack, get a pointer
-       to the scope stack entry. */
+  if (scope_depth == NO_SCOPE_DEPTH) {
+    check_assertion_str(scp != NULL,
+                        "add_to_pragma_list: NULL source corresp ptr");
+
+    /* The pragma is bound to a member of a class or namespace.  The binding
+       may be taking place in the scope of the class or may be taking place
+       in some other scope.  A static data member definition may have a
+       pragma bound to it at file scope and a friend declaration may have a
+       pragma bound to it in the scope of some other class.  A pragma bound
+       to a class member is always entered on the pragma list of the scope
+       of the class.  */
+    if (scp->is_class_member) {
+      sp = scp->parent.class_type->
+                  variant.class_struct_union.extra_info->assoc_scope;
+    } else {
+      check_assertion_str(scp->parent.namespace_ptr != NULL,
+                          "add_to_pragma_list: NULL namespace ptr");
+      sp = skip_namespace_aliases(scp->parent.namespace_ptr)->
+                                                 variant.assoc_scope;
+    }  /* if */
+    /* If the scope of the class or pragma is still on the scope stack, get
+       a pointer to the scope stack entry. */
     scope_depth = sp->depth_in_scope_stack;
     if (scope_depth != NO_SCOPE_DEPTH) {
       ssep = &scope_stack[scope_depth];
     } else {
+      /* The scope stack entry is no longer available. */
       ssep = NULL;
     }  /* if */
   } else {
-    a_scope_depth	scope_depth;
-    scope_depth = at_file_scope ? DEPTH_OF_FILE_SCOPE : depth_scope_stack;
     ssep = &scope_stack[scope_depth];
     sp = ensure_il_scope_exists(ssep);
   }  /* if */
   check_assertion_str(sp != NULL, "add_to_pragma_list: NULL IL scope");
-  check_assertion_str(ssep == NULL ? TRUE :
-                      (((a_boolean)in_file_scope(pragma)) ==
-                         (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER)),
-                      "add_to_pragma_list: memory region mismatch");
-  if (ssep != NULL) pointers_block = assoc_pointers_block_of(ssep);
+  if (ssep != NULL) {
+    check_assertion_str(((a_boolean)in_file_scope(pragma)) ==
+                         (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER),
+                        "add_to_pragma_list: memory region mismatch");
+    pointers_block = assoc_pointers_block_of(ssep);
+  }  /* if */
   if (sp->pragmas == NULL) {
     sp->pragmas = pragma;
   } else if (ssep == NULL) {
@@ -8388,7 +8398,7 @@ is a namespace alias, a pointer to the real namespace is returned.
                          "NULL namespace pointer");
   }  /* while */
   return nsp;
-}  /* skip_namespace_aliases */
+}  /* f_skip_namespace_aliases */
 
 
 a_boolean is_member_of_unnamed_namespace(a_source_correspondence  *scp)
