@@ -2571,7 +2571,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"*", "i-", "f-", "!", "cast",
 #ifdef CIL
-   "base class cast", "lvalue cast", "~"
+   "base class cast", "lvalue cast", "~",
    "i++", "i--", "++i", "--i",
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
