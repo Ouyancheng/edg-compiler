@@ -5551,8 +5551,10 @@ declaration.
                  for the temporary entry. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
               source_sequence_entries_disallowed = TRUE;
-              f_remove_from_src_seq_list(declarator_ssep, decl_scope_level);
-              declarator_ssep = NULL;
+              if (declarator_ssep != NULL) {
+                f_remove_from_src_seq_list(declarator_ssep, decl_scope_level);
+                declarator_ssep = NULL;
+              }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               microsoft_specialization_redef = TRUE;
               pos_sy_warning(ec_already_defined, &locator->source_position,
