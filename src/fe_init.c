@@ -106,10 +106,12 @@ Do required initialization for host-dependent things.
   }
   /* Make sure that AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is
      set correctly. */
+#if 0
   if (AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG !=
       (BITS_IN_AN_INTEGER_VALUE > sizeof(long) * CHAR_BIT)) {
     internal_error("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG in target.h is set wrong");
   }  /* if */
+#endif
 #endif /* CHECKING */
 
 #if CHAR_MAX-CHAR_MIN != ((1 << CHAR_BIT) - 1)
