@@ -5441,9 +5441,8 @@ this selection.
 
 static void gen_class_rvalue_question_mark(a_dynamic_init_ptr dip)
 /*
-dip is the dynamic initialization from an enk_temp_init expression
-node and corresponds to the temporary generated at the end of a "?"
-operation returning a class rvalue.  Generate code for it.
+dip is the dynamic initialization for the temporary generated at the end
+of a "?" operation returning a class rvalue.  Generate code for it.
 */
 {
   check_assertion(!C_mode() && dip->is_result_for_class_rvalue_question_mark);
@@ -5498,10 +5497,6 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     /* In C mode and sometimes in C++ mode, a temp-init node represents
        a compound literal. */
     gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
-  } else if (dip->is_result_for_class_rvalue_question_mark) {
-    /* This temporary is the result of a "?" operator returning
-       a class rvalue. */
-    gen_class_rvalue_question_mark(dip);
   } else {
     /* C++ mode; use gen_dynamic_init. */
     a_boolean cast_added = FALSE;
@@ -9883,6 +9878,12 @@ Note that the destructor, if any, is implicit and need not be put out.
         gen_type(skip_typerefs(init_entity_type));
       }  /* if */
     }  /* if */
+  } else if (dip->is_result_for_class_rvalue_question_mark) {
+    /* This temporary is the result of a "?" operator returning
+       a class rvalue. */
+    check_assertion(!parenthesized_init);
+    gen_class_rvalue_question_mark(dip);
+    goto end_of_routine;
   }  /* if */
   switch (dip->kind) {
     case dik_none:
@@ -9997,6 +9998,7 @@ Note that the destructor, if any, is implicit and need not be put out.
   }  /* switch */
   /* Generate a closing parenthesis if needed for an old-style cast. */
   if (might_use_old_style_cast) write_tok_ch(')');
+end_of_routine:;
 }  /* gen_dynamic_init */
 
 
