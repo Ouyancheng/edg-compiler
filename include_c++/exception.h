@@ -18,9 +18,9 @@ namespace std {
   If bool is not supported, use a typedef for bool.
   */
   #ifdef _BOOL
-  typedef bool _bool;
+  typedef bool __bool;
   #else /* ifndef _BOOL */
-  typedef int _bool;
+  typedef int __bool;
   #endif /* ifdef _BOOL */
 
   class bad_exception : public exception {
@@ -43,7 +43,7 @@ namespace std {
   void terminate();
   void unexpected();
 
-  extern _bool uncaught_exception();
+  extern __bool uncaught_exception();
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace */

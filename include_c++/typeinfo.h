@@ -15,9 +15,9 @@ namespace std {
   If bool is not supported, use a typedef for bool.
   */
   #ifdef _BOOL
-  typedef bool _bool;
+  typedef bool __bool;
   #else /* ifndef _BOOL */
-  typedef int _bool;
+  typedef int __bool;
   #endif /* ifdef _BOOL */
 
 /* The following pragma is used so that the compiler knows that this definition
@@ -26,9 +26,9 @@ namespace std {
   class type_info {
   public:
     virtual ~type_info();
-    _bool operator==(const type_info&) const;
-    _bool operator!=(const type_info&) const;
-    _bool before(const type_info&) const;
+    __bool operator==(const type_info&) const;
+    __bool operator!=(const type_info&) const;
+    __bool before(const type_info&) const;
     const char* name() const;
   private:
     type_info& operator=(const type_info&);  // Not actually defined
