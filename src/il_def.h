@@ -2739,7 +2739,7 @@ enum a_named_register_tag {
   anr_si,  anr_di,  anr_bp,  anr_sp,  /* esi, edi, ebp, esp */
   anr_r8,  anr_r9,  anr_r10, anr_r11, /* x86-64 extra integer registers */
   anr_r12, anr_r13, anr_r14, anr_r15,
-  anr_st0, anr_st1, anr_st2, anr_st3, /* 80387 floating point stack */
+  anr_st,  anr_st1, anr_st2, anr_st3, /* 80387 floating point stack */
   anr_st4, anr_st5, anr_st6, anr_st7,
   anr_mm0, anr_mm1, anr_mm2, anr_mm3, /* MMX registers */
   anr_mm4, anr_mm5, anr_mm6, anr_mm7,
@@ -2783,7 +2783,7 @@ EXTERN char *named_register_names[(int)anr_last + 1]
   /* anr_r13 */     "r13",
   /* anr_r14 */     "r14",
   /* anr_r15 */     "r15",
-  /* anr_st0 */     "st(0)",
+  /* anr_st */      "st",
   /* anr_st1 */     "st(1)",
   /* anr_st2 */     "st(2)",
   /* anr_st3 */     "st(3)",

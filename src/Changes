@@ -1,5 +1,26 @@
 Version 3.4
 
+11/24/03 GNU mode treatment of "st" floating-point stack register
+
+When GNU_X86_ASM_EXTENSIONS_ALLOWED is set, the front end accepted the
+floating-point stack register names "st", "st0", and "st(0)" in GNU modes
+and treated them all as synonyms.  Furthermore, the C- and C++-generating
+back ends generated "st(0)" when any of these variants appeared in the input.
+However, it appears the GNU C and C++ compilers do not actually recognize
+the "st0" and "st(0)" variant spellings of the register name.  For example:
+
+  long f(double x) {
+    long r;
+    __asm__ __volatile__ ("fistpl %0" : "=m" (r) : "t" (x) : "st");
+      // "st" was rendered as "st(0)" by the C- and C++-generating back ends.
+    return r;
+  }
+
+This was fixed by no longer recognizing the "st0" and "st(0)" variations,
+and by having the back ends render the register as "st" in all cases.
+In addition, the named register tag "anr_st0" was renamed to "anr_st"
+for clarity and consistency (this is an IL CHANGE).
+
 11/23/03 In C99, & followed by * cancels out
 
 According to section 6.5.3.2 of the C99 standard, a "&" operator

@@ -91,8 +91,6 @@ static struct name_to_reg extra_reg_names[] = {
   { "r15d", (a_named_register)anr_r15 },
 
   /* 80387 floating point registers, other possible names... */
-  { "st",  (a_named_register)anr_st0 },
-  { "st0", (a_named_register)anr_st0 },
   { "st1", (a_named_register)anr_st1 },
   { "st2", (a_named_register)anr_st2 },
   { "st3", (a_named_register)anr_st3 },

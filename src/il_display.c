@@ -1889,7 +1889,7 @@ field storing the register.
     case anr_r13:     s = "anr_r13";     break;
     case anr_r14:     s = "anr_r14";     break;
     case anr_r15:     s = "anr_r15";     break;
-    case anr_st0:     s = "anr_st0";     break;
+    case anr_st:      s = "anr_st";      break;
     case anr_st1:     s = "anr_st1";     break;
     case anr_st2:     s = "anr_st2";     break;
     case anr_st3:     s = "anr_st3";     break;
