@@ -6101,17 +6101,17 @@ nonstatic_member_function:
         case sk_union_tag:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
-          if (C_dialect != C_dialect_cplusplus) {
-            /* In C, an error. */
-            error_and_make_error_operand(ec_type_identifier_not_allowed,
-                                         result);
-          } else {
+          if (C_dialect == C_dialect_cplusplus && next_token() == tok_lparen) {
             /* In C++, a functional-notation type conversion. */
             scan_functional_notation_type_conversion(type_symbol_type(sym_ptr),
                                                      result,
                                                      expression_kind,
                                                      local_options);
             goto after_advance_past_id;
+          } else {
+            /* Otherwise, an error. */
+            error_and_make_error_operand(ec_type_identifier_not_allowed,
+                                         result);
           }  /* if */
           break;
 #if CHECKING
