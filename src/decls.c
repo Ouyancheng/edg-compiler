@@ -4441,6 +4441,16 @@ declaration.
   idlb.storage_class = storage_class;
   idlb.direct_linkage_specifier = decl_modifiers->direct_linkage_specifier;
   set_linkage_environment(&idlb, decl_scope_level);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && microsoft_version >= 1310 &&
+      scope_stack[decl_scope_level].is_for_init_block) {
+    /* A for-init variable may need to be placed in the surrounding scope to
+       emulate MSVC++ 7.1 behavior.  effective_decl_level (which determines
+       where the symbol table entry goes) is already updated.  decl_scope_level
+       (which determines where the IL entry goes) should be the same. */
+    decl_scope_level = idlb.effective_decl_level;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode() && locator->specific_symbol != NULL &&
       (qualifier_namespace_ptr(*locator) != NULL ||
        locator->is_file_scope_qualified_name)) {
