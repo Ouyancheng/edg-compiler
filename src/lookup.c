@@ -2157,6 +2157,101 @@ by find_projected_symbol to insert a projection symbol for the locator
 }  /* determine_projected_symbol_insert_location */
 
 
+static a_symbol_ptr lookup_conversion_template_instance(
+			a_symbol_locator		*locator,
+                        a_type_ptr			class_type,
+			a_symbol_list_entry_ptr		conversion_templates)
+/*
+locator is a symbol locator for a conversion function.  conversion_templates
+is a list of conversion templates for the class in which the lookup
+is being done.  class_type is the type in which the lookup is being done.
+Go through the conversion template list and find any templates that
+can supply an appropriate conversion function.  Return the symbol for
+the matching function.  If more than one match is found, create an
+ambiguous symbol and return a pointer.  If no match is found, return NULL.
+*/
+{
+  a_symbol_list_entry_ptr	slep;
+  a_type_ptr			result_type =
+                                       locator->variant.conversion_result_type;
+  a_symbol_ptr			matching_sym = NULL;
+  a_template_arg_ptr		matching_arg_list = NULL;
+  a_boolean			ambiguous = FALSE;
+  a_symbol_ptr			result_sym = NULL;
+
+  /* Loop though each of the templates.  Stop if we determine that the
+     lookup is ambiguous. */
+  for (slep = conversion_templates;
+       slep != NULL && !ambiguous; slep = slep->next) {
+    a_symbol_ptr			sym;
+    a_template_symbol_supplement_ptr	tssp;
+    a_template_arg_ptr			templ_arg_list = NULL;
+    a_routine_ptr			rout_ptr;
+    a_type_ptr	       			rout_type;
+    a_type_ptr				return_type;
+    a_template_param_ptr		param_list;
+    sym = slep->symbol;
+    tssp = template_supplement_for_symbol(sym);
+    rout_ptr = sym->variant.template_info->variant.function.routine;
+    rout_type = skip_typerefs(rout_ptr->type);
+    return_type = return_type_of(rout_type);
+    param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+#if DEBUG
+    if (db_flag_is_set("conversion_lookup")) {
+      fprintf(f_debug, "Looking for conversion template match with:\n");
+      db_symbol(sym, "", 2);
+    }  /* if */
+#endif /* DEBUG */
+    /* See if the type specified matches the return type of the conversion
+       function. */
+    if (matches_template_type(result_type, return_type, &templ_arg_list,
+                              param_list, /*allow_conversion=*/FALSE,
+                              (a_base_class_ptr*)NULL)) {
+      /* Do the wrapup processing to make sure that all of the parameters
+         have been deduced. */
+      if (verify_function_template_nontype_args(templ_arg_list, sym,
+                                                (a_template_param_ptr)NULL)) {
+        /* We have a match.  Save the matching template arguments.  If we
+           found a previous match, indicate that the lookup is ambiguous
+           and exit the loop. */
+        if (matching_arg_list == NULL) {
+          matching_arg_list = templ_arg_list;
+          matching_sym = sym;
+          templ_arg_list = NULL;
+        } else {
+          ambiguous = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Free the template argument list.  The pointer will have been
+       set to NULL above if we need to save this list. */
+    if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
+  }  /* for */
+  if (matching_arg_list != NULL) {
+    /* Find or create the template instance that matches the type needed.
+       Note that the template argument list is freed in the called function. */
+    result_sym = find_template_function(matching_sym, &matching_arg_list,
+                                        &locator->source_position);
+    if (ambiguous) {
+      /* Create a copy of the result_sym and mark that copy as
+         ambiguous. */
+      a_symbol_ptr	new_sym;
+      new_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                             result_sym->header,
+                             &locator->source_position);
+      set_class_membership(new_sym, (a_source_correspondence*)NULL,
+                           class_type);
+      new_sym->ambiguous = TRUE;
+      new_sym->variant.routine.ptr = result_sym->variant.routine.ptr;
+      new_sym->variant.routine.instance_ptr =
+                                     result_sym->variant.routine.instance_ptr;
+      result_sym = new_sym;
+    }  /* if */
+  }  /* if */
+  return result_sym;
+}  /* lookup_conversion_template_instance */
+
+
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
                                        a_type_ptr               class_type,
                                        an_id_lookup_options_set options)
@@ -2341,8 +2436,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       }  /* if */
       if (!direct_class_members_only) {
         /* The name was not found.  Try looking for a member symbol that can
-           be projected into the class.  When doing a special "member
-           function" lookup, projection symbols are not created. */
+           be projected into the class.  When doing a "direct class members
+           only" lookup, projection symbols are not created and conversion
+	   template instances are not found. */
         determine_projected_symbol_insert_location(locator,
                                                    class_type,
                                                    &add_to_active_list,
@@ -2351,6 +2447,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                     /*tentative_type_lookup=*/FALSE,
                                     add_to_active_list, insert_sym, &sym,
                                     /*can_create_nonreal=*/TRUE);
+        if (sym == NULL && locator->is_conversion_name &&
+            cssp->conversion_template_list != NULL) {
+          /* We still haven't found a symbol, we are looking for a conversion
+             function,  and this class has conversion function templates.
+             See if any of the templates match the type desired. */
+          sym = lookup_conversion_template_instance(
+                         locator, class_type, cssp->conversion_template_list);
+        }  /* if */
       }  /* if */
     }  /* if */
 end_lookup:
