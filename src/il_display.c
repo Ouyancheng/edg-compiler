@@ -318,10 +318,10 @@ be written.
 #endif /* ifdef FFE */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       case iek_template_parameter:
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         /* Entry has a source correspondence field. */
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
         break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       case iek_type:
 #ifdef CFE
         if (((a_type_ptr)entry_ptr)->source_corresp.name != NULL) {
