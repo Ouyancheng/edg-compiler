@@ -254,7 +254,7 @@ is being done via an explicit cast.
              of a base class.  expl_conversion_possible would be too broad
              because it would also allow changing the member type. */
           if (ptr_routine_type != NULL &&
-              is_cast ?
+              (is_cast ?
                 (clear_std_conv_descr(&std_conversion),
                  static_cast_conversion_possible(ptr_routine_type,
                                                  /*source_is_constant=*/FALSE,
@@ -269,7 +269,7 @@ is being done via an explicit cast.
                                          dest_type,
                                          /*suppress_extensions=*/TRUE,
                                          ec_no_error,
-                                         &std_conversion)) {
+                                         &std_conversion))) {
             /* A match. */
             match_sym = proj_sym;
             *match_level = aml_std_conversion;
