@@ -166,9 +166,11 @@ EXTERN a_boolean
                            accepted.  The default is supplied by a
                            configuration parameter. */
 
+#if DEBUG
 EXTERN int	init_debug_level /* = 0 */;
 			/* Initial debug level: n in -dn option, or 0
 			   by default. */
+#endif /* DEBUG */
 EXTERN a_boolean
 		do_preprocessing_only /* = FALSE */;
 			/* If TRUE, the compiler is to act like cpp: the
