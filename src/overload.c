@@ -1591,7 +1591,10 @@ Compare two argument match summary entries and return
           /* Both entries have related-class casts, so they can be compared.
              If one is a subsequence of the other, the shorter derivation is
              preferable. */
-          if (!arg_match1->reversed_cast) {
+          if (bcp_1 == bcp_2) {
+            /* The same cast in both cases, so the two are equally good.
+               Keep going with subsequence checking. */
+          } else if (!arg_match1->reversed_cast) {
             /* Normal case: derived --> base cast. */
             if (is_on_any_derivation_of(bcp_2, bcp_1)) {
               /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
@@ -1602,6 +1605,8 @@ Compare two argument match summary entries and return
               cmp = -1;
               goto have_cmp;
             }  /* if */
+            /* The two classes are unrelated, so no subsequence is possible. */
+            goto end_subsequence_check;
           } else {
             /* Base --> derived case (used for pointers to members). */
             if (find_base_class_of(bcp_2->derived_class,
@@ -1617,8 +1622,9 @@ Compare two argument match summary entries and return
               cmp = -1;
               goto have_cmp;
             }  /* if */
+            /* The two classes are unrelated, so no subsequence is possible. */
+            goto end_subsequence_check;
           }  /* if */
-          goto end_subsequence_check;
         } else if (bcp_1 != NULL) {
           /* bcp_1 != NULL, bcp_2 == NULL.  A base class cast is
              preferable to another kind of cast (e.g., a cast to "void *"),
