@@ -2168,7 +2168,7 @@ is the one associated with the definition of the class.
       end_output_line_if_begun();
       disable_line_wrapping();
       write_str("#pragma pack(");
-      write_unsigned_num(pack_alignment);
+      write_unsigned_num((unsigned long)pack_alignment);
       write_str(")");
       enable_line_wrapping();
       end_output_line();
