@@ -827,9 +827,22 @@ typedef struct a_template_param {
 			   create the parameter types for instances of
 			   the class template when the parameter type
 			   depends on other template parameters. */
+  unsigned int
+		has_default_arg:1;
+			/* TRUE if a default argument has been declared for
+			   this parameter. */
+  unsigned int
+		def_arg_involves_template_param:1;
+			/* TRUE if the default argument involves a template
+			   parameter.  For nontype parameters, this means
+			   that the constant involves a template parameter.
+			   It will also be set TRUE if the type of the
+			   constant involves a template parameter. */
+  bitfield_to_avoid_codecenter_warnings();
   union {
     /* When param_symbol->kind = sk_type. */
-    a_type_ptr  param_type;
+    a_type_ptr
+		type;
                         /* Type entry for a formal parameter.  A unique type
                            entry is created for each template type
                            parameter. */
@@ -841,43 +854,36 @@ typedef struct a_template_param {
 			   constant entry is created for each template constant
 			   parameter. */
       unsigned int
-		has_default_arg:1;
-			/* TRUE if a default argument has been declared for
-			   this parameter. */
-      unsigned int
 		type_involves_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter constant involves (anywhere in its
 			   type tree) a tk_template_param type entry. */
-      unsigned int
-		constant_involves_template_param:1;
-			/* TRUE if the default argument expression contains
-			   a ck_template_param. */
-#if CHECKING
-      unsigned int
-		dummy:2;
-			/* Extra field that can be initialized to prevent
-			   spurious reference to uninitialized data warnings
-			   from CodeCenter. */
-#endif /* CHECKING */
-      union {
-        /* When type_involves_template_param and
-           constant_involves_template_param are FALSE. */
-        a_constant_ptr
+      bitfield_to_avoid_codecenter_warnings();
+    } constant;
+  } variant;
+  union {
+    /* When param_symbol->kind = sk_constant and
+       def_arg_involves_template_param are FALSE. */
+    a_constant_ptr
 		constant;
 			/* Constant containing the default value
 			   to be used as the actual argument of an
 		           instantiation when the actual argument
 			   corresponding to this parameter is omitted. */
-        /* When type_involves_template_param or
-           constant_involves_template_param is TRUE. */
-        a_token_cache
+    /* When param_symbol->kind = sk_type and def_arg_involves_template_param
+       is TRUE. */
+    a_type_ptr
+		type;
+			/* Type containing the default value to be used
+			   as the actual argument of an instantiation when
+			   the actual argument corresponding to this parameter
+			   is omitted. */
+    /* When def_arg_involves_template_param is TRUE. */
+    a_token_cache
 		token_cache;
 			/* Header of the token cache that contains the
 			   tokens of the default argument expression. */
-      } default_arg;
-    } param_constant;
-  } variant;
+  } default_arg;
 } a_template_param;
 
 
@@ -2458,7 +2464,12 @@ extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
-extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
+
+extern
+a_template_param_ptr alloc_template_param
+                                (a_symbol_ptr sym,
+                                 a_boolean    def_arg_involves_template_param);
+
 extern a_template_instance_ptr alloc_template_instance(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);

@@ -686,8 +686,8 @@ do_variable:
             case sk_type:
               fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
               /* Display the proxy class type if one exists. */
-              if (tplep->variant.param_type != NULL) {
-                a_type_ptr type = tplep->variant.param_type;
+              if (tplep->variant.type != NULL) {
+                a_type_ptr type = tplep->variant.type;
                 db_type(type);
                 if (type->variant.template_param.descr != NULL) {
                   a_type_ptr  class_type;
@@ -701,22 +701,26 @@ do_variable:
               } else {
                 fprintf(f_debug, "NULL");
               }  /* if */
+              if (tplep->has_default_arg) {
+		if (!tplep->def_arg_involves_template_param) {
+		  put_string("= ");
+		  db_type(tplep->default_arg.type);
+		} else {
+		  put_string("= <token cache>");
+		}  /* if */
+	      }  /* if */
               break;
             case sk_constant:
               fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
-              if (tplep->variant.param_constant.ptr != NULL) {
-                db_constant(tplep->variant.param_constant.ptr);
+              if (tplep->variant.constant.ptr != NULL) {
+                db_constant(tplep->variant.constant.ptr);
               } else {
                 fprintf(f_debug, "NULL");
               }  /* if */
-              if (tplep->variant.param_constant.has_default_arg) {
-		if (!tplep->
-			variant.param_constant.type_involves_template_param &&
-                    !tplep->
-                     variant.param_constant.constant_involves_template_param) {
+              if (tplep->has_default_arg) {
+		if (!tplep->def_arg_involves_template_param) {
 		  put_string("= ");
-		  db_constant(tplep->variant.param_constant.
-							default_arg.constant);
+		  db_constant(tplep->default_arg.constant);
 		} else {
 		  put_string("= <token cache>");
 		}  /* if */
@@ -6893,13 +6897,13 @@ declaration is scanned and are used as placeholders between instantiations.
   db_enter(4, "restore_default_template_params");
   /* Loop through the parameters and and set them to either the original
      template type or the original template constant (as specified by the
-     param_type or param_constant field). */
+     type or constant field). */
   while (tpp != NULL) {
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (param_symbol->kind == (a_symbol_kind)sk_type) {
-      param_symbol->variant.type = tpp->variant.param_type;
+      param_symbol->variant.type = tpp->variant.type;
     } else {
-      param_symbol->variant.constant = tpp->variant.param_constant.ptr;
+      param_symbol->variant.constant = tpp->variant.constant.ptr;
     }  /* if */
     param_symbol->template_param_not_visible = FALSE;
     tpp = tpp->next;
@@ -8949,7 +8953,9 @@ next_list_entry:;
 }  /* check_dependent_type_fixup_list */
 
 
-a_template_param_ptr alloc_template_param(a_symbol_ptr sym)
+a_template_param_ptr alloc_template_param
+                                 (a_symbol_ptr sym,
+			          a_boolean    def_arg_involves_template_param)
 /*
 Allocate a new template parameter list entry, initialize it,
 and return a pointer to it.
@@ -8966,18 +8972,29 @@ and return a pointer to it.
   ptr->next           = NULL;
   ptr->param_symbol   = sym;
   clear_token_cache(&ptr->token_cache, /*reusable=*/TRUE);
+  ptr->has_default_arg = FALSE;
+  ptr->def_arg_involves_template_param = FALSE;
+#if CHECKING
+  ptr->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   if (sym->kind == (a_symbol_kind)sk_type) {
-    ptr->variant.param_type     = sym->variant.type;
+    ptr->variant.type     = sym->variant.type;
   } else {
     check_assertion(sym->kind == (a_symbol_kind)sk_constant);
-    ptr->variant.param_constant.ptr = sym->variant.constant;
-    ptr->variant.param_constant.has_default_arg = FALSE;
-    ptr->variant.param_constant.type_involves_template_param = FALSE;
-    ptr->variant.param_constant.constant_involves_template_param = FALSE;
-    ptr->variant.param_constant.default_arg.constant = NULL;
+    ptr->variant.constant.ptr = sym->variant.constant;
+    ptr->variant.constant.type_involves_template_param = FALSE;
 #if CHECKING
-    ptr->variant.param_constant.dummy = 0;
+    ptr->variant.constant.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
+  }  /* if */
+  if (def_arg_involves_template_param) {
+    clear_token_cache(&ptr->default_arg.token_cache, /*reusable=*/TRUE);
+  } else {
+    if (sym->kind == (a_symbol_kind)sk_type) {
+      ptr->default_arg.type = NULL;
+    } else {
+      ptr->default_arg.constant = NULL;
+    }  /* if */    
   }  /* if */
   db_exit();
   return ptr;

@@ -1,5 +1,18 @@
 Version 2.29
 
+4/27/95  Default arguments allowed for type template parameters
+
+Type template parameters may now have default template arguments.
+Previous template parameter names may be used in the default
+argument.  Formerly, only nontype parameters could have default
+arguments.
+
+  template <class T = int, class T2 = T> struct A {
+    T t;
+    T2 t2;
+  };
+  A<> a;
+
 4/27/95  IL CHANGE: support for condition declarations in C++
 
 Condition declarations in if-, switch-, while- and for-statements are now

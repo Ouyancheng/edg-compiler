@@ -5972,9 +5972,9 @@ resulting constant is stored in the pointer pointed to by "constant".
   a_boolean				constant_involves_template_param;
 
   type_involves_template_param =
-               param_ptr->variant.param_constant.type_involves_template_param;
+               param_ptr->variant.constant.type_involves_template_param;
   constant_involves_template_param =
-            param_ptr->variant.param_constant.constant_involves_template_param;
+            param_ptr->def_arg_involves_template_param;
   tssp = template_sym->variant.template_info;
   /* Push the template instantiation scope.  Note that the instance symbol
      passed to push_scope is NULL because we don't yet know which instance
@@ -6002,13 +6002,12 @@ resulting constant is stored in the pointer pointed to by "constant".
   }  /* if */
   if (do_default_arg) {
     /* This parameter has a default argument whose value is to be used. */
-    if (type_involves_template_param || constant_involves_template_param) {
-      rescan_reusable_cache(&param_ptr->variant.param_constant.
-                                                     default_arg.token_cache);
+    if (constant_involves_template_param) {
+      rescan_reusable_cache(&param_ptr->default_arg.token_cache);
       *constant = fs_constant((a_constant_repr_kind)ck_error);
       delayed_scan_of_template_default_arg_expr(constant_type, *constant);
     } else {
-      *constant = param_ptr->variant.param_constant.default_arg.constant;
+      *constant = param_ptr->default_arg.constant;
     }  /* if */
   }  /* if */
   error_position = saved_error_position;
@@ -6017,6 +6016,52 @@ resulting constant is stored in the pointer pointed to by "constant".
   pop_scope();
   return constant_type;
 }  /* rescan_template_constant_parameter */
+
+
+static a_type_ptr rescan_template_type_default_arg
+                                     (a_symbol_ptr	   template_sym,
+			              a_template_param_ptr param_ptr,
+				      a_template_arg_ptr   arg_list)
+/*
+Rescan the tokens of a template parameter default argument using the
+current values of any previous parameters so that the default argument
+is processed with the types with which the class is to be instantiated.
+This is used to get the correct types for type default arguments that
+depend on other template parameters.  If the default depends on
+a template parameter then the cache is rescanned, otherwise, the
+existing type is simply used. 
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_source_position  			saved_pos_curr_token;
+  a_source_position  			saved_error_position;
+  a_type_ptr				tp;
+
+  tssp = template_sym->variant.template_info;
+  /* Push the template instantiation scope.  Note that the instance symbol
+     passed to push_scope is NULL because we don't yet know which instance
+     is being instantiated.  Also note that a class type is not being
+     passed for the same reason. */
+  (void)push_template_instantiation_scope(tssp->declaration_scope,
+					  (a_type_ptr)NULL,
+					  (a_routine_ptr)NULL,
+					  (a_symbol_ptr)NULL,
+					  template_sym, arg_list,
+					  /*nested_instantiation=*/FALSE);
+  saved_pos_curr_token = pos_curr_token;
+  saved_error_position = error_position;
+  if (param_ptr->def_arg_involves_template_param) {
+    rescan_reusable_cache(&param_ptr->default_arg.token_cache);
+    tp = delayed_scan_of_template_default_type_arg();
+  } else {
+    tp = param_ptr->default_arg.type;
+  }  /* if */
+  error_position = saved_error_position;
+  pos_curr_token = saved_pos_curr_token;
+  /* Pop the template instantiation scope. */
+  pop_scope();
+  return tp;
+}  /* rescan_template_type_default_arg */
 
 
 a_symbol_ptr coalesce_template_class_reference
@@ -6175,7 +6220,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       /* If the type of a constant involves a template parameter type,
          rescan the declaration of the parameter type to get the type
          to be used in this argument list. */
-      if (param_ptr->variant.param_constant.type_involves_template_param) {
+      if (param_ptr->variant.constant.type_involves_template_param) {
 	constant_type = rescan_template_constant_parameter
                              (template_sym, sym, param_ptr, arg_list,
                               /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
@@ -6197,8 +6242,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (param_ptr != NULL) {
     /* There are still entries on the formal parameters list -- see if
        the remaining parameters have default values. */
-    if (param_ptr->param_symbol->kind == (a_symbol_kind)sk_constant &&
-	param_ptr->variant.param_constant.has_default_arg) {
+    if (param_ptr->has_default_arg) {
       /* The template has parameters with default values.  Fill in the
          remainder of the parameter list with the defaults. */
       while (param_ptr != NULL) {
@@ -6207,16 +6251,18 @@ a routine to lookup the appropriate instance (or generate one if needed).
         is_type_param = (sym->kind == (a_symbol_kind)sk_type);
         arg_ptr = alloc_template_arg(is_type_param);
 	if (is_type_param) {
-	  /* A type parameter.  This can only occur in error cases because
-             type parameters cannot have default values.  Use an error type
-	     as the template parameter. */
-	  arg_ptr->variant.type = error_type();
-	} else if (!param_ptr->variant.param_constant.has_default_arg) {
-	  /* A nontype constant without a default argument.  This also only
-	     occurs in error cases.  Use an error constant. */
-          constant = fs_constant((a_constant_repr_kind)ck_error);
-          arg_ptr->variant.constant = constant;
-        } else {
+          if (param_ptr->has_default_arg) {
+            /* A type parameter with a default value.  The default can be
+	       either a type or a token cache that needs to be scanned. */
+            arg_ptr->variant.type =
+                     rescan_template_type_default_arg(template_sym,
+                                                      param_ptr, arg_list);
+          } else {
+            /* A type parameter with no default argument.  This occurs only
+               in error cases.  Use an error type. */
+            arg_ptr->variant.type = error_type();
+          }  /* if */
+	} else if (!param_ptr->has_default_arg) {
           /* A constant parameter.  The default value can be either a
 	     constant value or a token cache that needs to be scanned.
              Call a routine that will rescan the type declaration and/or
@@ -6224,6 +6270,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
           (void)rescan_template_constant_parameter
                                     (template_sym, sym, param_ptr, arg_list,
                                      /*do_default_arg=*/TRUE, &constant);
+          arg_ptr->variant.constant = constant;
+        } else {
+	  /* A nontype constant without a default argument.  This also only
+	     occurs in error cases.  Use an error constant. */
+          constant = fs_constant((a_constant_repr_kind)ck_error);
           arg_ptr->variant.constant = constant;
         }  /* if */
         /* Link this entry on to the argument list. */

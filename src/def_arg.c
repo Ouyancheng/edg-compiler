@@ -242,6 +242,34 @@ represent the first token in the cache.
 }  /* delayed_scan_of_template_default_arg_expr */
 
 
+a_type_ptr delayed_scan_of_template_default_type_arg(void)
+/*
+Do the delayed scan of the default argument expression for a template
+type parameter.  The cache has just been reactivated, so curr_token should
+represent the first token in the cache.  Return a pointer to the type
+that was scanned.
+*/
+{
+  a_type_ptr	tp = NULL;
+
+  db_enter(3, "delayed_scan_of_template_default_type_arg");
+  type_name(&tp);
+  /* In the normal case the current token should be end_of_source,
+     which was inserted to mark the end of the cached token
+     stream. */
+  if (curr_token != tok_end_of_source) {
+    pos_error(ec_exp_comma, &pos_curr_token);
+    /* If necessary, keep flushing until end-of-source is found. */
+    while (curr_token != tok_end_of_source) (void)get_token();
+  }  /* if */
+  /* Advance past the end-of-source token, which was added in
+     the prescan routine. */
+  (void)get_token();
+  db_exit();
+  return tp;
+}  /* delayed_scan_of_template_default_type_arg */
+
+
 void def_arg_one_time_init(void)
 /*
 One-time initialization for def_arg.c static variables.
