@@ -1012,7 +1012,7 @@ the PCH file.
                                 "map failed");
     }  /* if */
 #if DEBUG
-    if (debug_level >= 0) {
+    if (debug_level >= 5) {
       fprintf(f_debug, "Mapped bytes from %p for %0lu bytes from PCH\n",
               mahp->addr, (unsigned long)mahp->size);
     }  /* if */
