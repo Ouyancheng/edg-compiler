@@ -82,7 +82,11 @@ library_option=${EDG_LIBRARY_OPTION-"-L"}
 # Default library paths of C to object compiler.  Used by the prelinker
 # to find libraries specified with the -l option.
 #
-EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-"${library_option}/lib ${library_option}/usr/lib"}
+EDG_LINKER_LIB_PATHS=${EDG_LINKER_LIB_PATHS-"${library_option}/lib ${library_option}/usr/lib"}
+#
+# Library paths to be implicitly included in the prelinker and link commands
+#
+EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-""}
 #
 # Default options to the prelink command (no default value - use environment
 # variable if set)
@@ -94,6 +98,11 @@ EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-"${library_option}/lib ${library_o
 # demangled names in linker output messages.
 #
 EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
+#
+# Flags that suppresses the implicit use of -tused under certain
+# circumstances
+#
+EDG_NO_IMPLICIT_INSTANTIATE_USED=${EDG_NO_IMPLICIT_INSTANTIATE_USED-0}
 #
 # Flag indicating whether to do automatic instantiation by default
 #
@@ -1379,6 +1388,7 @@ fi
 # file) then use the "instantiate used" option.
 #
 if [ $c_mode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
+     $EDG_NO_IMPLICIT_INSTANTIATE_USED -eq 0 -a \
      $fe_only -eq 0 -a $any_l_or_o_files -eq 0 -a \
      $instantiation_mode_specified -eq 0 ] ; then
   feoptions=$feoptions" -tused"
@@ -1727,6 +1737,7 @@ then
         command="$EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS \
                      $prelink_options \
 		     $Loptions ${library_option}$LIBDIR \
+                     $EDG_LINKER_LIB_PATHS \
                      $EDG_DEFAULT_LIB_PATHS \
 		     $object_files -- \
                      $instantiation_libraries"
@@ -1774,6 +1785,7 @@ then
 #     Note:  -lC is missing from this command and is supplied later using
 #     the variable link_command_suffix.
       link_command="$cc_command $c_to_obj_options $Loptions \
+		       $EDG_DEFAULT_LIB_PATHS \
 		       ${library_option}$LIBDIR \
                        $ldoptions -o $executable \
                        $object_files $EDG_STD_LIBS \

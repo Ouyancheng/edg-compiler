@@ -1,5 +1,13 @@
 Version 2.44
 
+3/22/00  eccp: environment variable changes
+
+The eccp environment variable EDG_DEFAULT_LIB_PATHS, which specifies
+the library paths implicitly used by the linker, has been renamed
+EDG_LINKER_LIB_PATHS.  EDG_DEFAULT_LIB_PATHS is now used for a new
+variable that provides a list of library path directives that is
+passed to both the prelinker and linker.
+
 12/21/99 Mangling for Microsoft __intN types
 
 The name demangler can now demangle the encoding for the Microsoft-specific
