@@ -799,6 +799,19 @@ with a source correspondence field.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
                                       ) {
       mark_as_needed(canonical, entry_kind);
+#if LOWER_EXTERN_INLINE
+      /* mark_as_needed usually sets the definition-needed flag on routines,
+         but it doesn't when they are extern inline routines that will be
+         lowered to static.  We do need to keep the definition in such
+         cases (because another non-canonical instance has been
+         referenced), so mark the definition as needed explicitly. */
+      if (entry_kind == iek_routine) {
+        a_routine_ptr rout = (a_routine_ptr)canonical;
+        if (!C_mode() && treat_as_extern_inline(rout)) {
+          set_routine_definition_needed(rout);
+        }  /* if */
+      }  /* if */
+#endif /* LOWER_EXTERN_INLINE */
     }  /* if */
   }  /* if */    
 }  /* mark_canonical_as_needed */
