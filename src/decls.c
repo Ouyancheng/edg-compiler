@@ -5307,17 +5307,12 @@ cv-qualifier).
   an_error_code      error_code = ec_no_error;
   an_error_severity  severity;
 
-  if (!any_decl_specifiers && !is_function) {
-    /* This is a non-function declaration for which the decl-specifiers are
-       missing altogether.  Issue an error in all all modes. */
-    error_code = ec_missing_decl_specifiers;
-    severity = es_discretionary_error;
-  } else {
+  if (is_function) {
     /* It must be a function declaration or else there is at least some type
        specifier (even if the type itself is implicit). */
     if (C_dialect == C_dialect_pcc) {
       /* No diagnostic is issued. */
-    } else if (is_function) {
+    } else {
       /* In general, issue a message about the implicit int return type,
          which deserves at least a remark in C mode and is now an error in
          strict C++ mode. */
@@ -5359,18 +5354,27 @@ cv-qualifier).
           severity = es_warning;
         }  /* if */
       }  /* if */
+    }  /* if */
+  } else if (!any_decl_specifiers) {
+    /* This is a non-function declaration for which the decl-specifiers are
+       missing altogether.  Issue an error in all all modes. */
+    error_code = ec_missing_decl_specifiers;
+    if (C_dialect == C_dialect_pcc) {
+      severity = es_warning;
     } else {
-      /* Non-function declaration with at some some decl-specifiers -- e.g.,
-         "const i;" or "typedef const CI;".  Use a different message and
-         severity in C++ than in C, since it's a standards violation in C++. */
-      if (C_mode()) {
-        error_code = ec_missing_type_specifier;
-        severity = es_remark;
-      } else {
-        error_code = ec_nonstd_implicit_int;
-        severity = strict_ansi_mode ?
-                     strict_ansi_discretionary_severity : es_warning;
-      }  /* if */
+      severity = es_discretionary_error;
+    }  /* if */
+  } else {
+    /* Non-function declaration with at some some decl-specifiers -- e.g.,
+       "const i;" or "typedef const CI;".  Use a different message and
+       severity in C++ than in C, since it's a standards violation in C++. */
+    if (C_mode()) {
+      error_code = ec_missing_type_specifier;
+      severity = es_warning;
+    } else {
+      error_code = ec_nonstd_implicit_int;
+      severity = strict_ansi_mode ?
+                   strict_ansi_discretionary_severity : es_warning;
     }  /* if */
   }  /* if */
   /* Unless the error is suppressed (e.g., in pcc mode), put out the
