@@ -1068,11 +1068,10 @@ is after the closing parenthesis of the argument list.
   }  /* if */
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(
-                                         constructor_sym, source_pos,
-                                         object_class_type,
-                                         /*honor_virtual=*/FALSE,
-                                         curr_expr_is_potentially_evaluated());
+    expr_reference_to_implicitly_invoked_function(constructor_sym,
+                                                  source_pos,
+                                                  object_class_type,
+                                                  /*honor_virtual=*/FALSE);
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   db_exit();
@@ -6008,10 +6007,9 @@ specification allow a variable-sized array as the top type.
         if (ctor_routine != NULL) {
           needs_initialization = TRUE;
           /* Provide default arguments if any. */
-          init_arg_expr_list = copy_default_arg_expr_list(ctor_routine,
+          init_arg_expr_list = expr_copy_default_arg_expr_list(ctor_routine,
                 skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
-                                                              param_type_list,
-                (a_boolean)expr_stack->inside_conditional_expression);
+                                                              param_type_list);
           do_const_test = TRUE;
           is_generated_ctor = ctor_routine->compiler_generated;
         }  /* if */
@@ -12730,15 +12728,12 @@ are marked as actually referenced.
     if (dtor_routine != NULL) {
       a_symbol_ptr dtor_sym =
                          (a_symbol_ptr)dtor_routine->source_corresp.assoc_info;
-      /* Check access to the destructor and mark it referenced.  Note that
-         we know that the dynamic initialization is in an evaluated part of the
-         expression, because unevaluated initializations are not put on the
-         fixup list. */
-      reference_to_implicitly_invoked_function(dtor_sym, &didfp->position,
-                                               dtor_routine->source_corresp.
-                                                           parent.class_type,
-                                               /*honor_virtual=*/FALSE,
-                                               /*evaluated=*/TRUE);
+      /* Check access to the destructor and mark it referenced. */
+      expr_reference_to_implicitly_invoked_function(
+                                dtor_sym,
+                                &didfp->position,
+                                dtor_routine->source_corresp.parent.class_type,
+                                /*honor_virtual=*/FALSE);
     }  /* if */
     /* Free the one entry. */
     free_dynamic_init_dtor_fixup(didfp);

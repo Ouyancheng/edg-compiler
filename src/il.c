@@ -6354,6 +6354,41 @@ than a constructor reference.
 }  /* is_copy_constructor */
 
 
+static void instantiate_routine(a_routine_ptr routine)
+/*
+Call set_instance_required on the indicated routine.  That will cause it
+to be instantiated if it is a template function (or, in some configurations,
+an inline function).
+*/
+{
+  a_symbol_ptr sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
+
+  if (sym != NULL) set_instance_required(sym, TRUE, /*defer_inline=*/FALSE);
+}  /* instantiate_routine */
+
+
+static void do_instantiations_for_copied_default_arg_expr(
+                                                         an_expr_node_ptr expr)
+/*
+expr is an expression that is a copy of a default argument expression,
+i.e., it is a real use of the default argument expression.  Instantiate
+any template entities referenced in the top level of the expression,
+because they were not instantiated during the original expression
+scan.
+*/
+{
+  if (expr->kind == (an_expr_node_kind)enk_routine_address) {
+    instantiate_routine(expr->variant.routine);
+  } else if (expr->kind == (an_expr_node_kind)enk_constant) {
+    a_constant_ptr con = expr->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_routine) {
+      instantiate_routine(con->variant.address.variant.routine);
+    }  /* if */
+  }  /* if */
+}  /* do_instantiations_for_copied_default_arg_expr */
+
+
 void add_to_dynamic_inits_list(a_dynamic_init_ptr dip)
 /*
 Add the given dynamic initialization entry to the file-scope dynamic_inits
@@ -6413,6 +6448,10 @@ expression node.  options is a set of options for the copy.
                                                    options);
       break;
     case dik_constructor:
+      if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
+        /* Instantiate referenced routines in a default argument expression. */
+        instantiate_routine(dip->variant.constructor.ptr);
+      }  /* if */
       new_dip->variant.constructor.args =
                          copy_list_of_expr_trees(dip->variant.constructor.args,
                                                  options);
@@ -8439,6 +8478,9 @@ a set of options for the copy.
     adjust_copied_expression_for_inlining(expr_copy);
   }  /* if */
 #endif /* MINIMAL_INLINING */
+  if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
+    do_instantiations_for_copied_default_arg_expr(expr_copy);
+  }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
 
@@ -8504,7 +8546,8 @@ scope memory region.
 an_expr_node_ptr copy_default_arg_expr(
 				a_routine_ptr	 rout,
                                 a_param_type_ptr ptp,
-                                a_boolean        inside_conditional_expression)
+                                a_boolean        inside_conditional_expression,
+                                a_boolean        potentially_evaluated)
 /*
 Copy the default argument expression from ptp, which is a parameter of
 rout, and return a pointer to the copy.  This routine is used to copy
@@ -8515,6 +8558,7 @@ object lifetimes.  In addition, a flag is set to identify this as a
 "generated" default argument expression.
 inside_conditional_expression is TRUE if the default argument
 expression copy will be inside a conditional part of an expression.
+potentially_evaluated is TRUE if the expression is potentially evaluated.
 */
 {
   an_expr_copy_options_set options = CE_NO_OPTIONS;
@@ -8549,9 +8593,12 @@ expression copy will be inside a conditional part of an expression.
          bound into the curr_object_lifetime. */
       expr = expr->variant.object_lifetime.expr;
     }  /* if */
-    if (inside_conditional_expression) {
-      /* The copy will be inside a conditional part of an expression. */
-      options |= CE_INSIDE_CONDITIONAL_EXPRESSION;
+    if (potentially_evaluated) {
+      options = CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR;      
+      if (inside_conditional_expression) {
+        /* The copy will be inside a conditional part of an expression. */
+        options |= CE_INSIDE_CONDITIONAL_EXPRESSION;
+      }  /* if */
     }  /* if */
     expr = copy_expr_tree(expr, options);
     expr->generated_default_arg = TRUE;
@@ -8563,7 +8610,8 @@ expression copy will be inside a conditional part of an expression.
 an_expr_node_ptr copy_default_arg_expr_list(
 				a_routine_ptr	 rout,
                                 a_param_type_ptr ptp,
-                                a_boolean        inside_conditional_expression)
+                                a_boolean        inside_conditional_expression,
+                                a_boolean        potentially_evaluated)
 /*
 Make an expression list containing copies of the default argument
 expressions for the parameter indicated by ptp, which is a parameter
@@ -8571,6 +8619,7 @@ of rout, and all parameters following that.  If ptp is non-NULL, it
 must point to a parameter with a default argument expression.
 inside_conditional_expression is TRUE if the default argument
 expression copies will be inside a conditional part of an expression.
+potentially_evaluated is TRUE if the expression is potentially evaluated.
 */
 {
   an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
@@ -8585,7 +8634,8 @@ expression copies will be inside a conditional part of an expression.
     /* Copy the default argument expressions. */
     do {
       arg_node = copy_default_arg_expr(rout, ptp,
-                                       inside_conditional_expression);
+                                       inside_conditional_expression,
+                                       potentially_evaluated);
       if (first_node == NULL) {
         first_node = arg_node;
       } else {
@@ -9044,7 +9094,8 @@ the case if the return type was incomplete at the point of definition.
 }  /* set_routine_calling_method_flag */
 
 
-void mark_routine_referenced(a_routine_ptr  routine)
+void mark_routine_referenced_full(a_routine_ptr routine,
+                                  a_boolean     instantiate)
 /*
 Mark the indicated routine as actually referenced.  "Actually" means
 as opposed to referenced in a virtual function call that may call some
@@ -9052,7 +9103,8 @@ other virtual function.  Note that an actual reference does not necessarily
 mean that the routine is called; this reference might be taking the address
 of the routine.  It does, however, force instantiation if the function
 is a template function, and/or definition if the function is the right kind
-of compiler-generated function (e.g., a constructor).
+of compiler-generated function (e.g., a constructor).  Instantiation is
+forced only if instantiate is TRUE.
 */
 {
   a_symbol_ptr             assoc_sym;
@@ -9089,9 +9141,18 @@ of compiler-generated function (e.g., a constructor).
      functions when inline functions are instantiated using a
      mechanism like the template instantiation mechanism. */
   assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
-  if (assoc_sym != NULL) {
+  if (instantiate && assoc_sym != NULL) {
     set_instance_required(assoc_sym, TRUE, /*defer_inline=*/FALSE);
   }  /* if */
+}  /* mark_routine_referenced_full */
+
+
+void mark_routine_referenced(a_routine_ptr routine)
+/*
+Interface to mark_routine_referenced_full for the simple case.
+*/
+{
+  mark_routine_referenced_full(routine, /*instantiate=*/TRUE);
 }  /* mark_routine_referenced */
 
 

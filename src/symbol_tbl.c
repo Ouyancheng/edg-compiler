@@ -5968,7 +5968,8 @@ FALSE, the reference is within an unevaluated expression.
     reference_to_implicitly_invoked_function(ctor_sym, err_pos,
                                              object_class_type,
                                              /*honor_virtual=*/FALSE,
-                                             evaluated);
+                                             evaluated,
+                                             /*instantiate=*/TRUE);
     ctor_routine = ctor_sym->variant.routine.ptr;
   }  /* if */
   return ctor_routine;
@@ -6002,7 +6003,8 @@ expression.  *position is the source position of the reference.
       /* Check that the destructor is accessible and mark it referenced. */
       reference_to_implicitly_invoked_function(dtor_sym, position,
                                                object_class_type,
-                                               honor_virtual, evaluated);
+                                               honor_virtual, evaluated,
+                                               /*instantiate=*/TRUE);
       dtor_routine = dtor_sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
@@ -6057,7 +6059,8 @@ within an unevaluated expression.  This routine is only used in C++ mode.
     reference_to_implicitly_invoked_function(cctor_sym, err_pos,
                                              object_class_type,
                                              /*honor_virtual=*/FALSE,
-                                             evaluated);
+                                             evaluated,
+                                             /*instantiate=*/TRUE);
     cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
   return cctor_routine;
@@ -6210,7 +6213,8 @@ is returned TRUE if the parameter is not a reference parameter.
     /* Check that the function is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(
                                   opass_sym, err_pos, (a_type_ptr)NULL,
-                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
+                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                  /*instantiate=*/TRUE);
     opass_routine = opass_sym->variant.routine.ptr;
   }  /* if */
   db_exit();

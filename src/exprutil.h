@@ -674,6 +674,15 @@ extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 
 extern void if_evaluating_mark_routine_referenced(a_routine_ptr  routine);
 
+extern void expr_reference_to_implicitly_invoked_function
+                                            (a_symbol_ptr      sym,
+                                             a_source_position *pos,
+                                             a_type_ptr        class_of_object,
+                                             a_boolean         honor_virtual);
+
+extern an_expr_node_ptr expr_copy_default_arg_expr_list(a_routine_ptr    rout,
+                                                        a_param_type_ptr ptp);
+
 extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry,
                             a_boolean               force_object_lifetime,

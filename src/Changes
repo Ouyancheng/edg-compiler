@@ -1,5 +1,19 @@
 Version 2.45
 
+10/8/00  Template entities referenced in unused default argument expressions
+         not instantiated
+
+Template entities referenced in default argument expressions that are
+never used are no longer instantiated.  This conforms to a requirement
+in 14.7.1p9 of the C++ standard.
+
+  template <class T>
+  struct Obj {
+      Obj(int* myPtr) { *myPtr = T::ID; }
+  };
+  class IEnt;
+  void foo(Obj<IEnt> myEnt = 0);  // No longer draws an error
+
 10/7/00  Microsoft compatibility: deduced reference can bind to rvalue
 
 In Microsoft bugs mode, the front end now allows a deduced template

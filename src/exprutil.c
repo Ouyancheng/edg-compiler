@@ -638,9 +638,51 @@ mark_routine_referenced.
 */
 {
   if (curr_expr_is_potentially_evaluated()) {
-    mark_routine_referenced(routine);
+    /* Routines referenced in default argument expressions are not
+       instantiated until there is a use of the default argument expression. */
+    mark_routine_referenced_full(routine,
+                                 /*instantiate=*/
+                                       !expr_stack->is_default_arg_expression);
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
+
+
+void expr_reference_to_implicitly_invoked_function(
+                                             a_symbol_ptr      sym,
+                                             a_source_position *pos,
+                                             a_type_ptr        class_of_object,
+                                             a_boolean         honor_virtual)
+/*
+Interface to reference_to_implicit_invoked_function to be used when
+calling it from within the expression-processing routines.  Supplies the
+last two parameters from values on the expression stack.
+*/
+{
+  /* Routines referenced in default argument expressions are not
+     instantiated until there is a use of the default argument expression. */
+  reference_to_implicitly_invoked_function(
+                       sym, pos, class_of_object, honor_virtual,
+                       curr_expr_is_potentially_evaluated(),
+                       /*instantiate=*/!expr_stack->is_default_arg_expression);
+}  /* expr_reference_to_implicitly_invoked_function */
+
+
+an_expr_node_ptr expr_copy_default_arg_expr_list(a_routine_ptr    rout,
+                                                 a_param_type_ptr ptp)
+/*
+Interface to copy_default_arg_expr_list to be used when calling it from
+within the expression-processing routines.  Supplies the last two parameters
+from values on the expression stack.
+*/
+{
+  an_expr_node_ptr expr;
+
+  expr = copy_default_arg_expr_list(
+                          rout, ptp,
+                          (a_boolean)expr_stack->inside_conditional_expression,
+                          curr_expr_is_potentially_evaluated());
+  return expr;
+}  /* expr_copy_default_arg_expr_list */
 
 
 void push_expr_stack(an_expression_kind      expression_kind,

@@ -484,6 +484,11 @@ typedef int an_expr_copy_options_set;
 #define CE_UNLINK_SOURCE_DESTRUCTIONS 0x8
 			/* TRUE if destructions in the source expression
 			   should be unlinked from their object lifetimes. */
+#define CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR 0x10
+			/* TRUE if this copy operation is copying a default
+			   argument expression, i.e., making a real use from
+			   the scanned expression.  This is set only for
+			   evaluated expressions, not unevaluated ones. */
 
 a_constant_ptr copy_unshared_constant_full(
                                          a_constant_ptr           old_constant,
@@ -667,14 +672,16 @@ extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
 extern an_expr_node_ptr copy_default_arg_expr(
 			       a_routine_ptr	rout_ptr,
                                a_param_type_ptr ptp,
-                               a_boolean        inside_conditional_expression);
+                               a_boolean        inside_conditional_expression,
+                               a_boolean        potentially_evaluated);
 
 extern an_expr_node_ptr duplicate_default_arg_expr(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_default_arg_expr_list(
 			       a_routine_ptr	rout_ptr,
                                a_param_type_ptr ptp,
-                               a_boolean        inside_conditional_expression);
+                               a_boolean        inside_conditional_expression,
+                               a_boolean        potentially_evaluated);
 
 extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
 
@@ -719,7 +726,10 @@ extern an_expr_node_ptr fe_field_rvalue_selection_expr(an_expr_node_ptr node,
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 
-extern void mark_routine_referenced(a_routine_ptr  routine);
+extern void mark_routine_referenced_full(a_routine_ptr routine,
+                                         a_boolean     instantiate);
+
+extern void mark_routine_referenced(a_routine_ptr routine);
 
 extern void set_routine_defined(a_routine_ptr rout);
 

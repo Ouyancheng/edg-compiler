@@ -175,7 +175,8 @@ extern void reference_to_implicitly_invoked_function
                                      a_source_position  *pos,
                                      a_type_ptr         class_of_object,
                                      a_boolean          honor_virtual,
-                                     a_boolean          evaluated);
+                                     a_boolean          evaluated,
+                                     a_boolean          instantiate);
 
 extern a_boolean reference_to_trivial_default_constructor(
                                                 a_type_ptr         class_type,

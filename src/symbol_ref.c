@@ -1770,7 +1770,8 @@ void reference_to_implicitly_invoked_function
                                  a_source_position  *pos,
                                  a_type_ptr         class_of_object,
                                  a_boolean          honor_virtual,
-                                 a_boolean          evaluated)
+                                 a_boolean          evaluated,
+                                 a_boolean          instantiate)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class
@@ -1792,7 +1793,8 @@ function is virtual, the reference is considered to be a virtual call;
 that means the access control checking is done, but the IL entry is not
 marked as referenced.  If evaluated is FALSE, the reference is within
 an unevaluated expression; again, access control checking is done, but
-the IL entry is not marked as referenced.
+the IL entry is not marked as referenced.  If instantiate is TRUE and
+the function is a template function, it should be instantiated.
 */
 {
   a_symbol_ptr  base_sym = fundamental_symbol_of(sym);
@@ -1843,7 +1845,7 @@ the IL entry is not marked as referenced.
        call might actually be of an overriding function. */
   } else {
     /* Non-virtual call. */
-    mark_routine_referenced(rp);
+    mark_routine_referenced_full(rp, instantiate);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
@@ -1870,7 +1872,8 @@ constructor), return TRUE.
   if (ctor_sym != NULL) {
     reference_to_implicitly_invoked_function(ctor_sym, pos, class_type,
                                              /*honor_virtual=*/FALSE,
-                                             /*evaluated=*/TRUE);
+                                             /*evaluated=*/TRUE,
+                                             /*instantiate=*/TRUE);
   }  /* if */
   return (ctor_sym != NULL);
 }  /* reference_to_trivial_default_constructor */

@@ -5736,10 +5736,8 @@ list checking (e.g., for the presence of too few arguments).
       if (arg_block->curr_param_type->default_arg_expr != NULL ||
           arg_block->curr_param_type->has_unevaluated_template_default) {
         an_expr_node_ptr curr_node =
-                     copy_default_arg_expr_list(
-                         arg_block->routine,
-                         arg_block->curr_param_type,
-                         (a_boolean)expr_stack->inside_conditional_expression);
+                   expr_copy_default_arg_expr_list(arg_block->routine,
+                                                   arg_block->curr_param_type);
         if (arg_block->argument_head == NULL) {
           arg_block->argument_head = curr_node;
         } else {
@@ -5844,8 +5842,9 @@ specific function being called.
       /* The parameter has a default value, or one can be generated for a
          template-based function. */
       arg = copy_default_arg_expr(
-                         rout_ptr, param,
-                         (a_boolean)expr_stack->inside_conditional_expression);
+                          rout_ptr, param,
+                          (a_boolean)expr_stack->inside_conditional_expression,
+                          curr_expr_is_potentially_evaluated());
     }  /* if */
   } else {
     /* Actual argument is present (normal case). */
@@ -9249,11 +9248,10 @@ is used only in C++ mode.
 
   /* Check that the conversion function is accessible and mark it as
      referenced. */
-  reference_to_implicitly_invoked_function(conversion_symbol,
-                                           &operand->position,
-                                           operand->type,
-                                           /*honor_virtual=*/TRUE,
-                                         curr_expr_is_potentially_evaluated());
+  expr_reference_to_implicitly_invoked_function(conversion_symbol,
+                                                &operand->position,
+                                                operand->type,
+                                                /*honor_virtual=*/TRUE);
   check_assertion_str(routine_type_is_nonstatic_member_function(routine_type),
                      "set_up_for_conversion_function_call: no this parameter");
   /* Check for the cfront anachronism that allows a non-const function to be
@@ -9296,12 +9294,11 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
 
   /* Check that the constructor is accessible and mark it as referenced. */
   ctor_symbol = (a_symbol_ptr)(ctor_routine->source_corresp.assoc_info);
-  reference_to_implicitly_invoked_function(ctor_symbol,
-                                           &operand->position,
-                                           ctor_routine->source_corresp.
-                                                           parent.class_type,
-                                           /*honor_virtual=*/FALSE,
-                                         curr_expr_is_potentially_evaluated());
+  expr_reference_to_implicitly_invoked_function(ctor_symbol,
+                                                &operand->position,
+                                                ctor_routine->source_corresp.
+                                                             parent.class_type,
+                                                /*honor_virtual=*/FALSE);
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
      constructor. */
@@ -9322,9 +9319,8 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
   /* If the constructor has default arguments after the first, add
      arguments for them. */
   if (param_list != NULL) {
-    (*arg_expr_list)->next = copy_default_arg_expr_list(
-                         ctor_routine, param_list->next,
-                         (a_boolean)expr_stack->inside_conditional_expression);
+    (*arg_expr_list)->next = expr_copy_default_arg_expr_list(ctor_routine,
+                                                             param_list->next);
   }  /* if */
 }  /* set_up_for_constructor_call */
 
