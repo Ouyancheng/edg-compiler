@@ -285,9 +285,9 @@ Dump field *fp derived from base class *tp, for debug purposes.
   fputs("\n    ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
   db_access_control(fp->source_corresp.access);
-  fprintf(f_debug, " field %s::", tp->source_corresp.name);
+  fputs(" field \"", f_debug);
   db_name(&fp->source_corresp);
-  fputs(", type = ", f_debug);
+  fputs("\", type = ", f_debug);
   db_abbreviated_type(fp->type);
   fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
   if (fp->bit_size > 0) {
@@ -415,12 +415,7 @@ static void db_access_adjustment(an_access_adjustment_ptr aap)
   }  /* switch */
   fputs("    ", f_debug);
   db_access_control(aap->access);
-  fputs(" \"", f_debug);
-  db_name(sc);
-  fprintf(f_debug, "\" = %s ", str);
-  class = ((a_symbol_ptr)(sc->assoc_info))->class_of_which_a_member;
-  db_name(&class->source_corresp);
-  fputs("::", f_debug);
+  fprintf(" \"%s\" = %s ", sc->name, str);
   db_name(sc);
   fputc('\n', f_debug);
 }  /* db_access_adjustment */
