@@ -137,12 +137,13 @@ and return a pointer to it.
     num_trans_unit_corresps_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  tucp->kind = iek_none;
   tucp->canonical = NULL;
   tucp->primary = NULL;
 #if CHECKING
   tucp->count = 0;
 #endif /* CHECKING */
+  tucp->kind = iek_none;
+  tucp->entry_on_copied_list = NULL;
   return tucp;
 }  /* alloc_trans_unit_corresp */
 
