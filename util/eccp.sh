@@ -689,14 +689,14 @@ do
 #
 	rofiles=$rofiles" "$basefile.o
       fi
+    fi
+  fi
 #
 #     Remove the .int.c file.
 #
-      if [ $keep_int_file -eq 0 ]
-      then
-        rm -f $gen_c_file_name
-      fi
-    fi
+  if [ $keep_int_file -eq 0 ]
+  then
+    rm -f $gen_c_file_name
   fi
 done
 if [ $any_errors -eq 0 ]
