@@ -1,5 +1,20 @@
 Version 2.35
 
+2/3/97  Fix in recursive macro expansion
+
+When a macro name appears in its own expansion (either directly, or in
+the expansion of another macro called by the first), the macro name
+is not expanded recursively.  This has been handled correctly by the
+front end in almost every case, but not when the expansion was done
+in a macro argument whose text was subsequently expanded again.
+Now fixed.
+
+  #define p (*p)
+  #define px p
+  #define mac2(a) px + a
+  #define mac(x) mac2(x)
+  mac(p) // Correct expansion: (*p) + (*p)
+
 1/31/97 Microsoft compatibility: storage class but no declarator
 
 An error is no longer issued in Microsoft compatibility mode when a
