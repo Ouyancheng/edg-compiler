@@ -725,32 +725,46 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
-static a_boolean report_bad_scope_for_new_or_delete(a_symbol_locator  *locator,
-                                                    an_error_severity severity)
+static void report_bad_new_or_delete(a_symbol_locator  *locator,
+                                     a_storage_class   storage_class,
+                                     a_boolean         *bad_scope)
 /*
-Issue a diagnostic of the indicated severity for declaring an operator new
-or delete function that is a namespace member.  Return TRUE if a diagnostic
-is issued.
+Issue a diagnostic when attempting to declare an operator new or delete
+function that is a namespace member or that has internal linkage (i.e.,
+storage_class == sc_static).  If the former is true, set *bad_scope to TRUE.
+If a true error is issued mark *locator as an error locator.
 */
 {
   an_error_code      error_code = ec_no_error;
+  an_error_severity  severity;
 
-  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
-      locator->is_operator_name && !locator->is_class_member &&
-      (!locator->is_qualified_name ||
-       !locator->is_file_scope_qualified_name)) {
-    /* This operator declaration either appears inside a namespace or else
-       has the effect of injecting a declaration into a namespace.  Be sure
-       it's not operator new, new[], delete, or delete[]. */
-    if (is_new_operator(locator->variant.opname)) {
-      error_code = ec_allocation_operator_in_namespace;
-    } else if (is_delete_operator(locator->variant.opname)) {
-      error_code = ec_deallocation_operator_in_namespace;
+  if (locator->is_operator_name && !locator->is_class_member &&
+      (is_new_operator(locator->variant.opname) ||
+       is_delete_operator(locator->variant.opname))) {
+    /* A new or delete operator that is not a class member. */
+    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+        (!locator->is_qualified_name ||
+         !locator->is_file_scope_qualified_name)) {
+      /* This operator declaration either appears inside a namespace or else
+         has the effect of injecting a declaration into a namespace. */
+      severity = microsoft_mode ? es_warning : es_error;
+      error_code = is_new_operator(locator->variant.opname)?
+                                        ec_allocation_operator_in_namespace :
+                                        ec_deallocation_operator_in_namespace;
+      *bad_scope = TRUE;
+    } else if (storage_class == sc_static) {
+      severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+      error_code = ec_no_internal_linkage_for_new_or_delete;
     }  /* if */
-    if (error_code != ec_no_error) diagnostic(severity, error_code);
+    if (error_code != ec_no_error) {
+      diagnostic(severity, error_code);
+      if (severity == es_error) {  /*lint !e774*/
+        /* Set the is_error flag in the locator. */
+        set_to_named_error_locator(*locator);
+      }  /* if */
+    }  /* if */
   }  /* if */
-  return (error_code != ec_no_error);
-}  /* report_bad_scope_for_new_or_delete */
+}  /* report_bad_new_or_delete */
 
 
 void check_exception_specification(a_type_ptr         new_rout_type,
@@ -4257,8 +4271,6 @@ on for use in generating cross-reference output describing this declaration.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (C_dialect == C_dialect_cplusplus) {
-    an_error_severity  severity = es_error;
-
     if (func_info->is_inline && !extern_inline_allowed) {
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
@@ -4268,18 +4280,8 @@ on for use in generating cross-reference output describing this declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* In Microsoft mode no error is issued if operator new or delete is
-       declared in a namespace scope. */
-    if (microsoft_mode) severity = es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (report_bad_scope_for_new_or_delete(locator, severity)) {
-      if (severity == es_error) {  /*lint !e774*/
-        /* Set the is_error flag in the locator. */
-        set_to_named_error_locator(*locator);
-      }  /* if */
-      invalid_scope_for_new_or_delete = TRUE;
-    }  /* if */
+    report_bad_new_or_delete(locator, storage_class,
+                             &invalid_scope_for_new_or_delete);
   }  /* if */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
@@ -5386,7 +5388,6 @@ is a template specialization declaration.
       /* Not a redeclaration. */
       a_scope_stack_entry_ptr  ssep = &scope_stack[idlb.effective_decl_level];
       an_error_code            error_code;
-      an_error_severity        severity = es_error;
       a_boolean                invalid_scope_for_new_or_delete = FALSE;
 
       if (!is_error_locator(*locator)) {
@@ -5397,18 +5398,8 @@ is a template specialization declaration.
         check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* In Microsoft mode no error is issued if operator new or delete is
-           declared in a namespace scope. */
-        if (microsoft_mode) severity = es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (report_bad_scope_for_new_or_delete(locator, severity)) {
-          if (severity == es_error) {  /*lint !e774*/
-            /* Set the is_error flag in the locator. */
-            set_to_named_error_locator(*locator);
-          }  /* if */
-          invalid_scope_for_new_or_delete = TRUE;
-        }  /* if */
+        report_bad_new_or_delete(locator, storage_class,
+                                 &invalid_scope_for_new_or_delete);
       }  /* if */
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&

@@ -1,5 +1,11 @@
 Version 2.43
 
+8/17/99  New and delete operators cannot have internal linkage
+
+The front end now diagnoses attempts to declare new and delete operators as
+static file-scope operator functions.  In strict mode, the diagnostic is an
+error, otherwise it is a warning.
+
 8/17/99  Front end now builds in strict C++ mode
 
 The front end contained a few constructs that were no longer valid in
