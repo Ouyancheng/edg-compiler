@@ -8792,6 +8792,13 @@ continue_with_declaration:
             pos_error(ec_cannot_define_dllimport_function, &pos_curr_token);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          if (!C_mode()) {
+            /* Issue diagnostic on an incomplete-type in an exception
+               specification.  (It wasn't done when the exception
+               specification was scanned because definitions and declarations
+               are treated differently. */
+            report_exception_spec_errors(&func_info);
+          }  /* if */
           /* Do processing required for a function definition, including
              scanning the function body.  Note that the closing '}' will not
              been consumed -- that will be done by the caller. */
@@ -8858,6 +8865,13 @@ continue_with_declaration:
              data members. */
           is_static_data_member = TRUE;
         }  /* if */
+      }  /* if */
+      if (is_function && !C_mode()) {
+        /* Issue diagnostic on an incomplete-type in an exception
+           specification.  (It wasn't done when the exception specification
+           was scanned because definitions and declarations are treated
+           differently. */
+        report_exception_spec_errors(&func_info);
       }  /* if */
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!has_explicit_type_specifier && !is_constructor_or_destructor &&

@@ -9948,6 +9948,11 @@ to be returned to the caller.
           }  /* if */
         }  /* if */
       }  /* if */
+      /* Issue diagnostic on an incomplete-type in an exception
+         specification.  (It wasn't done when the exception specification
+         was scanned because definitions and declarations are treated
+         differently.) */
+      report_exception_spec_errors(&func_info);
       if (local_type == member_type) {
         /* When scanning the declarator does not change the type, we know
            this member is a function based on the specifier type alone.

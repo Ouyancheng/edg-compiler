@@ -96,7 +96,8 @@ static unsigned long
 		num_searches_for_symbols,
 		num_compares_for_symbols,
 		num_access_error_descrs_allocated,
-		num_progenitors_allocated;
+		num_progenitors_allocated,
+		num_exception_spec_error_descrs_allocated;
 #endif /* DEBUG */
 
 static a_namespace_list_entry_ptr
@@ -8136,6 +8137,65 @@ storage_class are the type and storage class for the parameter.
 }  /* add_to_param_id_list */
 
 
+void defer_exception_spec_error(a_func_info_block  *func_info,
+                                an_error_code      error_code,
+                                a_source_position  *pos)
+/*
+Create an entry to record the need for an incomplete-type diagnostic on an
+exception specification.  At this point in processing (while the exception
+specification is being scanned), it is not known whether it belongs to a
+function definition or to a non-defining declaration; since this may affect
+the severity of the diagnostic, issuing the message is deferred.  func_info
+points to the block in which the deferral is recorded; error_code and *pos
+indicate the particular diagnostic required and the error position.
+*/
+{
+  an_exception_spec_error_descr_ptr  esedp, end_of_list;
+
+  db_enter(5, "defer_exception_spec_error");
+  esedp = (an_exception_spec_error_descr_ptr)alloc_fe(
+                                      sizeof(an_exception_spec_error_descr));
+#if DEBUG
+  num_exception_spec_error_descrs_allocated++;
+#endif /* DEBUG */
+  esedp->next       = NULL;
+  esedp->position   = *pos;
+  esedp->error_code = error_code;
+  if (func_info->exception_spec_errors == NULL) {
+    func_info->exception_spec_errors = esedp;
+  } else {
+    end_of_list = func_info->exception_spec_errors;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = esedp;
+  }  /* if */
+  db_exit();
+}  /* alloc_exception_spec_error_descr */
+
+
+void report_exception_spec_errors(a_func_info_block  *func_info)
+/*
+Report one or more deferred exception-specification errors.
+*/
+{
+  an_exception_spec_error_descr_ptr  esedp;
+  an_error_severity                  severity;
+
+  esedp = func_info->exception_spec_errors;
+  if (esedp != NULL) {
+    if (func_info->is_definition) {
+      severity = es_error;
+    } else if (strict_ansi_mode) {
+      severity = strict_ansi_discretionary_severity;
+    } else {
+      severity = es_warning;
+    }  /* if */
+    for (; esedp != NULL; esedp = esedp->next) {
+      pos_diagnostic(severity, esedp->error_code, &esedp->position);
+    }  /* for */
+  }  /* if */
+}  /* report_exception_specE_errors */
+
+
 void clear_func_info(a_func_info_block *func_info)
 /*
 Clear the fields of a function information block to default values.
@@ -8145,6 +8205,7 @@ Clear the fields of a function information block to default values.
   func_info->param_id_list               = NULL;
   func_info->exception_specification     = NULL;
   func_info->throw_position              = null_source_position;
+  func_info->exception_spec_errors       = NULL;
   func_info->scope_number                = NO_SCOPE_NUMBER;
   func_info->vla_fixup_list              = NULL;
   func_info->any_prototype_names_omitted = FALSE;
@@ -8720,6 +8781,9 @@ for space tracking purposes.
   db_space_used_lost("active using directives", avail_active_using_directives,
                      num_active_using_directives_allocated,
                      an_active_using_directive);
+  db_space_used("exception spec err descr",
+                num_exception_spec_error_descrs_allocated,
+                an_exception_spec_error_descr);
   grand_total = db_show_pch_space_used(grand_total);
   grand_total = db_show_template_space_used(grand_total);
   grand_total = db_show_routine_fixups_used(grand_total);
@@ -8932,6 +8996,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_namespace_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_progenitors_allocated),
+      pch_saved_var_array_elem(num_exception_spec_error_descrs_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
 #endif /* if DEBUG */
@@ -9038,6 +9103,7 @@ of the front end.
   num_slow_id_lookups                          = 0;
   num_active_using_directives_allocated        = 0;
   num_progenitors_allocated                    = 0;
+  num_exception_spec_error_descrs_allocated    = 0;
 #endif /* DEBUG */
 }  /* symbol_tbl_init */
 

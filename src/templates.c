@@ -5498,6 +5498,11 @@ information.
         *storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
     }  /* if */
+    if (type_is_function) {
+      /* Issue diagnostic on an incomplete-type in an exception
+         specification. */
+      report_exception_spec_errors(func_info);
+    }  /* if */
   }  /* if */
   if (is_initial_decl) {
     /* An end-of-source marker is not present when the initial declaration
@@ -10766,6 +10771,8 @@ that follows.
       }  /* if */
     }  /* if */
     check_for_declaration_errors(dso_flags, type, &locator, &decl_start_pos);
+    /* Issue diagnostic on an incomplete-type in an exception specification. */
+    report_exception_spec_errors(&func_info);
     if (is_error_locator(locator)) {
       /* Ignore it. */
     } else if (sym == NULL) {
@@ -13269,6 +13276,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info, &decl_pos_block);
     record_param_id_list_declarations(func_info.param_id_list);
+    /* Issue diagnostic on an incomplete-type in an exception specification. */
+    report_exception_spec_errors(&func_info);
     done_with_func_info(func_info);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (declarator_ssep != NULL) {

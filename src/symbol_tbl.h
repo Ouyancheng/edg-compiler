@@ -34,6 +34,8 @@ typedef struct a_template_cache_segment *a_template_cache_segment_ptr;
 typedef struct a_template_decl_info *a_template_decl_info_ptr;
 typedef struct a_template_cache *a_template_cache_ptr;
 typedef struct a_control_flow_descr a_control_flow_descr_dummy_typedef;
+typedef struct an_exception_spec_error_descr
+                                          *an_exception_spec_error_descr_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -884,6 +886,12 @@ typedef struct a_func_info_block {
 		throw_position;
 			/* Source position of the exception specification (C++
 			   only). */
+  an_exception_spec_error_descr_ptr
+		exception_spec_errors;
+			/* Pointer to a linked list of diagnostics that were
+			   detected during scanning of exception
+			   specifications but that are to be issued later;
+			   may be NULL.  C++ only. */
   a_scope_number
 		scope_number;
 			/* The scope number used for the function prototype
@@ -2277,6 +2285,23 @@ typedef struct an_access_error_descr {
 			   access error was first detected. */
 } an_access_error_descr;
 
+
+/* Contains a description of an exception specification error that has been
+   detected and for which an error may need to be issued later. */
+typedef struct an_exception_spec_error_descr {
+  an_exception_spec_error_descr_ptr
+		next;
+			/* Pointer to the next error description record. */
+  a_source_position
+		position;
+			/* Position to be used when the diagnostic is
+			   issued. */
+  an_error_code
+		error_code;
+			/* The code indicating the diagnostic message to be
+			   issued. */
+} an_exception_spec_error_descr;
+
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
 EXTERN a_symbol_ptr
 		last_ctor_or_dtor_sym;
@@ -2859,6 +2884,12 @@ extern void add_to_dependent_type_fixup_list(
                                       char                         *entity_ptr,
                                       a_byte_il_entry_kind         entity_kind,
                                       a_source_position            *pos);
+
+extern void defer_exception_spec_error(a_func_info_block  *func_info,
+                                       an_error_code      error_code,
+                                       a_source_position  *pos);
+
+extern void report_exception_spec_errors(a_func_info_block  *func_info);
 
 extern void check_dependent_type_fixup_list(a_symbol_ptr  sym);
 
