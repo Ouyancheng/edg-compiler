@@ -3825,9 +3825,10 @@ tok_identifier if the qualifier is followed by an identifier, and
 tok_colon_colon otherwise.  This routine should only be called in C++ mode.
 */
 {
-  a_boolean      is_qualifier = FALSE;
-  a_symbol_ptr   class_symbol, first_symbol_in_class;
-  a_scope_number class_scope;
+  a_boolean         is_qualifier = FALSE;
+  a_symbol_ptr      class_symbol, first_symbol_in_class;
+  a_scope_number    class_scope;
+  a_source_position start_position;
 
   if (curr_token == tok_identifier) {
     /* Look up the symbol to see if it could be a class name.  Note that
@@ -3841,7 +3842,8 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
     */
     class_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
     if (class_symbol != NULL && next_token() == tok_colon_colon) {
-      /* This is a qualified name. */
+      /* This is a qualifier. */
+      copy_source_position(pos_curr_token, start_position);
       /* Keep looping while there are more levels of class qualification.
          Stop on something that is not a class name followed by "::". */
       do {
@@ -3874,6 +3876,7 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
       } while (class_symbol != NULL && next_token() == tok_colon_colon);
       is_qualifier = TRUE;
       *scope_number = class_scope;
+      copy_source_position(start_position, error_position);
     }  /* if */
   }  /* if */
   return is_qualifier;
@@ -3896,9 +3899,10 @@ in C++ mode.  If a qualified name is not next, leave qualified_name_symbol
 set to NULL and return FALSE.
 */
 {
-  a_boolean      is_qualified_name = FALSE, okay = FALSE;
-  a_symbol_ptr   name_symbol;
-  a_scope_number class_scope;
+  a_boolean         is_qualified_name = FALSE, okay = FALSE;
+  a_symbol_ptr      name_symbol;
+  a_scope_number    class_scope;
+  a_source_position start_position;
 
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_identifier) {
@@ -3911,6 +3915,9 @@ set to NULL and return FALSE.
            if so, get it and determine the scope number it represents. */
         if (get_class_qualifier(&class_scope)) {
           /* This is a qualified name. */
+          /* Save the start position of the qualified name (get_class_qualifier
+             puts it in error_position). */
+          copy_source_position(error_position, start_position);
           /* The current token must now be the final identifier of the
              qualified name, e.g., "x" in "A::B::x".  Note that
              get_class_qualifier did not get the next token after
@@ -3959,6 +3966,7 @@ set to NULL and return FALSE.
           /* Clear the symbol list to be neat. */
           symbol_list_for_curr_id = NULL;
           is_qualified_name = TRUE;
+          copy_source_position(start_position, error_position);
         }  /* if */
       }  /* if */
 #if DEBUG
