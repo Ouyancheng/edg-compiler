@@ -9171,7 +9171,9 @@ or implicit) controlling the declaration.
     } else if (is_constructor_symbol(declared_sym) ||
                is_destructor_symbol(declared_sym)) {
       /* A using-declaration may not specify a constructor or destructor. */
-      pos_sy_error(ec_using_declaration_not_allowed, &decl_pos, declared_sym);
+      pos_diagnostic(microsoft_mode ? es_warning :
+                     strict_ansi_mode ? es_error : es_discretionary_error,
+                     ec_no_ctor_or_dtor_using_declaration, &decl_pos);
       err = TRUE;
     } else if (is_copy_assignment_operator_sym(declared_sym)) {
       /* Using-declaration cannot apply to a copy-assignment operator,

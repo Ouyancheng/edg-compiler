@@ -1,5 +1,20 @@
 Version 2.43
 
+11/22/99 Microsoft compatibility: using-declaration of constructor or
+         destructor
+
+Ordinarily, using-declarations naming constructors or destructors are reported
+as errors.  In Microsoft mode this is now reduced to a warning.  In nonstrict
+modes the error is discretionary.
+
+  struct B { B() {} };
+  struct D: public B {
+    using B::B;  // Error by default.  Warning in Microsoft mode.
+  };             // Accepted (but ignored) with option
+                 //   --diag_suppress=no_ctor_or_dtor_using_declaration
+
+Such a using-declaration is ignored in the rest of the program.
+
 11/22/99 Microsoft compatibility: allow member function redeclaration outside
          class definition
 
