@@ -294,27 +294,33 @@ encoding.
   sizeof_t mangled_name_length, digits;
 
   check_assertion(distinct_mangling_for_templates);
-  /* The encoding is "Zn_" for a first-level parameter, and "Z_m_n_" for
+  /* The encoding is "ZnZ" for a first-level parameter, and "Zn_mZ" for
      a non-first-level parameter, with "n" the parameter number, and
-     "m" the depth number. */
+     "m" the depth number.  The "Z" on the end is to avoid ambiguities
+     when this construct is followed by something that begins with a
+     number, e.g., when a template parameter in a function parameter
+     list is followed by a class name. */
   mangled_name_length = 1;
   if (store_at != NULL) *store_at++ = 'Z';
-  if (coordinate->depth != 1) {
-    /* Put out "_depth_". */
-    digits = digits_to_represent((unsigned long)coordinate->depth);
-    mangled_name_length += digits + 2;
-    if (store_at != NULL) {
-      (void)sprintf(store_at, "_%lu_", (unsigned long)coordinate->depth);
-      store_at += digits+2;
-    }  /* if */
-  }  /* if */
-  /* Put out the parameter number. */
+  /* Put out the parameter position number. */
   digits = digits_to_represent((unsigned long)coordinate->position);
-  mangled_name_length += digits + 1;
+  mangled_name_length += digits;
   if (store_at != NULL) {
-    (void)sprintf(store_at, "%lu_", (unsigned long)coordinate->position);
+    (void)sprintf(store_at, "%lu", (unsigned long)coordinate->position);
     store_at += digits;
   }  /* if */
+  if (coordinate->depth != 1) {
+    /* Put out "_depth". */
+    digits = digits_to_represent((unsigned long)coordinate->depth);
+    mangled_name_length += digits + 1;
+    if (store_at != NULL) {
+      (void)sprintf(store_at, "_%lu", (unsigned long)coordinate->depth);
+      store_at += digits + 1;
+    }  /* if */
+  }  /* if */
+  /* Put out the final "Z". */
+  mangled_name_length++;
+  if (store_at != NULL) *store_at++ = 'Z';
   return mangled_name_length;
 }  /* mangled_encoding_for_template_parameter */
 
@@ -682,16 +688,24 @@ template arguments, and as dimensions of arrays in template signatures.
       break;
     case enk_operation:
       /* Operation.  Output has the form
-           Opl2Z1_Z2_  <-- "Z1 + Z2", where Z1/Z2 are nontype template
+           Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template
                            parameters.
+                     ^---- "O" to end the operation encoding.
                   ^^^----- Second operand.
                ^^^-------- First operand.
               ^----------- Count of operands.
             ^^------------ Operation, using same encoding as for operator
                            function names.
            ^-------------- "O" for operation.
+         The final "O" avoids an ambiguity when the last operand is a literal
+         that ends with something like "L10" (meaning a literal of length 1
+         with the literal form "0".  The length of the literal is taken to
+         be a single digit, except when it's followed by an underscore, e.g.,
+         "L10_1234567890".  The problem is that if "L11" is followed by
+         an underscore for a different reason (e.g., to add the element type
+         of an array), the construct is ambiguous.
       */
-      /* Put out the "O". */
+      /* Put out the initial "O". */
       mangled_expr_length = 1;
       if (store_at != NULL) *store_at++ = 'O';
       /* Get the operator name and put it out. */
@@ -720,6 +734,9 @@ template arguments, and as dimensions of arrays in template signatures.
         mangled_expr_length += section_length;
         if (store_at != NULL) store_at += section_length;
       }  /* for */
+      /* Put out the final "O". */
+      mangled_expr_length++;
+      if (store_at != NULL) *store_at++ = 'O';
       break;
     default:
       unexpected_condition_str("mangled_encoding_for_expression: bad kind");
