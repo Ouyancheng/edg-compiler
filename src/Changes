@@ -1,5 +1,15 @@
 Version 3.1
 
+9/12/02  GNU C++ Compatibility: elimination of previous dependent lookup
+         facility
+
+In version 3.0, the variable force_dependent_name_rules_for_base_class_lookup
+was added to let customers turn on just part of the dependent name processing
+code to emulate the behavior of g++.  Upon further investigation, the lookup
+done by g++ is more complicated than simply ignoring dependent base classes.
+We now implement more complete emulation of the g++ lookup in g++ mode and as
+a result, have eliminated force_dependent_name_rules_for_base_class_lookup.
+
 9/11/02  Microsoft compatibility: spurious warning on overloaded template
 
 In Microsoft bugs mode, a spurious "incompatible template parameter
@@ -596,7 +606,8 @@ of the function in which it appears (but, unlike in GNU C mode, does not act
 like a string literal).  A few non-standard constant-expressions are accepted
 (e.g., (int)"str" & 0).  Support for extended variadic macros.
 [8/30/02] __PRETTY_FUNCTION__ expands to the decorated name of the function in
-which it appears.
+which it appears, [9/12/02] emulation of the dependent base class lookup
+done by g++.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables

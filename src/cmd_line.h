@@ -600,11 +600,12 @@ EXTERN a_boolean
 			   default arguments. */
 
 EXTERN a_boolean
-		force_dependent_name_rules_for_base_class_lookup;
-			/* TRUE if the portion of dependent name lookup that
-			   involves the lookup of names in dependent base
-			   classes should be performed even if full dependent
-			   name processing is not being done. */
+		gpp_dependent_base_class_lookup;
+			/* TRUE if special lookup rules should be used that
+			   emulate the behavior of g++.  An initial lookup is
+			   done that ignores dependent base classes and a
+			   second pass is made that considers such bases if
+			   the first lookup did not find a symbol. */
 
 EXTERN a_boolean
 		nonclass_prototype_instantiations

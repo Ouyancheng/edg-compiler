@@ -685,6 +685,9 @@ and indentation is the indentation desired.
         if (cssp->any_nonreal_base_classes) {
           put_string("has nonreal base class");
         }  /* if */
+        if (cssp->any_dependent_base_classes) {
+          put_string("has dependent base class");
+        }  /* if */
         if (cssp->any_template_dependent_fields) {
           put_string("has dependent field");
         }  /* if */
@@ -2530,6 +2533,7 @@ state.
         cssp->has_operator_array_delete = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
+        cssp->any_dependent_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         cssp->definition_is_first_decl = FALSE;
@@ -8855,7 +8859,7 @@ if no such base-class symbol is found).
     /* When doing dependent name lookup certain base classes should be
        ignored for unqualified lookups. */
     if ((do_dependent_name_processing ||
-         force_dependent_name_rules_for_base_class_lookup) &&
+         gpp_dependent_base_class_lookup) &&
         !look_in_dependent_bases &&
         bcp->ignore_during_dependent_lookup) continue;
     /* For the most part, we are only interested in the direct base classes

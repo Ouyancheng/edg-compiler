@@ -4198,11 +4198,14 @@ done:;
 }  /* set_preferred_base_class_derivation */
 
 
-static void mark_dependent_base_classes(a_type_ptr		class_type,
-					a_class_def_state_ptr	class_state)
+static void mark_dependent_base_classes(
+				a_type_ptr			class_type,
+				a_class_symbol_supplement_ptr	cssp,
+				a_class_def_state_ptr		class_state)
 /*
 Determine which of the base classes of class_type are template-dependent,
-and so should not be visible for certain lookups.
+and so should not be visible for certain lookups.  cssp is the class
+symbol supplement of class_type.
 
 For a prototype instantiation, we go through the base classes of the
 prototype type and determine whether the base class depends on a
@@ -4264,8 +4267,15 @@ classes or explicitly specialized classes.
           /* Skip a base class if we did not find a correspondence.  In an
              error case, this could result in names from a base class being
              visible when they really shouldn't be. */
+          a_class_symbol_supplement_ptr	base_cssp;
+          base_cssp = symbol_supplement_for_class(bcp->type);
           bcp->ignore_during_dependent_lookup =
                                      proto_bcp->ignore_during_dependent_lookup;
+          /* Indicate that this class has a dependent base if this base class
+             is dependent or any of its base classes are dependent. */
+          cssp->any_dependent_base_classes =
+                                      bcp->ignore_during_dependent_lookup ||
+                                      base_cssp->any_dependent_base_classes;
         } else {
           /* If we did not find a matching base class there must have been
              an earlier error. */
@@ -4976,7 +4986,7 @@ skip_base_class:
      lookups. */
   if (type_ptr->variant.class_struct_union.is_template_class &&
       !type_ptr->variant.class_struct_union.is_specialized) {
-    mark_dependent_base_classes(type_ptr, class_state);
+    mark_dependent_base_classes(type_ptr, cssp, class_state);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {

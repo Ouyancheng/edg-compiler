@@ -1567,6 +1567,10 @@ typedef struct a_lookup_state {
   a_boolean	any_nonreal_bases;
 			/* TRUE when check_for_nonreal_bases is TRUE and
 			   a nonreal base class has been found. */
+  a_boolean	any_ignored_dependent_bases;
+			/* TRUE when using g++ dependent base class lookup
+			   when a lookup was done in a class with dependent
+			   base classes, and no symbol was found. */
   a_boolean	look_for_projected_symbol;
 			/* TRUE for class and class reactivation scopes if
 			   the lookup should attempt to find a projection
@@ -1574,6 +1578,10 @@ typedef struct a_lookup_state {
   a_boolean	look_in_dependent_bases;
 			/* TRUE if the lookup can consider dependent base
 			   classes generated from class templates. */
+  a_boolean	force_lookup_in_dependent_bases;
+			/* TRUE if we are doing a special second lookup pass
+			   in g++ mode and should look in dependent base
+			   classes. */
   a_boolean	add_to_active_list;
 			/* TRUE if look_for_projected_symbol is TRUE and
 			   the resulting projection symbol (if any) should be
@@ -1647,8 +1655,10 @@ value.
   cleared_lookup_state.skip_first_class_reactivation = FALSE;
   cleared_lookup_state.check_for_nonreal_bases       = FALSE;
   cleared_lookup_state.any_nonreal_bases             = FALSE;
+  cleared_lookup_state.any_ignored_dependent_bases   = FALSE;
   cleared_lookup_state.look_for_projected_symbol     = FALSE;
   cleared_lookup_state.look_in_dependent_bases       = FALSE;
+  cleared_lookup_state.force_lookup_in_dependent_bases = FALSE;
   cleared_lookup_state.add_to_active_list            = FALSE;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   cleared_lookup_state.projection_symbol_found       = FALSE;
@@ -1877,6 +1887,7 @@ lookup processing.
        are generated from templates. */
     lookup_state->look_for_projected_symbol = TRUE;
     lookup_state->look_in_dependent_bases =
+			    lookup_state->force_lookup_in_dependent_bases ||
                             !is_unspecialized_template_class(ssep->assoc_type);
     lookup_state->add_to_active_list = TRUE;
     lookup_state->insert_sym = prev_active_sym;
@@ -1991,6 +2002,7 @@ that do normal id lookup processing.
            a generated template class. */
         lookup_state->look_for_projected_symbol = TRUE;
         lookup_state->look_in_dependent_bases =
+                            lookup_state->force_lookup_in_dependent_bases ||
                             !is_unspecialized_template_class(ssep->assoc_type);
         lookup_state->add_to_active_list = FALSE;
         lookup_state->insert_sym = NULL;
@@ -2072,6 +2084,13 @@ that do normal id lookup processing.
       lookup_state->any_nonreal_bases =
                               symbol_supplement_for_class(ssep->assoc_type)->
                                                       any_nonreal_base_classes;
+    } else if (gpp_dependent_base_class_lookup &&
+               !lookup_state->look_in_dependent_bases &&
+               symbol_supplement_for_class(ssep->assoc_type)
+                                                ->any_dependent_base_classes) {
+      /* Record the fact that we looked for (and did not find) a name from
+         a dependent base class. */
+      lookup_state->any_ignored_dependent_bases = TRUE;
     }  /* if */
   }  /* if */
   return sym;
@@ -2773,6 +2792,18 @@ C and C++.
                       scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation);
       sym = scope_stack_lookup(locator, &lookup_state,
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
+    }  /* if */
+    if (sym == NULL && gpp_dependent_base_class_lookup &&
+        lookup_state.any_ignored_dependent_bases) {
+      /* The lookup did not find a symbol but we looked in some classes
+         with dependent base classes that may have symbols that were not
+         considered.  Look again in a special mode that will find such
+         symbols. */
+      lookup_state.force_lookup_in_dependent_bases = TRUE;
+      sym = scope_stack_lookup(locator, &lookup_state,
+                               depth_of_initial_lookup_scope,
+                               NO_SCOPE_DEPTH);
+      lookup_state.force_lookup_in_dependent_bases = FALSE;
     }  /* if */
     /* If this is a linkage lookup, don't do the nested class anachronism
        lookup, or SVR4 mode lookup. */

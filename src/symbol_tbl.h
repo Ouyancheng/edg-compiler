@@ -871,6 +871,9 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	any_nonreal_base_classes:1;
 			/* For a prototype instantiation this is TRUE
 			   if any of its base classes are nonreal classes. */
+  a_bit_field	any_dependent_base_classes:1;
+			/* TRUE if any of the base classes should be ignored
+			   during dependent lookup. */
   a_bit_field	any_template_dependent_fields;
 			/*  For a prototype instantiation this is TRUE if any
 			    field is dependent on a template parameter. */
