@@ -5791,6 +5791,8 @@ number of parameters.
        be necessary, and cfront seems to allow those. */
     /* The code here must match determine_arg_match_level and
        overload_distinguishable. */
+    /* An indefinite function cannot be made to match anything. */
+    if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
     param_type = ptp->type;
     arg_type = arg_operand->operand.type;
     template_param = ptp->type_involves_template_param;
