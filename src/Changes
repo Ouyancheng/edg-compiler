@@ -16,10 +16,11 @@ declared_type field of a_param_type entries.
 
 8/10/03  Microsoft compatibility: nested template class lookup bug emulation
 
-The Microsoft 7.0 compiler accepts examples like the one below.  When the instantiation
-of B<int>::C is performed, the typedef "A" has already been declared in B<int>.  The
-Microsoft compiler ignores the typedef when looking for a template name.  We now
-emulate this in Microsoft bugs mode when Microsoft version is <= 1300.
+The Microsoft 7.0 compiler accepts examples like the one below.  When the
+instantiation of B<int>::C is performed, the typedef "A" has already been
+declared in B<int>.  The Microsoft compiler ignores the typedef when looking
+for a template name.  We now emulate this in Microsoft bugs mode when
+Microsoft version is <= 1300.
 
   template<class T> struct A { };
   template<class T> struct B {
@@ -28,12 +29,13 @@ emulate this in Microsoft bugs mode when Microsoft version is <= 1300.
   };
   B<int>::A ba;
 
-8/10/03  Precompiled header problem with macro invocation that crosses file boundary
+8/10/03  Precompiled header problem with macro invocation that crosses
+         file boundary
 
-If a header file ended with a macro invocation that crosses an include file boundary,
-and that header file terminated a precompiled header file, the resulting PCH file
-would not result in the correct behavior when used.  This kind of usage now suppresses
-the creation of a PCH file.
+If a header file ended with a macro invocation that crosses an include
+file boundary, and that header file terminated a precompiled header file,
+the resulting PCH file would not result in the correct behavior when used.
+This kind of usage now suppresses the creation of a PCH file.
 
   file: test.c:
   #define f(x) 
@@ -8744,7 +8746,8 @@ appear where the new-expression was written.  The following example, when
 compiled with -tused, illustrates the problem:
 
   template<typename T> struct S {
-    S() { new class C; }  // "class C" mistaken for a specialization declaration
+    S() { new class C; }  // "class C" mistaken for a specialization
+                          // declaration
     class C { T *p; };
   };
   void f() { new S<int>(); }
