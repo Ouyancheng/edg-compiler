@@ -868,7 +868,13 @@ the lists.
         keep_on_list = TRUE;
       }  /* if */
       /* Update some information regarding inline functions. */
-      check_assertion(routine->is_inline == corresp_routine->is_inline);
+      check_assertion(routine->is_inline == corresp_routine->is_inline ||
+                      /* The is_inline flag in templates is not set until
+                         the function is fully instantiated. */
+                      (routine->is_template_function &&
+                       routine->assoc_scope == NULL_region_number) ||
+                      (corresp_routine->is_template_function &&
+                       corresp_routine->assoc_scope == NULL_region_number));
 #if INSTANTIATE_EXTERN_INLINE
       corresp_routine->inline_instance_required |=
                                              routine->inline_instance_required;
