@@ -2704,6 +2704,9 @@ Display the indicated routine.
     disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_in_class_specialization) {
+    disp_boolean("is_in_class_specialization", TRUE);
+  }  /* if */
   if (ptr->declared_only_as_friend) {
     disp_boolean("declared_only_as_friend", TRUE);
   }  /* if */

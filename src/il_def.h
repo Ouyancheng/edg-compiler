@@ -7182,6 +7182,12 @@ typedef struct a_routine {
 			   instantiation of a function template or a member
 			   function of a class template. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field
+		is_in_class_specialization:1;
+			/* TRUE if this is a specialized template instance
+			   and the specialization was declared within the
+			   enclosing class using the Microsoft in-class
+			   specialization syntax. */
   a_bit_field	declared_only_as_friend:1;
 			/* TRUE if this routine has only been declared as a
 			   friend.  In that case, Microsoft compilers will

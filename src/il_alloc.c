@@ -2084,6 +2084,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->specialized_with_old_syntax = FALSE;
   rp->is_prototype_instantiation  = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  rp->is_in_class_specialization  = FALSE;
   rp->declared_only_as_friend     = FALSE;
   rp->explicit_extern_inline      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

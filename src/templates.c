@@ -8167,6 +8167,9 @@ function a friend and update the friend information.
 }  /* update_befriending_classes_for_function */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* in_class_specialization is only used for Microsoft mode. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr make_template_function(
 			a_symbol_ptr		templ_sym,
 			a_template_arg_ptr	templ_arg_list,
@@ -8242,9 +8245,14 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     /* If this is an in-class specialization and the enclosing class is
        a prototype instantiation, treat this as a prototype instantiation
        too. */
-    if (in_class_specialization && is_prototype_instantiation_context()) {
-      ps_options |= PS_PROTOTYPE_INSTANTIATION;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (in_class_specialization) {
+      rp->is_in_class_specialization = TRUE;
+      if (is_prototype_instantiation_context()) {
+        ps_options |= PS_PROTOTYPE_INSTANTIATION;
+      }  /* if */
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     push_template_instantiation_scope(tcp->decl_info,
 				      (a_type_ptr)NULL,
 				      (a_routine_ptr)NULL,
