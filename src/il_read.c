@@ -814,6 +814,9 @@ build the in-memory version.
   f_il_input = il_file;
   /* Initialize. */
   il_read_init();
+  /* Call a routine in il.c that will reset any information that will
+     be invalidated as a result of reading the IL file. */
+  il_reset();
 
   /* The file layout is as follows:
        magic string that identifies an IL file

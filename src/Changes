@@ -1,5 +1,11 @@
 Version 2.22
 
+2/14/94  Improved speed of conversion from sequence number to file and line
+
+The routine that converts from a sequence number to a file name and line
+number now caches information about the most recent search to
+improve the speed of subsequent conversions of neighboring lines.
+
 2/14/94  Assertion failure in cfront mode
 
 The following incorrect usage resulted in an assertion failure when

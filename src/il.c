@@ -152,6 +152,34 @@ static a_template_arg_ptr
 			/* List of freed template arg entries that are
 			   available for reuse. */
 
+/*
+Data structure used to save information about the last source sequence
+to file/line number conversion that was done so that subsequent
+conversions can be done more quickly.
+*/
+typedef struct a_source_sequence_cache_entry {
+  a_seq_number
+		first_seq_number;
+			/* First sequence number for which the cached
+			   information is valid. */
+  a_seq_number
+		last_seq_number;
+			/* Last sequence number for which the cached
+			   information is valid. */
+  long
+		line_offset;
+			/* Value to be subtracted from a sequence number to
+			   convert it to a line number of the source file
+			   associated with this cached information. */
+  unsigned long
+		nesting_depth;
+  a_source_file_ptr
+		source_file;
+} a_source_sequence_cache_entry;
+
+a_source_sequence_cache_entry seq_cache;
+
+
 /* Static variable and macro for quickly initializing the source_corresp
    field of an IL entry to default values. */
 static a_source_correspondence
@@ -1744,6 +1772,16 @@ physical line position for the sequence number.
 #endif /* DEBUG */
     internal_error("source_file_for_seq: bad seq number");
 #endif /* CHECKING */
+  } else if (seq_number >= seq_cache.first_seq_number &&
+        seq_number <= seq_cache.last_seq_number) {
+    /* See whether this sequence number falls into the range of lines
+       associated with the information saved by the last lookup.  If so,
+       use the information saved last time to speed up the conversion.
+       Note that the "at end of source" line will not fall into this range
+       and will be handled by a normal conversion below. */
+    *line_number = seq_number + seq_cache.line_offset;
+    *nesting_depth = seq_cache.nesting_depth;
+    curr_file = seq_cache.source_file;
   } else {
     if (seq_number-1 == curr_file->last_seq_number) {
       /* At end of source.  Use the last line of the primary source file. */
@@ -1769,6 +1807,10 @@ examine_children:
       }  /* if */
     }  /* if */
     child_file = curr_file->first_child_file;
+    /* Record the first sequence number of the current file as the first
+       sequence number for which the cached information applies.  This will
+       be updated below if necessary to reflect child files. */
+    seq_cache.first_seq_number = curr_file->first_seq_number;
     /* Check the sequence number against each child.  The children are
        in order by sequence number. */
     while (child_file != NULL) {
@@ -1801,6 +1843,9 @@ examine_children:
                                grandchild_file->first_seq_number + 1;
         }  /* for */
       }  /* if */
+      /* Record the sequence number following this child as the first
+         sequence number for which the cached information appies. */
+      seq_cache.first_seq_number = child_file->last_seq_number + 1;
       child_file = child_file->next;
     }  /* while */
     if (physical_line) {
@@ -1808,9 +1853,38 @@ examine_children:
          for a real file that we saw. */
       curr_file = phys_curr_file;
     }  /* if */
-    *line_number = seq_number - curr_file->first_seq_number + 
-                   curr_file->first_line_number - lines_in_children;
+    /* Save information about the file in which this sequence number was found
+       so that subsequent lines may be found more quickly. */
+    seq_cache.line_offset = -curr_file->first_seq_number + 
+                            curr_file->first_line_number - lines_in_children;
+    if (child_file != NULL) {
+      /* This cache entry is valid up to the first line of the next
+         child file. */
+      seq_cache.last_seq_number = child_file->first_seq_number - 1;
+    } else {
+      /* This cached entry is valid through the end of the current file. */
+      seq_cache.last_seq_number = curr_file->last_seq_number;
+    }  /* if */
+    seq_cache.source_file = curr_file;
+    seq_cache.nesting_depth = *nesting_depth;
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "Cached source sequence conversion information:\n");
+      fprintf(f_debug, "  file=%s\n", curr_file->file_name);
+      fprintf(f_debug, "  first_seq_number: %d\n", seq_cache.first_seq_number);
+      fprintf(f_debug, "  last_seq_number: %d\n", seq_cache.last_seq_number);
+      fprintf(f_debug, "  line_offset: %d\n", seq_cache.line_offset);
+      fprintf(f_debug, "  seq number requested=%d\n", seq_number);
+    }  /* if */
+#endif
+    /* Compute the line number to be returned to the caller. */
+    *line_number = seq_number + seq_cache.line_offset;
   }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "File=%s, Line=%d\n", curr_file->file_name, *line_number);
+  }  /* if */
+#endif
   return curr_file;
 }  /* source_file_for_seq */
 
@@ -7148,6 +7222,22 @@ Display and return the amount of space used for various IL tables.
 #endif /* DEBUG */
 
 
+void il_reset(void)
+/*
+Reset any variables that contain state information that becomes invalid
+when the IL has been read back into memory.
+*/
+{
+  /* Reset the entry that stores the status of the last sequence number to
+     source file/line conversion. */
+  seq_cache.first_seq_number = 0;
+  seq_cache.last_seq_number = 0;
+  seq_cache.line_offset = 0;
+  seq_cache.nesting_depth = 0;
+  seq_cache.source_file = NULL;
+}  /* il_reset */
+
+
 void il_init(void)
 /*
 Initialize static variables related to the IL.  This is done as a
@@ -7298,6 +7388,7 @@ of the front end.
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #endif /* DEBUG */
   avail_template_args = NULL;
+  il_reset();
 }  /* il_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
