@@ -1256,6 +1256,16 @@ which do the initial test for exact pointer equality.
 funcs_not_identical:;
           }  /* if */
           break;
+        case tk_ptr_to_member:
+          /* Pointer-to-member types are identical if they refer to the same
+             class type and to the same member type. */
+          identical = (f_identical_types(type_1->variant.ptr_to_member.
+                                           class_of_which_a_member,
+                                         type_2->variant.ptr_to_member.
+                                           class_of_which_a_member) &&
+                       f_identical_types(type_1->variant.ptr_to_member.type,
+                                         type_2->variant.ptr_to_member.type));
+          break;
 #if CHECKING
         default:
           internal_error("f_identical_types: bad type");
@@ -1476,6 +1486,16 @@ types_are_compatible, which does the initial test for exact pointer equality.
 funcs_not_compatible:;
             }  /* if */
           }  /* if */
+          break;
+        case tk_ptr_to_member:
+          /* Pointer-to-member types are compatible if they refer to the same
+             class type and their member types are compatible. */
+          compat = (f_identical_types(type_1->variant.ptr_to_member.
+                                        class_of_which_a_member,
+                                      type_2->variant.ptr_to_member.
+                                        class_of_which_a_member) &&
+                    f_types_are_compatible(type_1->variant.ptr_to_member.type,
+                                          type_2->variant.ptr_to_member.type));
           break;
 #if CHECKING
         default:
@@ -2369,6 +2389,22 @@ is allocated, it is allocated in the file scope.
                                          extra_info1->implicit_this_param_type;
           }  /* if */
           break;
+        case tk_ptr_to_member:
+          /* The composite of two pointer-to-member types will point to the
+             same class type and to a member type that is a composite of the
+             two member types. */
+          comp_elem = composite_type(base_type_1->variant.ptr_to_member.type,
+                                     base_type_2->variant.ptr_to_member.type);
+          if (comp_elem == base_type_1->variant.ptr_to_member.type) {
+            comp_type = base_type_1;
+          } else if (comp_elem == base_type_2->variant.ptr_to_member.type) {
+            comp_type = base_type_2;
+          } else {
+            comp_type = ptr_to_member_type(comp_elem,
+                                           base_type_1->variant.ptr_to_member.
+                                                  class_of_which_a_member);
+          }  /* if */
+          break;
 #if CHECKING
         /* Typerefs were removed above, and therefore shouldn't occur. */
         case tk_typeref:
@@ -2730,6 +2766,8 @@ is returned.
         case tk_union:
           /* Class/struct/union types should be allocated at the file scope
              and therefore should not need to be copied. */
+        case tk_ptr_to_member:
+          /* Same goes for pointer-to-member types. */
         default:
           internal_error("make_file_scope_type: bad type kind");
 #endif /* CHECKING */
