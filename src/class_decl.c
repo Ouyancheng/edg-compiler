@@ -9579,7 +9579,7 @@ specific information about the member declaration, respectively.
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (decl_info->decl_modifiers.alignment != 0) {
-    field = decl_info->decl_modifiers.alignment;
+    field->alignment = decl_info->decl_modifiers.alignment;
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
