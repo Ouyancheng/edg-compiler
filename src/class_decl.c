@@ -4094,19 +4094,23 @@ first parameter is qualified.
     *is_ref_arg = FALSE;
   }  /* if */
   if (is_class_struct_union_type(tp)) {
-    if (skip_typerefs(tp) == sym->class_of_which_a_member ||
-        (
-#if 0
-/* Strictly speaking, what is referred to in the header comment as a cfront
-   compatibility feature is not part of the current language. However, many
-   compilers support this use, and the ATT/USL iostream library depends on
-   it.  Until this is resolved one way or another, we should allow it in
-   default mode.  Eventually, we may want a diagnostic in strict mode. */
-         any_cfront_mode() &&
-#endif /* if 0 */
-         find_base_class_of(sym->class_of_which_a_member, tp) != NULL)) {
-      /* Found it. */
+    /* The type of the first parameter is a class type. */
+    if (skip_typerefs(tp) == sym->class_of_which_a_member) {
+      /* The parameter's type matches the class of which the assignment
+         operator is a member. */
       found = TRUE;
+    } else if (!strict_ansi_mode) {
+      /* What is referred to in the header comment as a cfront compatibility
+         feature is not part of the current language.  However, many compilers
+         support this use, and the ATT/USL iostream library depends on it.
+         Pending resolution one way or another, we allow it in default mode. */
+      if (find_base_class_of(sym->class_of_which_a_member, tp) != NULL) {
+        /* The parameter's type matches a base class of the class of which the
+           assignment operator is a member. */
+        found = TRUE;
+      }  /* if */
+    }  /* if */
+    if (found) {
       /* Check the qualifiers. */
       *qualifiers = get_top_level_type_qualifiers(tp);
     }  /* if */
