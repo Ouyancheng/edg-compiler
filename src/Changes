@@ -1,5 +1,18 @@
 Version 3.2
 
+3/26/03  GNU mode: Rendering of asm operands by C/C++-generating back ends
+
+The C- and C++-generating back ends incorrectly omitted a colon when
+generating extended asm operand descriptions that included output operands
+and clobber specifications but no input operands.  For example:
+
+  void f() {
+    int x;
+    __asm__("\n1:\t" : "=m"(x) : : "memory"); // ": :" used to be reduced
+  }                                           // to just ":"
+
+This is now fixed.
+
 3/26/03  C99: spurious error on hex floating-point constant
 
 In C99 mode, a spurious error was issued if a hexadecimal floating-point

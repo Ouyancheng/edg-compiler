@@ -8477,6 +8477,11 @@ Generate the GNU C operand descriptions for the given asm entry.
       m_write_ch(',');
     }  /* if */
   }  /* for */
+  if (output && aep->clobbers != NULL) {
+    /* There were no input operands, but clobbers are about to follow.
+       Be sure to make the empty input specification explicit. */
+    write_tok_str(" :");
+  }  /* if */
 }  /* gen_asm_operands */
 
 
