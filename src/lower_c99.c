@@ -1883,7 +1883,8 @@ n*n).
   }  /* if */
   if (stmt->expr == NULL) {
     /* This may happen for simple VLA typedefs.  Create a dummy expression. */
-    stmt->expr = node_for_host_large_integer((a_host_large_integer)0, ik_int);
+    stmt->expr = node_for_host_large_integer((a_host_large_integer)0,
+                                             (an_integer_kind)ik_int);
   }  /* if */
   /* The result of the statement expression is not used. */
   set_expr_result_not_used(stmt->expr);
