@@ -506,6 +506,7 @@ check_abbreviation()
 --cpfe_only
 --create_pch
 --db
+--db_alloc_seq
 --db_name
 --debug
 --define_macro
@@ -1224,6 +1225,7 @@ process_option()
          --template_directory | \
          --time_limit | \
          --incl_suffixes | \
+         --db_alloc_seq | \
          --db_name | \
          --context_limit | \
          --set_flag | \
@@ -1292,6 +1294,7 @@ process_option()
           --template_directory=* | \
           --time_limit=* | \
           --incl_suffixes=* | \
+          --db_alloc_seq=* | \
           --db_name=* | \
           --context_limit=* | \
           --set_flag=* | \
