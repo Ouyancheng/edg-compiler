@@ -2825,6 +2825,7 @@ buffer, and must be copied elsewhere promptly.
   return mangling_text_buffer->buffer;
 }  /* externalized_mangled_name */
 
+#endif /* DO_IL_LOWERING */
 
 static void mangled_function_name_externalized_if_necessary(
                               a_routine_ptr            routine,
@@ -2837,6 +2838,7 @@ types; just put out the base encoded name.  If the routine will be
 externalized, use the encoding for the externalized form.
 */
 {
+#if DO_IL_LOWERING
   a_boolean needs_to_be_externalized;
 
   /* Static entities are potentially referenced from exported templates
@@ -2847,14 +2849,16 @@ externalized, use the encoding for the externalized form.
   if (needs_to_be_externalized) {
     start_externalized_name(/*is_variable=*/FALSE, mctl);
   }  /* if */
+#endif /* DO_IL_LOWERING */
   mangled_function_name(routine, suppress_param_encoding, mctl);
+#if DO_IL_LOWERING
   if (needs_to_be_externalized) {
     end_externalized_name(&routine->source_corresp, mctl);
   }  /* if */
+#endif /* DO_IL_LOWERING */
 }  /* mangled_function_name_externalized_if_necessary */
 
 
-#endif /* DO_IL_LOWERING */
 #if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
 
 char *get_mangled_function_name(a_routine_ptr routine)
