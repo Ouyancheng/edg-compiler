@@ -321,35 +321,32 @@ source correspondence field and has kind "kind") along with some related
 information, such as its address and translation unit.
 */
 {
-  char *curr;
+  a_source_correspondence	*scp;
+  char				*copy_addr = NULL;
+  a_trans_unit_corresp_ptr	tucp;
 
   fprintf(f_debug, "%s\n",
                    db_name_str((a_source_correspondence *)entry, kind));
-  fprintf(f_debug, "address = %lx", (unsigned long)entry);
+  fprintf(f_debug, "address = %p", entry);
   fprintf(f_debug, ", in %s trans unit", in_secondary_trans_unit(entry) ?
                                              "secondary" : "primary");
   fprintf(f_debug, ", in %s scope\n", in_file_scope(entry) ?
                                              "file" : "function");
-  if (in_secondary_trans_unit(entry)) {
-    /* Display the correspondence chain. */
-    fprintf(f_debug, "corresp =");
-    for (curr = entry;;) {
-      char *next = checked_trans_unit_corresp_pointer_of(curr);
-      if (next == NULL) {
-        if (curr == entry) {
-          fprintf(f_debug, " NULL");
-        }  /* if */
-        break;
-      } else if (next == curr) {
-        fprintf(f_debug, " (points to self)");
-        break;
-      }  /* if */
-      fprintf(f_debug, " %lx", (unsigned long)next);
-      if (!in_secondary_trans_unit(next)) break;
-      curr = next;
-    }  /* for */
-    fprintf(f_debug, "\n");
+  scp = source_corresp_for_il_entry(entry, kind);
+  tucp = scp == NULL ? NULL : scp->trans_unit_corresp;
+  if (tucp != NULL) {
+    /* Display the correspondence information. */
+    fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p", tucp,
+            tucp->canonical, tucp->primary);
   }  /* if */
+  if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
+    copy_addr = trans_unit_copy_address_of(entry);
+  }  /* if */
+  if (copy_addr != NULL) {
+    fprintf(f_debug, "%scopy address = %p", tucp != NULL ? ", " : "",
+            copy_addr);
+  }  /* if */
+  if (tucp != NULL || copy_addr != NULL) fprintf(f_debug, "\n");
 }  /* db_entity_info */
 
 
