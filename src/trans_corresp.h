@@ -200,6 +200,8 @@ extern a_symbol_ptr find_corresponding_class_instance_in_trans_unit(
 
 extern void set_trans_unit_correspondences(void);
 
+extern void set_correspondence_of_unvisited_entries(a_scope_ptr  scope);
+
 extern void record_instantiation(a_symbol_ptr                      inst,
                                  a_template_symbol_supplement_ptr  tssp);
 

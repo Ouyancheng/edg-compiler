@@ -3365,7 +3365,9 @@ correspondence pointer for each of them.
        type = skip_generated_type(type->next)) {
     if (trans_unit_corresp_of(type) == NULL) {
       /* Some types (e.g., C-mode types not participating in entities with
-         linkage) may not have a correspondence. */
+         linkage) may not have a correspondence yet.  If no correspondence
+         is found later on, the entry will be marked as visited by
+         set_correspondence_of_unvisited_entries eventually. */
     } else {
       a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       /* Note that placeholder types do not have an associated symbol. */
@@ -3375,6 +3377,31 @@ correspondence pointer for each of them.
     }  /* if */
   }  /* for */
 }  /* verify_type_correspondences_for_scope */
+
+
+void set_correspondence_of_unvisited_entries(a_scope_ptr  scope)
+/*
+Traverse the type list of the given file or namespace scope and set the
+correspondence for any type that has not yet been visited.  This routine is
+called when the normal process of setting correspondences has been completed:
+Some IL entries may not have had their correspondence set because the
+correspondence could depend on other declarations (e.g., in C mode, the
+correspondence of a struct or enum type is only set when the type is
+involved in the declaration of an entity with linkage).
+*/
+{
+  a_type_ptr  type;
+
+  for (type = skip_generated_type(scope->types);
+       type != NULL;
+       type = skip_generated_type(type->next)) {
+    if (trans_unit_corresp_of(type) == NULL) {
+      /* Some types (e.g., C-mode types not participating in entities with
+         linkage) may not have a correspondence yet. */
+      clear_type_correspondence(type, /*visited=*/TRUE);
+    }  /* if */
+  }  /* for */
+}  /* set_correspondence_of_unvisited_entries */
 
 
 static void verify_routine_correspondences_for_scope(a_scope_ptr  scope)

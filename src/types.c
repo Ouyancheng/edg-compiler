@@ -2955,8 +2955,11 @@ through the symbol table:  Establish that correspondence now if appropriate.
           (!has_name(new_type_2) ||
            new_type_2->variant.integer.originally_unnamed)))))) {
     /* seek_type_corresp attempts to make the first type correspond to the
-       second type: It does not attempt to converse.  So we may need to call
-       it twice. */
+       second type: It does not attempt to make the second type correspond to
+       the first.  So we may need to call it twice.  (E.g., if new_type_1 has
+       a correspondence and new_type_2 does not, the first call will have no
+       effect, but the second call may make new_type_2 correspond to
+       new_type_1. */
     (void)(seek_type_corresp(new_type_1, new_type_2) ||
            seek_type_corresp(new_type_2, new_type_1));
   }  /* if */
