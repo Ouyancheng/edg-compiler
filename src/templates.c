@@ -15218,49 +15218,6 @@ symbol_found:
 }  /* find_exported_template */
 
 
-static a_boolean exported_definition_is_available(
-						a_template_instance_ptr	tip)
-/*
-Determine whether the template, of which tip is an instance, is an
-exported template whose definition is available (i.e., that can be
-instantiated).  If so, make a record of the file in which the exported
-definition was found.  Return TRUE if an exported definition was found,
-FALSE otherwise.
-
-The caller is responsible for making sure that this is not called for
-a specialized instance.
-*/
-{
-  a_boolean				result = FALSE;
-  a_template_symbol_supplement_ptr	tssp;
-
-  tssp = template_supplement_for_symbol(tip->template_sym);
-  if (!export_template_allowed) {
-    /* We are not doing export processing. */
-    result = FALSE;
-  } else if (tip->exported_template_file != NULL) {
-    /* If we already found the exported template file, skip the remaining
-       processing. */
-    result = TRUE;
-  } else if (tssp->il_template_entry->is_exported) {
-    /* The template is exported.  See if a definition is available. */
-    char			*name;
-    a_template_lookup_entry_ptr	tlp;
-    /* Look up the mangled name of the template to see if a definition was
-       found. */
-    name = get_mangled_name_for_symbol(tip->template_sym);
-    tlp = find_exported_template(name, /*add=*/FALSE);
-    if (tlp != NULL) {
-      /* An exported definition was found.  Record information about the file
-         where it was found in the template instance entry. */
-      result = TRUE;
-      tip->exported_template_file = tlp->exported_template_file;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* exported_definition_is_available */
-
-
 static FILE *open_exported_template_file_for_input(
 				char				*file_name,
 				a_directory_name_entry_ptr	dnep)
@@ -15362,8 +15319,51 @@ compilation can be looked up to find the corresponding definition.
   db_exit();
 }  /* find_exported_template_files */
 
-
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+static a_boolean exported_definition_is_available(
+						a_template_instance_ptr	tip)
+/*
+Determine whether the template, of which tip is an instance, is an
+exported template whose definition is available (i.e., that can be
+instantiated).  If so, make a record of the file in which the exported
+definition was found.  Return TRUE if an exported definition was found,
+FALSE otherwise.
+
+The caller is responsible for making sure that this is not called for
+a specialized instance.
+*/
+{
+  a_boolean				result = FALSE;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = template_supplement_for_symbol(tip->template_sym);
+  if (!export_template_allowed) {
+    /* We are not doing export processing. */
+    result = FALSE;
+  } else if (tip->exported_template_file != NULL) {
+    /* If we already found the exported template file, skip the remaining
+       processing. */
+    result = TRUE;
+  } else if (tssp->il_template_entry->is_exported) {
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+    /* The template is exported.  See if a definition is available. */
+    char			*name;
+    a_template_lookup_entry_ptr	tlp;
+    /* Look up the mangled name of the template to see if a definition was
+       found. */
+    name = get_mangled_name_for_symbol(tip->template_sym);
+    tlp = find_exported_template(name, /*add=*/FALSE);
+    if (tlp != NULL) {
+      /* An exported definition was found.  Record information about the file
+         where it was found in the template instance entry. */
+      result = TRUE;
+      tip->exported_template_file = tlp->exported_template_file;
+    }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  }  /* if */
+  return result;
+}  /* exported_definition_is_available */
 
 
 static void update_instantiation_required_flag(
