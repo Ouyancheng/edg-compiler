@@ -13,9 +13,10 @@ lower_init.c -- IL lowering: initializations and new/delete.
 
 */
 
+#include "basic_hdrs.h"
+#if DO_IL_LOWERING
 /* Header files common to all files. */
 #include "fe_common.h"
-#if DO_IL_LOWERING
 /* Header files used by files involved in IL lowering. */
 #include "lower_hdrs.h"
 #endif /* DO_IL_LOWERING */

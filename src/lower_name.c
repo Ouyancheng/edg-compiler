@@ -13,12 +13,13 @@ lower_name.c -- Do name mangling for IL lowering.
 
 */
 
+#include "basic_hdrs.h"
+#if DO_IL_LOWERING
 /* Header files common to all files. */
 #include "fe_common.h"
-#if NEED_NAME_MANGLING
 /* Header files used by files involved in IL lowering. */
 #include "lower_hdrs.h"
-#endif /* NEED_NAME_MANGLING */
+#endif /* DO_IL_LOWERING */
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header

@@ -13,9 +13,10 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 
 */
 
+#include "basic_hdrs.h"
+#if DO_IL_LOWERING
 /* Header files common to all files. */
 #include "fe_common.h"
-#if DO_IL_LOWERING
 /* Header files used by files involved in IL lowering. */
 #include "lower_hdrs.h"
 #endif /* DO_IL_LOWERING */
