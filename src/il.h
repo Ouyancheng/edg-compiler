@@ -113,6 +113,15 @@ EXTERN a_stdc_pragma_value
 			   of the cx_limited_range state, which is set using
 			   the STDC CX_LIMITED_RANGE pragma. */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+EXTERN a_upc_access_method
+		curr_upc_access_method;
+			/* Used in UPC mode to reflect the last setting of
+			   the UPC access mode through the UPC pragma. */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 #if ONE_INSTANTIATION_PER_OBJECT
 
 EXTERN unsigned long

@@ -5940,6 +5940,13 @@ skip_overloading:;
       routine_ptr->fenv_access = curr_fenv_access_state;
       routine_ptr->cx_limited_range = curr_cx_limited_range_state;
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    if (upc_mode) {
+      /* Record the current UPC access method for this routine.  This is the
+         method last specified by a UPC pragma in file scope. */
+      routine_ptr->upc_access_method = curr_upc_access_method;
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration.  Note that this has to be *after* the

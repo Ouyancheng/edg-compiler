@@ -316,6 +316,13 @@ static a_boolean
 			   output directly to f_C_output instead of to
 			   a temporary file. */
 
+#if UPC_EXTENSIONS_ALLOWED
+static a_upc_access_method
+		curr_default_upc_access_method;
+			/* The UPC access method as set by the last UPC
+			   pragma.  If no pragma has been emitted yet,
+			   the default access specified in the IL header. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*
 Block of state variables used by dump_initializer and its subroutines:
@@ -2048,6 +2055,32 @@ Dump one of the predefined C99 pragmas.
   }  /* switch */
 }  /* dump_stdc_pragma */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void dump_upc_pragma(a_upc_access_method  access_method)
+/*
+Write out a UPC pragma that establishes the given access method as the
+default.  If we are not inside a function definition, update the variable
+curr_default_upc_access_method to reflect the new default.
+*/
+{
+  a_boolean      is_strict = (access_method ==
+                                       (a_upc_access_method)upc_access_strict);
+  unsigned long  saved_indent = indent;
+
+  end_output_line_if_begun();
+  indent = 0;
+  disable_line_wrapping();
+  write_str(is_strict ? "#pragma upc strict" : "#pragma upc relaxed");
+  enable_line_wrapping();
+  end_output_line();
+  indent = saved_indent;
+  if (innermost_function_scope == NULL) {
+    curr_default_upc_access_method = access_method;
+  }  /* if */
+}  /* dump_upc_pragma */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 static void dump_pragma(a_pragma_ptr pp)
 /*
@@ -2066,6 +2099,11 @@ Dump a single #pragma from the IL entry.
     octl.suppress_line_breaking = TRUE;
     if (pp->kind == (a_pragma_kind)pk_stdc) {
       dump_stdc_pragma(pp);
+#if UPC_EXTENSIONS_ALLOWED
+    /* Check for #pragma upc. */
+    } else if (pp->kind == (a_pragma_kind)pk_upc) {
+      dump_upc_pragma(pp->variant.upc.access_method);
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */
     } else if (pp->kind == (a_pragma_kind)pk_ident) {
@@ -7396,6 +7434,14 @@ if this routine has a body (dump nothing if it has no body).
     if (is_definition || !has_defn) {
       dump_decl_associated_pragmas(&rout->source_corresp);
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    if (is_definition &&
+        rout->upc_access_method !=
+                                (a_upc_access_method)upc_access_unspecified &&
+        rout->upc_access_method != curr_default_upc_access_method) {
+      dump_upc_pragma(rout->upc_access_method);
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
     /* Determine the proper storage class to display. */
@@ -7922,6 +7968,11 @@ The IL is already available when this routine is called.
      because C99 lowering rewrites _Bool.  But if that were turned off, we
      would want _Bool to be output. */
   octl.render_c99_bool = c99_mode;
+#if UPC_EXTENSIONS_ALLOWED
+  curr_default_upc_access_method = il_header.default_upc_strict_access ?
+                                     (a_upc_access_method)upc_access_strict :
+                                     (a_upc_access_method)upc_access_relaxed;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* c_gen_be_init */
 
 

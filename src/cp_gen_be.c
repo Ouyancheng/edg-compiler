@@ -7284,6 +7284,13 @@ is the one associated with the pragma.
     set_output_position(&pp->position);
     if (pp->kind == (a_pragma_kind)pk_stdc) {
       gen_stdc_pragma(pp);
+#if UPC_EXTENSIONS_ALLOWED
+    /* Check for #pragma upc. */
+    } else if (pp->kind == (a_pragma_kind)pk_upc) {
+      a_boolean  is_strict = (pp->variant.upc.access_method ==
+                                       (a_upc_access_method)upc_access_strict);
+      write_str(is_strict ? "#pragma upc strict" : "#pragma upc relaxed");
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */
     } else if (pp->kind == (a_pragma_kind)pk_ident) {
@@ -7921,25 +7928,6 @@ Generate code for a block statement ("{ ... }").
     push_name_context(scope);
     need_context_pop = TRUE;
   }  /* if */
-#if UPC_EXTENSIONS_ALLOWED
-  if (statement->variant.block.extra_info != NULL) {
-    /* If necessary, output a pragma to override the default UPC access
-       method. */
-    a_upc_access_method  access_method = statement->variant.block.extra_info
-                                                  ->upc_access_method;
-    if (access_method == (a_upc_access_method)upc_access_unspecified) {
-      /* No pragma needed. */
-    } else if (access_method == (a_upc_access_method)upc_access_strict) {
-      begin_pp_directive("#pragma upc strict", (char*)NULL);
-      end_pp_directive();
-    } else if (access_method == (a_upc_access_method)upc_access_relaxed) {
-      begin_pp_directive("#pragma upc relaxed", (char*)NULL);
-      end_pp_directive();
-    } else {
-      unexpected_condition();
-    }  /* if */
-  }  /* if */
-#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* Generate local label declarations (if any). */
   gen_local_label_declarations();

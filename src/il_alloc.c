@@ -1901,6 +1901,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->fp_contract                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->fenv_access                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->cx_limited_range            = (a_stdc_pragma_value)stdc_pv_none;
+#if UPC_EXTENSIONS_ALLOWED
+  rp->upc_access_method = (a_upc_access_method)upc_access_unspecified;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   rp->contains_statement_expression = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2709,9 +2712,6 @@ in the current IL memory region.
     case pk_test_other:
     case pk_test_bind_next_pass:
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
-#if UPC_EXTENSIONS_ALLOWED
-    case pk_upc:
-#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
 #if EXPENSIVE_CHECKING
     case pk_checking_pragma:
@@ -2747,6 +2747,12 @@ in the current IL memory region.
     case pk_stdc:
       pp->variant.stdc.kind = (a_stdc_pragma_kind)stdc_pk_none;
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case pk_upc:
+      pp->variant.upc.access_method =
+                                   (a_upc_access_method)upc_access_unspecified;
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("alloc_pragma: bad pragma kind");

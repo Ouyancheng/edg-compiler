@@ -14340,6 +14340,9 @@ need initialization for every (primary and secondary) translation unit.
   curr_fp_contract_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
+#if UPC_EXTENSIONS_ALLOWED
+  curr_upc_access_method = (a_upc_access_method)upc_access_unspecified;
+#endif /* UPC_EXTENSIONS_ALLOWED */
   curr_object_lifetime = NULL;
   /* remove_unneeded_entities is the value, settable from the command line,
      to which okay_to_eliminate_unneeded_il_entries should be initialized

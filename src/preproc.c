@@ -1857,8 +1857,8 @@ associated.
 }  /* check_for_upc_pragmas */
 
 
-void process_upc_pragma(a_pending_pragma_ptr   ppp,
-                        a_statement_ptr assoc_statement)
+void process_upc_pragma(a_pending_pragma_ptr  ppp,
+                        a_statement_ptr       assoc_statement)
 /*
 Process a predefined UPC pragma.  These pragmas have the following form:
 
@@ -1870,19 +1870,21 @@ in a valid location.  It is called in compound_statement for block scope
 pragmas, and by upc_pragma for pragmas that appear in the file scope.
 */
 {
-  a_upc_access_method   value;
-  a_boolean             err = FALSE;
+  a_upc_access_method  value = (a_upc_access_method)upc_access_unspecified;
+  a_boolean            err = FALSE;
 
   begin_rescan_of_pragma_tokens(ppp);
-  switch (curr_token) {
-    case tok_upc_strict:
+  if (curr_token == tok_identifier) {
+    char  *str = locator_for_curr_id.symbol_header->identifier;
+    if (strcmp(str, "strict") == 0) {
       value = (a_upc_access_method)upc_access_strict;
-      break;
-    case tok_upc_relaxed:
+    } else if (strcmp(str, "relaxed") == 0) {
       value = (a_upc_access_method)upc_access_relaxed;
-      break;
-    default:
-      pos_warning(ec_unrecognized_upc_pragma, &ppp->id_position);
+    }  /* if */
+  }  /* if */
+  if (value == (a_upc_access_method)upc_access_unspecified) {
+      pos_diagnostic(strict_ansi_error_severity, ec_unrecognized_upc_pragma,
+                     &ppp->id_position);
       err = TRUE;
   }  /* switch */
   /* Bypass the value. */
@@ -1891,13 +1893,18 @@ pragmas, and by upc_pragma for pragmas that appear in the file scope.
   if (!err) {
     if (assoc_statement == (a_statement_ptr)NULL) {
       /* No associated statement, so update the global setting. */
-      /* FIXME: unimplemented. */
-      unexpected_condition_str("UPC pragma unimplemented");
+      curr_upc_access_method = value;
     } else {
       check_assertion_str(assoc_statement->kind == stmk_block,
                           "process_upc_pragma: expected block");
       /* Save the local setting in the block. */
       assoc_statement->variant.block.extra_info->upc_access_method = value;
+    }  /* if */
+    /* Record the pragma in the IL. */
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
+                               (a_statement_ptr)assoc_statement);
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.upc.access_method = value;
     }  /* if */
   }  /* if */
 }  /* process_upc_pragma */

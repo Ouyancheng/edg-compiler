@@ -214,6 +214,7 @@ typedef enum /*an_option_kind*/ {
   optk_set_flag,
 #if UPC_EXTENSIONS_ALLOWED
   optk_upc_mode,
+  optk_upc_strict_access,
   optk_upc_threads,
 #endif /* UPC_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */

@@ -964,6 +964,14 @@ Initialize the option information table.
                          "no_upc",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_upc_strict_access,
+                         "upc_strict",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_upc_strict_access,
+                         "upc_relaxed",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_upc_threads,
                          "upc_threads",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -3477,6 +3485,10 @@ enable_microsoft_mode:
            these options also implies C mode. */
         upc_mode = opt_value;
         C_dialect = C_dialect_ANSI;
+        break;
+      case optk_upc_strict_access:
+        /* Set the default UPC access mode. */
+        il_header.default_upc_strict_access = opt_value;
         break;
       case optk_upc_threads:
         /* Set the number of UPC threads at compile time. */

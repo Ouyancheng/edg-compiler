@@ -1616,8 +1616,8 @@ Initialize the pragma description table.
                                          /*automatically_include_in_il=*/FALSE,
                                          /*make_text_not_tokens=*/FALSE,
                                          /*expand_macros=*/FALSE,
-                                         /*processing_C_code=*/TRUE,
-                                         /*ignore_in_back_end=*/TRUE,
+                                         /*processing_C_code=*/FALSE,
+                                         /*ignore_in_back_end=*/FALSE,
                                          /*il_info_is_complete=*/TRUE,
                                          es_error);
   }  /* if */

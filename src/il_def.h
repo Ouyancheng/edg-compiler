@@ -3055,6 +3055,14 @@ typedef struct a_pragma {
 		value;	/* Specifies whether the attribute is being turned
 			   on, off, or reset to the default value. */
     } stdc;
+#if UPC_EXTENSIONS_ALLOWED
+    struct {
+      a_upc_access_method
+		access_method;
+			/* Indicate which UPC access method ("strict" or
+			   "relaxed") was specified. */
+    } upc;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* When kind == pk_ident: */
     a_constant_ptr
@@ -6343,6 +6351,11 @@ typedef struct a_routine {
   a_bit_field	cx_limited_range:2;
 			/* In C99 mode, the setting of the cx_limited_range
 			   mode at the point that this routine was defined. */
+#if UPC_EXTENSIONS_ALLOWED
+  a_bit_field	upc_access_method:2;
+			/* In UPC mode, the UPC access method set at the
+			   point this routine was defined. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	contains_statement_expression:1;
 			/* TRUE if this routine's body contains one or more
@@ -9570,6 +9583,14 @@ typedef struct an_il_header {
 			   desired; corresponds to global variable
 			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		default_upc_strict_access;
+			/* TRUE if the default UPC access mode for shared
+			   objects is "strict".  This default can be
+			   overridden by the upc pragma and by explicit
+			   reference qualifiers ("strict" and "relaxed"). */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_byte_boolean
 		gcc_mode;
