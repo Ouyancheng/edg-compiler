@@ -191,6 +191,7 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 
 static a_boolean init_remaining_array_elements(a_type_ptr     array_type,
                                                a_targ_size_t  curr_element,
+                                               a_boolean      static_lifetime,
                                                a_constant_ptr *con_list,
                                                a_constant_ptr *end_of_con_list,
                                                a_boolean      *incomplete_init)
@@ -265,6 +266,12 @@ routine is called in C++ mode only.
                                             /*honor_virtual=*/FALSE,
                                             /*evaluated=*/TRUE,
                                             /*suppress_access_check=*/FALSE);
+        /* Since the destructor may have been added to a dynamic init entry
+           that will not be "on top" when gen_dynamic_initalizer is called,
+           record the destruction, if needed, with the appropriate
+           object-lifetime entry. */
+        record_end_of_lifetime_destruction(dip, static_lifetime,
+                                           /*scope_lifetime=*/TRUE);
         /* Now create the constant entry that will point to the new dynamic
            init entry. */
         cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
@@ -365,6 +372,7 @@ and build *dip_ptr to represent the initialization.
 static a_constant_ptr get_initializer(
                     a_type_ptr          *type,
                     a_boolean           top_level,
+                    a_boolean           static_lifetime,
                     a_boolean           *any_member_uninitialized,
                     a_boolean           *any_const_or_ref_member_uninitialized,
                     a_boolean           *any_dynamic_initialization,
@@ -478,6 +486,12 @@ ref field of a class object (or an array of same) remains uninitialized.
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
       *any_dynamic_initialization = TRUE;
+      /* Since the destructor may have been added to a dynamic init entry
+         that will not be "on top" when gen_dynamic_initalizer is called,
+         record the destruction, if needed, with the appropriate
+         object-lifetime entry. */
+      record_end_of_lifetime_destruction(dip, static_lifetime,
+                                         /*scope_lifetime=*/TRUE);
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && brace_flag)) {
@@ -622,6 +636,7 @@ ref field of a class object (or an array of same) remains uninitialized.
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, /*top_level=*/FALSE,
+                                     static_lifetime,
                                      any_member_uninitialized,
                                      any_const_or_ref_member_uninitialized,
                                      any_dynamic_initialization,
@@ -810,9 +825,9 @@ ref field of a class object (or an array of same) remains uninitialized.
              we are required to provide default initialization by calling
              the default constructor. */
           if (init_remaining_array_elements(
-                                      local_type, curr_array_element,
-                                      &con_list, &end_of_con_list,
-                                      any_const_or_ref_member_uninitialized)) {
+                                  local_type, curr_array_element,
+                                  static_lifetime, &con_list, &end_of_con_list,
+                                  any_const_or_ref_member_uninitialized)) {
             any_more_members = FALSE;
             *any_dynamic_initialization = TRUE;
           }  /* if */
@@ -851,6 +866,12 @@ ref field of a class object (or an array of same) remains uninitialized.
       init_con->variant.dynamic_init = dip;
       init_con->type = local_type;
       *any_dynamic_initialization = TRUE;
+      /* Since the destructor may have been added to a dynamic init entry
+         that will not be "on top" when gen_dynamic_initalizer is called,
+         record the destruction, if needed, with the appropriate
+         object-lifetime entry. */
+      record_end_of_lifetime_destruction(dip, static_lifetime,
+                                         /*scope_lifetime=*/TRUE);
     }  /* if */
     /* If there was an initial opening brace, check for and skip the
        closing brace now.  Check also for an extra comma (required in C++
@@ -907,6 +928,7 @@ uninitialized fields).
   }  /* if */
 #endif /* DEBUG */
   *init_con = get_initializer(type, /*top_level=*/TRUE,
+                              has_static_storage_duration(vp->storage_class),
                               &any_member_uninitialized,
                               &any_const_or_ref_member_uninitialized,
                               &initialization_is_dynamic, &nothing_taken);
