@@ -341,40 +341,9 @@ caution when modifying this routine.
     /* An error occurred while handling a qualified name or a template
        reference earlier. */
   } else {
-    /* Look for a tag symbol in the current scope.  If the tag kind does
-       not match the tag being processed, issue an error. */
-    tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
-    /* A projection symbol may have been returned, so be sure we're working
-       with the fundamental symbol. */
-    if (tag_sym != NULL && fundamental_symbol_of(tag_sym)->kind != tag_kind) {
-      an_error_severity  severity = (an_error_severity)es_error;
-      if (any_cfront_mode() &&
-          fundamental_symbol_of(tag_sym)->kind != (a_symbol_kind)sk_enum_tag &&
-          tag_kind != (a_symbol_kind)sk_enum_tag) {
-        /* Allow mixing of struct/class and union in cfront mode. */
-        severity = (an_error_severity)es_warning;
-      }  /* if */
-      pos_stsy_diagnostic(severity,
-                          ec_tag_kind_incompatible_with_declaration,
-                          &locator_for_curr_id.source_position,
-                          name_of_symbol_kind(tag_kind), tag_sym);
-      if (severity == (an_error_severity)es_error) {
-        tag_sym = NULL;
-        tag_err = TRUE;
-        goto done;
-      }  /* if */
-    }  /* if */
-    /* Save the symbol locator for this identifier before doing the
-       get_token. */
-    *locator = locator_for_curr_id;
-    if (tag_sym != NULL && !is_tag_symbol(tag_sym)) {
-      /* The lookup must have returned a projection symbol, presumably the
-         result of a using declaration.  Exit now, since such a reference
-         (in an elaborate type specifier, say) can not be a definition or
-         a vacuous declaration. */
-      tag_sym = fundamental_symbol_of(tag_sym);
-      goto done;
-    }  /* if */
+    a_boolean  is_tag_definition = FALSE;
+    a_boolean  is_vacuous_declaration = FALSE;
+
     next_tok = next_token();
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
@@ -385,6 +354,51 @@ caution when modifying this routine.
       /* Note that we had to check the is_ref_within_new_expr flag because
          a colon has a different meaning in an expression context than
          in a declaration context (namely, it may belong to a ?: operator). */
+      is_tag_definition = TRUE;
+    } else if (next_tok == tok_semicolon && check_for_vacuous_decl &&
+               C_dialect != C_dialect_pcc) {
+      /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
+         The effect of a vacuous declaration (unless we are in pcc mode) is
+         to establish the name in the current scope, even if the tag name
+         exists in a containing scope or is inherited from a base class. */
+      is_vacuous_declaration = TRUE;
+    }  /* if */
+    if (is_tag_definition || is_vacuous_declaration) {
+      /* Look for a tag symbol in the current scope.  If the tag kind does
+         not match the tag being processed, issue an error. */
+      /* Note: we only call curr_scope_id_lookup for declarations, not for
+         references within the declaration of something else, because of
+         cases like this:
+           class A;
+           namespace { class A; }
+           class A *p;                // Error -- ambiguous reference
+           class A { };               // Okay -- defines ::A
+         curr_scope_id_lookup will return ::A only, whereas normal_id_lookup
+         will return a projection symbol that informs of the ambiguity. */
+      tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
+      if (tag_sym != NULL && tag_sym->kind != tag_kind) {
+        an_error_severity  severity = (an_error_severity)es_error;
+        if (any_cfront_mode() &&
+            tag_sym->kind != (a_symbol_kind)sk_enum_tag &&
+            tag_kind != (a_symbol_kind)sk_enum_tag) {
+          /* Allow mixing of struct/class and union in cfront mode. */
+          severity = (an_error_severity)es_warning;
+        }  /* if */
+        pos_stsy_diagnostic(severity,
+                            ec_tag_kind_incompatible_with_declaration,
+                            &locator_for_curr_id.source_position,
+                            name_of_symbol_kind(tag_kind), tag_sym);
+        if (severity == (an_error_severity)es_error) {
+          tag_sym = NULL;
+          tag_err = TRUE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Save the symbol locator for this identifier before doing the
+       get_token. */
+    *locator = locator_for_curr_id;
+    if (is_tag_definition) {
       if (tag_sym != NULL) {
         /* The tag has already appeared in the current scope. */
         if (!tag_sym->defined &&
@@ -434,14 +448,9 @@ caution when modifying this routine.
           clear_specific_symbol(*locator);
         }  /* if */
       }  /* if */
-      /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").
-         The effect of a vacuous declaration (unless we are in pcc mode) is
-         to establish the name in the current scope, even if the tag name
-         exists in a containing scope or is inherited from a base class. */
-      if (next_tok == tok_semicolon && check_for_vacuous_decl &&
-          C_dialect != C_dialect_pcc) {
-        /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
-           to force the creation of a new symbol in the current scope. */
+      if (is_vacuous_declaration) {
+        /* This is a vacuous declaration.  Leave tag_sym set to NULL to force
+           creation of a new symbol in the current scope. */
       } else {
         /* This may be a reference to an existing tag from a containing
            scope or a base class.  This can be ascertained by doing a full
@@ -1693,8 +1702,8 @@ static a_boolean combine_type_specifiers(a_type_ptr    *type_ptr,
                                          a_type_sign   sign,
                                          a_type_size   size)
 /*
-Given a basic type, a sign specifier, and a size specifier, return a pointer
-to a type entry in *type_ptr.  This routine is only called from from
+Given a basic type, a sign specifier, and a size specifier, return a
+pointer to a type entry in *type_ptr.  This routine is only called from
 decl_specifiers.
 */
 {
