@@ -27,9 +27,6 @@ error.c -- Error reporting routines.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-#if ASM_FUNCTION_ALLOWED
-#include "asm_func.h"
-#endif /* ASM_FUNCTION_ALLOWED */
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -2186,11 +2183,6 @@ additional messages in a multiple message diagnostic.
        language file. */
     if (total_errors + total_catastrophes > 0) cancel_il_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM */
-#if ASM_FUNCTION_ALLOWED && !STANDALONE_UTILITY_PROGRAM
-    /* If there are any errors, suppress generation of the asm configuration
-       file. */
-    if (total_errors + total_catastrophes > 0) cancel_asm_config_file();
-#endif /* ASM_FUNCTION_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
     /* Terminate the compilation if the error limit has been reached.  Note
        that remarks and warnings are never counted. */
     if (total_errors + total_catastrophes >= error_limit) {
