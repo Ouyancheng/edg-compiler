@@ -411,6 +411,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,
           ec_embedded_c_option_incompatible_with_individual_feature_options)*/
 #endif /* !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && ...) */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+/*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
+/*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
 
 /******************************************************************************
