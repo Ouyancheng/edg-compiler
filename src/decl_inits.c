@@ -2410,7 +2410,7 @@ scan_paren:
         if (!long_lifetime_temps) {
           /* Add the lifetime back in as a child of the current object
              lifetime.  This assures that the order of the child-lifetime
-             list will reflect the the actual order of construction. */
+             list will reflect the actual order of construction. */
           add_as_child_of_curr_object_lifetime(olp);
         } else {
           /* Promote destructions associated with expression temps to the
