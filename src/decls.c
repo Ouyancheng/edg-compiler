@@ -2273,6 +2273,9 @@ generating cross-reference output describing this declaration.
             routine_ptr->assoc_scope = NULL_region_number;
             routine_ptr->type->
                             variant.routine.extra_info->assoc_routine = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            routine_ptr->declared_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
         }  /* if */
         *old_type = routine_ptr->type;
