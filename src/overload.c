@@ -5349,8 +5349,9 @@ after_precision:;
         required_type = integer_type((an_integer_kind)ik_char);
         add_pointer = TRUE;
         /* *indirect is not set on purpose. */
-        if (!is_scanf && string_literals_are_const) {
-          /* String literals are const, so allow a const char * argument. */
+        if (!is_scanf) {
+          /* Allow a const char * argument to be passed to a %s printf
+             specifier. */
           *alt_type = make_pointer_type(
                           make_qualified_type(required_type,
                                               (a_type_qualifier_set)TQ_CONST));

@@ -1,5 +1,22 @@
 Version 2.45
 
+11/20/00 printf argument checking and const char * arguments
+
+The argument checking done for printf (when #pragma __printf_args is
+used) permitted a const char * argument to be passed to a %s printf
+specifier, but only when string literals are const in C++ mode; in other
+modes (e.g., C, C99, C++ when string literals are not const), a remark was
+issued.  Such arguments are now accepted in all modes.
+
+  #pragma __printf_args
+  int printf(const char *, ...);
+  int main()
+  {
+    const char *cc = 0;
+    printf("%s\n", cc);
+    return 0;
+  }
+
 11/18/00 C++-generating back end: unnecessary cast on template argument
          eliminated
 
