@@ -5324,7 +5324,7 @@ an instance of the class template.
   copy_source_position(pos_curr_token, start_pos);
   (void)get_token();
   if (curr_token != tok_lt) {
-    pos_sy_error(ec_expected_template_arg_list, &start_pos, template_symbol);
+    pos_sy_error(ec_missing_template_arg_list, &start_pos, template_symbol);
     goto error_exit;
   }  /* if */
   /* Get token following opening angle bracket. */
