@@ -2484,7 +2484,13 @@ or struct definition.  The syntax is
       sym = coalesce_and_lookup_generalized_identifier
             	(GID_NO_OPTIONS, ilm_normal, &gid_err);
       if (sym == NULL || !is_class_symbol(sym)) {
-        error(ec_not_a_class_or_struct_name);
+        if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
+            sym->variant.type->kind == (a_type_kind)tk_template_param) {
+          /* No diagnostic on template parameters, which will only show
+             up during prototype instantiations. */
+        } else {
+          error(ec_not_a_class_or_struct_name);
+        }  /* if */
         goto skip_base_class;
       } else if (locator_for_curr_id.is_semivisible_nested_type) {
         /* The symbol in the locator is a nested class that is not visible
