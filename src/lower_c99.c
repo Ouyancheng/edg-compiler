@@ -1333,10 +1333,6 @@ number of bytes of the VLA type underlying the sizeof expression.
   a_type_ptr        vla_type;
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
-  if (!expr->variant.runtime_sizeof.is_type) {
-    lower_c99_expr(expr->variant.runtime_sizeof.variant.expr,
-                   /*used_as_lvalue=*/FALSE);
-  }  /* if */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   if (expr->variant.runtime_sizeof.is_type) {
     /* Something like "sizeof(X[2][n][m/2])".  Unlike uses of VLAs in
@@ -1366,11 +1362,15 @@ number of bytes of the VLA type underlying the sizeof expression.
       precomputation = make_comma_node(precomputation, update_dim);
     }  /* if */
   } else {
+    /* sizeof was applied to a VLA expression. */
     precomputation = expr->variant.runtime_sizeof.variant.expr;
     vla_type = precomputation->type;
     if (expr->variant.runtime_sizeof.is_lvalue) {
       vla_type = type_pointed_to(vla_type);
     }  /* if */
+    /* Lower the argument expression, but be sure to have extracted the
+       type first.  (The lowered type is no longer a VLA.) */
+    lower_c99_expr(precomputation, /*used_as_lvalue=*/FALSE);
   }  /* if */
   byte_count = vla_size_expr(vla_type, /*byte_count=*/TRUE);
   byte_count = add_cast_if_necessary(byte_count,
@@ -1379,6 +1379,13 @@ number of bytes of the VLA type underlying the sizeof expression.
     byte_count = make_comma_node(precomputation, byte_count);
   }  /* if */
   overwrite_node(expr, byte_count);
+#else /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+  /* We're not lowering the run-time sizeof operator, but we may have to
+     lower the argument if that argument is an expression. */
+  if (!expr->variant.runtime_sizeof.is_type) {
+    lower_c99_expr(expr->variant.runtime_sizeof.variant.expr,
+                   /*used_as_lvalue=*/FALSE);
+  }  /* if */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_runtime_sizeof */
 
