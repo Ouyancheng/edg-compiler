@@ -1879,25 +1879,38 @@ in the conversion header list; if there is none, a new one is created.
 }  /* make_type_conversion_locator */
 
 
-a_symbol_ptr global_operator_new_symbol(a_source_position  *pos)
+a_symbol_ptr global_operator_new_or_delete_symbol(an_opname_kind     opname,
+                                                  a_source_position  *pos)
 /*
-Look up and return a symbol for global operator new.  If no symbol exists,
-create one along with a routine entry to represent the function.
+Look up and return a symbol for global operator new or operator delete.
+If no symbol exists, create one along with a routine entry to represent
+the function.
 */
 {
   a_symbol_header_ptr            sym_hdr;
   a_symbol_ptr                   sym = NULL, ext_sym;
-  a_type_ptr                     rout_type, old_type;
+  a_type_ptr                     tp, rout_type, old_type;
   a_routine_type_supplement_ptr  extra_info;
   an_extern_linkage              external_linkage;
   an_id_linkage_kind             linkage;
   a_symbol_locator               locator;
 
-  db_enter(4, "global_operator_new_symbol");
-  /* If the opname symbol table has a header for operator new, look up the
-     symbol.  Ignore symbols for member functions. */
-  sym_hdr = opname_symbol_table[(an_opname_kind)onk_new];
-  if (sym_hdr != NULL) {
+  db_enter(4, "global_operator_new_or_delete_symbol");
+#if CHECKING
+  if (opname != (an_opname_kind)onk_new &&
+      opname != (an_opname_kind)onk_delete) {
+    internal_error("global_operator_new_or_delete_symbol: bad opname kind");
+  }  /* if */
+#endif /* CHECKING */
+  /* See if the opname symbol table has a header for the operator. */
+  sym_hdr = opname_symbol_table[(int)opname];
+  if (sym_hdr == NULL) {
+    /* No symbol header yet -- force its creation and the creation of the
+       symbol. */
+    sym = NULL;
+  } else {
+    /* Header exists, so look for a symbol that's the global operator (i.e.,
+       ignore symbols for member functions). */
     for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
       if (sym->class_of_which_a_member == NULL &&
           (sym->kind == (a_symbol_kind)sk_routine ||
@@ -1910,15 +1923,25 @@ create one along with a routine entry to represent the function.
   if (sym == NULL) {
     /* Create a routine type for global operator new. */
     rout_type = alloc_type((a_type_kind)tk_routine);
-    rout_type->variant.routine.return_type = make_pointer_type(void_type());
     extra_info = rout_type->variant.routine.extra_info;
-    extra_info->param_type_list =
-         alloc_param_type(integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND),
-                          /*at_file_scope=*/TRUE);
+    /* Return type for operator delete is void; return type for operator new
+       is void*. */
+    tp = void_type();
+    if (opname == (an_opname_kind)onk_new) tp = make_pointer_type(tp);
+    rout_type->variant.routine.return_type = tp;
+    /* Both new and delete take one parameter -- the size for the former and
+       void* for the latter. */
+    if (opname == (an_opname_kind)onk_new) {
+      tp = integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
+    } else {
+      tp = make_pointer_type(void_type());
+    }  /* if */
+    extra_info->param_type_list = alloc_param_type(tp, /*at_file_scope=*/TRUE);
     extra_info->prototyped = TRUE;
     set_routine_calling_method_flag(rout_type);
-    /* Create a locator for the symbol that is to be created. */
-    make_opname_locator(tok_new, (an_opname_kind)onk_new, &locator, pos);
+    /* Create a locator for the symbol that is to be created.  This will also
+       create the symbol header if necessary. */
+    make_opname_locator(tok_new, opname, &locator, pos);
     /* Create the symbol and routine entry.  Note that the routine entry
        is given a storage class of sc_extern since there is no definition
        in the current translation unit. */
@@ -1934,7 +1957,7 @@ create one along with a routine entry to represent the function.
 
   db_exit();
   return sym;
-}  /* global_operator_new_symbol */
+}  /* global_operator_new_or_delete_symbol */
 
 
 static a_source_correspondence *source_corresp_entry_for_symbol(
