@@ -144,6 +144,11 @@ support library.
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.  "long long" is
 standard in C99, and Microsoft mode needs the IL support for __int64.
+
+This is really a language feature configuration macro, and as such should
+be in lang_feat.h.  However, it affects the IL and requires support
+from a back end, and the most sensible default takes into account
+whether C99 IL extensions are supported, and that is only known here.
 */
 #ifndef LONG_LONG_ALLOWED
 #if MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED
@@ -152,6 +157,32 @@ standard in C99, and Microsoft mode needs the IL support for __int64.
 #define LONG_LONG_ALLOWED FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ifndef LONG_LONG_ALLOWED */
+
+/*
+Alignment required of pointers to malloc'd space (i.e., the maximum
+alignment required by the host computer).  Use "1" if there are no
+alignment requirements.  This must be defined as an actual constant
+rather than as something like "sizeof(int)"; see mem_manage.h.
+Note that space allocated by malloc must provide at least this
+alignment, or the front end is powerless to provide the requested
+alignment.
+
+This is really a host configuration macro, and as such should be
+in host_envir.h.  However, the most sensible default takes into
+account whether LONG_LONG_ALLOWED is set, and that is only known
+here.
+*/
+#ifndef HOST_ALIGNMENT_REQUIRED
+#ifdef __alpha
+#define HOST_ALIGNMENT_REQUIRED 8
+#else /* !defined(__alpha) */
+#if LONG_LONG_ALLOWED
+#define HOST_ALIGNMENT_REQUIRED 8
+#else /* !LONG_LONG_ALLOWED */
+#define HOST_ALIGNMENT_REQUIRED 4
+#endif /* LONG_LONG_ALLOWED */
+#endif /* ifdef __alpha */
+#endif /* ifndef HOST_ALIGNMENT_REQUIRED */
 
 /*
 Target byte order.  Little-endian means the least-significant part of a

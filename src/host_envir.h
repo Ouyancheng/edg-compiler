@@ -75,23 +75,6 @@ an abort.
 #endif /* ifndef EXIT_ON_INTERNAL_ERROR */
 
 /*
-Alignment required of pointers to malloc'd space (i.e., the maximum
-alignment required by the host computer).  Use "1" if there are no
-alignment requirements.  This must be defined as an actual constant
-rather than as something like "sizeof(int)"; see mem_manage.c.
-Note that space allocated by malloc must provide at least this
-alignment, or the front end is powerless to provide the requested
-alignment.
-*/
-#ifndef HOST_ALIGNMENT_REQUIRED
-#ifdef __alpha
-#define HOST_ALIGNMENT_REQUIRED 8
-#else /* !defined(__alpha) */
-#define HOST_ALIGNMENT_REQUIRED 4
-#endif /* ifdef __alpha */
-#endif /* ifndef HOST_ALIGNMENT_REQUIRED */
-
-/*
 Size of allocation blocks (space is requested from malloc in blocks of
 this size, and is then parceled out as needed).  Should be fairly large
 to reduce the work in remapping pointers in the non-alternate file
