@@ -479,7 +479,8 @@ a new symbol is created and entered in the symbol table.
     vp->source_corresp.referenced = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CHECKING
-    if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+    if (!source_sequence_entries_disallowed &&
+        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
         depth_template_declaration_scope == NO_SCOPE_DEPTH) {
       check_assertion(param_id->source_sequence_entry != NULL);
     }  /* if */
