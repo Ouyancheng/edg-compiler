@@ -743,6 +743,38 @@ type is a "far" type (explicitly or implicitly).
   }  /* if */
   return is_far;
 }  /* is_far_type */
+
+
+a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type)
+/*
+Get and return the type qualifiers of the indicated type, including any
+memory attributes that were explicit in the source but are implicit in
+the type itself.  This is used only in 16-bit Microsoft mode.
+*/
+{
+  a_type_qualifier_set qualifiers = TQ_NONE;
+
+  /* Loop through the typerefs and accumulate qualifiers. */
+  for (;;) {
+    if (type->kind == (a_type_kind)tk_typeref) {
+      qualifiers |= type->variant.typeref.qualifiers;
+      if (type->variant.typeref.explicit_memory_attribute_made_implicit) {
+        /* A memory attribute was explicitly specified in the source but
+           it's implied in the typeref.  Add it in. */
+        qualifiers |= is_far_type(type->variant.typeref.type) ? TQ_FAR :
+                                                                TQ_NEAR;
+      }  /* if */
+      type = type->variant.typeref.type;
+    } else if (type->kind == (a_type_kind)tk_array) {
+      /* If an array appears, the new qualifiers must be compatible with those
+         on the element type.  This is true in both C and C++. */
+      type = array_element_type(type);
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  return qualifiers;
+}  /* get_original_type_qualifiers */
     
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !STANDALONE_UTILITY_PROGRAM

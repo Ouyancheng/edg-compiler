@@ -1933,38 +1933,6 @@ source position.  It's permissible for the input to contain no qualifiers.
 }  /* collect_microsoft_pointer_declarator_qualifiers */
 
 
-static a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type)
-/*
-Get and return the type qualifiers of the indicated type, including any
-memory attributes that were explicit in the source but are implicit in
-the type itself.
-*/
-{
-  a_type_qualifier_set qualifiers = TQ_NONE;
-
-  /* Loop through the typerefs and accumulate qualifiers. */
-  for (;;) {
-    if (type->kind == (a_type_kind)tk_typeref) {
-      qualifiers |= type->variant.typeref.qualifiers;
-      if (type->variant.typeref.explicit_memory_attribute_made_implicit) {
-        /* A memory attribute was explicitly specified in the source but
-           it's implied in the typeref.  Add it in. */
-        qualifiers |= is_far_type(type->variant.typeref.type) ? TQ_FAR :
-                                                                TQ_NEAR;
-      }  /* if */
-      type = type->variant.typeref.type;
-    } else if (type->kind == (a_type_kind)tk_array) {
-      /* If an array appears, the new qualifiers must be compatible with those
-         on the element type.  This is true in both C and C++. */
-      type = array_element_type(type);
-    } else {
-      break;
-    }  /* if */
-  }  /* for */
-  return qualifiers;
-}  /* get_original_type_qualifiers */
-
-
 static void check_for_addition_of_incompatible_qualifiers(
                                               a_type_ptr           type,
                                               a_type_qualifier_set *qualifiers,

@@ -208,6 +208,7 @@ extern a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
                                          a_type_ptr  tp2);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_far_type(a_type_ptr tp);
+extern a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
