@@ -1026,10 +1026,12 @@ via the typeid operator (but it contains it).
     typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
     /* Remember the variable in the type. */
     type->typeinfo_var = typeinfo_var;
+#if ABI_CHANGES_FOR_RTTI
     /* Develop a string that names the type.  This must be done now because
        later the names involved might be mangled.  A pointer to the string
        is stored in the assoc_info pointer of the typeinfo variable. */
     typeinfo_var->source_corresp.assoc_info = make_typeinfo_name(type);
+#endif /* ABI_CHANGES_FOR_RTTI */
     if (define_now) {
       /* The typeinfo variable is supposed to be defined right now (for
          non-class cases). */
