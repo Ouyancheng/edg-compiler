@@ -6456,6 +6456,35 @@ must be redone for each generated C file.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
+unsigned int crc_16(char *str)
+/*
+Determines and returns the CRC-16 value for a null-terminated string.
+CRC-16 is defined by the polynomial
+
+ 16    15    2
+x   + x   + x  + 1
+
+This is not the CCITT CRC.  Also, there are plenty of more efficient ways
+of computing CRC; this straightforward approach is used only because
+in this context the CRC is needed just a small number of times.
+*/
+{
+  unsigned int crc = 0;
+
+  while (*str != '\0') {
+    unsigned int ch = (unsigned int)*str++;
+    int nbit;
+
+    for (nbit = 0; nbit < CHAR_BIT; nbit++, ch >>= 1) {
+      int low_bit = (ch^crc) & 1;
+      crc >>= 1;
+      if (low_bit) crc ^= 0xa001;
+    }  /* for */
+  }  /* while */
+  return crc;
+}  /* crc_16 */
+
+
 static void generate_one_instantiation_C_output_file(
                                      a_source_correspondence *scp,
                                      unsigned long           needed_bit_number)
@@ -6465,10 +6494,17 @@ routine or variable has the given source correspondence field and
 "needed" flag bit number.
 */
 {
-  char *C_output_file_name;
+#define MAX_C_OUTPUT_FILE_LEN 20
+  char buffer[MAX_C_OUTPUT_FILE_LEN+1];
+  char *C_output_file_name = buffer;
 
-  /* Determine the output file name. */
-  C_output_file_name = scp->name;
+  /* Determine the output file name.  Use the unmangled name (or the beginning
+     of it) plus an underscore plus the hexadecimal for the CRC-16 checksum
+     for the whole mangled name. */
+  (void)strncpy(buffer, scp->unmangled_name, MAX_C_OUTPUT_FILE_LEN-5);
+  buffer[MAX_C_OUTPUT_FILE_LEN-5] = '\0';
+  (void)sprintf(buffer+strlen(C_output_file_name), "_%x", crc_16(scp->name));
+#undef MAX_C_OUTPUT_FILE_LEN
   if (f_C_file_list == NULL) {
     a_boolean cannot_open, bad_name;
 
