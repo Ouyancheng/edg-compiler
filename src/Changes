@@ -1,5 +1,45 @@
 Version 2.37
 
+10/16/97  One instantiation per object file
+
+In a new template instantiation mode, enabled by the command-line
+option --one_instantiation_per_object, each compilation produces
+several object files: a primary object file plus a separate object
+file for each template instantiation (function or static data member).
+Having each instantiation in a separate object file is very useful
+when creating libraries, because it allows the user of the library to
+pull in only the instantiations that are needed.  (This is particularly
+desirable because our prelinker may assign a large number of
+instantiations to one source file.  Heretofore, we have created
+one monolithic object file containing all the instantiations.  Referring
+to a single instantiation in that file would have dragged in all the
+rest of the instantiations as well.)
+
+The C-generating back end has been updated so that it will generate
+multiple C output files in this mode, and the eccp script has been
+updated so that it will pass all of the generated C files to the
+underlying C compiler.  The resulting object files are placed in a
+directory specified by the --instantiation_dir=<name> command-line
+option (the default is "Template.dir").  "Real" back ends should
+be able to use the information provided to make multiple passes
+over the IL to generate multiple object files.
+
+Static variables and functions that are referenced from instantiations
+are made external, with names beginning with __STV__ or __STF__,
+respectively, so that they are visible from the instantiation
+object files.
+
+The implementation of this feature involves maintaining a separate
+set of "needed" flags for each object file to be generated,
+indicating the things referenced from a single instantiation.
+This allows a back end to generate object files that contain only
+the entities needed.  The maintenance of these per-instantiation
+"needed" flags entails a space and time overhead, though for the
+most part only when the feature is enabled.  If you intend never
+to use the feature and want to avoid all of the overhead, you
+can configure it out by setting ONE_INSTANTIATION_PER_OBJECT to
+FALSE.
+
 10/16/97  Explicit specification of function template arguments
 
 Explicit specification of function template arguments is now fully
@@ -392,7 +432,7 @@ done) that its name was incorrectly mangled.  This has been fixed.
 Static variables made external are now given a mangled name with a
 __STV__ prefix.  This is used in the C-generating back end when
 generating pcc C, and now for static variables referenced from
-instantiations when the one-instantiation- per-object option is used.
+instantiations when the one-instantiation-per-object option is used.
 
 9/25/97   Redundant secondary-decl source sequence entry for class template
           instantiation
