@@ -7002,7 +7002,8 @@ functions could still apply).
              covered above. */
           make_opname_locator(kind, &locator, operator_position);
           normal_sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
-          if (normal_sym != NULL && !is_function_symbol(normal_sym)) {
+          if (normal_sym != NULL &&
+              !is_function_or_template_symbol(normal_sym)) {
             /* Ignore error symbols and like. */
             normal_sym = NULL;
           }  /* if */

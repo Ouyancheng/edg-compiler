@@ -1,3 +1,24 @@
+Version 2.42
+
+3/8/99   Overloaded operator problem with function templates
+
+In version 2.41, if the normal lookup component of an overloaded operator
+lookup returned a function template, that template would be ignored.  This
+could result in spurious errors, or in the incorrect function being
+chosen.  This has been fixed.
+
+  namespace N {
+    template<class T> bool operator!=(const T& _X, const T& _Y);
+  }
+  struct A { };
+  int main()
+  {
+    using N::operator!=;
+    A x, y;
+    x != y;  // spurious "no matching !=" error
+  }
+
+-------------------------------------------------------------------------------
 Version 2.41, March 5, 1999
 
 3/5/99   IL version number changed to 2.33
