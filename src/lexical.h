@@ -591,6 +591,7 @@ enum a_token_extra_info_kind_tag {
   /* Kind of additional information saved in a cached token entry. */
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
+  teik_specific_symbol,	/* Extra information for a looked-up identifier. */
   teik_qualified_name,	/* Extra information for a qualified name. */
   teik_constant,	/* Extra information for a literal constant. */
   teik_lint_and_pragma	/* Extra information for a lint comment or pragma. */
@@ -637,10 +638,10 @@ typedef struct a_cached_token {
     a_symbol_header_ptr
 		identifier_header;
 			/* Pointer to the symbol header for the identifier. */
-    /* When extra_info_kind == teik_qualified_name: */
+    /* When extra_info_kind == teik_specific_symbol or teik_qualified_name: */
     a_symbol_ptr
-		qualified_name_symbol;
-			/* Pointer to the qualified name symbol. */
+		specific_symbol;
+			/* Pointer to the specific symbol or qualified name. */
     /* When extra_info_kind == teik_constant: */
     a_constant_ptr
 		constant;

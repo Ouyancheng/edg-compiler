@@ -381,18 +381,19 @@ for pp-tokens.
   ctp = alloc_cached_token();
   ctp->token = (a_byte_token_kind)curr_token;
   if (curr_token == tok_identifier) {
-    /* Identifier -- save a pointer to the symbol header.  If the name
-       is a qualified name, save the pointer to the qualified name symbol. */
+    /* Identifier -- save information about it. */
     if (locator_for_curr_id.specific_symbol != NULL) {
-#if CHECKING
-      /* A specific symbol should be a C++ qualified name. */
-      if (!locator_for_curr_id.is_qualified_name) {
-        internal_error("cache_curr_token: specific symbol not qualified name");
+      if (locator_for_curr_id.is_qualified_name) {
+        /* For a qualified name, save the pointer to the qualified name
+           symbol. */
+        ctp->extra_info_kind = (a_token_extra_info_kind)teik_qualified_name;
+      } else {
+        /* For a specific symbol, save the pointer to the symbol. */
+        ctp->extra_info_kind = (a_token_extra_info_kind)teik_specific_symbol;
       }  /* if */
-#endif /* CHECKING */
-      ctp->extra_info_kind = (a_token_extra_info_kind)teik_qualified_name;
-      ctp->variant.qualified_name_symbol = locator_for_curr_id.specific_symbol;
+      ctp->variant.specific_symbol = locator_for_curr_id.specific_symbol;
     } else {
+      /* For a normal identifier, save a pointer to the symbol header. */
       ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
       ctp->variant.identifier_header = locator_for_curr_id.symbol_header;
     }  /* if */
@@ -523,10 +524,18 @@ take_first_entry:
     locator_for_curr_id.symbol_header = ctp->variant.identifier_header;
     symbol_list_for_curr_id = symbol_list_from_locator(locator_for_curr_id);
   } else if (ctp->extra_info_kind ==
+                               (a_token_extra_info_kind)teik_specific_symbol) {
+    /* For a specific symbol, restore the locator and clear the symbol
+       list pointer. */
+    make_locator_for_symbol(ctp->variant.specific_symbol,
+                            &locator_for_curr_id);
+    locator_for_curr_id.source_position = pos_curr_token;
+    symbol_list_for_curr_id = NULL;
+  } else if (ctp->extra_info_kind ==
                                 (a_token_extra_info_kind)teik_qualified_name) {
-    /* For a qualified name identifier, restore the locator and symbol list
-       pointer. */
-    make_locator_for_qualified_name_symbol(ctp->variant.qualified_name_symbol,
+    /* For a qualified name identifier, restore the locator and clear the
+       symbol list pointer. */
+    make_locator_for_qualified_name_symbol(ctp->variant.specific_symbol,
                                            &locator_for_curr_id);
     locator_for_curr_id.source_position = pos_curr_token;
     symbol_list_for_curr_id = NULL;
