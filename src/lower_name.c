@@ -78,8 +78,7 @@ static void mangled_function_name(
                               a_mangling_control_block *mctl);
 static void mangled_member_variable_name(a_variable_ptr           variable,
                                          a_mangling_control_block *mctl);
-static char *mangled_expr_operator_name(an_expr_operator_kind op,
-                                        char                  **func_name);
+static char *mangled_expr_operator_name(an_expr_operator_kind op);
 static void mangled_encoding_for_expression(an_expr_node_ptr         expr,
                                             a_mangling_control_block *mctl);
 static void mangled_member_name(a_source_correspondence  *scp,
@@ -1117,7 +1116,6 @@ arguments, and as dimensions of arrays in template signatures.
   char             *operation_name;
   an_expr_node_ptr operand;
   unsigned long    num_operands;
-  char             *func_name;
 
   /* Drop eok_lvalue and eok_rvalue. */
   while (is_operation_node(expr) &&
@@ -1132,6 +1130,10 @@ arguments, and as dimensions of arrays in template signatures.
                                     mctl);
       break;
     case enk_operation:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      check_assertion(expr->variant.operation.kind !=
+                                            (an_expr_operator_kind)eok_assume);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Operation.  Output has the form
            Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template
                            parameters.
@@ -1145,21 +1147,10 @@ arguments, and as dimensions of arrays in template signatures.
          mangled_encoding_for_constant_cast generates a compatible structure,
          so if you change this be sure to change that as well.
       */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* Treat Microsoft __assume(expr) as a constant 0, arbitrarily. */
-      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_assume) {
-        a_constant con;
-        set_integer_constant(&con, (a_host_large_integer)0,
-                             (an_integer_kind)ik_int);
-        mangled_encoding_for_constant(&con, /*old_form=*/FALSE, mctl);
-        break;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Put out the initial "O". */
       add_to_mangled_name('O', mctl);
       /* Get the operator name and put it out. */
-      operation_name= mangled_expr_operator_name(expr->variant.operation.kind,
-                                                 &func_name);
+      operation_name= mangled_expr_operator_name(expr->variant.operation.kind);
       add_str_to_mangled_name(operation_name, mctl);
       /* For a cast, put out the type cast to. */
       if (operation_name[0] == 'c' && operation_name[1] == 's') {
@@ -1169,14 +1160,8 @@ arguments, and as dimensions of arrays in template signatures.
       for (num_operands = 0, operand = expr->variant.operation.operands;
            operand != NULL;
            num_operands++, operand = operand->next) {}
-      /* For a simulated call (e.g., for va_start), add one more operand. */
-      if (func_name[0] != '\0') num_operands++;
+      check_assertion(num_operands <= 9);
       add_number_to_mangled_name(num_operands, mctl);
-      /* For a simulated call (e.g., for va_start), put out the function
-         name as the first operand. */
-      if (func_name[0] != '\0') {
-        add_str_to_mangled_name(func_name, mctl);
-      }  /* if */
       /* Put out the operands. */
       for (operand = expr->variant.operation.operands;
            operand != NULL;
@@ -2313,32 +2298,20 @@ names.  The string does not have the leading "__" used in some cases.
 }  /* mangled_operator_name */
 
 
-static char *mangled_expr_operator_name(an_expr_operator_kind op,
-                                        char                  **func_name)
+static char *mangled_expr_operator_name(an_expr_operator_kind op)
 /*
 Return the string used to mangle the indicated expression operator.
 This routine only needs to handle the operators that can be used in
-expressions on nontype template parameters in function signatures,
-but unfortunately that's all of them, because even non-constant operators
-can be used within sizeof expressions in constant expressions.
-*func_name is set to a function name for cases where an operator
-should be put out as a simulated function call (e.g., eok_va_start).
+expressions on nontype template parameters in function signatures.
 */
 {
   char           *name = NULL;
   an_opname_kind opkind;
 
-  *func_name = "";
   switch (op) {
-    case eok_indirect:
-      opkind = (an_opname_kind)onk_star;
-      break;
     case eok_inegate:
     case eok_fnegate:
     case eok_negate:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xnegate:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       opkind = (an_opname_kind)onk_minus;
       break;
     case eok_unary_plus:
@@ -2356,208 +2329,58 @@ should be put out as a simulated function call (e.g., eok_va_start).
     case eok_bool_cast:
       name = "cs";
       break;
-    case eok_dynamic_cast:
-      name = "dc";
-      break;
-    case eok_static_cast:
-      name = "sc";
-      break;
-    case eok_const_cast:
-      name = "cc";
-      break;
-    case eok_reinterpret_cast:
-      name = "rc";
-      break;
     case eok_complement:
       opkind = (an_opname_kind)onk_compl;
       break;
-    case eok_ipost_incr:
-    case eok_ipre_incr:
-    case eok_fpost_incr:
-    case eok_fpre_incr:
-    case eok_ppost_incr:
-    case eok_ppre_incr:
-    case eok_post_incr:
-    case eok_pre_incr:
-      opkind = (an_opname_kind)onk_plus_plus;
-      break;
-    case eok_ipost_decr:
-    case eok_ipre_decr:
-    case eok_fpost_decr:
-    case eok_fpre_decr:
-    case eok_ppost_decr:
-    case eok_ppre_decr:
-    case eok_post_decr:
-    case eok_pre_decr:
-      opkind = (an_opname_kind)onk_minus_minus;
-      break;
     case eok_iadd:
     case eok_fadd:
-    case eok_padd:
-    case eok_padd_subsc:
     case eok_add:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xadd:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       opkind = (an_opname_kind)onk_plus;
       break;
     case eok_isubtract:
     case eok_fsubtract:
-    case eok_psubtract:
-    case eok_pdiff:
     case eok_subtract:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xsubtract:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       opkind = (an_opname_kind)onk_minus;
       break;
     case eok_imultiply:
     case eok_fmultiply:
     case eok_multiply:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xmultiply:
-    case eok_jmultiply:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       opkind = (an_opname_kind)onk_star;
       break;
     case eok_idivide:
     case eok_fdivide:
     case eok_divide:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xdivide:
-    case eok_jdivide:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       opkind = (an_opname_kind)onk_divide;
       break;
     case eok_ieq:
     case eok_feq:
-    case eok_peq:
-    case eok_pmeq:
     case eok_eq:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xeq:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       opkind = (an_opname_kind)onk_eq;
       break;
     case eok_ine:
     case eok_fne:
-    case eok_pne:
-    case eok_pmne:
     case eok_ne:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xne:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       opkind = (an_opname_kind)onk_ne;
       break;
     case eok_igt:
     case eok_fgt:
-    case eok_pgt:
     case eok_gt:
       opkind = (an_opname_kind)onk_gt;
       break;
     case eok_ilt:
     case eok_flt:
-    case eok_plt:
     case eok_lt:
       opkind = (an_opname_kind)onk_lt;
       break;
     case eok_ige:
     case eok_fge:
-    case eok_pge:
     case eok_ge:
       opkind = (an_opname_kind)onk_ge;
       break;
     case eok_ile:
     case eok_fle:
-    case eok_ple:
     case eok_le:
       opkind = (an_opname_kind)onk_le;
-      break;
-    case eok_iassign:
-    case eok_fassign:
-    case eok_passign:
-    case eok_sassign:
-    case eok_pmassign:
-    case eok_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xassign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      opkind = (an_opname_kind)onk_assign;
-      break;
-    case eok_iadd_assign:
-    case eok_fadd_assign:
-    case eok_padd_assign:
-    case eok_add_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xadd_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      opkind = (an_opname_kind)onk_plus_assign;
-      break;
-    case eok_isubtract_assign:
-    case eok_fsubtract_assign:
-    case eok_psubtract_assign:
-    case eok_subtract_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xsubtract_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      opkind = (an_opname_kind)onk_minus_assign;
-      break;
-    case eok_imultiply_assign:
-    case eok_fmultiply_assign:
-    case eok_multiply_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xmultiply_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      opkind = (an_opname_kind)onk_times_assign;
-      break;
-    case eok_idivide_assign:
-    case eok_fdivide_assign:
-    case eok_divide_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xdivide_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      opkind = (an_opname_kind)onk_divide_assign;
-      break;
-    case eok_remainder_assign:
-      opkind = (an_opname_kind)onk_remainder_assign;
-      break;
-    case eok_shiftl_assign:
-      opkind = (an_opname_kind)onk_shift_left_assign;
-      break;
-    case eok_shiftr_assign:
-      opkind = (an_opname_kind)onk_shift_right_assign;
-      break;
-    case eok_and_assign:
-      opkind = (an_opname_kind)onk_and_assign;
-      break;
-    case eok_or_assign:
-      opkind = (an_opname_kind)onk_or_assign;
-      break;
-    case eok_xor_assign:
-      opkind = (an_opname_kind)onk_excl_or_assign;
-      break;
-    case eok_subscript:
-      opkind = (an_opname_kind)onk_subscript;
-      break;
-    case eok_field:
-    case eok_bit_field:
-    case eok_extract_bit_field:
-    case eok_points_to_static:
-    case eok_virtual_function_ptr:
-      opkind = (an_opname_kind)onk_arrow;
-      break;
-    case eok_value_field:
-    case eok_value_bit_field:
-    case eok_lvalue_dot_static:
-    case eok_rvalue_dot_static:
-      name = "fd";
-      break;
-    case eok_pm_field:
-    case eok_pm_arrow_field:
-      opkind = (an_opname_kind)onk_arrow_star;
-      break;
-    case eok_pm_dot_field:
-      name = "ds";
       break;
     case eok_remainder:
       opkind = (an_opname_kind)onk_remainder;
@@ -2580,10 +2403,6 @@ should be put out as a simulated function call (e.g., eok_va_start).
     case eok_comma:
       opkind = (an_opname_kind)onk_comma;
       break;
-    case eok_vacuous_destructor_call:
-    case eok_value_vacuous_destructor_call:
-      name = "vd";
-      break;
     case eok_land:
       opkind = (an_opname_kind)onk_and_and;
       break;
@@ -2596,40 +2415,11 @@ should be put out as a simulated function call (e.g., eok_va_start).
 #endif /* GNU_EXTENSIONS_ALLOWED */
       opkind = (an_opname_kind)onk_question;
       break;
-    case eok_call:
-    case eok_virtual_call:
-    case eok_pm_call:
-    case eok_generic_call:
-    case eok_generic_member_call:
-      opkind = (an_opname_kind)onk_function_call;
-      break;
-    case eok_va_start:
-    case eok_va_start_single_operand:
-      opkind = (an_opname_kind)onk_function_call;
-      *func_name = "va_start";
-      break;
-    case eok_va_arg:
-      opkind = (an_opname_kind)onk_function_call;
-      *func_name = "va_arg";
-      break;
-    case eok_va_end:
-      opkind = (an_opname_kind)onk_function_call;
-      *func_name = "va_end";
-      break;
-    case eok_va_copy:
-      opkind = (an_opname_kind)onk_function_call;
-      *func_name = "va_copy";
-      break;
-    case eok_address:
-      opkind = (an_opname_kind)onk_ampersand;
-      break;
-    case eok_lvalue_from_struct_rvalue:  /* C mode only */
     case eok_lvalue:                     /* Handled higher up */
     case eok_rvalue:                     /* Handled higher up */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:                     /* Handled higher up */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case eok_bassign:                    /* Generated by lowering only */
     default:
       unexpected_condition_str("mangled_expr_operator_name: bad operator");
   }  /* switch */

@@ -8494,7 +8494,6 @@ to TRUE.  *source_pos gives the source position for errors.
                                       result_type, source_pos);
     }  /* if */
   } else if (!op_3_present) {
-    a_boolean assignment_case = FALSE;
     /* Two-operand operation. */
     do_usual_arith_conversions = do_promotion = FALSE;
     switch (op) {
@@ -8534,39 +8533,15 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_remainder:
         do_usual_arith_conversions = TRUE;
         break;
-      case eok_iadd_assign:
-      case eok_fadd_assign:
-      case eok_add_assign:
-      case eok_isubtract_assign:
-      case eok_fsubtract_assign:
-      case eok_subtract_assign:
-      case eok_fmultiply_assign:
-      case eok_multiply_assign:
-      case eok_idivide_assign:
-      case eok_fdivide_assign:
-      case eok_divide_assign:
-      case eok_remainder_assign:
-      case eok_and_assign:
-      case eok_or_assign:
-        do_usual_arith_conversions = TRUE;
-        assignment_case = TRUE;
-        break;
       case eok_shiftl:
       case eok_shiftr:
         do_promotion = TRUE;
         break;
-      case eok_shiftl_assign:
-      case eok_shiftr_assign:
-        do_promotion = TRUE;
-        assignment_case = TRUE;
-        break;
 #if GNU_EXTENSIONS_ALLOWED
       case eok_binary_question:
-        do_usual_arith_conversions = TRUE;
-        /* This is not an assignment, but suppress the type change on the
-           first operand by setting the assignment flag. */
-        assignment_case = TRUE;
-        break;
+        /* Not supported.  Note that the type change on the first operand
+           will have to be suppressed. */
+        unexpected_condition_str("eok_binary_question not implemented");
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       /* These are used only in C mode.  If they are added for GNU C++
@@ -8592,24 +8567,21 @@ to TRUE.  *source_pos gives the source position for errors.
     }  /* switch */
     if (do_usual_arith_conversions) {
       result_type = usual_arithmetic_conversions(type_1, type_2);
-      if (!assignment_case) {
-        cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                        result_type, source_pos);
-      }  /* if */
+      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                      result_type, source_pos);
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
                                       result_type, source_pos);
     } else if (do_promotion) {
       result_type = type_after_integral_promotion(type_1);
-      if (!assignment_case) {
-        cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                        result_type, source_pos);
-      }  /* if */
+      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                      result_type, source_pos);
       promoted_type_2 = type_after_integral_promotion(type_2);
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
                                       promoted_type_2, source_pos);
     }  /* if */
-  } else if (op == (an_expr_operator_kind)eok_question) {
+  } else {
     /* Three-operand operation, i.e., "?" */
+    check_assertion(op == (an_expr_operator_kind)eok_question);
     /* If the operands have the same type, use that type.  Otherwise, do
        the usual arithmetic conversions. */
     if (!types_are_compatible(type_2, type_3)) {
@@ -8658,47 +8630,6 @@ to an already-allocated constant; otherwise, constant points to the
   }  /* if */
   return expr;
 }  /* alloc_copied_template_param_expr */
-
-
-static a_boolean operator_is_foldable(an_expr_operator_kind op)
-/*
-Return TRUE if the indicated operation should be folded when doing
-template argument substitution.
-*/
-{
-  a_boolean is_foldable = FALSE;
-
-  switch (op) {
-    case eok_inegate:
-    case eok_unary_plus:
-    case eok_complement:
-    case eok_not:
-    case eok_iadd:
-    case eok_isubtract:
-    case eok_imultiply:
-    case eok_idivide:
-    case eok_remainder:
-    case eok_shiftl:
-    case eok_shiftr:
-    case eok_ieq:
-    case eok_ine:
-    case eok_igt:
-    case eok_ilt:
-    case eok_ige:
-    case eok_ile:
-    case eok_and:
-    case eok_or:
-    case eok_xor:
-    case eok_land:
-    case eok_lor:
-    case eok_question:
-      is_foldable = TRUE;
-      break;
-    default:
-      break;
-  }  /* switch */
-  return is_foldable;
-}  /* operator_is_foldable */
 
 
 static an_expr_node_ptr copy_template_param_expr(
@@ -8797,8 +8728,7 @@ return NULL.  options is a set of name lookup options.
                   copy_error);
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
-            new_operand_3 == NULL &&
-            operator_is_foldable(op)) {
+            new_operand_3 == NULL) {
           /* All the operands are constant. */
           if (alloc_con_1 != NULL) copy_constant(alloc_con_1, &constant_1);
           if (alloc_con_2 != NULL) copy_constant(alloc_con_2, &constant_2);
