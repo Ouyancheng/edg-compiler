@@ -5649,8 +5649,6 @@ static void using_directive()
   a_symbol_ptr                   sym;
   a_boolean                      err = FALSE;
   a_using_directive_ptr          udp;
-  an_active_using_directive_ptr  audp;
-  a_scope_pointers_block_ptr     pointers_block;
 
   decl_start_pos = pos_curr_token;
   /* Bypass "using" and "namespace". */
@@ -5671,13 +5669,7 @@ static void using_directive()
       udp->position = decl_start_pos;
       udp->assoc_namespace = sym->variant.namespace_info.ptr;
       add_to_using_directives_list(udp);
-      audp = (an_active_using_directive_ptr)alloc_fe(
-                                         sizeof(an_active_using_directive));
-      audp->entry = udp;
-      pointers_block =
-                  assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
-      audp->next = pointers_block->active_using_directives;
-      pointers_block->active_using_directives = audp;
+      add_active_using_directive(udp);
     }  /* if */
     (void)get_token();
   }  /* if */
