@@ -10298,7 +10298,7 @@ of local variables (and types, etc.) of functions and in blocks.
       goto return_point;
     } else if (curr_token == tok_template ||
                curr_token == tok_export ||
-               (microsoft_mode && curr_token == tok_extern &&
+               ((microsoft_mode || gpp_mode) && curr_token == tok_extern &&
                 next_token() == tok_template)) {
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
@@ -10306,7 +10306,7 @@ of local variables (and types, etc.) of functions and in blocks.
       a_template_decl_options_set td_flags = TDO_NO_OPTIONS;
 
       if (curr_token == tok_extern) {
-        /* In Microsoft mode "extern template ..." is permitted. */
+        /* In Microsoft and GNU modes "extern template ..." is permitted. */
         (void)get_token();
         td_flags = TDO_EXTERN;
       }  /* if */

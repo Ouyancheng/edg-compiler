@@ -18767,7 +18767,7 @@ or the specific definition flag (if instantiate is FALSE).
       tip->explicit_do_not_instantiate = TRUE;
       tip->class_explicitly_instantiated = FALSE;
       /* We can get here from either a do_not_instantiate pragma or a
-         Microsoft "extern template" explicit instantiation directive.
+         Microsoft/GNU "extern template" explicit instantiation directive.
          A do_not_instantiate pragma is assumed to be used in cases where
          an old-style specialization is present in some other translation unit.
          Consequently, the is_specialized and specialized_with_old_syntax
@@ -18834,11 +18834,11 @@ is a recursive call for a class nested within the template class.
 
   /* See if this is a valid scope for the explicit instantiation of this
      entity.  This test is only done for explicit instantiation directives,
-     not for pragmas.  It is not done for Microsoft "extern template"
+     not for pragmas.  It is not done for Microsoft/GNU "extern template"
      directives either. */
   if (!is_pragma && top_level && 
-      !(microsoft_mode && pragma_kind ==
-                                      (a_pragma_kind)pk_do_not_instantiate)) {
+      !((microsoft_mode || gpp_mode) &&
+        pragma_kind == (a_pragma_kind)pk_do_not_instantiate)) {
     check_instantiation_scope(sym);
   }  /* if */
   class_type = sym->variant.class_struct_union.type;
@@ -18974,15 +18974,15 @@ symbol, otherwise we return NULL.
                 put out in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static
-void make_instantiation_directive(a_pragma_kind		       pragma_kind,
+void make_instantiation_directive(a_pragma_kind                pragma_kind,
                                   a_symbol_ptr                 sym,
                                   a_source_sequence_entry_ptr  ssep,
                                   a_source_position            *pos,
                                   a_decl_pos_block_ptr         decl_pos_block)
 /*
-Create an IL entry to represent an instantiation directive.  progma_kind is
+Create an IL entry to represent an instantiation directive.  pragma_kind is
 used to distinguish an instantiation directive from a "do not instantiate"
-directive (which is specified as "extern template" in Microsoft mode).
+directive (which is specified as "extern template" in Microsoft and GNU modes).
 sym identifies the entity being instantiated, pos is the source position
 of the template keyword, and ssep is the empty source sequence entry that
 should be used.  When EXTRA_SOURCE_POSITIONS_IN_IL is set to TRUE,
@@ -19040,9 +19040,10 @@ and static data members will be instantiated.
 
 kind is the pragma kind being processed.  For an explicit instantiation,
 the pragma kind of pk_instantiate is passed by the caller.  In Microsoft
-mode pk_do_not_instantiate may be passed by the caller if the explicit
-instantiation directive began with the "extern" keyword.  is_pragma is
-TRUE if this is a pragma and FALSE if it is an explicit instantiation.
+and GNU modes pk_do_not_instantiate may be passed by the caller if the
+explicit instantiation directive began with the "extern" keyword.
+is_pragma is TRUE if this is a pragma and FALSE if it is an explicit
+instantiation.
 */
 {
   a_storage_class               storage_class;
@@ -19467,9 +19468,9 @@ access errors that were detected.  options is a bit set of option flags.
        requested as a consequence of scanning the pragma. */
     a_pragma_kind	pragma_kind;
     instantiation_mode = tim_none;
-    /* In Microsoft mode the "extern" keyword may be used in an explicit
-       instantiation directive to indicate that an entity should not be
-       instantiated. */
+    /* In Microsoft and GNU modes the "extern" keyword may be used in an
+       explicit instantiation directive to indicate that an entity should not
+       be instantiated. */
     if (extern_template) {
       pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
     } else {
@@ -19548,7 +19549,7 @@ brace) is returned in *final_token.  options is a bit set of option flags.
 
     if ((options & TDO_EXTERN) != 0) {
       /* An "extern" storage class is only permitted on an explicit
-         instantiation directive in Microsoft mode. */
+         instantiation directive in Microsoft and GNU modes. */
       error(ec_bad_storage_class_on_template_decl);
     }  /* if */
     /* Issue an error if this declaration has C linkage. */

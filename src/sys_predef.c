@@ -901,7 +901,7 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* 0 */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode) {
+  if (gpp_mode) {
     enter_gnu_predeclared_functions();
     /* On many GNU C configurations (e.g., linux) __builtin_va_list is a type
        compatible with void*.  On other configurations, the following may need

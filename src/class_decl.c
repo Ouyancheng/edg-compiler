@@ -12479,7 +12479,7 @@ classes.
           }  /* if */
           /* Check for template declaration. */
           if (curr_token == tok_template || curr_token == tok_export ||
-              (microsoft_mode && curr_token == tok_extern &&
+              ((microsoft_mode || gpp_mode) && curr_token == tok_extern &&
                next_token() == tok_template)) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
@@ -12490,7 +12490,8 @@ classes.
             a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
 
             if (curr_token == tok_extern) {
-              /* In Microsoft mode "extern template ..." is permitted. */
+              /* In Microsoft and GNU modes "extern template ..." is
+                 permitted. */
               (void)get_token();
               td_flags = TDO_EXTERN;
             }  /* if */
