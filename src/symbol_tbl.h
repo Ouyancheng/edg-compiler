@@ -2632,6 +2632,13 @@ Return the fundamental symbol for a given symbol.
   /* } */								   \
   )
 
+
+/*
+Given a namespace projection symbol, return the fundamental symbol.
+*/
+#define namespace_projection_fundamental_symbol(sym)			\
+  ((sym)->variant.namespace_projection.fundamental_symbol)
+
 /*
 Return TRUE if the base class indicated by the base class entry bcp
 is an accessible base class of viewpoint_class.  bcp must be a direct or

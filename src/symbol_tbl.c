@@ -3219,6 +3219,20 @@ table.
 }  /* make_unnamed_namespace_symbol */
 
 
+static void set_synth_namespace_projection_symbol(a_symbol_ptr     proj_sym,
+                                                  a_symbol_ptr     fund_sym)
+/*
+Initialize the fields of the symbol proj_sym to point to be a
+a synthesized namespace projection symbol that points to fund_sym.
+proj_sym must already point to a sk_namespace_projection symbol.
+*/
+{
+  proj_sym->variant.namespace_projection.fundamental_symbol = fund_sym;
+  proj_sym->decl_scope = scope_stack[decl_scope_level].number;
+  proj_sym->synthesized_namespace_projection = TRUE;
+}  /* make_namespace_projection_symbol */
+
+
 static
 a_symbol_ptr make_synth_namespace_projection_symbol(a_symbol_ptr     fund_sym,
                                                     a_symbol_locator *locator)
@@ -3231,9 +3245,7 @@ to fund_sym.
 
   sym = alloc_symbol((a_symbol_kind)sk_namespace_projection,
                      fund_sym->header, &locator->source_position);
-  sym->variant.namespace_projection.fundamental_symbol = fund_sym;
-  sym->decl_scope = scope_stack[decl_scope_level].number;
-  sym->synthesized_namespace_projection = TRUE;
+  set_synth_namespace_projection_symbol(sym, fund_sym);
   return sym;
 }  /* make_namespace_projection_symbol */
 
@@ -3250,9 +3262,7 @@ and enter it in the symbol table.
 
   sym = enter_symbol((a_symbol_kind)sk_namespace_projection, locator,
                      decl_scope_level, /*suppress_redecl_error=*/FALSE);
-  sym->variant.namespace_projection.fundamental_symbol = fund_sym;
-  sym->decl_scope = scope_stack[decl_scope_level].number;
-  sym->synthesized_namespace_projection = TRUE;
+  set_synth_namespace_projection_symbol(sym, fund_sym);
   return sym;
 }  /* enter_namespace_projection_symbol */
 
@@ -6769,14 +6779,49 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
     } else {
       curr_sym = enter_synth_namespace_projection_symbol(new_sym, locator);
     }  /* if */
+  } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
+             namespace_projection_fundamental_symbol(curr_sym) == NULL) {
+    /* curr_sym is a namespace projection symbol that doesn't point to any
+       other symbol.  This is the case when a synthesized namespace
+       projection symbol from a previous lookup is being used, and the
+       previous symbol does not point to a function.  In this case the
+       fundamental symbol pointer is cleared because it may have been
+       the result of a constrained lookup (e.g., a tag lookup) which
+       may not be applicable now.  Set the existing symbol to point to
+       the new symbol. */
+    set_synth_namespace_projection_symbol(curr_sym, new_sym);
   } else if (already_in_lookup_set(curr_sym, new_sym)) {
     /* The symbol is already present -- nothing more to do. */
   } else {
     fund_curr_sym = fundamental_symbol_of(curr_sym);
     if (!is_function_symbol(new_sym) || !is_function_symbol(fund_curr_sym)) {
-    /* There is more than one symbol, and they are not all functions.
-       This is an error. */
-    err = TRUE;
+      /* There is more than one symbol, and they are not all functions.
+         This is an error unless the two symbols are from the same scope
+         and one is a tag and the other a nontag.  Set the error flag.
+         It will be cleared later if we determine that this case is okay. */
+      err = TRUE;
+      if (new_sym->decl_scope == fund_curr_sym->decl_scope) {
+        a_boolean	new_is_tag = is_tag_symbol(new_sym);
+        a_boolean	curr_is_tag = is_tag_symbol(fund_curr_sym);
+        if (new_is_tag != curr_is_tag) {
+          /* Two symbols from the same scope and only one is a nontag.
+             This is okay. */
+          err = FALSE;
+          if (curr_is_tag) {
+            /* The current symbol is a tag and the new one is not. 
+               Prefer the nontag (i.e., the new symbol).  Update the
+               namespace projection symbol to point to the new symbol. */
+            check_assertion_str2(curr_sym->kind ==
+                                       (a_symbol_kind)sk_namespace_projection,
+                                 "add_symbol_to_lookup_set:",
+                                 "expected a namespace projection symbol");
+            set_synth_namespace_projection_symbol(curr_sym, new_sym);
+          } else {
+            /* The current symbol is a nontag and the new one is a tag.
+               Simply ignore the new one. */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else {
       /* Both symbols are functions. */
       curr_sym = merge_function_into_lookup_set(curr_sym, new_sym, locator);
@@ -7140,7 +7185,7 @@ check_for_using_directives:
            using directives. */
         if (sym == NULL || found_at_file_scope) {
           a_symbol_ptr		synth_sym = NULL;
-          a_symbol_ptr			new_sym;
+          a_symbol_ptr		new_sym;
 
           /* Look through the inactive symbols for any symbols associated with
              one of the marked namespaces. */
@@ -7148,11 +7193,15 @@ check_for_using_directives:
           for (new_sym = inactive_symbol_list;
                new_sym != NULL; new_sym = new_sym->next) {
             a_namespace_ptr	nsp;
-            a_symbol_ptr		ns_sym;
+            a_symbol_ptr	ns_sym;
+            a_symbol_ptr	fund_sym;
             /* Ignore symbols that are not namespace members. */
             if (new_sym->is_class_member) continue;
             nsp = new_sym->parent.namespace_ptr;
             if (nsp == NULL) continue;
+            /* Ignore symbols that do not match the lookup requirements. */
+            fund_sym = fundamental_symbol_of(new_sym);
+            if (!is_acceptable_symbol(new_sym, fund_sym)) continue;
             nsp = skip_namespace_aliases(nsp);
             ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
             if (ns_sym->variant.namespace_info.extra_info->
@@ -7164,6 +7213,19 @@ check_for_using_directives:
                 synth_sym = curr_scope_id_lookup
                                            (locator,
                                             IDL_MUST_BE_SYNTH_NAMESPACE_PROJ);
+                if (synth_sym != NULL &&
+                    synth_sym->kind ==
+                                    (a_symbol_kind)sk_namespace_projection &&
+                    !is_function_symbol(fundamental_symbol_of(synth_sym))) {
+                  /* A previous lookup created a synthesized namespace
+		     projection symbol.  If the fundamental symbol is not a
+		     function symbol, clear the fundamental symbol pointed
+                     to.  This is done because the symbol may have been
+                     created by a constrained lookup (e.g., a tag lookup)
+                     any may not be applicable for this lookup. */
+                  synth_sym->variant.namespace_projection.fundamental_symbol =
+                                                                          NULL;
+                }  /* if */
                 if (sym != NULL) {
                   /* The lookup from this scope did find a symbol.  Put it in
                      the lookup set. */
@@ -7176,6 +7238,9 @@ check_for_using_directives:
                  of any previous symbol that was found. */
               sym = add_symbol_to_lookup_set(sym, new_sym, locator,
                                              &any_errors);
+              /* Set synth_sym in case it was not set earlier.  This
+                 suppresses subsequent attempts to look up synth_sym. */
+              synth_sym = sym;
               /* If an error occurred while trying to reconcile the two
                  symbols, don't look for any additional matches. */
               if (any_errors) {
