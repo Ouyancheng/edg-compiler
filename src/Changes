@@ -65,8 +65,9 @@ in Microsoft mode.
          calling convention
 
 When the configuration variable c_and_cpp_function_types_are_distinct is FALSE
-the front end will accept the redeclaration of a function with a different (C
-or C++) calling convention that a previous declaration.  For example:
+the front end will now accept the redeclaration of a function with a (C or
+C++) calling convention different from that of a previous declaration.
+For example:
 
   typedef void F();
   extern "C" F f;
