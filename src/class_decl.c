@@ -1293,8 +1293,9 @@ routine entry and return TRUE; otherwise return FALSE.
                consistent (either both must be absent or both must be present
                and qualified identically). */
             if (rp->is_virtual &&
-                param_types_are_compatible(rout->type, rp->type,
-                                           /*allow_error_type=*/TRUE) &&
+                param_types_are_compatible(
+                                  rout->type, rp->type,
+                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
                 this_param_types_correspond(rout->type, rp->type)) {
               /* Now compare the return types. */
               if (return_types_are_override_compatible(rout->type, rp->type)) {
