@@ -5454,8 +5454,21 @@ Returns TRUE if there is an error in the specifiers.
                which is taken to mean the same as "friend class T;" by cfront
                (even if T has not yet been defined).  Although there is no
                support for this syntax in the ARM, we accept it since it is
-               widely used in older C++ code. */
-            remark(ec_bad_friend_decl);
+               widely used in older C++ code.  This is a remark in
+               cfront mode, a warning normally, and a strict ANSI diagnostic
+               in strict ANSI mode. */
+            an_error_severity   severity;       
+            if (cfront_compatibility_mode) {
+              /* Remark in cfront compatibility mode. */
+              severity = es_remark;
+            } else if (strict_ansi_mode) {
+              /* Strict ANSI diagnostic in strict ANSI mode. */
+              severity = strict_ansi_error_severity;
+            } else {
+              /* Default case -- warning. */
+              severity = es_warning;
+            }  /* if */
+            diagnostic(severity, ec_bad_friend_decl);
             vacuous_decl_allowed = FALSE;
             goto process_class_specifier;
           } else {
