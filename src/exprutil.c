@@ -3277,13 +3277,18 @@ static a_type_ptr determine_arithmetic_conversions_full(
 /*
 Determine the "usual arithmetic conversions" on the operands to make them
 compatible, and return the type of the result.  Note that this routine assumes
-that the type is arithmetic, and does not actually change the result type.
+that the type is arithmetic, and does not actually change the operand types.
 See section 6.1.2.5 of the ISO C89 standard.  In C++, when wchar_t is a
 keyword, wchar_t is represented by one of the normal integral types and
 obeys the same conversion rules as its underlying type.  Likewise for bool.
 The operands can be lvalues or rvalues.  If operand_1 is available only
 as a type, operand_1 == NULL and operand_1_type indicates the type.
-Likewise for operand_2/operand_2_type.
+Likewise for operand_2/operand_2_type.  Note that for some operations
+the operation type is different than the result type, and this routine
+does not determine a separate operation type.  Also see
+determine_imaginary_operation_type, which handles some special
+cases in C99 with operations having imaginary operands.  If that
+routine is called and returns TRUE, this routine should not be called.
 */
 {
   a_type_ptr      type_1 = (operand_1 != NULL) ? operand_1->type :
@@ -3313,11 +3318,15 @@ Likewise for operand_2/operand_2_type.
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (is_nonreal_floating_type(type_1) ||
           is_nonreal_floating_type(type_2)) {
-        /* If either operand has a complex type, the domain of the result is
-           also "_Complex".  The code here handles the general _Imaginary
-           case also; special cases are handled in
-           determine_imaginary_operation_type. */
-        result_type = complex_type(result_fkind);
+        /* If the operands have the same "type domain" (real, complex, or
+           imaginary), the result has that same type domain.  Otherwise,
+           the result is complex.  Note that we don't get here if
+           both types are in the real domain; that's handled below. */
+        if (is_imaginary_type(type_1) && is_imaginary_type(type_2)) {
+          result_type = imaginary_type(result_fkind);
+        } else {
+          result_type = complex_type(result_fkind);
+        }  /* if */
       } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* Do not insert code here. */
@@ -3621,7 +3630,9 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
     case tok_minus_assign:
       is_imaginary_1 = is_imaginary_type(type_1);
       is_imaginary_2 = is_imaginary_type(type_2);
-      if (is_imaginary_1 && is_imaginary_2) {
+      if (!is_imaginary_1 && !is_imaginary_2) {
+        /* No imaginary types, so nothing special to check. */
+      } else if (is_imaginary_1 && is_imaginary_2) {
         /* Imaginary + imaginary gives imaginary.  Likewise for -. */
         is_special = TRUE;
         fkind_1 = type_1->variant.float_kind;
@@ -3686,7 +3697,9 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
     case tok_divide_assign:
       is_imaginary_1 = is_imaginary_type(type_1);
       is_imaginary_2 = is_imaginary_type(type_2);
-      if (is_imaginary_1 && is_imaginary_2) {
+      if (!is_imaginary_1 && !is_imaginary_2) {
+        /* No imaginary types, so nothing special to check. */
+      } else if (is_imaginary_1 && is_imaginary_2) {
         /* Imaginary * imaginary gives real.  Likewise for /. */
         is_special = TRUE;
         fkind_1 = type_1->variant.float_kind;
@@ -3701,6 +3714,18 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
         fkind_1 = type_1->variant.float_kind;
         fkind_2 = type_2->variant.float_kind;
         fkind_result = promoted_float_kind(fkind_1, fkind_2);
+        *result_type = imaginary_type(fkind_result);
+      } else if (is_imaginary_1 && is_integral_or_enum_type(type_2)) {
+        /* Imaginary * integer gives imaginary, and likewise for the similar
+           cases. */
+        is_special = TRUE;
+        fkind_result = type_1->variant.float_kind;
+        *result_type = imaginary_type(fkind_result);
+      } else if (is_imaginary_2 && is_integral_or_enum_type(type_1)) {
+        /* Integer * imaginary gives imaginary, and likewise for the similar
+           cases. */
+        is_special = TRUE;
+        fkind_result = type_2->variant.float_kind;
         *result_type = imaginary_type(fkind_result);
       }  /* if */
       /* Determine the IL operator to use. */

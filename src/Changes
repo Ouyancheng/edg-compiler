@@ -1,5 +1,20 @@
 Version 3.3
 
+6/12/03  C99 imaginary: imaginary * integer, x ? imaginary : imaginary
+
+In a few cases, operations involving imaginary operands in C99
+mode were incorrectly done as complex operations instead of
+as imaginary operations.  The cases are:
+
+  -- a multiplication or division involving an imaginary and an
+     integral operand
+  -- a "?" operation with the second and third operands imaginary
+  -- a comparison of two imaginary operands
+
+The results were correct though inefficiently computed, but at least
+in the first two cases one could observe the difference by using
+sizeof on the operation result.  Now fixed.
+
 6/12/03  C++-generating back end: compound literals in C++ mode
 
 The C++-generating back end did not handle compound literals in
