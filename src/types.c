@@ -5494,6 +5494,11 @@ its parameters?).
   a_boolean			nonstandard_qualifier_deduction = FALSE;
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
+  if (type_ptr == NULL) {
+    /* If a NULL pointer was passed in, simply return FALSE. */
+    status = FALSE;
+    goto done;
+  }  /* if */
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     if (flags & TTT_SKIP_TYPEREFS) {
       type_ptr = f_skip_typerefs(type_ptr);
@@ -5671,6 +5676,7 @@ check_enclosing_classes:
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
+done:
   return status;
 }  /* traverse_type_tree */
 
