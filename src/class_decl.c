@@ -6766,15 +6766,22 @@ by recursive calls.
              storage class set properly. */
           rp = ctsp->assoc_scope->routines;
           for (; rp != NULL; rp = rp->next) {
-            if (!rp->is_inline) {
+            if (rp->is_inline) {
               /* An inline member function remains internally linked even
-                 when it is a member of an externally linked class.  But a
-                 noninline function is always externally linked.  Storage
-                 class depends on whether it was defined in the current
-                 translation unit. */
+                 when it is a member of an externally linked class. */
+#if 0
+            } else if (rp->pure_virtual &&
+                       rp->assoc_scope == NULL_region_number) {
+              /* Undefined pure virtual functions do not get external
+                 linkage either. */
+#endif /* if 0 */
+            } else {
+              /* All other functions must be externally linked.  The storage
+                 class (extern or unspecified) depends on whether the function
+                 was defined in the current translation unit. */
               rp->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
-              if (rp->assoc_scope == NULL) {
+              if (rp->assoc_scope == NULL_region_number) {
                 /* No routine body. */
                 rp->storage_class = (a_storage_class)sc_extern;
               } else {
@@ -6905,7 +6912,20 @@ because they were used in declaring an external function or variable.
           external = TRUE;
         } else {
           for (rp = class_scope->routines; rp != NULL; rp = rp->next) {
-            if (!rp->is_inline && !rp->pure_virtual) {
+            if (rp->is_inline) {
+              /* Inline functions do not have external linkage. */
+#if 0
+            } else if (rp->pure_virtual &&
+                       rp->assoc_scope == NULL_region_number) {
+              /* Pure virtual functions that were not specified "inline" do
+                 not have external linkage unless they were defined.  (In
+                 ARM 3.3 there is a reference to "noninline" functions.  Are
+                 undefined pure virtual functions "noninline"?  No more than
+                 they are "inline".  Otherwise all abstract classes would be
+                 externally linked by default unless "inline" were specified
+                 for each pure virtual function.) */
+#endif /* if 0 */
+            } else {
               /* At least one noninline member function: external linkage is
                  required. */
               external = TRUE;
