@@ -195,10 +195,7 @@ Flag that is TRUE if the code necessary to display the IL in a readable
 form on stdout is to be compiled.  This flag may be set on the command
 line or will be forced to TRUE if STANDALONE_IL_DISPLAY is TRUE.
 */
-#ifdef NEED_IL_DISPLAY
-#undef NEED_IL_DISPLAY
-#define NEED_IL_DISPLAY TRUE /* Do not change this. */
-#else /* !defined(NEED_IL_DISPLAY) */
+#ifndef NEED_IL_DISPLAY
 #if STANDALONE_IL_DISPLAY
 #define NEED_IL_DISPLAY TRUE /* Do not change this. */
 #else /* !STANDALONE_IL_DISPLAY */
@@ -210,10 +207,7 @@ line or will be forced to TRUE if STANDALONE_IL_DISPLAY is TRUE.
 Flag that is TRUE if the intermediate language should be written to a file.
 FALSE means the IL is passed in memory to the back end.
 */
-#ifdef IL_SHOULD_BE_WRITTEN_TO_FILE
-#undef IL_SHOULD_BE_WRITTEN_TO_FILE
-#define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE
-#else /* !defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
+#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
 #if STANDALONE_UTILITY_PROGRAM
 #define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE
 #else /* !STANDALONE_UTILITY_PROGRAM */
@@ -350,16 +344,13 @@ Flag that is TRUE to cause support for orphaned file scope IL entries to
 be part of the compiler.  This flag is automatically TRUE if either
 DO_IL_LOWERING or IL_WALK_NEEDED is TRUE.
 */
-#ifdef ORPHAN_PROCESSING_NEEDED
-#undef ORPHAN_PROCESSING_NEEDED
-#define ORPHAN_PROCESSING_NEEDED TRUE
-#else /* !defined(ORPHAN_PROCESSING_NEEDED) */
+#ifndef ORPHAN_PROCESSING_NEEDED
 #if DO_IL_LOWERING || IL_WALK_NEEDED
 #define ORPHAN_PROCESSING_NEEDED TRUE
 #else /* !(DO_IL_LOWERING || IL_WALK_NEEDED) */
 #define ORPHAN_PROCESSING_NEEDED FALSE
 #endif /* DO_IL_LOWERING || IL_WALK_NEEDED */
-#endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* ifndef ORPHAN_PROCESSING_NEEDED */
 /*
 Default temporary file directory.
 */
