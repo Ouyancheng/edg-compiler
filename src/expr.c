@@ -5300,6 +5300,15 @@ and type is the type of the argument to be extracted.
     /* The type is not allowed to be an array, function, or reference type. */
     pos_error(ec_bad_va_arg, &type_position);
     err = TRUE;
+  } else if (!C_mode() &&
+             is_class_struct_union_type(type) &&
+             !symbol_supplement_for_class(type)->is_POD) {
+    /* A C++ class type must be a POD.  Note that this check is needed --
+       if we don't check this we may try to take the address of a
+       va_arg node to get the object address to call the copy
+       constructor, and we'll get an abort. */
+    pos_error(ec_non_pod_va_arg, &type_position);
+    err = TRUE;
   } else {
     a_type_ptr  promoted_type = default_argument_promotion(type);
     if (!identical_types(type, promoted_type)) {

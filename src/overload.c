@@ -6296,7 +6296,16 @@ describe the next parameter.
       do_default_promotion = FALSE;
     } else {
       /* No more formal arguments in the list. */
-      if (!arg_block->has_ellipsis) {
+      if (arg_block->has_ellipsis) {
+        /* The argument is passed under an ellipsis. */
+        if (!C_mode() &&
+            is_class_struct_union_type(argument_operand->type) &&
+            !symbol_supplement_for_class(argument_operand->type)->is_POD) {
+          /* Warn on passing a non-POD class to an ellipsis. */
+          pos_warning(ec_non_pod_passed_to_ellipsis,
+                      &argument_operand->position);
+        }  /* if */
+      } else {
         /* No ellipsis, so error: extra actual argument. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && C_mode()) {

@@ -1,5 +1,18 @@
 Version 3.4
 
+11/17/03 Error on non-POD class type fetched by built-in va_arg
+
+An error is now issued on a va_arg for a non-POD class type
+when the <stdarg.h> macros are handled as built-ins (see
+DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE).  Detecting
+this error allows the front end to avoid an abort in
+conv_class_operand_to_object_pointer.
+
+11/17/03 Warning on non-POD class type passed via ellipsis parameter
+
+A warning is now issued when a non-POD class type is passed
+via an ellipsis parameter.
+
 11/17/03 IL statement traversal routines, (...) handler
 
 The code in traverse_statement did not deal correctly with
