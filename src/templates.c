@@ -5979,13 +5979,13 @@ if one already exists.
 {
   FILE		*f_ii_file;
 
-  /* The name of the instantiation information file should have already
-     been determined when the file was opened as part of automatic
-     instantiation processing for this file. */
-  check_assertion_str2(instantiation_info_file_name != NULL,
-                       "create_or_remove_instantiation_information_file:",
-                       "file name is NULL");
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    /* The name of the instantiation information file should have already
+       been determined when the file was opened as part of automatic
+       instantiation processing for this file. */
+    check_assertion_str2(instantiation_info_file_name != NULL,
+                         "create_or_remove_instantiation_information_file:",
+                         "file name is NULL");
     /* Only create the file if the input is coming from a file.  Note
        that the file will have been closed after all input was read so
        it must be reopened now. */
