@@ -2800,6 +2800,7 @@ not.
 #if RECORD_MACROS_IN_IL
     case iek_macro:
 #endif /* RECORD_MACROS_IN_IL */
+    case iek_template_parameter:
       scp = &((a_constant_ptr)entity_ptr)->source_corresp;
       break;
     default:
