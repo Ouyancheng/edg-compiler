@@ -94,7 +94,10 @@ typedef struct a_symbol_locator {
   a_source_position
 		source_position;
 			/* The source position to be used when this symbol
-			   is entered. */
+			   is entered.  When a qualified name is scanned,
+			   this source position points to the final component
+			   of the name, while pos_curr_token points to the
+			   beginning of the entire qualified name. */
   a_bit_field	is_qualified_name:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   (e.g., "A::x" or "::y").  specific_symbol points
