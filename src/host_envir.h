@@ -1279,6 +1279,8 @@ Include the files needed to define the types used with the stat()
 function.  A declaration of stat() is provided in case the standard
 headers fail to define the prototype.
 */
+/* sys/types.h is needed, at least, on Unisys 2200 and Microsoft C 7.0. */
+#include <sys/types.h>
 #include <sys/stat.h>
 /* "stat" isn't in ANSI C, but we assume it is available.  If not, this
    file must be changed.  By default, the first argument is assumed to
