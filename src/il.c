@@ -4685,11 +4685,7 @@ parameter field of the current block scope, and return a pointer to it.
   vp = alloc_variable((a_storage_class)sc_auto);
   vp->type = type_ptr;
   /* Add it to the scope entry. */
-  ssep = &scope_stack[decl_scope_level];
-  sp = ensure_il_scope_exists(ssep);
-  check_assertion(sp != NULL && sp->kind == (a_scope_kind)sck_block &&
-                  sp->variant.parameter == NULL);
-  sp->variant.parameter = vp;
+  add_to_variables_list(vp, /*at_file_scope=*/FALSE);
 
   db_exit();
   return vp;
@@ -5977,6 +5973,18 @@ Allocate a handler, clear it to default values, and return a pointer to it.
 }  /* alloc_handler */
 
 
+void set_block_scope_handler(a_handler_ptr  handler)
+/*
+Set the assoc_handler field of the current scope.
+*/
+{
+  a_scope_ptr  sp;
+
+  sp = ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+  sp->variant.assoc_handler = handler;
+}  /* set_block_scope_handler */
+
+
 void set_statement_kind(a_statement_ptr  sp,
                         a_statement_kind stmt_kind)
 /*
@@ -6152,7 +6160,7 @@ points to the associated routine if the kind is sck_function.
       /* No variant fields. */
       break;
     case sck_block:
-      sp->variant.parameter = NULL;
+      sp->variant.assoc_handler = NULL;
       break;
     case sck_func_prototype:
     case sck_class_struct_union:
