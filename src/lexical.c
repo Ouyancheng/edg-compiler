@@ -11835,7 +11835,15 @@ selection operator, in which case it points to the type of the left operand.
                !is_file_scope_qualified_name) {
       /* The name can be a destructor name like "~A". */
       if (curr_token == tok_compl) {
-        get_destructor_name(field_sel_type, is_file_scope_qualified_name,
+        /* In Microsoft bugs mode, use the qualifier type as the field
+           selection type if no field selection type was specified.  This
+           permits a destructor to be defined as "X::~X", where X is a
+           typedef name. */
+        a_type_ptr	temp_field_sel_type = field_sel_type;
+        if (microsoft_bugs && field_sel_type == NULL) {
+          temp_field_sel_type = qualifier_type;
+        }  /* if */
+        get_destructor_name(temp_field_sel_type, is_file_scope_qualified_name,
                             qualifier_sym);
       }  /* if */
     }  /* if */
