@@ -5016,10 +5016,14 @@ declaration or definition.
   } else {
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     is_definition = TRUE;
-    check_assertion_str(rout->assoc_scope != NULL_region_number,
-                        "gen_routine_decl: missing definition");
     rout_type = rout->declared_type;
     friend_decl = rout->defined_in_friend_decl;
+    if (rout->assoc_scope == NULL_region_number) {
+      /* A member function of a template class might not be instantiated. */
+      check_assertion_str(rout->is_template_function,
+                          "gen_routine_decl: missing definition");
+      is_definition = FALSE;
+    }  /* if */
   }  /* if */
   check_assertion_str(rout_type != NULL,
                       "gen_routine_decl: declared_type is NULL");
