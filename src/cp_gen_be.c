@@ -213,6 +213,7 @@ Macro to test a type kind to see if it is a tag (class or enum).
 
 
 /* Needed because of forward references: */
+static void gen_constant(a_constant_ptr constant);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_lvalue(an_expr_node_ptr node);
@@ -1226,6 +1227,146 @@ is the pointer-to-member type we want to end up with.
 }  /* gen_pm_derived_casts */
 
 
+static void gen_address_constant(a_constant_ptr constant,
+                                 a_boolean      do_indirection)
+/*
+Generate the value of a ck_address constant.  If do_indirection is TRUE,
+do one level of indirection (i.e., remove the "&"); that's used for reference
+initializations.
+*/
+{
+  a_boolean        need_second_ptr_cast, need_scaling_cast;
+  a_boolean        need_ptr_cast, need_ampersand;
+  a_type_ptr       orig_type = constant->type, underlying_object_type;
+  a_type_ptr       con_type;
+  a_targ_ptrdiff_t offset;
+
+  con_type = skip_typerefs(orig_type);
+  /* We need a cast to the result type if the constant is implicitly
+     cast to another type (but we may be able to optimize it away). */
+  need_ptr_cast = constant->implicit_cast;
+  need_second_ptr_cast = FALSE;
+  need_scaling_cast = FALSE;
+  /* Extract the underlying type. */
+  need_ampersand = TRUE;
+  switch (constant->variant.address.kind) {
+    case abk_routine:
+      underlying_object_type = constant->variant.address.variant.routine->type;
+      /* Exploit the implicit decay to pointer. */
+      need_ampersand = FALSE;
+      break;
+    case abk_variable:
+      underlying_object_type =constant->variant.address.variant.variable->type;
+      break;
+    case abk_constant:
+      underlying_object_type =constant->variant.address.variant.constant->type;
+      break;
+    default:
+      unexpected_condition_str("gen_constant: bad addr constant kind");
+  }  /* switch */
+  underlying_object_type = skip_typerefs(underlying_object_type);
+  if (underlying_object_type->kind == (a_type_kind)tk_array) {
+    /* For an array, exploit the implicit decay to pointer.
+       This is particularly helpful in cases where the underlying
+       variable is something like
+         struct _iobuf x[];
+       for which the array has zero size but the element size is
+       known. */
+    need_ampersand = FALSE;
+    underlying_object_type =underlying_object_type->variant.array.element_type;
+    /* If the constant type desired is exactly the type that results from
+       the type decay, we don't need a cast.  Otherwise, we do. */
+    need_ptr_cast = TRUE;
+    if (orig_type->kind == (a_type_kind)tk_pointer) {
+      if (orig_type->variant.pointer.type == underlying_object_type) {
+        need_ptr_cast = FALSE;
+      }  /* if */
+    }  /* if */
+    underlying_object_type = skip_typerefs(underlying_object_type);
+  }  /* if */
+  /* Look at the offset. */
+  offset = constant->variant.address.offset;
+  if (offset != 0) {
+    a_targ_size_t underlying_object_size = underlying_object_type->size;
+    /* Non-zero offset.  Deal with scaling issues. */
+    /* See if the size of the underlying object is such that scaling
+       can be done implicitly instead of playing tricks with casting
+       to "char *" and back. */
+    if (underlying_object_size != 0 &&
+        (offset % underlying_object_size) == 0) {
+      /* The offset is divisible by the size of the object, so adjust
+         the offset to the proper units. */
+      offset /= underlying_object_size;
+    } else {
+      /* The offset is not evenly divisible by the object size, so
+         we need to cast to "char *" and back again. */
+      need_scaling_cast = TRUE;
+      need_ptr_cast = TRUE;  /* To get cast back. */
+    }  /* if */
+  }  /* if */
+  if (need_ptr_cast) {
+    /* Start with a cast to the desired result type. */
+    write_tok_ch('(');
+    gen_cast(orig_type);
+    /* Look for cases where a pointer is implicitly cast to a strange type
+       (e.g., "char").  The original code probably did this conversion
+       as two casts, but the implicit_cast mechanism only retains
+       information on the final type.  In such cases, go by way of a
+       cast to unsigned long. */
+    if (is_pointer_type(con_type) ||
+        (is_integral_type(con_type) &&
+         con_type->size >= targ_sizeof_pointer)) {
+      /* Okay. */
+    } else {
+      need_second_ptr_cast = TRUE;
+      write_tok_str("((unsigned long)");
+    }  /* if */
+  }  /* if */
+  if (offset != 0) {
+    write_tok_ch('(');
+    if (need_scaling_cast) {
+      /* Need a cast to "char *" to get the offset scaling right. */
+      write_tok_str("(char *)");
+    }  /* if */
+  }  /* if */
+  if (do_indirection) {
+    /* Do one level of indirection, i.e., remove the "&". */
+    check_assertion_str(need_ampersand,
+                        "gen_address_constant: do_indirection, no ampersand");
+    need_ampersand = FALSE;
+  }  /* if */
+  /* If using an ampersand, surround the name with parentheses to avoid
+     precedence problems. */
+  if (need_ampersand) write_tok_str("(&");
+  switch (constant->variant.address.kind) {
+    case abk_routine:
+      gen_routine_name(constant->variant.address.variant.routine);
+      break;
+    case abk_variable:
+      gen_variable_name(constant->variant.address.variant.variable);
+      break;
+    case abk_constant:
+      /* Address of a constant, specifically a string. */
+      check_assertion_str(constant->variant.address.variant.constant->kind
+                                            == (a_constant_repr_kind)ck_string,
+                          "gen_constant: address of nonstring con");
+      gen_constant(constant->variant.address.variant.constant);
+      break;
+    default:
+      unexpected_condition_str("gen_constant: bad addr constant kind");
+  }  /* switch */
+  if (need_ampersand) write_tok_ch(')');
+  if (offset != 0) {
+    /* Add in the (signed) offset. */
+    write_tok_str(" + ");
+    write_num((long)offset);
+    write_tok_ch(')');
+  }  /* if */
+  if (need_second_ptr_cast) write_tok_ch(')');
+  if (need_ptr_cast) write_tok_ch(')');
+}  /* gen_address_constant */
+
+
 static void gen_constant(a_constant_ptr constant)
 /*
 Output the indicated constant.
@@ -1235,10 +1376,6 @@ Output the indicated constant.
   a_float_kind         fkind;
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, need_close_paren;
-  a_boolean            need_second_ptr_cast, need_scaling_cast;
-  a_boolean            need_ptr_cast, need_ampersand;
-  a_type_ptr           underlying_object_type;
-  a_targ_ptrdiff_t     offset;
   a_constant_ptr       sub_con;
 
   orig_type = constant->type;
@@ -1353,126 +1490,7 @@ Output the indicated constant.
       break;
     case ck_address:
       /* Address constant. */
-      /* We need a cast to the result type if the constant is implicitly
-         cast to another type (but we may be able to optimize it away). */
-      need_ptr_cast = constant->implicit_cast;
-      need_second_ptr_cast = FALSE;
-      need_scaling_cast = FALSE;
-      /* Extract the underlying type. */
-      need_ampersand = TRUE;
-      switch (constant->variant.address.kind) {
-        case abk_routine:
-          underlying_object_type =
-                               constant->variant.address.variant.routine->type;
-          /* Exploit the implicit decay to pointer. */
-          need_ampersand = FALSE;
-          break;
-        case abk_variable:
-          underlying_object_type =
-                              constant->variant.address.variant.variable->type;
-          break;
-        case abk_constant:
-          underlying_object_type =
-                              constant->variant.address.variant.constant->type;
-          break;
-        default:
-          unexpected_condition_str("gen_constant: bad addr constant kind");
-      }  /* switch */
-      underlying_object_type = skip_typerefs(underlying_object_type);
-      if (underlying_object_type->kind == (a_type_kind)tk_array) {
-        /* For an array, exploit the implicit decay to pointer.
-           This is particularly helpful in cases where the underlying
-           variable is something like
-             struct _iobuf x[];
-           for which the array has zero size but the element size is
-           known. */
-        need_ampersand = FALSE;
-        underlying_object_type =
-                            underlying_object_type->variant.array.element_type;
-        /* If the constant type desired is exactly the type that results from
-           the type decay, we don't need a cast.  Otherwise, we do. */
-        need_ptr_cast = TRUE;
-        if (orig_type->kind == (a_type_kind)tk_pointer) {
-          if (orig_type->variant.pointer.type == underlying_object_type) {
-            need_ptr_cast = FALSE;
-          }  /* if */
-        }  /* if */
-        underlying_object_type = skip_typerefs(underlying_object_type);
-      }  /* if */
-      /* Look at the offset. */
-      offset = constant->variant.address.offset;
-      if (offset != 0) {
-        a_targ_size_t underlying_object_size = underlying_object_type->size;
-        /* Non-zero offset.  Deal with scaling issues. */
-        /* See if the size of the underlying object is such that scaling
-           can be done implicitly instead of playing tricks with casting
-           to "char *" and back. */
-        if (underlying_object_size != 0 &&
-            (offset % underlying_object_size) == 0) {
-          /* The offset is divisible by the size of the object, so adjust
-             the offset to the proper units. */
-          offset /= underlying_object_size;
-        } else {
-          /* The offset is not evenly divisible by the object size, so
-             we need to cast to "char *" and back again. */
-          need_scaling_cast = TRUE;
-          need_ptr_cast = TRUE;  /* To get cast back. */
-        }  /* if */
-      }  /* if */
-      if (need_ptr_cast) {
-        /* Start with a cast to the desired result type. */
-        write_tok_ch('(');
-        gen_cast(orig_type);
-        /* Look for cases where a pointer is implicitly cast to a strange type
-           (e.g., "char").  The original code probably did this conversion
-           as two casts, but the implicit_cast mechanism only retains
-           information on the final type.  In such cases, go by way of a
-           cast to unsigned long. */
-        if (is_pointer_type(con_type) ||
-            (is_integral_type(con_type) &&
-             con_type->size >= targ_sizeof_pointer)) {
-          /* Okay. */
-        } else {
-          need_second_ptr_cast = TRUE;
-          write_tok_str("((unsigned long)");
-        }  /* if */
-      }  /* if */
-      if (offset != 0) {
-        write_tok_ch('(');
-        if (need_scaling_cast) {
-          /* Need a cast to "char *" to get the offset scaling right. */
-          write_tok_str("(char *)");
-        }  /* if */
-      }  /* if */
-      /* If using an ampersand, surround the name with parentheses to avoid
-         precedence problems. */
-      if (need_ampersand) write_tok_str("(&");
-      switch (constant->variant.address.kind) {
-        case abk_routine:
-          gen_routine_name(constant->variant.address.variant.routine);
-          break;
-        case abk_variable:
-          gen_variable_name(constant->variant.address.variant.variable);
-          break;
-        case abk_constant:
-          /* Address of a constant, specifically a string. */
-          check_assertion_str(constant->variant.address.variant.constant->kind
-                              == (a_constant_repr_kind)ck_string,
-                              "gen_constant: address of nonstring con");
-          gen_constant(constant->variant.address.variant.constant);
-          break;
-        default:
-          unexpected_condition_str("gen_constant: bad addr constant kind");
-      }  /* switch */
-      if (need_ampersand) write_tok_ch(')');
-      if (offset != 0) {
-        /* Add in the (signed) offset. */
-        write_tok_str(" + ");
-        write_num((long)offset);
-        write_tok_ch(')');
-      }  /* if */
-      if (need_second_ptr_cast) write_tok_ch(')');
-      if (need_ptr_cast) write_tok_ch(')');
+      gen_address_constant(constant, /*do_indirection=*/FALSE);
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
@@ -4519,6 +4537,17 @@ declaration or definition.
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
+  if (is_definition) {
+    /* Put out lint argsused and varargs comments if applicable. */
+    if (rtsp->lint_argsused_flag) write_tok_str("/*ARGSUSED*/ ");
+    if (rtsp->lint_varargs_count != NOT_LINT_VARARGS) {
+      disable_line_wrapping();
+      write_str("/*VARARGS");
+      write_unsigned_num((unsigned long)rtsp->lint_varargs_count);
+      write_str("*/ ");
+      enable_line_wrapping();
+    }  /* if */
+  }  /* if */
   /* If generating a member of a class within the class, set the right access
      mode for the member. */
   gen_member_access_specifier_for_decl_of(&rout->source_corresp);
