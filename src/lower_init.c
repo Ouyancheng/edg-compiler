@@ -1350,8 +1350,7 @@ subobject.  Insert the statement at *insert_location and update
   type = type_pointed_to(source_node->type);
   if (!have_complete_object &&
       is_class_struct_union_type(type) &&
-      skip_typerefs(type)->variant.class_struct_union.extra_info->
-                                      size_without_virtual_base_classes == 0) {
+      skip_typerefs(type)->variant.class_struct_union.is_empty_class) {
     /* Do not put out code to copy an empty base class. */
   } else {
     if (is_reference_type(type)) {
@@ -5016,8 +5015,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
   element_type = skip_typerefs(element_type);
   if (!have_complete_object &&
       is_immediate_class_type(element_type) &&
-      element_type->variant.class_struct_union.extra_info->
-                                      size_without_virtual_base_classes == 0) {
+       element_type->variant.class_struct_union.is_empty_class) {
     /* Put out no code at all to zero an empty base class. */
 #if IA64_ABI
   } else if (contains_ptr_to_data_member(element_type)) {
