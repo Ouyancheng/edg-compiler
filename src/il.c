@@ -2180,8 +2180,8 @@ bucket of the shareable_constants_table to use for the constant.
 }  /* hash_constant */
 
 
-static a_boolean eq_constants(a_constant *cp1,
-                              a_constant *cp2)
+a_boolean eq_constants(a_constant *cp1,
+                       a_constant *cp2)
 /*
 Return TRUE if the two constants are identical.
 */
@@ -2824,6 +2824,7 @@ a pointer to it.
   ctsp->access_adjustments                = NULL;
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_scope                       = NULL;
+  ctsp->template_arg_list                 = NULL;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   ctsp->assoc_operator_new_routine        = NULL;
   ctsp->assoc_operator_delete_routine     = NULL;
