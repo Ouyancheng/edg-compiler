@@ -30,6 +30,225 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "lower_il.h"
 #include "statements.h"
 
+#if ASM_FUNCTION_ALLOWED
+
+#define ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION 1024
+			/* Initial and incremental allocation size for
+			   asm_func_body_buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+
+
+static char *asm_func_body_buffer = NULL;
+static sizeof_t size_asm_func_body_buffer = 0;
+static sizeof_t pos_in_asm_func_body_buffer;
+			/* The number of characters that have been added to
+			   asm_func_body_buffer thus far in processing. */
+
+
+  /*
+  * These two remember where the previous copy_from_source_to_asm_func_buffer()
+  * left off.  They are set by scan_asm_function_body() to start
+  * just after the initial left brace.
+  */
+static char *prev_stop_char;
+static a_seq_number prev_seq_number;
+
+
+static void expand_asm_func_body_buffer(sizeof_t size_needed)
+/*
+Expand the asm_func_body_buffer by reallocating it, so that its total size
+is at least size_needed.  Called by ensure_asm_func_body_buffer_space.
+*/
+{
+  sizeof_t new_size;
+
+  new_size = size_asm_func_body_buffer +
+                      ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION;
+  if (new_size < size_needed) new_size  = size_needed;
+  asm_func_body_buffer = realloc_general(asm_func_body_buffer,
+                                         size_asm_func_body_buffer, new_size);
+  size_asm_func_body_buffer = new_size;
+}  /* expand_asm_func_body_buffer */
+
+
+static void add_to_asm_func_buffer(char      *start_char,
+                                   sizeof_t  len)
+/*
+*/
+{
+  /* Ensure that asm_func_body_buffer has enough space left to accommodate
+     "len" bytes.  If not, expand asm_func_body_buffer by reallocating it. */
+  if (size_asm_func_body_buffer - pos_in_asm_func_body_buffer < len) {
+    expand_asm_func_body_buffer((sizeof_t)(pos_in_asm_func_body_buffer + len));
+  }  /* if */
+  strncpy(&asm_func_body_buffer[pos_in_asm_func_body_buffer],
+          start_char, size_t_arg(len));
+  pos_in_asm_func_body_buffer += len;
+}  /* add_to_asm_func_buffer */
+
+
+#if !INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+/*ARGSUSED*/ /* after_comment_stop_char is unused. */
+#endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+void copy_from_source_to_asm_func_buffer(char *stop_char,
+                                         char *after_comment_stop_char)
+/*
+The buffer in which to collect the characters comprising the asm function is
+asm_func_body_buffer.  Append to it all the characters in the source beginning
+at *prev_stop_char through, but not including, *stop_char.  Then, if
+INCLUDE_COMMENTS_IN_ASM_FUNC_BODY is TRUE and after_comment_stop_char is
+non-NULL, also append the characters in the comment, through but not including
+*after_comment_stop_char.
+*/
+{
+  a_source_line_modif_ptr  slmp;
+  char                     *curr_char, *next_char;
+  sizeof_t                 len;
+
+  if (prev_seq_number != curr_seq_number) {
+    /* We've advanced to a new source line.  Update prev_stop_char to point to
+       the start of the new line. */
+    if (line_start_source_line_modif != NULL) {
+      prev_stop_char = line_start_source_line_modif->inserted_text;
+    } else {
+      prev_stop_char = curr_source_line;
+    }  /* if */
+    prev_seq_number = curr_seq_number;
+  }  /* if */
+  /* curr_char is the pointer into the source line.  Its initial value is
+     usually prev_stop_char, which is usually the character following the
+     last character that was copied into the buffer. */
+  if (prev_stop_char != NULL) {
+    curr_char = prev_stop_char;
+  } else {
+    /* prev_stop_char is NULL, which is the case on the first call to this
+       routine for a given asm function.  Use the initial character of the
+       current token. */
+    curr_char = start_of_curr_token;
+    if (curr_char == NULL) {
+      /* Rare case -- there is no start_of_curr_token pointer. */
+      curr_char = stop_char;
+    }  /* if */
+    prev_stop_char = curr_char;
+  }  /* if */
+  while (curr_char != stop_char) {
+    switch (*curr_char) {
+      case END_OF_TOKEN_MARKER:
+        /* Marker put into text by preprocessing of macros, to force the same
+           interpretation of token boundaries as during the macro definition.
+           Skip over it. */
+        next_char = curr_char + 1;
+        break;
+      case ATTENTION_MARKER:
+        /* Marker placed into source text to provide a cue to the fact that
+           a source modification (probably a text replacement due to a
+           macro expansion) begins here.  next_char will be adjusted by the
+           macro to point to the first character in the insertion text. */
+        next_char = curr_char;
+        go_into_insertion(slmp, next_char);
+        break;
+      case '\0':
+        /* End of the expansion text for a macro.  Find the character
+           location of the character following the macro invocation, and
+           continue there. */
+        slmp = assoc_source_line_modif(curr_char);
+        next_char = curr_char;
+        leave_insertion(slmp, next_char);
+        break;
+      default:
+        /* Normal case:  bump curr_char and keep looping. */
+        curr_char++;
+        continue;
+    }  /* switch */
+    /* Falling through to here mean one of the special characters was seen.
+       Copy the characters from prev_stop_char through (but not including)
+       curr_char into the buffer, and then reset prev_stop_char and curr_char
+       to next_char. */
+    if ((len = curr_char - prev_stop_char) != 0) {
+      /* Add "len" characters to the buffer, starting at prev_stop_char. */
+      add_to_asm_func_buffer(prev_stop_char, len);
+    }  /* if */
+    curr_char = prev_stop_char = next_char;
+  }  /* while */
+  if (curr_char > prev_stop_char) {
+    /* Copy the characters from prev_stop_char through (but not including)
+       curr_char into the buffer. */
+    len = curr_char - prev_stop_char;
+    /* Add "len" characters to the buffer, starting at prev_stop_char. */
+    add_to_asm_func_buffer(prev_stop_char, len);
+    prev_stop_char = curr_char;
+  }  /* if */
+#if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+  if (after_comment_stop_char != NULL) {
+    /* Append text of commentary, too. */
+    check_assertion(after_comment_stop_char > prev_stop_char);
+    len = after_comment_stop_char - prev_stop_char;
+    /* Add "len" characters to the buffer, starting at prev_stop_char. */
+    add_to_asm_func_buffer(prev_stop_char, len);
+    /* Reset prev_stop_char. */
+    prev_stop_char = after_comment_stop_char;
+  }  /* if */
+#endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+}  /* copy_from_source_to_asm_func_buffer */
+
+
+a_statement_ptr scan_asm_function_body(void)
+/*
+*/
+{
+  a_statement_ptr  stmt;
+  unsigned int     nbrace = 1;
+  char             *body;
+
+  db_enter(3, "scan_asm_function_body");
+  stmt = alloc_statement((a_statement_kind)stmk_asm);
+  set_stmt_source_position(stmt->position, pos_curr_token);
+  stmt->variant.asm_entry = alloc_asm_entry(/*is_asm_func_body=*/TRUE);
+  /* Initialize static variables used for building the string. */
+  pos_in_asm_func_body_buffer = 0;
+  prev_stop_char = NULL;
+  prev_seq_number = curr_seq_number;
+  /* Initialize global variables used by lexical routines. */
+  in_asm_function_body = TRUE;
+  fetch_pp_tokens = TRUE;
+  /* Loop through the tokens and build the string token by token. */
+  while (get_token() != tok_end_of_source) {
+    if (curr_token == tok_rbrace && --nbrace == 0) {
+      /* This right brace matches the opening left brace, marking the end of
+         the asm function body.  Copy white space up to the current token. */
+      copy_from_source_to_asm_func_buffer(start_of_curr_token, NULL);
+      break;
+    }  /* if */
+    /* Special handling for a left brace embedded within the assembler
+       code: assume it has a matching right brace. */
+    if (curr_token == tok_lbrace) ++nbrace;
+    /* Copy characters from the source line to the buffer, from
+       last_stop_char through the end of the current token. */
+    copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, NULL);
+  }  /* while */
+  fetch_pp_tokens = FALSE;
+  in_asm_function_body = FALSE;
+  /* Allocate a block of the current IL memory region (the one established
+     for the asm function) -- the asm buffer will be copied into it, along
+     with a trailing null character. */
+  body = alloc_asm_function_body(pos_in_asm_func_body_buffer + 1);
+  (void)memcpy(body, asm_func_body_buffer,
+               size_t_arg(pos_in_asm_func_body_buffer));
+  /* Add a null terminator. */
+  body[pos_in_asm_func_body_buffer] = '\0';
+  stmt->variant.asm_entry->variant.asm_func_body = body;
+#if DEBUG
+  if (debug_level >= 3) {
+    fprintf(f_debug, "asm function body: %s\n", body);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return stmt;
+}  /* scan_asm_function_body */
+
+#endif /* ASM_FUNCTION_ALLOWED */
 
 a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_source_position  *err_pos,
@@ -440,13 +659,21 @@ and for the instantiation of template functions.
        supported */
     new_struct_stmt_stack(&saved_sss_state);
   }  /* if */
-  /* Scan the compound statement defining the function.  The closing "}"
-     is not swallowed by compound_statement, so that the pop_scope call
-     can be done to get any errors out right on the "}". */
-  scope_ptr->assoc_block =
+#if ASM_FUNCTION_ALLOWED
+  if (rout_ptr->storage_class == (a_storage_class)sc_asm) {
+    scope_ptr->assoc_block = scan_asm_function_body();
+  } else {
+#endif /* ASM_FUNCTION_ALLOWED */
+    /* Scan the compound statement defining the function.  The closing "}"
+       is not swallowed by compound_statement, so that the pop_scope call
+       can be done to get any errors out right on the "}". */
+    scope_ptr->assoc_block =
         compound_statement(/*at_function_level=*/TRUE,
                            (flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0,
                            /*is_catch_clause=*/FALSE);
+#if ASM_FUNCTION_ALLOWED
+  }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
   /* Pop the function scope. */
   pop_scope();
   if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
