@@ -96,15 +96,6 @@ EXTERN a_boolean
 			   of the front end (e.g., when the C++-generating
 			   back end is used).  */
 
-EXTERN unsigned long
-		number_of_external_nonclass_template_entities;
-			/* The number of externally linked template functions
-			   and template static data members that were generated
-			   by this translation unit.  This is used when
-			   generating one instantiation per object file to
-			   assign bit numbers to the needed flags for each
-			   of the instances. */
-
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 
 EXTERN unsigned long

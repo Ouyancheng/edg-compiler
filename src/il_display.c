@@ -4013,7 +4013,10 @@ Display the IL for the file scope in human-readable form.
                     iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-
+  if (il_header.number_of_external_nonclass_template_entities != 0) {
+    disp_unsigned_long("number_of_external_nonclass_template_entities",
+                      il_header.number_of_external_nonclass_template_entities);
+  }  /* if */
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL);
 }  /* disp_file_scope_il */

@@ -7351,6 +7351,10 @@ EXTERN struct il_header_tag {
 			   one-instantiation-per-object option is not being
 			   used. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  unsigned long	number_of_external_nonclass_template_entities;
+			/* The number of externally linked template functions
+			   and template static data members in this
+			   translation unit. */
 } il_header;
 
 

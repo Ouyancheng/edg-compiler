@@ -811,6 +811,7 @@ source file's compilation.
           strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),
                  instantiation_dir_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  il_header.number_of_external_nonclass_template_entities = 0;
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();

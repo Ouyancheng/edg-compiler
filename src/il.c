@@ -12544,7 +12544,6 @@ in il_init.)
       pch_saved_var_array_elem(curr_object_lifetime),
       pch_saved_var_array_elem(any_function_scope_lifetime_entries),
       pch_saved_var_array_elem(based_type_fixup_list),
-      pch_saved_var_array_elem(number_of_external_nonclass_template_entities),
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -12620,7 +12619,6 @@ of the front end.
   last_scope_orphaned_list_header = NULL;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   any_function_scope_lifetime_entries = FALSE;
-  number_of_external_nonclass_template_entities = 0;
   il_reset();
   il_alloc_init();
 }  /* il_init */
