@@ -1569,7 +1569,7 @@ Flag that is TRUE if the C++/C-generating back end should issue class member
 using-declarations instead of access declarations.
 */
 #ifndef USING_DECLARATIONS_IN_GENERATED_CODE
-#define USING_DECLARATIONS_IN_GENERATED_CODE
+#define USING_DECLARATIONS_IN_GENERATED_CODE TRUE
 #endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
 
 /*
