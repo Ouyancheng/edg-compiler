@@ -827,8 +827,9 @@ extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
 extern a_boolean have_member_access_privilege(a_type_ptr class_type);
 
-extern void member_check_ambiguity_and_verify_access(
-                                                    a_symbol_locator *locator);
+extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
+
+extern void member_check_ambiguity_and_verify_access(a_symbol_locator *loc);
 
 /*
 Check to see if a symbol found is ambiguous or inaccessible.  Ambiguity
