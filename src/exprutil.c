@@ -4369,10 +4369,20 @@ for cases that are likely to overflow (e.g., _Fract + int).
         integral_operand = operand_2;
         fract_type_involved = tp1->variant.fixed_point.is_fract_type;
       }  /* if */
-      if (fract_type_involved && !(op_is_zero_constant(operand_1) ||
-                                   op_is_zero_constant(operand_2))) {
-        pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
-                    &integral_operand->position);
+      if (fract_type_involved) {
+        if (op == (an_expr_operator_kind)eok_fxsubtract &&
+            tp2->variant.fixed_point.is_unsigned &&
+            op_is_zero_constant(operand_1)) {
+          /* Special warning on 0 - x when x is unsigned. */
+          pos_warning(ec_unsigned_fixed_point_negation,
+                      &operand_2->position);
+        } else if (op_is_zero_constant(operand_1) ||
+                   op_is_zero_constant(operand_2)) {
+          /* No warning on x + 0, 0 + x and similar cases. */
+        } else {
+          pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
+                      &integral_operand->position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
