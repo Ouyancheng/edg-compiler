@@ -724,7 +724,7 @@ error code.
       m = "constant string subscript out of range";
       break;
     case ec_declared_but_not_referenced:
-      m = "%n declared and never referenced";
+      m = "%nf declared and never referenced";
       break;
     case ec_pcc_address_of_array:
       m = "\"&\" applied to an array has no effect";
@@ -1744,12 +1744,21 @@ Add the first of possibly two parts of a type reference.
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
   if (is_pointer_or_reference_type(type)) {
+    /* Pointer or reference type. */
     local_type = skip_typerefs(type)->variant.pointer.type;
     /* Recursive call to print out any lower indirections. */
-    form_type_first_part(local_type, /*need_parens=*/TRUE, seg_ptr);
+    form_type_first_part(local_type,
+                         /*need_parens=*/
+                         ! is_pointer_or_reference_type(local_type),
+                         seg_ptr);
     /* Print out the star for this indirection. */
     if (skip_typerefs(type)->variant.pointer.is_reference) {
       /* This is a C++ reference type */
+      if (seg_ptr->length > 0 &&
+          seg_ptr->segment[seg_ptr->length - 1] == ' ') {
+        /* Back up the one blank space. */
+        seg_ptr->length--;
+      }  /*  if */
       add_string_to_segment("&", seg_ptr);
     } else {
       add_string_to_segment("*", seg_ptr);
@@ -1757,11 +1766,16 @@ Add the first of possibly two parts of a type reference.
     form_type_qualifier(type, seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_array) {
-    form_type_first_part(type->variant.array.element_type,
-                         /*need_parens=*/TRUE, seg_ptr);
+    /* Array type. */
+    local_type = type->variant.array.element_type;
+    form_type_first_part(local_type,
+                         /*need_parens=*/
+                         (local_type->kind != (a_type_kind)tk_array &&
+                          ! is_pointer_or_reference_type(local_type)),
+                         seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C*++ pointer to member type */
+    /* C++ pointer to member type. */
     form_type_first_part(type->variant.ptr_to_member.type,
                          /*needs_parens=*/TRUE, seg_ptr);
     form_class_name(type->variant.ptr_to_member.class_of_which_a_member,
@@ -1769,8 +1783,12 @@ Add the first of possibly two parts of a type reference.
     add_string_to_segment("*", seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_routine) {
-    form_type_first_part(type->variant.routine.return_type,
-                         /*need_parens=*/TRUE, seg_ptr);
+    /* Function type. */
+    local_type = type->variant.routine.return_type;
+    form_type_first_part(local_type,
+                         /*need_parens=*/
+                         ! is_pointer_or_reference_type(local_type),
+                         seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else {
     form_type_qualifier(type, seg_ptr);
@@ -1794,11 +1812,13 @@ array, print out the dimension information.
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
   if (is_pointer_or_reference_type(type)) {
-    local_type = skip_typerefs(type);
+    local_type = skip_typerefs(type)->variant.pointer.type;
     if (need_parens) add_string_to_segment(")", seg_ptr);
-    form_type_second_part(local_type->variant.pointer.type,
-                          /*need_parens=*/TRUE, seg_ptr);
+    form_type_second_part(local_type,  /*need_parens=*/
+                          ! is_pointer_or_reference_type(local_type),
+                          seg_ptr);
   } else if (type->kind == (a_type_kind)tk_array) {
+    /* Array type. */
     if (need_parens) add_string_to_segment(")", seg_ptr);
     if (type->variant.array.number_of_elements == 0) {
       add_string_to_segment("[]", seg_ptr);
@@ -1816,18 +1836,26 @@ array, print out the dimension information.
                     (unsigned long)type->variant.array.number_of_elements);
       add_string_to_segment(buffer, seg_ptr);
     }  /* if */
-    form_type_second_part(type->variant.array.element_type,
-                          /*need_parens=*/TRUE, seg_ptr);
+    local_type = type->variant.array.element_type;
+    form_type_second_part(local_type,
+                          /*need_parens=*/
+                          (local_type->kind != (a_type_kind)tk_array &&
+                           ! is_pointer_or_reference_type(local_type)),
+                          seg_ptr);
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C*++ pointer to member type */
+    /* C*++ pointer to member type. */
     if (need_parens) add_string_to_segment(")", seg_ptr);
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*needs_parens=*/TRUE, seg_ptr);
   } else if (type->kind == (a_type_kind)tk_routine) {
+    /* Function type. */
+    local_type = type->variant.routine.return_type;
     if (need_parens) add_string_to_segment(")", seg_ptr);
     form_param_list(type->variant.routine.extra_info, seg_ptr);
-    form_type_second_part(type->variant.routine.return_type,
-                          /*need_parens=*/TRUE, seg_ptr);
+    form_type_second_part(local_type,
+                          /*need_parens=*/
+                          ! is_pointer_or_reference_type(local_type),
+                          seg_ptr);
   }  /* if */
 }  /* form_type_second_part */
 
@@ -1876,7 +1904,7 @@ segment described by *seg_ptr.
 
 
 char *format_type_string(a_type_ptr tp,
-                         int        *len_ptr)
+                         sizeof_t   *len_ptr)
 /*
 A NULL terminated character string representation of the type pointed to
 by tp is formatted into the first segment of the error diagnostic segment
@@ -2131,21 +2159,24 @@ symbol_name:
           ! is_destructor &&
           ! is_conversion ) {
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
-        add_string_to_segment(" ", seg_ptr);
+        if (seg_ptr->segment[seg_ptr->length - 1] != ' ' &&
+            seg_ptr->segment[seg_ptr->length - 1] != '*' &&
+            seg_ptr->segment[seg_ptr->length - 1] != '(') {
+          add_string_to_segment(" ", seg_ptr);
+        }  /* if */
       }  /* if */
       form_class_name(sym->class_of_which_a_member, seg_ptr);
-      if (is_conversion) {
-        /* This is a conversion function; form the name as "operator type". */
-        add_string_to_segment("operator ", seg_ptr);
-        form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
-      }  else {
-        /* Use the name in the header. */
-        add_string_to_segment(sym->header->identifier, seg_ptr);
-      }  /* if */
+      /* Use the name in the header. */
+      add_string_to_segment(sym->header->identifier, seg_ptr);
       if (type != NULL &&
           ! seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || is_overloaded) ) {
-        form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
+        if (is_conversion) {
+          /* This is a conversion function; there is no parameter list". */
+          add_string_to_segment("()", seg_ptr);
+        }  else {
+          form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
+        }  /* if */
       }  /* if */
       break;
 #if CHECKING
@@ -3046,17 +3077,6 @@ Report the indicated warning at the indicated position.
 }  /* pos_warning */
 
 
-void str_warning(an_error_code error_code,
-                 char          *error_string)
-/*
-Report the indicated warning (with the indicated fill-in string) at the
-position indicated by error_position.
-*/
-{
-  pos_st_warning(error_code, &error_position, error_string);
-}  /* str_warning */
-
-
 void warning(an_error_code error_code)
 /*
 Report the indicated warning at the position indicated by error_position.
@@ -3280,17 +3300,6 @@ indicated position.
   diag_message(error_code, error_pos, es_catastrophe);
 }  /* pos_ty_catastrophe */
 
-
-void type_catastrophe(an_error_code error_code,
-                      struct a_type *type)
-/*
-Report the indicated catastrophe (with the indicated type) at the position
-indicated by error_position.
-*/
-{
-  pos_ty_catastrophe(error_code, &error_position, type);
-}  /* type_catastrophe */
-
 #if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_catastrophe(an_error_code     error_code,
@@ -3305,17 +3314,6 @@ indicated position.
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_catastrophe);
 }  /* pos_sy_catastrophe */
-
-
-void sym_catastrophe(an_error_code   error_code,
-                     struct a_symbol *symbol)
-/*
-Report the indicated catastrophe (with the indicated symbol) at the position
-indicated by error_position.
-*/
-{
-  pos_sy_catastrophe(error_code, &error_position, symbol);
-}  /* sym_catastrophe */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
