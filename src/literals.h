@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -44,7 +44,6 @@ extern void conv_char_literal(unsigned long num_chars,
 extern void conv_string_literal(unsigned long num_chars,
                                 an_error_code *err_code,
                                 char          **err_pos);
-extern void set_curr_token_to_string_literal(char  *str);
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_boolean         wide_literals);
 
@@ -56,6 +55,6 @@ extern void concat_string_literals(a_token_cache_ptr cache,
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

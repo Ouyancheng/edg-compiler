@@ -1,5 +1,21 @@
 Version 3.3
 
+7/1/03   Microsoft compatibility: __FUNCTION__ etc. are string literals
+
+The Microsoft keywords __FUNCTION__ and __FUNCDNAME__ now represent
+string literals instead or local static variables in Microsoft mode,
+and the new keyword __FUNCSIG__ has been added.
+
+  int main() {
+    char x[] = __FUNCTION__;  // Now accepted in Microsoft mode
+    return 0;
+  }
+
+Some minor adjustments have also been made in GNU modes.  For
+example, __func__ in GNU C mode is now a variable rather than
+a string literal, even though the very similar __FUNCTION__ remains
+a string literal.
+
 7/1/03   GNU IA-64 ABI: Reuse of tail padding of indirect base
 
 The default (IA-64-based) GNU C++ ABI deviates from the IA-64 ABI

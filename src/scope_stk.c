@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -5414,6 +5414,7 @@ End a name scope by popping an entry off the scope stack.
     /* Unlink scope-specific constants that might have been generated. */
     if (ssep->generated_entities != NULL) {
       ssep->generated_entities->function_name = NULL;
+      ssep->generated_entities->pretty_function_name = NULL;
       ssep->generated_entities->decorated_function_name = NULL;
     }  /* if */
     /* Do management related to the object lifetime stack.  Don't pop the
@@ -6555,6 +6556,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

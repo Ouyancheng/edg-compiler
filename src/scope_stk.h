@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -196,13 +196,14 @@ typedef struct a_generated_entity_block {
 			/* Pointer to a constant string variable holding the
 			   name of the function currently being defined.
 			   Set only when the appropriate reserved identifier
-			   (e.g., __func__) is used in Microsoft or C99 mode;
-			   otherwise NULL. */
+			   (e.g., __func__) is used.  NULL until then. */
+  a_variable_ptr
+		pretty_function_name;
+			/* Like function_name, but for __PRETTY_FUNCTION__. */
   a_variable_ptr
 		decorated_function_name;
-			/* Same as "function_name", but the string variable
-			   entry holds the mangled name of the function
-			   currently being defined (Microsoft mode only). */
+			/* Like function_name, but for __FUNCDNAME__
+			   (Microsoft mode only). */
 } a_generated_entity_block;
 
 
@@ -1222,6 +1223,6 @@ extern unsigned long db_show_scope_stack_space_used(unsigned long grand_total);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

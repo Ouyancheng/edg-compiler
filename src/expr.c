@@ -28,7 +28,6 @@ expr.c -- Expression scanning routines.
 #include "decl_inits.h"
 #include "disambig.h"
 #include "decl_spec.h"
-#include "literals.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -13479,11 +13478,11 @@ octl describes the output method.
 }  /* add_template_arg_to_decorated_name */
 
 
-static char* get_decorated_function_name(a_routine_ptr  rp)
+static char *get_pretty_function_name(a_routine_ptr  rp)
 /*
 Return a null-terminated character string representing the name of the
-given routine decorated with its argument and parameter types.  This
-is used in g++ compatibility mode for the __FUNCTION__ keyword.
+given routine including its parameter and return types.  This is used
+for the __PRETTY_FUNCTION__ keyword.
 */
 {
   an_il_to_str_output_control_block  octl;
@@ -13578,127 +13577,241 @@ is used in g++ compatibility mode for the __FUNCTION__ keyword.
   }  /* if */
   put_ch_to_temp_text_buffer('\0');
   return temp_text_buffer;
-}  /* get_decorated_function_name */
+}  /* get_pretty_function_name */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void make_function_name_operand(an_operand *result,
-                                       a_boolean  decorated_name)
+static char *get_decorated_function_name(a_routine_ptr  rp)
 /*
-Create an operand referring to a constant local static string variable
-containing the null-terminated name of the current function.  If the variable
-has not yet been created for the current function, create it now.  The result
-is stored in *result.  If decorated_name is TRUE, the mangled name is
-returned instead of the unqualified function name.
+Return a null-terminated character string representing the "decorated"
+name of the given routine, which means basically its mangled name.
+Used for the Microsoft __FUNCDNAME__ keyword.
 */
 {
-  a_variable_ptr           name_var = NULL;
-  a_scope_stack_entry_ptr  ssep;
+  char *str;
 
-  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-                  gnu_mode);
-  ssep = &scope_stack[depth_innermost_function_scope];
-  if (gcc_mode ||
-      (gpp_mode && depth_innermost_function_scope == NO_SCOPE_DEPTH)) {
-    /* In GNU C mode we create a constant operand and it is OK not to be in
-       function scope.  In GNU C++ mode, this is only TRUE if we're not in a
-       function scope.  If we're not in function scope, the token is
-       equivalent to "". */
-    char  *fn_name;
-    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-      fn_name = ssep->assoc_routine->source_corresp.name;
-    } else {
-      fn_name = "";
+  check_assertion(microsoft_mode);
+  if (C_mode()) {
+    /* The name in C mode is the simple routine name with a "_" prefix. */
+    pos_in_temp_text_buffer = 0;
+    put_ch_to_temp_text_buffer('_');
+    if (has_name(rp)) {
+      put_str_to_temp_text_buffer(rp->source_corresp.name);
     }  /* if */
-    set_curr_token_to_string_literal(fn_name);
-    if (gcc_mode) {
-      /* Make sure that e.g. __FUNCTION__ "(postfix)" is accepted. */
-      concat_adjacent_string_literals(/*curr_token_set=*/TRUE);
-    }  /* if */
-    make_string_constant_operand(&const_for_curr_token, result);
+    put_ch_to_temp_text_buffer('\0');
+    str = temp_text_buffer;
   } else {
-    /* Check if this scope already has an associated generated entity block. */
-    if (ssep->generated_entities == NULL) {
-      ssep->generated_entities = (a_generated_entity_block_ptr)
-                                   alloc_fe(sizeof(a_generated_entity_block));
+    /* The decorated name in C++ mode is the mangled name. */
+    str = get_mangled_function_name(rp);
+  }  /* if */
+  return str;
+}  /* get_decorated_function_name */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_boolean token_is_function_name_string_literal(a_token_kind token)
+/*
+Return TRUE if the indicated token is a function-name keyword (e.g.,
+__FUNCTION__) that should be interpreted as representing a string literal
+rather than a static variable.
+*/
+{
+  a_boolean is_string;
+
+  if (token != tok_func_name &&
+      token != tok_function_name &&
+      token != tok_pretty_function_name &&
+      token != tok_decorated_function_name) {
+    /* The current token is not a function-name keyword. */
+    is_string = FALSE;
+  } else if (microsoft_mode) {
+    /* Microsoft mode keywords are always string literals. */
+    is_string = TRUE;
+  } else if (gcc_mode) {
+    /* gcc mode keywords are strings except for __func__ (which is
+       a variable because it's from C99).  The gcc documentation says
+       that the string cases will be changed to variables in gcc 3.2,
+       but as of 3.3 they are still strings. */
+    is_string = (token != tok_func_name);
+  } else {
+    /* Other cases (C99, g++): use a static variable. */
+    is_string = FALSE;
+  }  /* if */
+  return is_string;
+}  /* token_is_function_name_string_literal */
+
+
+void set_curr_token_to_function_name_string(a_boolean do_concat)
+/*
+Set the current token to a string literal constant for the name
+of the current function in the form appropriate for the function-name
+keyword identified by curr_token (e.g., __FUNCTION__, __PRETTY_FUNCTION__).
+If do_concat is TRUE, do concatenation of any subsequent string literals.
+*/
+{
+  char          *name_str;
+  a_targ_size_t length;
+
+  if (innermost_function_scope == NULL) {
+    /* We are outside of a function.  This is allowed in GNU mode.
+       The name is empty. */
+    check_assertion(gnu_mode);
+    name_str = "";
+  } else {
+    a_routine_ptr rp = innermost_function_scope->variant.routine.ptr;
+    switch (curr_token) {
+      case tok_func_name:
+      case tok_function_name:
+        /* The simple name of the function. */
+        if (has_name(rp)) {
+          name_str = rp->source_corresp.name;
+        } else {
+          name_str = "";
+        }  /* if */
+        break;
+      case tok_pretty_function_name:
+        /* The name of the function with parameter and return types. */
+        name_str = get_pretty_function_name(rp);
+        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_decorated_function_name:
+        /* The "decorated" name of the function, i.e., the mangled name. */
+        name_str = get_decorated_function_name(rp);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  /* Create a string literal constant for name_str in const_for_curr_token. */
+  length = ((a_targ_size_t)strlen(name_str))+1;
+  clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
+  const_for_curr_token.type = string_type(length);
+  const_for_curr_token.variant.string.length = length;
+  const_for_curr_token.variant.string.value =
+                               alloc_text_of_string_literal((sizeof_t)length);
+  (void)memcpy(const_for_curr_token.variant.string.value, name_str,
+               size_t_arg(length));
+  curr_token = tok_string_literal;
+  if (do_concat) {
+    /* Make sure that adjacent strings are concatenated. */
+    concat_adjacent_string_literals(/*function_name_case=*/TRUE);
+  }  /* if */
+}  /* set_curr_token_to_function_name_string */
+
+
+static void make_function_name_operand(an_operand *result)
+/*
+Create an operand referring to the name of the current function for
+the keywords __func__, __FUNCTION__, et al.  curr_token indicates
+which of the various keywords was used.
+*/
+{
+  a_boolean                is_string;
+  a_variable_ptr           name_var;
+  a_variable_ptr           *name_var_ptr;
+  a_generated_entity_block *gen_entity_block;
+  a_constant_ptr           name_string;
+
+  /* Decide whether this keyword is equivalent to a string literal
+     or a static variable. */
+  is_string = token_is_function_name_string_literal(curr_token);
+  if (innermost_function_scope == NULL) {
+    /* We are outside of a function.  This is allowed in GNU mode.
+       The name is empty. */
+    if (!gnu_mode) {
+      str_error(ec_id_can_only_appear_in_function,
+                locator_for_curr_id.symbol_header->identifier);
+      make_error_operand(result);
+      goto end_of_routine;
+    }  /* if */
+    /* Force the use of the string representation in this case, because
+       we don't have a scope to use to save the variable pointer.  gcc
+       treats this case as a string; g++ treats it as a variable. */
+    is_string = TRUE;
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
+    /* These are not allowed in an integral constant expression. */
+    error_and_make_error_operand(enum_type_is_integral ?
+                                   ec_expr_not_integral :
+                                   ec_expr_not_integral_or_enum,
+                                 result);
+    goto end_of_routine;
+  }  /* if */
+  if (!is_string) {
+    /* We want a variable. */
+    a_scope_stack_entry_ptr ssep= &scope_stack[depth_innermost_function_scope];
+    /* Allocate an associated generated entity block for this function
+       the first time it is needed. */
+    gen_entity_block = ssep->generated_entities;
+    if (gen_entity_block == NULL) {
+      gen_entity_block = ssep->generated_entities =
+                                (a_generated_entity_block_ptr)
+                                    alloc_fe(sizeof(a_generated_entity_block));
 #if DEBUG
       ++num_generated_entity_blocks_allocated;
 #endif /* DEBUG */
-      ssep->generated_entities->decorated_function_name = NULL;
-      ssep->generated_entities->function_name = NULL;
+      gen_entity_block->function_name = NULL;
+      gen_entity_block->pretty_function_name = NULL;
+      gen_entity_block->decorated_function_name = NULL;
     }  /* if */
-    name_var = decorated_name ?
-                           ssep->generated_entities->decorated_function_name :
-                           ssep->generated_entities->function_name;
-    if (name_var == NULL) {
-      /* The required constant string variable has not yet been created for
-         this function.  Create it now. */
-      a_routine_ptr          rp = ssep->assoc_routine;
-      char                   *name_ptr;
-      a_constant_ptr         name_string;
-      a_targ_size_t          length;
-      a_memory_region_number region_to_switch_back_to;
-      a_type_ptr             var_type;
-
-      /* Determine which name to represent. */
-      if (!decorated_name) {
-        name_ptr = rp->source_corresp.name;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode) {
-        name_ptr = get_mangled_function_name(rp);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else {
-        name_ptr = get_decorated_function_name(rp);
-      }  /* if */
-      /* Create the string literal. */
-      /* Make sure the string literal constant is allocated in file scope,
-         so that we can directly point to it as an initializer from the
-         variable. */
-      length = ((a_targ_size_t)strlen(name_ptr))+1;
-      switch_to_file_scope_region(&region_to_switch_back_to);
-      name_string = alloc_constant((a_constant_repr_kind)ck_string);
-      switch_back_to_original_region(region_to_switch_back_to);
-      name_string->type = string_type(length);
-      name_string->variant.string.length = length;
-      name_string->variant.string.value =
-                               alloc_text_of_string_literal((sizeof_t)length);
-      (void)memcpy(name_string->variant.string.value, name_ptr,
-                   size_t_arg(length));
-      /* Create the local static const array and initialize it with the
-         string constant. */
-      /* In C99, the variable is an array of const.  In Microsoft mode,
-         it has the same type as the string. */
-      if (microsoft_mode) {
-        var_type = name_string->type;
-      } else {
-        /* Create an array of const char type. */
-        var_type = alloc_type((a_type_kind)tk_array);
-        var_type->variant.array.element_type =
-             make_qualified_type(integer_type(plain_char_int_kind), TQ_CONST);
-        var_type->variant.array.variant.number_of_elements = length;
-        set_type_size(var_type);
-      }  /* if */
-      name_var = make_variable(var_type, (a_storage_class)sc_static,
-                               depth_innermost_function_scope);
-      name_var->source_corresp.name =
+    /* See if the variable for the current function has already been
+       created. */
+    switch (curr_token) {
+      case tok_func_name:
+      case tok_function_name:
+        name_var_ptr = &gen_entity_block->function_name;
+        break;
+      case tok_pretty_function_name:
+        name_var_ptr = &gen_entity_block->pretty_function_name;
+        break;
+      case tok_decorated_function_name:
+        name_var_ptr = &gen_entity_block->decorated_function_name;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    name_var = *name_var_ptr;
+    if (name_var != NULL) goto have_variable;
+  }  /* if */
+  /* Produce a string literal for the name of the current function as
+     the current token. */
+  set_curr_token_to_function_name_string(/*do_concat=*/is_string);
+  if (is_string) {
+    /* The construct is to be treated as a string literal. */
+    make_string_constant_operand(&const_for_curr_token, result);
+    result->is_simple_string_literal = FALSE;
+  } else {
+    /* Variable case.  The string literal will be the initializer for the
+       static variable. */
+    a_type_ptr             var_type;
+    a_memory_region_number region_to_switch_back_to;
+    /* Allocate the string literal constant in the file scope. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    name_string = alloc_unshared_constant(&const_for_curr_token);
+    switch_back_to_original_region(region_to_switch_back_to);
+    /* The C99 __func__ has a type of const array of char.  All the cases
+       in other modes that are not treated as string literals and therefore
+       get here seem also to be const. */
+    var_type = make_qualified_type(name_string->type, TQ_CONST);
+    name_var = make_variable(var_type, (a_storage_class)sc_static,
+                             depth_innermost_function_scope);
+    name_var->source_corresp.name =
                                 locator_for_curr_id.symbol_header->identifier;
-      name_var->source_corresp.is_local_to_function = TRUE;
-      name_var->init_kind = (an_init_kind)initk_static;
-      name_var->initializer.constant = name_string;
-      /* To be sure, always consider the variable's address has been taken. */
-      set_variable_address_taken(name_var);
-      /* Remember the above construct for potential reuse. */
-      if (decorated_name) {
-        ssep->generated_entities->decorated_function_name = name_var;
-      } else {
-        ssep->generated_entities->function_name = name_var;
-      }  /* if */
-    }  /* if */
+    name_var->source_corresp.is_local_to_function = TRUE;
+    name_var->init_kind = (an_init_kind)initk_static;
+    name_var->initializer.constant = name_string;
+    /* To be sure, always consider the variable's address has been taken. */
+    set_variable_address_taken(name_var);
+    /* Remember the variable for potential reuse. */
+    *name_var_ptr = name_var;
+have_variable:
     /* Create an operand that refers to the implicit static variable. */
     make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL,
                                  /*record_expr=*/FALSE);
   }  /* if */
+end_of_routine:
+  (void)get_token();
 }  /* make_function_name_operand */
-
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -13862,29 +13975,13 @@ see expr.h).
       }  /* if */
       (void)get_token();
       break;
+    case tok_func_name:
     case tok_function_name:
+    case tok_pretty_function_name:
     case tok_decorated_function_name:
-      /* A magic identifier that expands to a string literal containing the
-         name of the current function.  __PRETTY_FUNCTION__ is a GNU feature
-         that we accept in all modes.  __FUNCDNAME__ is a Microsoft feature
-         accepted in Microsoft mode.  These expand to the mangled name. */
-      if (depth_innermost_function_scope == NO_SCOPE_DEPTH && !gnu_mode) {
-        /* We're not inside a function. */
-        str_error(ec_id_can_only_appear_in_function,
-                  locator_for_curr_id.symbol_header->identifier);
-        make_error_operand(&local_result);
-      } else if (curr_expr_kind_is(ek_pp) ||
-                 curr_expr_kind_is(ek_integral_constant)) {
-        /* These are not allowed in an integral constant expression. */
-        error_and_make_error_operand(enum_type_is_integral ?
-                                       ec_expr_not_integral :
-                                       ec_expr_not_integral_or_enum,
-                                     &local_result);
-      } else {
-        make_function_name_operand(
-                 &local_result, !C_mode() && curr_token != tok_function_name);
-      }  /* if */
-      (void)get_token();
+      /* Keywords that expand to various versions of the name of the
+         current function. */
+      make_function_name_operand(&local_result);
       break;
 #if TARG_HAS_IEEE_FLOATING_POINT
     case tok_nan:
@@ -13948,15 +14045,29 @@ see expr.h).
       (void)get_token();
       break;
     case tok_string_literal:
-      make_string_constant_operand(&const_for_curr_token, &local_result);
-      if (curr_expr_kind_is(ek_pp) ||
-	  curr_expr_kind_is(ek_integral_constant)) {
-	error_and_make_error_operand(enum_type_is_integral ?
-                                       ec_expr_not_integral :
-                                       ec_expr_not_integral_or_enum,
-                                     &local_result);
+      { a_boolean is_simple_string = TRUE;
+        if (token_is_function_name_string_literal(next_token())) {
+          /* Handle cases where a string is followed by a function-name
+             keyword like __FUNCTION__ that is treated like a string literal
+             and therefore must be concatenated, e.g.,
+               "abc" __FUNCTION__
+          */
+          concat_adjacent_string_literals(/*function_name_case=*/TRUE);
+          is_simple_string = FALSE;
+        }  /* if */
+        make_string_constant_operand(&const_for_curr_token, &local_result);
+        local_result.is_simple_string_literal = is_simple_string;
+        if (curr_expr_kind_is(ek_pp) ||
+            curr_expr_kind_is(ek_integral_constant)) {
+          /* String literals are not allowed in pp and integral constant
+             expressions. */
+          error_and_make_error_operand(enum_type_is_integral ?
+                                         ec_expr_not_integral :
+                                         ec_expr_not_integral_or_enum,
+                                       &local_result);
+        }  /* if */
+        (void)get_token();
       }  /* if */
-      (void)get_token();
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case tok_null:

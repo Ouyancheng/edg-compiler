@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -361,6 +361,11 @@ If there is an error, issue an error and return an error constant.
         /* Bypass the left paren. */
         (void)get_token();
       }  /* if */
+    } else if (token_is_function_name_string_literal(curr_token)) {
+      /* In some modes, keywords like __FUNCTION__ are treated as
+         string literals. */
+      set_curr_token_to_function_name_string(/*do_concat=*/TRUE);
+      is_string_init = TRUE;
     }  /* if */
   }  /* if */
   if (is_string_init) {
@@ -5093,6 +5098,6 @@ are created by a new expression (in which case sym is NULL).  In both cases
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2000 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -80,6 +80,10 @@ extern a_boolean new_or_delete_type_requires_array_handling(
                                                  a_boolean  check_constructor);
 
 extern a_boolean is_expr_start_token(a_token_kind tok);
+
+extern a_boolean token_is_function_name_string_literal(a_token_kind token);
+
+extern void set_curr_token_to_function_name_string(a_boolean do_concat);
 
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
@@ -263,6 +267,6 @@ Macro that is TRUE if the node is an error node.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

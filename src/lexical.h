@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1727,7 +1727,7 @@ extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */
 extern void skip_white_space(void);
 /* Concatenate adjacent string literals in the current string constant. */
-extern void concat_adjacent_string_literals(a_boolean  curr_token_set);
+extern void concat_adjacent_string_literals(a_boolean function_name_case);
 /* Get next token. */
 extern a_token_kind get_token(void);
 /* Generate a line-identifying directive in preprocessing output. */
@@ -2153,6 +2153,6 @@ Convert a character hex digit to the associated hex digit value.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -7113,14 +7113,17 @@ in C99 mode).  See C89 standard, 3.8.1.
 }  /* adjust_pp_int_constant */
 
 
-void concat_adjacent_string_literals(a_boolean  curr_token_set)
+void concat_adjacent_string_literals(a_boolean function_name_case)
 /*
-The current token (not in curr_token yet if curr_token_set is FALSE, but in
-const_for_curr_token) is a string literal (tok_string_literal), and in the
-current lexical mode normal (not pp) tokens should be fetched, and
-concatenation of adjacent string literals should be done.  Look to see if the
-next token of input is a string literal, and if so, concatenate it with the
+The current token (not in curr_token yet, but in const_for_curr_token)
+is a string literal (tok_string_literal), and in the current lexical
+mode normal (not pp) tokens should be fetched, and concatenation of
+adjacent string literals should be done.  Look to see if the next
+token of input is a string literal, and if so, concatenate it with the
 current token.  Loop to pick up all the adjacent string literals.
+If function_name_case is TRUE, this is a special call to handle
+concatenation of strings and function-name keywords like __FUNCTION__;
+curr_token is already set in that case.
 */
 {
   a_boolean          wide_strings;
@@ -7142,7 +7145,7 @@ current token.  Loop to pick up all the adjacent string literals.
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
-  if (!curr_token_set) {
+  if (!function_name_case) {
     /* Set up the first string literal as the current token, so it can be
        cached.  This routine is called from get_token at a point where
        there is, in effect, no current token, so we're just anticipating the
@@ -7179,23 +7182,14 @@ current token.  Loop to pick up all the adjacent string literals.
     do_string_literal_concatenation = FALSE;
     (void)get_token();
     do_string_literal_concatenation = TRUE;
-    /* In GNU C mode (but not in GNU C++ mode), treat __FUNCTION__ and
-       __PRETTY_FUNCTION__ as string literals.  The case where these appear
-       as the first literal is handled in expression processing. */
-    if (gcc_mode && (curr_token == tok_function_name ||
-                     curr_token == tok_decorated_function_name)) {
-      /* We should be in C mode.  In C++ mode, we'd have to deal with
-         templates (and perhaps other constructs that may cache tokens). */
-      a_scope_stack_entry_ptr  ssep =
-                                 &scope_stack[depth_innermost_function_scope];
-      char                     *fn_name;
-      check_assertion(C_mode());
-      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-        fn_name = ssep->assoc_routine->source_corresp.name;
-      } else {
-        fn_name = "";
-      }  /* if */
-      set_curr_token_to_string_literal(fn_name);
+    if (function_name_case &&
+        token_is_function_name_string_literal(curr_token)) {
+      /* In some modes, function-name keywords like __FUNCTION__ are
+         treated as string literals.  The case where these appear
+         as the first literal is handled in expression processing;
+         cases where they appear after a string are handled by
+         calling here. */
+      set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
@@ -8229,7 +8223,7 @@ concatenate_adjacent_string_literals:
   /* Do string literal concatenation. */
   check_assertion_str(ctoken == tok_string_literal,
                       "get_token: concatenating string literal, bad token");
-  concat_adjacent_string_literals(/*curr_token_set=*/FALSE);
+  concat_adjacent_string_literals(/*function_name_case=*/FALSE);
   /* Give this string literal a sequence number, if needed. */
   assign_string_literal_sequence_number();
   goto return_from_token_scan;
@@ -13957,6 +13951,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
