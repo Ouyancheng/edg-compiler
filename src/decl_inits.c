@@ -3600,12 +3600,17 @@ initialized.  These are addressed in the course of the processing.
 	   as a member or base class is not visible. */
         {
           a_boolean gid_err;
+          an_identifier_lookup_mode	ilm;
+          an_identifier_options_set	gid_options = GID_NO_OPTIONS;
+          /* A qualified name must name a class. */
+          if (locator_for_curr_id.is_qualified_name) {
+            gid_options |= GID_IMPLICIT_TYPE_CONTEXT;
+            ilm = ilm_qualified_ctor_initializer_name;
+          } else {
+            ilm = ilm_ctor_initializer_name;
+          }  /* if */
           member_or_base_sym = coalesce_and_lookup_generalized_identifier
-                                   (GID_NO_OPTIONS,
-                                    locator_for_curr_id.is_qualified_name
-                                      ? ilm_qualified_ctor_initializer_name
-                                      : ilm_ctor_initializer_name,
-                                    &gid_err);
+                                   (gid_options, ilm, &gid_err);
           if (member_or_base_sym != NULL) {
             /* Check if a template-dependent entity is being initialized: */
             if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {

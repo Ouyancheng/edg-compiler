@@ -884,7 +884,7 @@ caution when modifying this routine.
   *tag_resolution = FALSE;
   /* Coalesce the identifier that follows the class, struct, union, or
      enum keyword. */
-  options = GID_TEMPLATE_ARGS_OPTIONAL;
+  options = GID_TEMPLATE_ARGS_OPTIONAL | GID_IMPLICIT_TYPE_CONTEXT;
   if (is_ref_within_new_expr) options |= GID_IS_NEW_TYPE_NAME;
   if (is_generalized_identifier_start(options)) {
     /* Determine whether this is a definition or something else (a

@@ -11913,11 +11913,10 @@ the declaration token cache.
       prescan_decl_modifiers();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-    /* Use "is expr context" to suppress diagnostics on invalid template
-       references. */
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_USE_PROTOTYPE_NOT_NONREAL |
-                                        GID_IS_TEMPLATE_PRESCAN)) {
+                                        GID_IS_TEMPLATE_PRESCAN |
+					GID_IMPLICIT_TYPE_CONTEXT)) {
       (void)get_token();
       if (curr_token == tok_colon || curr_token == tok_end_of_source) {
         result = TRUE;

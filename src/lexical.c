@@ -8971,6 +8971,8 @@ otherwise the original "sym" is returned.
     } else if (implicit_typename_enabled &&
                (options & GID_IS_EXPR_CONTEXT) == 0) {
       type_wanted = TRUE;
+    } else if ((options & GID_IMPLICIT_TYPE_CONTEXT) != 0) {
+      type_wanted = TRUE;
     }  /* if */
     if (!type_wanted) {
       /* Restore the template argument list from the template class.  Make a
