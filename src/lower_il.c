@@ -5692,7 +5692,7 @@ Do IL lowering of the indicated statement and everything under it.
     if (statement->dependent_statement) {
       /* In cfront compatibility mode, it is possible for a dependent statement
          to not have an associated scope.  However, it is still required that
-         anything contructed in the dependent statement (i.e., conditionally)
+         anything constructed in the dependent statement (i.e., conditionally)
          be destroyed at the end of the dependent statement, so push a special
          dependent-statement context around the lowering of the statement. */
       push_context(&dependent_context, curr_context->scope,
