@@ -835,8 +835,9 @@ Process the arguments on the command line that invoked the compiler.
       case optk_display_compiler_version:
         /* Print out compiler version. */
         check_assertion(opt_value == TRUE);
-        fprintf(stderr, "Edison Design Group C/C++ Front End, version %s\n",
-                         VERSION_NUMBER);
+        fprintf(stderr,
+                "Edison Design Group C/C++ Front End, version %s (%s %s)\n",
+                VERSION_NUMBER, build_date, build_time);
         fprintf(stderr, "Copyright 1988-1994 Edison Design Group Inc.\n");
 #ifdef DEMO_VERSION_ID
         fprintf(stderr, "Demonstration version for %s\n", DEMO_VERSION_ID);
