@@ -6427,9 +6427,12 @@ Scan the body of a class definition, including the base classes list.
                     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
                     if (pid->source_sequence_entry != NULL) {
+                    check_assertion(
+                               ss_entry_kind(pid->source_sequence_entry) ==
+                                              (an_il_entry_kind)iek_none);
                       remove_from_source_sequence_list(
-                                                  &pid->source_sequence_entry,
-                                                  (a_type_ptr)NULL);
+                                                   pid->source_sequence_entry);
+                      pid->source_sequence_entry = NULL;
                     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                   }  /* for */
@@ -6901,6 +6904,10 @@ next_declaration:
         }  /* if */
       }  /* if */
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Add a source sequence entry marking the end of the class definition. */
+    add_end_of_type_source_sequence_entry(class_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
     remove_stop_token(tok_rbrace);

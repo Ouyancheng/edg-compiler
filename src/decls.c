@@ -1850,11 +1850,27 @@ done:;
   db_exit();
 }  /* scan_throw_specification */
 
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#define init_param_source_sequence_sublist()                           \
-  scope_stack[depth_innermost_file_scope_region_ss_list_scope].        \
-                                           last_source_sequence_entry
+
+static a_source_sequence_entry_ptr init_param_source_sequence_sublist(void)
+/*
+*/
+{
+  a_source_sequence_entry_ptr  ssep;
+
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    ssep = scope_stack[depth_innermost_ss_list_scope].
+                                            last_source_sequence_entry;
+    if (ssep != NULL && is_sublist_parent(ssep)) {
+      ssep = assoc_sublist_of(ssep)->last_source_sequence_entry;
+    }  /* if */
+  } else {
+    ssep = NULL;
+  }  /* if */
+  return ssep;
+}  /* init_param_source_sequence_sublist */
+
 
 static void terminate_param_source_sequence_sublist(
                                      a_func_info_block_ptr        func_info,
@@ -1862,35 +1878,67 @@ static void terminate_param_source_sequence_sublist(
 /*
 */
 {
-  if (prev != NULL) {
-    func_info->prototype_scope_ss_entry_start = prev->next;
-  } else {
-    func_info->prototype_scope_ss_entry_start =
-       scope_stack[depth_innermost_file_scope_region_ss_list_scope].
-                                         il_scope->source_sequence_list;
-  }  /* if */
-  func_info->prototype_scope_ss_entry_end =
-       scope_stack[depth_innermost_file_scope_region_ss_list_scope].
-                                            last_source_sequence_entry;
-#if DEBUG
-  if (debug_level >= 4) {
-    fputs("function prototype source sequence list (in file scope):\n",
-          f_debug);
-    if (func_info->prototype_scope_ss_entry_start == NULL) {
-      fputs("  <empty list>\n", f_debug);
+  a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
+  a_src_seq_sublist_ptr        sublist = NULL;
+
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    if (prev != NULL) {
+      starting_ssep = prev->next;
     } else {
-      a_source_sequence_entry_ptr  tmp_prev, tmp_next;
-      tmp_prev = func_info->prototype_scope_ss_entry_start->prev;
-      func_info->prototype_scope_ss_entry_start->prev = NULL;
-      tmp_next = func_info->prototype_scope_ss_entry_end->next;
-      func_info->prototype_scope_ss_entry_end->next = NULL;
-      db_source_sequence_list(func_info->prototype_scope_ss_entry_start);
-      func_info->prototype_scope_ss_entry_start->prev = tmp_prev;
-      func_info->prototype_scope_ss_entry_end->next = tmp_next;
+      starting_ssep = scope_stack[depth_innermost_ss_list_scope].
+                                            il_scope->source_sequence_list;
     }  /* if */
-  }  /* if */
+    check_assertion(starting_ssep != NULL);
+    if (is_sublist_parent(starting_ssep)) {
+      sublist = assoc_sublist_of(starting_ssep);
+      starting_ssep = sublist->source_sequence_list;
+    }  /* if */
+    func_info->prototype_scope_ss_entry_start = starting_ssep;
+    if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
+#if CHECKING
+      {
+      a_source_sequence_entry_ptr  ssep;
+
+      ssep = scope_stack[depth_innermost_ss_list_scope].
+                                                 last_source_sequence_entry;
+      check_assertion(is_sublist_parent(ssep));
+      check_assertion(assoc_sublist_of(ssep) ==
+                        (sublist != NULL ? sublist :
+                                           sublist_header_of(starting_ssep)));
+      }
+#endif /* CHECKING */
+      if (sublist != NULL) {
+        ending_ssep = sublist->last_source_sequence_entry;
+      } else {
+        ending_ssep = starting_ssep;
+        while (ending_ssep->next != NULL) ending_ssep = ending_ssep->next;
+      }  /* if */
+    } else {
+      ending_ssep =
+               scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
+    }  /* if */
+    func_info->prototype_scope_ss_entry_end = ending_ssep;
+#if DEBUG
+    if (debug_level >= 4) {
+      fputs("function prototype source sequence list:\n", f_debug);
+      if (func_info->prototype_scope_ss_entry_start == NULL) {
+        fputs("  <empty list>\n", f_debug);
+      } else {
+        a_source_sequence_entry_ptr  tmp_prev, tmp_next;
+        tmp_prev = func_info->prototype_scope_ss_entry_start->prev;
+        func_info->prototype_scope_ss_entry_start->prev = NULL;
+        tmp_next = func_info->prototype_scope_ss_entry_end->next;
+        func_info->prototype_scope_ss_entry_end->next = NULL;
+        db_source_sequence_list(func_info->prototype_scope_ss_entry_start);
+        func_info->prototype_scope_ss_entry_start->prev = tmp_prev;
+        func_info->prototype_scope_ss_entry_end->next = tmp_next;
+      }  /* if */
+    }  /* if */
 #endif /* DEBUG */
-}
+  }  /* if */
+}  /* terminate_param_source_sequence_sublist */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static void function_declarator(a_type_ptr        *new_type_ptr,
@@ -2160,6 +2208,28 @@ scope is that of a class definition.
         if (is_error_locator(param_locator)) {
           func_info->any_prototype_names_omitted = TRUE;
         }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (param_ssep == NULL) {
+          /* Declarator was not called or param_ssep was not created for
+             some other reason.  Still, if this is a function definition, it
+             will be needed (in C++ unnamed parameters are allowed). */
+          param_ssep = add_empty_source_sequence_entry();
+        }  /* if */
+#if 0
+        if (param_ssep != NULL) {
+          update_source_sequence_list((char *)ptp,
+                                      (an_il_entry_kind)iek_param_type,
+                                      (is_error_locator(param_locator) ?
+                                         &param_type_pos :
+                                         &param_locator.source_position),
+                                      param_ssep);
+          /* Record the param type as an orphan, in case it's not pointed to
+             anywhere else. */
+          add_orphaned_file_scope_il_entry((char *)ptp,
+                                           (an_il_entry_kind)iek_param_type);
+        }  /* if */
+#endif /* if 0 */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
                              func_info, param_ssep, &last_param_id);
@@ -2374,6 +2444,10 @@ scope is that of a class definition.
         remove_stop_token(tok_comma);
       } while (!done);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Add a source sequence entry marking the end of the function
+         prototype scope. */
+      add_end_of_type_source_sequence_entry(*new_type_ptr);
+      /* Record the end of the prototype scope. */
       terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Save the list of symbols for the prototype scope (usually NULL, but
@@ -2431,13 +2505,32 @@ scope is that of a class definition.
       /* Free the list of parameter identifiers -- they're not needed
          if there's no definition. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if 0
+    param_id = func_info->param_id_list;
+    ptp = rtsp->param_type_list;
+    /* Be sure param-id and param-type lists are in sync. */
+    check_assertion((param_id == NULL) == (ptp == NULL));
+    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+      /* Declare each parameter identifier to have the associated type
+         from the parameter type list. */
+      decl_parameter(param_id, ptp, is_instantiation);
+      /* Be sure param-id and param-type lists are in sync. */
+      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+    }  /* for */
+
+
       a_param_id_ptr  pip = local_func_info_block.param_id_list;
-      for (; pip != NULL; pip = pip->next) {
+      a_param_type_ptr  ptp = rtsp->param_list_list;
+      /* Be sure param-id and param-type lists are in sync. */
+      check_assertion((pip == NULL) == (ptp == NULL));
+      for (; pip != NULL; pip = pip->next, ptp = ptp->next) {
         if (pip->source_sequence_entry != NULL) {
-          remove_from_source_sequence_list(&pip->source_sequence_entry,
-                                           (a_type_ptr)NULL);
+          remove_from_source_sequence_list(pip->source_sequence_entry);
+          pip->source_sequence_entry = NULL;
         }  /* if */
+        check_assertion((pip->next == NULL) == (ptp->next == NULL));
       }  /* for */
+#endif /* if 0 */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       free_param_id_list(&(local_func_info_block.param_id_list));
     }  /* if */
@@ -4983,6 +5076,15 @@ a new symbol is created and entered in the symbol table.
   if (sym == NULL) {
     /* This param_id entry represents an unnamed parameter (which is legal
        in function definitions in C++). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+        depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      check_assertion(param_id->source_sequence_entry != NULL);
+      update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
+                                  &param_id->type_pos,
+                                  param_id->source_sequence_entry);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     make_locator_for_symbol(sym, &locator);
     if (function_instantiation) {
@@ -5540,11 +5642,7 @@ otherwise it is NULL.  The syntax is:
                 locator_for_curr_id.symbol_header->identifier);
       }  /* if */
 #endif /* DEBUG */
-      *declarator_ssep =
-           add_empty_source_sequence_entry(
-                   /*alloc_in_fs=*/TRUE,
-                   /*proxy_allowed=*/scope_stack[depth_scope_stack].kind !=
-                                             (a_scope_kind)sck_func_prototype);
+      *declarator_ssep = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Process the identifier.  This is done if we are at the beginning of
@@ -5944,8 +6042,8 @@ function_lparen:
           if (locator != NULL && !is_error_locator(*locator)) {
             func_info->declarator_ssep = *declarator_ssep;
           } else {
-            remove_from_source_sequence_list(declarator_ssep,
-                                             (a_type_ptr)NULL);
+            remove_from_source_sequence_list(*declarator_ssep);
+            *declarator_ssep = NULL;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -6679,6 +6777,10 @@ to indicate whether an enumeration is actually defined.
       } while (!done);
       remove_stop_token(tok_rbrace);
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Add a source sequence entry marking the end of the enum definition. */
+    add_end_of_type_source_sequence_entry(enum_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
     /* Determine the representation type for the enumeration.  In pcc mode,
@@ -8487,9 +8589,6 @@ and for the instantiation of template functions.
   a_struct_stmt_stack_state      saved_sss_state;
   a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr    ssep, next_ssep;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
@@ -8516,6 +8615,44 @@ and for the instantiation of template functions.
     }  /* if */
   }  /* if */
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!func_info->function_type_from_typedef &&
+      func_info->param_id_list != NULL &&
+      depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
+    a_src_seq_sublist_ptr        sublist = NULL;
+
+    starting_ssep = func_info->prototype_scope_ss_entry_start;
+    ending_ssep = func_info->prototype_scope_ss_entry_end;
+    check_assertion(in_file_scope(starting_ssep));            
+    if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
+      sublist = sublist_header_of(starting_ssep);
+    }  /* if */
+    if (starting_ssep->prev == NULL) {
+      /* The head of the list. */
+      check_assertion(sublist != NULL);
+      sublist->source_sequence_list = ending_ssep->next;
+    } else {
+      starting_ssep->prev->next = ending_ssep->next;
+    }  /* if */
+    if (ending_ssep->next == NULL) {
+      /* Tail of the list. */
+      if (sublist != NULL) {
+        sublist->last_source_sequence_entry = starting_ssep->prev;
+      } else {
+        scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry =
+                                                      starting_ssep->prev;
+      }  /* if */
+    } else {
+      ending_ssep->next->prev = starting_ssep->prev;
+    }  /* if */
+    if (sublist != NULL && sublist->source_sequence_list == NULL) {
+      remove_sublist_header_and_parent(sublist,
+                                       find_sublist_parent(sublist));
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   scope_number = (is_instantiation) ?
                         NO_SCOPE_NUMBER : func_info->scope_number;
   /* Push the name scope for the routine body. */
@@ -8540,11 +8677,17 @@ and for the instantiation of template functions.
   } else {
     /* Correctly declared function type. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (func_info->param_id_list != NULL) {
+    if (func_info->param_id_list != NULL &&
+        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+        depth_template_declaration_scope == NO_SCOPE_DEPTH) {
       /* Step through the segment of file-scope source sequence entries
          generated when the parameter list of the function was scanned.
          Do necessary fixups for parameter entries, and build function-scope
          proxies where necessary. */
+      a_scope_stack_entry_ptr  stack_ptr;
+      a_source_sequence_entry_ptr  ssep, next_ssep;
+
+      stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
       ssep = func_info->prototype_scope_ss_entry_start;
       for (; ssep != NULL; ssep = next_ssep) {
         if (ssep == func_info->prototype_scope_ss_entry_end) {
@@ -8552,6 +8695,7 @@ and for the instantiation of template functions.
         } else {
           next_ssep = ssep->next;
         }  /* if */
+        ssep->prev = ssep->next = NULL;
         switch (ss_entry_kind(ssep)) {
           case iek_none:
             /* An empty entry should be for a parameter (the entry could
@@ -8563,28 +8707,23 @@ and for the instantiation of template functions.
             for (; param_id != NULL; param_id = param_id->next) {
               if (param_id->source_sequence_entry == ssep) break;
             }  /* for */
-#if CHECKING
-            if (param_id == NULL) {
-              internal_error("scan_function_body: no param-id for ss entry");
+            if (param_id != NULL) {
+              /* Take the entry off the file-scope list and add one (also
+                 empty so far) to the function-scope list. */
+              ssep->next = stack_ptr->source_sequence_avail_list;
+              stack_ptr->source_sequence_avail_list = ssep;
+              param_id->source_sequence_entry =
+                                            add_empty_source_sequence_entry();
+              break;
+            } else {
+              /* Param type within a type entry.  Fall though. */
             }  /* if */
-#endif /* CHECKING */
-            /* Take the entry off the file-scope list and add one (also
-               empty so far) to the function-scope list. */
-            remove_from_source_sequence_list(
-                              &ssep, func_info->class_in_which_defined_inline);
-            param_id->source_sequence_entry =
-                  add_empty_source_sequence_entry(/*alloc_in_fs=*/FALSE,
-                                                  /*proxy_allowed=*/FALSE);
+          default:
+            /* For types (as well as other miscellany, such as fields in a
+               C struct definition), add the entries to a sublist of the
+               function scope list. */
+            add_to_source_sequence_list(ssep);
             break;
-          case iek_type:
-            /* For types, make proxy entries on the function scope list. */
-            { a_type_ptr tp = ss_entry_ptr(ssep, a_type_ptr);
-              if (is_immediate_class_type(tp) || is_immediate_enum_type(tp)) {
-                make_proxy_ptr_source_sequence_entry(ssep);
-              }  /* if */
-            }
-            break;
-          default:;
             /* No action. */
         }  /* switch */
       }  /* for */
@@ -10012,8 +10151,10 @@ continue_with_declaration:
             }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             if (pid->source_sequence_entry != NULL) {
-              remove_from_source_sequence_list(&pid->source_sequence_entry,
-                                               (a_type_ptr)NULL);
+              check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
+                                                 (an_il_entry_kind)iek_none);
+              remove_from_source_sequence_list(pid->source_sequence_entry);
+              pid->source_sequence_entry = NULL;
             }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* for */
