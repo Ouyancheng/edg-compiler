@@ -292,8 +292,10 @@ address taken, and if not issue an error.
      static data members (they cannot be "register"). */
   if (sym->kind == sk_variable) {
     a_variable_ptr var = sym->variant.variable.ptr;
-    if (var->storage_class == (a_storage_class)sc_register) {
-      /* Error -- cannot take the address of a register variable. */
+    if (C_dialect != C_dialect_cplusplus &&
+        var->storage_class == (a_storage_class)sc_register) {
+      /* Error -- cannot take the address of a register variable.
+         (This is allowed in C++.) */
       pos_error(ec_address_of_register_variable, &rep->position);
       /* Turn the reference into an error reference so that the error will
          be issued only once. */
