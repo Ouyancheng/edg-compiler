@@ -1199,15 +1199,17 @@ The caller need not add the right parenthesis to the stop tokens set, or
 remove it later, as this routine takes care of that.
 */
 {
-  a_boolean          overloaded_function_case = FALSE;
-  a_type_ptr         routine_type;
-  a_source_position  start_position;
-  an_arg_operand_ptr arg_operand_list;
-  an_expression_kind expression_kind = (an_expression_kind)ek_normal;
+  a_boolean           overloaded_function_case = FALSE;
+  a_type_ptr          routine_type;
+  a_source_position   start_position;
+  an_arg_operand_ptr  arg_operand_list;
+  an_expression_kind  expression_kind = (an_expression_kind)ek_normal;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(4, "scan_ctor_arguments");
   *conversion_routine = NULL;
   start_position = pos_curr_token;
+  push_expr_stack(expression_kind, &expr_stack_entry);
   if (constructor_sym == NULL) {
     /* There was a previous error. */
     routine_type = NULL;
@@ -1250,6 +1252,7 @@ remove it later, as this routine takes care of that.
     reference_to_implicitly_invoked_function(constructor_sym, err_pos);
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
+  pop_expr_stack();
   db_exit();
 }  /* scan_ctor_arguments */
 
@@ -7397,8 +7400,12 @@ pointer to the updated expression.  If an error is detected, use
 err_pos as the error position.
 */
 {
-  an_operand operand;
+  an_operand          operand;
+  an_expr_stack_entry expr_stack_entry;
 
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Make an operand for the expression. */
   make_expression_operand(expr, expr->type, &operand);
   operand.position = *err_pos;
@@ -7407,6 +7414,7 @@ err_pos as the error position.
                         (an_expression_kind)ek_normal);
   /* Make an expression again. */
   expr = make_node_from_operand(&operand);
+  pop_expr_stack();
   return expr;
 }  /* prep_rvalue_arg_expr */
 
