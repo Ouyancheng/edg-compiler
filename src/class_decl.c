@@ -6370,12 +6370,32 @@ Scan the body of a class definition, including the base classes list.
           a_source_sequence_entry_ptr
                              declarator_ssep = NULL;
           a_boolean          cfront_member_function_typedef = FALSE;
-
+          a_boolean          first_declarator_diagnostics = first_declarator;
 
           add_stop_token(tok_comma);
           add_stop_token(tok_colon);
           unnamed_field = FALSE;
           clear_func_info(&func_info);
+          if (!first_declarator &&
+              (dso_flags & DSO_CONSTRUCTOR || dso_flags & DSO_DESTRUCTOR)) {
+            /* This section of code is entered when there is a comma-list of
+               constructors and/or destructors. */
+            is_destructor = is_constructor = FALSE;
+            if (curr_token == tok_compl ||
+                (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS) &&
+                 locator_for_curr_id.is_destructor_name)) {
+              is_destructor = TRUE;
+              member_type = unknown_type();
+            } else if (curr_token == tok_identifier &&
+                       is_constructor_decl(class_type)) {
+              is_constructor = TRUE;
+              member_type = unknown_type();
+            } else {
+              first_declarator_diagnostics = TRUE;
+              decl_start_pos = pos_curr_token;
+              member_type = integer_type((an_integer_kind)ik_int);
+            }  /* if */
+          }  /* if */
           /* The declarator can be omitted for an unnamed bit-field. */
           set_err_pos_to_curr_token();
           if (curr_token == tok_colon && !local_no_decl_specifiers) {
@@ -6429,14 +6449,10 @@ Scan the body of a class definition, including the base classes list.
             }  /* if */
             /* Set the various flags for declarator processing. */
             declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
-            if (dso_flags & DSO_DESTRUCTOR) {
-              if (!type_explicitly_specified && !friend_specified) {
-                declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
-              }  /* if */
+            if (!type_explicitly_specified && !friend_specified) {
+              declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
             }  /* if */
-            if (dso_flags & DSO_CONSTRUCTOR) {
-              declarator_input_flags |= DI_IS_CONSTRUCTOR;
-            }  /* if */
+            if (is_constructor) declarator_input_flags |= DI_IS_CONSTRUCTOR;
             if (member_storage_class == (a_storage_class)sc_typedef) {
               declarator_input_flags |= DI_IS_TYPEDEF_DECLARATION;
             } else if (member_storage_class != (a_storage_class)sc_static) {
@@ -6583,7 +6599,7 @@ Scan the body of a class definition, including the base classes list.
                 } else {
                   /* Type specifier is missing.  The type defaults to int,
                      but issue a diagnostic. */
-                  if (first_declarator) {
+                  if (first_declarator_diagnostics) {
                     pos_remark(ec_missing_type_specifier, &decl_start_pos);
                   }  /* if */
                 }  /* if */
@@ -6794,17 +6810,6 @@ Scan the body of a class definition, including the base classes list.
                      class definition (ARM 9.8). */
                   error(ec_local_class_function_def_missing);
                 }  /* if */
-                if (curr_token == tok_comma &&
-                         (is_destructor || is_constructor)) {
-                  /* Even if this is not a function definition, we disallow
-                     a comma-separated list of constructor (or destructor)
-                     declarations.  This is consistent with Cfront 2.1,
-                     though the ARM is silent. */
-                  pos_error(ec_exp_semicolon, &pos_curr_token);
-                  (void)get_token();
-                  remove_stop_token(tok_comma);
-                  goto next_declaration;
-                }  /* if */
               }  /* if */
             }  /* if */
           } else if (friend_specified) {
@@ -6875,7 +6880,7 @@ Scan the body of a class definition, including the base classes list.
                                  declarator_ssep);
           } else {
             if (C_dialect == C_dialect_cplusplus) {
-              if (!type_explicitly_specified && first_declarator) {
+              if (!type_explicitly_specified && first_declarator_diagnostics) {
                 warning(ec_missing_type_specifier);
               }  /* if */
             }  /* if */
