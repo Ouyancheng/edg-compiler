@@ -587,6 +587,83 @@ instance is the one in the secondary translation unit.
 }  /* merge_instantiation_flags */
 
 
+static void process_variable_if_unneeded_template(a_variable_ptr variable)
+/*
+If we're processing the current secondary translation unit only to
+get exported templates, and the given variable is not a generated template,
+do any necessary processing, e.g., externalizing it if it is static.
+*/
+{
+  if (translation_unit_needed_only_for_exported_templates) {
+    if (!variable->is_template_static_data_member ||
+        variable->is_specialized) {
+      /* The variable is not a generated template. */
+      if (variable->init_kind != (an_init_kind)initk_none) {
+        clear_variable_initialization(variable);
+      }  /* if */
+#if DO_IL_LOWERING
+      if (il_lowering_needed() &&
+          variable->storage_class == (a_storage_class)sc_static) {
+        /* A static variable referenced from a template is changed to an
+           external declaration and copied over. */
+        /* The name must be processed now because we want to use
+           the module id from the secondary translation unit. */
+        if (variable->source_corresp.is_class_member ||
+            variable->source_corresp.parent.namespace_ptr != NULL) {
+          mangle_member_variable_name(variable);
+        }  /* if */
+        externalize_source_correspondence(&variable->source_corresp,
+                                          /*is_variable=*/TRUE);
+        variable->storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+#endif /* DO_IL_LOWERING */
+    }  /* if */
+  }  /* if */
+}  /* process_variable_if_unneeded_template */
+
+
+static void process_routine_if_unneeded_non_template(a_routine_ptr routine)
+/*
+If we're processing the current secondary translation unit only to
+get exported templates, and the given routine is not a generated template,
+do any necessary processing, e.g., externalizing it if it is static.
+*/
+{
+  if (translation_unit_needed_only_for_exported_templates) {
+    if (!routine->is_template_function || routine->is_specialized) {
+      /* The function is not a generated template. */
+      /* The definition should have been eliminated at pop_scope
+         time (the definition will be put out when the file is compiled
+         as a primary file) unless the routine is inline. */
+      check_assertion(routine->assoc_scope == NULL_region_number ||
+                      routine->is_inline);
+#if DO_IL_LOWERING
+      if (il_lowering_needed() &&
+          routine->storage_class == (a_storage_class)sc_static) {
+        /* A static function referenced from a template is changed to an
+           external declaration and copied over. */
+        /* The name must be processed now because we want to use
+           the module id from the secondary translation unit. */
+        mangle_function_name(routine);
+        externalize_source_correspondence(&routine->source_corresp,
+                                          /*is_variable=*/FALSE);
+        if (routine->assoc_scope == NULL_region_number) {
+          routine->storage_class = (a_storage_class)sc_extern;
+        } else {
+          /* A static inline function becomes extern inline. */
+          check_assertion(routine->is_inline);
+          routine->storage_class = (a_storage_class)sc_unspecified;
+#if INSTANTIATE_EXTERN_INLINE
+          routine->suppress_inline_body = TRUE;
+#endif /* INSTANTIATE_EXTERN_INLINE */
+        }  /* if */
+      }  /* if */
+#endif /* DO_IL_LOWERING */
+    }  /* if */
+  }  /* if */
+}  /* process_routine_if_unneeded_non_template */
+
+
 static a_boolean prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
                                       a_boolean   *any_removed_function_bodies)
@@ -758,6 +835,11 @@ the lists.
        variable != NULL;
        variable = variable->next) {
     keep_on_list = TRUE;
+    /* If we're supposed to copy only generated templates, other variables
+       are made external (if necessary) and their definitions are
+       dropped (the definition will be put out when the file
+       is compiled as a primary file). */
+    process_variable_if_unneeded_template(variable);
     if (has_corresp(variable)) {
       /* This entry corresponds to something in the primary IL. */
       keep_on_list = FALSE;
@@ -781,37 +863,6 @@ the lists.
           a_template_instance_ptr corresp_instance =
                           corresp_sym->variant.static_data_member.instance_ptr;
           merge_instantiation_flags(instance, corresp_instance);
-        }  /* if */
-      }  /* if */
-    } else {
-      /* This variable has no correspondence in the primary file IL. */
-      if (translation_unit_needed_only_for_exported_templates) {
-        /* We're supposed to copy only generated templates.  Other variables
-           are made external (if necessary) and their definitions are
-           dropped (the definition will be put out when the file
-           is compiled as a primary file). */
-        if (!variable->is_template_static_data_member ||
-            variable->is_specialized) {
-          /* The variable is not a generated template. */
-          if (variable->init_kind != (an_init_kind)initk_none) {
-            clear_variable_initialization(variable);
-          }  /* if */
-#if DO_IL_LOWERING
-          if (il_lowering_needed() &&
-              variable->storage_class == (a_storage_class)sc_static) {
-            /* A static variable referenced from a template is changed to an
-               external declaration and copied over. */
-            /* The name must be processed now because we want to use
-               the module id from the secondary translation unit. */
-            if (variable->source_corresp.is_class_member ||
-                variable->source_corresp.parent.namespace_ptr != NULL) {
-              mangle_member_variable_name(variable);
-            }  /* if */
-            externalize_source_correspondence(&variable->source_corresp,
-                                              /*is_variable=*/TRUE);
-            variable->storage_class = (a_storage_class)sc_extern;
-          }  /* if */
-#endif /* DO_IL_LOWERING */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -856,6 +907,10 @@ the lists.
        routine != NULL;
        routine = routine->next) {
     keep_on_list = TRUE;
+    /* If we're supposed to copy only generated templates, other routines
+       are made external (if necessary) and their definitions are
+       dropped. */
+    process_routine_if_unneeded_non_template(routine);
     if (has_corresp(routine)) {
       a_routine_ptr corresp_routine =
                                  (a_routine_ptr)canonical_il_entry_of(routine);
@@ -898,41 +953,6 @@ the lists.
       }
     } else {
       /* This routine has no correspondence in the primary file IL. */
-      if (translation_unit_needed_only_for_exported_templates) {
-        /* We're supposed to copy only generated templates.  Other routines
-           are made external (if necessary) and their definitions are
-           dropped. */
-        if (!routine->is_template_function || routine->is_specialized) {
-          /* The function is not a generated template. */
-          /* The definition should have been eliminated at pop_scope
-             time (the definition will be put out when the file is compiled
-             as a primary file) unless the routine is inline. */
-          check_assertion(routine->assoc_scope == NULL_region_number ||
-                          routine->is_inline);
-#if DO_IL_LOWERING
-          if (il_lowering_needed() &&
-              routine->storage_class == (a_storage_class)sc_static) {
-            /* A static function referenced from a template is changed to an
-               external declaration and copied over. */
-            /* The name must be processed now because we want to use
-               the module id from the secondary translation unit. */
-            mangle_function_name(routine);
-            externalize_source_correspondence(&routine->source_corresp,
-                                              /*is_variable=*/FALSE);
-            if (routine->assoc_scope == NULL_region_number) {
-              routine->storage_class = (a_storage_class)sc_extern;
-            } else {
-              /* A static inline function becomes extern inline. */
-              check_assertion(routine->is_inline);
-              routine->storage_class = (a_storage_class)sc_unspecified;
-#if INSTANTIATE_EXTERN_INLINE
-              routine->suppress_inline_body = TRUE;
-#endif /* INSTANTIATE_EXTERN_INLINE */
-            }  /* if */
-          }  /* if */
-#endif /* DO_IL_LOWERING */
-        }  /* if */
-      }  /* if */
     }  /* if */
     if (keep_on_list) {
       prev_routine = routine;
