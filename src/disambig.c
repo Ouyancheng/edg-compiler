@@ -348,11 +348,11 @@ attribute list.  It simply requires that the parentheses be properly nested
       (void)get_token();
       /* Look for the closing parenthesis of the attribute. */
       prescan_until_closing_paren(state, flags);
-    }  /* if */
-    /* We should now be at the closing "))" of the attribute. */
-    if (curr_token == tok_rparen) {
-      cache_curr_token(&state->cache);
-      get_token_and_coalesce_if_identifier(flags);
+      /* We should now be at the closing "))" of the attribute. */
+      if (curr_token == tok_rparen) {
+        cache_curr_token(&state->cache);
+        get_token_and_coalesce_if_identifier(flags);
+      }  /* if */
     }  /* if */
     if (curr_token == tok_rparen) {
       cache_curr_token(&state->cache);
