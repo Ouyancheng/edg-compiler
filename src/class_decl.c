@@ -4243,7 +4243,7 @@ is not shared (i.e., where the pointer from a base class is not used).
        and only when the pointer is not shared, i.e., not already present in
        the data section of another base class, as indicated by the
        pointer_base_class field. */
-    if (bcp->direct && bcp->is_virtual && bcp->pointer_base_class == NULL) {
+    if (!*any_overflow && bcp->is_virtual && bcp->pointer_base_class == NULL) {
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
       /* Cfront puts out the pointers to virtual base class data sections in
          reverse declaration order.  This is emulated by a recursive call
@@ -4253,31 +4253,32 @@ is not shared (i.e., where the pointer from a base class is not used).
                                                     p_bit_offset, p_alignment,
                                                     any_overflow);
       }  /* if */
+      if (*any_overflow) break;
+#else
+      if (!bcp->direct) continue;
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-      if (!*any_overflow) {
 #if TARG_ALL_POINTERS_SAME_SIZE
-        /* All pointers are the same size. */
-        alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
-        size = (a_targ_size_t)TARG_SIZEOF_POINTER;
+      /* All pointers are the same size. */
+      alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
+      size = (a_targ_size_t)TARG_SIZEOF_POINTER;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
 ??=error set_offsets_for_virtual_base_class_pointers: different sized pointers
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
-        /* Adjust the current offset to ensure that the base class is
-           properly aligned. */
-        if (!do_alignment(p_byte_offset, p_bit_offset, alignment)) {
+      /* Adjust the current offset to ensure that the base class is
+         properly aligned. */
+      if (!do_alignment(p_byte_offset, p_bit_offset, alignment)) {
+        error(ec_struct_too_large);
+        *any_overflow = TRUE;
+      } else {
+        /* No error, so increment the offset. */
+        bcp->pointer_offset = *p_byte_offset;
+        if (*p_alignment < alignment) {
+          *p_alignment = alignment;
+        }  /* if */
+        if (!increment_field_offsets(p_byte_offset, p_bit_offset,
+                                     size, 0)) {
           error(ec_struct_too_large);
           *any_overflow = TRUE;
-        } else {
-          /* No error, so increment the offset. */
-          bcp->pointer_offset = *p_byte_offset;
-          if (*p_alignment < alignment) {
-            *p_alignment = alignment;
-          }  /* if */
-          if (!increment_field_offsets(p_byte_offset, p_bit_offset,
-                                       size, 0)) {
-            error(ec_struct_too_large);
-            *any_overflow = TRUE;
-          }  /* if */
         }  /* if */
       }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
