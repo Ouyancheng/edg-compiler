@@ -418,7 +418,7 @@ debug purposes.
     for (; i > 0; --i) fputs("  ", f_debug);
     ctsp = tp->variant.class_struct_union.extra_info;
     fprintf(f_debug, "byte offset for virtual function table ptr = %lu",
-                     ctsp->virtual_function_info_offset);
+                     (unsigned long)ctsp->virtual_function_info_offset);
     if (ctsp->virtual_function_info_base_class != NULL) {
       fputs(", in ", f_debug);
       db_name(&ctsp->virtual_function_info_base_class->type->source_corresp);
@@ -441,7 +441,8 @@ base class itself), for debug purposes.
   fputs("[[ virtual ", f_debug);
   db_access_control(preferred_derivation_of(bcp)->access);
   fprintf(f_debug, " base class %s", bcp->type->source_corresp.name);
-  fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
+  fprintf(f_debug, " (pointer offset = %lu",
+          (unsigned long)bcp->pointer_offset);
   if (bcp->pointer_base_class != NULL) {
     fprintf(f_debug, ", in %s",
             bcp->pointer_base_class->type->source_corresp.name);
@@ -475,7 +476,8 @@ Dump a direct base class entry, for debug purposes.
   db_access_control(direct_derivation_of(bcp)->access);
   fprintf(f_debug, " base class %s", tp->source_corresp.name);
   if (bcp->is_virtual) {
-    fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
+    fprintf(f_debug, " (pointer offset = %lu",
+            (unsigned long)bcp->pointer_offset);
     if (bcp->pointer_base_class != NULL) {
       fprintf(f_debug, ", in %s",
               bcp->pointer_base_class->type->source_corresp.name);
@@ -485,7 +487,7 @@ Dump a direct base class entry, for debug purposes.
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     if (complete_subobject) fputs(" (complete subobj)", f_debug);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-    fprintf(f_debug, " (offset = %lu)", bcp->offset);
+    fprintf(f_debug, " (offset = %lu)", (unsigned long)bcp->offset);
     for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
          bcp = bcp->next) {
@@ -535,7 +537,7 @@ Dump an indirect base class entry, for debug purposes.
 
   fputs("\n    ", f_debug);
   db_type_name(bcp->type);
-  fprintf(f_debug, ", at offset %lu", bcp->offset);
+  fprintf(f_debug, ", at offset %lu", (unsigned long)bcp->offset);
   if (bcp->is_virtual) fputs(", virtual", f_debug);
   if (bcp->ambiguous) fputs(", ambig", f_debug);
   bcdp = bcp->derivation;
@@ -585,7 +587,7 @@ Dump a virtual base class entry, for debug purposes.
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
   fprintf(f_debug, "[( virtual base class %s (offset = %lu",
-		   tp->source_corresp.name, bcp->offset);
+		   tp->source_corresp.name, (unsigned long)bcp->offset);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   if (bcp->data_section_base_class != NULL) {
     fprintf(f_debug, ", in %s",
@@ -781,7 +783,8 @@ Dump the contents of the indicated type entry, for debug purposes.
       if (tp->variant.array.is_variable_size_array) {
         fputs("**EXPR**", f_debug);
       } else {
-        fprintf(f_debug, "%lu", tp->variant.array.variant.number_of_elements);
+        fprintf(f_debug, "%lu",
+                (unsigned long)tp->variant.array.variant.number_of_elements);
       }  /* if */
       fputs("] of ", f_debug);
       db_abbreviated_type(tp->variant.array.element_type);
@@ -893,11 +896,11 @@ class_struct_union:
           db_all_virtual_function_override_lists(tp);
         }  /* if */
         fprintf(f_debug, "} : size = %lu, alignment = %d",
-                tp->size, tp->alignment);
+                (unsigned long)tp->size, tp->alignment);
         if (any_virtual_base_classes) {
           fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
-                              ctsp->size_without_virtual_base_classes,
-                              ctsp->alignment_without_virtual_base_classes);
+                  (unsigned long)ctsp->size_without_virtual_base_classes,
+                  ctsp->alignment_without_virtual_base_classes);
         }  /* if */
       }
       break;
