@@ -2294,14 +2294,19 @@ that do normal id lookup processing.
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation ||
         kind == (a_scope_kind)sck_template_instantiation) {
-      sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
-      if (sym == NULL && kind == (a_scope_kind)sck_template_instantiation) {
-        /* For template instantiation scopes, also look on the active list if
-           the symbol was not found on the inactive list.  This is done to
-           find symbols that are entered into the instantiation scope during
-           a prototype instantiation, such as symbols for friend classes
-           and friend functions. */
-        sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+      if (kind == (a_scope_kind)sck_class_reactivation &&
+          lookup_state->is_linkage_lookup) {
+        /* Skip class reactivation scopes for linkage lookups. */
+      } else {
+        sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
+        if (sym == NULL && kind == (a_scope_kind)sck_template_instantiation) {
+          /* For template instantiation scopes, also look on the active list if
+             the symbol was not found on the inactive list.  This is done to
+             find symbols that are entered into the instantiation scope during
+             a prototype instantiation, such as symbols for friend classes
+             and friend functions. */
+          sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+        }  /* if */
       }  /* if */
     } else if (kind == (a_scope_kind)sck_pragma) {
       /* We have found a pragma scope -- ignore symbols in this scope. */
