@@ -9253,7 +9253,7 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
   a_class_symbol_supplement_ptr  cssp;
   a_type_ptr                     class_type;
   a_symbol_ptr                   new_sym, del_sym;
-  a_boolean                      array_pass, is_overloaded, ambiguous;
+  a_boolean                      array_pass, ambiguous;
   an_opname_kind                 new_kind;
   an_opname_kind                 del_kind;
 
@@ -9299,6 +9299,8 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
     if (exceptions_enabled) {
       /* When exceptions are enabled, be sure each placement operator new
          has a corresponding operator delete. */
+      a_boolean  is_overloaded;
+
       if (new_sym != NULL) {
         a_symbol_ptr  sym = new_sym, ovl_sym, fund_sym;
         if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
