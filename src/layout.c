@@ -849,17 +849,25 @@ be redefined for various implementation strategies.  Lob points to the
 layout block used to track the layout of the current class.
 */
 {
-  a_class_type_supplement_ptr  ctsp;
+  a_class_type_supplement_ptr  ctsp, bcp_ctsp;
   a_targ_size_t                size;
   a_targ_alignment             alignment;
+  a_base_class_ptr             bcp;
 
   db_enter(4, "set_offset_for_virtual_function_info");
   ctsp = lob->class_type->variant.class_struct_union.extra_info;
   if (ctsp->virtual_function_count > 0) {
-    size = (a_targ_size_t)TARG_SIZEOF_VIRTUAL_FUNCTION_INFO;
-    alignment = (a_targ_alignment)TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
-    ctsp->virtual_function_info_offset =
+    if (ctsp->virtual_function_info_base_class == NULL) {
+      size = (a_targ_size_t)TARG_SIZEOF_VIRTUAL_FUNCTION_INFO;
+      alignment = (a_targ_alignment)TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
+      ctsp->virtual_function_info_offset =
                                set_offset_and_alignment (lob, size, alignment);
+    } else {
+      bcp = ctsp->virtual_function_info_base_class;
+      bcp_ctsp = bcp->type->variant.class_struct_union.extra_info;
+      ctsp->virtual_function_info_offset = 
+                          bcp->offset + bcp_ctsp->virtual_function_info_offset;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* set_offset_for_virtual_function_info */
