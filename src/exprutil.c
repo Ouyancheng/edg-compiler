@@ -272,6 +272,46 @@ recorded right away and no entry is created; NULL is returned.
 }  /* ref_entry */
 
 
+static void f_check_address_taken_ref(a_ref_entry_ptr rep)
+/*
+The reference entry pointed to by rep includes an address-taken
+reference.  Check to see if the symbol in the reference can have its
+address taken, and if not issue an error.
+*/
+{
+  a_symbol_ptr sym = rep->symbol;
+
+  /* Note that this routine is not the right place to set the address_taken
+     flag in variables and routines, because not all references that
+     are address-taken initially stay that way.  In "a[1] = 1", for
+     example, an error should be issued (here), but the address_taken
+     flag on the variable "a" is not set because the address-taken reference
+     gets changed later to a simple modification. */
+  /* The only possible error cases are variables, and only register variables
+     at that.  Functions can always have their addresses taken.  Also
+     static data members (they cannot be "register"). */
+  if (sym->kind == sk_variable) {
+    a_variable_ptr var = sym->variant.variable.ptr;
+    if (var->storage_class == (a_storage_class)sc_register) {
+      /* Error -- cannot take the address of a register variable. */
+      pos_error(ec_address_of_register_variable, &rep->position);
+      /* Turn the reference into an error reference so that the error will
+         be issued only once. */
+      rep->kind = (rep->kind & SRK_ALL_REFERENCES) | SRK_ERROR;
+    }  /* if */
+  }  /* if */
+}  /* f_check_address_taken_ref */
+
+
+/*
+If the reference entry pointed to by rep includes an address-taken
+reference, check to see if the symbol in the reference can have its address
+taken, and if not issue an error.
+*/
+#define check_address_taken_ref(rep)                                  \
+{ if ((rep)->kind & SRK_ADDRESS_TAKEN) f_check_address_taken_ref(rep); }
+
+
 void change_ref_kinds(a_ref_entry_ptr         ref_list,
                       a_symbol_reference_kind new_kind)
 /*
@@ -304,6 +344,9 @@ field.
       /* Set the new reference kind. Turn off all old bits, then turn on
          new bits.  SRK_REFERENCE remains set in all cases. */
       rep->kind = (old_kind & ~SRK_ALL_REFERENCES) | new_kind;
+      /* If the reference kinds include address-taken, check for errors
+         related to that. */
+      check_address_taken_ref(rep);
     }  /* if */
   }  /* for */
 }  /* change_ref_kinds */
@@ -357,21 +400,28 @@ The list is linked by the next_operand_ref field.
 */
 {
   a_ref_entry_ptr rep;
+  a_boolean       changed;
 
   for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
+    changed = FALSE;
     if (old_kind == SRK_REFERENCE) {
       /* Changing a generic reference (SRK_REFERENCE alone) to another
          kind of reference.  Check to see if the rep entry is generic. */
       if ((rep->kind & SRK_ALL_REFERENCES) == 0) {
         /* Yes.  Change the reference kind. */
         rep->kind |= new_kind;
+        changed = TRUE;
       }  /* if */
-    } else if (rep->kind & old_kind) {
+    } else if ((rep->kind & old_kind) != 0) {
       /* Changing a specific reference to another kind of reference.
          Turn off the old bits, then turn on the new bits.
          SRK_REFERENCE will stay set. */
       rep->kind = (rep->kind & ~SRK_ALL_REFERENCES) | new_kind;
+      changed = TRUE;
     }  /* if */
+    /* If the reference kinds include address-taken, check for errors
+       related to that. */
+    if (changed) check_address_taken_ref(rep);
   }  /* for */
 }  /* change_some_ref_kinds */
 
@@ -3352,115 +3402,61 @@ element, but it's not okay to actually reference it.
 }  /* using_lvalue */
 
 
+static a_boolean is_bit_field_expr(an_expr_node_ptr node,
+                                   a_boolean        is_lvalue)
+/*
+Return TRUE if the expression "node" is a bit field expression.  The expression
+is an lvalue if is_lvalue is TRUE.
+*/
+{
+  a_boolean             is_bit_field = FALSE;
+  an_expr_operator_kind op;
+  an_expr_node_ptr      expr1, expr2, expr3;
+
+  op = node->variant.operation.kind;
+  if (is_lvalue && op == (an_expr_operator_kind)eok_bit_field) {
+    is_bit_field = TRUE;
+  } else if (!is_lvalue &&
+             (op == (an_expr_operator_kind)eok_value_bit_field ||
+              op == (an_expr_operator_kind)eok_extract_bit_field)) {
+    is_bit_field = TRUE;
+  } else if (is_lvalue && op == (an_expr_operator_kind)eok_question) {
+    /* An lvalue-returning "?" operator; check its second and third
+       operands. */
+    expr1 = node->variant.operation.operands;
+    expr2 = expr1->next;
+    expr3 = expr2->next;
+    if (is_bit_field_expr(expr2, is_lvalue) ||
+        is_bit_field_expr(expr3, is_lvalue)) {
+      is_bit_field = TRUE;
+    }  /* if */
+  } else if (is_lvalue && op == (an_expr_operator_kind)eok_comma) {
+    /* An lvalue-returning "," operator; check its second operand. */
+    expr1 = node->variant.operation.operands;
+    expr2 = expr1->next;
+    if (is_bit_field_expr(expr2, is_lvalue)) {
+      is_bit_field = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_bit_field;
+}  /* is_bit_field_expr */
+
+
 a_boolean is_bit_field_operand(an_operand *operand)
 /*
 Return TRUE if the operand is a bit field.
 */
 {
-  a_boolean             is_bit_field = FALSE;
-  an_expr_node_ptr      node;
-  an_expr_operator_kind op;
+  a_boolean is_bit_field = FALSE;
 
   if (is_expression_operand(operand)) {
-    node = operand->variant.expression;
-    if (is_operation_node(node)) {
-      op = node->variant.operation.kind;
-      /* Note that the extra tests to classify the operand as an lvalue or
-         rvalue are probably unnecessary, but just to be sure we do them
-         anyway. */
-      if (is_an_lvalue(operand) &&
-          op == (an_expr_operator_kind)eok_bit_field) {
-        is_bit_field = TRUE;
-      } else if (is_an_rvalue(operand) &&
-                 (op == (an_expr_operator_kind)eok_value_bit_field ||
-                  op == (an_expr_operator_kind)eok_extract_bit_field)) {
-        is_bit_field = TRUE;
-      }  /* if */
+    if (is_bit_field_expr(operand->variant.expression,
+                          is_an_lvalue(operand))) {
+      is_bit_field = TRUE;
     }  /* if */
   }  /* if */
   return is_bit_field;
 }  /* is_bit_field_operand */
-
-
-static void set_variable_address_taken(a_variable_ptr    variable,
-                                       a_source_position *err_pos)
-/*
-Set the address_taken flag in the indicated variable.  Issue an error at
-*err_pos if the address of the variable cannot be taken.
-*/
-{
-  /* Check for taking the address of a register variable. */
-  /* In C++, taking the address of a register variable is allowed. */
-  if (variable->storage_class == (a_storage_class)sc_register &&
-      C_dialect != C_dialect_cplusplus) {
-    pos_error(ec_address_of_register_variable, err_pos);
-  } else {
-    /* The address is not "really" taken if it's not evaluated. */
-    if (curr_expr_is_potentially_evaluated()) {
-      /* Set the address_taken flag in the variable. */
-      variable->address_taken = TRUE;
-    }  /* if */
-  }  /* if */
-}  /* set_variable_address_taken */
-
-
-static void set_address_taken_on_variable_in_constant(
-                                                    a_constant_ptr    con,
-                                                    a_source_position *err_pos)
-/*
-The constant con is being used as the address in an lvalue whose address
-is being taken.  Set the address_taken flag in any variable underlying
-the constant.  Issue an error at *err_pos if the address of the variable
-cannot be taken.
-*/
-{      
-  if (con->kind == (a_constant_repr_kind)ck_address &&
-      con->variant.address.kind == (an_address_base_kind)abk_variable) {
-    /* The constant is the address of a variable. */
-    set_variable_address_taken(con->variant.address.variant.variable, err_pos);
-  }  /* if */
-}  /* set_address_taken_on_variable_in_constant */
-
-
-static void set_address_taken_on_variables_in_expr(an_expr_node_ptr  node,
-                                                   a_source_position *err_pos)
-/*
-node points to an expression for an lvalue whose address is being taken.
-Set the address_taken flag on the variable(s) in the lvalue.  Issue an error
-at *err_pos if the address of the variable cannot be taken.
-*/
-{
-  an_expr_operator_kind op;
-  an_expr_node_ptr      op1;
-
-  if (is_constant_node(node)) {
-    /* A constant (address) node. */
-    set_address_taken_on_variable_in_constant(node->variant.constant, err_pos);
-  } else if (is_variable_address_node(node)) {
-    /* A variable address node. */
-    set_variable_address_taken(node->variant.variable, err_pos);
-  } else if (is_operation_node(node)) {
-    /* An operation node. */
-    op = node->variant.operation.kind;
-    op1 = node->variant.operation.operands;
-    if (op == (an_expr_operator_kind)eok_comma) {
-      /* Comma operator.  The second operand gives the lvalue. */
-      set_address_taken_on_variables_in_expr(op1->next, err_pos);
-    } else if (op == (an_expr_operator_kind)eok_question) {
-      /* "?" operator.  The second and third operands give the lvalue.
-         Note that an expression like
-           &(i ? j : k)
-         (valid only in C++) takes the address of both j and k. */
-      set_address_taken_on_variables_in_expr(op1->next, err_pos);
-      set_address_taken_on_variables_in_expr(op1->next->next, err_pos);
-    } else if (op == (an_expr_operator_kind)eok_field ||
-               node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
-      /* Field selection, or assignment that returns an lvalue.  The first
-         operand gives the lvalue. */
-      set_address_taken_on_variables_in_expr(op1, err_pos);
-    }  /* if */
-  }  /* if */
-}  /* set_address_taken_on_variables_in_expr */
 
 #if ADDR_OF_BIT_FIELD_ALLOWED
 
@@ -3528,28 +3524,32 @@ See if it is okay to take the address of the bit field (as an extension),
 and if so, change *operand to indicate the address.  If not, return FALSE.
 */
 {
-  a_boolean             address_taken = FALSE;
-  an_expr_node_ptr      node;
-  a_field_ptr           field;
-  a_type_ptr            ptr_type;
+  a_boolean        address_taken = FALSE;
+  an_expr_node_ptr node;
+  a_field_ptr      field;
+  a_type_ptr       ptr_type;
 
   check_assertion(is_expression_operand(operand));
   node = operand->variant.expression;
-  check_assertion(is_operation_node(node) &&
-                  node->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_bit_field);
-  field = node->variant.operation.operands->next->variant.field;
-  if (is_bit_field_whose_address_can_be_taken(field, &ptr_type)) {
-    /* The bit field is one whose size and alignment are such that its address
-       can be taken. */
-    address_taken = TRUE;
-    pos_warning(ec_address_of_bit_field, &operand->position);
-    /* Change the field selection to a normal field selection. */
-    node->variant.operation.kind = (an_expr_operator_kind)eok_field;
-    /* Cast the field selection to the right pointer type. */
-    cast_node(&node, ptr_type, /*is_implicit_cast=*/TRUE, &operand->position);
-    /* Make an rvalue operand for the address. */
-    make_expression_operand(node, ptr_type, operand);
+  /* Only handle the simplest case, not something like "&(i ? x.a : x.b)".
+     A case like that could be handled, but it's tricky, since the
+     subexpressions could have different pointer types. */
+  if (is_operation_node(node) &&
+      node->variant.operation.kind == (an_expr_operator_kind)eok_bit_field) {
+    field = node->variant.operation.operands->next->variant.field;
+    if (is_bit_field_whose_address_can_be_taken(field, &ptr_type)) {
+      /* The bit field is one whose size and alignment are such that its
+         address can be taken. */
+      address_taken = TRUE;
+      pos_warning(ec_address_of_bit_field, &operand->position);
+      /* Change the field selection to a normal field selection. */
+      node->variant.operation.kind = (an_expr_operator_kind)eok_field;
+      /* Cast the field selection to the right pointer type. */
+      cast_node(&node, ptr_type, /*is_implicit_cast=*/TRUE,
+                &operand->position);
+      /* Make an rvalue operand for the address. */
+      make_expression_operand(node, ptr_type, operand);
+    }  /* if */
   }  /* if */
   return address_taken;
 }  /* take_address_of_bit_field */
@@ -3564,56 +3564,44 @@ operand isn't a register variable or a bit field, and set the
 address_taken flag.
 */
 {
-  an_expr_node_ptr node;
-  a_constant_ptr   con;
-  an_operand       orig_operand;
+  an_operand orig_operand;
 
-  orig_operand = *operand;
-#if CHECKING
-  if (!is_an_lvalue(operand) && operand->state != (an_operand_state)os_none) {
-    internal_error("take_address_of_lvalue: not an lvalue");
-  }  /* if */
-#endif /* CHECKING */
-  /* Check for taking the address of a bit field. */
-  if (is_bit_field_operand(operand)) {
-#if ADDR_OF_BIT_FIELD_ALLOWED
-    /* As an extension, the address of a bit field can be taken if it has
-       the same size and alignment as one of the integral types. */
-    if (!take_address_of_bit_field(operand)) {
-      error_in_operand(ec_address_of_bit_field, operand);
-    }  /* if */
-#else /* !ADDR_OF_BIT_FIELD_ALLOWED */
-    error_in_operand(ec_address_of_bit_field, operand);
-#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
+  if (is_error_operand(operand)) {
+    /* Leave an error operand alone. */
   } else {
-    /* Find the base variable and set its address_taken flag, and change the
-       type of the operand to pointer-to-operand. */
-    switch (operand->kind) {
-      case ok_error:
-        break;
-      case ok_expression:
-        node = operand->variant.expression;
-        operand->type = node->type;
-        set_address_taken_on_variables_in_expr(node, &operand->position);
-        break;
-      case ok_constant:
-        con = &operand->variant.constant;
-        operand->type = con->type;
-        set_address_taken_on_variable_in_constant(con, &operand->position);
-        break;
+    orig_operand = *operand;
 #if CHECKING
-      default:
-        internal_error("take_address_of_lvalue: bad operand kind");
+    if (!is_an_lvalue(operand)) {
+      internal_error("take_address_of_lvalue: not an lvalue");
+    }  /* if */
 #endif /* CHECKING */
-    }  /* switch */
+    /* Note that by and large this "transformation" consists of changing the
+       kind of the operand to "rvalue," since the value stays the same before
+       and after.  However, there are some error checks to be done. */
+    /* Check for taking the address of a bit field. */
+    if (is_bit_field_operand(operand)) {
+#if ADDR_OF_BIT_FIELD_ALLOWED
+      /* As an extension, the address of a bit field can be taken if it has
+         the same size and alignment as one of the integral types. */
+      if (!take_address_of_bit_field(operand)) {
+        error_in_operand(ec_address_of_bit_field, operand);
+      }  /* if */
+#else /* !ADDR_OF_BIT_FIELD_ALLOWED */
+      error_in_operand(ec_address_of_bit_field, operand);
+#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
+    } else {
+      /* Not a bit field reference. */
+      /* The operand becomes an rvalue. */
+      operand->state = (an_operand_state)os_rvalue;
+      operand->came_from_reference = FALSE;
+      operand->type = make_pointer_type(operand->type);
+      /* Change the kind in the reference entries to address-taken. */
+      /* This will check for taking the address of a register variable. */
+      change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
+    }  /* if */
+    /* Restore the original source position, etc. */
+    restore_operand_details(operand, &orig_operand);
   }  /* if */
-  /* The operand is now an rvalue. */
-  operand->state = (an_operand_state)os_rvalue;
-  operand->came_from_reference = FALSE;
-  /* Change the kind in the reference entries to address-taken. */
-  change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
-  /* Restore the original source position, etc. */
-  restore_operand_details(operand, &orig_operand);
 }  /* take_address_of_lvalue */
 
 
