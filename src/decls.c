@@ -1476,7 +1476,7 @@ by id_linkage.
         }  /* if */
       }  /* for */
       if (other_decl == NULL && function_template_seen &&
-          (guiding_decls_allowed || is_friend_decl)) {
+          guiding_decls_allowed) {
         /* We didn't find a match, but there was at least one function
            template.  See if it either provides a match with an
            existing instance of the template or if a new instance can
