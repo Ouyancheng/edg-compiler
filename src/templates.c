@@ -261,14 +261,20 @@ Instantiate the body of the template function associated with fiep.
 #endif /* if 0 */
   }  /* if */
 #endif /* CHECKING */
-  if (instantiation_mode == tim_local) {
-    /* Put out template function as internally linked. */
-    rout_ptr->storage_class = (a_storage_class)sc_static;
-    rout_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  /* Set the linkage and storage class. */
+  if (rout_sym->class_of_which_a_member != NULL) {
+    /* Member functions are handled in check_class_linkage. */
   } else {
-    rout_ptr->storage_class = (a_storage_class)sc_unspecified;
-    rout_ptr->source_corresp.name_linkage =
+    if (instantiation_mode == tim_local) {
+      /* Put out template function as internally linked. */
+      rout_ptr->storage_class = (a_storage_class)sc_static;
+      rout_ptr->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_internal;
+    } else {
+      rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+      rout_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    }  /* if */
   }  /* if */
   rout_type = rout_ptr->type;
   rtsp = rout_type->variant.routine.extra_info;
