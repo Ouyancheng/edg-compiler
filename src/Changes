@@ -1,5 +1,21 @@
 Version 2.21
 
+12/1/93  New IL representation for virtual base class derivations
+
+The derivations of virtual base classes are now represented in a
+way that indicates all the paths to a virtual base class (and not just
+the preferred one).  This solves some problems in very convoluted
+cases involving differing access to virtual base classes along different
+paths to the virtual base class.
+
+A side effect of the change is that casts of pointers to base or
+derived classes will now go directly to a virtual base class in a
+single step rather than by way of several casts through the intervening
+classes.
+
+Note that this change has no effect on those who use IL lowering,
+since IL lowering erases this information.
+
 12/1/93  Name mangling for unnamed enums
 
 There is now a mangled name representation (_Enn) for unnamed enums.
