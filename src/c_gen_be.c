@@ -4830,15 +4830,8 @@ interleaved with the variables.
       }  /* for */
     }  /* if */
     check_membership_info(var_ptr, scope);
-    if (il_header.source_language == sl_Cplusplus &&
-        is_vla_type(var_ptr->type)) {
-      /* The variable has a variable length array type.  Do not put it out
-         now; it will be put out where the corresponding
-         stmk_alloc_vla_variable statement appears. */
-    } else {
-      dump_variable_decl(var_ptr, dump_vars_without_initializers,
-                         dump_initializers);
-    }  /* if */
+    dump_variable_decl(var_ptr, dump_vars_without_initializers,
+                       dump_initializers);
   }  /* for */
   if (interleave_asm_decls) {
     /* Put out asm declarations (if any) that follow all variable
@@ -4852,8 +4845,15 @@ interleaved with the variables.
   for (var_ptr = scope->nonstatic_variables;
        var_ptr != NULL;
        var_ptr = var_ptr->next) {
-    dump_variable_decl(var_ptr, dump_vars_without_initializers,
-                       dump_initializers);
+    if (il_header.source_language != sl_Cplusplus &&
+        is_vla_type(var_ptr->type)) {
+      /* The variable has a variable length array type.  Do not put it out
+         now; it will be put out where the corresponding
+         stmk_alloc_vla_variable statement appears. */
+    } else {
+      dump_variable_decl(var_ptr, dump_vars_without_initializers,
+                         dump_initializers);
+    }  /* if */
   }  /* for */
 }  /* dump_scope_variables */
 
