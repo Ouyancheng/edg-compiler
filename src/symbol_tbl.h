@@ -352,7 +352,7 @@ typedef struct a_symbol {
 
 typedef struct a_symbol_header {
   /* This is the container for information that the symbol table
-     management routines use in manipulating symbols that have
+     management routines use in manipulating a list of symbols that have
      the same name. */
   a_symbol_header_ptr
 		next;
@@ -390,6 +390,10 @@ typedef struct a_symbol_locator {
 		source_position;
 			/* The source position to be used when this symbol
 			   is entered. */
+  a_symbol_ptr	qualified_name_symbol;
+			/* If the identifier was actually a C++ qualified-name
+			   (e.g., "A::x"), this points to the symbol for the
+			   qualified name.  Otherwise, it is NULL. */
 } a_symbol_locator;
 
 #define SYMBOL_TABLE_SIZE 599
@@ -413,12 +417,7 @@ EXTERN a_symbol_ptr
 EXTERN a_symbol_locator
 		locator_for_curr_id;
 			/* If curr_token == tok_identifier, this is information
-			   necessary for a later call to enter_symbol to enter
-			   this identifier. */
-EXTERN a_symbol_ptr
-		qualified_name_symbol;
-			/* If curr_token == tok_qualified_name, this points
-			   to the symbol for the qualified name. */
+			   fully specifying the identifier. */
 
 /*
 Entries on a list of array types whose sizes must be fixed up.  These
@@ -679,6 +678,7 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 #define set_to_error_locator(loc)                                     \
 { (loc).symbol_header = NULL;                                         \
   copy_source_position(error_position, (loc).source_position);        \
+  (loc).qualified_name_symbol = NULL;                                 \
 }  /* set_to_error_locator */
 
 /* Test a locator to see if it is an error locator. */

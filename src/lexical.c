@@ -3314,6 +3314,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          even if the identifier is not looked up in the symbol table. */
       copy_source_position(pos_curr_token,
                            locator_for_curr_id.source_position);
+      locator_for_curr_id.qualified_name_symbol = NULL;
       if ((fetch_pp_tokens || in_preprocessing_directive) && !expand_macros) {
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
@@ -3822,10 +3823,10 @@ qualified name of the form
    etc.
 
 If a qualified name is next, scan it and look up the qualified name.
-Set qualified_name_symbol to point to the symbol for the qualified
-identifier, set curr_token to tok_qualified_name, and return TRUE.
-This is allowed only in C++ mode.  If a qualified name is not next,
-leave the current token and return FALSE.
+Set qualified_name_symbol in locator_for_curr_id to point to the symbol
+for the qualified identifier and return TRUE.  This is allowed only
+in C++ mode.  If a qualified name is not next, leave qualified_name_symbol
+set to NULL and return FALSE.
 */
 {
   a_boolean      is_qualified_name = FALSE;
@@ -3866,17 +3867,13 @@ leave the current token and return FALSE.
             syntax_error(ec_exp_identifier);
           } else {
             /* Search for the identifier in the given scope. */
+            /* First, search the list of inactive class members. */
             inactive_symbol_list =
                         inactive_symbol_list_from_locator(locator_for_curr_id);
             for (name_symbol = inactive_symbol_list;
                  name_symbol != NULL;
                  name_symbol = name_symbol->next) {
-              if (name_symbol->decl_scope == class_scope) {
-                is_qualified_name = TRUE;
-                curr_token = tok_qualified_name;
-                qualified_name_symbol = name_symbol;
-                goto found_name;
-              }  /* if */
+              if (name_symbol->decl_scope == class_scope) goto found_name;
             }  /* for */
             /* The name was not found on the inactive symbols list.
                Try the active symbols list.  This would come up when a
@@ -3885,15 +3882,14 @@ leave the current token and return FALSE.
             for (name_symbol = symbol_list_for_curr_id;
                  name_symbol != NULL;
                  name_symbol = name_symbol->next) {
-              if (name_symbol->decl_scope == class_scope) {
-                is_qualified_name = TRUE;
-                curr_token = tok_qualified_name;
-                qualified_name_symbol = name_symbol;
-                goto found_name;
-              }  /* if */
+              if (name_symbol->decl_scope == class_scope) goto found_name;
             }  /* for */
             internal_error("get_qualified_name: name not found unimplemented");
-found_name:;
+found_name:
+            is_qualified_name = TRUE;
+            locator_for_curr_id.qualified_name_symbol = name_symbol;
+            /* Clear the symbol list to be neat. */
+            symbol_list_for_curr_id = NULL;
           }  /* if */
         }  /* if */
       }  /* if */
