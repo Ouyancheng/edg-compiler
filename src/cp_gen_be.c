@@ -3096,6 +3096,9 @@ declaration.  More precisely, put out one "template<>" for each parent
 class that is a template, and one for the entity itself if it is a template.
 */
 {
+  /* If template classes are put out as specializations, the "template<>"
+     is not put out for them. */
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   while (scp->is_class_member) {
     a_type_ptr parent_class = scp->parent.class_type;
     if (parent_class->variant.class_struct_union.extra_info->
@@ -3105,6 +3108,7 @@ class that is a template, and one for the entity itself if it is a template.
     }  /* if */
     scp = &parent_class->source_corresp;
   }  /* while */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* And one for the entity itself if it is a template. */
   if (template_arg_list != NULL) write_tok_str("template<> ");
 }  /* gen_template_specialization_header */

@@ -1,5 +1,14 @@
 Version 2.37
 
+7/8/97    C++-generating back end: extra "template<>" eliminated
+
+When the front end is configured to use the C++-generating back end,
+and source sequence entries for instantiations are enabled by setting
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS to TRUE, a
+non-template member function or static data member was put out with
+an extra "template<>" at the beginning.  Now fixed.
+
 7/7/97    cfront compatibility: local type in block-extern declaration
 
 In cfront compatibility mode a local type is now permitted in the
