@@ -739,14 +739,14 @@ offset for the field.
      field_prefix and the (possibly mangled) base class name. */
   prefix_length = strlen(field_prefix);
   /* Determine how long the base class name is. */
-  name_length = mangled_basic_class_name(base_class_type, (char *)NULL);
+  name_length = mangled_class_name(base_class_type, (char *)NULL);
   /* Allocate space for the whole name. */
   alloc_length = prefix_length + name_length + 1;
   name_ptr = alloc_lowered_name_string(alloc_length);
   /* Copy in the prefix. */
   (void)memcpy(name_ptr, field_prefix, size_t_arg(prefix_length));
   /* Store the base class name. */
-  (void)mangled_basic_class_name(base_class_type, name_ptr+prefix_length);
+  (void)mangled_class_name(base_class_type, name_ptr+prefix_length);
   name_ptr[prefix_length+name_length] = '\0';
   /* Create the field. */
   add_field(name_ptr, field_type, field_offset, struct_type);
@@ -3506,13 +3506,13 @@ this routine to do a relatively simple copy of the all the fields.
     name_ptr = class_type->source_corresp.name;
     if (name_ptr != NULL) {
 #define SUB_PREFIX "_"
-      name_length = mangled_basic_class_name(class_type, (char *)NULL) +
+      name_length = mangled_class_name(class_type, (char *)NULL) +
                     sizeof(SUB_PREFIX) - 1;
       alloc_length = name_length + 1;
       new_name_ptr = alloc_lowered_name_string(alloc_length);
       (void)memcpy(new_name_ptr, SUB_PREFIX, size_t_arg(sizeof(SUB_PREFIX)-1));
-      (void)mangled_basic_class_name(class_type,
-                                     new_name_ptr + (sizeof(SUB_PREFIX)-1));
+      (void)mangled_class_name(class_type,
+                               new_name_ptr + (sizeof(SUB_PREFIX)-1));
       new_name_ptr[name_length] = '\0';
       subobject_type->source_corresp.name = new_name_ptr;
 #undef SUB_PREFIX
