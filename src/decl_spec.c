@@ -2712,7 +2712,7 @@ Returns TRUE if there is an error in the specifiers.
 
             /* The Microsoft compiler appears simply to ignore the
                decl-modifiers that precede the linkage specifier:
-                 __declspec(illexport) extern "C" void f();
+                 __declspec(dllexport) extern "C" void f();
                  extern "C" void f();      // MSVC++ issues no error
                Therefore, we throw away any decl-modifiers that were
                accumulated to this point. */
