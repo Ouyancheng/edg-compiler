@@ -1171,37 +1171,38 @@ start of a sequence of declarations.
                                                  last_source_sequence_entry;
       }  /* if */
     }  /* if */
-  }  /* if */
-  if (prev_ssep != NULL) {
-    /* Back up over empty source sequence entries (they may be deleted later)
-       and those that represent pragmas. */
-    for(;;) {
-      an_il_entry_kind  kind = ss_entry_kind(prev_ssep);
-      if (kind == iek_none || kind == iek_pragma) {
-        prev_ssep = prev_ssep->prev;
-      } else if (kind == iek_src_seq_sublist &&
-                 ss_entry_kind(assoc_sublist_of(prev_ssep)->
+    if (prev_ssep != NULL) {
+      /* Back up over empty source sequence entries (they may be deleted later)
+         and those that represent pragmas. */
+      for(;;) {
+        an_il_entry_kind  kind = ss_entry_kind(prev_ssep);
+        if (kind == iek_none || kind == iek_pragma) {
+          prev_ssep = prev_ssep->prev;
+        } else if (kind == iek_src_seq_sublist &&
+                   ss_entry_kind(assoc_sublist_of(prev_ssep)->
                                          source_sequence_list) == iek_pragma) {
-        /* A sublist the first entry of which is a pragma.  Keep backing up. */
+          /* A sublist the first entry of which is a pragma -- keep backing
+             up. */
 #if CHECKING
-        /* This assumes the sublist was created for one or more global-scope
-           pragmas -- and that nothing else is on its list.  Confirm the
-           assumption. */
-        ssep = assoc_sublist_of(prev_ssep)->source_sequence_list;
-        for (; ssep != NULL; ssep = ssep->next) {
-          a_pragma_ptr  pp;
-          check_assertion(ss_entry_kind(ssep) == iek_pragma);
-          pp = (a_pragma_ptr)ssep->entity.ptr;
-          check_assertion(pp->entity.ptr == NULL);
-        }  /* for */
+          /* We are assuming that the sublist was created for one or more
+             global-scope pragmas -- and that nothing else is on its list.
+             Confirm the assumption. */
+          ssep = assoc_sublist_of(prev_ssep)->source_sequence_list;
+          for (; ssep != NULL; ssep = ssep->next) {
+            a_pragma_ptr  pp;
+            check_assertion(ss_entry_kind(ssep) == iek_pragma);
+            pp = (a_pragma_ptr)ssep->entity.ptr;
+            check_assertion(pp->entity.ptr == NULL);
+          }  /* for */
 #endif /* CHECKING */
-        prev_ssep = prev_ssep->prev;
-      } else {
-        /* We've found a source sequence entry that can help us find the
-           source sequence entry to point to from the decl statement. */
-        break;
-      }  /* if */
-    }  /* for */
+          prev_ssep = prev_ssep->prev;
+        } else {
+          /* We've found a source sequence entry that can help us find the
+             source sequence entry to point to from the decl statement. */
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   /* Now process the declaration. */
   local_declaration();
