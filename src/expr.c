@@ -12228,7 +12228,7 @@ a thrown exception) if that is appropriate.
     required_type = first_field->type;
     (*levels_down)++;
   }  /* while */
-  if (is_class_struct_union(required_type)) {
+  if (is_class_struct_union_type(required_type)) {
     /* The entity being initialized has a class type. */
     /* Build a dynamic initialization entry to describe the initialization. */
     prep_elision_initializer_operand(&result, required_type,
