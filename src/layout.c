@@ -265,6 +265,29 @@ type entry for a class, struct, or union when layout processing commences.
   db_exit();
 } /* pack_pragma */
 
+
+static void adjust_alignment_for_packing(a_targ_alignment *alignment)
+/*
+The currently operative "pack alignment" (if any) serves as a maximum
+alignment for any nonstatic data member of the class being laid out.  Be
+sure that *alignment is no greater than the current pack alignment.
+*/
+{
+  if (curr_max_member_alignment > 0) {
+    /* A #pragma pack directive has set the current packing alignment. */
+    if (curr_max_member_alignment < *alignment) {
+      /* Reduce the alignment the the current maximum. */
+      *alignment = curr_max_member_alignment;
+    }  /* if */
+  } else if (default_max_member_alignment > 0) {
+    /* A command line option has set the current packing alignment. */
+    if (default_max_member_alignment < *alignment) {
+      /* Reduce the alignment the the current maximum. */
+      *alignment = default_max_member_alignment;
+    } /* if */
+  } /* if */
+} /* adjust_alignment_for_packing */
+
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static void check_enum_type_for_bit_field(a_type_ptr    bit_field_type,
@@ -749,6 +772,10 @@ aligned according to container_alignment.
     }  /* if */
   }  /* if */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Adjust the container alignment for packing, if required. */
+  adjust_alignment_for_packing(&container_alignment);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
      must be. */
@@ -806,6 +833,10 @@ if there's no overflow TRUE is returned.
     } else {
       /* Do any necessary alignment for a normal field. */
       field_alignment = field_type->alignment;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      /* Adjust the field's alignment for packing, if required. */
+      adjust_alignment_for_packing(&field_alignment);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
     }  /* if */
     if (!overflow) {
@@ -1061,6 +1092,10 @@ points to the layout block used to track the layout of the current class.
     if (ctsp->virtual_function_info_base_class == NULL) {
       size = (a_targ_size_t)targ_sizeof_virtual_function_info;
       alignment = (a_targ_alignment)targ_alignof_virtual_function_info;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      /* Adjust the vtbl pointer's alignment for packing, if required. */
+      adjust_alignment_for_packing(&alignment);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       ctsp->virtual_function_info_offset =
                                set_offset_and_alignment (lob, size, alignment);
     } else {
@@ -1102,6 +1137,11 @@ bcp.
 #if TARG_ALL_POINTERS_SAME_SIZE
   /* All pointers are the same size. */
   alignment = (a_targ_alignment)targ_alignof_pointer;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Adjust the virtual base class pointer's alignment for packing, if
+     required. */
+  adjust_alignment_for_packing(&alignment);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   size = (a_targ_size_t)targ_sizeof_pointer;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
  #error pointer_offset_for_virtual_base_class: different sized pointers
