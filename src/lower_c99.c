@@ -1268,14 +1268,19 @@ second parameter.
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU C statement expression, ({...}). */
-      { a_boolean saved_inlining_enabled = inlining_enabled;
+      {
+#if MINIMAL_INLINING
+        a_boolean saved_inlining_enabled = inlining_enabled;
         /* Turn off inlining, because the last statement creates a
            value that gets returned, and it needs to be an expression
            statement to get returned (inlining would turn it into a
            block statement). */
         inlining_enabled = FALSE;
+#endif /* MINIMAL_INLINING */
         lower_c99_statement(expr->variant.statement);
+#if MINIMAL_INLINING
         inlining_enabled = saved_inlining_enabled;
+#endif /* MINIMAL_INLINING */
       }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
