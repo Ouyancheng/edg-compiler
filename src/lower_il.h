@@ -199,19 +199,24 @@ typedef struct a_context {
   a_context_ptr parent;	/* Parent context. */
   a_scope_ptr	scope;	/* Scope associated with this context. */
   a_byte_boolean
-		dependent_statement;
-			/* In cfront compatibility mode, scopes are not
-			   implicitly added to dependent statements.  However,
-			   the dependent statements must still be treated as
-			   contexts because any objects constructed
-			   within a dependent statement (i.e., conditionally)
-			   must be destroyed at the end of the dependent
-			   statement rather than at the end of the scope.  If
-			   this flag is TRUE, this context is for a dependent
-			   statement; the scope field (above) indicates the
-			   nearest enclosing scope.  Also used for the "if"
-			   in first-time test code for initialization of
-			   local statics. */
+		subscope_region;
+			/* TRUE if this context is for a region that is
+			   not a full scope.  Used for dependent statements
+			   in cfront compatibility mode, for first-time
+			   test code for local static variables, and for
+			   some expressions.  In all of those cases, any
+			   temporary constructed within the region must
+			   be destroyed at the end of the region.  The
+			   scope field indicates the nearest enclosing
+			   scope.  Note that if labels and gotos are
+			   permitted within the region, all labels must
+			   appear before all gotos. */
+  an_expr_node_ptr
+		assoc_expr;
+			/* If non-NULL (only when subscope_region is TRUE),
+			   this points to an expression that is the entire
+			   subscope region, e.g., the test expression in
+			   an stmk_for statement. */
   a_switch_clause_ptr
 		assoc_switch_clause;
 			/* Points to the current clause of a switch statement
@@ -224,6 +229,12 @@ typedef struct a_context {
 			/* The stmk_label statement most recently processed
 			   in (this clause of) the block, or NULL if none
 			   has been processed. */
+  a_byte_boolean
+		any_conditional_destruction_var_initializations_deferred;
+			/* TRUE if one or more initializations of
+			   flag variables for conditional destructions were
+			   deferred by add_conditional_destruction_temp.
+			   Only happens when assoc_expr is non-NULL. */
 } a_context;
 EXTERN a_context_ptr
 		curr_context;
@@ -373,10 +384,6 @@ extern a_boolean virtual_dtor_should_be_generated_for_class(
                                                         a_type_ptr class_type);
 
 extern a_required_destructor_call_ptr alloc_required_destructor_call(void);
-
-extern void gen_and_remove_required_destructor_calls_up_to(
-                               a_required_destructor_call_ptr stop_before,
-                               an_insert_location_ptr         insert_location);
 
 extern void gen_required_destructor_calls(
                                    a_context_ptr          outer_context,

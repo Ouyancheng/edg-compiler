@@ -113,6 +113,10 @@ static a_variable_ptr
 
 
 /* Declarations needed because of forward references: */
+static void change_node_to_operation(an_expr_node_ptr      node,
+                                     an_expr_operator_kind op,
+                                     a_type_ptr            type,
+                                     an_expr_node_ptr      operand);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_type(a_type_ptr type);
 static void lower_variable(a_variable_ptr variable);
@@ -125,6 +129,7 @@ static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_statement(a_statement_ptr statement);
 static void lower_scope(a_scope_ptr scope);
 static a_boolean any_required_destructor_calls(a_context_ptr outer_context);
+static void gen_expr_conditional_destruction_var_initializations(void);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
                                                      a_variable_ptr *temp_var);
@@ -187,6 +192,52 @@ expression node.
 }  /* set_expr_insert_location */
 
 
+static void set_after_expr_insert_location(an_expr_node_ptr   node,
+                                           an_insert_location *insert_location)
+/*
+Set *insert_location to indicate an insert location after the indicated
+expression node.  This can only be done if the expression has type void
+or an integral type.  In the integral case, this routine changes the
+expression tree, so this routine should only be called when it is known
+that an insertion will be made.
+*/
+{
+  a_type_ptr       node_type;
+  a_variable_ptr   temp_var;
+  an_expr_node_ptr assign_node, node_copy, temp_node;
+
+  clear_insert_location(insert_location, TRUE);
+  insert_location->variant.expr.ptr = node;
+  insert_location->variant.expr.insert_before = FALSE;
+  node_type = node->type;
+  if (node->result_is_not_used || is_void_type(node_type)) {
+    /* The expression is a void expression.  Nothing special is required. */
+    /* Also true if the expression result is not used. */
+  } else {
+    check_assertion(is_integral_type(node_type));
+    /* The expression has an integral type.  Rewrite it to store the value
+       in a temporary, then pick it up later, e.g.,
+         x
+       is rewritten as
+         ((temp = x) , temp)
+       and the insert point is set to insert after the assignment. */
+    temp_var = make_lowered_temporary(node_type);
+    /* Make a copy of the original node, then assign it to the temporary. */
+    node_copy = copy_node(node);
+    temp_node = var_lvalue_expr(temp_var);
+    temp_node->next = node_copy;
+    assign_node = make_operator_node((an_expr_operator_kind)eok_iassign,
+                                     node_type, temp_node);
+    /* Change the original node to a comma expression. */
+    assign_node->next = var_rvalue_expr(temp_var);
+    change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
+                             node_type, assign_node);
+    /* The insert point is after the assignment. */
+    insert_location->variant.expr.ptr = assign_node;
+  }  /* if */
+}  /* set_after_expr_insert_location */
+
+
 a_required_destructor_call_ptr alloc_required_destructor_call(void)
 /*
 Allocate a required destructor call entry, set its fields to default values,
@@ -238,11 +289,11 @@ available list.
 
 void push_context(a_context   *context,
                   a_scope_ptr scope,
-                  a_boolean   dependent_statement)
+                  a_boolean   subscope_region)
 /*
 Add the context entry "context" to the context stack.  The associated scope
-is "scope".  If this context is for a dependent statement, dependent_statement
-is TRUE.
+is "scope".  If this context is for a region smaller than a scope,
+subscope_region is TRUE.
 */
 {
   a_context_ptr parent_context = curr_context;
@@ -253,12 +304,14 @@ is TRUE.
   /* Set the fields. */
   context->parent = parent_context;
   context->scope = scope;
-  context->dependent_statement = dependent_statement;
-  context->required_destructor_calls = NULL;
+  context->subscope_region = subscope_region;
+  context->assoc_expr = NULL;
   context->assoc_switch_clause = NULL;
+  context->required_destructor_calls = NULL;
   context->latest_label_statement_processed = NULL;
+  context->any_conditional_destruction_var_initializations_deferred = FALSE;
   /* Keep track of the innermost function context/scope. */
-  if (!dependent_statement && scope->kind == (a_scope_kind)sck_function) {
+  if (!subscope_region && scope->kind == (a_scope_kind)sck_function) {
     nearest_function_context = curr_context;
     nearest_function_scope = scope;
     nearest_this_param_variable = scope->variant.routine.this_param_variable;
@@ -274,6 +327,12 @@ Pop an entry off the context stack.
   a_context_ptr cp, parent_context;
 
   parent_context = curr_context->parent;
+#if CHECKING
+  if (curr_context->any_conditional_destruction_var_initializations_deferred) {
+    /* Forgot to call gen_expr_conditional_destruction_var_initializations. */
+    internal_error("pop_context: deferred conditional destr var inits");
+  }  /* if */
+#endif /* CHECKING */
   /* Free any required destructor call entries. */
   free_required_destructor_call_list(curr_context->required_destructor_calls);
   /* Keep track of the innermost function context/scope. */
@@ -282,7 +341,7 @@ Pop an entry off the context stack.
     nearest_function_scope = NULL;
     nearest_this_param_variable = NULL;
     for (cp = parent_context; cp != NULL; cp = cp->parent) {
-      if (!cp->dependent_statement &&
+      if (!cp->subscope_region &&
           cp->scope->kind == (a_scope_kind)sck_function) {
         nearest_function_context = cp;
         nearest_function_scope = cp->scope;
@@ -1856,8 +1915,9 @@ will be after the expression added.
   change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
                            second_operand->type, first_operand);
   /* Change the insert location so that it inserts after the
-     comma operator just created. */
+     expression just added. */
   insert_location->variant.expr.insert_before = FALSE;
+  insert_location->variant.expr.ptr = inserted_expr;
 }  /* insert_expr */
 
 
@@ -3962,6 +4022,41 @@ Do IL lowering of the indicated asm entry and everything under it.
 }  /* lower_asm_entry */
 
 
+static void lower_full_expr(an_expr_node_ptr expr,
+                            a_boolean        repeated_in_loop)
+/*
+Lower a "full" expression, i.e., one that is attached directly to a
+statement rather than part of some larger expression tree.
+The expression is not an lvalue.  repeated_in_loop is TRUE if the expression
+is part of a loop and it is re-evaluated each time around the loop.
+*/
+{
+  a_context          context;
+  an_insert_location insert_location;
+
+  if (repeated_in_loop) {
+    /* The expression is re-evaluated each time around a loop, so any
+       temporary constructed therein should also be destroyed therein.
+       Push a context for the expression. */
+    push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
+    curr_context->assoc_expr = expr;
+  }  /* if */
+  lower_expr(expr, /*is_lvalue=*/FALSE);
+  if (repeated_in_loop) {
+    if (any_required_destructor_calls(curr_context)) {
+      /* Generate initialization assignments for any flags needed for
+         conditional destruction. */
+      gen_expr_conditional_destruction_var_initializations();
+      /* Generate any required destructor calls for temporaries built within
+         the expression. */
+      set_after_expr_insert_location(expr, &insert_location);
+      gen_required_destructor_calls(curr_context, &insert_location);
+    }  /* if */
+    pop_context();
+  }  /* if */
+}  /* lower_full_expr */
+
+
 void lower_expr_list(an_expr_node_ptr expr_list,
                      unsigned int     is_lvalue_mask,
                      a_boolean        is_conditional_operator)
@@ -5743,36 +5838,6 @@ is inserted at *insert_location and *insert_location is updated.
 }  /* gen_one_required_destructor_call */
 
 
-void gen_and_remove_required_destructor_calls_up_to(
-                                a_required_destructor_call_ptr stop_before,
-                                an_insert_location_ptr         insert_location)
-/*
-Generate code for and then remove the required destructor call entries on the
-list for the current context, up to before the entry stop_before.  stop_before
-can be NULL to indicate the entire list.  The code is inserted at
-*insert_location and *insert_location is updated.
-*/
-{
-  a_required_destructor_call_ptr rdcp, rdcp_next;
-
-  /* Go through the list of required destructor calls, stopping when the
-     indicated entry is reached.  Recall that the list is built by adding
-     to its front, so the entries at the front are the later entries,
-     those we want to process and remove. */
-  for (rdcp = curr_context->required_destructor_calls;
-       rdcp != stop_before;
-       rdcp = rdcp_next) {
-    rdcp_next = rdcp->next;
-    gen_one_required_destructor_call(rdcp, insert_location);
-    /* Free the one entry. */
-    rdcp->next = NULL;
-    free_required_destructor_call_list(rdcp);    
-  }  /* for */
-  /* Remove the entries from the list. */
-  curr_context->required_destructor_calls = stop_before;
-}  /* gen_and_remove_required_destructor_calls_up_to */
-
-
 void gen_required_destructor_calls(a_context_ptr          outer_context,
                                    an_insert_location_ptr insert_location)
 /*
@@ -5829,6 +5894,47 @@ done:
 }  /* any_required_destructor_calls */
 
 
+static void gen_expr_conditional_destruction_var_initializations(void)
+/*
+The current context is a subscope region for a single expression.
+Generate any initialization assignments required to give initial (default)
+values to any flags used within the expression to track whether or not
+conditional destruction of temporaries is required.
+*/
+{
+  an_expr_node_ptr               node = curr_context->assoc_expr;
+  an_insert_location             insert_location;
+  a_required_destructor_call_ptr rdcp;
+
+  /* Note that this routine only handles initializations that must be inserted
+     into an expression tree.  All others are handled by
+     add_conditional_destruction_temp. */
+  check_assertion(node != NULL);
+  if (curr_context->any_conditional_destruction_var_initializations_deferred) {
+    /* Some initializations are needed.  Find them. */
+    set_expr_insert_location(node, &insert_location);
+    for (rdcp = curr_context->required_destructor_calls;
+         rdcp != NULL;
+         rdcp = rdcp->next) {
+      if (rdcp->label_marker == NULL) {
+        a_variable_ptr var = rdcp->first_time_test_var;
+        if (var != NULL) {
+          /* Make "flag_var = 0" and insert it. */
+          (void)insert_var_assignment_statement(
+                                            var,
+                                            (an_expr_operator_kind)eok_iassign,
+                                            node_for_integer_constant(0L,
+                                                      (an_integer_kind)ik_int),
+                                            &insert_location);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    curr_context->any_conditional_destruction_var_initializations_deferred =
+                                                                         FALSE;
+  }  /* if */
+}  /* gen_expr_conditional_destruction_var_initializations */
+
+
 static a_boolean block_is_on_parent_list(a_statement_ptr block,
                                          a_statement_ptr block_list)
 /*
@@ -5874,17 +5980,15 @@ Generate any destructor calls required preceding the indicated goto statement.
   outermost_context_being_exited = NULL;
   for (;; goto_context = goto_context->parent) {
     goto_block = goto_context->scope->assoc_block;
-    if (goto_context->dependent_statement) {
-      /* The context for the goto is a dependent-statement context, i.e.,
-         one that does not have an associated scope.  This comes up for
-         first-time test code for static initializations and in cfront
-         compatibility mode.
+    if (goto_context->subscope_region) {
+      /* The context for the goto is a subscope region context, i.e.,
+         one that is not a full scope.  This comes up for first-time
+         test code for static initializations and in cfront compatibility mode.
          We want to answer the question "does the label appear inside of this
          dependent-statement context?"  It does if it's on the list of
-         labels defined in this context.  Note that a dependent-statement
-         context contains only one (possibly labeled) statement, so if
-         there are any labels at the top level in this context, they would
-         already have appeared (since we've reached an executable statement).
+         labels defined in this context.  Note that the contents of
+         a subscope region are constrained: if labels and gotos are allowed,
+         all labels must appear before all gotos.
          Also note that for the label to appear inside this context but not
          at the top level, it would have to appear either as a label in
          a block statement, in which case it gets handled by the normal
@@ -6020,16 +6124,16 @@ Do IL lowering of the indicated statement and everything under it.
                                            statement->position);
     if (statement->dependent_statement) {
       /* In cfront compatibility mode, it is possible for a dependent statement
-         to not have an associated scope.  However, it is still required that
+         not to have an associated scope.  However, it is still required that
          anything constructed in the dependent statement (i.e., conditionally)
          be destroyed at the end of the dependent statement, so push a special
          dependent-statement context around the lowering of the statement. */
       push_context(&dependent_context, curr_context->scope,
-                   /*dependent_statement=*/TRUE);
+                   /*subscope_region=*/TRUE);
     }  /* if */
     switch (statement->kind) {
       case stmk_expr:
-        lower_normal_expr(statement->expr);
+        lower_full_expr(statement->expr, /*repeated_in_loop=*/FALSE);
         break;
       case stmk_asm:
         /* No processing required. */
@@ -6050,7 +6154,9 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_return:
         return_expr = statement->expr;
-        if (return_expr != NULL) lower_normal_expr(return_expr);
+        if (return_expr != NULL) {
+          lower_full_expr(return_expr, /*repeated_in_loop=*/FALSE);
+        }  /* if */
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
         make_block = TRUE;
@@ -6126,13 +6232,13 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_if:
-        lower_normal_expr(statement->expr);
+        lower_full_expr(statement->expr, /*repeated_in_loop=*/FALSE);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
       case stmk_end_test_while:
-        lower_normal_expr(statement->expr);
+        lower_full_expr(statement->expr, /*repeated_in_loop=*/TRUE);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
@@ -6151,10 +6257,12 @@ Do IL lowering of the indicated statement and everything under it.
               init_stmt->variant.block.statements->next = init_stmt_next;
             }  /* if */
           }  /* if */
-          if (statement->expr != NULL) lower_normal_expr(statement->expr);
+          if (statement->expr != NULL) {
+            lower_full_expr(statement->expr, /*repeated_in_loop=*/TRUE);
+          }  /* if */
           lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
-            lower_normal_expr(extra_info->increment);
+            lower_full_expr(extra_info->increment, /*repeated_in_loop=*/TRUE);
           }  /* if */
         }
         break;
@@ -6166,7 +6274,7 @@ Do IL lowering of the indicated statement and everything under it.
            push_context has already been done in lower_scope for that case. */
         scope = statement->variant.block.extra_info->assoc_scope;
         if (scope != NULL) {
-          push_context(&context, scope, /*dependent_statement=*/FALSE);
+          push_context(&context, scope, /*subscope_region=*/FALSE);
         }  /* if */
         lower_statement_list(statement->variant.block.statements,
                              &last_statement);
@@ -6174,7 +6282,7 @@ Do IL lowering of the indicated statement and everything under it.
         if (scope != NULL) pop_block_scope_context(last_statement);
         break;
       case stmk_switch:
-        lower_normal_expr(statement->expr);
+        lower_full_expr(statement->expr, /*repeated_in_loop=*/FALSE);
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
         scope = NULL;
@@ -6185,7 +6293,7 @@ Do IL lowering of the indicated statement and everything under it.
           scope = body_statement->variant.block.extra_info->assoc_scope;
         }  /* if */
         if (scope != NULL) {
-          push_context(&context, scope, /*dependent_statement=*/FALSE);
+          push_context(&context, scope, /*subscope_region=*/FALSE);
           lower_statement_list(body_statement->variant.block.statements,
                                &last_statement);
           lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
@@ -6443,7 +6551,7 @@ Do IL lowering of the indicated scope and everything under it.
 
   db_enter(2, "lower_scope");
   /* Add a context entry for the scope. */
-  push_context(&context, scope, /*dependent_statement=*/FALSE);
+  push_context(&context, scope, /*subscope_region=*/FALSE);
   if (scope->kind == (a_scope_kind)sck_function) {
     /* The scope is for a function.  Rewrite the parameters if necessary. */
     routine = scope->variant.routine.ptr;
@@ -6679,7 +6787,7 @@ C++ to C, so that a C back end can handle it without change.
       /* Put the file-scope context on the context stack so it's above
          the function context. */
       push_context(&context, il_header.primary_scope,
-                   /*dependent_statement=*/FALSE);
+                   /*subscope_region=*/FALSE);
     }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
     if (!lowering_file_scope) {

@@ -2002,51 +2002,62 @@ later will be made conditional on the temporary.
   /* The temporary must be initialized to zero.  If it is static, that
      is done implicitly.  Otherwise, it must be done dynamically. */
   if (temp->storage_class != (a_storage_class)sc_static) {
-    /* Use a dynamic init entry to do the initialization.  Note that the
-       dynamic init entry does not need to be put on a list of dynamic init
-       entries.  Such a list is used only at the file scope, and any
-       temporary allocated there would be static. */
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    dip->variable = temp;
-    /* The dynamic init entry is pointed to by the variable. */
-    temp->init_kind = (an_init_kind)initk_dynamic;
-    temp->initializer.dynamic = dip;
-    set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
-    dip->variant.constant = alloc_unshared_constant(&zero_constant);
-    /* The dynamic init entry is pointed to by an stmk_init statement. */
-    stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
-    stmk_init_stmt->variant.dynamic_init = dip;
-    scp = curr_context->assoc_switch_clause;
-    /* The stmk_init statement must be inserted at the right place.  For
-       most cases, the right place is the beginning of the current block.
-       For switch clauses, it's the beginning of the clause.  When labels
-       appear, the initialization goes after the latest label. */
-    label_statement = curr_context->latest_label_statement_processed;
-    if (label_statement != NULL) {
-      /* Insert the stmk_init after the most recent label. */
-      /* The dynamic init is not at the start of the scope. */
-      dip->follows_an_exec_statement = TRUE;
-      /* Add the stmk_init statement after the label. */
-      stmk_init_stmt->next = label_statement->next;
-      label_statement->next = stmk_init_stmt;
-    } else if (scp != NULL) {
-      /* Switch clause. */
-      /* The dynamic init is not at the start of the scope. */
-      dip->follows_an_exec_statement = TRUE;
-      /* Add the stmk_init statement at the beginning of the clause. */
-      stmk_init_stmt->next = scp->statements;
-      scp->statements = stmk_init_stmt;
+    if (curr_context->assoc_expr != NULL) {
+      /* The current context is a region that is a single top-level
+         expression.  The initialization must be inserted on top of the
+         expression, but it would be dangerous to modify the expression that
+         we're currently working on.  Therefore, that's left to be done
+         when we get back to the top of the expression.  See
+         gen_expr_conditional_destruction_var_initializations. */
+      curr_context->any_conditional_destruction_var_initializations_deferred =
+                                                                          TRUE;
     } else {
-      /* Normal case. */
-      block = curr_context->scope->assoc_block;
+      /* Use a dynamic init entry to do the initialization.  Note that the
+         dynamic init entry does not need to be put on a list of dynamic init
+         entries.  Such a list is used only at the file scope, and any
+         temporary allocated there would be static. */
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+      dip->variable = temp;
+      /* The dynamic init entry is pointed to by the variable. */
+      temp->init_kind = (an_init_kind)initk_dynamic;
+      temp->initializer.dynamic = dip;
+      set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
+      dip->variant.constant = alloc_unshared_constant(&zero_constant);
+      /* The dynamic init entry is pointed to by an stmk_init statement. */
+      stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+      stmk_init_stmt->variant.dynamic_init = dip;
+      scp = curr_context->assoc_switch_clause;
+      /* The stmk_init statement must be inserted at the right place.  For
+         most cases, the right place is the beginning of the current block.
+         For switch clauses, it's the beginning of the clause.  When labels
+         appear, the initialization goes after the latest label. */
+      label_statement = curr_context->latest_label_statement_processed;
+      if (label_statement != NULL) {
+        /* Insert the stmk_init after the most recent label. */
+        /* The dynamic init is not at the start of the scope. */
+        dip->follows_an_exec_statement = TRUE;
+        /* Add the stmk_init statement after the label. */
+        stmk_init_stmt->next = label_statement->next;
+        label_statement->next = stmk_init_stmt;
+      } else if (scp != NULL) {
+        /* Switch clause. */
+        /* The dynamic init is not at the start of the scope. */
+        dip->follows_an_exec_statement = TRUE;
+        /* Add the stmk_init statement at the beginning of the clause. */
+        stmk_init_stmt->next = scp->statements;
+        scp->statements = stmk_init_stmt;
+      } else {
+        /* Normal case. */
+        block = curr_context->scope->assoc_block;
 #if CHECKING
-      if (block == NULL) {
-        internal_error("add_conditional_destruction_temp: missing block");
-      }  /* if */
+        if (block == NULL) {
+          internal_error("add_conditional_destruction_temp: missing block");
+        }  /* if */
 #endif /* CHECKING */
-      /* Add the stmk_init statement at the beginning of the block. */
-      stmk_init_stmt->next = block->variant.block.statements;
-      block->variant.block.statements = stmk_init_stmt;
+        /* Add the stmk_init statement at the beginning of the block. */
+        stmk_init_stmt->next = block->variant.block.statements;
+        block->variant.block.statements = stmk_init_stmt;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Make and insert an assignment statement to set the temporary to 1.
@@ -2062,11 +2073,11 @@ later will be made conditional on the temporary.
   }  /* if */
 #endif /* CHECKING */
   insert_before_location.variant.expr.insert_before = TRUE;
-  (void)insert_assignment_statement(var_lvalue_expr(temp),
-                                    (an_expr_operator_kind)eok_iassign,
-                                    node_for_integer_constant(1L,
+  (void)insert_var_assignment_statement(temp,
+                                        (an_expr_operator_kind)eok_iassign,
+                                        node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
-                                    &insert_before_location);
+                                        &insert_before_location);
 }  /* add_conditional_destruction_temp */
 
 
@@ -3028,27 +3039,8 @@ Do IL lowering of an enk_temp_init expression node.
     check_assertion(is_operation_node(comma_expr) &&
                     comma_expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_comma);
-    if (num_conditional_exprs_inside_of != 0) {
-      /* If we are inside a conditional expression, an assignment may have
-         been added to set a flag to indicate that the construction was
-         done.  See add_conditional_destruction_temp.  The assignment is only
-         added if a destructor call will be needed later. */
-      an_expr_node_ptr second_operand =
-                                  comma_expr->variant.operation.operands->next;
-      if (is_operation_node(second_operand) &&
-          second_operand->variant.operation.kind ==
-                                            (an_expr_operator_kind)eok_comma) {
-        /* The assignment is present.  The second operand of the comma
-           operator should be the comma operator that contains the
-           constructor call and the address of the temporary. */
-        comma_expr = second_operand;
-      }  /* if */
-    }  /* if */
     first_operand = comma_expr->variant.operation.operands;
-    check_assertion(is_operation_node(first_operand) &&
-                    first_operand->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_call &&
-                    result_is_addr ? 
+    check_assertion(result_is_addr ? 
                       is_variable_address_node(first_operand->next) :
                       is_variable_node(first_operand->next));
     overwrite_node(comma_expr, first_operand);
@@ -3202,8 +3194,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
       /* Put a dependent-statement context around the lowering of
          the initialization so that any required destructor calls for
          code within the initialization will be emitted within the "if". */
-      push_context(&context, curr_context->scope,
-                   /*dependent_statement=*/TRUE);
+      push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
     }  /* if */
     lower_dynamic_init(dip, &ipd, first_time_test_var,
                        /*is_expr_temporary=*/FALSE,
@@ -3434,8 +3425,7 @@ constructor, but may instead be after an assignment to "this".
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
   an_expr_node_ptr       vaddr_node, vbptr_node, vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
-  a_required_destructor_call_ptr
-                         required_destructor_calls_before;
+  a_context              context;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -3484,10 +3474,11 @@ constructor, but may instead be after an assignment to "this".
            initialization).
      [endfor]
   */
-  /* Remember the last required destruction at this point.  Anything
-     added within the wrapper should be generated and removed at
-     the end of the wrapper. */
-  required_destructor_calls_before = curr_context->required_destructor_calls;
+  /* Push a subscope region context around the generation of the wrapper
+     code so that required destruction for any temporaries created
+     within the wrapper will be generated at the end of the wrapper
+     code. */
+  push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
      initialization supplied by the front end.  Every base class and member
@@ -3659,9 +3650,8 @@ constructor, but may instead be after an assignment to "this".
   }  /* for */
   /* Generate any required destructor calls for temporaries built within
      the wrapper code. */
-  gen_and_remove_required_destructor_calls_up_to(
-                                              required_destructor_calls_before,
-                                              insert_location);
+  gen_required_destructor_calls(curr_context, insert_location);
+  pop_context();
 }  /* add_constructor_wrapper_code */
 
 
@@ -4138,7 +4128,7 @@ Do lowering on the file-scope dynamic initializations list.
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
     scope = file_scope_init_insert_location(&insert_location);
-    push_context(&context, scope, /*dependent_statement=*/FALSE);
+    push_context(&context, scope, /*subscope_region=*/FALSE);
     switch_il_region(file_scope_init_routine_il_region);
     processing_file_scope_init_routine = TRUE;
     for (; dip != NULL; dip = dip->next) {
@@ -4175,7 +4165,7 @@ Do lowering on the file-scope dynamic initializations list.
     /* There are some file-scope required destructor calls.  Generate a
        routine containing them. */
     scope = file_scope_term_insert_location(&insert_location);
-    push_context(&context, scope, /*dependent_statement=*/FALSE);
+    push_context(&context, scope, /*subscope_region=*/FALSE);
     switch_il_region(file_scope_term_routine_il_region);
     gen_required_destructor_calls(file_scope_context, &insert_location);
     pop_context();
