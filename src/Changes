@@ -2,6 +2,13 @@ Version 2.41, March 5, 1999
 
 3/5/99   IL version number changed to 2.33
 
+3/3/99   Environment variable used for temporary directory under Windows
+
+When the front end is built with __MICROSOFT_OS__ TRUE, the TMP
+environment variable is used (when the compiler is invoked), if set, to
+specify the temporary directory to be used.  If TMP is not set, the
+behavior is not changed (i.e., TMPDIR is used, if set).
+
 3/3/99   Computing the maximum length of instantiation output prefix
 
 Formerly, the routine that creates an instantiation output file name when

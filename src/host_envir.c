@@ -1243,7 +1243,11 @@ file should be a binary file if binary_file is TRUE.
   /* Get the value of the "TMPDIR" environment variable, the directory to
      be used for temporary files.  Get it only once (temp_dir is static). */
   if (temp_dir == NULL) {
-    temp_dir = getenv("TMPDIR");
+#if __MICROSOFT_OS__
+    /* On a Microsoft OS, first use the TMP environment variable, if set. */
+    temp_dir = getenv("TMP");
+#endif /* __MICROSOFT_OS__ */
+    if (temp_dir == NULL) temp_dir = getenv("TMPDIR");
     if (temp_dir == NULL || strlen(temp_dir) == 0) temp_dir = DEFAULT_TMPDIR;
   }  /* if */
   dir_len = strlen(temp_dir);
