@@ -112,7 +112,6 @@ do
       shift;
       feoptions=$feoptions" -d"$1;
       shift;
-      fe_only=1;
       ;;
     -d*)
       feoptions=$feoptions" "$1;
