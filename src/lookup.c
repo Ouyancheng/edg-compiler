@@ -530,8 +530,7 @@ template or a type, then it is created as a constant.
        !(locator)->is_operator_name) \
         ? sk_type						\
         :							\
-         (options & IDL_IS_EXPR_CONTEXT) ? sk_static_data_member	\
-                                         : sk_constant))
+          sk_constant))
 
 
 static a_symbol_ptr create_proxy_or_nonreal_class_member_of_kind(
@@ -644,11 +643,11 @@ a_symbol_ptr create_alternate_nontype_nonreal_member(
 					a_symbol_ptr	orig_sym,
 					a_symbol_kind	kind)
 /*
-orig_sym is a static data member symbol that is a member of a proxy
-or nonreal class.  Create an alternate nontype symbol of the specified
-kind if one does not already exist.  When a new symbol is created, it
-is linked using the next_in_scope pointer of the symbol.  A previously
-created symbol is found by searching this list.
+orig_sym is a symbol that is a member of a proxy or nonreal class.
+Create an alternate nontype symbol of the specified kind if one does
+not already exist.  When a new symbol is created, it is linked using
+the next_in_scope pointer of the symbol.  A previously created symbol
+is found by searching this list.
 */
 {
   a_symbol_ptr	sym;
