@@ -4820,6 +4820,9 @@ typedef struct a_variable {
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
+  char	        *asm_name;
+			/* If non-NULL, the name to be used as an assembly
+			   language level symbol for this variable. */
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
@@ -5895,6 +5898,9 @@ typedef struct a_routine {
                         /* If non-NULL, the name of the routine for
 			   which the name of this routine is an
 			   alias. */
+  char		*asm_name;
+			/* If non-NULL, the name to be used as an assembly
+			   language level symbol for this routine. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;

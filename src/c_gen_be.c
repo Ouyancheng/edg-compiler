@@ -1414,7 +1414,8 @@ static void write_string_argument_attribute(char *attribute_name,
 Write out an attribute that takes a string as an argument.  The
 attribute_name is assumed to have no characters that require escapes,
 but the argument might have characters like "\n" or "\t" that need to
-be handled specially.  */
+be handled specially.
+*/
 {
   char *c;
 
@@ -1506,6 +1507,24 @@ Write out attributes that apply to the indicated routine.
     write_string_argument_attribute("__alias__", rout->aliased_routine);
   }  /* if */
 }  /* write_routine_attributes */
+
+
+static void write_asm_name(char *asm_name)
+/*
+Write out an asm name for a routine or variable. asm_name is allowed
+to be NULL.
+*/
+{
+  char *c;
+
+  if (asm_name) {
+    write_tok_str(" __asm__(\"");
+    for (c = asm_name; *c != '\0'; c++) {
+      (void)form_char(*c, &octl);
+    }  /* for */
+    write_tok_str("\")");
+  }  /* if */
+}  /* write_asm_name */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -5591,6 +5610,8 @@ parameters.
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if GNU_EXTENSIONS_ALLOWED
+      /* Emit any user-specified assembly symbol for this variable. */
+      write_asm_name (variable->asm_name);
       /* Emit attributes associated with this variable. */
       write_variable_attributes(variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7032,6 +7053,11 @@ if this routine has a body (dump nothing if it has no body).
     if (!is_definition) {
       /* A declaration of the routine. */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED
+      /* Emit any user-specified assembly symbol for this variable.
+         This must precede all attribute specifications. */
+      write_asm_name (rout->asm_name);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
       /* gcc has a special way of indicating that a routine should be
          called at program startup.  If this is an initialization routine,

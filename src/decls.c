@@ -66,6 +66,55 @@ specifier.
   (curr_token == tok_inline   || curr_token == tok_virtual ||        \
    curr_token == tok_explicit)
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static char *scan_asm_name(void)
+/*
+Scan a construct of the form
+    asm ( "string" )
+and return the contents of the string literal.
+*/
+{
+  char *result = NULL;
+
+  db_enter(3, "scan_asm_name");
+  if (curr_token == tok_asm) {
+    /* Bypass "asm" and the leading paren. */
+    (void)get_token();
+    if (required_token(tok_lparen, ec_exp_lparen)) {
+      add_stop_token(tok_rparen);
+      /* The next token must be a string constant.  If it isn't,
+         flush and then consume any right paren to avoid double
+         errors. */
+      if (curr_token != tok_string_literal) {
+        syntax_error(ec_exp_string_literal);
+        if (curr_token == tok_rparen) {
+          (void)get_token();
+        }  /* if */
+      } else {
+        /* If there was an error in parsing the string, we do not need
+           to issue another error here. */
+        if (!is_error_constant(&const_for_curr_token)) {
+          /* GCC accepts string literals with embedded null characters (like
+             "ab\0c") but ignores everything after the "\0".  So, storing the
+             asm argument as a character pointer, without a length, gives
+             compatibility with GCC. */
+          result = const_for_curr_token.variant.string.value;
+        }  /* if */
+        /* Consume the string constant. */
+        (void)get_token();
+        /* There should now be a right parenthesis. */
+        (void)required_token(tok_rparen, ec_exp_rparen);
+      }  /* if */
+      remove_stop_token(tok_rparen);
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return result;
+}  /* scan_asm_name */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan)
@@ -3852,32 +3901,33 @@ void decl_variable(a_symbol_locator             *locator,
                    a_source_sequence_entry_ptr  declarator_ssep,
                    a_symbol_reference_kind      srk_flags,
                    a_decl_modifiers_block_ptr   decl_modifiers,
-		   an_attribute_ptr             attributes,
+                   an_attribute_ptr             attributes,
+                   char                         *asm_name,
                    a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
                    a_type_ptr                   *old_type,
                    a_symbol_ptr                 *ext_sym,
                    a_decl_pos_block_ptr         decl_pos_block)
 /*
-Enter the declaration of an identifier for a variable.  *locator gives
-the symbol locator (and thus its name and its declaration position).
-type_ptr, storage_class, decl_modifiers, and attributes give the type,
-storage class, declaration modifier flags, and attributes.  Create and
-enter a symbol entry, and return a pointer to it in *symbol_ptr.  Also
-allocate any associated IL construct, and attach it to the symbol.  If
-the identifier has linkage and there is an existing symbol or IL entry,
-it will be re-used.  Return in *linkage_ptr the linkage of the
-identifier.  Return in *old_type any previously-known type for this
-identifier from a linked identifier in the same scope, or NULL if there
-was no previously-known type.  If the identifier has linkage, return in
-*ext_sym a pointer to the external symbol entry; otherwise, set *ext_sym
-to NULL.  declarator_ssep (non-NULL only if source sequence entries are
-being generated) is a pointer to the empty source sequence entry already
-created for the declarator and added to the appropriate list; its kind
-and entity pointer are updated.  srk_flags contain specific information
-about the kind of declaration (whether it's a definition, a tentative
-definition (C only), and so forth); this information is passed on for
-use in generating cross-reference output describing this declaration.  
+Enter the declaration of an identifier for a variable.  *locator gives the
+symbol locator (and thus its name and its declaration position).  type_ptr,
+storage_class, decl_modifiers, attributes, and asm_name give the type, storage
+class, declaration modifier flags, attributes, and assembly symbol name.
+Create and enter a symbol entry, and return a pointer to it in *symbol_ptr.
+Also allocate any associated IL construct, and attach it to the symbol.  If
+the identifier has linkage and there is an existing symbol or IL entry, it
+will be re-used.  Return in *linkage_ptr the linkage of the identifier.
+Return in *old_type any previously-known type for this identifier from a
+linked identifier in the same scope, or NULL if there was no previously-known
+type.  If the identifier has linkage, return in *ext_sym a pointer to the
+external symbol entry; otherwise, set *ext_sym to NULL.  declarator_ssep
+(non-NULL only if source sequence entries are being generated) is a pointer to
+the empty source sequence entry already created for the declarator and added
+to the appropriate list; its kind and entity pointer are updated.  srk_flags
+contain specific information about the kind of declaration (whether it's a
+definition, a tentative definition (C only), and so forth); this information
+is passed on for use in generating cross-reference output describing this
+declaration.
 */
 {
   a_symbol_ptr             sym = NULL;
@@ -4243,6 +4293,8 @@ use in generating cross-reference output describing this declaration.
 #if GNU_EXTENSIONS_ALLOWED
   /* Apply the attributes to the variable declaration. */
   apply_attributes_to_variable(attributes, variable_ptr);
+  /* Record the assembly name. */
+  variable_ptr->asm_name = asm_name;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (linkage != idl_none) {
     /* In case this is a block extern declaration, clear the
@@ -4520,41 +4572,41 @@ void decl_routine(a_symbol_locator             *locator,
                   a_source_sequence_entry_ptr  declarator_ssep,
                   a_symbol_reference_kind      srk_flags,
                   a_decl_modifiers_block_ptr   decl_modifiers,
-		  an_attribute_ptr             attributes,
+                  an_attribute_ptr             attributes,
+                  char                         *asm_name,
                   a_symbol_ptr                 *symbol_ptr,
                   an_id_linkage_kind           *linkage_ptr,
                   a_type_ptr                   *old_type,
                   a_symbol_ptr                 *ext_sym,
                   a_decl_pos_block_ptr         decl_pos_block)
 /*
-Enter the declaration of an identifier for a nonmember routine.
-*locator gives the symbol locator (and thus its name and its
-declaration position).  storage_class, type_ptr, decl_modifiers, and
-attributes give the storage class, type, declaration modifier flags,
-and attributes.  If func_info->implicit_declaration is TRUE, this
-declaration is for an implicit function declaration, and *symbol_ptr
-already contains a pointer to the symbol entry, which is already in
-the symbol table; if func_info->is_definition is TRUE, the identifier
-being defined is part of a function definition (meaning there is a
-body in the definition), in which case it is guaranteed that type_ptr
-points to an unshared type entry, and that type entry will be
-preserved as the routine type.  Create and enter a symbol entry, and
-return a pointer to it in *symbol_ptr.  Also allocate any associated
-IL construct, and attach it to the symbol.  If the identifier has
-linkage and there is an existing symbol or IL entry, it will be
-re-used.  Return in *linkage_ptr the linkage of the identifier.
-Return in *old_type any previously-known type for this identifier from
-a linked identifier in the same scope, or NULL if there was no
-previously-known type.  If the identifier has linkage, return in
-*ext_sym a pointer to the external symbol entry; otherwise, set
-*ext_sym to NULL.  declarator_ssep (non-NULL only if source sequence
-entries are being generated) is a pointer to the empty source sequence
-entry already created for the declarator and added to the appropriate
-list; its kind and entity pointer are updated.  srk_flags contain
-specific information about the kind of declaration (whether it's a
-definition, an implicit declaration (C only), a friend declaration
-(C++ only), and so forth); this information is passed on for use in
-generating cross-reference output describing this declaration.  */
+Enter the declaration of an identifier for a nonmember routine.  *locator
+gives the symbol locator (and thus its name and its declaration position).
+storage_class, type_ptr, decl_modifiers, attributes, and asm_name give the
+storage class, type, declaration modifier flags, attributes, and assembly
+symbol name.  If func_info->implicit_declaration is TRUE, this declaration is
+for an implicit function declaration, and *symbol_ptr already contains a
+pointer to the symbol entry, which is already in the symbol table; if
+func_info->is_definition is TRUE, the identifier being defined is part of a
+function definition (meaning there is a body in the definition), in which case
+it is guaranteed that type_ptr points to an unshared type entry, and that type
+entry will be preserved as the routine type.  Create and enter a symbol entry,
+and return a pointer to it in *symbol_ptr.  Also allocate any associated IL
+construct, and attach it to the symbol.  If the identifier has linkage and
+there is an existing symbol or IL entry, it will be re-used.  Return in
+*linkage_ptr the linkage of the identifier.  Return in *old_type any
+previously-known type for this identifier from a linked identifier in the same
+scope, or NULL if there was no previously-known type.  If the identifier has
+linkage, return in *ext_sym a pointer to the external symbol entry; otherwise,
+set *ext_sym to NULL.  declarator_ssep (non-NULL only if source sequence
+entries are being generated) is a pointer to the empty source sequence entry
+already created for the declarator and added to the appropriate list; its kind
+and entity pointer are updated.  srk_flags contain specific information about
+the kind of declaration (whether it's a definition, an implicit declaration (C
+only), a friend declaration (C++ only), and so forth); this information is
+passed on for use in generating cross-reference output describing this
+declaration.
+*/
 {
   a_symbol_ptr             sym = NULL;
   a_symbol_ptr             linked_symbol, homonym_symbol = NULL;
@@ -5639,6 +5691,8 @@ skip_overloading:;
 #if GNU_EXTENSIONS_ALLOWED
   /* Apply the attributes to the routine. */
   apply_attributes_to_routine(attributes, routine_ptr);
+  /* Record the assembly name. */
+  routine_ptr->asm_name = asm_name;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
@@ -7051,8 +7105,8 @@ symbol has already been entered as an undefined symbol.
   decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL,
                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
-	       (an_attribute_ptr)NULL, &symbol_ptr, &linkage,
-	       &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
+               (an_attribute_ptr)NULL, (char *)NULL, &symbol_ptr, &linkage,
+               &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -9836,8 +9890,10 @@ of local variables (and types, etc.) of functions and in blocks.
   an_attribute_ptr             prefix_attributes = NULL;
   an_attribute_ptr             *last_prefix_attribute;
   an_attribute_ptr             attributes = NULL;
+  char                         *asm_name;
+  a_source_position            asm_start_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_boolean		       access_checks_deferred = FALSE;
+  a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
   a_boolean                    is_linkage_spec_decl = FALSE;
   a_boolean                    restore_name_linkage = FALSE;
@@ -10207,10 +10263,20 @@ continue_with_declaration:
                  &local_type_ptr, &declarator_ssep, &func_info,
                  &decl_pos_block);
 #if GNU_EXTENSIONS_ALLOWED
-      /* Look for optional attributes. */
+      asm_name = NULL;
       if (gcc_mode) {
+        /* Look for an asm() symbol name tag.  They are ignored in
+           typedefs (with a warning). */
+        asm_start_pos = pos_curr_token;
+        asm_name = scan_asm_name();
+        if (asm_name != NULL &&
+            declared_storage_class == (a_storage_class)sc_typedef) {
+          pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
+          asm_name = NULL;
+        }  /* if */
+        /* Look for optional (postfix) attributes. */
         attributes = scan_attributes();
-        /* Combine the prefix_attributes and the postfix attributes. */
+        /* Combine the prefix and postfix attributes. */
         *last_prefix_attribute = attributes;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -10488,9 +10554,10 @@ continue_with_declaration:
             curr_token != tok_comma &&
             curr_token != tok_assign &&
 #if GNU_EXTENSIONS_ALLOWED
-	    /* Attributes are only allowed on function declarations,
-	       not on function definitions. */
+	    /* Attributes and asm names are only allowed on function
+	       declarations, not on function definitions. */
 	    curr_token != tok_attribute &&
+            curr_token != tok_asm &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
             curr_token != tok_end_of_source) {
           a_boolean  is_function_try_block = curr_token == tok_try;
@@ -10527,9 +10594,13 @@ continue_with_declaration:
             report_exception_spec_errors(&func_info);
           }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-          /* GCC does not allow "void f() __attribute((...)) {}". */
+          /* GNU C does not allow "void f() __attribute((...)) {}". */
           if (prefix_attributes != NULL) {
             pos_error(ec_attributes_in_rout_defn, &locator.source_position); 
+          }  /* if */
+          /* GNU C doesn't allow "void f() asm("bar") {}". */
+          if (asm_name != NULL) {
+            pos_error(ec_asm_name_in_rout_defn, &locator.source_position);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do processing required for a function definition, including
@@ -10788,12 +10859,12 @@ continue_with_declaration:
                      &func_info, declarator_ssep, SRK_DECLARATION,
                      &local_decl_modifiers, 
 #if GNU_EXTENSIONS_ALLOWED
-		     prefix_attributes,
+                     prefix_attributes, asm_name,
 #else /* !GNU_EXTENSIONS_ALLOWED */
-		     (an_attribute_ptr)NULL,
+                     (an_attribute_ptr)NULL, (char*)NULL,
 #endif /* !GNU_EXTENSIONS_ALLOWED */
-		     &symbol_ptr, &linkage, &old_type, &ext_sym,
-		     &decl_pos_block);
+                     &symbol_ptr, &linkage, &old_type, &ext_sym,
+                     &decl_pos_block);
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -10896,9 +10967,9 @@ continue_with_declaration:
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
 #if GNU_EXTENSIONS_ALLOWED
-		      prefix_attributes,
+                      prefix_attributes, asm_name,
 #else /* !GNU_EXTENSIONS_ALLOWED */
-		      (an_attribute_ptr)NULL,
+                      (an_attribute_ptr)NULL, (char*)NULL,
 #endif /* !GNU_EXTENSIONS_ALLOWED */
                       &symbol_ptr, &linkage, &old_type, &ext_sym,
                       &decl_pos_block);

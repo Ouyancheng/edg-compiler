@@ -1686,7 +1686,7 @@ member declaration (allowed in Microsoft mode only).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_routine(locator, storage_class, rout_type, func_info,
                  declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
-                 decl_modifiers, (an_attribute_ptr)NULL,
+                 decl_modifiers, (an_attribute_ptr)NULL, (char *)NULL,
 		 &symbol_ptr, &linkage, &old_type, &ext_sym, 
 		 decl_pos_block);
   }  /* if */

@@ -6027,8 +6027,8 @@ how to form the function's signature.
      in the current translation unit. */
   decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION,
-               &decl_modifiers, (an_attribute_ptr)NULL, &sym,
-	       &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
+               &decl_modifiers, (an_attribute_ptr)NULL, (char *)NULL, &sym,
+               &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   sym->variant.routine.ptr->compiler_generated = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {

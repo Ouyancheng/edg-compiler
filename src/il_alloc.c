@@ -1510,6 +1510,7 @@ to it.
   vp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
+  vp->asm_name                    = NULL;
   vp->alignment                   = 0;
   vp->is_weak                     = FALSE;
   vp->is_not_common               = FALSE;
@@ -1775,6 +1776,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->section                     = NULL;
   rp->aliased_routine             = NULL;
+  rp->asm_name                    = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;

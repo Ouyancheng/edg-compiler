@@ -2990,6 +2990,24 @@ Write out attributes that apply to the indicated routine.
   }  /* if */
 }  /* write_routine_attributes */
 
+
+static void write_asm_name(char *asm_name)
+/*
+Write out an asm name for a routine or variable. asm_name is allowed
+to be NULL.
+*/
+{
+  char *c;
+
+  if (asm_name) {
+    write_tok_str(" __asm__(\"");
+    for (c = asm_name; *c != '\0'; c++) {
+      (void)form_char(*c, &octl);
+    }  /* for */
+    write_tok_str("\")");
+  }  /* if */
+}  /* write_asm_name */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
@@ -8567,6 +8585,8 @@ declaration following this one is such a continuation.
                                                    GDO_FORCE_UNQUALIFIED_NAME :
                                                    GDO_NO_OPTIONS);
 #if GNU_EXTENSIONS_ALLOWED
+  /* Emit any user-specified assembly symbol for this variable. */
+  write_asm_name (var->asm_name);
   /* Emit attributes associated with this variable. */
   write_variable_attributes(var);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9233,6 +9253,8 @@ TRUE if the declaration following this one is such a continuation.
     /* For a pure virtual function, add "= 0". */
     if (rout->pure_virtual) write_tok_str(" = 0");
 #if GNU_EXTENSIONS_ALLOWED
+    /* Emit any user-specified assembly symbol for this variable. */
+    write_asm_name (rout->asm_name);
     /* Emit attributes associated with the routine. */
     write_routine_attributes(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */

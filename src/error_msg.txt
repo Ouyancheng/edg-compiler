@@ -1166,6 +1166,8 @@ ec_rout_cannot_be_alias_and_defn;;"%n cannot be an alias and have a definition"
 ec_attributes_in_rout_defn;;"attributes are not permitted in a function definition"
 ec_local_labels_only_in_statement_expressions;;"declarations of local labels should only appear at the start of statement expressions"
 ec_invalid_case_range;;"the second constant in a case range must be larger than the first"
+ec_asm_name_in_rout_defn;;"an asm name is not permitted in a function definition"
+ec_asm_name_in_typedef;;"an asm name is ignored in a typedef"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
