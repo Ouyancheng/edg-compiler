@@ -85,6 +85,11 @@ void operator delete(void*, void*);
 
 #ifdef __ARRAY_OPERATORS
 /*
+Array new.
+*/
+void *operator new[](size_t) throw(__EDG_STD_NAMESPACE::bad_alloc);
+
+/*
 Placement array new.
 */
 void *operator new[](size_t, void*) throw();
