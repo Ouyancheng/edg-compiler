@@ -988,7 +988,7 @@ Process the arguments on the command line that invoked the compiler.
         fprintf(stderr,
                 "Edison Design Group C/C++ Front End, version %s (%s %s)\n",
                 VERSION_NUMBER, build_date, build_time);
-        fprintf(stderr, "Copyright 1988-1994 Edison Design Group Inc.\n");
+        fprintf(stderr, "Copyright 1988-1995 Edison Design Group, Inc.\n");
 #ifdef DEMO_VERSION_ID
         fprintf(stderr, "Demonstration version for %s\n", DEMO_VERSION_ID);
 #endif /* ifdef DEMO_VERSION_ID */
