@@ -724,11 +724,11 @@ extern void delete_file(char *file_name);
 
 /* Temp files are only needed:
    a)  Within the C-generating back end.
-   b)  When writing an IL file that will be passed to c_gen_be in the
+   b)  When writing an IL file that will be passed to a back end in the
        same program.
-   When (b) is true, (a) is always true, so just test (a).
 */
-#define NEED_TEMP_FILES BACK_END_IS_C_GEN_BE
+#define NEED_TEMP_FILES (BACK_END_IS_C_GEN_BE || \
+  (IL_SHOULD_BE_WRITTEN_TO_FILE && BACK_END_SHOULD_BE_CALLED))
 #if NEED_TEMP_FILES
 
 /* Open a temporary file. */
