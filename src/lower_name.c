@@ -327,7 +327,7 @@ encoding.
 {
   sizeof_t mangled_name_length, digits;
 
-  check_assertion(distinct_mangling_for_templates);
+  check_assertion(distinct_template_signatures);
   /* The encoding is "ZnZ" for a first-level parameter, and "Zn_mZ" for
      a non-first-level parameter, with "n" the parameter number, and
      "m" the depth number.  The "Z" on the end is to avoid ambiguities
@@ -763,7 +763,7 @@ literals.
          is a little strange, but if you have the new-style mangling
          you're completely incompatible with cfront, so it's not
          a ridiculous idea. */
-      include_parent_info = distinct_mangling_for_templates;
+      include_parent_info = distinct_template_signatures;
 #endif /* ABI_COMPATIBILITY_VERSION < 235 */
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
@@ -1202,11 +1202,11 @@ mangling for lengths of literals.
              ^------ Total length of template argument list string,
                      including the underscore.
          ^^--------- Fixed string, indicates "parameterized type".
-     When distinct_mangling_for_templates is FALSE, "__pt__" is used instead
+     When distinct_template_signatures is FALSE, "__pt__" is used instead
      of "__tm__".  For the first argument list of a partial specialization,
      "__ps__" is used.
   */
-  if (!distinct_mangling_for_templates) {
+  if (!distinct_template_signatures) {
     str = "__pt__";
   } else if (partial_spec) {
     str = "__ps__";
@@ -1347,7 +1347,7 @@ and an indication of that fact should be put out.
     /* See if template arguments are needed.  For partial specializations,
        there are two argument lists. */
     a_template_arg_ptr template_args = ctsp->template_arg_list;
-    if (distinct_mangling_for_templates &&
+    if (distinct_template_signatures &&
         ctsp->partial_spec_template_arg_list != NULL) {
       /* A partial specialization.  The first list is the argument list
          from the prototype instantiation of the partial specialization.
@@ -1388,7 +1388,7 @@ and an indication of that fact should be put out.
       /* old_form=TRUE forces use of the cfront-compatible mangling convention
          for lengths on literals, which though ambiguous is okay here because
          the class cannot be followed by an "_". */
-      a_boolean old_form = !distinct_mangling_for_templates;
+      a_boolean old_form = !distinct_template_signatures;
 #if ABI_COMPATIBILITY_VERSION < 235
       old_form = TRUE;
 #endif /* ABI_COMPATIBILITY_VERSION < 235 */
@@ -1609,7 +1609,7 @@ the usual nesting_level == 1.
     a_type_ptr type = scp->parent.class_type;
     a_boolean  is_specialization = FALSE;
     a_boolean  is_template_specialization = FALSE;
-    if (distinct_mangling_for_templates) {
+    if (distinct_template_signatures) {
       /* When templates get distinct mangling from normal functions,
          information is included for specialization in parent classes. */
       /* See if the class comes from a template and that template is
@@ -1987,7 +1987,7 @@ See ARM 7.2.1c for name encoding.
         if (type->variant.array.is_variable_size_array) {
           /* Variable size arrays are possible when putting out function
              prototypes.  For that case the prefix is "A_". */
-          check_assertion(distinct_mangling_for_templates);
+          check_assertion(distinct_template_signatures);
           mangled_name_length++;
           if (store_at != NULL) *store_at++ = '_';
           /* Put out an encoding for the expression. */
@@ -2316,7 +2316,7 @@ types; just put out the base encoded name.
      templates (the instances have the same function parameter types, but
      one can be chosen over the other based on whether it is more
      specialized). */
-  mangle_as_template = (distinct_mangling_for_templates &&
+  mangle_as_template = (distinct_template_signatures &&
                         routine->is_template_function);
   if (mangle_as_template) {
     /* See if the function comes from a template and that template is
@@ -2578,7 +2578,7 @@ variable is a template static data member specialization.
     (void)memcpy(store_at, name, size_t_arg(section_length));
     store_at += section_length;
   }  /* if */
-  if (distinct_mangling_for_templates && is_specialization) {
+  if (distinct_template_signatures && is_specialization) {
     /* Put out an indication of the fact that a static data member is
        specialized. */
     section_length = mangled_specialization_indication(store_at);

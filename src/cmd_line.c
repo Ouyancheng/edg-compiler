@@ -1737,7 +1737,7 @@ enable_microsoft_mode:
 #if NEED_NAME_MANGLING
       case optk_distinct_template_signatures:
         /* Enable distinct name mangling for templates and nontemplates. */
-        distinct_mangling_for_templates = opt_value;
+        distinct_template_signatures = opt_value;
         break;
 #endif /* NEED_NAME_MANGLING */
       case optk_guiding_decls:

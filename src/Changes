@@ -1,5 +1,14 @@
 Version 2.37
 
+9/21/97   DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES renamed
+
+The DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES configuration flag has been
+renamed to DEFAULT_DISTINCT_TEMPLATE_SIGNATURES, and is now used even
+when IL lowering is not done.  In addition to controlling the kind of
+name mangling used for templates, it is also used to specify whether
+function templates may have template parameters that are not used in
+the parameter types of the function template.
+
 9/21/97   Partial lowering of exception handling: cleanup state when
           lifetime of entity overlaps temporaries in inner lifetime
 

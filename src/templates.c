@@ -8672,13 +8672,10 @@ done here.
   a_boolean		is_constructor;
   a_boolean		usage_check_needed = FALSE;
   an_error_severity	severity;
-#if !NEED_NAME_MANGLING
-  a_boolean		distinct_mangling_for_templates = TRUE;
-#endif /* !NEED_NAME_MANGLING */
 
   is_conversion_operator = is_conversion_function_symbol(sym);
   is_constructor = is_constructor_symbol(sym);
-  if (distinct_mangling_for_templates) {
+  if (distinct_template_signatures) {
     /* The test is not needed because there is no requirement for template
        parameters to be used in a function signature when templates get
        the appropriate mangling.  The test is still done for functions

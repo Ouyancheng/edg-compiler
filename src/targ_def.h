@@ -1407,30 +1407,29 @@ errors are still generated for type mismatches.
 #endif /* BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C */
 #endif /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
 
-#if NEED_NAME_MANGLING
-
 /*
-Default value for distinct_mangling_for_templates.
-Controls whether the signatures for template functions can match those
-for non-template functions across separate compilation units.
-In the modern C++ language, a normal function cannot be used to
-satisfy the need for a template instance.  For example, a function
-"void f(int)" could not be used to satisfy the need for an instantiation
-of a template "void f(T)" with T set to int.  In older versions of the
-language, the name mangling for templates was the same as for nontemplates,
-and a nontemplate function could satisfy the need for a template function.
+Default value for distinct_template_signatures.  Controls whether the
+signatures for template functions can match those for non-template
+functions across separate compilation units.  In the modern C++
+language, a normal function cannot be used to satisfy the need for a
+template instance.  For example, a function "void f(int)" could not be
+used to satisfy the need for an instantiation of a template "void
+f(T)" with T set to int.  In older versions of the language, the name
+mangling for templates was the same as for nontemplates, and a
+nontemplate function could satisfy the need for a template function.
+Distinct template signatures must be enabled in order to use function
+template parameters that are not part of the signature of the function
+template.
 */
-#ifndef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES
+#ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION < 232 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES FALSE
+#define DEFAULT_DISTINCT_TEMPLATE_SIGNATURES FALSE
 #else /* !(ABI_COMPATIBILITY_VERSION < 232 || ...) */
-#define DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES TRUE
+#define DEFAULT_DISTINCT_TEMPLATE_SIGNATURES TRUE
 #endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
-#endif /* ifndef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES */
-
-#endif /* NEED_NAME_MANGLING */
+#endif /* ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES */
 
 /*
 This switch controls whether or not the ABI changes for runtime

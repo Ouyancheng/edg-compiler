@@ -693,9 +693,9 @@ EXTERN a_targ_alignment
 
 #if NEED_NAME_MANGLING
 EXTERN a_boolean
-		distinct_mangling_for_templates
+		distinct_template_signatures
 #if VAR_INITIALIZERS
-                                      = DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES
+                                      = DEFAULT_DISTINCT_TEMPLATE_SIGNATURES
 #endif /* VAR_INITIALIZERS */
                                                ;
 			/* If TRUE, template functions are given mangled names
