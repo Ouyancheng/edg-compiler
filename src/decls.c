@@ -5921,10 +5921,6 @@ block.
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
       }  /* while */
-      remove_stop_token(tok_rbrace);
-      /* Save the source position of the right brace, in case it's needed. */
-      pos = pos_curr_token;
-      (void)required_token(tok_rbrace, ec_exp_rbrace);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Add a source sequence entry marking the end of the namespace
          definition. */
@@ -5932,6 +5928,10 @@ block.
                                         (char *)nsp,
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      remove_stop_token(tok_rbrace);
+      /* Save the source position of the right brace, in case it's needed. */
+      pos = pos_curr_token;
+      (void)required_token(tok_rbrace, ec_exp_rbrace);
       /* Pop the namespace or namespace-extension scope. */
       pop_scope();
       if (original_def && is_unnamed_namespace) {
