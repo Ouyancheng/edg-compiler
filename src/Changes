@@ -1,5 +1,15 @@
 Version 3.3
 
+6/27/03  GNU mode: Warning only on duplicate clobber
+
+In GNU C and C++ modes, the front end used to issue an error when a
+register clobber was specified twice in an extended asm construct.
+Now the diagnostic has been weakened to a warning.
+
+  void f() {
+    __asm ("nop" : : : "bx", "bx");  // Warning: "bx" clobbered twice
+  }                                  // (previously a hard error).
+
 6/27/03  Microsoft mode: __declspec(deprecated)
 
 In Microsoft mode, front end now supports the Microsoft __declspec(deprecated)

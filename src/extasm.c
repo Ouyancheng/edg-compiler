@@ -519,17 +519,19 @@ even if they are invalid.
     /* Ignore entries for unrecognized registers. */
     if (r == (a_named_register)anr_unrecognized) continue;
 #else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
-    /* Test used and not clobbered so the error is issued once per register. */
     if ((regs_used_in[(int)r] || regs_used_out[(int)r]) &&
         !regs_clobbered[(int)r]) {
+      /* Test used and not clobbered so the error is issued at most once per
+         register. */
       str_error(ec_register_used_and_clobbered, named_register_names[(int)r]);
-    /* Test clobbered == 1 so the error is issued once per register. */
     } else if (r != (a_named_register)anr_invalid &&
                regs_clobbered[(int)r] == 1) {
-      str_error(ec_register_clobbered_twice, named_register_names[(int)r]);
+      /* Test clobbered == 1 so the diagnostic is issued at most once per
+         register. */
+      str_warning(ec_register_clobbered_twice, named_register_names[(int)r]);
     }  /* if */
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
-    regs_clobbered[(int)r]++;
+    ++regs_clobbered[(int)r];
   }  /* for */
   for (i = 0; fixed_registers[i] != (a_named_register)anr_last; i++) {
     r = fixed_registers[i];
