@@ -1296,7 +1296,7 @@ typedef struct a_using_decl {
 		qualifier;
 			/* For using-declarations only, the class or namespace
 			   that was actually specified in the qualified name
-			   that appeared in the source code (which not
+			   that appeared in the source code (which is not
 			   necessarily the same as the parent of that which is
 			   referred to by entity.ptr).  For class member
 			   using-declarations, use the class_type variant;
@@ -1313,7 +1313,7 @@ typedef struct a_using_decl {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;
-			/* Pointer to source sequence entry that represents
+			/* Pointer to the source sequence entry that represents
 			   the place this using-declaration or using-directive
 			   appears within the current scope relative to other
 			   declarations, statements, etc.  It may be NULL
@@ -8356,7 +8356,7 @@ typedef struct a_scope {
 			/* For file, function, and block scopes, a linked
 			   list of hidden-name entries, designating entities
 			   that can be made available in the current scope
-			   only if an elaborate type specifier and/or global
+			   only if an elaborated type specifier and/or global
 			   qualification (a preceding "::") is used.  Only
 			   used in C++. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
