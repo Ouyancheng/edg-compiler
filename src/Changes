@@ -1,5 +1,19 @@
 Version 3.1
 
+6/27/02  Abort on using-declaration of template-dependent name
+
+An abort on processing a using-declaration of a member of a
+template-dependent class has been fixed.
+
+  template<typename T>
+  struct X: T {
+    using typename T::T2;
+    X(T2);
+  };
+  template<typename T>
+    X<T>::X(T2) {
+  }
+
 6/27/02  GNU C compatibility: New "visibility" attribute
 
 In GNU C mode, the front end now accepts the visibility attribute on

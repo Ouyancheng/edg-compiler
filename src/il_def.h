@@ -3837,7 +3837,10 @@ typedef struct a_base_class {
 			   describing the derivation of derived_class from
 			   this base class; if is_virtual is TRUE, pointer to
 			   a linked list of entries describing one or more
-			   alternative derivations. */
+			   alternative derivations.  NULL for a dummy base
+			   class invented for a projection of a member of
+			   a nonreal class into another class, e.g., via
+			   a using-declaration. */
   an_overriding_virtual_function_ptr
 		overriding_virtual_functions;
 			/* Pointer to a linked list of entries representing

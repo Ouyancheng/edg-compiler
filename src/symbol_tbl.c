@@ -7461,8 +7461,15 @@ symbol, and view_sym is either the same as symbol or a projection thereof.
     /* The view symbol is a projection symbol. */
     bcp = view_sym->variant.projection.extra_info->fundamental_base_class;
     derivations = bcp->derivation;
-    preferred_derivation = preferred_derivation_of(bcp);
-    preferred_path = preferred_derivation->path;
+    /* Base classes generated for references to members of nonreal classes
+       have a null derivation. */
+    if (derivations == NULL) {
+      preferred_derivation = NULL;
+      preferred_path = NULL;
+    } else {
+      preferred_derivation = preferred_derivation_of(bcp);
+      preferred_path = preferred_derivation->path;
+    }  /* if */
   } else {
     /* The view symbol is not a projection symbol, so the view class is the
        same as the class of the viewed symbol. */
