@@ -285,10 +285,7 @@ typedef struct a_symbol {
                            last symbol with this identifier. */
   a_symbol_ptr	next_in_scope;
 			/* When the symbol is in the symbol table, this
-			   points to the next symbol in the same scope.
-			   When the symbol is not in the symbol table,
-			   this points to the next symbol in the list
-			   headed by removed_symbols. */
+			   points to the next symbol in the same scope. */
   a_scope_number
 		decl_scope;
 			/* Scope number of the scope in which this symbol
@@ -600,14 +597,6 @@ EXTERN a_scope_number
 			   pseudo-scopes associated with the members of
 			   structs and unions. */
 
-EXTERN a_symbol_ptr
-		removed_symbols,
-		last_removed_symbol;
-			/* First/last pointers to the list of symbols removed
-			   from the symbol table.  Linked by the field
-			   next_in_scope.  At the end of the compilation,
-			   all symbols are on this list. */
-
 /*
 Enumeration indicating a kind of reference to a symbol, used in
 generating cross-reference information.
@@ -640,8 +629,6 @@ extern a_symbol_ptr full_enter_symbol(char          *identifier,
 
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 			    a_symbol_kind sym_kind);
-
-extern void half_remove_symbol(a_symbol_ptr sym_ptr);
 
 extern void remove_symbol(a_symbol_ptr sym_ptr);
 

@@ -92,6 +92,12 @@ typedef struct a_func_info_block {
 			/* The scope number used for the function prototype
 			   scope for the parameters, to be reused for the
 			   function scope if a body is found. */
+  a_symbol_ptr	prototype_scope_symbols;
+			/* List of symbols in the prototype scope, linked
+			   on the next_in_scope field.  NULL if none.
+			   Usually NULL.  Only named types (structs/unions/
+			   enums) declared within the prototype scope
+			   appear on this list. */
   a_param_id_ptr
 		param_id_list;
 			/* List of entries giving parameter names, NULL if
