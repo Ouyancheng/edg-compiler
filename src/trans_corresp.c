@@ -1565,31 +1565,45 @@ translation unit correspondence pointer if one is found.
 */
 {
   a_symbol_ptr  nsp_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-  a_symbol_ptr  sym;
 
   check_assertion(nsp_sym != NULL);
-  sym = nsp_sym->header->inactive_symbols;
-  for (; sym != NULL; sym = sym->next) {
-    if (sym->decl_scope != nsp_sym->decl_scope &&
-        may_have_correspondence(sym) &&
-        same_parents(sym, nsp_sym)) {
-      /* Two different declarations in the same namespace and with the same
-         name: they should probably match up. */
-      if (is_namespace_symbol(sym) &&
-          sym->variant.namespace_info.ptr->is_namespace_alias ==
+  if (nsp_sym == symbol_for_namespace_std) {
+    /* The standard namespace always exists (in C++), but its symbol in the
+       primary translation unit is not linked into the symbol table if no
+       member of std has been declared yet.  However, we do know that it is
+       the first entry on the list of namespaces for the primary file scope. */
+    a_namespace_ptr  primary_std_namespace = translation_units
+                                                  ->primary_scope->namespaces;
+    check_assertion(primary_std_namespace != NULL &&
+                    primary_std_namespace
+                              ->source_corresp.parent.namespace_ptr == NULL &&
+                    strncmp(primary_std_namespace->source_corresp.name,
+                            "std", 3) == 0);
+    record_trans_unit_corresp(nsp, primary_std_namespace);
+  } else {
+    a_symbol_ptr  sym = nsp_sym->header->inactive_symbols;
+    for (; sym != NULL; sym = sym->next) {
+      if (sym->decl_scope != nsp_sym->decl_scope &&
+          may_have_correspondence(sym) &&
+          same_parents(sym, nsp_sym)) {
+        /* Two different declarations in the same namespace and with the same
+           name: they should probably match up. */
+        if (is_namespace_symbol(sym) &&
+            sym->variant.namespace_info.ptr->is_namespace_alias ==
                                                     nsp->is_namespace_alias) {
-        /* Record the correspondence. */
-        record_trans_unit_corresp(nsp, sym->variant.namespace_info.ptr);
-        break;
-      } else {
-        /* An error since the conflicting entity has external linkage. */
-        f_report_bad_trans_unit_corresp((char*)nsp, &sym->decl_position);
+          /* Record the correspondence. */
+          record_trans_unit_corresp(nsp, sym->variant.namespace_info.ptr);
+          break;
+        } else {
+          /* An error since the conflicting entity has external linkage. */
+          f_report_bad_trans_unit_corresp((char*)nsp, &sym->decl_position);
+        }  /* if */
       }  /* if */
+    }  /* for */
+    if (trans_unit_corresp_pointer_of(nsp) == NULL) {
+      /* Mark this namespace as visited. */
+      set_no_trans_unit_corresp(nsp);
     }  /* if */
-  }  /* for */
-  if (trans_unit_corresp_pointer_of(nsp) == NULL) {
-    /* Mark this namespace as visited. */
-    set_no_trans_unit_corresp(nsp);
   }  /* if */
 }  /* find_namespace_correspondence */
 
