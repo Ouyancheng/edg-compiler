@@ -37,6 +37,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define DELETE_CAN_BE_FOLDED_INTO_DTOR 0
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
+#define DEFAULT_TYPE_INFO_IN_NAMESPACE_STD 0
 #endif /* ifdef _WIN32 */
 #ifdef SSI_VERSION
 /* Generating instantiations in source sequence lists. */
