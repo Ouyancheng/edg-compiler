@@ -449,7 +449,7 @@ Do the output in the way described by octl.
 
 #if MICROSOFT_KEYWORDS_ALLOWED
 
-static void form_microsoft_qualifier(
+void form_microsoft_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_boolean                             need_trailing_space,
                      an_il_to_str_output_control_block_ptr octl)
