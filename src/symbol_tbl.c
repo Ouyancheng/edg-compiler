@@ -8090,28 +8090,39 @@ created for this entity; otherwise, it is NULL.
 */
 {
   a_boolean                is_definition = srk_flags & SRK_DEFINITION;
+  a_boolean                is_primary_decl;
   a_source_correspondence  *scptr;
 
   if (is_definition) {
     if (sym_ptr->defined) {
-      /* This is a redefinition -- allowed for C variables at file scope and
-         macros.  Don't update the source position or the decl-sequence number
-         in such cases. */
-    } else {
-      /* Put the source position in the symbol (since this is the definition)
-         and mark the symbol "defined".  Also, set the decl-sequence number
-         associated with this declaration (again, unconditionally, since this
-         is the definition). */
-      sym_ptr->decl_position = *source_position;
-      if (sym_ptr->kind == (a_symbol_kind)sk_variable &&
-          sym_ptr->variant.variable.ptr->is_parameter &&
-          sym_ptr->decl_seq > 0) {
-        /* Leave it set as when the parameter symbol was created. */
+      /* This is a redefinition -- allowed for C variables at file scope, for
+         macros, and for C++ typedefs. */
+      if (C_mode() && sym_ptr->kind == (a_symbol_kind)sk_variable &&
+          !(srk_flags & SRK_TENTATIVE_DEF)) {
+        /* This must be an initializing definition following a tentative
+           definition. */
+        is_primary_decl = TRUE;
       } else {
-        set_decl_sequence_number(sym_ptr);
+        /* A definition is ordinarily the primary declaration, but if it was
+           previously defined and this is just a redefinition, this should be
+           recorded as a secondary declaration. */
+        is_primary_decl = FALSE;
       }  /* if */
+    } else {
+      is_primary_decl = TRUE;
+      sym_ptr->defined = TRUE;
     }  /* if */
+    if (is_primary_decl) {
+      /* Put the source position in the symbol (since this is the definition);
+         the symbol is marked "defined" later. */
+      sym_ptr->decl_position = *source_position;
+    }  /* if */
+  } else {
+    is_primary_decl = FALSE;
   }  /* if */
+  /* Set declaration sequence numbers based on the first declaration of the
+     name, regardless of whether it is the primary declaration or not. */
+  if (sym_ptr->decl_seq == 0) set_decl_sequence_number(sym_ptr);
   /* Update the cross reference file if it exists. */
   if (f_xref_info != NULL) {
     /* If writing cross-reference information, write an entry for this
@@ -8127,40 +8138,17 @@ created for this entity; otherwise, it is NULL.
          redundant. */
     } else {
       /* Issue a source sequence entry. */
-      a_boolean  is_primary_decl = FALSE;
-
-      if (is_definition) {
-        /* A definition is ordinarily the primary declaration, but if it was
-           previously defined and this is just a redefinition, this should be
-           recorded as a secondary declaration. */
-        if (!sym_ptr->defined) {
-          is_primary_decl = TRUE;
-        } else if (C_mode() && sym_ptr->kind == (a_symbol_kind)sk_variable) {
-          /* This must be an initializing definition following a tentative
-             definition. */
-          is_primary_decl = TRUE;
-        }  /* if */
-      }  /* if */
       sym_update_source_sequence_list(sym_ptr, source_position,
                                       is_primary_decl, ssep);
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (is_definition) {
-    if (!sym_ptr->defined) {
-      /* The source position in the IL entry is updated only after the source
-         sequence list is updated to assure that a secondary declaration entry
-         gets the right source position in the case of a redeclaration.
-         Similarly, the defined flag in the symbol is also updated late. */
-      scptr = source_corresp_entry_for_symbol(sym_ptr);
-      if (scptr != NULL) scptr->decl_position = *source_position;
-      /* Similarly, the defined flag is also set late. */
-      sym_ptr->defined = TRUE;
-    }  /* if */
-  } else {
-    if (sym_ptr->decl_seq == 0) {
-      set_decl_sequence_number(sym_ptr);
-    }  /* if */
+  if (is_primary_decl) {
+    /* The source position in the IL entry is updated only after the source
+       sequence list is updated to assure that a secondary declaration entry
+       gets the right source position in the case of a redeclaration. */
+    scptr = source_corresp_entry_for_symbol(sym_ptr);
+    if (scptr != NULL) scptr->decl_position = *source_position;
   }  /* if */
 }  /* record_symbol_declaration */
 
