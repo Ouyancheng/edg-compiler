@@ -418,7 +418,7 @@ position following what was demangled.
      A template parameter constant or a constant expression does not have
      the initial "C" and type.
   */
-  if (*p != 'Z'&& *p != 'O') {
+  if (*p == 'C') {
     /* Advance past the type. */
     type = p;
     dctl->suppress_id_output++;
@@ -433,7 +433,7 @@ position following what was demangled.
                    correspond to the triplet of values in the __mptr
                    data structure.
        Z1Z         Template parameter.
-       Opl2Z1ZZ2ZO Expression.
+       Opl_Z1ZZ2ZO Expression.
   */
   if (isdigit((unsigned char)*p)) {
     /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
@@ -602,17 +602,16 @@ at ptr, and output the demangled form.  Return a pointer to the character
 position following what was demangled.
 */
 {
-  char          *p = ptr, *operator_str;
-  int           op_length;
-  unsigned long num_operands;
-  a_boolean     takes_type;
+  char      *p = ptr, *operator_str, *op_1;
+  int       op_length;
+  a_boolean takes_type, is_unary;
 
   /* An operation has the form
-       Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
+       Opl_Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
                  ^---- "O" to end the operation encoding.
               ^^^----- Second operand.
            ^^^-------- First operand.
-          ^----------- Count of operands.
+          ^----------- Delimiter.
         ^^------------ Operation, using same encoding as for operator
                        function names.
        ^-------------- "O" for operation.
@@ -624,6 +623,7 @@ position following what was demangled.
     bad_mangled_name(dctl);
   } else {
     p += op_length;
+    p = advance_past_underscore(p, dctl);
     /* Put parentheses around the operation. */
     write_id_ch('(', dctl);
     /* For a cast, sizeof, or __ALIGNOF__, get the type. */
@@ -637,23 +637,27 @@ position following what was demangled.
       p = demangle_type(p, dctl);
       write_id_ch(')', dctl);
     }  /* if */
-    /* Get the count of operands. */
-    p = get_number(p, &num_operands, dctl);
     /* sizeof and __ALIGNOF__ take zero operands. */
-    if (num_operands != 0) {
-      if (num_operands == 1) {
+    if (*p != 'O') {
+      /* Scan the first operand to see if there's just one operand. */
+      dctl->suppress_id_output++;
+      op_1 = p;
+      p = demangle_constant(op_1, dctl);
+      dctl->suppress_id_output--;
+      is_unary = (*p == 'O');
+      if (is_unary) {
         /* Unary operator -- operator comes first. */
         write_id_str(operator_str, dctl);
       }  /* if */
-      /* Process the first operand. */
-      p = demangle_constant(p, dctl);
-      if (num_operands > 1) {
+      /* Process the first operand for real. */
+      p = demangle_constant(op_1, dctl);
+      if (!is_unary) {
         /* Binary and ternary operators -- operator comes after first
            operand. */
         write_id_str(operator_str, dctl);
         /* Process the second operand. */
         p = demangle_constant(p, dctl);
-        if (num_operands > 2) {
+        if (*p != 'O') {
           /* Ternary operand -- "?". */
           write_id_ch(':', dctl);
           /* Process the third operand. */
@@ -1061,7 +1065,16 @@ simple case.
          can be demangled successfully. */
       if (ch == '_' && p != ptr &&
           char_from_name(p+1) == '_' &&
-          char_from_name(p+2) != '_') break;
+          char_from_name(p+2) != '_' &&
+          /* When the length is known, stop only on "__pt" or "__S".  Double
+             underscores can appear in the middle of some names, e.g.,
+             member names used as template arguments. */
+          (nchars == 0 ||
+           (char_from_name(p+2) == 'p' &&
+            char_from_name(p+3) == 't') ||
+           char_from_name(p+2) == 'S')) {
+        break;
+      }  /* if */
     }  /* for */
     end_ptr = p;
   }  /* if */
