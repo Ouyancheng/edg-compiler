@@ -1,5 +1,14 @@
 Version 3.1
 
+11/20/02  GNU C++ compatibility: Type definitions allowed in cast expressions
+
+In GNU C++ mode, the front end now allows type definitions in cast
+expressions.  For example:
+
+  void f(int *p) {
+    (struct { int *p; }*)p;  // Accepted in GNU C++ mode; error in other
+  }                          // C++ modes.
+
 11/19/02  GNU C++ compatibility: template argument list following
           constructor name
 

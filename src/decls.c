@@ -7762,8 +7762,10 @@ In C++ mode an error is issued if a type definition appears in a type-name
                         (an_attribute_ptr *)NULL, &decl_modifiers,
                         (a_decl_pos_block_ptr)NULL, (a_upc_block_size*)NULL);
   if (C_dialect == C_dialect_cplusplus &&
-      (dso_flags & DSO_DEFINES_SOMETHING)) {
-    /* Definition of a class, struct, union, or enum type is not allowed. */
+      (dso_flags & DSO_DEFINES_SOMETHING) &&
+      !gpp_mode) {
+    /* Definition of a class, struct, union, or enum type is not allowed
+       in non-GNU C++ mode. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
