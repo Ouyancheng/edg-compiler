@@ -1612,7 +1612,7 @@ Pop function corresponding to push_generated_routine_context.
      deleted if it is empty. */
   { an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
     curr_object_lifetime = scope->lifetime;
-    pop_object_lifetime();
+    (void)pop_object_lifetime();
     curr_object_lifetime = saved_curr_object_lifetime;
   }
   clean_up_all_object_lifetimes(scope);
