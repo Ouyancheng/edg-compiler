@@ -1,5 +1,13 @@
 Version 2.07
 
+6/25/92  Bug fix -- initialization of signed/unsigned char array with
+         string.
+
+A bug was introduced along with the wide-character changes of version 1.25
+of the C front end.  It disallowed the following perfectly legal program:
+
+  unsigned char x[] = "hello";
+
 6/24/92  Warning on delete of pointer to incomplete class.
 
 A warning is now issued on a delete of a pointer to an incomplete class,
