@@ -2889,7 +2889,8 @@ of the function, and again overloading is a possibility.
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       decl_var_or_routine(locator, storage_class, function_type, func_info,
-                          &sym, &linkage, &old_type, &ext_sym);
+                          /*is_variable_def=*/FALSE, &sym, &linkage,
+                          &old_type, &ext_sym);
     } else {
       if (sym->class_of_which_a_member == class_type) {
         /* It's a member function of the very class that is according it
@@ -2915,7 +2916,17 @@ of the function, and again overloading is a possibility.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (sym != NULL) {
+      if (sym != NULL && sym->defined && func_info->is_definition) {
+        /* Trying to defined a function that's aleady defined. */
+        pos_sy_error(ec_function_redefinition,
+                     &locator->source_position, sym);
+        set_to_error_locator(*locator);
+      } else {
+        if (func_info->is_definition) {
+          mark_defined(sym, &locator->source_position);
+        } else {
+          mark_declared(sym, &locator->source_position);
+        }  /* if */
         /* Do throw specification compatibility checking. */
         check_throw_specification(func_info, sym->variant.routine.ptr);
       }  /* if */
@@ -3321,6 +3332,12 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->is_inline = func_info->is_inline;
     if (compiler_generated) {
       rtn->compiler_generated = TRUE;
+    } else {
+      if (func_info->is_definition) {
+        mark_defined(sym, &locator->source_position);
+      } else {
+        mark_declared(sym, &locator->source_position);
+      }  /* if */
     }  /* if */
     add_throw_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
@@ -6250,23 +6267,6 @@ Scan the body of a class definition, including the base classes list.
                 curr_routine_fixup->func_info = func_info;
               }  /* if */
               if (function_def_present) {
-                /* Next token indicates start of a function definition. */
-                if (friend_specified && is_nonreal_instantiation) {
-                  /* Friend definition within a template -- do nothing during
-                     the prototype instantiation. */
-                } else if (rout_sym->defined) {
-                  pos_sy_error(ec_function_redefinition,
-                               &locator.source_position, rout_sym);
-                  /* A routine that's already defined may have been defined
-                     inline.  Clear the token cache. */
-                  if (curr_routine_fixup != NULL) {
-                    clear_token_cache(&curr_routine_fixup->
-                                                function_body_token_cache,
-                                      /*reusable=*/FALSE);
-                  }  /* if */
-                } else {
-                  mark_defined(rout_sym, &locator.source_position);
-                }  /* if */
                 if (!friend_specified) {
                   /* The inline flag is set for friend functions in
                      decl_friend_function, which also handles cases in which
