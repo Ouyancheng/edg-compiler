@@ -619,6 +619,11 @@ Dump information on a class member using-decl entry, for debug purposes.
     check_assertion(sc != NULL);
     fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
     db_name(sc);
+    if (cmudp->hidden) fprintf(f_debug, ", hidden");
+    if (cmudp->entity.kind == (an_il_entry_kind)iek_routine) {
+      fputs(",\n        ", f_debug);
+      db_type(((a_routine_ptr)cmudp->entity.ptr)->type);
+    }  /* if */
   }  /* if */
 }  /* db_class_member_using_decl */
 
