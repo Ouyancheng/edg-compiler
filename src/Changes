@@ -1,5 +1,14 @@
 Version 2.23
 
+4/20/94  Operands of "?" operator in C++ mode
+
+The second and third operands of a "?" operator in C++ mode are treated
+specially if they have the same type (e.g., no usual arithmetic
+conversions are done).  The check for the "same type" now compares
+the type after any implicit transformations, e.g., array --> pointer
+or lvalue --> rvalue.  This is significant if one operand has a
+type qualifier but the other does not.
+
 4/20/94  Internal error during processing of #pragma instantiate
 
 A change made in version 2.22 resulted in an internal error when an
