@@ -1571,213 +1571,227 @@ scope is that of a class definition.
                               &param_type_ptr);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
-        if ((dso_flags & DSO_JUST_VOID) &&
-            last_param_type == NULL &&
-	    curr_token == tok_rparen) {
-          /* The first and only parameter-declaration is just "void", which
-             has a special meaning (no parameters).  (3.5.4.3) */
-          /* param_type_list is already NULL. */
-          done = TRUE;
+        if (last_param_type == NULL && curr_token == tok_rparen) {
+          if (dso_flags & DSO_JUST_VOID) {
+            /* The first and only parameter-declaration is just "void", which
+               has a special meaning (no parameters).  (3.5.4.3)  */
+            remove_stop_token(tok_comma);
+            break;
+          } else if (is_void_type(param_type_ptr) &&
+                     !is_qualified_type(param_type_ptr) &&
+                     param_storage_class == (a_storage_class)sc_unspecified) {
+#if CHECKING
+            if (param_type_ptr->kind != (a_type_kind)tk_typeref) {
+              internal_error("function_declarator: not tk_typeref");
+            }  /* if */
+#endif /* CHECKING */
+            /* A type name is bound to void type -- this construct is treated
+               as a nonstandard way of signifying an empty param list. */
+            if (strict_ansi_mode) {
+              pos_warning(ec_nonstd_void_param_list, &param_type_pos);
+            }  /* if */
+            remove_stop_token(tok_comma);
+            break;
+          }  /* if */
+        }  /* if */
+        if (is_destructor && last_param_type == NULL) {
+          /* Destructors are allowed no arguments.  Issue an error on the
+             first param. */
+          error(ec_too_many_params_for_destructor);
+        }  /* if */
+        if (defines_something && C_dialect == C_dialect_cplusplus) {
+          pos_error(ec_type_definition_not_allowed, &param_type_pos);
+          param_type_ptr = error_type();
         } else {
-          if (is_destructor && last_param_type == NULL) {
-            /* Destructors are allowed no arguments.  Issue an error on the
-               first param. */
-            error(ec_too_many_params_for_destructor);
-          }  /* if */
-          if (defines_something && C_dialect == C_dialect_cplusplus) {
-            pos_error(ec_type_definition_not_allowed, &param_type_pos);
-            param_type_ptr = error_type();
-          } else {
-            /* Mark the type as referenced.  This is important for a
-               parameter declaration like "struct s {int a;} p;" --
-               the structure is referenced (because it's the type of "p")
-               even through the struct is not referenced by name.  This is
-               usually redundant, since the type is also marked as
-               referenced in declarator.  But if declarator is not called,
-               we still consider this use of the type as a reference, since
-               it is incorporated into the definition of the function. */
-            (skip_typerefs(param_type_ptr))->source_corresp.referenced = TRUE;
-          }  /* if */
-          /* Scan an optional declarator or abstract declarator.  Don't bother
-	     looking for a declarator when there's a comma or right paren or
-	     when decl_specifiers has found a badly formed type specifier or
-             when the next token is an ellipsis.  If an error is to be put out,
-             that's done later. */
-          if (curr_token != tok_comma && curr_token != tok_rparen &&
-	      !dangling_type_specifier && curr_token != tok_ellipsis) {
-            a_decl_flag_set  do_flags;
+        /* Mark the type as referenced.  This is important for a
+           parameter declaration like "struct s {int a;} p;" --
+           the structure is referenced (because it's the type of "p")
+           even through the struct is not referenced by name.  This is
+           usually redundant, since the type is also marked as
+           referenced in declarator.  But if declarator is not called,
+           we still consider this use of the type as a reference, since
+           it is incorporated into the definition of the function. */
+        (skip_typerefs(param_type_ptr))->source_corresp.referenced = TRUE;
+      }  /* if */
+      /* Scan an optional declarator or abstract declarator.  Don't bother
+         looking for a declarator when there's a comma or right paren or
+         when decl_specifiers has found a badly formed type specifier or
+         when the next token is an ellipsis.  If an error is to be put out,
+         that's done later. */
+      if (curr_token != tok_comma && curr_token != tok_rparen &&
+          !dangling_type_specifier && curr_token != tok_ellipsis) {
+        a_decl_flag_set  do_flags;
 
-            if (curr_token == tok_identifier &&
-                !(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-              /* Missing type specifier. */
-              warning(ec_missing_type_specifier);
+          if (curr_token == tok_identifier &&
+              !(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+            /* Missing type specifier. */
+            warning(ec_missing_type_specifier);
+          }  /* if */
+          declarator(DI_REAL_DECLARATOR_ALLOWED |
+                       DI_ABSTRACT_DECLARATOR_ALLOWED, &do_flags,
+                     param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
+                     &param_locator, &param_type_ptr, &bottom_derived_type,
+                     (a_func_info_block_ptr)NULL, &dim_expr_ptr);
+        } else {
+          /* No declarator. */
+          set_to_error_locator(param_locator);
+        }  /* if */
+        /* Adjust the type if necessary (for example, "array of x"
+           becomes "pointer to x"). */
+        adjust_parameter_type(&param_type_ptr);
+        if (is_constructor &&
+            identical_types(member_function_parent_type,
+                            skip_typerefs(param_type_ptr))) {
+          /* X::X(X) is not allowed -- ARM 12.1. */
+          pos_error(ec_bad_constructor_param, &param_type_pos);
+          param_type_ptr = error_type();
+        } else if (C_dialect == C_dialect_cplusplus &&
+                   is_illegal_abstract_class_type(param_type_ptr)) {
+          /* Abstract class may not be used as an arg type (ARM 10.3). */
+          pos_error(ec_abstract_class_object_not_allowed,
+                    is_error_locator(param_locator) ?
+                           &param_type_pos : &param_locator.source_position);
+        }  /* if */
+        /* See if any type qualifiers were specified, and if they are
+           okay. */
+        check_type_qualifiers(&param_type_ptr);
+        /* Standardize the storage class: unspecified becomes auto. */
+        if (param_storage_class == (a_storage_class)sc_unspecified) {
+          param_storage_class = (a_storage_class)sc_auto;
+        }  /* if */
+        /* Put the parameter type on the type list attached to the function
+           type, and the name (if present) on the id list. */
+        ptp = alloc_param_type(param_type_ptr);
+        if (last_param_type == NULL) {
+          extra_info->param_type_list = ptp;
+        } else {
+          last_param_type->next = ptp;
+        }  /* if */
+        last_param_type = ptp;
+        if (func_info != NULL) {
+          /* A parameter name is present.  Save it only if there is a
+             func_info entry in which to save it.  If there isn't, the
+             name is only significant for commenting purposes anyway.
+             Note that null-locator names are saved for all unnamed
+             parameters.  This is done because named and unnamed parameters
+             can be mixed in one list.  In C, such a list is really only
+             allowed when there is no body defining the function, and in
+             that case the names are not significant.  However, if the user
+             makes a mistake, having as complete a list as possible
+             minimizes the error recovery problems. */
+          if (is_error_locator(param_locator)) {
+            func_info->any_prototype_names_omitted = TRUE;
+          }  /* if */
+          add_to_param_id_list(&param_locator, param_type_ptr,
+                               &param_type_pos, param_storage_class,
+                               func_info, &last_param_id);
+        }  /* if */
+        if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
+          /* Argument expressions are not allowed in overloaded operator
+             declarations.  Issue an error, but go ahead and scan the
+             expression. */
+          a_scope_kind        parent_scope_kind;
+          a_boolean           is_member_function;
+          a_boolean           cache_default_arg;
+          if (!default_arg_expr_allowed) {
+            pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
+          } else if (locator->is_operator_name) {
+            /* This must be an operator()() declaration.  According to the
+               ARM a default argument is not allowed for any overloaded
+               operators, but operator()() is an exception in common use.
+               Accept this silently in cfront compatibility mode.
+               Otherwise produce at least a warning and possibly an error
+               in strict ANSI mode.  */
+            if (!cfront_compatibility_mode) {
+              an_error_severity    severity;
+              severity = strict_ansi_mode ? strict_ansi_error_severity :
+                                            es_warning;
+              pos_diagnostic(severity, ec_nonstd_default_arg,
+                             &pos_curr_token);
             }  /* if */
-            declarator(DI_REAL_DECLARATOR_ALLOWED |
-                         DI_ABSTRACT_DECLARATOR_ALLOWED, &do_flags,
-                       param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-                       &param_locator, &param_type_ptr, &bottom_derived_type,
-                       (a_func_info_block_ptr)NULL, &dim_expr_ptr);
-          } else {
-            /* No declarator. */
-            set_to_error_locator(param_locator);
           }  /* if */
-          /* Adjust the type if necessary (for example, "array of x"
-             becomes "pointer to x"). */
-          adjust_parameter_type(&param_type_ptr);
-          if (is_constructor &&
-              identical_types(member_function_parent_type,
-                              skip_typerefs(param_type_ptr))) {
-            /* X::X(X) is not allowed -- ARM 12.1. */
-            pos_error(ec_bad_constructor_param, &param_type_pos);
-            param_type_ptr = error_type();
-          } else if (C_dialect == C_dialect_cplusplus &&
-                     is_illegal_abstract_class_type(param_type_ptr)) {
-            /* Abstract class may not be used as an arg type (ARM 10.3). */
-            pos_error(ec_abstract_class_object_not_allowed,
-                      is_error_locator(param_locator) ?
-                             &param_type_pos : &param_locator.source_position);
-          }  /* if */
-          /* See if any type qualifiers were specified, and if they are
-             okay. */
-          check_type_qualifiers(&param_type_ptr);
-          /* Standardize the storage class: unspecified becomes auto. */
-          if (param_storage_class == (a_storage_class)sc_unspecified) {
-            param_storage_class = (a_storage_class)sc_auto;
-          }  /* if */
-          /* Put the parameter type on the type list attached to the function
-             type, and the name (if present) on the id list. */
-          ptp = alloc_param_type(param_type_ptr);
-          if (last_param_type == NULL) {
-            extra_info->param_type_list = ptp;
-          } else {
-            last_param_type->next = ptp;
-          }  /* if */
-          last_param_type = ptp;
-          if (func_info != NULL) {
-            /* A parameter name is present.  Save it only if there is a
-               func_info entry in which to save it.  If there isn't, the
-               name is only significant for commenting purposes anyway.
-               Note that null-locator names are saved for all unnamed
-               parameters.  This is done because named and unnamed parameters
-               can be mixed in one list.  In C, such a list is really only
-               allowed when there is no body defining the function, and in
-               that case the names are not significant.  However, if the user
-               makes a mistake, having as complete a list as possible
-               minimizes the error recovery problems. */
-            if (is_error_locator(param_locator)) {
-              func_info->any_prototype_names_omitted = TRUE;
-            }  /* if */
-            add_to_param_id_list(&param_locator, param_type_ptr,
-                                 &param_type_pos, param_storage_class,
-                                 func_info, &last_param_id);
-          }  /* if */
-          if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
-            /* Argument expressions are not allowed in overloaded operator
-               declarations.  Issue an error, but go ahead and scan the
-               expression. */
-	    a_scope_kind	parent_scope_kind;
-	    a_boolean		is_member_function;
-	    a_boolean		cache_default_arg;
-            if (!default_arg_expr_allowed) {
+          /* Advance past the equal sign. */
+          (void)get_token();
+          /* Check the scope immediately containing the current scope, which
+             is a function prototype scope.  We may have to cache the
+             default argument tokens and rescan them later. */
+          cache_default_arg = FALSE;
+          is_member_function = FALSE;
+          parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
+          if (default_arg_expr_allowed) {
+            if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
+              /* A member function of a class (normal or template) inside
+                 a class declaration. */
+              cache_default_arg = TRUE;
+              is_member_function = TRUE;
+            } else if (parent_scope_kind ==
+                                   (a_scope_kind)sck_template_declaration &&
+                       ptp->type_involves_template_param) {
+              /* A function template declaration. */
+              cache_default_arg = TRUE;
+            } else if (parent_scope_kind ==
+                                  (a_scope_kind)sck_class_reactivation &&
+                       scope_stack[depth_scope_stack-2].kind ==
+                                   (a_scope_kind)sck_template_declaration) {
+              /* An member function declaration of a template class
+                 outside of the class declaration.  This is not supported. */
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-            } else if (locator->is_operator_name) {
-              /* This must be an operator()() declaration.  According to the
-                 ARM a default argument is not allowed for any overloaded
-                 operators, but operator()() is an exception in common use.
-                 Accept this silently in cfront compatibility mode.
-                 Otherwise produce at least a warning and possibly an error
-                 in strict ANSI mode.  */
-              if (!cfront_compatibility_mode) {
-                an_error_severity    severity;
-                severity = strict_ansi_mode ? strict_ansi_error_severity :
-                                              es_warning;
-                pos_diagnostic(severity, ec_nonstd_default_arg,
-                               &pos_curr_token);
-              }  /* if */
+              default_arg_expr_allowed = FALSE;
             }  /* if */
-            /* Advance past the equal sign. */
-            (void)get_token();
-            /* Check the scope immediately containing the current scope, which
-               is a function prototype scope.  We may have to cache the
-               default argument tokens and rescan them later. */
-	    cache_default_arg = FALSE;
-	    is_member_function = FALSE;
-	    parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
-	    if (default_arg_expr_allowed) {
-	      if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
-		/* A member function of a class (normal or template) inside
-		   a class declaration. */
-		cache_default_arg = TRUE;
-		is_member_function = TRUE;
-	      } else if (parent_scope_kind ==
-				     (a_scope_kind)sck_template_declaration &&
-			 ptp->type_involves_template_param) {
-		/* A function template declaration. */
-		cache_default_arg = TRUE;
-	      } else if (parent_scope_kind ==
-				    (a_scope_kind)sck_class_reactivation &&
-			 scope_stack[depth_scope_stack-2].kind ==
-				     (a_scope_kind)sck_template_declaration) {
-		/* An member function declaration of a template class
-		   outside of the class declaration.  This is not supported. */
-                pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-		default_arg_expr_allowed = FALSE;
-	      }  /* if */
- 	    }  /* if */
-            if (cache_default_arg &&
-                curr_token != tok_comma && curr_token != tok_rparen &&
-                curr_token != tok_semicolon && curr_token != tok_rbrace && 
-                curr_token != tok_lbrace) {
-	      /* The default argument should be cached because it is either
-		 in a member function declaration inside a class or in
-		 a function template declaration.  The defaults arguments
-		 for member function are cached at this point and only
-		 scanned once the entire class has been defined.
-		 This is because forward references may legally appear
-		 in the default argument expression (C++ draft standard,
-                 section 8.2.6, para 3).  Function template whose arguments
-		 involve template parameters are cached here and scanned
-		 when an instance of the function template is created. */
-	      if (is_member_function) {
-		/* Scan the default arguments for a member function. */
-                prescan_member_function_default_arg_expr(ptp);
-              } else {
-		/* Scan the default arguments for a function template. */
-		prescan_function_template_default_arg_expr(ptp);
-	      }  /* if */
+          }  /* if */
+          if (cache_default_arg &&
+              curr_token != tok_comma && curr_token != tok_rparen &&
+              curr_token != tok_semicolon && curr_token != tok_rbrace && 
+              curr_token != tok_lbrace) {
+            /* The default argument should be cached because it is either
+               in a member function declaration inside a class or in
+               a function template declaration.  The defaults arguments
+               for member function are cached at this point and only
+               scanned once the entire class has been defined.
+               This is because forward references may legally appear
+               in the default argument expression (C++ draft standard,
+               section 8.2.6, para 3).  Function template whose arguments
+               involve template parameters are cached here and scanned
+               when an instance of the function template is created. */
+            if (is_member_function) {
+              /* Scan the default arguments for a member function. */
+              prescan_member_function_default_arg_expr(ptp);
             } else {
-              /* Not a case in which the default argument should be
-		 cached -- or else a syntax error.  Go ahead and
-                 scan the expression and convert it to the required type. */
-              scan_default_arg_expr(default_arg_expr_allowed ?
-                                      ptp : (a_param_type_ptr)NULL);
+              /* Scan the default arguments for a function template. */
+              prescan_function_template_default_arg_expr(ptp);
             }  /* if */
-            ptp->has_default_arg = default_arg_expr_allowed;
-          }  /* if */
-          /* Keep scanning parameter-declarations if there is a comma.
-             However, also check for an ellipsis ("...") following the comma,
-             which ends the prototype list in a different way. */
-          /* Note that a comma preceding the ellipsis is optional in C++. */
-          if (dangling_type_specifier || 
-              (C_dialect != C_dialect_cplusplus &&
-               curr_token == tok_ellipsis)) {
-	    /* A dangling type specifier is detected by decl_specifiers
-	       when a comma is omitted between the end of a type specifier
-	       and the start of the next.  This is pretty unlikely, but the
-	       mechanism was added for class declarations, where it is more
-	       useful. */
-            pos_error(ec_exp_comma, &pos_curr_token);
-	    done = FALSE;
           } else {
-            done = !loop_token(tok_comma);
-	  }  /* if */
-          if (curr_token == tok_ellipsis) {
-            /* The parameter list ends with an ellipsis.  Set the ellipsis
-               flag on the parameter type list, and exit the loop. */
-            (void)get_token();
-            done = TRUE;
-            extra_info->has_ellipsis = TRUE;
+            /* Not a case in which the default argument should be
+               cached -- or else a syntax error.  Go ahead and
+               scan the expression and convert it to the required type. */
+            scan_default_arg_expr(default_arg_expr_allowed ?
+                                    ptp : (a_param_type_ptr)NULL);
           }  /* if */
+          ptp->has_default_arg = default_arg_expr_allowed;
+        }  /* if */
+        /* Keep scanning parameter-declarations if there is a comma.
+           However, also check for an ellipsis ("...") following the comma,
+           which ends the prototype list in a different way. */
+        /* Note that a comma preceding the ellipsis is optional in C++. */
+        if (dangling_type_specifier || 
+            (C_dialect != C_dialect_cplusplus &&
+             curr_token == tok_ellipsis)) {
+          /* A dangling type specifier is detected by decl_specifiers
+             when a comma is omitted between the end of a type specifier
+             and the start of the next.  This is pretty unlikely, but the
+             mechanism was added for class declarations, where it is more
+             useful. */
+          pos_error(ec_exp_comma, &pos_curr_token);
+          done = FALSE;
+        } else {
+          done = !loop_token(tok_comma);
+        }  /* if */
+        if (curr_token == tok_ellipsis) {
+          /* The parameter list ends with an ellipsis.  Set the ellipsis
+             flag on the parameter type list, and exit the loop. */
+          (void)get_token();
+          done = TRUE;
+          extra_info->has_ellipsis = TRUE;
         }  /* if */
         remove_stop_token(tok_comma);
       } while (!done);
@@ -3785,6 +3799,8 @@ class template.
     if (sym == NULL) {
       /* Not a redeclaration. */
       an_error_code error_code;
+
+      check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
           !overload_distinguishable(homonym_symbol, type_ptr,
                                     /*new_is_template=*/TRUE, &error_code)) {
