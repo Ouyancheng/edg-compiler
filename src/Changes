@@ -1,5 +1,21 @@
 Version 2.46
 
+8/2/01   Sun and Microsoft compatibility: abort when redeclaring a function
+         made visible with a using-declaration
+
+The front end used to abort with an internal error on a redeclaration of
+a function with C linkage made visible through a using-declaration if the
+function was overloaded after the using declaration.  (Such declarations
+are only allowed in Sun and Microsoft modes: see Changes entry of 6/28/00.)
+For example:
+
+  namespace N { extern "C" void f(); }
+  using N::f;
+  namespace N { void f(int); }
+  void f();  // Used to trigger an internal error in decls.c
+
+This is now fixed.
+
 8/2/01   C++-generating back end: explicit specializations with explicit
          template arguments
 
