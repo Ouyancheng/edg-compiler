@@ -1,5 +1,19 @@
 Version 2.35
 
+1/6/97   Deduction of template conversion function with cv-qualified result
+
+Type deduction for template conversion functions did not allow cases
+where the return type was cv-qualified.  Now fixed.
+
+  struct NULL {
+    template <class T> operator T*() const { return 0; }
+  } NULL;
+  int main()
+  {
+    char *pc = NULL;        // was accepted
+    char *const cpc = NULL; // was error, now accepted
+  }
+
 1/6/97   Incorrect handling of pragmas in member functions of class templates
 
 If a pragma appeared in a member function of a class template, the pragma

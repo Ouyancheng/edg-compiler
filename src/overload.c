@@ -2548,7 +2548,8 @@ evaluated (but not checked to see if the match is good enough).
     /* For a conversion function (a member template), also do deduction on
        the return type. */
     a_type_ptr return_type = return_type_of(routine_type);
-    if (!matches_template_type(cfp->dest_type, return_type, &templ_arg_list,
+    a_type_ptr eff_dest_type = rvalue_type(cfp->dest_type);
+    if (!matches_template_type(eff_dest_type, return_type, &templ_arg_list,
                                tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
                                MTT_NO_FLAGS,
