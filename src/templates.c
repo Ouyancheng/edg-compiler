@@ -3124,14 +3124,12 @@ included in the search.
   if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
-  prototype_type = prototype_sym == NULL ?
-                        NULL : prototype_sym->variant.class_struct_union.type;
   if (prototype_allowed) {
     if (prototype_sym != NULL) {
       /* Old list is the template argument list from the prototype
          instantiation of the primary template.  See if the list passed
          in matches it. */
-      old_list = prototype_type->
+      old_list = prototype_sym->variant.class_struct_union.type->
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
         /* A match.  Set sym which will suppress any further search. */
@@ -3262,20 +3260,32 @@ included in the search.
     class_type->source_corresp.name_linkage =
                              tssp->variant.class_template.name_linkage;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (prototype_type != NULL) {
-      a_class_type_supplement_ptr	prototype_ctsp;
-      a_decl_modifiers_block		decl_modifiers;
-      clear_decl_modifiers_block(&decl_modifiers);
-      prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+    if (microsoft_mode) {
+      a_symbol_ptr	prototype_template_prototype_sym;
       /* Update the Microsoft decl modifier information for this class based
-         on the information stored in the prototype instantiation. */
-      decl_modifiers.flags = prototype_ctsp->decl_modifiers;
-      decl_modifiers.uuid_string = prototype_ctsp->uuid_string;
-      update_microsoft_decl_modifiers_info_for_class(
-          class_type, /*is_class_definition=*/TRUE,
-          &decl_modifiers, prototype_ctsp->qualifiers,
-          prototype_ctsp->inheritance_kind, &class_template_sym->decl_position,
-          &class_template_sym->decl_position);
+         on the information stored in the prototype instantiation.  If this
+         is an instance of a subordinate template, use the prototype
+         instantiation associated with the prototype template. */
+      prototype_template_prototype_sym =
+             prototype_template_of(class_template_sym)->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+      prototype_type = prototype_template_prototype_sym == NULL ? NULL :
+                           prototype_template_prototype_sym->
+                                               variant.class_struct_union.type;
+      if (prototype_type != NULL) {
+        a_class_type_supplement_ptr	prototype_ctsp;
+        a_decl_modifiers_block		decl_modifiers;
+        clear_decl_modifiers_block(&decl_modifiers);
+        prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+        decl_modifiers.flags = prototype_ctsp->decl_modifiers;
+        decl_modifiers.uuid_string = prototype_ctsp->uuid_string;
+        update_microsoft_decl_modifiers_info_for_class(
+            class_type, /*is_class_definition=*/TRUE,
+            &decl_modifiers, prototype_ctsp->qualifiers,
+            prototype_ctsp->inheritance_kind,
+            &class_template_sym->decl_position, 
+            &class_template_sym->decl_position);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
@@ -8149,10 +8159,14 @@ instantiation.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    /* Update any decl modifiers that may have been specified. */
-    update_microsoft_decl_modifiers_for_class_template(
-        tssp, is_definition, &decl_modifiers, qualifiers,
-        inheritance_kind, &inheritance_kind_pos, &locator.source_position);
+    if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
+      /* Update any decl modifiers that may have been specified.  Don't
+         do this for subordinate templates -- the prototype of the prototype
+         template is used. */
+      update_microsoft_decl_modifiers_for_class_template(
+          tssp, is_definition, &decl_modifiers, qualifiers,
+          inheritance_kind, &inheritance_kind_pos, &locator.source_position);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_partial_specialization && !is_redecl) {
