@@ -52,7 +52,7 @@ the problem was generally not noticeable.  This is now fixed.
 2/13/04  Microsoft compatibility:  Explicit instantiation and dllimport
 
 In Microsoft mode, explicit instantiation directives containing a
-__declspec(dllimport) specifier are now treated as "do not instantiation"
+__declspec(dllimport) specifier are now treated as "do not instantiate"
 directives.  (This is the same behavior as obtained by starting the
 directive with "extern template".)  For example:
 
