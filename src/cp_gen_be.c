@@ -5750,7 +5750,7 @@ finish_new_style_cast:
           }  /* if */
           /* Put out the arguments. */
           gen_argument_list(args,
-                            is_template_param_type(operand_1->type) ?
+                            could_be_dependent_class_type(operand_1->type) ?
                                       NULL : type_pointed_to(operand_1->type),
                             /*skip_num=*/0);
           goto done_with_operation;
