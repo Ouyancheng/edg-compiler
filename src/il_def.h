@@ -3904,7 +3904,6 @@ typedef struct a_variable {
 			   (including a variable representing a static data
 			   member) or if there is no definition in the current
 			   translation unit. */
-#ifdef CIL
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;
@@ -3913,7 +3912,6 @@ typedef struct a_variable {
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
-#endif /* ifdef CIL */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */
