@@ -2059,7 +2059,7 @@ done:;
   return compatible;  
 }  /* param_types_are_compatible */
 
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                              a_type_ptr type2)
@@ -2089,7 +2089,7 @@ the other matches default_calling_convention.
   return compatible;
 }  /* calling_conventions_are_compatible */
 
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                  a_type_ptr              type_2,
@@ -2109,9 +2109,9 @@ for exact pointer equality.
   register a_boolean            compat = FALSE;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_boolean                     ignore_type_qualifiers = FALSE;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     ignore_calling_conventions = FALSE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                     error_matches_anything = 
                         (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
   a_boolean                     top_level_for_redeclaration = FALSE;
@@ -2131,13 +2131,13 @@ for exact pointer equality.
     top_level_for_redeclaration = TRUE;
     flags &= ~TCF_REDECLARATION;
   }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
   if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
     ignore_calling_conventions = TRUE;
     flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2271,10 +2271,10 @@ for exact pointer equality.
                    f_types_are_compatible(rtsp1->implicit_this_param_type,
                                           rtsp2->implicit_this_param_type,
                                           flags))) &&
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
               (ignore_calling_conventions ||
                calling_conventions_are_compatible(type_1, type_2)) &&
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               routine_linkages_are_compatible(rtsp1, rtsp2)) {
             compat = TRUE;
           }  /* if */
@@ -3559,9 +3559,9 @@ preference is given to the first.
   a_routine_type_supplement_ptr  rtsp1, rtsp2, rtsp;
   a_boolean                      return_type1_as_comp_type = TRUE;
   a_boolean                      return_type2_as_comp_type = TRUE;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_calling_convention           comp_calling_convention;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   rtsp1 = rout_type1->variant.routine.extra_info;
   param_list1 = rtsp1->param_type_list;
@@ -3585,7 +3585,7 @@ preference is given to the first.
   comp_prototyped = rtsp1->prototyped || rtsp2->prototyped;
   if (rtsp1->prototyped != comp_prototyped) return_type1_as_comp_type = FALSE;
   if (rtsp2->prototyped != comp_prototyped) return_type2_as_comp_type = FALSE;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   comp_calling_convention = rtsp1->calling_convention;
   if (comp_calling_convention == (a_calling_convention)cc_default) {
     comp_calling_convention = rtsp2->calling_convention;
@@ -3596,7 +3596,7 @@ preference is given to the first.
   if (rtsp2->calling_convention != comp_calling_convention) {
     return_type2_as_comp_type = FALSE;
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!return_type1_as_comp_type && !return_type2_as_comp_type) {
     goto make_new_comp_type;
   }  /* if */
@@ -3755,9 +3755,9 @@ make_new_comp_type:
     }  /* while */
     rtsp->prototyped = comp_prototyped;
     rtsp->has_ellipsis = rtsp1->has_ellipsis;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     rtsp->calling_convention = comp_calling_convention;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!C_mode()) {
       rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
       if (rtsp1->exception_specification != NULL) {

@@ -123,16 +123,16 @@ Macro that is TRUE if the current token is the start of a type qualifier
 Macro that is TRUE if the current token is the start of a
 Microsoft calling convention.
 */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_calling_convention()				\
   (microsoft_mode &&							\
    (curr_token == tok_cdecl ||						\
     curr_token == tok_fastcall ||					\
     curr_token == tok_stdcall))
-#else /* MICROSOFT_KEYWORDS_ALLOWED */
+#else /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* When microsoft keywords are not allowed simply return FALSE. */
 #define is_microsoft_calling_convention() (FALSE)
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /*

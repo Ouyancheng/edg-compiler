@@ -234,7 +234,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_restrict,  "restrict");
   }  /* if */
 #endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* If Microsoft extensions are allowed, enter the keywords that are to
        be recognized. */
@@ -244,7 +244,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_microsoft_inline,  "__inline");
     enter_keyword((a_token_kind)tok_stdcall,  "__stdcall");
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
      because, even though not part of the ANSI C language, it is used widely
      in C programs. */

@@ -755,10 +755,10 @@ Display a_routine_type_supplement.
     disp_name("arg_pragma");
     disp_pragma_kind_name(ptr->arg_pragma);
   }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   disp_name("calling_convention");
   (void)printf("%s\n", calling_convention_names[(int)ptr->calling_convention]);
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->implicit_this_param_type != NULL) {
     disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
              iek_type);
@@ -1209,7 +1209,7 @@ Display the indicated variable.
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->decl_modifiers & DM_DLLIMPORT) {
     disp_boolean("dllimport", TRUE);
   }  /* if */
@@ -1219,7 +1219,7 @@ Display the indicated variable.
   if (ptr->decl_modifiers & DM_THREAD) {
     disp_boolean("thread", TRUE);
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /*ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
@@ -1535,7 +1535,7 @@ Display the indicated routine.
     disp_boolean("defined_in_friend_decl", TRUE);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->decl_modifiers & DM_DLLIMPORT) {
     disp_boolean("dllimport", TRUE);
   }  /* if */
@@ -1548,7 +1548,7 @@ Display the indicated routine.
   if (ptr->decl_modifiers & DM_MICROSOFT_INLINE) {
     disp_boolean("microsoft_inline", TRUE);
   }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */

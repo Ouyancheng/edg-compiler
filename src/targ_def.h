@@ -891,7 +891,7 @@ RESTRICT_ALLOWED is TRUE.
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
 C++/C-generating back end (cp_gen_be) is run, the Microsoft qualifiers
 should be suppressed in the output.  This flag is only applicable if
-MICROSOFT_KEYWORDS_ALLOWED is TRUE.
+MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 */
 #ifndef SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 #define SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE FALSE
