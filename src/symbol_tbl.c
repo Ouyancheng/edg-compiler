@@ -4431,7 +4431,8 @@ check_routine:
 #endif /* ASM_FUNCTION_ALLOWED */
             } else {
               /* An unreferenced routine. */
-              warning_code = ec_declared_but_not_referenced;
+              pos_sy_warning(ec_declared_but_not_referenced,
+                             &rout_sym->decl_position, rout_sym);
             }  /* if */
           }  /* if */
         }  /* if */
