@@ -2024,6 +2024,12 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   named_registers_enabled = FALSE;
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
+    NAMED_REGISTERS_ALLOWED
+  if (option_kind_used[(int)optk_embedded_c]) {
+    command_line_error(ec_cl_embedded_c_option_only_in_C);
+  }  /* if */
+#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */
