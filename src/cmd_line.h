@@ -163,28 +163,10 @@ EXTERN a_boolean
 			   configurable, and the -x option toggles the
 			   default value.  In cfront mode it is always FALSE.
 			   It has no meaning in C mode. */
-EXTERN a_boolean
-		targ_has_signed_chars
-#if VAR_INITIALIZERS
-                                      = DEFAULT_TARG_HAS_SIGNED_CHARS
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
-			/* TRUE if the target has signed characters.  This
-			   is selectable on the command line. */
 EXTERN an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on
 			   the setting of targ_has_signed_chars. */
-EXTERN a_boolean
-		enum_types_can_be_smaller_than_int
-#if VAR_INITIALIZERS
-			          = DEFAULT_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
-			/* If this is TRUE, enum types will be allocated
-			   the smallest in some set of integral types into
-			   which the enumeration values will fit.  If FALSE,
-			   int is always used. */
 EXTERN a_boolean
 		string_literals_shared;
 			/* TRUE if string literals can be shared.  FALSE
