@@ -15,6 +15,7 @@ exprutil.c -- Expression scanning utility routines.
 
 #include "basics.h"
 #include "mem_manage.h"
+#include "debug.h"
 #include "error.h"
 #include "lexical.h"
 #include "il.h"
@@ -9794,43 +9795,20 @@ Display and return the amount of space used for various expression tables.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  fprintf(f_debug, "\nExpression table use:\n");
-  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+  db_space_used_header("Expression table use:");
 
-#define write_one(name, counter, type)                                \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
-  grand_total += total;                                               \
-}  /* write_one */
-#define write_loss(avail_list, counter, type)                         \
-{ type          *ptr;                                                 \
-  unsigned long count = 0;                                            \
-  for (ptr = avail_list; ptr != NULL; ptr = ptr->next) count++;       \
-  if (count != counter) {                                             \
-    fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", counter-count); \
-  }  /* if */                                                         \
-}  /* write_loss */
-#define write_onel(name, avail_list, counter, type)                   \
-{ write_one(name, counter, type);                                     \
-  write_loss(avail_list, counter, type);                              \
-}  /* write_onel */
+  db_space_used_lost("arg operands", avail_arg_operands,
+                     num_arg_operands_allocated, an_arg_operand);
+  db_space_used_lost("arg match summary", avail_arg_match_summaries,
+                     num_arg_match_summaries_allocated, an_arg_match_summary);
+  db_space_used_lost("candidate function", avail_candidate_functions,
+                     num_candidate_functions_allocated, a_candidate_function);
+  db_space_used_lost("xref entry", avail_xref_entries,
+                      num_xref_entries_allocated, an_xref_entry);
 
-  write_onel("arg operands", avail_arg_operands, num_arg_operands_allocated,
-             an_arg_operand);
-  write_onel("arg match summary", avail_arg_match_summaries,
-             num_arg_match_summaries_allocated, an_arg_match_summary);
-  write_onel("candidate function", avail_candidate_functions,
-             num_candidate_functions_allocated, a_candidate_function);
-  write_onel("xref entry", avail_xref_entries, num_xref_entries_allocated,
-             an_xref_entry);
-
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
-
+  db_space_used_total();
 
   return grand_total;
-#undef write_one
-#undef write_loss
-#undef write_onel
 }  /* show_expr_space_used */
 #endif /* DEBUG */
 
