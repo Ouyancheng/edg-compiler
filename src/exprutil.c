@@ -9254,7 +9254,13 @@ at *err_pos if not.
     }  /* if */
   } else {
     if (!have_access_to_symbol(cctor_sym)) {
-      pos_sy_error(ec_inaccessible_special_function, err_pos, cctor_sym);
+      if (strict_ansi_mode) {
+        pos_sy_diagnostic(strict_ansi_error_severity,
+                          ec_inaccessible_special_function,
+                          err_pos, cctor_sym);
+      } else {
+        pos_sy_warning(ec_inaccessible_special_function, err_pos, cctor_sym);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_access_to_elided_copy_constructor */
