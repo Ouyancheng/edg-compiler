@@ -2896,7 +2896,7 @@ Display the indicated base class derivation entry.
   disp_ptr("next", (char *)ptr->next, iek_base_class_derivation);
   if (ptr->direct) disp_boolean("direct", TRUE);
   if (ptr->preferred) disp_boolean("preferred", TRUE);
-  disp_derivation_step_list("path", ptr->path);
+  disp_derivation_step_list(ptr->path);
 }  /* disp_base_class_derivation */
 
 
