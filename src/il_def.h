@@ -270,8 +270,11 @@ typedef enum /*an_il_entry_kind*/ {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   iek_source_sequence_entry,
 			/* a_source_sequence_entry */
-  iek_comment,		/* No corresponding IL entry -- needed for
-			   a_tagged_pointer kind. */
+  iek_src_seq_secondary_decl,
+			/* a_src_seq_secondary_decl */
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+  iek_comment,		/* a_comment */
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   iek_orphaned_il_list, /* an_orphaned_il_list */
   iek_last		/* Marks the end of the list. */
@@ -343,7 +346,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_source_sequence_entry */		"source-sequence-entry",
+/* iek_src_seq_secondary_decl */	"src-seq-secondary-decl",
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 /* iek_comment */			"comment",
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 /* iek_orphaned_il_list */		"orphaned-il-list",
 /* iek_last */				"last"
@@ -353,20 +359,44 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* NEED_IL_DISPLAY || DEBUG */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED */
 
+/*
+A range of source text, starting at one source position and ending at another.
+*/
+typedef struct a_source_range {
+  a_source_position
+		start_position;
+			/* Starting source position of a range of text. */
+  a_source_position
+		end_position;
+			/* Ending source position of a range of text. */
+} a_source_range;
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 /* For storing an il entry kind more compactly. */
 typedef a_byte a_byte_il_entry_kind;
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+/*
+A structure containing a kind and a generic pointer to some entity.  Before
+it can be used, the pointer must be cast (based on the kind) to a pointer to
+a specific entity.
+*/
 typedef struct a_tagged_pointer {
   a_byte_il_entry_kind
 		kind;
 			/* The kind of entry. */
   char		*ptr;
-			/* Pointer to the entry.  NULL for iek_comment. */
+			/* A generic pointer to the entry. */
 } a_tagged_pointer;
 
 
+/*
+A entry on a list that represents the order in which declarations,
+statements, macros, pragmas, and comments appear within the source program.
+There is a list for the file scope, a list for each function scope, and a
+list for each class-struct-union scope.  Each entry on the list points to
+the entity represented, and when that entity is a declared entity or a
+statement, it has a pointer back to its source sequence entry.
+*/
 typedef struct a_source_sequence_entry *a_source_sequence_entry_ptr;
 typedef struct a_source_sequence_entry {
   a_source_sequence_entry_ptr
@@ -379,11 +409,50 @@ typedef struct a_source_sequence_entry {
 			   the first entry on the list. */
   a_tagged_pointer
 		entity;
-			/* Entry identifying the kind of entity (statement,
-			   variable, comment, etc.) with which this source
-			   sequence entry is associated and (when appropriate)
-			   a pointer to it. */
+			/* A struct containing a tag and a generic pointer
+			   to the entity (statement, variable, comment,
+			   etc.) with which this source sequence entry is
+			   associated. */
 } a_source_sequence_entry;
+
+
+/*
+A "source sequence secondary declaration entry" is pointed to from the
+source sequence list when there is more than one declaration of a given
+entity.  This entry identifies a declaration that is not the "primary"
+declaration of an entity.  For example, a forward declaration of a function
+or a class is a "secondary declaration" when it is followed by a definition.
+Also, a declaration of a member within the class definition is "primary",
+whereas a subsequent definition outside the class definition is "secondary".
+*/
+typedef struct a_src_seq_secondary_decl *a_src_seq_secondary_decl_ptr;
+typedef struct a_src_seq_secondary_decl {
+  a_source_position
+		decl_position;
+			/* Source position of the declaration.  (The source
+			   position of the entity itself records where the
+			   primary declaration appeared.) */
+  a_tagged_pointer
+		entity;
+			/* Entry identifying the kind of entity (type,
+			   function, static data member, etc.) for which this
+			   is the secondary declaration. */
+} a_src_seq_secondary_decl;
+
+
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+/*
+Entry describing a comment.  Only the starting and ending source positions
+are specified, for reasons of economy.  If the text of the comment is needed,
+the source file can be examined.
+*/
+typedef struct a_comment *a_comment_ptr;
+typedef struct a_comment {
+  a_source_range
+		range;
+			/* Starting and ending positions of the comment. */
+} a_comment;
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
