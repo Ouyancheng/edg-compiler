@@ -109,7 +109,7 @@ EXTERN_C void exit(int status);
 #endif /* ifndef STDLIB_H_INCLUDED */
 
 /*
-Incuded to define ctime, etc.
+Included to define ctime, etc.
 */
 #include <time.h>
 
