@@ -1475,36 +1475,34 @@ set to NULL.  If have_complete_object is TRUE, we know we are calling the
 destructor for a complete object.
 */
 {
-  a_type_ptr       class_type;
   an_expr_node_ptr implied_arg_node;
-#if IA64_ABI
-  a_constant       null_constant;
-#endif /* IA64_ABI */
 
   *implied_arg_list = *end_implied_arg_list = NULL;
 #if IA64_ABI
-  if (dtor_needs_implied_arg_list(dtor_routine))
+  if (dtor_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none)
 #endif /* IA64_ABI */
   /* Do not insert code here. */
   {
     /* Get the class type. */
-    class_type = dtor_routine->source_corresp.parent.class_type;
+    a_type_ptr class_type = dtor_routine->source_corresp.parent.class_type;
     prelower_class_type(class_type);
     /* The first argument indicates whether we have a complete object. */
     implied_arg_node = dtor_control_argument(have_complete_object,
                                              /*free_storage=*/FALSE);
     *implied_arg_list = implied_arg_node;
-#if IA64_ABI
-    if (dtor_needs_vtt_argument(dtor_routine)) {
-      /* Add a NULL VTT argument. */
-      make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                               &null_constant);
-      implied_arg_node = alloc_node_for_constant(&null_constant);
-      (*implied_arg_list)->next = implied_arg_node;
-    }  /* if */
-#endif /* IA64_ABI */
     *end_implied_arg_list = implied_arg_node;
   }  /* if */
+#if IA64_ABI
+  if (dtor_needs_vtt_argument(dtor_routine)) {
+    /* Add a NULL VTT argument. */
+    a_constant null_constant;
+    make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
+                             &null_constant);
+    implied_arg_node = alloc_node_for_constant(&null_constant);
+    (*implied_arg_list)->next = implied_arg_node;
+    *end_implied_arg_list = implied_arg_node;
+  }  /* if */
+#endif /* IA64_ABI */
 }  /* make_dtor_implied_arg_list */
 
 
