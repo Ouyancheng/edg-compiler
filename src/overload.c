@@ -6116,10 +6116,15 @@ that case).
     } else {
       /* The conversion is not possible. */
       *failed = TRUE;
+      class_type = f_skip_typerefs(dest_type);
       /* Pick the right error code. */
-      if (is_class_struct_union_type(source_type)) {
+      if (!is_initialization) {
+        /* This is an assignment. */
+        err_code = ambiguous ? ec_ambiguous_assignment_operator :
+                               ec_no_suitable_assignment_operator;
+        single_type_message = TRUE;
+      } else if (is_class_struct_union_type(source_type)) {
         /* Both the source and destination types are classes. */
-        class_type = f_skip_typerefs(dest_type);
         if (types_are_compatible(class_type, f_skip_typerefs(source_type))) {
           /* This is a copy constructor case. */
           err_code = ambiguous ? ec_ambiguous_copy_constructor :
