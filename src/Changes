@@ -1,3 +1,20 @@
+Version 2.37
+
+6/19/97   Internal error in partial ordering comparison of deduced array
+          bounds
+
+An internal error would occur during the partial ordering comparison of
+two function templates when one or both of the templates contained a deduced
+array bound.  This has been fixed.
+
+  template <class T, int I> void f(T(&)[I]);
+  template <int I> void f(int(&)[I]);
+  int main()
+  {
+    int a[5];
+    f(a);
+  }
+
 Version 2.36, June 17, 1997
 
 6/17/97   IL version number changed to 2.28

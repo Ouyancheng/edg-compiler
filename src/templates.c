@@ -3387,10 +3387,25 @@ template parameter list.
           case tk_array:
             /* Array types match if their element types match and the number of
                elements is the same. */
-            if (type->variant.array.is_variable_size_array) {
-              /* If the actual argument has a variable size, this is not a
-                 match (this shouldn't happen. */
-              unexpected_condition();
+            if (type->variant.array.is_variable_size_array &&
+                templ_type->variant.array.is_variable_size_array) {
+              /* Both the type and the template type have variable size
+                 arrays.  This should only occur when comparing two
+                 types that are actually template types during partial
+                 ordering comparisons. */
+              an_expr_node_ptr expr;
+              an_expr_node_ptr templ_expr;
+              expr = type->variant.array.variant.element_count_expr;
+              templ_expr = templ_type->
+                                      variant.array.variant.element_count_expr;
+              if (expr->kind == (an_expr_node_kind)enk_constant &&
+                  templ_expr->kind == (an_expr_node_kind)enk_constant) {
+                a_constant_ptr cp = expr->variant.constant;
+                a_constant_ptr templ_cp = templ_expr->variant.constant;
+                match = matches_template_constant(cp, templ_cp,
+                                                  templ_arg_list,
+                                                  templ_param_list);
+              }  /* if */
             } else if (templ_type->variant.array.is_variable_size_array) {
               /* The type from the template has a variable size.  If the
                  variable size is a constant that refers to a template
