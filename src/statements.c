@@ -374,6 +374,9 @@ dump_control_flow has been enabled at the command line.
     case ssk_do:         str = "do";         break;
     case ssk_for:        str = "for";        break;
     case ssk_try_block:  str = "try_block";  break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case ssk_microsoft_try:  str = "microsoft_try";  break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:             str = "???"; break;
   }  /* switch */
   fprintf(f_debug, "ssk_%s\n", str);
@@ -1976,6 +1979,20 @@ current structured statement.
         }  /* if */
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Check for a Microsoft __try block in both C and C++ mode.  The control
+       flow entries are marked as for ordinary C++ try blocks, and the
+       diagnostic on branching into one will also be the same.   Note that
+       the guarded statement and the cleanup statement are both treated as
+       "try blocks" for the purposes of this checking. */
+    if (depth_stmt_stack > 0 &&
+        sssep[-1].kind == (a_struct_stmt_kind)ssk_microsoft_try) {
+      /* This block represents the compound statement immediately within a
+         try block statement. */
+      cfdp->variant.block.is_try_block = TRUE;
+      cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     add_to_control_flow_descr_list(cfdp);
   }  /* if */
   db_exit();
