@@ -5240,7 +5240,7 @@ which will initialize two slots in the virtual function table.
 #else /* IA64_ABI */
   /* Add the pointer constant. */
   add_init(first_con, last_con, func_con, prepend);
-done:
+done:;
 #endif /* IA64_ABI */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("vtbl")) {
