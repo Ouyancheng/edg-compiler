@@ -219,9 +219,11 @@ EXTERN_C int bzero(char *, int);
 #include <stddef.h>
 /* sizeof_t is used instead of size_t within the front end.  It is the same
    as size_t except on systems where that is too small, e.g., it's 16 bits.
+   true_size_t is the true underlying size_t. 
    size_t_arg is used to pass standard library arguments that used to be
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 /* Note that size_t_arg may evaluate its argument more than once. */
+typedef size_t	true_size_t;
 #if !__MSC__
 typedef size_t	sizeof_t;
 #define size_t_arg(arg) ((size_t)(arg))
@@ -271,10 +273,13 @@ typedef ptrdiff_t a_ptrdiff;
 #define ULONG_MAX ((unsigned long)0xffffffffL)
 /* sizeof_t is used instead of size_t within the front end.  It is the same
    as size_t except on systems where that is too small, e.g., it's 16 bits.
+   true_size_t is the true underlying size_t. 
    size_t_arg is used to pass standard library arguments that used to be
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 /* Note that size_t_arg may evaluate its argument more than once. */
 typedef unsigned int
+		true_size_t;
+typedef true_size_t
 		sizeof_t;
 #define size_t_arg(arg) ((int)(arg))
 /* Can't define ptrdiff_t, since it appears in <sys/types.h>, so define
