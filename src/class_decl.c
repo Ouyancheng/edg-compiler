@@ -4998,6 +4998,10 @@ declared member functions.
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
     rtn->special_kind = (a_special_function_kind)sfk_conversion;
+  } else if (decl_info->is_constructor) {
+    rtn->special_kind = (a_special_function_kind)sfk_constructor;
+  } else if (decl_info->is_destructor) {
+    rtn->special_kind = (a_special_function_kind)sfk_destructor;
   }  /* if */
   if (compiler_generated) {
     rtn->compiler_generated = TRUE;
@@ -5116,10 +5120,6 @@ declared member functions.
         pos_sy_warning(ec_conversion_function_not_usable,
                        &locator->source_position, sym);
       }  /* if */
-    } else if (decl_info->is_constructor) {
-      rtn->special_kind = (a_special_function_kind)sfk_constructor;
-    } else if (decl_info->is_destructor) {
-      rtn->special_kind = (a_special_function_kind)sfk_destructor;
     }  /* if */
     if (exceptions_enabled && compiler_generated) {
       /* A compiler generated constructor, destructor, or assignment
