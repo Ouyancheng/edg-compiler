@@ -3492,6 +3492,43 @@ base class of class_type, and allocate space for the latter.
 
 #if IA64_ABI
 
+static a_boolean trailing_base_does_not_affect_gnu_size(a_base_class_ptr  bcp)
+/*
+Normally, an empty base class appearing "off the end" of a class forces the
+size of that class to be enlarged to avoid conflicts between adjacent objects
+of that class type.  Some GNU C++ compilers ignore that requirement for
+certain bases.  Return TRUE if the given empty base class is a base class
+that would trigger this GNU bug.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(emulate_gnu_abi_bugs && is_empty_class_type(bcp->type));
+  if (any_virtual_steps_in_derivation(bcp)) {
+    /* If the class is a base class of a virtual base on some derivation
+       path, it will not affect the GNU size.  This is certainly the case
+       for indirect base classes with virtual steps in their derivation. */
+    if (!bcp->direct) {
+      result = TRUE;
+    } else if (bcp->derivation != NULL && bcp->derivation->next != NULL &&
+               get_gnu_first_field(bcp->derived_class) != NULL) {
+      /* A virtual base that appears multiple times in the inheritance graph
+         (once as a direct base).  Look for a derivation on which it is also
+         a virtual base class of another virtual base. */
+      a_base_class_derivation_ptr  dp = bcp->derivation;
+      check_assertion(bcp->is_virtual);
+      for (; dp != NULL; dp = dp->next) {
+        if (!dp->direct && dp->path->base_class->is_virtual) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* trailing_base_does_not_affect_gnu_size */
+
+
 static void adjust_size_for_empty_bases(a_layout_block_ptr lob)
 /*
 There may be empty base classes that are located "off the end" of the
@@ -3511,10 +3548,8 @@ empty base class is virtual and indirect.
            derivation path and that the class be indirect.  If the base
            class is both direct and indirect the derived class must have no
            significant fields for the bug to manifest itself. */
-        !(emulate_gnu_abi_bugs && any_virtual_steps_in_derivation(bcp) &&
-          (!bcp->direct ||
-           (bcp->derivation != NULL && bcp->derivation->next != NULL &&
-            get_gnu_first_field(lob->class_type) != NULL)))) {
+        !(emulate_gnu_abi_bugs &&
+          trailing_base_does_not_affect_gnu_size(bcp))) {
       lob->byte_offset = bcp->offset + bcp->type->size;
       lob->bit_offset = 0;
     }  /* if */
