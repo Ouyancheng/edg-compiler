@@ -1,5 +1,11 @@
 Version 2.22
 
+1/25/94  Abort when using preprocessed source and implicit inclusion
+
+An abort has been fixed that occurred when compiling a previously
+preprocessed source file while using the -B (implicit inclusion)
+option.
+
 1/24/94  const variable is not null pointer constant in cfront mode
 
 In cfront compatibility mode, a const variable with value zero is
