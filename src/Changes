@@ -1,5 +1,20 @@
 Version 2.46
 
+1/4/01   Inconsistent positions on certain variable declarations
+
+When a variable with linkage was declared (and not defined) in two different 
+scopes, the decl_position field of the variable's source correspondence
+referred to the first declaration, while the extended position information
+of the decl_pos_info field (available when EXTRA_SOURCE_POSITIONS_IN_IL is
+TRUE) referred to the last declaration.
+
+  extern int i;
+  void f() {
+    extern int i;  // Inconsistent position information in the IL entry
+  }                // corresponding to "i"
+
+This is now fixed (both point to the first declaration).
+
 1/3/01   Incorrect end position on asm statements
 
 When using EXTRA_SOURCE_POSITIONS_IN_IL, the end position for asm statements

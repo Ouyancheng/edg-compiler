@@ -3841,6 +3841,9 @@ cross-reference output describing this declaration.
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_boolean                linked_to_previous_variable = FALSE;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(3, "decl_variable");
   *old_type = NULL;
@@ -4062,6 +4065,9 @@ cross-reference output describing this declaration.
     }  /* if */
   } else {
     /* There is an existing IL entry that we are reusing. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    linked_to_previous_variable = TRUE;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for internal linkage on the old but not the new, or
        vice-versa. */
     check_for_linkage_conflict(&variable_ptr->storage_class,
@@ -4179,7 +4185,9 @@ cross-reference output describing this declaration.
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (is_variable_def || !redeclaration) {
+  if (is_variable_def || (!redeclaration && !linked_to_previous_variable)) {
+    /* The position corresponds to that of the first declaration, or to that
+       of the definition if a definition is seen. */
     update_decl_pos_info(&variable_ptr->source_corresp, decl_pos_block);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
