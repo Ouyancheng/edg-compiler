@@ -4,6 +4,34 @@ Version 2.13, January 21, 1993
 
 The new IL version number is 2.05.
 
+1/20/93 Improved error messages for template functions
+
+The parameter list of template functions is now displayed in
+error messages.  Previously, only the function name was displayed.
+
+1/19/93 Explicit destructor calls for types without destructors
+
+The front-end now support explicit destructor calls of the form:
+
+	p->A::~A();
+	p->int::~int();
+
+for classes that have no destructors and for nonclass types.  We
+refer to this type of destructor call as a "vacuous destructor call".
+A new expression operator "eok_vacuous_destructor_call" has been
+added to represent this construct in the IL.
+
+1/19/93 Fixed bug in use of qualified type name inside a class declaration
+
+This case was incorrectly complaining that the qualified name "A::B" is
+not allowed. 
+
+	struct A {
+		struct B {};
+		A::B ab;
+	};
+
+
 1/19/93 Warning on base class with no default constructor
 
 When a default constructor needs to be generated for a class, its base
@@ -139,6 +167,28 @@ Both of these are forbidden by the ARM, and both are allowed by cfront
 3.0.1.  The second is required to make overloading of the iostream
 library work for template types.
 
+1/12/93 Error message for redeclaration of a tag with the wrong tag kind
+
+We now issue a more explicit error for code such as:
+
+	struct A;
+	union A;
+
+Previously, we simply complained about an invalid redeclaration of the
+name "A".
+
+1/12/93 Qualified names allowed in elaborated types
+
+In November, 1992 X3J16/WG21 voted to allow qualified names in
+elaborated types.  We now support this feature.  For example:
+
+	struct A {
+		struct B {};
+	};
+
+	struct A::B	b;
+
+
 1/12/93 C-generating back end output of bit fields
 
 The C-generating back end now outputs all signed bit fields as "int"
@@ -172,6 +222,13 @@ for some convoluted cases involving templates.
 
 An error is now issued for the above case.  Formerly, the front end
 aborted.
+
+1/7/93 Error when a tag name is later declared as a class template
+
+We now issue an error for cases such as:
+
+	struct A;
+	template <class T> struct A {};
 
 1/7/93 Bug in IL lowering generation of constructor wrappers
 
