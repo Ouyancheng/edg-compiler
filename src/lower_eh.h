@@ -35,6 +35,8 @@ extern void type_is_used_in_exception(a_type_ptr type);
 
 extern void lower_throw(an_expr_node_ptr expr);
 
+extern a_variable_ptr make_caught_object_address_var(void);
+
 extern void make_region_table_entry(
                               a_required_destructor_call_ptr rdcp,
                               an_insert_location             *insert_location);
@@ -44,9 +46,11 @@ extern void set_eh_curr_region(a_context_ptr      context,
 
 extern void add_eh_function_prologue(a_scope_ptr scope);
 
-extern void eh_function_lower_init(void);
+extern void initialize_catch_parameter(a_handler_ptr handler);
 
 extern void lower_try_block(a_statement_ptr statement);
+
+extern void eh_function_lower_init(void);
 
 extern void eh_lower_init(void);
 
