@@ -1291,9 +1291,9 @@ to default values.
 #if GNU_EXTENSIONS_ALLOWED
       rtsp->fmt_arg                  = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWE || GNU_X86_ATTRIBUTES_ALLOWEDD
       rtsp->calling_convention       = (a_calling_convention)cc_default;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       rtsp->this_class               = NULL;
       rtsp->qualifiers               = TQ_NONE;
       rtsp->prototype_scope          = NULL;
@@ -1822,6 +1822,11 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_const                    = FALSE;
   rp->is_weak                     = FALSE;
   rp->allocates_memory            = FALSE;
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+  rp->is_naked                    = FALSE;
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+  rp->no_instrument_function      = FALSE;
+  rp->no_check_memory_usage       = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated         = FALSE;
