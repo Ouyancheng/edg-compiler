@@ -201,7 +201,7 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_tentative_type,	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
 			   to do the lookup. */
   ilm_ctor_initializer_name
-			/* Used to lookup identifiers in the initializer
+			/* Used to look up identifiers in the initializer
 			   list of a constructor declaration. */
 } an_identifier_lookup_mode;
 
