@@ -4944,7 +4944,9 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_FRIEND;
 	  *output_flags |= DSO_FRIEND;
           if (decl_specifiers_seen != DS_FRIEND) {
-            if ((decl_specifiers_seen & DS_STORAGE_CLASS) && !microsoft_mode) {
+            if ((decl_specifiers_seen & DS_STORAGE_CLASS) &&
+                !microsoft_mode &&
+                !(sun_mode && *storage_class == (a_storage_class)sc_static)) {
               error(ec_storage_class_in_friend_decl);
               err = TRUE;
               *storage_class = (a_storage_class)sc_unspecified;

@@ -1,5 +1,16 @@
 Version 2.46
 
+2/12/02  Sun compatibility: static friend function declarations
+
+In Sun mode, the front end now accepts a "static" specifier in the declaration
+of a friend function with internal linkage.  The specifier must precede the
+keyword "friend".
+
+  struct S {
+    static friend void f1();  // OK in Sun mode
+    friend static void f2();  // Error
+  };
+
 2/12/02  Function declarations involving types with no linkage
 
 The front end now more consistently diagnoses function declarations that
