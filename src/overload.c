@@ -8277,11 +8277,11 @@ C++ mode.
   db_enter(4, "conversion_from_class_possible");
   /* This routine is similar to select_overloaded_function. */
   clear_conv_descr(conversion);
-  if (dest_type != NULL &&
-      is_template_dependent_context() &&
-      is_or_contains_template_param(dest_type)) {
-    /* Assume a conversion to an unknown type in a prototype instantiation
-       is allowed. */
+  if (is_template_dependent_context() &&
+      (is_or_contains_template_param(source_operand->type) ||
+       (dest_type != NULL && is_or_contains_template_param(dest_type)))) {
+    /* Assume a conversion to or from an unknown type in a prototype
+       instantiation is allowed. */
     okay = TRUE;
     conversion->unknown_dependent_conversion = TRUE;
   } else {
