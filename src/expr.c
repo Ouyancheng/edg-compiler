@@ -592,28 +592,10 @@ position.  Global variables error_position and curr_construct_end_position
 are set appropriately.
 */
 {
-  an_expr_node_ptr expr = NULL;
-
   set_base_operand_position(result, start_pos, end_pos);
   /* If the operand is an expression, record positions in the expression
      itself. */
-  if (is_expression_operand(result)) {
-    expr = result->variant.expression;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  } else if (is_constant_operand(result)) {
-    /* Some constants have a record of the expression from which they were
-       generated. */
-    expr = result->variant.constant.expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-  }  /* if */
-  if (expr != NULL) {
-    /* Set the position on the expression. */
-    expr->expr_range.start = *start_pos;
-    expr->expr_range.end = *end_pos;
-    if (operator_pos != NULL && is_operation_node(expr)) {
-      expr->operator_position = *operator_pos;
-    }  /* if */
-  }  /* if */
+  set_operand_expr_position_if_expr(result, operator_pos);
 }  /* f_set_operand_position */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -12167,7 +12149,7 @@ after_advance_past_id:
   result->end_position = curr_construct_end_position;
   /* If the operand has kind ok_expression, set the position in the
      expression too. */
-  set_operand_expr_position_if_expr(result);
+  set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (p_sym_ptr != NULL) *p_sym_ptr = projection_sym_ptr;

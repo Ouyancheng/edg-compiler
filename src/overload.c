@@ -4890,7 +4890,7 @@ FALSE.  The operand is an rvalue.
   if (!is_implicit) {
     /* Set the position in the expression too when the reference is
        explicit. */
-    set_operand_expr_position_if_expr(result);
+    set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* make_this_variable_operand */

@@ -1344,16 +1344,33 @@ values.
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
-void set_operand_expr_position_if_expr(an_operand *operand)
+void set_operand_expr_position_if_expr(an_operand        *operand,
+                                       a_source_position *operator_pos)
 /*
 If operand is an expression operand, set the source positions in the
-underlying expression.
+underlying expression from the positions already in the operand.  If
+operator_position is non-NULL, use that position as the operator position
+if setting the positions in the underlying expression.
 */
 {
+  an_expr_node_ptr expr = NULL;
+
   if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
+    expr = operand->variant.expression;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (is_constant_operand(operand)) {
+    /* Some constants have a record of the expression from which they were
+       generated. */
+    expr = operand->variant.constant.expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  }  /* if */
+  if (expr != NULL) {
+    /* Set the position on the expression. */
     expr->expr_range.start = operand->position;
     expr->expr_range.end   = operand->end_position;
+    if (operator_pos != NULL && is_operation_node(expr)) {
+      expr->operator_position = *operator_pos;
+    }  /* if */
   }  /* if */
 }  /* set_operand_expr_position_if_expr */
 
@@ -1611,7 +1628,7 @@ destroyed its source position, etc.  Restore such things from
        we'd like to preserve that over some transformation like
        lvalue-to-rvalue conversion. */
   } else {
-    set_operand_expr_position_if_expr(operand);
+    set_operand_expr_position_if_expr(operand, (a_source_position *)NULL);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->bound_function = orig_operand->bound_function;
@@ -5867,7 +5884,7 @@ reference entry, or is NULL if none is needed.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* If the operand has kind ok_expression, set the position in the
      expression too. */
-  set_operand_expr_position_if_expr(result);
+  set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* make_lvalue_variable_operand */
 
@@ -6086,7 +6103,7 @@ operand, and set the operand type to the type of the field.
   make_expression_operand(node, node->type, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Set the position in the expression too. */
-  set_operand_expr_position_if_expr(result);
+  set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   result->state = (an_operand_state)os_none;
 }  /* make_field_operand */

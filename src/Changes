@@ -1,5 +1,15 @@
 Version 2.46
 
+2/2/01   Source positions on preserved expressions for constant expressions
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, when constant expressions
+are replaced by constants the original expression is preserved and
+pointed to by the constant.  For the simplest preserved expressions,
+those for references to const variables replaced by their values,
+the expression node for the preserved expression did not have the
+source positions recorded when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
+The positions are now set.
+
 2/2/01   C++-generating back end: nonconstant scalar compound literals
 
 The C++-generating back end aborted on attempting to output compound
