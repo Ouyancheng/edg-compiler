@@ -909,6 +909,13 @@ typedef struct a_func_info_block {
 			   asm specifier. */
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	is_movable_member_or_friend_def:1;
+			/* TRUE if the function is defined inside a class
+			   definition but the source-sequence entry for its
+			   definition should make it appear to have been
+			   defined outside the class.  Only set when
+			   NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_
+			   SEQUENCE_LISTS is configured to TRUE. */
   a_source_sequence_entry_ptr
 		declarator_ssep;
 			/* Source sequence entry for the function
