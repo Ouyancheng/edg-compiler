@@ -1325,8 +1325,7 @@ which do the initial test for exact pointer equality.
           if (f_identical_types(type_1->variant.array.element_type,
                                 type_2->variant.array.element_type,
                                 il_identical) &&
-              type_1->variant.array.number_of_elements ==
-              type_2->variant.array.number_of_elements) {
+              identical_array_type_level(type_1, type_2)) {
             identical = TRUE;
           }  /* if */
           break;

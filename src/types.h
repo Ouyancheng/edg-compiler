@@ -150,6 +150,10 @@ extern a_type_ptr node_complete_object_type(an_expr_node_ptr node);
   ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/FALSE))
 #define il_identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/TRUE))
+/* Compare one level of two array types. */
+#define identical_array_type_level(t1, t2) \
+  ((t1)->variant.array.number_of_elements == \
+   (t2)->variant.array.number_of_elements)
 extern a_boolean f_identical_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  il_identical);
