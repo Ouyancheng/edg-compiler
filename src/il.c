@@ -833,23 +833,28 @@ class_struct_union:
       while (ptp != NULL) {
 	if (comma_required) fputs(", ", f_debug);
         db_abbreviated_type(ptp->type);
-        if (ptp->default_arg_expr != NULL) {
+        if (ptp->has_default_arg) {
           an_expr_node_ptr expr = ptp->default_arg_expr;
           fputs(" (= ", f_debug);
-          switch (expr->kind) {
-            case enk_constant:
-              db_constant(expr->variant.constant);
-              break;
-            case enk_variable:
-              db_name(&expr->variant.variable->source_corresp);
-              break;
-            case enk_error:
-              fputs("<error>", f_debug);
-              break;
-            default:
-              fputs("<expr>", f_debug);
-              break;
-          }  /* switch */
+	  if (expr == NULL) {
+	    /* Can be NULL for template parameter based default arguments. */
+	    fputs("<NULL>", f_debug);
+	  } else {
+            switch (expr->kind) {
+              case enk_constant:
+                db_constant(expr->variant.constant);
+                break;
+              case enk_variable:
+                db_name(&expr->variant.variable->source_corresp);
+                break;
+              case enk_error:
+                fputs("<error>", f_debug);
+                break;
+              default:
+                fputs("<expr>", f_debug);
+                break;
+            }  /* switch */
+	  }  /* if */
           fputs(")", f_debug);
         }  /* if */
 	comma_required = TRUE;

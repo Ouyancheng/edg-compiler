@@ -2670,6 +2670,7 @@ is allocated, it is allocated in the file scope.
   a_param_type_ptr comp_param, comp_param_list, end_comp_param_list;
   a_boolean        comp_prototyped;
   an_expr_node_ptr comp_default_arg_expr;
+  a_boolean        comp_has_default_arg;
   a_type_ptr       param_1_type, param_2_type;
 
   db_enter(5, "composite_type");
@@ -2849,14 +2850,18 @@ is allocated, it is allocated in the file scope.
               comp_default_arg_expr = (param1->default_arg_expr != NULL) ?
                                                      param1->default_arg_expr :
                                                      param2->default_arg_expr;
+	      comp_has_default_arg = param1->has_default_arg ||
+				     param2->has_default_arg;
               /* Compare the two parameter types against their composite
                  type.  Stop if it is no longer true that one of the original
                  parameter lists can serve as the composite list. */
               if (comp_param_type != param1->type ||
+		  comp_has_default_arg != param1->has_default_arg ||
                   comp_default_arg_expr != param1->default_arg_expr) {
                 comp_equals_list1 = FALSE;
               }  /* if */
               if (comp_param_type != param2->type ||
+		  comp_has_default_arg != param2->has_default_arg ||
                   comp_default_arg_expr != param2->default_arg_expr) {
                 comp_equals_list2 = FALSE;
               }  /* if */
@@ -2906,10 +2911,10 @@ is allocated, it is allocated in the file scope.
                 comp_param->default_arg_expr =
                                            (param1->default_arg_expr != NULL) ?
                                                      param1->default_arg_expr :
-                                                     param2->default_arg_expr;
-                comp_param->has_default_arg =
-                                          comp_param->default_arg_expr != NULL;
-                /* Add the parameter type entry to the end of the list. */
+                                                     param2->default_arg_expr; 
+                comp_param->has_default_arg = param1->has_default_arg ||
+                                              param2->has_default_arg;
+               /* Add the parameter type entry to the end of the list. */
                 if (comp_param_list == NULL) {
                   comp_param_list = comp_param;
                 } else {
