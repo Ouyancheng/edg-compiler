@@ -6018,6 +6018,8 @@ declaration following this one is such a continuation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     { a_decl_modifier decl_modifiers = var->decl_modifiers;
+      /* __declspec(selectany) applies only to definitions. */
+      if (!is_definition) decl_modifiers &= ~DM_SELECTANY;
       suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
                                                          &var->source_corresp);
       gen_microsoft_decl_modifiers(decl_modifiers);
