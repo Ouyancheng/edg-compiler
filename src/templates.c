@@ -1992,8 +1992,12 @@ the function instantiation entry and set all the pointers.
          set. */
       if (!tip->instantiation_required) {
         /* If the flag is set then the entry is already on the list and
-           the flag should not be reset. */
-        update_instantiation_required_flag(tip, /*value=*/FALSE);
+           the flag should not be reset.  If the flag is not already set,
+           set it based on whether the routine described by the specific
+           declaration has been called or has had its address taken. */
+        a_boolean	instantiate;
+        instantiate = rp->address_taken || rp->called;
+        update_instantiation_required_flag(tip, instantiate);
       }  /* if */
     }  /* if */
   }  /* if */
