@@ -503,6 +503,8 @@ extern void push_object_lifetime(an_il_entry_kind  entity_kind,
                                  char              *entity_ptr,
                                  a_boolean         ctor_init);
 
+extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
+
 extern void pop_object_lifetime(void);
 
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
@@ -705,6 +707,9 @@ extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
 extern void db_source_sequence_list(a_source_sequence_entry_ptr  ssep);
 extern void db_ss_list_for_scope(a_scope_ptr  sp);
 extern void dump_ss(a_scope_ptr  sp);
+
+extern void db_object_lifetime(an_object_lifetime_ptr  olp);
+extern void db_object_lifetime_stack(void);
 #endif /* DEBUG */
 
 extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
