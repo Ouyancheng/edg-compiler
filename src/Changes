@@ -1,9 +1,29 @@
 Version 2.35
 
+1/27/96 Checking the return type of operator->()
+
+The return type of operator->() is no longer checked at the point at which
+the function is declared but only at the point of use in a field-selection
+expression.  (In other words, deferred checking of operator->() return
+types, originally implemented only for class template members, has now
+been generalized for all such functions.)
+
+  class A {
+    int i;
+    int operator->();         // Error is no longer issued here
+  };
+  class B {
+    A operator->();           // Error is no longer issued here
+  };
+  int f(A* pa, B* pb) {
+    (void)pa->i;              // Error
+    (void)pb->i;              // Error
+  };
+
 1/27/96 Building the front end on Windows NT using the Watcom compiler
 
-The Watcom compiler does not currently defined the _WIN32 macro.
-As a workaround, basics.h has been modified to set the EDG macro __WIN32__
+The Watcom compiler does not currently define the _WIN32 macro.  As a
+workaround, basics.h has been modified to set the EDG macro __WIN32__
 when using the Watcom compiler on Windows NT.
 
 1/24/97 Lexical data structure: reserved characters eliminated
