@@ -1185,7 +1185,10 @@ extern a_boolean required_token_no_advance(a_token_kind  token,
    syntactic construct. */
 extern a_boolean loop_token(a_token_kind token);
 /* Look ahead at the token following the current one. */
-extern a_token_kind next_token(void);
+extern a_token_kind next_token_with_seq_number(a_token_sequence_number *seq);
+/* Macro that calls next_token_with_seq_number and provides a NULL argument. */
+#define next_token()							\
+  (next_token_with_seq_number((a_token_sequence_number*)NULL))
 /* Back up one token. */
 extern void unget_token(void);
 /* Get a C++ destructor name, like "~A". */

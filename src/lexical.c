@@ -5443,12 +5443,14 @@ repeated constructs, as in
 }  /* loop_token */
 
 
-a_token_kind next_token(void)
+a_token_kind next_token_with_seq_number(a_token_sequence_number *seq)
 /*
 Return the next token after the current one while leaving the current
 token unchanged.  This is used in recursive-descent parsing routines
 to peek ahead at the next token and decide on a path through the syntax.
 This routine cannot be used when fetching raw preprocessing tokens.
+If seq is not NULL, return the token sequence number of the next token
+in the location pointed to by seq.
 */
 {
   a_token_cache 	cache;
@@ -5494,6 +5496,8 @@ This routine cannot be used when fetching raw preprocessing tokens.
     cache_curr_token(&cache);
     /* Fetch the next token and remember its kind. */
     ntoken = get_token();
+    /* If seq is not NULL, return the sequence number of the next token. */
+    if (seq != NULL) *seq = curr_token_sequence_number;
     /* Put the two tokens in the cache (original, next) on the rescan list,
        and refetch the original token.  Note that the "next" token remains on
        the rescan list. */
@@ -5502,7 +5506,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
 done:
   db_exit();
   return ntoken;
-}  /* next_token */
+}  /* next_token_with_seq_number */
 
 
 static a_token_kind next_two_tokens(a_token_kind	first_token_must_be,
@@ -6420,31 +6424,32 @@ This routine performs ambiguity and access checking on the components of the
 qualified name.
 */
 {
-  a_type_ptr		class_type = NULL;
-  a_boolean     	is_file_scope_qualified_name = FALSE;
-  a_boolean		is_global_qualified_name = FALSE;
-  a_boolean     	is_qualified_name = FALSE;
-  a_boolean             is_ptr_to_member = FALSE;
-  a_boolean		is_identifier = FALSE;
-  a_symbol_ptr		class_symbol = NULL;
-  a_source_position	start_position;
-  a_source_position	orig_error_position;
-  a_token_kind		next_tok;
-  a_token_kind		next_tok_2;
-  a_boolean		result = FALSE;
-  a_boolean		err = FALSE;
-  a_boolean		can_be_vacuous_dtor =
-				 (options & GID_VACUOUS_DTOR_RECOGNIZED);
-  a_boolean		dtor_must_be_nonclass =
-				 (options & GID_DTOR_MUST_BE_NONCLASS);
-  a_boolean		is_vacuous_dtor = FALSE;
-  a_boolean		is_nonclass_dtor = FALSE;
-  a_type_ptr		dtor_class_type = NULL;
-  a_type_ptr		dtor_type = NULL;
-  a_source_position	tilde_position;
-  a_boolean             might_be_qualifier;
-  a_token_kind          qualifier_separator = tok_colon_colon;
-  a_boolean		class_type_is_really_a_class;
+  a_type_ptr			class_type = NULL;
+  a_boolean     		is_file_scope_qualified_name = FALSE;
+  a_boolean			is_global_qualified_name = FALSE;
+  a_boolean     		is_qualified_name = FALSE;
+  a_boolean             	is_ptr_to_member = FALSE;
+  a_boolean			is_identifier = FALSE;
+  a_symbol_ptr			class_symbol = NULL;
+  a_source_position		start_position;
+  a_source_position		orig_error_position;
+  a_token_kind			next_tok;
+  a_token_kind			next_tok_2;
+  a_boolean			result = FALSE;
+  a_boolean			err = FALSE;
+  a_boolean			can_be_vacuous_dtor =
+				  (options & GID_VACUOUS_DTOR_RECOGNIZED);
+  a_boolean			dtor_must_be_nonclass =
+				  (options & GID_DTOR_MUST_BE_NONCLASS);
+  a_boolean			is_vacuous_dtor = FALSE;
+  a_boolean			is_nonclass_dtor = FALSE;
+  a_type_ptr			dtor_class_type = NULL;
+  a_type_ptr			dtor_type = NULL;
+  a_source_position		tilde_position;
+  a_boolean            		might_be_qualifier;
+  a_token_kind         		qualifier_separator = tok_colon_colon;
+  a_boolean			class_type_is_really_a_class;
+  a_token_sequence_number	start_seq_number;
 
   db_enter(4, "f_is_generalized_identifier_start");
   /* If the current token is an identifier, then check the flag in the
@@ -6460,6 +6465,7 @@ qualified name.
     goto exit;
   }  /* if */
   start_position = pos_curr_token;
+  start_seq_number = curr_token_sequence_number;
   orig_error_position = error_position;
   if (C_dialect != C_dialect_cplusplus) {
     /* Skip qualifier, destructor, and operator processing if not in C++
@@ -6842,6 +6848,7 @@ qualified name.
     locator_for_curr_id.is_template_id = FALSE;
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
+    curr_token_sequence_number = start_seq_number;
     /* Restore the original error position. */
     error_position = orig_error_position;
   } else if (is_identifier) {
@@ -7006,6 +7013,7 @@ wrapup:
 
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
+    curr_token_sequence_number = start_seq_number;
     /* Restore the original error position. */
     error_position = orig_error_position;
     /* Perform error checks as specified in "options". */
