@@ -1,5 +1,21 @@
 Version 2.20
 
+10/15/93 Bug in computing alignment of a class
+
+The alignment requirements of an unnamed bit field are not longer factored
+in when computing the overall alignment for a class.  For instance:
+
+  class A {
+    char a;
+    int :0;   // force alignment of next field to multiple of 4.
+    char b;
+  };
+
+Before the change the alignment and size of A were computed to be 4 and 8,
+respectively; now we say the alignment is 1 and the size is 5.  (This
+behavior assumes default settings of certain configuration constants in
+target.h, including CFRONT_OBJECT_CODE_COMPATIBILITY = TRUE).
+
 10/15/93 Orphan lists for block scopes
 
 The generation of orphan lists for block scopes is now done at the end
@@ -63,11 +79,12 @@ appear in source order (C, TMPL<C>, OUTER).
 10/12/93  Declaration sequence numbers
 
 The support for declaration sequence numbers has been extended and
-modified.  They are now put out on all declarations, but they are put out
-on a per-file basis rather than on a per-scope basis.  In other words, the
-first declaration in the source program is assigned declaration sequence
-number 1, the next (whatever its scope) gets 2, and so on.  This enables
-comparisons between scope regarding which of two declarations came first.
+modified.  They are now put out on all declarations.  Moreover, they are
+now put out on a per-file basis rather than on a per-scope basis.  In
+other words, the first declaration in the source program is assigned
+declaration sequence number 1, the next (whatever its scope) gets 2, and
+so on.  This enables comparisons between scopes regarding which of two
+declarations came first in the source program.
 
 10/12/93 IL CHANGE: dynamic init entries
 
@@ -80,11 +97,11 @@ a_dynamic_init to is_copy_constructor_with_implied_source.
 
 10/11/93 Definition vs. declaration in cross-reference output
 
-A defining declaration that is represented by "D" in the cross-reference
-list, whereas a declaration that is not a definition is now represented by
-"d".  (Part of this change involved moving the call to mark_declared out
-of enter_symbol and adding a new routine, mark_defined; now they are
-invoked in contexts in which distinction between defining and nondefining
+A defining declaration is represented by "D" in the cross-reference list,
+whereas a declaration that is not a definition is now represented by "d".
+(Part of this change involved moving the call to mark_declared out of
+enter_symbol and adding a new routine, mark_defined; now they are invoked
+in contexts in which distinction between defining and nondefining
 declarations can be made.)
 
 10/8/93 Reference initialization cases
