@@ -466,6 +466,12 @@ Instantiate the body of the template function associated with tip.
     /* Declare each parameter identifier to have the associated type
        from the parameter type list. */
     decl_parameter(pip, ptp, /*template_instantiation=*/TRUE);
+    /* Check for value parameters that must be passed using a copy constructor.
+       As with the routine calling method flag, this flag may have been
+       set earlier but the information may not have been complete.  The
+       information must be complete at the time the function is defined
+       (i.e., is must be complete now). */
+    set_arg_transfer_method_flag(ptp);
 #if CHECKING
     if ((pip->next == NULL) != (ptp->next == NULL)) {
       internal_error(
