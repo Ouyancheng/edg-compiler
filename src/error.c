@@ -876,8 +876,8 @@ error code.
     case ec_inaccessible_base_class:
       m = "base class is inaccessible";
       break;
-    case ec_not_member_of_a_direct_base_class:
-      m = "name is not a member of a direct base class";
+    case ec_not_a_base_class_member:
+      m = "name is not a member of a base class of \"%s\"";
       break;
     case ec_access_adjustment_in_private_section:
       m = "access adjustment in a \"private\" section is not allowed";

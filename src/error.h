@@ -315,7 +315,7 @@ typedef enum /*an_error_code*/ {
   ec_old_style_parameter_list,
   ec_declaration_after_statements,
   ec_inaccessible_base_class,
-  ec_not_member_of_a_direct_base_class,
+  ec_not_a_base_class_member,
   ec_access_adjustment_in_private_section,
   ec_increasing_access_not_allowed,
   ec_restricting_access_not_allowed,
