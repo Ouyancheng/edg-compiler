@@ -10320,7 +10320,8 @@ Do IL lowering of the indicated scope and everything under it.
     /* Lower the file-scope lists or lists for a class scope. */
     lower_type_list(scope->types);
     lower_variable_list(scope->variables);
-    if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    if (scope->kind == (a_scope_kind)sck_class_struct_union &&
+        allow_anachronisms) {
       /* Change the storage class of static variables that have external
          linkage to sc_unspecified to accommodate the anachronism that
          does not require static data members to be defined somewhere. */
