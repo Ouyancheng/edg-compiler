@@ -311,6 +311,14 @@ the generated C output file.
 #endif /* BACK_END_IS_C_GEN_BE */
 
 /*
+Flag that is TRUE to cause the declaration scope depth to appear in the
+IL entry.
+*/
+#ifndef RECORD_SCOPE_DEPTH_IN_IL
+#define RECORD_SCOPE_DEPTH_IN_IL TRUE
+#endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
+
+/*
 Flag that is TRUE to cause IL lowering to be done, to lower C++ IL
 to C IL, allowing the C++ front end to be used with a C back end.
 */
