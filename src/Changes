@@ -1,5 +1,17 @@
 Version 2.42
 
+7/27/99  Incorrect handling of reference to partial specialization
+
+Certain references within the definition of a template that should refer
+to a "nonreal" class were incorrectly treated as references to a partial
+specialization.  This could result in spurious errors.  Now fixed.
+
+  template <class T> struct A;
+  template <class T> struct A<T*>;
+  template <class T> struct B {
+    A<T*> a;
+  };
+
 7/22/99  Compound literals
 
 Compound literals, a C9X feature, are now accepted.  They look like a

@@ -3152,17 +3152,20 @@ prototype instantiation is considered as a potential match.
         a_symbol_ptr	ps_prototype_sym;
         ps_prototype_sym = ps_sym->variant.template_info->
                                 variant.class_template.prototype_instantiation;
-        /* Old list is the template argument list associated with the
-           prototype instantiation of the partial specialization.  See if
-           the list passed in matches it. */
-        old_list = ps_prototype_sym->variant.class_struct_union.type->
+        if (any_prototype_allowed ||
+            specific_prototype_allowed == ps_prototype_sym) {
+          /* Old list is the template argument list associated with the
+             prototype instantiation of the partial specialization.  See if
+             the list passed in matches it. */
+          old_list = ps_prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
-        if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
+          if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
 #if DEBUG
-          if (debug_level >= 3) db_symbol(sym, "found: ", 2);
+            if (debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
-          sym = ps_prototype_sym;
-          break;
+            sym = ps_prototype_sym;
+            break;
+          }  /* if */
         }  /* if */
       }  /* for */
     }  /* if */
