@@ -906,9 +906,6 @@ Return the fundamental symbol for a given symbol.
         (symbol))
 
 
-extern a_symbol_ptr project_into_class(a_symbol_ptr basis_sym,
-                                       a_type_ptr   class_type);
-
 extern a_symbol_ptr class_qualified_id_lookup(
                                          a_symbol_locator         *locator,
                                          a_type_ptr               class_type,
