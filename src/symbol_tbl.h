@@ -1531,9 +1531,7 @@ typedef struct a_template_symbol_supplement {
 			/* When  the symbol kind is sk_class_template or
 			   sk_function_template, the IL entry created to
 			   represent this template.  Points to the entry
-			   associated with the template definition, if there
-			   is one; otherwise, points to the entry associated
-			   with the first declaration. */
+			   associated with the first declaration. */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
