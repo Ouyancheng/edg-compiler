@@ -58,7 +58,6 @@ Flags to be set when using the KAI inliner.
 #ifdef sun
 /* Options common to Sun-hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
-#define USING_QUANTIFY 1
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
 #define LONG_LONG_ALLOWED 1
