@@ -1190,8 +1190,10 @@ a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
 
 
 
-static a_boolean class_template_declaration(a_symbol_ptr  *p_sym_ptr,
-                                            a_boolean     *tag_resolution)
+static a_boolean class_template_declaration(
+                                     a_template_param_ptr  template_param_list,
+                                     a_symbol_ptr          *p_sym_ptr,
+                                     a_boolean             *tag_resolution)
 /*
 If this turns out to be a class template declaration, scan it and return
 TRUE, setting *p_sym_ptr to the class template symbol and, if this is a
@@ -1203,11 +1205,16 @@ return *tag_resolution TRUE.
 */
 {
   a_boolean                         is_class_template_decl = FALSE;
+  a_boolean                         suppress_redecl_error = FALSE;
+  a_boolean                         is_definition, is_redecl;
   a_symbol_locator                  locator;
-  a_symbol_ptr                      sym = NULL;
+  a_symbol_ptr                      sym = NULL, prototype_sym, param_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_token_cache                     local_token_cache;
   a_type_kind                       type_kind;
+  a_type_ptr                        prototype_type;
+  a_template_arg_ptr                tap, *append_addr;
+  a_template_param_ptr              tpp;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_class || curr_token == tok_struct ||
@@ -1264,15 +1271,26 @@ return *tag_resolution TRUE.
     /* We needed local_token_cache only in case this was not a class
        template declaration.  But now we can assume it is. */
     discard_token_cache(&local_token_cache);
+    is_definition = (curr_token == tok_colon || curr_token == tok_lbrace);
     /* If get_normal_id_or_qualified_name returned something, we may have a
        name conflict or a redefinition. */
     if (sym != NULL) {
       if (sym->kind == (a_symbol_kind)sk_class_template) {
+        is_redecl = TRUE;
+        tssp = sym->variant.template.extra_info;
         if (!sym->defined) {
           *tag_resolution = TRUE;
-        } else if (curr_token == tok_colon || curr_token == tok_lbrace) {
+        } else if (is_definition) {
           /* Attempting to redefine a class template. */
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
+          suppress_redecl_error = TRUE;
+          sym = NULL;
+        } else if ((type_kind == (a_type_kind)tk_union) !=
+                   (tssp->variant.class.type_kind == (a_type_kind)tk_union)) {
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator.source_position, sym);
+          suppress_redecl_error = TRUE;
+          sym = NULL;
         }  /* if */
       } else {
         /* Force the call to enter symbol, which will report the name clash. */
@@ -1282,18 +1300,50 @@ return *tag_resolution TRUE.
     if (sym == NULL) {
       /* Enter the symbol at file scope. */
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-                         DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
-    }  /* if */
-    /* Save the type kind (corresponding to the class/struct/union token)
-       in the class template symbol's supplement -- it will be needed when
-       type entries for instantiations are created. */
-    sym->variant.template.extra_info->variant.class.type_kind = type_kind;
-    /* If this is a class template definition, continue caching all the tokens
-       that comprise it. */
-    if (curr_token == tok_colon || curr_token == tok_lbrace) {
-      sym->defined = TRUE;
+                         DEPTH_OF_FILE_SCOPE, suppress_redecl_error);
       tssp = sym->variant.template.extra_info;
-      /* Now scan the remaining tokens. */
+      is_redecl = FALSE;
+    }  /* if */
+    if (is_definition || !is_redecl) {
+      /* Either this is the first declaration of the template class or a
+         defining redeclaration. */
+
+      /* Save the type kind (corresponding to the class/struct/union token)
+         in the class template symbol's supplement -- it will be needed when
+         type entries for instantiations are created. */
+      tssp->variant.class.type_kind = type_kind;
+
+      tssp->parameters = template_param_list;
+      tssp->declaration_scope = scope_stack[decl_scope_level].number;
+    }  /* if */
+    if (is_definition) {
+      sym->defined = TRUE;
+      prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
+      /* Add the new symbol to the head of the instantiation list. */
+      prototype_sym->next = tssp->variant.class.instantiations;
+      tssp->variant.class.instantiations = prototype_sym;
+      /* Now create a new type entry. */
+      prototype_type = alloc_type(tssp->variant.class.type_kind);
+      prototype_sym->variant.class_struct_union.type = prototype_type;
+      set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
+      prototype_type->source_corresp.name_linkage =
+                                           (a_name_linkage_kind)nlk_internal;
+      append_addr = &prototype_type->
+                     variant.class_struct_union.extra_info->template_arg_list;
+      for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+        param_sym = tpp->param_symbol;
+        if (param_sym->kind == (a_symbol_kind)sk_type) {
+          tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+          tap->variant.type = param_sym->variant.type;
+        } else {
+          tap = alloc_template_arg(/*is_arg_type=*/FALSE);
+          tap->variant.constant = param_sym->variant.constant;
+        }  /* if */
+        *append_addr = tap;
+        append_addr = &tap->next;
+      }  /* for */
+      /* This is a class template definition, so scan all the tokens that
+         comprise it and cache them away. */
       add_stop_token(tok_semicolon);
       if (curr_token == tok_colon) {
         /* Scan the tokens in the base class declarations, stopping when
@@ -1322,7 +1372,7 @@ return *tag_resolution TRUE.
          that we don't scan past the end of the cache in the actual scan. */
       terminate_token_cache(&tssp->body_token_cache);
     } else {
-      /* This is not a class template declaration, so we have no need to
+      /* This is not a class template definition, so we have no need to
          cache the tokens. */
     }  /* if */
     /* Note that the semicolon is not cached. */
@@ -1659,11 +1709,10 @@ entry is pushed on the scope stack.
 */
 {
   a_template_param_ptr              tpp, template_param_list = NULL;
-  a_symbol_ptr                      sym, param_sym, prototype_sym;
+  a_symbol_ptr                      sym, param_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
-  a_type_ptr                        rout_type, prototype_type;
-  a_template_arg_ptr                tap, *append_addr;
+  a_type_ptr                        rout_type;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -1694,35 +1743,9 @@ entry is pushed on the scope stack.
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-  if (class_template_declaration(&sym, &tag_resolution)) {
+  if (class_template_declaration(template_param_list, &sym, &tag_resolution)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
-    tssp = sym->variant.template.extra_info;
-    tssp->parameters = template_param_list;
-    tssp->declaration_scope = scope_stack[decl_scope_level].number;
-    prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
-    /* Add the new symbol to the head of the instantiation list. */
-    tssp->variant.class.instantiations = prototype_sym;
-    /* Now create a new type entry. */
-    prototype_type = alloc_type(tssp->variant.class.type_kind);
-    prototype_sym->variant.class_struct_union.type = prototype_type;
-    set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
-    prototype_type->source_corresp.name_linkage =
-                                        (a_name_linkage_kind)nlk_internal;
-    append_addr = &prototype_type->
-                     variant.class_struct_union.extra_info->template_arg_list;
-    for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
-      param_sym = tpp->param_symbol;
-      if (param_sym->kind == (a_symbol_kind)sk_type) {
-        tap = alloc_template_arg(/*is_arg_type=*/TRUE);
-        tap->variant.type = param_sym->variant.type;
-      } else {
-        tap = alloc_template_arg(/*is_arg_type=*/FALSE);
-        tap->variant.constant = param_sym->variant.constant;
-      }  /* if */
-      *append_addr = tap;
-      append_addr = &tap->next;
-    }  /* for */
   } else {
     /* It must be a function template declaration. */
     function_template_declaration(&sym);
