@@ -52,6 +52,7 @@ static unsigned long
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
                 num_template_params_allocated,
+                num_function_instantiation_entries_allocated,
                 num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
@@ -5272,6 +5273,27 @@ Allocate a new template parameter list entry and return a pointer to it.
 }  /* alloc_template_param */
 
 
+a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)
+/*
+Allocate a new function instantiation entry and return a pointer to it.
+*/
+{
+  register a_function_instantiation_entry_ptr ptr;
+
+  db_enter(5, "alloc_function_instantiation_entry");
+  ptr = (a_function_instantiation_entry_ptr)
+            alloc_fe(sizeof(a_function_instantiation_entry));
+#if DEBUG
+  num_function_instantiation_entries_allocated++;
+#endif /* DEBUG */
+  ptr->next    = NULL;
+  ptr->routine = NULL;
+  
+  db_exit();
+  return ptr;
+}  /* alloc_function_instantiation_entry */
+
+
 #if DEBUG
 unsigned long show_symbol_space_used(void)
 /*
@@ -5306,6 +5328,9 @@ for space tracking purposes.
             a_template_symbol_supplement);
   write_one("template params", num_template_params_allocated,
             a_template_param);
+  write_one("func instantiation entry",
+            num_function_instantiation_entries_allocated,
+            a_function_instantiation_entry);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
             a_conversion_list_entry);
   write_one("projection symbol descr", num_projection_descrs_allocated,
@@ -5428,23 +5453,24 @@ to avoid an 8-character external name clash with symbol_table.)
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
 #if DEBUG
-  num_symbols_allocated                     = 0;
-  num_symbol_headers_allocated              = 0;
-  num_symbol_headers_in_hash_table          = 0;
-  num_conversion_headers_allocated          = 0;
-  symbol_name_string_space                  = 0;
-  num_class_symbol_supplements_allocated    = 0;
-  num_template_symbol_supplements_allocated = 0;
-  num_template_params_allocated             = 0;
-  num_conversion_list_entries_allocated     = 0;
-  num_extern_symbol_descrs_allocated        = 0;
-  num_extern_type_fixups_allocated          = 0;
-  num_projection_descrs_allocated           = 0;
-  num_used_symbol_buckets                   = 0;
-  num_searches_for_symbols                  = 0;
-  num_compares_for_symbols                  = 0;
-  num_fast_id_lookups                       = 0;
-  num_slow_id_lookups                       = 0;
+  num_symbols_allocated                        = 0;
+  num_symbol_headers_allocated                 = 0;
+  num_symbol_headers_in_hash_table             = 0;
+  num_conversion_headers_allocated             = 0;
+  symbol_name_string_space                     = 0;
+  num_class_symbol_supplements_allocated       = 0;
+  num_template_symbol_supplements_allocated    = 0;
+  num_template_params_allocated                = 0;
+  num_function_instantiation_entries_allocated = 0;
+  num_conversion_list_entries_allocated        = 0;
+  num_extern_symbol_descrs_allocated           = 0;
+  num_extern_type_fixups_allocated             = 0;
+  num_projection_descrs_allocated              = 0;
+  num_used_symbol_buckets                      = 0;
+  num_searches_for_symbols                     = 0;
+  num_compares_for_symbols                     = 0;
+  num_fast_id_lookups                          = 0;
+  num_slow_id_lookups                          = 0;
 #if CHECKING
   /* Check that the table of symbol kind names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
