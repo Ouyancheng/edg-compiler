@@ -940,6 +940,63 @@ sequence list.
 }  /* add_end_of_construct_source_sequence_entry */
 
 
+void insert_src_seq_list(a_source_sequence_entry_ptr  head,
+                         a_source_sequence_entry_ptr  tail,
+                         a_scope_stack_entry_ptr      insert_scope_stack_ptr,
+                         a_source_sequence_entry_ptr  insert_before)
+/*
+Insert the source sequence list defined by head and tail (respectively, the
+start and end of the list, which may still be embedded in another list) into
+the source sequence list of the specified scope stack entry.  If insert_before
+is NULL, append the list to the end; otherwise, insert it immediatedly before
+insert_before.
+*/
+{
+  a_source_sequence_entry_ptr  insert_after;
+
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+    a_source_sequence_entry_ptr  after_tail = tail->next;
+
+    fprintf(f_debug, "inserting %s ss list for ",
+            insert_before == NULL ? "at end of" : "into");
+    if (insert_scope_stack_ptr != NULL &&
+        insert_scope_stack_ptr->il_scope != NULL) {
+      db_scope(insert_scope_stack_ptr->il_scope);
+    } else {
+      (void)db_scope_kind(insert_scope_stack_ptr->kind);
+      fprintf(f_debug, " scope %d", (int)insert_scope_stack_ptr->number);
+    }  /* if */
+    fputs("\n", f_debug);
+    if (insert_before != NULL) {
+      fputs("    in front of ", f_debug);
+      db_source_sequence_entry(insert_before);
+    }  /* if */
+    tail->next = NULL;
+    db_ss_list(head);
+    tail->next = after_tail;
+  }  /* if */
+#endif /* DEBUG */
+  if (insert_before != NULL) {
+    insert_after = insert_before->prev;
+  } else {
+    insert_after = insert_scope_stack_ptr->end_of_source_sequence_list;
+  }  /* if */
+  if (insert_after == NULL) {
+    insert_scope_stack_ptr->source_sequence_list = head;
+  } else {
+    insert_after->next = head;
+  }  /* if */
+  head->prev = insert_after;
+  if (insert_before == NULL) {
+    insert_scope_stack_ptr->end_of_source_sequence_list = tail;
+  } else {
+    insert_before->prev = tail;
+  }  /* if */
+  tail->next = insert_before;
+}  /* insert_src_seq_list */
+
+
 void f_remove_from_source_sequence_list(
                             a_source_sequence_entry_ptr  ssep,
                             a_scope_stack_entry_ptr      scope_stack_ptr)
@@ -1298,63 +1355,6 @@ innermost such class.
   db_exit();
   return insert_point;
 }  /* find_instantiation_insert_point */
-
-
-void insert_src_seq_list(a_source_sequence_entry_ptr  head,
-                         a_source_sequence_entry_ptr  tail,
-                         a_scope_stack_entry_ptr      insert_scope_stack_ptr,
-                         a_source_sequence_entry_ptr  insert_before)
-/*
-Insert the source sequence list defined by head and tail (respectively, the
-start and end of the list, which may still be embedded in another list) into
-the source sequence list of the specified scope stack entry.  If insert_before
-is NULL, append the list to the end; otherwise, insert it immediatedly before
-insert_before.
-*/
-{
-  a_source_sequence_entry_ptr  insert_after;
-
-#if DEBUG
-  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-    a_source_sequence_entry_ptr  after_tail = tail->next;
-
-    fprintf(f_debug, "inserting %s ss list for ",
-            insert_before == NULL ? "at end of" : "into");
-    if (insert_scope_stack_ptr != NULL &&
-        insert_scope_stack_ptr->il_scope != NULL) {
-      db_scope(insert_scope_stack_ptr->il_scope);
-    } else {
-      (void)db_scope_kind(insert_scope_stack_ptr->kind);
-      fprintf(f_debug, " scope %d", (int)insert_scope_stack_ptr->number);
-    }  /* if */
-    fputs("\n", f_debug);
-    if (insert_before != NULL) {
-      fputs("    in front of ", f_debug);
-      db_source_sequence_entry(insert_before);
-    }  /* if */
-    tail->next = NULL;
-    db_ss_list(head);
-    tail->next = after_tail;
-  }  /* if */
-#endif /* DEBUG */
-  if (insert_before != NULL) {
-    insert_after = insert_before->prev;
-  } else {
-    insert_after = insert_scope_stack_ptr->end_of_source_sequence_list;
-  }  /* if */
-  if (insert_after == NULL) {
-    insert_scope_stack_ptr->source_sequence_list = head;
-  } else {
-    insert_after->next = head;
-  }  /* if */
-  head->prev = insert_after;
-  if (insert_before == NULL) {
-    insert_scope_stack_ptr->end_of_source_sequence_list = tail;
-  } else {
-    insert_before->prev = tail;
-  }  /* if */
-  tail->next = insert_before;
-}  /* insert_src_seq_list */
 
 
 void f_move_src_seq_list(a_source_sequence_entry_ptr  head,

@@ -75,6 +75,11 @@ extern void add_end_of_construct_source_sequence_entry(
                                                 char                   *ptr,
                                                 a_byte_il_entry_kind   kind);
 
+extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
+                                a_source_sequence_entry_ptr  tail,
+                                a_scope_stack_entry_ptr      scope_stack_ptr,
+                                a_source_sequence_entry_ptr  insert_point);
+
 extern void reset_ss_list_instantiation_insert_point(void);
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -90,11 +95,6 @@ extern void add_source_sequence_entry_for_partial_instantiation(
                                             char               *ptr,
                                             an_il_entry_kind   kind,
                                             a_type_ptr         declared_type);
-
-extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
-                                a_source_sequence_entry_ptr  tail,
-                                a_scope_stack_entry_ptr      scope_stack_ptr,
-                                a_source_sequence_entry_ptr  insert_point);
 
 extern void f_move_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_source_sequence_entry_ptr  tail,
