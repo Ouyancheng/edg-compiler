@@ -3294,10 +3294,12 @@ diagnostics.
   int              bit_number;
   a_decl_modifier  flags = new_modifiers->flags, modifier_value;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Handle dllexport and dllimport separately. */
   update_dll_info_for_routine(routine, flags, is_inline, is_redecl,
                               is_definition, position);
   flags &= ~(a_decl_modifier)DM_DLLFLAGS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop through the bits in the new_modifiers bit vector and process the
      modifiers associated with the bits that are set. */
   if (flags != DM_NONE) {
@@ -3519,10 +3521,12 @@ is a definition, is_definition is set to TRUE.
   int		   bit_number;
   a_decl_modifier  flags = new_modifiers->flags, modifier_value;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Handle dllexport and dllimport separately. */
   update_dll_info_for_variable(variable, flags, is_redecl, is_definition,
                                position);
   flags &= ~(a_decl_modifier)DM_DLLFLAGS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop through the bits of the new_modifiers bit vector and process
      the modifiers associated with the bits that are set. */
   if (flags != DM_NONE) {
