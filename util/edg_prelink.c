@@ -2403,9 +2403,14 @@ that line type.
         /* An alternate entry point.  References to this name should be
            treated as references to the primary entry. */
         char	*name_pos = line_type + 4;
+        a_pl_symbol_ptr	global_for_last_primary;
         sym = pl_find_symbol(name_pos, (a_pl_symbol_ptr)NULL,
                              /*add=*/TRUE, (a_boolean*)NULL);
-        sym->primary_entry = last_primary_entry;
+        global_for_last_primary = pl_find_symbol(last_primary_entry->name,
+                                                 last_primary_entry,
+                                                 /*add=*/TRUE,
+                                                 (a_boolean*)NULL);
+        sym->primary_entry = global_for_last_primary;
       } else if (strncmp(line_type, "tnm:", 4) == 0) {
         /* A template definition entry for an exported template. */
         char	*name_pos = line_type + 4;
