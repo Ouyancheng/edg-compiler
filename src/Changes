@@ -1,5 +1,19 @@
 Version 2.45
 
+9/18/00  Functional-notation cast incorrectly seen as dependent
+
+When prototype instantiations of nonclass templates are done (e.g.,
+in strict mode), functional-notation casts in template definitions were
+mistakenly taken to be dependent in some cases.  As a consequence, some
+errors were not detected.
+
+  struct B {
+    B(int);
+  };
+  template <class T> void f(T) {
+    B("hello");    // Error, formerly not detected
+  }
+
 9/18/00  Microsoft compatibility: lookup problem introduced in 2.44
 
 A bug was introduced in version 2.44 that could cause members of
