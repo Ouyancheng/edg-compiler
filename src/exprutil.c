@@ -6082,7 +6082,7 @@ number of parameters.
          be considered as a matching type.  This conversion is accepted
          in normal mode but not in strict ANSI mode. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
-                                 /*allow_conversion=*/!strict_ansi_mode,
+                                 /*allow_conversion=*/FALSE,
                                  &conversion_required)) {
         goto done;
       }  /* if */
