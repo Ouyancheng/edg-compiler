@@ -209,7 +209,7 @@ void prescan_microsoft_extended_decl_modifiers
                                          (a_disambig_state_ptr       state,
                                           a_disambig_flag_set	     flags)
 /*
-Prescan the Microsoft __declspec specifier:
+Prescan the following Microsoft modifiers:
 
 	__declspec ( extended-decl-modifier-seq )
 	__near
@@ -218,7 +218,7 @@ Prescan the Microsoft __declspec specifier:
 	__multiple_inheritance
 	__virtual_inheritance
 
-When this routine is called, the current token must be the __declspec
+When this routine is called, the current token must be the initial
 keyword.
 
 A NULL state pointer may be provided if the tokens that are scanned do
