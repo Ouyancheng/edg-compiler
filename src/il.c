@@ -2590,6 +2590,7 @@ kind indicates the scope kind (e.g., function, block).
 #ifdef FIL
       sp->variant.routine.function_result_var = NULL;
 #endif /* ifdef FIL */
+      break;
 #if CHECKING
     default:
       internal_error("alloc_scope: bad scope kind");
