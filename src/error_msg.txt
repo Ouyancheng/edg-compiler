@@ -1301,6 +1301,8 @@ ec_interface_cannot_have_static_members;;"interface types cannot have static mem
 ec_invalid_microsoft_pragma_operator;;"this pragma cannot be used in a __pragma operator (a #pragma directive must be used)"
 ec_qualifier_must_be_base_class;;"qualifier must be base class of %t"
 ec_invalid_selective_overrider_declaration;;"declaration must correspond to a pure virtual member function in the indicated base class"
+ec_integer_overflow_class_internal;;"integer overflow in internal computation due to size or complexity of %t"
+ec_integer_overflow_internal;;"integer overflow in internal computation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

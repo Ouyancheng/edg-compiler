@@ -56,6 +56,12 @@ extern void check_shift_count(a_constant    *shift_count_constant,
                               a_type_ptr    operand_type,
                               an_error_code *err_code);
 
+extern void conv_integer_to_integer(a_constant        *old_constant,
+                                    a_constant        *new_constant,
+                                    a_boolean         is_implicit_cast,
+                                    an_error_code     *err_code,
+                                    an_error_severity *err_severity);
+
 extern void type_change_constant(a_constant        *constant,
                                  a_type_ptr        new_type,
                                  a_boolean         is_implicit_cast,

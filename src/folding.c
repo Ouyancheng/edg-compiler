@@ -201,11 +201,11 @@ after_truncation:;
 }  /* trunc_and_set_integer */
 
 
-static void conv_integer_to_integer(a_constant        *old_constant,
-				    a_constant        *new_constant,
-				    a_boolean         is_implicit_cast,
-				    an_error_code     *err_code,
-				    an_error_severity *err_severity)
+void conv_integer_to_integer(a_constant        *old_constant,
+                             a_constant        *new_constant,
+                             a_boolean         is_implicit_cast,
+                             an_error_code     *err_code,
+                             an_error_severity *err_severity)
 /*
 Convert an integral constant of some kind (in *old_constant) to a new
 integral constant in *new_constant, with type as indicated therein.  Return

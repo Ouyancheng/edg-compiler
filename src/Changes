@@ -1,5 +1,14 @@
 Version 3.3
 
+6/12/03  Errors on offset overflow in tables built by IL lowering
+
+IL lowering checks that offsets within classes and indexes within
+virtual function tables fit in the fields used for them in the
+generated code.  Unfortunately, the check was issuing only a
+warning, and a very unhelpful warning at that.  Now, an error is
+issued, and in most cases it includes the name of the 
+overly-large or -complex class.
+
 6/12/03  C99 imaginary: imaginary * integer, x ? imaginary : imaginary
 
 In a few cases, operations involving imaginary operands in C99

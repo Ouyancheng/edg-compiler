@@ -1694,7 +1694,7 @@ array.
 
   set_integer_constant_with_overflow_check(
                  &num_elem_constant, (a_host_large_integer)array_element_count,
-                 (an_integer_kind)ik_int);
+                 (an_integer_kind)ik_int, (a_type_ptr)NULL);
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(&num_elem_constant);
   return num_elem_node;

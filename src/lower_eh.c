@@ -1044,7 +1044,8 @@ allocated in the file scope memory region.
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_integer_constant_with_overflow_check(offset_con,
                                                (a_host_large_integer)offset,
-                                               TARG_DELTA_INT_KIND);
+                                               TARG_DELTA_INT_KIND,
+                                               bcp->type);
       /* Make the flags constant. */
       flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_unsigned_integer_constant(flags_con,
@@ -2850,7 +2851,8 @@ a variable) and return a pointer to the constant.
   handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant_with_overflow_check(
                                     handle_con, (a_host_large_unsigned)*handle,
-                                    targ_var_handle_int_kind);
+                                    targ_var_handle_int_kind,
+                                    (a_type_ptr)NULL);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* Non-portable scheme -- can use a ck_stack_offset for the offset of
      a variable. */
@@ -2878,7 +2880,8 @@ a variable) and return a pointer to the constant.
     handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
     set_unsigned_integer_constant_with_overflow_check(handle_con,
                                          (a_host_large_unsigned)handle->offset,
-                                         targ_var_handle_int_kind);
+                                         targ_var_handle_int_kind,
+                                         (a_type_ptr)NULL);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   return handle_con;

@@ -3162,71 +3162,93 @@ Do IL lowering of the indicated source correspondence.
   rewrite_ucns_in_name(source_corresp);
 #endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
 }  /* lower_source_correspondence */
+  
+
+static void conv_integer_constant_with_overflow_check(
+                                                    a_constant_ptr  con,
+                                                    an_integer_kind ikind,
+                                                    a_type_ptr      class_type)
+/*
+Convert the integer constant "con" to the integer kind "ikind".  Check to
+make sure that the value will fit an integer of that size, and if not,
+issue an error.  If class_type is non-NULL, the error is related to the
+indicated class.
+*/
+{
+  an_error_code     err_code;
+  an_error_severity err_severity;
+  a_constant        new_constant;
+
+  clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
+  new_constant.type = integer_type(ikind);
+  conv_integer_to_integer(con, &new_constant, /*is_implicit_cast=*/TRUE,
+                          &err_code, &err_severity);
+  if (err_severity == es_error ||
+      (err_severity == es_warning &&
+       err_code == ec_integer_truncated)) {
+    if (class_type != NULL) {
+      pos_ty_error(ec_integer_overflow_class_internal, &error_position,
+                   class_type);
+    } else {
+      pos_error(ec_integer_overflow_internal, &error_position);
+    }  /* if */
+  }  /* if */
+  copy_constant(&new_constant, con);
+}  /* conv_integer_constant_with_overflow_check */
 
 
 void set_integer_constant_with_overflow_check(
 					a_constant_ptr		con,
                                         a_host_large_integer	con_val,
-                                        an_integer_kind		ikind)
+                                        an_integer_kind		ikind,
+                                        a_type_ptr              class_type)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
-and if not, issue an error.  This version is for signed integer kinds.
+and if not, issue an error.  If class_type is non-NULL, the error is
+related to the indicated class.  This version is for signed integer kinds.
 */
 {
-  a_boolean did_not_fold;
-
   /* Create the constant as a long and then change its type to get any
      truncation error. */
   set_integer_constant(con, con_val, (an_integer_kind)ik_long);
-  type_change_constant(con, integer_type(ikind),
-                       /*is_implicit_cast=*/TRUE,
-                       /*constant_context=*/TRUE,
-                       /*evaluated_context=*/TRUE,
-                       /*fold_constant_addr_exprs=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE,
-                       /*maintain_expression=*/FALSE,
-                       &did_not_fold, &error_position);
+  conv_integer_constant_with_overflow_check(con, ikind, class_type);
 }  /* set_integer_constant_with_overflow_check */
 
 
 void set_unsigned_integer_constant_with_overflow_check(
                                           a_constant_ptr	con,
                                           a_host_large_unsigned	con_val,
-                                          an_integer_kind	ikind)
+                                          an_integer_kind	ikind,
+                                          a_type_ptr            class_type)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
-and if not, issue an error.  This version is for unsigned integer kinds.
+and if not, issue an error.  If class_type is non-NULL, the error is
+related to the indicated class.  This version is for unsigned integer kinds.
 */
 {
-  a_boolean did_not_fold;
-
   /* Create the constant as an unsigned long and then change its type to
      get any truncation error. */
   set_unsigned_integer_constant(con, con_val,
                                 (an_integer_kind)ik_unsigned_long);
-  type_change_constant(con, integer_type(ikind),
-                       /*is_implicit_cast=*/TRUE,
-                       /*constant_context=*/TRUE,
-                       /*evaluated_context=*/TRUE,
-                       /*fold_constant_addr_exprs=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE,
-                       /*maintain_expression=*/FALSE,
-                       &did_not_fold, &error_position);
+  conv_integer_constant_with_overflow_check(con, ikind, class_type);
 }  /* set_unsigned_integer_constant_with_overflow_check */
 
 
 static void set_delta_constant(a_targ_ptrdiff_t delta,
-                               a_constant_ptr   delta_con)
+                               a_constant_ptr   delta_con,
+                               a_type_ptr       class_type)
 /*
 Set the constant entry delta_con to the constant integer value given by
 delta.  The value is an address offset.  Issue an error if the constant
-will not fit in an integer of kind TARG_DELTA_INT_KIND.
+will not fit in an integer of kind TARG_DELTA_INT_KIND.  The associated
+class type is class_type, for use in the error message.
 */
 {
   set_integer_constant_with_overflow_check(delta_con, delta,
-                                           TARG_DELTA_INT_KIND);
+                                           TARG_DELTA_INT_KIND,
+                                           class_type);
 }  /* set_delta_constant */
 
 
@@ -3239,6 +3261,7 @@ Do IL lowering of a pointer-to-member constant.
   a_constant_ptr   constant_next = constant->next;
   char             *constant_assoc_info = constant->source_corresp.assoc_info;
   a_boolean        did_not_fold;
+  a_type_ptr       class_type = pm_class_type_possibly_lowered(constant->type);
   a_constant_ptr   delta_con, func_con;
 #if !IA64_ABI
   a_constant_ptr   index_con;
@@ -3270,7 +3293,7 @@ Do IL lowering of a pointer-to-member constant.
        routine relative to the class pointed to by the pointer-to-member.
        In the IA-64 ABI, this is the second field. */
     delta_con = alloc_constant((a_constant_repr_kind)ck_integer);
-    set_delta_constant(delta, delta_con);
+    set_delta_constant(delta, delta_con, class_type);
 #if !IA64_ABI
     /* The second field is
          0 for a NULL pointer;
@@ -3280,7 +3303,7 @@ Do IL lowering of a pointer-to-member constant.
        This is not used in the IA-64 ABI.
     */
     index_con = alloc_constant((a_constant_repr_kind)ck_integer);
-    set_delta_constant(index, index_con);
+    set_delta_constant(index, index_con, class_type);
 #endif /* !IA64_ABI */
     /* The third field is
          NULL for a null pointer;
@@ -3303,7 +3326,7 @@ Do IL lowering of a pointer-to-member constant.
     } else {
       /* For a virtual function, the offset of the virtual function table
          pointer in the class of the routine.  Also handles the NULL case. */
-      set_delta_constant(offset, func_con);
+      set_delta_constant(offset, func_con, class_type);
     }  /* if */
     /* Convert the pointer or offset to the generic pointer-to-function
        type vptp.  is_implicit_cast must be FALSE to suppress a warning
@@ -3336,11 +3359,13 @@ Do IL lowering of a pointer-to-member constant.
 #if !IA64_ABI
     set_unsigned_integer_constant_with_overflow_check(
                                         constant, (a_host_large_unsigned)delta,
-                                        targ_ptr_to_data_member_int_kind);
+                                        targ_ptr_to_data_member_int_kind,
+                                        class_type);
 #else /* IA64_ABI */
     set_integer_constant_with_overflow_check(
                                         constant, (a_host_large_integer)delta,
-                                        targ_ptr_to_data_member_int_kind);
+                                        targ_ptr_to_data_member_int_kind,
+                                        class_type);
 #endif /* IA64_ABI */
   }  /* if */
   constant->next = constant_next;
@@ -5151,7 +5176,8 @@ static void add_vtbl_entry_init(a_targ_ptrdiff_t delta,
                                 a_variable_ptr   typeinfo_var,
                                 a_constant_ptr   *first_con,
                                 a_constant_ptr   *last_con,
-                                a_boolean        prepend)
+                                a_boolean        prepend,
+                                a_type_ptr       class_type)
 /*
 Put out a constant to fill an entry of a virtual function table.
 The constant is added to the end (beginning) of the list given by
@@ -5165,6 +5191,8 @@ For the IA-64 ABI, put out a single constant (a delta or a function
 pointer) rather than an aggregate; however, when typeinfo_var is non-NULL
 put out two constants (delta to start of class plus pointer to typeinfo),
 which will initialize two slots in the virtual function table.
+class_type is the class type whose vtbl is being constructed
+(for some meaning of that word), for use in error messages.
 */
 {
 #if !IA64_ABI
@@ -5199,7 +5227,7 @@ which will initialize two slots in the virtual function table.
   /* Do not insert code here. */
   {
     delta_con = alloc_constant((a_constant_repr_kind)ck_integer);
-    set_delta_constant(delta, delta_con);
+    set_delta_constant(delta, delta_con, class_type);
 #if IA64_ABI
     add_init(first_con, last_con, delta_con, prepend);
     /* In the IA-64 ABI, we generally put out only a single constant.
@@ -5543,7 +5571,8 @@ gives the offset to the virtual base class whose vtable is being made.
     offset = ((overrider_bcp != NULL) ? overrider_bcp->offset : 0) -
                                                                  vbase_offset;
     add_vtbl_entry_init(offset, (a_routine_ptr)NULL, (a_variable_ptr)NULL,
-                        first_con, last_con, /*prepend=*/TRUE);
+                        first_con, last_con, /*prepend=*/TRUE,
+                        vbase->type);
   }  /* for */
 }  /* add_vcall_offsets */
 
@@ -5794,7 +5823,8 @@ table.
     /* Create the vtable entry. */
     add_vtbl_entry_init(delta,
                         (a_routine_ptr)NULL, (a_variable_ptr)NULL,
-                        first_con, last_con, /*prepend=*/TRUE);
+                        first_con, last_con, /*prepend=*/TRUE,
+                        class_whose_vtbl_is_being_made);
   }  /* for */
   /* Add virtual call offsets to the beginning of the virtual table. */
   if (bcp != NULL) {
@@ -5934,11 +5964,13 @@ table.
     }  /* if */
     /* Create the initializing constants for this entry of the table. */
     add_vtbl_entry_init(delta, func_to_call, (a_variable_ptr)NULL, 
-                        first_con, last_con, /*prepend=*/FALSE);
+                        first_con, last_con, /*prepend=*/FALSE,
+                        class_whose_vtbl_is_being_made);
 #if IA64_ABI
     if (second_func_to_call != NULL) {
       add_vtbl_entry_init(delta, second_func_to_call, (a_variable_ptr)NULL, 
-                          first_con, last_con, /*prepend=*/FALSE);
+                          first_con, last_con, /*prepend=*/FALSE,
+                          class_whose_vtbl_is_being_made);
       entry_number += 1;
     }  /* if */
 #endif /* IA64_ABI */
@@ -6166,14 +6198,14 @@ table.
       add_vtbl_entry_init(delta,
                           (a_routine_ptr)NULL,
                           make_typeinfo_var(class_type), first_con, 
-                          last_con, /*prepend=*/FALSE);
+                          last_con, /*prepend=*/FALSE, class_type);
     } else
 #endif /* ABI_CHANGES_FOR_RTTI */
     /* Do not insert code here; this is the "else" of an "if". */
     {
       add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
                           (a_variable_ptr)NULL, first_con, last_con, 
-                          /*prepend=*/FALSE);
+                          /*prepend=*/FALSE, class_type);
 #if GENERATE_EH_TABLES
       /* If exceptions are enabled, force generation of the typeinfo variable
          for the type because it might be referenced from some other
@@ -6215,7 +6247,7 @@ table.
        cfront compatibility. */
     add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
                         (a_variable_ptr)NULL, first_con, last_con, 
-                        /*prepend=*/FALSE);
+                        /*prepend=*/FALSE, class_type);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
@@ -8629,6 +8661,7 @@ used as an lvalue if is_lvalue is TRUE.
   a_targ_ptrdiff_t offset;
   a_variable_ptr   temp_var;
   a_type_ptr       dest_type = node->type;
+  a_type_ptr       class_type = pm_class_type_possibly_lowered(dest_type);
   an_expr_operator_kind
                    op;
 
@@ -8708,7 +8741,7 @@ used as an lvalue if is_lvalue is TRUE.
       offset <<= 1;
 #endif /* IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* IA64_ABI */
-      set_delta_constant(offset, &offset_constant);
+      set_delta_constant(offset, &offset_constant, class_type);
       promote_integer_constant(&offset_constant);
       offset_node = alloc_node_for_constant(&offset_constant);
       select_d_node->next = offset_node;
@@ -8765,9 +8798,10 @@ used as an lvalue if is_lvalue is TRUE.
       }  /* if */
       /* Make a node for the offset constant. */
       set_unsigned_integer_constant_with_overflow_check(
-                                             &offset_constant,
-                                             (a_host_large_unsigned)offset,
-                                             targ_ptr_to_data_member_int_kind);
+                                    &offset_constant,
+                                    (a_host_large_unsigned)offset,
+                                    targ_ptr_to_data_member_int_kind,
+                                    class_type);
       if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
         promote_integer_constant(&offset_constant);
       }  /* if */

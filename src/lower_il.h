@@ -891,14 +891,16 @@ extern void overwrite_node(an_expr_node_ptr node,
                            an_expr_node_ptr source_node);
 
 extern void set_integer_constant_with_overflow_check(
-                                           a_constant_ptr	con,
-                                           a_host_large_integer	con_val,
-                                           an_integer_kind	ikind);
+					a_constant_ptr		con,
+                                        a_host_large_integer	con_val,
+                                        an_integer_kind		ikind,
+                                        a_type_ptr              class_type);
 
 extern void set_unsigned_integer_constant_with_overflow_check(
                                           a_constant_ptr	con,
                                           a_host_large_unsigned	con_val,
-                                          an_integer_kind	ikind);
+                                          an_integer_kind	ikind,
+                                          a_type_ptr            class_type);
 
 extern a_variable_ptr make_var_for_virtual_function_table(
                                                    a_type_ptr       class_type,
