@@ -1,5 +1,27 @@
 Version 2.45
 
+8/24/00  Overload resolution: conversion functions with bitwise copy
+         constructor
+
+Overload resolution sometimes did not consider all appropriate conversion
+functions when processing an initialization of a class whose copy
+constructor is generated and performs bitwise copying.  This resulted
+in errors indicating that the initialization could not be done.  Now
+fixed.
+
+  struct B { };
+  struct D : B {};
+  struct Y {
+    operator D();
+  };
+  Y oy;
+  void f() {
+    B b1(oy); // Now accepted
+  }
+
+In a related change, a bitwise copy constructor is no longer considered
+to be able to copy an object of volatile-qualified class type.
+
 8/25/00  Duplication of type_info objects with internal linkage in
          one instantiation per object mode
 

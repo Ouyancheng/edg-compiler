@@ -8374,6 +8374,7 @@ because of an error.  This routine is used only in C++ mode.
 */
 {
   a_boolean                     okay, bitwise_copy_okay;
+  a_boolean                     cctor_is_bitwise_copy;
   a_type_ptr                    class_type, source_type;
   a_candidate_function_ptr      candidate_functions;
   a_boolean                     matched_except_for_missing_selector = FALSE;
@@ -8423,8 +8424,9 @@ because of an error.  This routine is used only in C++ mode.
      is checked for below.  A bitwise copy cannot be done if the source
      has a volatile type (the generated notional bitwise copy constructor
      has a reference-to-const parameter and cannot copy a volatile object). */
+  cctor_is_bitwise_copy = cssp->construction_by_bitwise_copy_allowed;
   bitwise_copy_okay = try_bitwise_copy &&
-                      cssp->construction_by_bitwise_copy_allowed &&
+                      cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST,
                                                     source_qualifiers);
   if (bitwise_copy_okay && type_is_same) {
@@ -8480,11 +8482,25 @@ because of an error.  This routine is used only in C++ mode.
            class into the destination class, or the source class has template
            conversion functions.  See if there is a conversion function that
            does the job. */
-        try_conversion_function_match(source_operand, dest_type,
+        a_type_ptr eff_dest_type = dest_type;
+        a_boolean  eff_is_reference_binding = is_reference_binding;
+        if (cctor_is_bitwise_copy &&
+            !eff_is_reference_binding &&
+            !is_copy_initialization &&
+            (!any_cfront_mode() && !sun_mode)) {
+          /* On an initialization of a class type whose "copy constructor"
+             is a bitwise copy, the operand being examined is really the
+             argument for the copy constructor, so allow conversions that
+             produce something that can be bound to reference to const
+             class_type. */
+          eff_dest_type = make_qualified_type(class_type, TQ_CONST); 
+          eff_is_reference_binding = TRUE;
+        }  /* if */
+        try_conversion_function_match(source_operand, eff_dest_type,
                                       (a_builtin_type_kind_set)BTK_NONE,
                                       /*need_lvalue_result=*/FALSE,
                                       is_copy_initialization,
-                                      is_reference_binding,
+                                      eff_is_reference_binding,
                                       &candidate_functions);
       }  /* if */
     }  /* if */
@@ -9801,25 +9817,35 @@ happen only in C++ mode.
       /* The routine is a conversion function.  Do the conversion and then
          try to find a copy constructor that can copy the result of the
          conversion for the caller. */
-      user_convert_operand(source_operand, dest_type,
+      /* Convert only to the return type of the conversion function at
+         this point, and not to the destination type if it is different. */
+      user_convert_operand(source_operand, (a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
                            /*force_temp_for_class_bitwise_copy=*/FALSE,
                            /*is_explicit_cast=*/FALSE);
-      /* See if the result of the conversion is already in a temporary. */
-      if (is_temp_init_usable_in_optimization(source_operand,
+      /* See if the result of the conversion is already in a temporary
+         of the right type. */
+      if (identical_types(source_operand->type, dest_type) &&
+          is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
                                               &temp_init_node,
                                               &dip)) {
         elision_done = TRUE;
         elision_source_type = source_operand->type;
       } else {
-        /* See if an appropriate copy constructor exists. */
-        conversion_routine = select_copy_constructor(
-                              class_type,
-                              get_type_qualifiers(source_operand->type),
-                              &source_operand->position, class_type,
-                              &class_bitwise_copy,
-                              curr_expr_is_potentially_evaluated());
+        /* Cast to a base class or adjust cv-qualifiers if necessary. */
+        do_class_object_adjustment(source_operand, dest_type, conversion);
+        if (is_error_operand(source_operand)) {
+          conversion_routine = NULL;
+        } else {
+          /* See if an appropriate copy constructor exists. */
+          conversion_routine = select_copy_constructor(
+                                skip_typerefs(source_operand->type),
+                                get_type_qualifiers(source_operand->type),
+                                &source_operand->position, class_type,
+                                &class_bitwise_copy,
+                                curr_expr_is_potentially_evaluated());
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11246,6 +11272,7 @@ used only in C++ mode.
   /* This routine is similar to select_overloaded_function. */
   if (uncallable != NULL) *uncallable = FALSE;
   *class_bitwise_copy = FALSE;
+  *ambiguous = FALSE;
   class_type = skip_typerefs(class_type);
   cssp = symbol_supplement_for_class(class_type);
   if (cssp->construction_by_bitwise_copy_allowed ||
@@ -11253,7 +11280,14 @@ used only in C++ mode.
     /* A bitwise copy is allowed.  Also used when the class is nonreal,
        because we don't know about constructors in that case. */
     cctor_sym = NULL;
-    *class_bitwise_copy = TRUE;
+    if (!sun_mode && 
+        any_qualifier_in_set_missing(TQ_CONST, required_qualifiers)) {
+      /* Strictly speaking, a bitwise copy constructor has an input
+         parameter of type ref to const class, and therefore it cannot
+         copy a volatile-qualified object. */
+    } else {
+      *class_bitwise_copy = TRUE;
+    }  /* if */
   } else {
     arg_type = make_qualified_type(class_type, required_qualifiers);
     sym = cssp->constructor;
