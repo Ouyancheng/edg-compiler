@@ -401,18 +401,6 @@ way described by octl.
 
 #ifdef CFE
 
-/* Local macro that determines whether a given qualifier is present,
-   and if so outputs the appropriate string. */
-#define output_qualifier(flag, string)					\
-{									\
-  if ((qualifiers & flag) != 0) {					\
-    if (qualifier_put_out) octl->output_str(" ");			\
-    qualifier_put_out = TRUE;						\
-    octl->output_str(string);						\
-  }  /* if */								\
-}  /* output_qualifier */
-
-
 void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_boolean                             need_trailing_space,
@@ -425,6 +413,17 @@ Do the output in the way described by octl.
 */
 {
   a_boolean qualifier_put_out = FALSE;
+
+/* Local macro that determines whether a given qualifier is present,
+   and if so outputs the appropriate string. */
+#define output_qualifier(flag, string)					\
+{									\
+  if ((qualifiers & flag) != 0) {					\
+    if (qualifier_put_out) octl->output_str(" ");			\
+    qualifier_put_out = TRUE;						\
+    octl->output_str(string);						\
+  }  /* if */								\
+}  /* output_qualifier */
 
   if (octl->gen_pcc_code) {
     /* Qualifiers are suppressed when generating K&R C. */
@@ -445,39 +444,32 @@ Do the output in the way described by octl.
     /* Put out trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
   }  /* if */
+#undef output_qualifier
 }  /* form_type_qualifier */
 
 #if MICROSOFT_KEYWORDS_ALLOWED
 
-void form_microsoft_qualifier(
-                     a_type_qualifier_set                  qualifiers,
-                     a_boolean                             need_trailing_space,
+static void form_calling_convention(
+                     a_calling_convention                  calling_convention,
                      an_il_to_str_output_control_block_ptr octl)
 /*
-Output a string for the Microsoft-specific type qualifiers in the
-indicated qualifier set.  If need_trailing_space is TRUE, put out a
-space after the type qualifier (if one is put out).  Do the output
-in the way described by octl.
+Output a string for a Microsoft-specific calling convention.
+Put out a space after the calling convention (if one is put out).
+Do the output in the way described by octl.
 */
 {
-  a_boolean qualifier_put_out = FALSE;
-
-#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  if (octl->gen_compilable_code) {
-    /* Qualifiers are suppressed in compilable code, as an option. */
-    qualifiers = TQ_NONE;
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+  /* Put out nothing for the default calling convention. */
+  if (calling_convention != (a_calling_convention)cc_default) {
+    octl->output_str(calling_convention_names[(int)calling_convention]);
+    /* Put out trailing space. */
+    octl->output_str(" ");
   }  /* if */
-#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-  output_qualifier(TQ_CDECL, "__cdecl");
-  output_qualifier(TQ_FASTCALL, "__fastcall");
-  output_qualifier(TQ_STDCALL, "__stdcall");
-  /* Put out trailing space if required. */
-  if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
-}  /* form_microsoft_qualifier */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+}  /* form_calling_convention */
 
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
-#undef output_qualifier
 #endif /* ifdef CFE */
 #ifdef FFE
 
@@ -683,12 +675,6 @@ If FTO_ADD_CONST is TRUE, add an extra "const" on top of the type.
 If FTO_SUPPRESS_CONST is TRUE, suppress generation of top-level "const".
 Do the output in the way described by octl.
 */
-#if MICROSOFT_KEYWORDS_ALLOWED
-/*
-FTO_SUPPRESS_MICROSOFT_QUALIFIERS is TRUE to suppress the Microsoft
-qualifiers like __cdecl.
-*/
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 {
   a_type_kind kind;
   a_boolean   suppress_const = (options & FTO_SUPPRESS_CONST) != 0;
@@ -696,13 +682,7 @@ qualifiers like __cdecl.
   a_type_qualifier_set
               qualifiers = TQ_NONE;
   a_form_type_options_set
-              pointer_options = FTO_NO_OPTIONS, array_options;
-#if MICROSOFT_KEYWORDS_ALLOWED
-  a_type_qualifier_set
-              microsoft_qualifiers,
-              qualifiers_under_pointer;
-  a_boolean   microsoft_qualifiers_need_trailing_space;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+              array_options;
 #endif /* ifdef CFE */
 
 #ifdef CFE
@@ -726,25 +706,6 @@ qualifiers like __cdecl.
   }  /* while */
   /* Add top-level "const" if told to. */
   if (options & FTO_ADD_CONST) qualifiers |= TQ_CONST;
-#if MICROSOFT_KEYWORDS_ALLOWED
-  /* Split the qualifiers into Microsoft and non-Microsoft qualifiers. */
-  /* Ignore Microsoft qualifiers if told to. */
-  if (options & FTO_SUPPRESS_MICROSOFT_QUALIFIERS) {
-    microsoft_qualifiers = TQ_NONE;
-  } else {
-    microsoft_qualifiers = (qualifiers & TQ_ALL_MICROSOFT_QUALIFIERS);
-  }  /* if */
-  qualifiers &= ~TQ_ALL_MICROSOFT_QUALIFIERS;
-  if (microsoft_qualifiers != TQ_NONE) {
-    /* Some qualifiers will be put out, so the trailing space request applies
-       to them. */
-    microsoft_qualifiers_need_trailing_space = need_trailing_space;
-    need_trailing_space = TRUE;
-  }  /* if */
-  /* When processing pointers, suppress processing of Microsoft qualifiers
-     under the pointer because they are processed at this level. */
-  pointer_options = FTO_SUPPRESS_MICROSOFT_QUALIFIERS;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
@@ -752,17 +713,9 @@ qualifiers like __cdecl.
     form_type_first_part(type->variant.pointer.type,
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
-                         pointer_options,
+                         FTO_NO_OPTIONS,
                          octl);
 #ifdef CFE
-#if MICROSOFT_KEYWORDS_ALLOWED
-    /* Put out any Microsoft qualifiers under the pointer type. */
-    qualifiers_under_pointer = get_type_qualifiers(type->variant.pointer.type);
-    if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
-      form_microsoft_qualifier(qualifiers_under_pointer,
-                               /*need_trailing_space=*/TRUE, octl);
-    }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
     /* Output "*" or "&" for pointer or reference. */
     if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
       octl->output_str("&");
@@ -782,17 +735,8 @@ qualifiers like __cdecl.
     form_type_first_part(type->variant.ptr_to_member.type,
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
-                         pointer_options,
+                         FTO_NO_OPTIONS,
                          octl);
-#if MICROSOFT_KEYWORDS_ALLOWED
-    /* Put out any Microsoft qualifiers under the pointer-to-member type. */
-    qualifiers_under_pointer =
-                         get_type_qualifiers(type->variant.ptr_to_member.type);
-    if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
-      form_microsoft_qualifier(qualifiers_under_pointer,
-                               /*need_trailing_space=*/TRUE, octl);
-    }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
     /* Output Classname::*. */
     form_name(&type->variant.ptr_to_member.
                                        class_of_which_a_member->source_corresp,
@@ -817,6 +761,13 @@ qualifiers like __cdecl.
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
+#if MICROSOFT_KEYWORDS_ALLOWED
+    /* A calling convention specifier is put out as a left-hand-side
+       declarator. */
+    form_calling_convention(type->variant.routine.extra_info->
+                                                            calling_convention,
+                            octl);
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -825,11 +776,6 @@ qualifiers like __cdecl.
                         "form_type_first_part: qualifier on array type");
     array_options = FTO_NO_OPTIONS;
     if (suppress_const) array_options |= FTO_SUPPRESS_CONST;
-#if MICROSOFT_KEYWORDS_ALLOWED
-    /* Microsoft qualifiers under the array type were already handled at
-       this level in C++ (because they're seen by get_type_qualifiers). */
-    if (!C_mode()) array_options |= FTO_SUPPRESS_MICROSOFT_QUALIFIERS,
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
     form_type_first_part(type->variant.array.element_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
@@ -857,15 +803,6 @@ qualifiers like __cdecl.
     /* Put out a trailing space if required. */
     if (need_trailing_space) octl->output_str(" ");
   }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
-  /* If there were any Microsoft qualifiers on the top of the type, put
-     them out now, right next to the place where the declarator name
-     will be. */
-  if (microsoft_qualifiers != TQ_NONE) {
-    form_microsoft_qualifier(microsoft_qualifiers,
-                             microsoft_qualifiers_need_trailing_space, octl);
-  }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 }  /* form_type_first_part */
 
 

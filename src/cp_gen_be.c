@@ -4887,9 +4887,6 @@ declaration or definition.
   a_source_sequence_entry_ptr   saved_curr_source_sequence_entry;
   a_source_sequence_entry_ptr   saved_sublist_parent_source_sequence_entry;
   a_routine_type_supplement_ptr rtsp;
-#if MICROSOFT_KEYWORDS_ALLOWED
-  a_type_qualifier_set          microsoft_qualifiers = TQ_NONE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
   /* Note that compiler-generated routines don't appear on the source sequence
      lists, so they never get here. */
@@ -5021,15 +5018,6 @@ declaration or definition.
     if (rout->microsoft_inline_used) write_tok_str("__inline ");
   }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-  if (is_definition && rout_type->kind == (a_type_kind)tk_typeref) {
-    /* Microsoft qualifiers can appear above the function type even in
-       definitions. */
-    microsoft_qualifiers = get_type_qualifiers(rout_type);
-    check_assertion_str((microsoft_qualifiers & ~TQ_ALL_MICROSOFT_QUALIFIERS)
-                                                                    == TQ_NONE,
-                        "gen_routine_decl: bad top-level qualifiers");
-    rout_type = unqual_rout_type;
-  }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
   if (rout_type->kind == (a_type_kind)tk_typeref) {
@@ -5058,14 +5046,6 @@ declaration or definition.
                            FTO_NO_OPTIONS,
                            &octl);
     }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
-    if (microsoft_qualifiers != TQ_NONE) {
-      /* There were Microsoft qualifiers above the function type, so put them
-         out right next to the routine name. */
-      form_microsoft_qualifier(microsoft_qualifiers,
-                               /*need_trailing_space=*/TRUE, &octl);
-    }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
     /* Position the output file to the declaration position (again). */
     set_decl_position(&rout->source_corresp, sec_decl);
     /* Write the routine name. */

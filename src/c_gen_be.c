@@ -4688,19 +4688,7 @@ for the definition of the indicated routine.  scope is the associated scope.
 */
 {
   a_type_ptr           type = rout->type;
-#if MICROSOFT_KEYWORDS_ALLOWED
-  a_type_qualifier_set microsoft_qualifiers = TQ_NONE;
 
-  if (type->kind == (a_type_kind)tk_typeref) {
-    /* Microsoft qualifiers can appear above the function type even in
-       definitions. */
-    microsoft_qualifiers = get_type_qualifiers(type);
-    check_assertion_str((microsoft_qualifiers & ~TQ_ALL_MICROSOFT_QUALIFIERS)
-                                                                    == TQ_NONE,
-                        "dump_func_definition_type: bad top-level qualifiers");
-    type = skip_typerefs(type);
-  }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   check_assertion_str(type->kind == (a_type_kind)tk_routine,
                       "dump_func_definition_type: top-level type not routine");
   /* The storage class and similar preamble have already been written. */
@@ -4708,14 +4696,6 @@ for the definition of the indicated routine.  scope is the associated scope.
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/TRUE, FTO_NO_OPTIONS,
                        &octl);
-#if MICROSOFT_KEYWORDS_ALLOWED
-  if (microsoft_qualifiers != TQ_NONE) {
-    /* There were Microsoft qualifiers above the function type, so put them
-       out right next to the routine name. */
-    form_microsoft_qualifier(microsoft_qualifiers,
-                             /*need_trailing_space=*/TRUE, &octl);
-  }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* Write the name. */
   dump_routine_name(rout);
   /* Write the second part of the declarator. */
