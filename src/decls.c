@@ -3886,6 +3886,20 @@ class template.
         /* Avoid overloading. */
         homonym_symbol = NULL;
       }  /* if */
+      if (homonym_symbol != NULL &&
+          homonym_symbol->kind == (a_symbol_kind)sk_routine) {
+        /* A template definition of operator delete is not allowed.  This
+           is inferred from the ARM prohibition against overloading
+           operator delete. */
+        a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
+        if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+            rp->opname_kind == (an_opname_kind)onk_delete) {
+          /* Overloading is not allowed for operator delete() (ARM 12.5). */
+          pos_error(ec_template_operator_delete, &locator->source_position);
+          set_to_error_locator(*locator);
+          homonym_symbol = NULL;
+        }  /* if */
+      }  /* if */
       if (homonym_symbol != NULL) {
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new

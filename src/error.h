@@ -547,7 +547,8 @@ typedef enum /*an_error_code*/ {
   ec_specific_def_must_be_global,
   ec_nonstd_member_function_address,
   ec_too_few_template_params,
-  ec_too_many_template_params
+  ec_too_many_template_params,
+  ec_template_operator_delete
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

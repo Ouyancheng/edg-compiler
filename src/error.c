@@ -1890,6 +1890,9 @@ error code.
       m =
          "too many template parameters -- does not match previous declaration";
       break;
+    case ec_template_operator_delete:
+      m = "operator delete() may not be a function template";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
