@@ -1620,10 +1620,11 @@ issued a similar error).  Return FALSE if there is some error.
                                       TCF_NO_FLAGS) :
                      !types_are_redecl_compatible(old_type, type_ptr)) {
       okay = FALSE;
-      /* The old and new types are incompatible.  Allow certain cases
-         in SVR4 C compatibility mode. */
+      /* The old and new types are incompatible.  Issue a warning instead of
+         an error for certain cases (namely, all routine declarations and
+         some variable declarations) in SVR4 C compatibility mode. */
       if (SVR4_C_mode &&
-          (!is_routine || interchangeable_types(old_type, type_ptr))) {
+          (is_routine || interchangeable_types(old_type, type_ptr))) {
         severity = es_warning;
         /* Record the most recent type as the external symbol's type. */
         esdp->type = type_ptr;
@@ -2513,7 +2514,7 @@ describing this declaration.
         }  /* if */
         if (!routines_compat) {
           /* The old and new declarations are incompatible.  There is special
-             handline for SVR4 C compatibility mode. */
+             handling for SVR4 C compatibility mode. */
           if (SVR4_C_mode) {
             /* The routine types are incompatible, but in SVR4 mode this may
                not be an error as long as the incompatibility is only in the
@@ -2525,9 +2526,9 @@ describing this declaration.
                 is_integral_type(ret1) && is_integral_type(ret2) &&
                 interchangeable_types(ret1, ret2)) {
               /* The return types are incompatible but both are integral and
-                 interchangeable (i.e., have the same size and alignment).
-                 If the two routine types are otherwise compatible, we just
-                 issue a warning. */
+                 they are interchangeable (i.e., they have the same size and
+                 alignment).  If the two routine types are otherwise
+                 compatible, we just issue a warning in SVR4-C mode. */
               type_ptr->variant.routine.return_type = ret2;
               routines_compat = types_are_compatible(routine_ptr->type,
                                                      type_ptr);
@@ -2535,7 +2536,7 @@ describing this declaration.
               type_ptr->variant.routine.return_type = ret1;
             }  /* if */
           }  /* if */
-          /* Issue an warning if this is the SVR4 special case. */
+          /* Issue a warning if this is the SVR4 special case. */
           pos_sy_diagnostic(routines_compat ? es_warning : es_error,
                             ec_not_compatible_with_previous_decl,
                             &locator->source_position, linked_symbol);
