@@ -533,10 +533,19 @@ unknown_option:
   /* Add the directory of the source file to the front of the include file
      search path.  gs_directory_of returns the directory part of the
      name allocated in general (not IL) storage. */
-  /* If you change this, see the similar code in get_next_source_file. */
-  add_to_front_of_include_search_path(
-                                    gs_directory_of(primary_source_file_name));
-
+  {
+    /* If you change this, see the similar code in get_next_source_file. */
+#if USING_PURIFY
+    /* This directory name is, under certain condtions, discarded later
+       in the compilation process.  Save a pointer here to prevent
+       purify from complaining about the leaked memory. */
+    static char	*dir_name;
+#else /* !USING_PURIFY */
+    char	*dir_name;
+#endif /* USING_PURIFY */
+    dir_name = gs_directory_of(primary_source_file_name);
+    add_to_front_of_include_search_path(dir_name);
+  }
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* Multiple source files can be compiled.  Save the count and argv
      position of remaining files, if any. */
