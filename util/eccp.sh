@@ -143,6 +143,14 @@ fe_only=0
 #
 preprocessor_only=0
 #
+# When set to 1, preprocessor_only should be reset.  This is used to
+# force compilation when using an option that usually suppresses
+# compilation.  This is helpful when using the implicit inclusion option
+# as it allows the compiler to produce a preprocessed output file that
+# includes any implicitly included files.
+#
+suppress_preproc_only=0
+#
 # Name of the executable after linking.
 #
 executable=a.out
@@ -487,16 +495,20 @@ do
          --no_brief_diagnostics | \
          --nonconst_ref_anachronism | \
          --no_nonconst_ref_anachronism | \
+	 --no_preproc_only | \
          --force_vtbl)
       feoptions=$feoptions" $1"
-#     Check for C or C++ mode
+#     Options that require additional processing
       case $curr_param in
         -m | --c | -K | --old_c | --svr4 | --no_svr4)
-         c_mode=1
-         ;;
+          c_mode=1
+          ;;
         -p | --c++ | --cfront_2.1 | --cfront_3.0)
-         c_mode=0
-         ;;
+          c_mode=0
+          ;;
+	--no_preproc_only)
+	  suppress_preproc_only=1
+          ;;
       esac
       ;;
 ###############################################################################
@@ -599,7 +611,6 @@ do
     -H | --trace_includes | \
     -M | --dependencies | \
     -P | --no_line_commands)
-      fe_only=1;
       preprocessor_only=1
       feoptions=$feoptions" $1";
       ;;
@@ -691,6 +702,15 @@ if [ "$EDG_STD_LIBS" != "" ] ; then
                sed -e 's/:$//' -e 's/::/:/g' \
                    -e 's/^:*//' -e "s/:/$EDG_LIB_SUFFIX -l/g"  \
                    -e 's/^/-l/' -e "s/$/$EDG_LIB_SUFFIX/"`
+fi
+if [ $suppress_preproc_only -eq 1 ] ; then
+  # The --no_preproc_only option causes preprocessing only mode to be ignored.
+  preprocessor_only=0
+fi
+if [ $preprocessor_only -eq 1 ] ; then
+  # If we are only doing preprocessing, indicate that only the front end should
+  # be run.
+  fe_only=1
 fi
 #
 # If only one source file was specified, and we are compiling and
