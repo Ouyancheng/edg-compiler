@@ -2048,7 +2048,7 @@ Only callable in C++ mode.  See ARM 13.
           default arguments
 #endif
       for (old_param = old_type->variant.routine.extra_info->param_type_list,
-           new_param = old_type->variant.routine.extra_info->param_type_list;
+           new_param = new_type->variant.routine.extra_info->param_type_list;
            old_param != NULL || new_param != NULL;
            old_param = old_param->next, new_param = new_param->next) {
         if (old_param == NULL || new_param == NULL) {
