@@ -3889,21 +3889,38 @@ See section 3.3.3.2 of the standard.
         if (is_function_type(operand.type)) {
           /* This will become a function designator. */
           operand.state = (an_operand_state)os_function_designator;
-        } else if (C_mode() &&
-                   is_void_type(operand.type) &&
-                   !is_qualified_type(operand.type)) {
-          /* If the type pointed to is void, the result is not an lvalue.
-               void *p; *p;
-             is legal, but *p is not an lvalue.  This exception is in C,
-             but not in C++. */
-          an_expr_node_ptr node = make_node_from_operand(&operand);
-          node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                                    operand.type, node);
-          make_expression_operand(node, node->type, &operand);
+        } else if (is_void_type(operand.type)) {
+          /* Indirection through a void * pointer. */
+          if (!C_mode()) {
+            /* In C++ mode, this is an error.*/
+            error_in_operand(ec_expr_not_object_pointer, &operand);
+          } else {
+            /* In C mode, indirection through a void * pointer is valid,
+               but the result is not an lvalue.  For example,
+                 void *p; *p;
+               is legal, but *p is not an lvalue.  This was discussed in
+               Defect Report 12 of the C standards committee, with further
+               discussion in Defect Report 106.  While those interpretations
+               make it clear that this applies for void *, they seem to
+               leave out cv-qualified void *; those apparently still convert
+               to an lvalue. */
+            if (!is_qualified_type(operand.type)) {
+              an_expr_node_ptr node = make_node_from_operand(&operand);
+              node = make_operator_node((an_expr_operator_kind)eok_indirect,
+                                        operand.type, node);
+              make_expression_operand(node, node->type, &operand);
+            } else {
+              /* Indirection through, e.g., const void * -- just convert to
+                 an lvalue. */
+              operand.state = (an_operand_state)os_lvalue;
+            }  /* if */
+          }  /* if */
         } else {
+          /* Normal case -- just convert to an lvalue, keeping the same
+             underlying value. */
           operand.state = (an_operand_state)os_lvalue;
         }  /* if */
-        /* Note that the copy preserves ref_entries_list. */
+         /* Note that the copy preserves ref_entries_list. */
         copy_operand(&operand, result);
       } else {
         /* There was some error in the operand. */

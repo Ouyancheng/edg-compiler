@@ -1,5 +1,11 @@
 Version 2.39
 
+3/29/98   Indirection through a void * pointer in C++ mode
+
+Indirection through a void * pointer now gets an error in C++ mode.
+Formerly, it was handled like in C, where it is valid but does not
+produce an lvalue.
+
 3/27/98   Microsoft compatibility: unrecognized __declspec attribute
 
 In Microsoft-compatibility mode a syntax error is no longer issued on
