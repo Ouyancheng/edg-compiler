@@ -696,18 +696,22 @@ property fields).
                      struct X { };
                      A<int> aint;     // A<int>::f returns const int (useless)
                      A<X> ax;         // A<X>::f returns const X (okay)
-                   Reduce the severity to a remark to eliminate annoying
+                   Do not issue a remark in this case to eliminate annoying
                    warnings the user can't do anything about. */
                 /* Note that this solution fails to warn on cases that are
                    *always* useless, too.  If A<T>::f returned "T * const" a
                    warning would always be appropriate, whatever T was replaced
                    by in the instantiation.  But the representation of types
                    based on template arguments will have to be improved to
-                   make this distinction. */
-                severity = es_remark;
+                   make this distinction.  When performing prototype
+                   instantiations, however, most such cases are in fact
+                   diagnosed. */
+                severity = es_none;
               }  /* if */
             }  /* if */
-            diagnostic(severity, ec_useless_type_qualifier_on_return_type);
+            if (severity != es_none) {
+              diagnostic(severity, ec_useless_type_qualifier_on_return_type);
+            }  /* if */
           }  /* if */
         }  /* if */
         if (err) new_type_ptr = error_type();
