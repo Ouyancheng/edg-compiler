@@ -1627,6 +1627,9 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
   an_extended_decl_info_block
                           extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr        attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -1674,6 +1677,12 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
                                    &extended_decl_info, &local_err);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gcc_mode) {
+      /* Look for any attributes that apply to this type. */
+      attributes = scan_attributes();
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
@@ -2363,6 +2372,13 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Now that we have a type, we can apply any attributes attached to it. */
+  if (gcc_mode && attributes != NULL) {
+    apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+    free_attribute_list(attributes);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
                               orig_decl_level, is_local_class,
