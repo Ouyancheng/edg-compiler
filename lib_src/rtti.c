@@ -177,7 +177,7 @@ The access_flags string was retained for backward compatibility.
           }  /* if */
         }  /* if */
         /* The last entry in the array will have the BCS_LAST flag set. */
-        done = bcsp->flags & BCS_LAST;
+        done = (bcsp->flags & BCS_LAST) != 0;
         /* Advance the pointer to the next element in the array of base
            class specifications. */
         bcsp++;
@@ -187,11 +187,63 @@ The access_flags string was retained for backward compatibility.
   return result;
 }  /* __derived_to_base_conversion */
 
+
+static a_base_class_spec_ptr find_base_class_at_addr(
+					void			*obj_ptr,
+					void			*base_ptr,
+					a_type_info_impl_ptr	obj_info,
+					a_type_info_impl_ptr	base_info)
+/*
+Find the base class specification entry that corresponds to the base
+class pointed to by "base_ptr", whose type is specified by "base_info"
+in the object pointed to by "obj_ptr".  The base class must be accessible,
+but need not be unambiguous.
+*/
+{
+  a_base_class_spec_ptr	bcsp;
+  void                  *ptr;
+  void                  *new_ptr;
+  a_boolean		done;
+  a_base_class_spec_ptr	result = NULL;
+
+  ptr = obj_ptr;
+  for (done = FALSE, bcsp = obj_info->base_class_entries;
+       bcsp != NULL && !done; done = (bcsp->flags & BCS_LAST) != 0, bcsp++) {
+    /* Adjust the pointer by the offset provided in the base class
+       specification. */
+    new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+    if (bcsp->flags & BCS_VIRTUAL) {
+      /* If this is a virtual base class then the offset provides the
+         location of a pointer to the base class.  Dereference the
+         pointer and use that value. */
+      new_ptr = *((void **)new_ptr);
+    }  /* if */
+    if (new_ptr == base_ptr && bcsp->type_info == base_info) {
+      /* We found a match.  Note that both the address and type must match
+         because base classes can share an address. */
+      result = bcsp;
+      break;
+    }  /* if */
+    if ((bcsp->flags & BCS_PUBLIC) != 0) {
+      /* No match, check the base classes of this base class. */
+      result = find_base_class_at_addr(new_ptr, base_ptr,
+                                       bcsp->type_info, base_info);
+      /* Exit if the recursive call found a match. */
+      if (result != NULL) break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* find_base_class_at_addr */
+
 #if ABI_CHANGES_FOR_RTTI
 
-EXTERN_C void *__dynamic_cast(void                  *class_ptr,
-			      a_vtbl_entry_ptr      vtbl_ptr,
-			      a_type_info_impl_ptr  tiip)
+EXTERN_C void *__dynamic_cast(void			*class_ptr,
+			      a_vtbl_entry_ptr		vtbl_ptr,
+		              a_type_info_impl_ptr	tiip
+#if ABI_COMPATIBILITY_VERSION >= 241
+			    , a_type_info_impl_ptr	source_tiip
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+                              )
 /*
 Runtime support for dynamic_cast operations.  This routine handles
 
@@ -244,20 +296,45 @@ following information:
        means that class_ptr is to be converted to a pointer to the
        complete object type. */
     result = complete_object_ptr;
-  } else if (matching_type_info(object_tiip, tiip)) {
-    /* The object is being cast to the type it actually is.  For example,
-       a Base* that actually points to a Derived is being cast to a
-       Derived*.  Simply return the complete object pointer. */
-    result = complete_object_ptr;
   } else {
-    a_boolean	conversion_done;
-    void	*new_ptr = NULL;
-    conversion_done = __derived_to_base_conversion(
+    a_boolean	access_okay = TRUE;
+#if ABI_COMPATIBILITY_VERSION >= 241
+    /* Before doing the conversion, find the base class pointed to by the
+       source pointer.  Make sure this points to an accessible base class.
+       find_base_class_at_addr will return NULL if the base class is an
+       indirect base class of a private base class.  It will return a pointer
+       to the base class entry if it is a base class of an accessible
+       base class (or if it is a direct base class).  Check the returned base
+       class entry to make sure the base class is public.  The conversions
+       that follow are done only if the source class is a public base class. */
+    if (object_tiip == source_tiip) {
+      /* The static type of the source is the same as the dynamic type. */
+      access_okay = TRUE;
+    } else {
+      a_base_class_spec_ptr	bcsp;
+      bcsp = find_base_class_at_addr(complete_object_ptr, class_ptr,
+                                     object_tiip, source_tiip);
+      access_okay = bcsp != NULL && (bcsp->flags & BCS_PUBLIC) != 0;
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+    if (access_okay) {
+      if (matching_type_info(object_tiip, tiip)) {
+        /* The object is being cast to the type it actually is.  For example,
+           a Base* that actually points to a Derived is being cast to a
+           Derived*.  Simply return the complete object pointer. */
+        result = complete_object_ptr;
+      } else {
+        /* The object is being cast to one of its base classes. */
+        a_boolean	conversion_done;
+        void		*new_ptr = NULL;
+        conversion_done = __derived_to_base_conversion(
                                &complete_object_ptr, &new_ptr,
 			       object_tiip, tiip,
 			       (an_access_flag_string*)NULL,
 			       /*use_access_flags=*/FALSE);
-    if (conversion_done) result = new_ptr;
+        if (conversion_done) result = new_ptr;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* __dynamic_cast */
@@ -293,7 +370,11 @@ this version of the runtime, then simply abort.
 
 EXTERN_C void *__dynamic_cast_ref(void                  *class_ptr,
 			          a_vtbl_entry_ptr      vtbl_ptr,
-			          a_type_info_impl_ptr  tiip)
+			          a_type_info_impl_ptr  tiip
+#if ABI_COMPATIBILITY_VERSION >= 241
+				, a_type_info_impl_ptr	source_tiip
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+                                  )
 /*
 Interface to __dynamic_cast used when casting references.  This calls
 __dynamic_cast and throws an exception if the cast failed.
@@ -301,7 +382,11 @@ __dynamic_cast and throws an exception if the cast failed.
 {
   void*		result;
 
-  result = __dynamic_cast(class_ptr, vtbl_ptr, tiip);
+  result = __dynamic_cast(class_ptr, vtbl_ptr, tiip
+#if ABI_COMPATIBILITY_VERSION >= 241
+                          , source_tiip
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+                         );
   if (result == NULL) {
     __throw_bad_cast();
   }  /* if */

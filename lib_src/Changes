@@ -1,5 +1,14 @@
 Version 2.41
 
+2/25/99  Complete access checking on dynamic_cast
+
+Certain access checks required by the standard were not performed by
+the __dynamic_cast runtime routine because additional information was
+required for the checks to be done.  A new parameter has been added
+to __dynamic_cast and __dynamic_cast_ref to allow these checks to
+be done (this is an ABI change).  See the front end Changes file for
+more information.
+
 2/25/99  Qualification conversion on throw of multi-level pointer
 
 The EH mechanism now supports qualification conversions on multi-level
