@@ -5609,6 +5609,11 @@ declared member functions.
       a_src_seq_secondary_decl_ptr  sssdp;
 
       if (func_info->is_movable_member_or_friend_def) {
+        /* Set the flag that indicates the definition appears outside the
+           class body -- it's used by the code that eliminates unneeded
+           function declarations, if this routine turns out to be
+           unreferenced. */
+        rtn->defined_outside_of_parent = TRUE;
         /* A given default argument expression cannot appear both on a
            secondary source-sequence entry and on the primary declaration. */
         /* Remove default arguments, if any, from the type recorded as the
