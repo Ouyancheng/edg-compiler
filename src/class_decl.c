@@ -3514,14 +3514,12 @@ and it is legal for virtual member functions only.
   if (!pure_specifier_allowed && !suppress_error) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
   }  /* if */
-  /* Advance past the "=".  Get the next token in "preprocessor mode" so
-     that a string rather than an arithmetic value is returned.  That allows
-     us to check strictly for "0" and not be fooled by, say, "00". */
-  fetch_pp_tokens = TRUE;
+  /* Advance past the "=". */
   (void)get_token();
-  fetch_pp_tokens = FALSE;
-  if (*start_of_curr_token == '0' && len_of_curr_token == 1) {
-    /* Token following "=" is "0". */
+  if (curr_token == tok_int_constant && const_for_curr_token.is_simple_zero) {
+    /* Token following "=" is "0".  Note that we don't test for an integer
+       value of zero but rather for the literal "0", since "= 00" should
+       elicit an error. */
     if (pure_specifier_allowed) {
       /* Update the routine and class type enties. */
       rout_sym->variant.routine.ptr->pure_virtual = TRUE;
