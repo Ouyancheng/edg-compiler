@@ -8156,7 +8156,7 @@ than at the beginning of the block.  If appropriate, insert code at
      operation since it might be used to build a table instead of being
      considered executable.  */
   if (exceptions_enabled) {
-    insert_code_to_indicate_cleanup_state(&insert_location);
+    insert_code_to_indicate_cleanup_state(insert_location);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* reset_cleanup_state_at_unreachable_end_of_block */
