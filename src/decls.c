@@ -7618,6 +7618,172 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 }  /* type_keyword */
 
 
+void scan_function_body(a_routine_ptr     rout_ptr,
+                        a_func_info_block *func_info,
+                        a_decl_flag_set   flags)
+{
+  a_type_ptr                     class_type, rout_type;
+  a_routine_type_supplement_ptr  rtsp;
+  a_scope_number                 scope_number;
+  a_param_id_ptr                 param_id;
+  a_scope_ptr                    scope_ptr;
+  int                            saved_container_pos, saved_depth_stmt_stack;
+  a_reachability_summary         saved_curr_reachability;
+
+  db_enter(3, "scan_function_body");
+  class_type = rout_ptr->source_corresp.class_of_which_a_member;
+  rout_type = skip_typerefs(rout_ptr->type);
+  rtsp = rout_type->variant.routine.extra_info;
+  if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
+    /* Push a class symbol reactivation scope, to make class member names
+       visible for processing the function definition. */
+    push_class_reactivation_scope(class_type);
+  }  /* if */  
+  scope_number = (func_info == NULL) ?
+                        NO_SCOPE_NUMBER : func_info->scope_number;
+  /* Push the name scope for the routine body. */
+  scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
+                         (a_type_ptr)NULL, rout_ptr, (a_symbol_ptr)NULL,
+                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+  /* Associate the scope to the routine entry and the routine entry to its
+     type entry. */
+  rout_ptr->assoc_scope = curr_il_region_number;
+  rtsp->assoc_routine = rout_ptr;
+  if (class_type != NULL && rtsp->implicit_this_param_type != NULL) {
+    scope_ptr->variant.routine.this_param_variable =
+                        make_param_variable(rtsp->implicit_this_param_type,
+                                            (a_storage_class)sc_auto);
+  }  /* if */
+  if (func_info != NULL) {
+    if (!rout_ptr->is_instantiation) {
+      /* Parameter symbols that were created in the prototype scope (and then
+         removed in pop_scope) have to be reentered in the function scope; they
+         will be transformed in to variable symbols.  Also, in C mode, types
+         that were defined in the prototype scope need to reactivated now so
+         that they will be available in the current scope. */
+      if (func_info->prototype_scope_symbols != NULL) {
+        reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
+      }  /* if */
+    }  /* if */
+    /* If the parameters are old-style, process a set of declarations.
+       If they are new-style, declare the identifiers that appeared in
+       the function prototype. */
+    if (flags & SFB_OLD_STYLE_PARAM_DECL) {
+      /* Old-style id list. */
+      if (func_info->param_id_list == NULL) {
+        /* No parameters to declare. */
+      } else {
+        /* When the id list was originally scanned, sk_parameter symbols were
+           created but not actually entered into the symbol table, since there
+           was no scope in which to enter them.  Now that the function scope
+           has been created, enter the param names. */
+        for (param_id = func_info->param_id_list;
+             param_id != NULL;
+             param_id = param_id->next) {
+#if CHECKING
+          if (param_id->symbol == NULL) {
+            internal_error("function_definition: NULL old-style param_id sym");
+          }  /* if */
+#endif /* CHECKING */
+          reenter_symbol(param_id->symbol, decl_scope_level,
+                         /*suppress_error=*/FALSE);
+        }  /* for */
+      }  /* if */
+    }  /* if */
+#if 0
+    if (!rtsp->old_style_params_scanned
+        && !top_declarator_type_is_function
+                                       ) {
+      /* New-style (function prototype) for which there will be no parameter
+         names to worry about -- skip over the declarations. */
+    } else
+#endif /* if 0 */
+           {
+      a_param_type_ptr  ptp = rtsp->param_type_list;
+      if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
+        /* New-style (function prototype) for which at least one of the param
+           names was omitted in the prototype.  In C this is not valid on a
+           function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
+        if (C_dialect != C_dialect_cplusplus) {
+          error(ec_all_proto_params_must_be_named);
+        }  /* if */
+      }  /* if */
+      param_id = func_info->param_id_list;
+#if CHECKING
+      if ((param_id == NULL) != (ptp == NULL)) {
+        internal_error("function_definition: param_id and ptp out of sync");
+      }  /* if */
+#endif /* CHECKING */
+      for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+        /* Declare each parameter identifier to have the associated type
+           from the parameter type list. */
+        decl_parameter(param_id, ptp, rout_ptr->is_instantiation);
+#if CHECKING
+        if ((param_id->next == NULL) != (ptp->next == NULL)) {
+          internal_error("function_definition: param_id and ptp out of sync");
+        }  /* if */
+#endif /* CHECKING */
+      }  /* for */
+    }  /* if */
+    if (!rout_ptr->is_instantiation) {
+      /* Free the list of parameter ids, now that it is no longer needed. */
+      free_param_id_list(&(func_info->param_id_list));
+    }  /* if */
+    /* Set the assoc_param_type field in each of the parameter variables. */
+    fixup_parameters(scope_ptr->variant.routine.parameters,
+                     rtsp->param_type_list);
+  }  /* if */
+  /* Enter the constructor initializers.  If the current token is a ":",
+     explicit initialization for the constructor follows, but even without
+     an explicit initializer, any implicit initializers should be recorded. */
+  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
+    scope_ptr->variant.routine.constructor_inits =
+                                      ctor_initializer(rout_ptr,
+                                                       /*user_defined=*/TRUE);
+  } else if (rout_ptr->special_kind ==
+                                   (a_special_function_kind)sfk_destructor) {
+    scope_ptr->variant.routine.constructor_inits =
+                                      dtor_initializer(rout_ptr);
+  }  /* if */
+  if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
+    /* Save structured statement stack state before calling compound_statement
+       (so that it can be restored upon return) and create a new structured
+       statement stack.  This is required for function definitions in classes
+       defined within a function definition.  An indefinite nesting depth is
+       supported */
+    new_struct_stmt_stack(&saved_container_pos, &saved_depth_stmt_stack,
+                          &saved_curr_reachability);
+  }  /* if */
+  /* Scan the compound statement defining the function.  The closing "}"
+     is not swallowed by compound_statement, so that the pop_scope call
+     can be done to get any errors out right on the "}". */
+  scope_ptr->assoc_block =
+        compound_statement(/*at_function_level=*/TRUE,
+                           (flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0);
+  if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
+    /* Restore the original structured statement stack. */
+    restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
+                              &saved_curr_reachability);
+  }  /* if */
+  /* Pop the function scope. */
+  pop_scope();
+  if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
+    /* Pop the class symbol reactivation scope. */
+    pop_class_reactivation_scope();
+  }  /* if */  
+  /* Check for the closing "}", not done in compound_statement.  Note that
+     required_token is not called; if compound_statement returned on
+     anything other than a right brace, it's because we should start parsing
+     on this token. */
+  if (curr_token != tok_rbrace) {
+    pos_error(ec_exp_rbrace, &pos_curr_token);
+  } else {
+    (void)get_token();
+  }  /* if */
+  db_exit();
+}  /* scan_function_body */
+
+
 static void function_definition(
                           a_symbol_locator   *locator,
                           a_type_ptr         rout_type,
@@ -7644,7 +7810,6 @@ explicitly specified (rather than defaulted to "int").
 {
   a_symbol_ptr       symbol_ptr, ext_sym;
   a_routine_ptr      routine_ptr;
-  a_scope_ptr        scope_ptr;
   a_param_id_ptr     param_id;
   an_id_linkage_kind linkage;
   a_type_ptr         return_type, old_type, unqualified_rout_type;
@@ -7653,6 +7818,7 @@ explicitly specified (rather than defaulted to "int").
   a_boolean          prototyped;
   a_boolean	     is_member_function_def = FALSE;
   a_param_type_ptr   ptp;
+  a_decl_flag_set    flags;
 
   db_enter(3, "function_definition");
   /* The top type (function) must have come from a declarator, not from a
@@ -7726,10 +7892,10 @@ explicitly specified (rather than defaulted to "int").
       a_param_type_ptr   end_old_style_param_types = NULL;
 
       /* Push the name scope for the parameter declarations. */
-      scope_ptr = push_scope((a_scope_kind)sck_func_prototype,
-                             func_info->scope_number, rout_type,
-                             (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                             (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+      (void)push_scope((a_scope_kind)sck_func_prototype,
+                       func_info->scope_number, rout_type,
+                       (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
+                       (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
 #if CHECKING
       if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
         internal_error("function_definition: bad region number");
@@ -7798,129 +7964,27 @@ explicitly specified (rather than defaulted to "int").
     internal_error("function_definition: routine type not preserved");
   }  /* if */
 #endif /* CHECKING */
-  if (is_member_function_def) {
-    /* Push a class symbol reactivation scope, to make class member names
-       visible for processing the function definition. */
-    push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
-  }  /* if */  
-  /* Push the name scope for the routine body. */
-  scope_ptr = push_scope((a_scope_kind)sck_function, func_info->scope_number,
-                         (a_type_ptr)NULL, routine_ptr, (a_symbol_ptr)NULL,
-                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-  /* Associate the scope to the routine entry and the routine entry to its
-     type entry. */
-  routine_ptr->assoc_scope = curr_il_region_number;
-  extra_info->assoc_routine = routine_ptr;
-  if (is_member_function_def) {
-    a_type_ptr	rtp = skip_typerefs(old_type);
-    scope_ptr->variant.routine.this_param_variable =
-	make_param_variable(rtp->variant.routine.extra_info->
-						   implicit_this_param_type,
-                            (a_storage_class)sc_auto);
-  } else if (storage_class == (a_storage_class)sc_unspecified &&
-             routine_ptr->source_corresp.name != NULL &&
-             strcmp(routine_ptr->source_corresp.name, "main") == 0) {
+  if (!is_member_function_def &&
+      storage_class == (a_storage_class)sc_unspecified &&
+      routine_ptr->source_corresp.name != NULL &&
+      strcmp(routine_ptr->source_corresp.name, "main") == 0) {
     /* This is "main", so remember the location of its routine entry. */
     il_header.main_routine = routine_ptr;
-  }  /* if */
-  if (top_declarator_type_is_function) {
-    /* Parameter symbols that were created in the prototype scope (and then
-       removed in pop_scope) have to be reentered in the function scope; they
-       will be transformed in to variable symbols.  Also, in C mode, types
-       that were defined in the prototype scope need to reactivated now so
-       that they will be available in the current scope. */
-    if (func_info->prototype_scope_symbols != NULL) {
-      reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
-    }  /* if */
   }  /* if */
   /* If a lint-style "argsused" or "varargs" comment appeared, remember that in
      the function type.  That will suppress any warnings about unused
      parameters or variable arguments. */
   extra_info->lint_argsused_flag = lint_argsused_flag;
   extra_info->lint_varargs_count = lint_varargs_count;
-  /* If the parameters are old-style, process a set of declarations.
-     If they are new-style, declare the identifiers that appeared in
-     the function prototype. */
+  /* Scan the function body. */
+  flags = SFB_NO_FLAGS;
+  if (!has_explicit_type_specifier) {
+    flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
+  }  /* if */
   if (!prototyped) {
-    /* Old-style id list. */
-    if (func_info->param_id_list == NULL) {
-      /* No parameters to declare. */
-    } else {
-      /* When the id list was originally scanned, sk_parameter symbols were
-         created but not actually entered into the symbol table, since there
-         was no scope in which to enter them.  Now that the function scope
-         has been created, enter the param names. */
-      for (param_id = func_info->param_id_list;
-           param_id != NULL;
-           param_id = param_id->next) {
-#if CHECKING
-        if (param_id->symbol == NULL) {
-          internal_error("function_definition: NULL old-style param_id sym");
-        }  /* if */
-#endif /* CHECKING */
-        reenter_symbol(param_id->symbol, decl_scope_level,
-                       /*suppress_error=*/FALSE);
-      }  /* for */
-    }  /* if */
+     flags |= SFB_OLD_STYLE_PARAM_DECL;
   }  /* if */
-  if (prototyped && !top_declarator_type_is_function) {
-    /* New-style (function prototype) for which there will be no parameter
-       names to worry about -- skip over the declarations. */
-  } else {
-    a_param_type_ptr  ptp = extra_info->param_type_list;
-    if (prototyped && func_info->any_prototype_names_omitted) {
-      /* New-style (function prototype) for which at least one of the param
-         names was omitted in the prototype.  In C this is not valid on a
-         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-      if (C_dialect != C_dialect_cplusplus) {
-        error(ec_all_proto_params_must_be_named);
-      }  /* if */
-    }  /* if */
-    param_id = func_info->param_id_list;
-#if CHECKING
-    if ((param_id == NULL) != (ptp == NULL)) {
-      internal_error("function_definition: param_id and ptp out of sync");
-    }  /* if */
-#endif /* CHECKING */
-    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-      /* Declare each parameter identifier to have the associated type
-         from the parameter type list. */
-      decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
-#if CHECKING
-      if ((param_id->next == NULL) != (ptp->next == NULL)) {
-        internal_error("function_definition: param_id and ptp out of sync");
-      }  /* if */
-#endif /* CHECKING */
-    }  /* while */
-  }  /* if */
-  /* Free the list of parameter ids, now that it is no longer needed. */
-  free_param_id_list(&(func_info->param_id_list));
-  /* Set the assoc_param_type field in each of the parameter variables. */
-  fixup_parameters(scope_ptr->variant.routine.parameters,
-                   extra_info->param_type_list);
-  /* Enter the constructor initializers.  If the current token is a ":",
-     explicit initialization for the constructor follows, but even without
-     an explicit initializer, any implicit initializers should be recorded. */
-  if (routine_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
-    scope_ptr->variant.routine.constructor_inits =
-                                      ctor_initializer(routine_ptr,
-                                                       /*user_defined=*/TRUE);
-  } else if (routine_ptr->special_kind ==
-                                   (a_special_function_kind)sfk_destructor) {
-    scope_ptr->variant.routine.constructor_inits =
-                                      dtor_initializer(routine_ptr);
-  }  /* if */
-  /* Scan the compound statement defining the function.  The closing "}"
-     is not swallowed by compound_statement, so that the pop_scope call
-     can be done to get any errors out right on the "}". */
-  scope_ptr->assoc_block = compound_statement(/*at_function_level=*/TRUE,
-                                              has_explicit_type_specifier);
-  /* Pop the function scope. */
-  pop_scope();
-  if (is_member_function_def) {
-    /* Pop the class symbol reactivation scope. */
-    pop_class_reactivation_scope();
-  }  /* if */  
+  scan_function_body(routine_ptr, func_info, flags);
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   /* Save the symbol associated with the most recent constructor or
      destructor for which a definition was supplied outside of the
@@ -7945,15 +8009,7 @@ explicitly specified (rather than defaulted to "int").
      the end of a function declaration. */
   lint_argsused_flag = FALSE;
   lint_varargs_count = NOT_LINT_VARARGS;
-  /* Check for the closing "}", not done in compound_statement.  Note that
-     required_token is not called; if compound_statement returned on
-     anything other than a right brace, it's because we should start parsing
-     on this token. */
-  if (curr_token != tok_rbrace) {
-    pos_error(ec_exp_rbrace, &pos_curr_token);
-  } else {
-    (void)get_token();
-  }  /* if */
+
   db_exit();
   return;
 }  /* function_definition */
@@ -7968,20 +8024,10 @@ processing of function definition.
 */
 {
   a_type_ptr          rout_type, return_type;
-  a_symbol_locator    locator;
-  a_symbol_ptr        symbol_ptr;
-  a_routine_type_supplement_ptr
-                      extra_info;
-  a_scope_ptr         scope;
   a_param_type_ptr    ptp;
-  a_param_id_ptr      param_id;
-  int                 saved_container_pos, saved_depth_stmt_stack;
-  a_reachability_summary
-                      saved_curr_reachability;
 
   db_enter(3, "inline_function_definition");
   rout_type = skip_typerefs(rout_ptr->type);
-  extra_info = rout_type->variant.routine.extra_info;
   /* Make sure the return type has been instantiated.  This must be done
      before calling set_routine_calling_method_flag. */
   return_type = rout_type->variant.routine.return_type;
@@ -7994,7 +8040,9 @@ processing of function definition.
   set_routine_calling_method_flag(rout_type);
   /* Similarly, check for value parameters that must be passed using a copy
      constructor. */
-  for (ptp = extra_info->param_type_list; ptp != NULL; ptp = ptp->next) {
+  for (ptp = rout_type->variant.routine.extra_info->param_type_list;
+       ptp != NULL;
+       ptp = ptp->next) {
     set_arg_transfer_method_flag(ptp);
   }  /* for */
   /* 3.7.1, constraints: The return type of a function shall be void
@@ -8010,112 +8058,10 @@ processing of function definition.
     /* Bad return type. */
     if (!is_error_type(return_type)) error(ec_bad_function_return_type);
   }  /* if */
-  symbol_ptr = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
-  make_locator_for_symbol(symbol_ptr, &locator);
-  /* Push the name scope for the routine body. */
-  scope = push_scope((a_scope_kind)sck_function, func_info->scope_number,
-                     (a_type_ptr)NULL, rout_ptr, (a_symbol_ptr)NULL,
-                     (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-  /* Associate the scope to the routine entry and the routine entry to its
-     type entry. */
-  rout_ptr->assoc_scope = curr_il_region_number;
-  extra_info->assoc_routine = rout_ptr;
-  rout_ptr->is_inline = TRUE;
-  /* Parameter symbols that were created in the prototype scope (and then
-     removed in pop_scope) have to be reentered in the function scope; they
-     will be transformed into variable symbols. */
-  if (func_info->prototype_scope_symbols != NULL) {
-    reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
-  }  /* if */
-  /* For a member function create the implicit "this" param variable and
-     set a pointer to it in the scope entry. */
-  if (extra_info->implicit_this_param_type != NULL) {
-    /* Routine is a nonstatic member function. */
-    scope->variant.routine.this_param_variable =
-                make_param_variable(extra_info->implicit_this_param_type,
-                                    (a_storage_class)sc_auto);
-  }  /* if */
-  /* If a lint-style "argsused" or "varargs" comment appeared, remember that in
-     the function type.  That will suppress any warnings about unused
-     parameters or variable arguments. */
-  extra_info->lint_argsused_flag = lint_argsused_flag;
-  extra_info->lint_varargs_count = lint_varargs_count;
-
-  param_id = func_info->param_id_list;
-  if (param_id != NULL) {
-    ptp = extra_info->param_type_list;
-#if CHECKING
-    if ((param_id == NULL) != (ptp == NULL)) {
-      internal_error(
-                   "inline_function_definition: param_id and ptp out of sync");
-    }  /* if */
-#endif /* CHECKING */
-    for (; param_id != NULL;
-           param_id = param_id->next, ptp = ptp->next) {
-      /* Declare each parameter identifier to have the associated type
-         from the parameter type list. */
-      decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
-#if CHECKING
-      if ((param_id->next == NULL) != (ptp->next == NULL)) {
-        internal_error(
-                   "inline_function_definition: param_id and ptp out of sync");
-      }  /* if */
-#endif /* CHECKING */
-    }  /* for */
-  }  /* if */
-  /* Free the list of parameter ids, now that it is no longer needed. */
-  free_param_id_list(&(func_info->param_id_list));
-  /* Set the assoc_param_type field in each of the parameter variables. */
-  fixup_parameters(scope->variant.routine.parameters,
-                   extra_info->param_type_list);
-  /* Special processing for constructors and destructors. */
-  switch (rout_ptr->special_kind) {
-    case sfk_constructor:
-      /* If the current token is a ":", explicit initialization for the
-         constructor follows, but even without an explicit initializer, any
-         implicit initializers should be recorded. */
-      scope->variant.routine.constructor_inits =
-                                      ctor_initializer(rout_ptr,
-                                                       /*user_defined=*/TRUE);
-      break;
-    case sfk_destructor:
-      /* Record the destructors that are to be called implicitly when this
-         destructor is executed. */
-      scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-      break;
-    default:;
-      /* No action. */
-  }  /* switch */
-  /* Save structured statement stack state before calling compound_statement
-     (so that it can be restored upon return) and create a new structured
-     statement stack.  This is required for function definitions in classes
-     defined within a function definition.  An indefinite nesting depth is
-     supported */
-  new_struct_stmt_stack(&saved_container_pos, &saved_depth_stmt_stack,
-                        &saved_curr_reachability);
-  /* Scan the compound statement defining the function.  The closing "}"
-     is not swallowed by compound_statement, so that the pop_scope call
-     can be done to get any errors out right on the "}". */
-  scope->assoc_block = compound_statement(/*at_function_level=*/TRUE,
-                                          /*explicit_return_type=*/TRUE);
-  /* Restore the original structured statement stack. */
-  restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
-                            &saved_curr_reachability);
-  /* Pop the function scope. */
-  pop_scope();
-  /* The lint "argsused" and "varargs" flags are only applicable until
-     the end of a function declaration. */
-  lint_argsused_flag = FALSE;
-  lint_varargs_count = NOT_LINT_VARARGS;
-  /* Check for the closing "}", not done in compound_statement.  Note that
-     required_token is not called; if compound_statement returned on
-     anything other than a right brace, it's because we should start parsing
-     on this token. */
-  if (curr_token != tok_rbrace) {
-    pos_error(ec_exp_rbrace, &pos_curr_token);
-  } else {
-    (void)get_token();
-  }  /* if */
+  /* Scan the function body. */
+  scan_function_body(rout_ptr, func_info,
+                     (SFB_NO_CLASS_REACTIVATION |
+                      SFB_NEW_STRUCT_STMT_STACK_REQUIRED));
   db_exit();
   return;
 }  /* inline_function_definition */

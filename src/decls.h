@@ -195,7 +195,7 @@ extern void decl_function_template(a_symbol_locator    *locator,
 extern an_asm_entry_ptr asm_declaration(a_boolean asm_decl_allowed);
 
 /* Bit vector used to pass flags into declarator and into and out of
-   decl_specifiers.  Each bit represents a flag. */
+   declaration routines.  Each bit represents a flag. */
 typedef int a_decl_flag_set;
 /* Constants defining bits in the input bit vector used in calls to
    declarator. */
@@ -374,6 +374,38 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
 				 a_storage_class      *storage_class,
 				 a_type_ptr           *type_ptr);
+
+/* Constants defining bits in the input bit vector used in calls to
+   scan_function_body. */
+#define SFB_NO_FLAGS 0x0
+#define SFB_IMPLICITLY_DECLARED_RETURN_TYPE 0x1
+			/* If this bit is set the return type was not
+			   explicitly declared (and is "int" by default). */
+#define SFB_NO_CLASS_REACTIVATION 0x2
+			/* If this bit is set the scope for the parent
+			   class of a member function has already been
+			   reactivated. */
+#define SFB_NEW_STRUCT_STMT_STACK_REQUIRED 0x4
+			/* If this bit is set the function definition may be
+			   within a statement context -- e.g., an inline
+			   member function of a local class or an inline
+			   template function being instantiated "on demand".
+			   In such cases the structured statement stack should
+			   be reinitialized, and then restored once the
+			   function definition is complete. */
+#define SFB_OLD_STYLE_PARAM_DECL 0x8
+			/* If this bit is set the declaration defining the
+			   function contains old-style parameter declarations.
+			   This may be true even in a case like this:
+			     void f(int,int);
+			     void f(i,j) int i; int j { ... }
+			   where the type associated with the routine entry is
+			   marked as prototyped but the defining declaration
+			   is old-style. */
+
+extern void scan_function_body(a_routine_ptr      rout_ptr,
+                               a_func_info_block  *func_info,
+                               a_decl_flag_set    flags);
 
 #endif /* DECLS_H */
 

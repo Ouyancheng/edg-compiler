@@ -350,15 +350,8 @@ Instantiate the body of the template function associated with tip.
 {
   a_symbol_ptr                      rout_sym;
   a_routine_ptr                     rout_ptr;
-  a_scope_ptr                       scope;
   a_type_ptr                        rout_type;
-  a_routine_type_supplement_ptr     rtsp;
   a_template_symbol_supplement_ptr  tssp;
-  a_param_id_ptr                    pip;
-  a_param_type_ptr                  ptp;
-  int                               saved_container_pos;
-  int                               saved_depth_stmt_stack;
-  a_reachability_summary            saved_curr_reachability;
 
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
@@ -373,7 +366,6 @@ Instantiate the body of the template function associated with tip.
     tssp = tip->template_sym->variant.template_info;
   }  /* if */
   rout_type = rout_ptr->type;
-  rtsp = rout_type->variant.routine.extra_info;
   if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
     /* This function instantiation occurs within the context of other
        instantiations of the same function template.  When the number of
@@ -435,106 +427,10 @@ Instantiate the body of the template function associated with tip.
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
                    rout_sym, tip->template_sym, tip->arg_list);
+  /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tssp->token_cache);
-  if (rout_sym->class_of_which_a_member != NULL) {
-    push_class_reactivation_scope(rout_sym->class_of_which_a_member);
-  }  /* if */
-  /* Push the name scope for the routine body. */
-  scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, rout_ptr, (a_symbol_ptr)NULL,
-                     (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-  /* Associate the scope to the routine entry and the routine entry to its
-     type entry. */
-  rout_ptr->assoc_scope = curr_il_region_number;
-  rtsp->assoc_routine = rout_ptr;
-  /* For a member function create the implicit "this" param variable and
-     set a pointer to it in the scope entry. */
-  if (rtsp->implicit_this_param_type != NULL) {
-    /* Routine is a nonstatic member function. */
-    scope->variant.routine.this_param_variable =
-                make_param_variable(rtsp->implicit_this_param_type,
-                                    (a_storage_class)sc_auto);
-  }  /* if */
-  pip = tssp->variant.function.func_info.param_id_list;
-  ptp = rtsp->param_type_list;
-#if CHECKING
-  if ((pip == NULL) != (ptp == NULL)) {
-    internal_error("instantiate_template_function: pip and ptp out of sync");
-  }  /* if */
-#endif /* CHECKING */
-  for (; pip != NULL; pip = pip->next, ptp = ptp->next) {
-    /* Declare each parameter identifier to have the associated type
-       from the parameter type list. */
-    decl_parameter(pip, ptp, /*template_instantiation=*/TRUE);
-    /* Check for value parameters that must be passed using a copy constructor.
-       As with the routine calling method flag, this flag may have been
-       set earlier but the information may not have been complete.  The
-       information must be complete at the time the function is defined
-       (i.e., it must be complete now). */
-    set_arg_transfer_method_flag(ptp);
-#if CHECKING
-    if ((pip->next == NULL) != (ptp->next == NULL)) {
-      internal_error(
-                 "instantiate_template_function: pip and ptp out of sync (2)");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* for */
-
-  /* Set the assoc_param_type field in each of the parameter variables. */
-  fixup_parameters(scope->variant.routine.parameters, rtsp->param_type_list);
-
-  /* Special processing for constructors and destructors. */
-  switch (rout_ptr->special_kind) {
-    case sfk_constructor:
-      /* If the current token is a ":", explicit initialization for the
-         constructor follows, but even without an explicit initializer, any
-         implicit initializers should be recorded. */
-      scope->variant.routine.constructor_inits =
-                                      ctor_initializer(rout_ptr,
-                                                       /*user_defined=*/TRUE);
-      break;
-    case sfk_destructor:
-      /* Record the destructors that are to be called implicitly when this
-         destructor is executed. */
-      scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-      break;
-    default:;
-      /* No action. */
-  }  /* switch */
-  /* Save structured statement stack state before calling compound_statement
-     (so that it can be restored upon return) and create a new structured
-     statement stack.  This is required for function definitions in classes
-     defined within a function definition.  An indefinite nesting depth is
-     supported */
-  new_struct_stmt_stack(&saved_container_pos, &saved_depth_stmt_stack,
-                        &saved_curr_reachability);
-  scope->assoc_block = compound_statement(/*at_function_level=*/TRUE,
-                                          /*explicit_return_type=*/TRUE);
-  /* Restore the original structured statement stack. */
-  restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
-                            &saved_curr_reachability);
-  /* Usually template functions are instantiated "on demand" and the
-     referenced flag will already have been set.  But if the
-     instantiation mode says to instantiate whether or not there is
-     a reference, we should set the referenced flag anyway, so that
-     the back-end will be sure to generate the function. */ 
-  tip->instance_sym->variant.routine.ptr->source_corresp.referenced = TRUE;
-  tip->already_instantiated = TRUE;
-  /* Pop the function scope. */
-  pop_scope();
-  if (rout_sym->class_of_which_a_member != NULL) {
-    pop_class_reactivation_scope();
-  }  /* if */
-  /* Check for the closing "}", not done in compound_statement.  Note that
-     required_token is not called; if compound_statement returned on
-     anything other than a right brace, it's because we should start parsing
-     on this token. */
-  if (curr_token != tok_rbrace) {
-    pos_error(ec_exp_rbrace, &pos_curr_token);
-  } else {
-    (void)get_token();
-  }  /* if */
-
+  scan_function_body(rout_ptr, &tssp->variant.function.func_info,
+                     SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
   /* Pop the template instantiation scope. */
   pop_scope();
   --(tssp->pending_instantiations);
@@ -544,6 +440,13 @@ Instantiate the body of the template function associated with tip.
   while (curr_token != tok_end_of_source) (void)get_token();
   /* Advance past the end-of-source token. */
   (void)get_token();
+  /* Usually template functions are instantiated "on demand" and the
+     referenced flag will already have been set.  But if the
+     instantiation mode says to instantiate whether or not there is
+     a reference, we should set the referenced flag anyway, so that
+     the back-end will be sure to generate the function. */ 
+  tip->instance_sym->variant.routine.ptr->source_corresp.referenced = TRUE;
+  tip->already_instantiated = TRUE;
 
   done:;
   db_exit();
