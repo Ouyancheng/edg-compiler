@@ -1794,6 +1794,26 @@ nothing.
 }  /* free_macro_arg_entries */
 
 
+static a_boolean text_contains_end_of_token_escape(char     *text_loc,
+                                                   sizeof_t text_len)
+/*
+Return TRUE if the text sequence at text_loc, of length text_len,
+contains an end-of-token escape sequence.
+*/
+{
+  a_boolean contains_end_token = FALSE;
+  sizeof_t  pos;
+
+  for (pos = 0; pos+1 < text_len; pos++) {
+    if (text_loc[pos] == LE_ESCAPE && text_loc[pos+1] == LE_END_OF_TOKEN) {
+      contains_end_token = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return contains_end_token;
+}  /* text_contains_end_of_token_escape */
+
+
 static char *find_final_inert_escape(char     *text_loc,
                                      sizeof_t sect_len)
 /*
@@ -1901,10 +1921,6 @@ hence its name should not be changed.
       switch (rts_kind) {
         case rt_raw_argument:
           sect_len = map->raw_len;
-          /* Don't count an LE_INERT_MACRO escape at the beginning if present,
-             since it will be removed. */
-          if (map->raw_text[0] == LE_ESCAPE &&
-              map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
           break;
         case rt_stringized_raw_argument:
         case rt_charized_raw_argument:
@@ -2761,16 +2777,26 @@ end_arg_expansion:;
             /* Remove an LE_INERT_MACRO escape at the beginning if present,
                since the token is being pasted to another one. */
             if (map->raw_text[0] == LE_ESCAPE &&
-                map->raw_text[1] == LE_INERT_MACRO) {
+                map->raw_text[1] == LE_INERT_MACRO &&
+                /* ... but only if the argument is a single token. */
+                !text_contains_end_of_token_escape(text_loc, sect_len)) {
               sect_len -= LE_ESCAPE_LEN;
               text_loc += LE_ESCAPE_LEN;
+              /* Replace the inert-macro escape by an end-of-token escape to
+                 keep the overall length the same (repl_text_len has already
+                 been determined). */
+              *src_loc++ = LE_ESCAPE;
+              *src_loc++ = LE_END_OF_TOKEN;
             }  /* if */
             { char *final_inert_escape =
                                    find_final_inert_escape(text_loc, sect_len);
               if (final_inert_escape != NULL) {
                 /* Remove an LE_INERT_MACRO escape preceding an identifier
                    at the end if present, since the token is being pasted
-                   to another one.  Replace it with an end-of-token escape. */
+                   to another one. */
+                /* Replace the inert-macro escape by an end-of-token escape to
+                   keep the overall length the same (repl_text_len has already
+                   been determined). */
                 /* Copy the part before the escape here, and copy the part
                    after the escape (the identifier name) in the normal
                    code below. */
