@@ -1,5 +1,16 @@
 Version 2.31
 
+12/19/95  C++-generating back end: Address of member of anonymous union
+
+The C++-generating back end now correctly puts out a constant that is the
+address of a member of an anonymous union.
+
+  static union {
+    float j;
+    int i;
+  };
+  int* p = &i;
+
 12/19/95  C++-generating back end: Leading "::" on friend function declaration
 
 In version 2.30 the C++-generating back end was changed to allow a leading
