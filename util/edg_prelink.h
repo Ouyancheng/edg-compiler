@@ -42,10 +42,6 @@ Declarations for EDG template prelink utility.
    .ii file and .o file from getting out of sync. */
 #define PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION TRUE
 
-/* Function that executes "command" and directs its output to the
-   returned file pointer. */
-extern FILE* popen(char *command, char *mode);
-
 /* Command to be used to produce a namelist of an object file. */
 static char		default_nm_command[] = "/bin/nm -og";
 static char		solaris_nm_command[] = "/bin/nm -pxR";

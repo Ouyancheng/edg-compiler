@@ -13,6 +13,7 @@ Prelink utility for template instantiation.
 
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <malloc.h>
@@ -1990,7 +1991,7 @@ int main(int argc, char *argv[])
       pl_input_files = NULL;
       pl_input_file_tail = NULL;
       pl_symbol_table_head = NULL;
-      memzero(pl_symbol_table, sizeof(pl_symbol_table));
+      memzero((char *)pl_symbol_table, sizeof(pl_symbol_table));
 
       pl_command_output = popen(command, "r");
 

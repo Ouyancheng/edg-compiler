@@ -6,6 +6,12 @@ edg_munch incorrectly used a char as the return value of getc.  edg_munch
 and edg_prelink failed to cast the argument of isalpha to unsigned char.
 These have been fixed.
 
+edg_prelink.h no longer explicitly declares popen().  The declaration
+from stdio.h is now used.
+
+fclose was being called to close a file even when the open failed.  This
+has been corrected.
+
 1/5/94   Version of getopt routine now provided
 
 The utility programs now provide their own version of the getopt
