@@ -2778,6 +2778,7 @@ Generate an expression operation.
   char                           *opstr;
   an_expr_node_ptr               operand_1, operand_2;
   a_type_ptr                     expr_type;
+  a_boolean                      pointer_comparison = FALSE;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
   a_boolean                      is_signed, void_operand;
@@ -2915,34 +2916,46 @@ Generate an expression operation.
     case eok_fdivide:
       opstr = "/";
       break;
+    case eok_peq:
+      pointer_comparison = TRUE;
+      /* Fall-through into following code. */
     case eok_ieq:
     case eok_feq:
-    case eok_peq:
       opstr = "==";
       break;
+    case eok_pne:
+      pointer_comparison = TRUE;
+      /* Fall-through into following code. */
     case eok_ine:
     case eok_fne:
-    case eok_pne:
       opstr = "!=";
       break;
+    case eok_pgt:
+      pointer_comparison = TRUE;
+      /* Fall-through into following code. */
     case eok_igt:
     case eok_fgt:
-    case eok_pgt:
       opstr = ">";
       break;
+    case eok_plt:
+      pointer_comparison = TRUE;
+      /* Fall-through into following code. */
     case eok_ilt:
     case eok_flt:
-    case eok_plt:
       opstr = "<";
       break;
+    case eok_pge:
+      pointer_comparison = TRUE;
+      /* Fall-through into following code. */
     case eok_ige:
     case eok_fge:
-    case eok_pge:
       opstr = ">=";
       break;
+    case eok_ple:
+      pointer_comparison = TRUE;
+      /* Fall-through into following code. */
     case eok_ile:
     case eok_fle:
-    case eok_ple:
       opstr = "<=";
       break;
     case eok_remainder:
@@ -3159,18 +3172,27 @@ Generate an expression operation.
     default:
       unexpected_condition_str("dump_operation: bad expression operator");
   }  /* switch */
+  if (pointer_comparison) {
+    /* Comparisons of function pointers are not standard C, so put in casts
+       to void *. */
+    if (!is_function_type(type_pointed_to(operand_1->type))) {
+      pointer_comparison = FALSE;
+    }  /* if */
+  }  /* if */
   /* General-case processing: */
   if (operand_2 == NULL) {
     /* Unary operator; operator goes first. */
     write_tok_str(opstr);
   }  /* if */
   /* Generate the first operand. */
+  if (pointer_comparison) write_tok_str("(void *)");
   dump_expr_with_parens(operand_1);
   if (operand_2 != NULL) {
     /* Two-operand operator. */
     write_space();
     write_tok_str(opstr);
     write_space();
+    if (pointer_comparison) write_tok_str("(void *)");
     dump_expr_with_parens(operand_2);
   }  /* if */
 done:;
