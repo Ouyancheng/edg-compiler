@@ -5485,6 +5485,7 @@ member declaration, respectively.
     /* Unions are not allowed to have static data members. */
     pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
   }  /* if */
+  if (decl_info->is_member_template) set_to_named_error_locator(*locator);
   /* Create the variable entry for the static data member. */
   /* The storage class of static data members is sc_static until they are
      promoted to external linkage, at which time the storage class will
@@ -5492,8 +5493,13 @@ member declaration, respectively.
      definition is provided).  All static data member variables are allocated
      in the file scope memory region and put on the variables list for the
      current class. */
-  var = make_variable(member_type, (a_storage_class)sc_static,
-                      /*at_file_or_namespace_scope=*/FALSE);
+  var = alloc_variable((a_storage_class)sc_static);
+  var->type = member_type;
+  /* If this is a member template declaration, don't add it to the variables
+     list (in part to avoid problems caused by an invalid scope). */
+  if (!decl_info->is_member_template) {
+    add_to_variables_list(var, decl_scope_level);
+  }  /* if */
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* Set the source correspondence fields of the variable. */
@@ -5501,6 +5507,9 @@ member declaration, respectively.
   sym->variant.static_data_member.variable = var;
   set_class_membership(sym, &var->source_corresp, class_type);
   decl_info->member_sym = sym;
+  if (decl_info->is_member_template) {
+    pos_sy_error(ec_bad_member_template_sym, &locator->source_position, sym);
+  }  /* if */
   /* Static data members will have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal linkage
      -- if and when its linkage is promoted to C++, the linkage of the static
@@ -6670,6 +6679,7 @@ specific information about the member declaration, respectively.
   if (decl_info->is_member_template) {
     /* Error -- suppress incomplete-type errors, etc.. */
     member_type = error_type();
+    set_to_named_error_locator(*locator);
   } else {
     /* Do error checking on the type. */
     check_field_type(locator, &member_type, class_state, decl_info);
@@ -6734,6 +6744,10 @@ specific information about the member declaration, respectively.
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
   set_class_membership(member_sym, &field->source_corresp, class_type);
+  if (decl_info->is_member_template) {
+    pos_sy_error(ec_bad_member_template_sym, &locator->source_position,
+                 member_sym);
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = class_state->access;
     field->is_mutable = ((decl_info->dso_flags & DSO_MUTABLE) != 0);
