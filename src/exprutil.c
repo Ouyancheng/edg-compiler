@@ -2388,9 +2388,11 @@ Do default argument promotions on an argument operand.
        and pass the address of the temporary into which the copy was placed.
        This falls under undefined behavior.  The Sun CC compiler uses the
        copy constructor in this case. */
-    prep_arg_passed_via_copy_constructor(argument_operand, arg_type,
-                                         (a_conv_descr *)NULL,
-                                         ec_no_suitable_copy_constructor);
+    if (!C_mode()) {
+      prep_arg_passed_via_copy_constructor(argument_operand, arg_type,
+                                           (a_conv_descr *)NULL,
+                                           ec_no_suitable_copy_constructor);
+    }  /* if */
 #endif /* USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS */
   } else {
     cast_operand(default_argument_promotion(arg_type),
