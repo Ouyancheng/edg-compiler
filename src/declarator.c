@@ -2270,15 +2270,26 @@ to FALSE if the entity being declared is not initializable.
            by the caller. */
       }  /* if */
     }  /* if */
-    if (C_dialect == C_dialect_cplusplus &&
-        !(input_flags & DI_IS_FRIEND_DECL)) {
-      /* If this declaration appears in the immediate context of a class
-         definition and the current token is an identifier representing the
-         name of the current class, see if this is a qualified name and if so
-         change it into a simple name (e.g., A::x becomes x, its equivalent
-         in A's scope). This needs to be done after the check for the cfront
-         member typedef processing that is done above. */
-      (void)simplify_curr_class_qualified_name();
+    if (locator_for_curr_id.is_qualified_name) {
+      if (locator_for_curr_id.is_class_member &&
+          !(input_flags & DI_IS_FRIEND_DECL)) {
+        /* If this declaration appears in the immediate context of a class
+           definition and the current token is an identifier representing the
+           name of the current class, see if this is a qualified name and if so
+           change it into a simple name (e.g., A::x becomes x, its equivalent
+           in A's scope). This needs to be done after the check for the cfront
+           member typedef processing that is done above. */
+        (void)simplify_curr_class_qualified_name();
+      } else if ((scope_stack[depth_scope_stack].kind ==
+                                    (a_scope_kind)sck_namespace) &&
+                 (qualifier_namespace_ptr(locator_for_curr_id) ==
+                               scope_stack[decl_scope_level].il_scope->
+                                                   variant.assoc_namespace)) {
+        /* The declarator name is qualified by the current namespace. */
+        pos_diagnostic(strict_ansi_mode ?
+                         strict_ansi_error_severity : es_warning,
+                       ec_qualified_name_not_allowed, &pos_curr_token);
+      }  /* if */
     }  /* if */
     /* The declarator may be a qualified name or a normal name. */
     if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
