@@ -4118,6 +4118,7 @@ values.
   amsp->downward_cast_derivation = NULL;
   amsp->reversed_derivation      = FALSE;
   amsp->const_anachronism        = FALSE;
+  amsp->base_param_type          = NULL;
   amsp->conversion_routine       = NULL;
   amsp->std_conversion_after_user_conversion
                                  = FALSE;
@@ -4598,6 +4599,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   /* We've now done transformations for all the trivial conversions except
      those that involve adding type qualifiers.  We therefore now have
      the essential underlying types for the rest of the checking. */
+  arg_summary->base_param_type = param_type;
   if (is_error_type(arg_type) || is_error_type(param_type)) {
     /* An error type matches anything, but not very well. */
     arg_summary->match_level = aml_error;
@@ -4697,6 +4699,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   }  /* if */
   if (is_class_struct_union_type(param_type) &&
       is_class_struct_union_type(arg_type) &&
+      !ref_type_qualifiers_dropped &&
       (bcp = find_base_class_of(arg_type, param_type)) != NULL) {
     /* The argument is a derived class and the parameter is a base class,
        so the conversion can be done. */
@@ -4787,6 +4790,14 @@ class or a derived class thereof (except for error cases).
   a_type_ptr ptr_selector_type, const_this_param_type;
 
   db_enter(4, "selector_match_with_this_param");
+  /* Get the "this" parameter type. */
+  this_param_type =
+            routine_type->variant.routine.extra_info->implicit_this_param_type;
+#if CHECKING
+  if (this_param_type == NULL) {
+    internal_error("selector_match_with_this_param: this_param_type NULL");
+  }  /* if */
+#endif /* CHECKING */
   if (rout != NULL &&
       (rout->special_kind == (a_special_function_kind)sfk_constructor ||
        rout->special_kind == (a_special_function_kind)sfk_destructor)) {
@@ -4794,15 +4805,8 @@ class or a derived class thereof (except for error cases).
        suppressed. */
     clear_arg_match_summary(this_match_summary);
     this_match_summary->match_level = aml_exact;
+    this_match_summary->base_param_type = this_param_type;
   } else {
-    /* Get the "this" parameter type. */
-    this_param_type =
-            routine_type->variant.routine.extra_info->implicit_this_param_type;
-#if CHECKING
-    if (this_param_type == NULL) {
-      internal_error("selector_match_with_this_param: this_param_type NULL");
-    }  /* if */
-#endif /* CHECKING */
     this_param_base_type = type_pointed_to(this_param_type);
     this_param_class_type = skip_typerefs(this_param_base_type);
     /* Determine the effective selector type. */
@@ -5162,6 +5166,15 @@ Compare two argument match summary entries and return
       cmp = -1;
     } else {
       /* derivation_1 == NULL, derivation_2 == NULL. */
+      /* The matches are equal. */
+      cmp = 0;
+    }  /* if */
+have_cmp:
+    /* If the sequence of conversions in one case is a subsequence of the
+       sequence in the other case, the shorter sequence is the better match.
+       Check first for cases involving user-defined conversions, like
+       A->int versus A->int->float. */
+    if (cmp == 0) {       
       if (arg_match1->conversion_routine != NULL &&
           arg_match1->conversion_routine == arg_match2->conversion_routine &&
           arg_match1->std_conversion_after_user_conversion !=
@@ -5179,12 +5192,63 @@ Compare two argument match summary entries and return
              so arg_match1 is better. */
           cmp = 1;
         }  /* if */
-      } else {
-        /* The matches are equal. */
-        cmp = 0;
       }  /* if */
     }  /* if */
-have_cmp:
+    /* More subsequence checking: check for differences of type qualifiers
+       at the end of conversions, like float->int versus
+       float->int->const int. */
+    if (cmp == 0) {
+      a_type_ptr param_type1 = arg_match1->base_param_type;
+      a_type_ptr param_type2 = arg_match2->base_param_type;
+      if (type_qualifiers_match(param_type1, param_type2)) {
+        /* The two types have the same qualifiers, so one cannot be different
+           than the other on the basis of qualifiers. */
+      } else {
+        /* The qualifiers are different, so it's worth checking further. */
+        if (types_are_compatible(skip_typerefs(param_type1),
+                                 skip_typerefs(param_type2))) {
+          /* The underlying types are the same, so it's possible than
+             one has a subset of the other's qualifiers. */
+          if (!any_qualifier_missing(param_type1, param_type2)) {
+            /* param_type2 has a proper subset of the qualifiers in
+               param_type1, so arg_match2 is the better match. */
+            cmp = -1;
+          } else if (!any_qualifier_missing(param_type2, param_type1)) {
+            /* param_type1 has a proper subset of the qualifiers in
+               param_type2, so arg_match1 is the better match. */
+            cmp = 1;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* More subsequence checking: check for differences of type qualifiers
+         at the end of conversions to pointer types, like char*->void*
+         versus char*->void*->const void*. */
+      if (cmp == 0 &&
+          is_pointer_type(param_type1) && is_pointer_type(param_type2)) {
+        a_type_ptr under_type1 = type_pointed_to(param_type1);
+        a_type_ptr under_type2 = type_pointed_to(param_type2);
+        if (type_qualifiers_match(under_type1, under_type2)) {
+          /* The two types have the same qualifiers, so one cannot be different
+             than the other on the basis of qualifiers. */
+        } else {
+          /* The qualifiers are different, so it's worth checking further. */
+          if (types_are_compatible(skip_typerefs(under_type1),
+                                   skip_typerefs(under_type2))) {
+            /* The underlying types are the same, so it's possible than
+               one has a subset of the other's qualifiers. */
+            if (!any_qualifier_missing(under_type1, under_type2)) {
+              /* under_type2 has a proper subset of the qualifiers in
+                 under_type1, so arg_match2 is the better match. */
+              cmp = -1;
+            } else if (!any_qualifier_missing(under_type2, under_type1)) {
+              /* under_type1 has a proper subset of the qualifiers in
+                 under_type2, so arg_match1 is the better match. */
+              cmp = 1;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (cmp == 0 && cfront_compatibility_mode) {
       /* In cfront compatibility mode, the anachronism that allows a
 	 non-const function to be called for a const object causes matches
