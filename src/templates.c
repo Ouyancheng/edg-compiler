@@ -1944,13 +1944,14 @@ of a function template.
                                      (a_scope_kind)sck_class_struct_union) {
         dsi_flags |= DSI_IS_MEMBER_DECLARATION;
       }  /* if */
+    } else {
+      begin_deferral_of_access_checks();
     }  /* if */
     /* An end-of-source marker is not present when the initial declaration
        is scanned. */
     add_stop_token(tok_lbrace);
     add_stop_token(tok_colon);
     add_stop_token(tok_semicolon);
-    begin_deferral_of_access_checks();
   } else {
     add_stop_token(tok_end_of_source);
   }  /* if */
@@ -1983,10 +1984,12 @@ of a function template.
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_colon);
     remove_stop_token(tok_semicolon);
-    /* We can't reliably check accesses in template declarations.  We need to
-       wait until we have an instance. */
-    discard_deferred_access_checks();
-    end_deferral_of_access_checks();
+    if (!nonglobal_decl_err) {
+      /* We can't reliably check accesses in template declarations.  We need to
+         wait until we have an instance. */
+      discard_deferred_access_checks();
+      end_deferral_of_access_checks();
+    }  /* if */
   } else {
     remove_stop_token(tok_end_of_source);
     /* In the normal case the current token should be end_of_source,
