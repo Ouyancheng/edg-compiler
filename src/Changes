@@ -216,7 +216,7 @@ This is now fixed.  In a related change [8/30/04], when an overloaded
 operator is invoked in the source using operator syntax (e.g., "a+b" as
 opposed to "operator+(a,b)"), the C++-generating back end will now also use
 operator syntax in the generated code.  This change avoids generating
-incorrect code like the following example:
+incorrect code for examples like the following:
 
   namespace N {
     struct S { };
@@ -227,7 +227,8 @@ incorrect code like the following example:
     int operator+(int);
     void f() {
       N::S s1, s2;
-      operator+(s1, s2);  // T::operator+ prevents ADL, should be "s1 + s2"
+      s1+s2;  // Generating "operator+(s1,s2)" would prevent ADL because
+              // normal lookup would find T::operator+.
     }
   };
 
