@@ -9094,6 +9094,20 @@ the dynamic init entry to the object lifetime.
     if (olp->destructions == dip) {
       /* dip is the head of the destructions list. */
       olp->destructions = dip->next_in_destruction_list;
+      if (olp->destructions == NULL) {
+        /* The destructions list is now empty.  If there is an initialization
+           in an enclosing lifetime whose initialization overlapped the
+           lifetime of the inner lifetime temporaries, it no longer does.
+           Clear the flag that indicates that. */
+        a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
+        if (outer_dip != NULL) {
+          if (outer_dip->overlaps_temps_in_inner_lifetime) {
+            outer_dip->overlaps_temps_in_inner_lifetime = FALSE;
+            olp->parent_destruction_sublist =
+                                           outer_dip->next_in_destruction_list;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else {
       /* It's not the head; link around it once the previous entry in the
          list has been located. */

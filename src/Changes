@@ -1,5 +1,30 @@
 Version 2.39
 
+5/31/98   IL lowering of non-placement new that uses operator new with
+          default argument
+
+IL lowering for a non-placement "new" that uses an operator new with
+default arguments did not handle the corresponding placement delete
+correctly when exceptions are enabled, which resulted in an internal
+error.  Now fixed.
+
+  struct A {
+    A(void*);
+    ~A ();
+  };
+  struct B {
+    B();
+    void* operator new (size_t size, int type = 0);
+    void operator delete (void* p, int type);
+  };
+  void f() {
+    A r2 = new B();
+  }
+
+Also, the lowering for any non-placement "new" that makes use of
+default arguments on the operator new is now done as if the operation
+were a placement new.
+
 5/29/98   Left operand of p->x evaluated even if x is a static member
 
 The left operand of a member selection "->" or "." is now evaluated

@@ -4820,7 +4820,16 @@ The subtree of the node has not yet been lowered.
   a_constant                  null_constant;
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
-  
+
+  if (!ndsp->placement_new && ndsp->routine != NULL) {
+    a_param_type_ptr params = unlowered_param_type_list(ndsp->routine->type);
+    if (params != NULL && params->next != NULL) {
+      /* Treat an operator new with default arguments as a placement new. */
+      check_assertion_str(params->next->has_default_arg,
+                     "lower_new: placement_new not set but more than one arg");
+      ndsp->placement_new = TRUE;
+    }  /* if */
+  }  /* if */
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
       new_or_delete_type_requires_array_handling(base_type)) {
