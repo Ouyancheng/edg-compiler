@@ -5415,7 +5415,7 @@ declaration or definition.
 */
 {
   a_routine_ptr                 rout;
-  a_type_ptr                    rout_type, unqual_rout_type;
+  a_type_ptr                    rout_type, unqual_rout_type, qual_rout_type;
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean                     is_definition = FALSE, friend_decl;
   a_boolean                     decl_within_class = FALSE;
@@ -5451,6 +5451,7 @@ declaration or definition.
   }  /* if */
   check_assertion_str(rout_type != NULL,
                       "gen_routine_decl: declared_type is NULL");
+  qual_rout_type = rout_type;
   unqual_rout_type = skip_typerefs(rout_type);
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
@@ -5574,11 +5575,21 @@ declaration or definition.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
-  if (rout_type->kind == (a_type_kind)tk_typeref) {
+  /* Determine the effective routine type by starting from the routine
+     type and removing type qualifiers but not typedefs.  Type qualifiers
+     can appear above the function type even in a function definition
+     in the presence of Microsoft qualifiers like near/far. */
+  while (rout_type->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_typedef(rout_type)) {
+    rout_type = rout_type->variant.typeref.type;
+  }  /* while */
+  if (rout_type->kind != (a_type_kind)tk_routine) {
     /* If the function type comes from a typedef, handle the declaration
        in the conventional way.  This can occur only for declarations. */
-    gen_declaration_using_type(rout_type, &rout->source_corresp, iek_routine,
-                               sec_decl, /*suppress_specifiers=*/FALSE);
+    check_assertion(!is_definition);
+    gen_declaration_using_type(qual_rout_type, &rout->source_corresp,
+                               iek_routine, sec_decl,
+                               /*suppress_specifiers=*/FALSE);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -5594,7 +5605,7 @@ declaration or definition.
     }  /* if */
     if (return_type_needed) {
       /* Write the type specifiers and the first part of the declarator. */
-      form_type_first_part_simple(rout_type,
+      form_type_first_part_simple(qual_rout_type,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/TRUE,
                                   &octl);
