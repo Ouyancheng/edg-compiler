@@ -426,6 +426,20 @@ extern void debug_exit(void);
 #endif /* ifndef CHECKING */
 
 /*
+Macro used to add a 2-bit bit field after any sequence of bit fields.
+By clearing this bit field to zero we can avoid warnings about
+uninitialized values from CodeCenter on those bit fields (because the
+value used for "uninitialized" has no two adjacent zero bits).
+This expands to an empty string when checking code is not being used.
+*/
+#if CHECKING
+#define bitfield_to_avoid_codecenter_warnings() \
+  unsigned int	avoid_codecenter_warnings:2
+#else /* !CHECKING */
+#define bitfield_to_avoid_codecenter_warnings()  /* nothing */
+#endif /* CHECKING */
+
+/*
 Indication that a function does not return.  gcc recognizes a return
 type of "volatile void" as meaning that a function does not return.
 */
