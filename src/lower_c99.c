@@ -347,6 +347,7 @@ Transform the given complex expression ("z1!=z2") into a function call
   char              *rout_name;
   an_expr_node_ptr  xne_call;
 
+  op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   switch (op_type->variant.float_kind) {
     case fk_float:
@@ -764,7 +765,7 @@ allocated in file scope, the lowered structure must also be placed there.)
 */
 {
   a_constant_ptr  real_part, imag_part, pair;
-  a_float_kind    fkind = constant->type->variant.float_kind;
+  a_float_kind    fkind = skip_typerefs(constant->type)->variant.float_kind;
   a_type_ptr      lowered_type = lowered_complex_type(fkind);
 
   real_part = fs_constant((a_constant_repr_kind)ck_float);
