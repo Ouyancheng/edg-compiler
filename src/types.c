@@ -3333,12 +3333,6 @@ is allocated, it is allocated in the file scope.
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
   db_enter(5, "composite_type");
-
-#if CHECKING
-  if (!types_are_compatible(type_1, type_2)) {
-    internal_error("composite_type: types are not compatible");
-  }  /* if */
-#endif /* CHECKING */
   if (type_1 == type_2) {
     /* If the types are identical (the most common case), the composite type
        is the same thing. */
