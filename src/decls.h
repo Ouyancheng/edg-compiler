@@ -60,12 +60,6 @@ typedef struct a_param_id {
 			/* Locator that gives information on entering this
 			   symbol into the symbol table, including (indirectly)
 			   the identifier's name. */
-  a_byte_boolean
-		declaration_processed;
-			/* Set to TRUE when the declaration for an old-style
-			   identifier is processed.  Used to check for
-			   undeclared parameters that get "int" type by
-			   default.  Not used for prototyped parameters. */
   a_symbol_ptr	symbol;
 			/* When declaration_processed is TRUE, this points
 			   to the symbol for an old-style parameter.  The
