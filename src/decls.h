@@ -158,11 +158,6 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_boolean        at_file_scope,
                                        a_boolean        suppress_redecl_error);
 
-extern a_boolean declaration_specifiers(a_decl_flag_set	input_flags,
-					a_decl_flag_set	*output_flags,
-					a_storage_class *storage_class,
-					a_type_ptr      *type_ptr);
-
 extern void declarator(a_boolean         real_declarator_allowed,
                        a_boolean         abstract_declarator_allowed,
 		       a_type_ptr        specifiers_type,
@@ -230,6 +225,11 @@ typedef int a_decl_flag_set;
 #define DSO_JUST_VOID 0x80
 			/* If this bit is set the keyword "void" was found,
 			   and nothing else. */
+
+extern a_boolean declaration_specifiers(a_decl_flag_set	input_flags,
+					a_decl_flag_set	*output_flags,
+					a_storage_class *storage_class,
+					a_type_ptr      *type_ptr);
 
 #endif /* DECLS_H */
 
