@@ -989,7 +989,7 @@ already exists.
       delete_file(template_info_file_name);
 #if DEBUG
       if (db_flag_is_set("ti_file")) {
-       fprintf(f_debug, "Deleting temlate info file %s\n",
+       fprintf(f_debug, "Deleting template info file %s\n",
                template_info_file_name);
       }  /* if */
 #endif /* DEBUG */
@@ -15640,7 +15640,7 @@ data member specified by tip.
            specialized in the translation unit containing the exported
            definition, issue an error. */
         check_if_already_specialized(tip);
-        /* The corresponding temlate cannot be instantiated.  Clear the
+        /* The corresponding template cannot be instantiated.  Clear the
            new template instance pointer to suppress an attempt.  This can
            happen if the entity is specialized in the other translation
            unit. */
@@ -15651,6 +15651,7 @@ data member specified by tip.
     if (tip != NULL && output_debug_info) {
       fprintf(f_debug, "Corresponding instance is: ");
       db_symbol_name_trans_unit(tip->instance_sym);
+      fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
