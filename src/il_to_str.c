@@ -1664,7 +1664,6 @@ and return a pointer to it.  But try to pick a field that does not have
 a class type, because putting a "&" in front of a class can run into
 problems if the class overloads operator&.  Generates an internal error
 if given an empty union.
-/*
 */
 {
   a_field_ptr field;
