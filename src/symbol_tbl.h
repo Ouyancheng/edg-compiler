@@ -1834,7 +1834,12 @@ typedef int a_symbol_reference_kind;
 			   modification, in order to suppress use/def
 			   diagnostics. */
 #define SRK_IMPLICIT 0x80
-			/* A reference is implicit. */
+			/* A reference or declaration is implicit. */
+#define SRK_FRIEND 0x100
+			/* Or'ed with SRK_DECLARATION, a friend declaration. */
+#define SRK_TENTATIVE_DEF 0x200
+			/* Or'ed with SRK_DEFINITION, a variable declaration
+			   is a tentative definition (C only). */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
 			/* All types of references.  Used to mask off those
