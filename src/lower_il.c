@@ -7621,6 +7621,16 @@ do_assignment:;
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
       lower_call(dip->variant.expression, ipdp);
+      if (processing_file_scope_init_routine ||
+          first_time_test_var != NULL) {
+        /* When generating the file-scope initialization routine we have
+           an expression from the file scope that must be used in the function
+           scope of the initialization routine, so copy it.  Otherwise
+           we have a difficult job keeping track of the nodes that are in
+           the file scope and those that are in the function scope.
+           Similar reasoning applies to local static variables. */
+        dip->variant.expression = copy_expr_tree(dip->variant.expression);
+      }  /* if */
       expr_stmt = insert_expr_statement(dip->variant.expression,
                                         insert_location);
       transfer_seq_from_var_to_statement(variable, expr_stmt);
@@ -9849,7 +9859,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   an_expr_node_ptr      operand_node;
   an_insert_location    insert_location;
   an_init_pos_descr     ipd;
-  a_boolean             keep_dynamic_init;
+  a_boolean             keep_dynamic_init, result_is_addr;
   a_dynamic_init_ptr    dip;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
@@ -10086,7 +10096,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       dip = expr->variant.init.dynamic_init;
       /* Determine the type of the temporary. */
       temp_type = expr->type;
-      if (expr->variant.init.result_is_addr) {
+      result_is_addr = expr->variant.init.result_is_addr;
+      if (result_is_addr) {
         /* The value of the enk_temp_init node is the address of the temporary,
            so drop the pointer-to to get the temporary type. */
         temp_type = type_pointed_to(temp_type);
@@ -10097,7 +10108,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                                            processing_file_scope_init_routine);
       /* Change the enk_temp_init to a reference to the value or address
          of the temporary. */
-      if (expr->variant.init.result_is_addr) {
+      if (result_is_addr) {
         set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
       } else {
         set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
@@ -10115,6 +10126,17 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
+      /* Optimization -- if the initialization is done by a constructor,
+         and the enk_temp_init returns the address of the temporary,
+         use the pointer returned from the constructor as the value of
+         the expression. */
+      if (result_is_addr &&
+          dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        check_assertion(is_operation_node(expr) &&
+                        expr->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_comma);
+        overwrite_node(expr, expr->variant.operation.operands);
+      }  /* if */
       break;
     case enk_new_delete:
       lower_new_delete(expr);
