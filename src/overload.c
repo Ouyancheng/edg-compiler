@@ -221,10 +221,17 @@ NULL and *ambiguous TRUE.  See ARM 13.3, "Address of Overloaded Function".
             *std_conv = std_conversion;
             number_of_matches++;
           }  /* if */
+        } else {
+          /* Template.  Could be converted to "void *", but that would always
+             be ambiguous. */
+          if (is_ptr && is_void_type(dest_underlying_type)) {
+            goto is_ambiguous;
+          }  /* if */
         }  /* if */
       }  /* for */
     }  /* if */
     if (number_of_matches > 1) {
+is_ambiguous:
       /* Ambiguous case. */
       *ambiguous = TRUE;
       match_sym = NULL;
