@@ -3373,10 +3373,10 @@ of assoc_field_object and assoc_var_object is defined.
       ctsp = sym->variant.field.ptr->source_corresp.class_of_which_a_member->
                                         variant.class_struct_union.extra_info;
       if (class_type == NULL) {
-        ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable;
+        ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
         ctsp->anonymous_union.variable = assoc_var_object;
       } else {
-        ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field;
+        ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
         ctsp->anonymous_union.field = assoc_field_object;
       }  /* if */
     } else if (is_member_function_symbol(sym)) {
