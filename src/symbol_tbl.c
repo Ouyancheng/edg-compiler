@@ -7265,10 +7265,10 @@ created if a projected symbol cannot be found in any of the real bases.
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, options,
                                             &path, &access, &ambiguous,
                                             &any_using_decl);
-    /* In Microsoft mode, if the progenitor symbol is for a nonstatic
+    /* In Microsoft bugs mode, if the progenitor symbol is for a nonstatic
        member (data or function), and we are doing a tentative template
        lookup, ignore this symbol. */
-    if (microsoft_mode &&
+    if (microsoft_bugs &&
         progenitor_sym != NULL && tentative_template_lookup) {
       if (check_for_microsoft_template_lookup_bug(progenitor_sym)) {
         progenitor_sym = NULL;

@@ -690,7 +690,7 @@ specification is handled later (see check_exception_specification).
   } else if (ignore_exception_specifications) {
     /* Issue a warning (e.g., in Microsoft mode) -- exception specifications
        are parsed and discarded. */
-    pos_warning(ec_exception_specification_ignored, &pos_curr_token);
+    pos_remark(ec_exception_specification_ignored, &pos_curr_token);
   }  /* if */
   /* Bypass "throw". */
   (void)get_token();

@@ -660,7 +660,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && is_top_level && !is_template_decl(flags)) {
+    if (microsoft_bugs && is_top_level && !is_template_decl(flags)) {
       /* The Microsoft compiler suffers from some of the same disambiguation
          problems that cfront does.  See the cfront mode code above for
          additional information. */

@@ -8354,10 +8354,10 @@ selection operator, in which case it points to the type of the left operand.
         /* Usual case (no leading "::"). */
         qualifier_sym = normal_id_lookup(&locator_for_curr_id,
                                          lookup_kind);
-        if (microsoft_mode && qualifier_sym != NULL &&
+        if (microsoft_bugs && qualifier_sym != NULL &&
             is_enum_symbol(qualifier_sym) && might_be_vacuous_dtor) {
           /* The "must be class or namespace" lookup can return an enumeration
-             in Microsoft mode.  If it does, and if we are processing what
+             in Microsoft bugs mode.  If it does, and if we are processing what
              might be a vacuous destructor, indicate that it is a vacuous
              destructor. */
           is_vacuous_dtor = TRUE;
@@ -8478,8 +8478,9 @@ selection operator, in which case it points to the type of the left operand.
           /* Get the namespace from the symbol entry. */
           qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
           qualifier_is_type = FALSE;
-        } else if (microsoft_mode && is_enum_symbol(qualifier_sym)) {
-          /* In Microsoft mode the qualifier can be an enumeration name. */
+        } else if (microsoft_bugs && is_enum_symbol(qualifier_sym)) {
+          /* In Microsoft bugs mode the qualifier can be an enumeration
+             name. */
           qualifier_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_type);
           qualifier_is_type = TRUE;
@@ -9126,14 +9127,14 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
             } else {
               /* Look up the id in the class scope. */
               a_boolean	qualifier_is_enum_type;
-              qualifier_is_enum_type = microsoft_mode && qualifier_is_type &&
+              qualifier_is_enum_type = microsoft_bugs && qualifier_is_type &&
                                        is_enum_type(qualifier_type);
-              if (microsoft_mode && qualifier_is_enum_type &&
+              if (microsoft_bugs && qualifier_is_enum_type &&
                   is_enum_type(qualifier_type) &&
                   enum_qualified_id_lookup(&locator_for_curr_id,
                                             qualifier_type) != NULL) {
-                /* In Microsoft mode, enumerations can be used as qualifiers.
-                   The name was found as an enumerator. */
+                /* In Microsoft bugs mode, enumerations can be used as
+                   qualifiers.  The name was found as an enumerator. */
               } else if (qualifier_is_type && !qualifier_is_enum_type &&
                   class_qualified_id_lookup(&locator_for_curr_id,
                                             qualifier_type,

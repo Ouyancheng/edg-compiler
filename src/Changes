@@ -1,5 +1,23 @@
 Version 2.36
 
+5/15/97   Microsoft compatibility: Microsoft bugs mode
+
+A new mode called "Microsoft bugs mode" has been added, and some of the
+features formerly enabled Microsoft mode are instead enabled by Microsoft
+bugs mode.  Microsoft bugs mode is automatically enabled when Microsoft
+mode is used and the configuration flag DEFAULT_MICROSOFT_BUGS is TRUE.
+When DEFAULT_MICROSOFT_BUGS is TRUE, Microsoft mode can be enabled without
+enabling Microsoft bugs mode through use of the --no_microsoft_bugs
+command line option.  Likewise, if DEFAULT_MICROSOFT_BUGS is FALSE,
+Microsoft bugs mode can be enabled with the --microsoft_bugs command line
+option.
+
+5/15/97   Exception specification ignored diagnostic is now a remark
+
+Exception specifications are ignored in Microsoft bugs mode.  A diagnostic
+is issued when an exception specification is encountered.  The diagnostic
+has been demoted from a warning to a remark.
+
 5/14/97   Second operand of operators instantiated to expose friend functions
 
 If the second operand of an overloadable operator has a template class
