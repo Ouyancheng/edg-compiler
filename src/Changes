@@ -1,5 +1,15 @@
 Version 3.2
 
+3/31/03  IA-64 ABI: No call of _main at start of main program
+
+IL lowering no longer generates a call of _main at the start of
+the main program when using the IA-64 ABI.  Such a call was
+not in accordance with the ABI specification.  The runtime has been
+updated to ensure that __cxa_terminate is called at the end of
+the program, which was the main purpose of the call of _main.
+The old behavior remains when ABI_COMPATIBILITY_VERSION is less
+than 302.
+
 3/30/03  IA-64 ABI: abort in lower_eh.c on RTTI for local enum
 
 An abort in make_typeinfo_var in lower_eh.c has been eliminated.

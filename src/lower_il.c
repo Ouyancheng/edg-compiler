@@ -15574,6 +15574,7 @@ Do IL lowering of the indicated scope and everything under it.
         && scope->assoc_block->kind != (a_statement_kind)stmk_asm_func_body
 #endif /* ASM_FUNCTION_ALLOWED */
                           ) add_eh_function_prologue(scope);
+#if !IA64_ABI || ABI_COMPATIBILITY_VERSION <= 301
     /* If the routine is the main program, insert a call of _main at its
        start.  This is done after inserting the exception handling function
        prologue, if any, so that the call to _main is always first. */
@@ -15585,6 +15586,7 @@ Do IL lowering of the indicated scope and everything under it.
       make_call_statement(underscore_main, (an_expr_node_ptr)NULL,
                           &insert_location);
     }  /* if */
+#endif /* !IA64_ABI || ABI_COMPATIBILITY_VERSION <= 301 */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
     return_memo_list = NULL;
