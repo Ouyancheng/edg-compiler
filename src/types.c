@@ -3308,8 +3308,11 @@ Otherwise, return FALSE.
 {
   a_boolean  result = TRUE;
 
-  if (!same_exception_spec(type_1->variant.routine.return_type,
-                           type_2->variant.routine.return_type)) {
+  if (is_error_type(type_1) || is_error_type(type_2)) {
+    /* Something went wrong earlier; ignore differences in exception
+       specifications. */
+  } else if (!same_exception_spec(type_1->variant.routine.return_type,
+                                  type_2->variant.routine.return_type)) {
     result = FALSE;
   } else {
     a_routine_type_supplement_ptr  rtsp1 = type_1->variant.routine.extra_info;
