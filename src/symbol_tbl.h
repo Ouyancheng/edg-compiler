@@ -370,6 +370,11 @@ typedef struct a_class_symbol_supplement {
 			/* Pointer to an sk_member_function symbol that
 			   identifies the destructor for this class; NULL if
 			   there is none. */
+  a_symbol_ptr  assignment_operator;
+			/* Pointer to a symbol (sk_member_function or
+			   sk_overloaded_function) symbol that identifies
+			   the assignment operator for this class; NULL if
+			   there is none. */
   unsigned int	any_nonpublic_members:1;
 			/* TRUE if the class contains any members declared
 			   private or protected. */
