@@ -4019,6 +4019,40 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 }  /* find_default_operator_new_sym */
 
 
+a_boolean is_default_operator_delete(a_routine_ptr routine)
+/*
+Return TRUE if the indicated routine (an operator delete function) is
+a default operator delete function (including the class variant with
+a second parameter of type size_t).
+*/
+{
+  a_boolean        is_default = FALSE;
+  a_param_type_ptr ptp = skip_typerefs(routine->type)->
+                                  variant.routine.extra_info->param_type_list;
+
+  check_assertion(ptp != NULL);
+  if (ptp->next == NULL) {
+    /* operator delete(void *), a default operator delete. */
+    is_default = TRUE;
+  } else if (routine->source_corresp.is_class_member) {
+    /* Look for a class member operator delete with a second parameter of type
+       size_t. */
+    ptp = ptp->next;
+    if (ptp->next == NULL) {
+      /* The function has two parameters. */
+      a_type_ptr param_type = skip_typerefs(ptp->type);
+
+      if (is_integral_type(param_type) &&
+          param_type->variant.integer.int_kind == targ_size_t_int_kind) {
+        /* operator delete(void *, size_t), a default operator delete. */
+        is_default = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_default;
+}  /* is_default_operator_delete */
+
+
 a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
                                               a_boolean    *ambiguous)
 /*
@@ -4030,7 +4064,6 @@ ambiguity return *ambiguous set to TRUE.
 */
 {
   a_boolean        is_overloaded, ambiguous_alternate = FALSE, is_class_member;
-  a_param_type_ptr ptp;
   a_symbol_ptr     fund_sym, default_sym = NULL, alternate_default_sym = NULL;
 
   *ambiguous = FALSE;
@@ -4052,30 +4085,28 @@ ambiguity return *ambiguous set to TRUE.
     }  /* if */
     /* Ignore function templates. */
     if (is_function_symbol(fund_sym)) {
-      /* Look for a symbol for a function with just one parameter.  Default
-         arguments are not allowed and so are not checked for. */
-      ptp = skip_typerefs(fund_sym->variant.routine.ptr->type)->
+      /* See if this is a default operator delete. */
+      if (is_default_operator_delete(fund_sym->variant.routine.ptr)) {
+        /* This is a default operator delete.  See whether it is the single-
+           parameter version or the two-parameter version. */
+        a_param_type_ptr ptp =
+                          skip_typerefs(fund_sym->variant.routine.ptr->type)->
                                   variant.routine.extra_info->param_type_list;
-      check_assertion(ptp != NULL);
-      if (ptp->next == NULL) {
-        /* A match: "operator delete(void *)" is always the default version. */
-        if (default_sym == NULL) {
-          default_sym = sym;
-          /* Keep looping in case there's an ambiguity. */
+        if (ptp->next == NULL) {
+          /* "operator delete(void *)" is always the default version. */
+          if (default_sym == NULL) {
+            default_sym = sym;
+            /* Keep looping in case there's an ambiguity. */
+          } else {
+            /* Ambiguities can be introduced into the overload set by using-
+               declarations. */
+            *ambiguous = TRUE;
+            break;
+          }  /* if */
         } else {
-          /* Ambiguities can be introduced into the overload set by using-
-             declarations. */
-          *ambiguous = TRUE;
-          break;
-        }  /* if */
-      } else if (is_class_member) {
-        /* Special case for class member operator delete. */
-        if (ptp->next->next == NULL &&
-            skip_typerefs(ptp->next->type)->variant.integer.int_kind ==
-                                                      targ_size_t_int_kind) {
-          /* A possible match: "operator delete(void *, size_t)" is the
-             default version unless "operator delete(void *)" also appears
-             in the overload set (WP 3.7.3.2).  Keep looking. */
+          /* "operator delete(void *, size_t)" is the default version
+              unless "operator delete(void *)" also appears in the overload
+              set (WP 3.7.3.2).  Keep looking. */
           if (alternate_default_sym == NULL) {
             alternate_default_sym = sym;
           } else {
