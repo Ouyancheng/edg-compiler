@@ -426,6 +426,82 @@ EXTERN char	*opname_names[(int)onk_last];
 
 
 /*
+Structure used to record information about files that have been included.
+See the comment preceding find_include_history in lexical.c.
+*/
+typedef struct an_include_file_history *an_include_file_history_ptr;
+typedef struct an_include_file_history {
+  an_include_file_history_ptr
+                next;
+			/* Pointer to the next entry in a linked list of
+			   history entries. */
+  char          *full_name;
+			/* Pointer to the full path name of the include
+			   file. */
+  a_file_identifier
+		file_id;
+			/* System dependent structure that is used to
+			   identify a given file. */
+  unsigned int	suppress_subsequent_include:1;
+			/* TRUE if this file is potentially one that can
+			   have subsequence includes suppressed. */
+  unsigned int	pragma_once:1;
+			/* TRUE if this file contained a "#pragma once"
+			   directive. */
+  unsigned int	ifdef_guard:1;
+			/* TRUE if this file was guarded by a #ifdef. */
+  unsigned int	ifndef_guard:1;
+			/* TRUE if this file was guarded by a #ifndef. */
+  char          *controlling_macro_name;
+			/* The name of the macro used to guard the include
+			   file against multiple inclusions. */
+} an_include_file_history;
+
+
+/*
+Structure that represents the information about a file to be included.
+This is used to pass information from the routines that inspect the
+include history information to push_input_stack.
+*/
+typedef struct a_file_inclusion_state *a_file_inclusion_state_ptr;
+typedef struct a_file_inclusion_state {
+  a_file_identifier
+		file_id;
+			/* System dependent structure that is used to
+			   identify a given file. */
+  an_include_file_history_ptr
+		include_history;
+			/* Pointer to the include history information for the
+			   file. */
+} a_file_inclusion_state;
+
+
+/*
+The order of these states is important - see near return of get_token().
+*/
+#define IFG_STATE_START		0
+			/* The state when a file is first opened and before
+			   any tokens have been scanned. */
+#define IFG_STATE_ACCEPT	1
+			/* We have seen the closing #endif of a top level
+			   #ifdef or #ifndef.  There must be no additional
+			   tokens in this file. */
+#define IFG_STATE_FAIL		2
+			/* This file is not a candidate for suppression of
+			   subsequent includes. */
+#define IFG_STATE_INTERMED	3
+			/* We are in the process of scanning the tokens
+		 	   inside a top level #ifdef or #ifndef. */
+#define IFG_STATE_ONCE		4
+			/* A #pragma once has been encountered in the file. */
+
+
+extern a_boolean suppress_subsequent_include_of_file
+				(char                   *full_name,
+				 a_file_inclusion_state *fstate);
+
+
+/*
 Variables pertaining to the input stack (for include files and the
 primary source file) and the current input file (the top entry on the
 stack).
@@ -486,6 +562,14 @@ typedef struct an_input_stack_entry {
 	        nested_inclusion:1;
 			/* TRUE if this is a nested inclusion of a file
 			   already on the input stack. */
+  a_byte        ifg_state;
+			/* Include file guard state information used to
+                           determine whether subsequent inclusions of this
+                           file may be suppressed. */
+  an_include_file_history_ptr
+               include_history;
+                        /* Pointer to the structure that preserves information
+                           used for include file guard processing. */
 } an_input_stack_entry;
 
 /* See lexical.c for the definitions of input_stack, depth_input_stack,
@@ -1151,12 +1235,13 @@ extern FILE *open_file_for_input(char                       *file_name,
                                  a_boolean                  replace_suffix,
                                  char                       **full_file_name,
                                  char                       **display_name);
-extern void push_input_stack (FILE      *new_input_file,
-                              char      *name_as_written,
-                              char      *display_name,
-                              char      *full_file_name,
-			      a_boolean	is_include_file,
-			      a_boolean is_system_include);
+extern void push_input_stack (FILE      		*new_input_file,
+                              char      		*name_as_written,
+                              char      		*display_name,
+                              char     			 *full_file_name,
+			      a_boolean                  is_include_file,
+			      a_boolean                  is_system_include,
+			      a_file_inclusion_state_ptr fstate);
 
 /* Set the error position to the current token position. */
 #define set_err_pos_to_curr_token()                                   \

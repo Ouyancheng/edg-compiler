@@ -300,6 +300,14 @@ the #endif.
     }  /* if */
   } else {
     /* The #else is valid, process it. */
+    if (pp_if_stack_depth == (base_pp_if_stack_depth+1) &&
+	curr_ise->ifg_state != IFG_STATE_FAIL &&
+	curr_ise->ifg_state != IFG_STATE_ONCE) {
+      /* We've encountered a #else at the outermost level.  This
+         means that this file is not a candidate for suppression
+         of subsequent includes. */
+      curr_ise->ifg_state = IFG_STATE_FAIL;
+    }  /* if */
     pp_if_stack[pp_if_stack_depth].else_encountered = TRUE;
     (void)get_token();
     ignore_harmless_trailing_comment();
@@ -326,6 +334,14 @@ evaluate the expression, and do the skip if appropriate.
     flush_to_newline();
   } else {
     /* The #elif is valid, process it. */
+    if (pp_if_stack_depth == (base_pp_if_stack_depth+1) &&
+	curr_ise->ifg_state != IFG_STATE_FAIL &&
+	curr_ise->ifg_state != IFG_STATE_ONCE) {
+      /* We've encountered a #elif at the outermost level.  This
+         means that this file is not a candidate for suppression
+         of subsequent includes. */
+      curr_ise->ifg_state = IFG_STATE_FAIL;
+    }  /* if */
     if (perform_elif) {
       /* When an #elif is hit when not skipping, it always acts like an
          #else.  That is, the value of the expression is unimportant:
@@ -348,6 +364,18 @@ Scan and process an #endif directive.
     flush_to_newline();
   } else {
     /* The #endif is valid, process it. */
+    if (pp_if_stack_depth == (base_pp_if_stack_depth+1)) {
+      /* Update the include file guard state for the current file.  If
+         we've seen the opening #ifndef then go to the state that says
+         that we're OK as long as we don't see any more tokens from this
+         file.  If we are in any other state (not including ONCE, then
+         goto the FAIL state. */
+      if (curr_ise->ifg_state == IFG_STATE_INTERMED) {
+	curr_ise->ifg_state = IFG_STATE_ACCEPT;
+      } else if (curr_ise->ifg_state != IFG_STATE_ONCE) {
+	curr_ise->ifg_state = IFG_STATE_FAIL;
+      }  /* if */
+    }  /* if */
 #if DEBUG
     if (debug_level >= 3) {
       fprintf(f_debug, "endif, pp_if_stack_depth = %ld\n", pp_if_stack_depth);
@@ -537,6 +565,25 @@ FALSE, respectively).
       some_error_in_curr_directive = TRUE;
     }  /* if */
   } else {
+    if (curr_ise->ifg_state == IFG_STATE_START) {
+      /* If we are at the start of an include file then record 
+         information about this @ifdef so that it can be used later to
+         see if subsequent includes can be suppressed. */
+      char *nm = alloc_fe(len_of_curr_token+2);
+      strncpy(nm, start_of_curr_token, len_of_curr_token);
+      nm[len_of_curr_token] = 0;
+      curr_ise->ifg_state = IFG_STATE_INTERMED;
+      if (is_ifdef) {
+        curr_ise->include_history->ifdef_guard = TRUE;
+      } else {
+        curr_ise->include_history->ifndef_guard = TRUE;
+      }  /* if */
+      curr_ise->include_history->controlling_macro_name = nm;
+    } else if (curr_ise->ifg_state == IFG_STATE_ACCEPT) {
+      curr_ise->ifg_state = IFG_STATE_FAIL;
+    } else {
+      /* Do nothing if state is FAIL, INTERMED or ONCE. */
+    }  /* if */
     /* Look to see if there is a macro with this name. */
     assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                &locator_for_curr_id);
@@ -638,6 +685,12 @@ Scan and process a #include directive.
      (where the pp-tokens are macro-expanded to yield one of the
      first two forms.)
   */
+  if (curr_ise->ifg_state < IFG_STATE_FAIL) {
+    /* If another include is seen outside of the #ifndef/#endif guard
+       code of the current file then it is not a candidate for suppression
+       of a subsequent include. */
+    curr_ise->ifg_state = IFG_STATE_FAIL;
+  }  /* if */
   /* Try to expand macros to get one of the normal forms. */
   expand_macros = TRUE;
   exp_header_name = TRUE;
@@ -1011,6 +1064,18 @@ Scan and process a #pragma directive.
   if (generate_pp_output) {
     /* Generating preprocessing output for some other compiler.  Pass the
        #pragma unchanged to output. */
+    /* Look for the special case of "#pragma once".  This is different
+       from other pragmas in that it must be handled in preprocessing. */
+    if (get_token() == tok_identifier) {
+      if (curr_id_is("once")) {
+        /* This file should be included only once, and if it is #included
+           again in the same compilation unit, the include should be skipped.
+           Record this information in the input stack entry. */
+        curr_ise->ifg_state = IFG_STATE_ONCE;
+        curr_ise->include_history->pragma_once = TRUE;
+        processed = TRUE;
+      }  /* if */
+    }  /* if */
     pass_directive_to_output();
   } else {
     /* Compiling.  Identify the pragma. */
@@ -1020,44 +1085,55 @@ Scan and process a #pragma directive.
       /* Save the position of the start of the token(s) that identify
          the kind of pragma being processed. */
       id_position = pos_curr_token;
-      /* Look for a matching pragma identifier in the pragma descriptions
-         list.  If any pragma need to be added in where the pragma is
-         not specified by an identifier following the #pragma keyword,
-         this code will need to be modified. */
-      pkdp = pragma_kind_descriptions;
-      while (pkdp != NULL) {
-        if (curr_id_matches_pragma_id(pkdp->kind)) break;
-        pkdp = pkdp->next;
-      }  /* while */
+      /* Look for the special case of "#pragma once".  This is different
+         from other pragmas in that it must be handled in preprocessing. */
+      if (curr_id_is("once")) {
+        /* This file should be included only once, and if it is #included
+           again in the same compilation unit, the include should be skipped.
+           Record this information in the input stack entry. */
+	curr_ise->ifg_state = IFG_STATE_ONCE;
+        curr_ise->include_history->pragma_once = TRUE;
+	processed = TRUE;
+      } else {
+        /* Look for a matching pragma identifier in the pragma descriptions
+           list.  If any pragma need to be added in where the pragma is
+           not specified by an identifier following the #pragma keyword,
+           this code will need to be modified. */
+        pkdp = pragma_kind_descriptions;
+        while (pkdp != NULL) {
+          if (curr_id_matches_pragma_id(pkdp->kind)) break;
+          pkdp = pkdp->next;
+        }  /* while */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
-      /* If no matching pragma name was found, set the pragma kind to
-         pk_unrecognized and scan the pragma according to the associated
-         description. */
-      if (pkdp == NULL) {
-        pkdp = pragma_description_for_pragma_kind[(int)pk_unrecognized];
-      }  /* if */
-#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
-      if (pkdp != NULL) {
-        /* Scan the pragma directive.  The pragma statement may be recorded
-           as either a token cache or as a character string.  The character
-           string representation is usually used for pragmas that are to
-           be passed to the C or C++ generating back end, but may be used for
-           other pragmas in which a character string is simpler to
-           manipulate. */
-        a_pending_pragma_ptr	ppp;
-        processed = TRUE;
-        ppp = alloc_pending_pragma(pkdp);
-        ppp->id_position = id_position;
-        ppp->pragma_position = *start_of_dir_position;
-        if (pkdp->make_text_not_tokens) {
-          convert_pragma_to_string(ppp, pkdp);
-        } else {
-          /* Cache the tokens that make up the pragma directive. */
-          cache_pragma_tokens(ppp, pkdp);
+        /* If no matching pragma name was found, set the pragma kind to
+           pk_unrecognized and scan the pragma according to the associated
+           description. */
+        if (pkdp == NULL) {
+          pkdp = pragma_description_for_pragma_kind[(int)pk_unrecognized];
         }  /* if */
-        /* Add this pragma to the list of pragmas associated with the
-           current token. */
-        add_to_curr_token_pragma_list(ppp);
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
+        if (pkdp != NULL) {
+          /* Scan the pragma directive.  The pragma statement may be recorded
+             as either a token cache or as a character string.  The character
+             string representation is usually used for pragmas that are to
+             be passed to the C or C++ generating back end, but may be used for
+             other pragmas in which a character string is simpler to
+             manipulate. */
+          a_pending_pragma_ptr	ppp;
+          processed = TRUE;
+          ppp = alloc_pending_pragma(pkdp);
+          ppp->id_position = id_position;
+          ppp->pragma_position = *start_of_dir_position;
+          if (pkdp->make_text_not_tokens) {
+            convert_pragma_to_string(ppp, pkdp);
+          } else {
+            /* Cache the tokens that make up the pragma directive. */
+            cache_pragma_tokens(ppp, pkdp);
+          }  /* if */
+          /* Add this pragma to the list of pragmas associated with the
+             current token. */
+          add_to_curr_token_pragma_list(ppp);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!processed) {
@@ -1111,13 +1187,14 @@ execute the preprocessor directive.
 */
 {
   /* Place to save current value of stop token set for later restoration. */
-  a_stop_token_array save_stop_token_array;
-  a_boolean	     save_fetch_pp_tokens = fetch_pp_tokens;
-  a_boolean	     save_expand_macros = expand_macros;
-  a_boolean          save_do_string_literal_concatenation =
+  a_stop_token_array 	save_stop_token_array;
+  a_boolean	     	save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean	     	save_expand_macros = expand_macros;
+  a_boolean          	save_do_string_literal_concatenation =
                                                do_string_literal_concatenation;
-  a_source_position  save_error_position;
-  a_source_position  start_of_dir_position;
+  a_source_position  	save_error_position;
+  a_source_position  	start_of_dir_position;
+  a_pp_directive_kind	dir_kind;
 
   db_enter(3, "pp_directive");
 
@@ -1136,7 +1213,8 @@ execute the preprocessor directive.
   clear_stop_tokens();
   add_stop_token(tok_newline);
   /* Identify the keyword and go to the right processing routine. */
-  switch ((int)identify_dir_keyword()) {
+  dir_kind = identify_dir_keyword();
+  switch ((int)dir_kind) {
     case ppd_not_valid:
       error(ec_bad_pp_directive_keyword);
       some_error_in_curr_directive = TRUE;
@@ -1211,6 +1289,23 @@ execute the preprocessor directive.
       internal_error("pp_directive: bad pp directive code");
       break;
 #endif /* CHECKING */
+  }  /* switch */
+  /* If some other preprocessing directive is seen outside of the
+     #ifndef/#endif guard code of the current file then it is not a
+     candidate for suppression of a subsequent include. */
+  switch (dir_kind) {
+    case ppd_ifdef:
+    case ppd_ifndef:
+    case ppd_else:
+    case ppd_endif:
+    case ppd_include:
+      /* Processing for these directives is done in the specific routines
+         called above. */
+      break;
+    default:
+      if (curr_ise != NULL && curr_ise->ifg_state < IFG_STATE_FAIL)
+	curr_ise->ifg_state = IFG_STATE_FAIL;
+      break;
   }  /* switch */
   /* Check that all of the text of the directive was taken. */
   end_of_directive_processing();

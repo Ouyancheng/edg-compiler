@@ -4269,6 +4269,7 @@ file we simply return.
            could occur if the user included a .c file that contains a
            template declaration. */
         if (strcmp(full_file_name, sfp->full_name) != 0) {
+	  a_file_inclusion_state fstate;
 #if DEBUG
           if (debug_level >= 3) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
@@ -4276,10 +4277,20 @@ file we simply return.
 #endif /* DEBUG */
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
-          push_input_stack(f_source, (char *)NULL, display_name,
-                           full_file_name, /*is_include_file=*/FALSE,
-                           is_system_include);
-          scan_implicitly_included_template_definition_file();
+	  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
+	    fclose(f_source);
+#if DEBUG
+	    if (debug_level >= 3) {
+	      fprintf(f_debug, "%s %s %s\n", "do_implicit_include_if_needed:",
+                      "skipping guarded include file", full_file_name);
+            }  /* if */
+#endif /* DEBUG */
+	  } else {
+            push_input_stack(f_source, (char *)NULL, display_name,
+                             full_file_name, /*is_include_file=*/FALSE,
+                             is_system_include, &fstate);
+            scan_implicitly_included_template_definition_file();
+	  }  /* if */
         } else {
           /* The file name returned by open_file_for_input is the same as
              the file in which the template was declared.  Just close

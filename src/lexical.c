@@ -239,6 +239,14 @@ static a_boolean
 		dollar_in_id_diagnostic_issued;
 
 /*
+Head of a list of history information about include files that have
+been processed.  Used to suppress subsequence inclusions of the same
+file.
+*/
+an_include_file_history_ptr
+		include_file_history_list;
+
+/*
 Array of identifier lookup options indexed by identifier lookup mode.  Used
 to translate the lookup mode into a set of identifier lookup options.
 */
@@ -287,6 +295,7 @@ static unsigned long
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
                 num_file_suffixes_allocated,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+		num_include_file_histories_allocated,
 		num_reusable_cache_entries_allocated;
 #endif /* DEBUG */
 
@@ -1818,6 +1827,250 @@ partially_process_line_splice:
 }  /* gen_raw_listing_output_for_curr_line */
 
 
+
+/*
+The routines that follow are used to detect idioms used to guard against
+multiple inclusions of a given file.  If such idiom is found, the
+front end will completely suppress any subsequent attempts to re-include
+the file.
+
+The idioms supported are #ifndef guard code, and "#pragma once" directives.
+Files using #ifndef guards have the form:
+
+	... Optional comments ...
+	#ifndef NAME
+	#define NAME
+	... Body of include file ...
+	#endif
+
+Note that #ifndef and #ifdef forms of this are supported, but similar
+mechanisms using
+ 
+	#if !defined(NAME)
+
+are not supported.
+
+This include guard detection mechanism is implemented using a simple
+state machine.  The state information is recorded in the input stack
+entry.
+
+            (*)                      (*)
+      ---------------> FAIL <-------------------
+      |                STATE                    |
+      |                  ^                      |
+      |          level-0 | #else/#elif          |
+      |                  |                      |
+      |                  |         #endif       |
+    START  #ifdef   INTERMEDIATE------------>ACCEPT
+    STATE---------->   STATE   ---+           STATE
+      |    #ifndef       | ^      |             |
+      |                  | | (*)  |             |
+      |                  | -------|             |
+      |                  |                      |
+      |                  |                      |
+      |          #pragma | once                 |
+      |                  v                      |
+      |  #pragma       ONCE      #pragma        |
+      |--------------> STATE <------------------|
+          once         ^   |       once
+                       |   |
+                       |(*)|
+                       -----
+
+
+
+In the above diagram, comments do not count as tokens at all, while
+(*) refers to any token other than those marking the other transitions.
+
+In the case of the INTERMEDIATE state (which is what the file is in during
+the body, if an opening #ifndef has been seen), if a matching #else is
+seen, we know that subsequent inclusions cannot be suppressed.
+
+Once the file has reached the ACCEPT state, if any token is seen, then
+the file goes into the FAIL state.
+
+Also, once the file gets into the ONCE state, it will never move out.
+
+Most of this determination is done in get_token(), and the
+routines that handle the #ifdef, #ifndef and #pragma directives (in
+preproc.c).
+
+The final accept-state check is performed in pop_input_stack().
+
+On subsequent includes, the file history information is checked to
+determine whether the file contained a multiple inclusion guard.  If
+so, the include is suppressed.
+*/
+
+static an_include_file_history_ptr alloc_include_file_history(void)
+/*
+Allocate an_include_file_history structure, initialize it, and return
+a pointer.
+*/
+{
+  an_include_file_history_ptr	ifhp;
+  ifhp = (an_include_file_history_ptr)
+                           alloc_fe(sizeof(an_include_file_history));
+#if DEBUG
+  num_include_file_histories_allocated++;
+#endif /* DEBUG */
+  ifhp->full_name = NULL;
+  ifhp->next = NULL;
+  (void)memzero((char *)&ifhp->file_id, sizeof(a_file_identifier));
+  ifhp->suppress_subsequent_include = FALSE;
+  ifhp->pragma_once = FALSE;
+  ifhp->ifdef_guard = FALSE;
+  ifhp->ifndef_guard = FALSE;
+  ifhp->controlling_macro_name = NULL;
+  return ifhp;
+}  /* alloc_include_file_history */
+
+
+static void find_include_history(char                        *full_name,
+				 a_file_inclusion_state_ptr  fstate)
+/*
+Examine the file history to see if "full_name" has been seen before. If
+it has, return a pointer to its history record in ret_hist, otherwise create
+a new history record, attach it to the file history chain, and return
+a pointer to the new entry in fstate. Also, set first_time if the
+the latter case.
+*/
+{
+  an_include_file_history_ptr	ifhp;
+  an_include_file_history_ptr	prev_ifhp;
+
+  /* Get the file identification information for the file that is to
+     be included. */
+  get_file_identifier(full_name, &fstate->file_id);
+  /* Loop through the file history list and try to find a entry that
+     matches the file passed by the caller. */
+  for (ifhp = include_file_history_list, prev_ifhp = NULL;
+       ifhp != NULL;
+       prev_ifhp = ifhp, ifhp = ifhp->next) {
+    if (file_ids_are_equal(ifhp->full_name, ifhp->file_id,
+                           fstate->full_name, fstate->file_id)) {
+      /* We've found a match. */
+      break;
+    }  /* if */
+  }  /* for */
+  if (ifhp != NULL) {
+    /* An entry was found -- this file has been included before. */
+  } else {
+    /* This file has not been included before.  Create a new file history
+       entry. */
+    /* Append to the tail of the list */
+    ifhp = alloc_include_file_history();
+    ifhp->full_name = full_name;
+    ifhp->next = NULL;
+    get_file_identifier(full_name, &ifhp->file_id);
+    if (prev_ifhp) {
+      prev_ifhp->next = ifhp;
+    } else {
+      include_file_history_list = ifhp;
+    }  /* if */
+  }  /* if */
+  fstate->include_history = ifhp;
+}  /* find_include_history */
+
+
+static a_boolean suppress_subsequent_include
+				(an_include_file_history_ptr ifhp)
+/*
+Return TRUE if the specified include file contained include guard
+code that makes it possible to suppress subsequent re-inclusions.
+*/
+{
+  a_boolean		result = FALSE;
+  a_symbol_ptr		assoc_symbol;
+  a_symbol_locator	locator;
+
+
+  if (!ifhp->suppress_subsequent_include) {
+    /* No need to check further. */
+  } else if (ifhp->pragma_once) {
+    result = TRUE;
+  } else if (ifhp->ifdef_guard || ifhp->ifndef_guard) {  
+    /* See whether the controlling macro is currently defined. */
+    locator = cleared_locator;
+    assoc_symbol = find_symbol(ifhp->controlling_macro_name,
+			       strlen(ifhp->controlling_macro_name),
+                               &locator);
+    assoc_symbol = find_defined_macro(assoc_symbol);
+    /* If the macro is undefined, then an #ifdef NAME guard would cause the
+       included file to be ignored, so we should return TRUE (meaning it is
+       OK to suppress the inclusion. */
+    result = assoc_symbol == NULL;
+    /* If this is an #ifndef instead of an #ifdef, negate the current value
+       of result. */
+    if (ifhp->ifndef_guard) result = !result;
+  }  /* if */
+  return result;
+}  /* suppress_subsequent_include */
+
+
+a_boolean suppress_subsequent_include_of_file
+				(char                   *full_name,
+				 a_file_inclusion_state *fstate)
+/*
+Determine whether the specified file has already been included, and if so,
+whether a subsequent include should be suppressed because it will have
+no effect.
+*/
+{
+  a_boolean	result;
+  /* Find an existing include file history record for this file, or create
+     one if none exists. */
+  find_include_history(full_name, fstate);
+  result = suppress_subsequent_include(fstate->include_history);
+  return result;
+} /* suppress_subsequent_include_of_file */
+
+
+#if DEBUG
+static void db_include_guard_info(void)
+{
+  char *idemp_name;
+  char *idemp_text;
+  db_enter(5, "db_include_guard_info");
+  switch (curr_ise->ifg_state) {
+  case IFG_STATE_START:
+    fprintf(f_debug, "Pop: File %s is (essentially) empty\n",
+            curr_ise->file_name);
+    break;
+  case IFG_STATE_FAIL:
+    fprintf(f_debug, "Pop: File %s is not guarded\n", curr_ise->file_name);
+    break;
+  case IFG_STATE_ACCEPT:
+    if (curr_ise->include_history->ifdef_guard) {
+      idemp_name = "#ifdef";
+      idemp_text = curr_ise->include_history->controlling_macro_name;
+    } else if (curr_ise->include_history->ifndef_guard) {
+      idemp_name = "#ifndef";
+      idemp_text = curr_ise->include_history->controlling_macro_name;
+    } else {
+      unexpected_condition();
+    }  /* if */
+    fprintf(f_debug,
+	    "Pop: File %s is guarded (kind = %s, macro name = \"%s\")\n",
+	    curr_ise->file_name, idemp_name, idemp_text);
+    break;
+  case IFG_STATE_ONCE:
+    if (curr_ise->include_history->pragma_once) {
+      fprintf(f_debug,
+	      "Pop: File %s is guarded (kind = #pragma once).\n",
+	      curr_ise->file_name);
+    } else {
+      unexpected_condition();
+    }
+    break;
+  default:
+    unexpected_condition();
+  }  /* switch */
+  db_exit();
+}  /* db_include_guard_info */
+#endif /* DEBUG */
+
+
 void open_file_and_push_input_stack
                                 (char                       *file_name,
                                  a_directory_name_entry_ptr search_path,
@@ -1835,16 +2088,32 @@ is_system_include is TRUE for files included with the #include <file.h>
 notation and FALSE for all other files.
 */
 {
-  char  *full_file_name, *display_name;
-  FILE  *input_file;
+  char				*full_file_name;
+  char				*display_name;
+  FILE 				*input_file;
+  a_file_inclusion_state	fstate;
 
   db_enter(2, "open_file_and_push_input_stack");
   input_file = open_file_for_input(file_name, search_path,
                                    /*replace_suffix=*/FALSE, &full_file_name,
                                    &display_name);
   check_assertion(input_file != NULL);
+  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
+    /* This file contains include guard code.  An inclusion here would
+       have no effect, so it should be suppressed. */
+    fclose(input_file);
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug,
+          "open_file_and_push_input_stack: skipping guarded include file %s\n",
+          file_name);
+    }  /* if */
+#endif /* DEBUG */
+    db_exit();
+    return;
+  }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
-                   is_include_file, is_system_include);
+                   is_include_file, is_system_include, &fstate);
   db_exit();
 }  /* open_file_and_push_input_stack */
 
@@ -2031,12 +2300,13 @@ returned.
 }  /* open_file_for_input */
   
 
-void push_input_stack (FILE      *new_input_file,
-                       char      *name_as_written,
-                       char      *display_name,
-                       char      *full_file_name,
-		       a_boolean is_include_file,
-		       a_boolean is_system_include)
+void push_input_stack(FILE     				*new_input_file,
+                      char    				*name_as_written,
+                      char     				*display_name,
+                      char     				*full_file_name,
+		      a_boolean				is_include_file,
+		      a_boolean		 		is_system_include,
+		      a_file_inclusion_state_ptr	fstate)
 /*
 Push the indicated file onto the input stack.
 */
@@ -2109,6 +2379,8 @@ Push the indicated file onto the input stack.
   curr_ise->dir_name = directory_of(full_file_name);
   curr_ise->is_include_file = is_include_file;
   curr_ise->nested_inclusion = (times_name_appears != 0);
+  curr_ise->include_history   = fstate->include_history;
+  curr_ise->ifg_state = IFG_STATE_START;
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
      information. */
@@ -2219,6 +2491,28 @@ at the next level down.
 {
   a_boolean	is_end_of_primary_source_file = FALSE;
   db_enter(2, "pop_input_stack");
+
+#if DEBUG
+  if (debug_level >= 4) {
+    db_include_guard_info();
+  }  /* if */
+#endif /* DEBUG */
+  /* This is where we do a final check to see if subsequent inclusions of
+     the file can potentially be suppressed. If we are in the "accept" or
+     "once" state, then this file satisfies the criteria, otherwise it
+     does not.  Unless the file contained an explicit #pragma once, the
+     final determination of whether an actual subsequent include of this
+     file can be suppressed can only be determined at the point of the
+     include because the controlling macro must be tested at that point. */
+  if (curr_ise->ifg_state != IFG_STATE_ACCEPT &&
+      curr_ise->ifg_state != IFG_STATE_ONCE &&
+      curr_ise->ifg_state != IFG_STATE_START) {
+    /* Not a candidate for include suppression. */
+  } else {
+    /* This file does meet the criteria for suppression of subsequent
+       includes. */
+    curr_ise->include_history->suppress_subsequent_include = TRUE;
+  }
   /* Remember the final sequence number in the file, for sequence number
      mapping purposes. */
   record_end_of_source_file(curr_ise->assoc_actual_il_file,
@@ -2363,6 +2657,7 @@ at the next level down.
            could occur if the user included a .c file that contains a
            template declaration. */
         if (strcmp(full_file_name, sfp->full_name) != 0) {
+	  a_file_inclusion_state fstate;
 #if DEBUG
           if (debug_level >= 3) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
@@ -2370,9 +2665,23 @@ at the next level down.
 #endif /* DEBUG */
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
-          push_input_stack(f_source, (char *)NULL, display_name,
-                           full_file_name, /*is_include_file=*/FALSE,
-                           (a_boolean)sfp->included_by_system_include);
+	  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
+            /* This file contains include guard code.  An inclusion here would
+               have no effect, so it should be suppressed. */
+	    fclose(f_source);
+#if DEBUG
+	    if (debug_level >= 3) {
+	      fprintf(f_debug,
+		      "pop_input_stack: skipping guarded include file %s\n",
+		      full_file_name);
+            }  /* if */
+#endif /* DEBUG */
+	  } else {
+            push_input_stack(f_source, (char *)NULL, display_name,
+                             full_file_name, /*is_include_file=*/FALSE,
+                             (a_boolean)sfp->included_by_system_include,
+			     &fstate);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4800,6 +5109,14 @@ return_from_token_scan:
     (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
+  /* The following test means "if we are processing an include file and
+      we have not yet entered the #ifndef that guards the code agains
+      multiple inclusion, then the presence of any token means that this
+      file is not a candidate for suppression of subsequent includes." */
+  if (!in_preprocessing_directive && curr_ise != NULL &&
+      curr_ise->ifg_state < IFG_STATE_FAIL) {
+    curr_ise->ifg_state = IFG_STATE_FAIL;
+  }  /* if */
   return (curr_token = ctoken);
 
 two_char_token:
@@ -7067,6 +7384,8 @@ Display and return the amount of space used for various lexical tables.
   db_space_used("file suffixes", num_file_suffixes_allocated,
                 a_file_suffix);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  db_space_used("include file histories", num_include_file_histories_allocated,
+                an_include_file_history);
 
   total = after_end_of_curr_source_line - curr_source_line;
   db_space_used_general_buffer("curr_source_line", total);
@@ -7131,6 +7450,7 @@ of the front end.
   any_initial_get_token_tests_needed = FALSE;
   last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  include_file_history_list = NULL;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
@@ -7144,6 +7464,7 @@ of the front end.
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   num_file_suffixes_allocated = 0;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  num_include_file_histories_allocated = 0;
 #endif /* DEBUG */
 
   /* Do the initial allocation for curr_source_line the first time this
