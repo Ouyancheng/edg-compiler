@@ -1,5 +1,11 @@
 Version 2.46
 
+6/15/01  Internal error on leading space in command-line macro definition
+
+A command-line macro definition in which the macro name begins
+with a space resulted in an internal error (in enter_symbol).  This
+has been fixed (the leading spaces are discarded).
+
 6/15/01  Problem with -I option and directory names that begin with "-"
 
 Directory names beginning with a "-" were not handled properly when used
