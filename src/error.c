@@ -887,7 +887,7 @@ error code.
       m = "\"&\" applied to an array has no effect";
       break;
     case ec_mod_by_zero:
-      m = "right operand of \"%\" is zero";
+      m = "right operand of \"%%\" is zero";
       break;
     case ec_old_style_incompatible_param:
       m = "argument is incompatible with formal parameter";
@@ -2892,7 +2892,8 @@ template beginning with a "%".  Accepted substitution designations are:
 	s[q]x		- user provided string insertion.
 	tx		- type insertion in double quotes.
         n[f|o][d]x	- symbol name insertion in double quotes.
-        p		- insert a source position
+        p		- insert a source position.
+        %		- insert a percent sign.
 
 where "x" is an optional number in the range of 1 to MAX_ERR_SEG_KIND_PER_MSG
 (defaulted to 1) that indicates which of multiple types, strings, or
@@ -2988,6 +2989,9 @@ check_for_seq_number:
               }  /* if */
             }  /* if */
             break;
+          case '%':
+            /* The string "%%" is used to insert a single "%" in the output. */
+            goto text_segment;
 #if CHECKING
           default:
             internal_error(
@@ -2997,13 +3001,15 @@ check_for_seq_number:
         break;
 
       default:
-#if STANDALONE_UTILITY_PROGRAM
 text_segment:
-#endif /* STANDALONE_UTILITY_PROGRAM */
         /* This is the first character of a text segment. */
         curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
         curr_segment->variant.msg_part = msg_ptr;
-        end_ptr = strchr(msg_ptr, '%');
+        /* Skip the first character when looking for a percent sign.  The
+           first character may actually be a percent sign when the
+           original message contained a "%%" used to insert a single
+           "%" in the output. */
+        end_ptr = strchr(msg_ptr+1, '%');
         if (end_ptr == NULL) {
           /* This part is the end of the message template. */
           curr_segment->length = strlen(msg_ptr);

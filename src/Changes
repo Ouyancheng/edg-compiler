@@ -1,5 +1,11 @@
 Version 2.16
 
+3/26/93  Abort in error message processing when message contains %
+
+The error message routines were not properly handling messages
+with embedded percent signs (which are used for error message
+fill-ins).  This has been corrected.
+
 -------------------------------------------------------------------------------
 Version 2.15, March 24, 1993
 
