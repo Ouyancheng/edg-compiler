@@ -4048,6 +4048,9 @@ to default values.
                                            (C_dialect == C_dialect_cplusplus) ?
                                                 alloc_class_type_supplement() :
                                                 NULL;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      pte->variant.class_struct_union.max_member_alignment = 0;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       break;
     case tk_routine:
       pte->variant.routine.return_type = NULL;
@@ -7175,6 +7178,9 @@ pointer to it.
   pp->pragma_text           = NULL;
   switch (kind) {
     case pk_none:
+#if USER_CONTROL_OF_STRUCT_PACKING
+    case pk_pack:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:

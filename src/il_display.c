@@ -667,6 +667,9 @@ Print the name of a pragma kind.
     case pk_instantiate:          s = "pk_instantiate";         break;
     case pk_do_not_instantiate:   s = "pk_do_not_instantiate";  break;
     case pk_can_instantiate:      s = "pk_can_instantiate";     break;
+#if USER_CONTROL_OF_STRUCT_PACKING
+    case pk_pack:                 s = "pk_pack";                break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if INCLUDE_EDG_TEST_PRAGMAS
     /* For testing purposes. */
     case pk_test_next_statement:  s = "pk_test_next_statement"; break;
@@ -942,6 +945,12 @@ do_struct_union:
       if (ptr->variant.class_struct_union.originally_unnamed) {
         disp_boolean("originally_unnamed", TRUE);
       }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      if (ptr->max_member_alignment != 0) {
+        disp_unsigned_long("max_member_alignment",
+                           (unsigned long)ptr->max_member_alignment);
+      }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       break;
     case tk_typeref:
       (void)printf("tk_typeref\n");
@@ -3337,6 +3346,12 @@ Display the IL for the file scope in human-readable form.
 #if RECORD_MACROS_IN_IL
   disp_ptr("macros", (char *)il_header.macros, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (il_header.default_max_member_alignment != 0) {
+    disp_unsigned_long("default_max_member_alignment",
+                       (unsigned long)ptr->default_max_member_alignment);
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL);

@@ -1520,7 +1520,11 @@ enum a_pragma_kind_tag {
   pk_can_instantiate,	/* Instantiation of the specified template entity
 			   may be done in the current translation unit if
 			   needed; front-end only. */
-
+#if USER_CONTROL_OF_STRUCT_PACKING
+  pk_pack,		/* Establishes maximum alignment of nonstatic data
+			   members of subsequent classes, structs, and
+			   unions. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -1574,6 +1578,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
+#if USER_CONTROL_OF_STRUCT_PACKING
+/* pk_pack */			"pack",
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 /* pk_last */			"last"
 } /* pragma_ids */
 #endif /* VAR_INITIALIZERS */
@@ -2812,6 +2819,18 @@ typedef struct a_type {
 			   C++ may be TRUE even when the source-corresp name
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name (ARM 7.1.3). */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      a_targ_alignment
+		max_member_alignment;
+			/* If nonzero, the maximum alignment of any nonstatic
+			   data member of this class, struct, or union (even
+			   if the member's type indicates a greater alignment).
+			   Its value is based on command-line option
+			   "--pack_alignment", unless that has been overridden
+			   by "#pragma pack". (A zero value means that each
+			   nonstatic data member's alignment is based solely
+			   on its type.) */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
@@ -5699,6 +5718,16 @@ EXTERN struct il_header {
 			/* TRUE if the source program was compiled as old-style
 			   (pcc-compatible) C. */
 #endif /* ifdef CIL */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_targ_alignment
+		default_max_member_alignment;
+			/* If nonzero, the maximum alignment of any nonstatic
+			   data member of a class, struct, or union, unless a
+			   "#pragma pack" overrides it.  It's value is based
+			   on command-line option "--pack_alignment".  (A zero
+			   value means that a member's alignment is based
+			   solely on its type.) */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if RECORD_MACROS_IN_IL
   a_macro_ptr	macros;
 			/* Pointer to a list of entries containing the text
