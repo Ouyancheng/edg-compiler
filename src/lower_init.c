@@ -1058,7 +1058,7 @@ and update *insert_location.  The constant or expression initial value
 pointed to by dip or con is already lowered.
 */
 {
-  an_expr_node_ptr      init_val_node;
+  an_expr_node_ptr      init_val_node, assign_node;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
   a_boolean             string_literal_case = FALSE;
@@ -1112,8 +1112,12 @@ pointed to by dip or con is already lowered.
   } else {
     op = lowered_assignment_operator(init_val_node->type);
   }  /* if */
-  assign_stmt = insert_assignment_statement(entity_node, op, init_val_node,
-                                            insert_location);
+  assign_node = make_assignment_expr(entity_node, op, init_val_node);
+  if (op == (an_expr_operator_kind)eok_sassign) {
+    /* Eliminate empty base class assignments. */
+    eliminate_assignment_if_empty_class(assign_node);
+  }  /* if */
+  assign_stmt = insert_expr_statement(assign_node, insert_location);
   set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
 }  /* add_init_assignment */
 

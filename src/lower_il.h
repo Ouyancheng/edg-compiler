@@ -669,6 +669,11 @@ extern a_statement_ptr insert_expr_statement_set_pos(
                                        an_expr_node_ptr       node,
                                        an_insert_location_ptr insert_location);
 
+extern an_expr_node_ptr make_assignment_expr(
+                                      an_expr_node_ptr       lvalue_expr,
+                                      an_expr_operator_kind  op,
+                                      an_expr_node_ptr       rvalue_expr);
+
 extern an_expr_node_ptr make_var_assignment_expr(
                                           a_variable_ptr         lvalue_var,
                                           an_expr_operator_kind  op,
@@ -829,6 +834,8 @@ extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
                                 a_param_type_ptr param);
 
 extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);
+
+extern void eliminate_assignment_if_empty_class(an_expr_node_ptr expr);
 
 extern void lower_virtual_function_call(an_expr_node_ptr expr);
 

@@ -2763,8 +2763,7 @@ statement.
 }  /* insert_expr_statement_set_pos */
 
 
-static an_expr_node_ptr make_assignment_expr(
-                                      an_expr_node_ptr       lvalue_expr,
+an_expr_node_ptr make_assignment_expr(an_expr_node_ptr       lvalue_expr,
                                       an_expr_operator_kind  op,
                                       an_expr_node_ptr       rvalue_expr)
 /*
@@ -6746,7 +6745,7 @@ Those operations set the lvalue to true instead of incrementing.
 }  /* lower_bool_increment */                  
 
 
-static void eliminate_assignment_if_empty_class(an_expr_node_ptr expr)
+void eliminate_assignment_if_empty_class(an_expr_node_ptr expr)
 /*
 expr is an eok_sassign assignment.  Eliminate it if it copies an empty
 class, so that it will not disturb surrounding objects if the class

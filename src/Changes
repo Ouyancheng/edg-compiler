@@ -1,5 +1,14 @@
 Version 2.45
 
+10/12/00 Incorrect lowered code for ctor-initializer copies of empty base
+         classes
+
+The empty base class optimization (see Changes entry of 8/9/99) introduced
+a bug in the lowered code for ctor-initializers that do a bitwise copy
+of an empty base class.  The copy should be suppressed, because any kind of
+assignment will copy at least one byte and clobber storage following the
+empty base class (see also the Changes entry of 5/2/00).
+
 10/10/00 Call of pointer-to-template-parameter-type in prototype instantiation
 
 A call of an entity of type pointer to T, where T is a template parameter
