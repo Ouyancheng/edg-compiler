@@ -16,7 +16,7 @@ When INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL is TRUE, the front end previously
 scanned unrecognized pragmas as plain tokens.  This could lead to unexpected
 errors in some cases.  For example:
 
-  #pragma UNKNOWN 009  // Previously an error "(009" is not a valid octal
+  #pragma UNKNOWN 009  // Previously an error ("009" is not a valid octal
                        // number); now accepted by default.
 
 Now unrecognized pragmas are scanned as pp-tokens instead, which makes
