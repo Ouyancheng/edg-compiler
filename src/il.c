@@ -4351,6 +4351,7 @@ points to the associated routine if the kind is sck_function.
   sp->constants           = NULL;
   sp->types               = NULL;
   sp->variables           = NULL;
+  sp->nonstatic_variables = NULL;
   sp->labels              = NULL;
   sp->routines            = NULL;
   sp->scopes              = NULL;

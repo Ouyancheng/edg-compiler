@@ -3095,8 +3095,17 @@ typedef struct a_scope {
                         /* List of local variables of this scope, NULL
                            if none. */
 #ifdef CIL
-			/* In a scope for a class, this is the list of
-			   static data members. */
+			/* In a function or block scope, this is the list
+			   of variables with static allocation; in a scope
+			   for a class, this is the list of static data
+			   members.  All variables on this list will be
+			   allocated in the file scope memory region. */
+  a_variable_ptr
+		nonstatic_variables;
+			/* List of local nonstatic variables in a function or
+			   block scope.  Always NULL at file scope.  Variables
+			   on this list will be allocated in the function
+			   scope's memory region. */
 #endif /* ifdef CIL */
   a_label_ptr   labels; /* List of local labels of this scope, NULL
                            if none.  Only used at the function scope level
