@@ -932,6 +932,10 @@ typedef struct a_lookup_state {
   a_boolean	is_linkage_lookup;
 			/* TRUE if the IDL_LINKAGE_LOOKUP option
 			   was specified for this lookup. */
+  a_boolean	terminate_lookup;
+			/* TRUE if a condition occured that should cause
+			   the lookup to terminate even is a symbol was
+			   not found. */
   a_boolean	skip_curr_function_scope;
 			/* TRUE if the IDL_SKIP_CURR_FUNCTION_SCOPE
 			   was specified for this lookup. */
@@ -962,6 +966,8 @@ typedef struct a_lookup_state {
   a_boolean	projection_symbol_found;
 			/* TRUE if a projection symbol was found, but did
                            not meet the requirements of the lookup. */
+  a_scope_depth	last_scope_used;
+			/* Last scope used to find the symbol. */
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   a_symbol_ptr	curr_active_sym;
 			/* Points to the current location in the active
@@ -1010,6 +1016,7 @@ value.
   cleared_lookup_state.must_be_tag                   = FALSE;
   cleared_lookup_state.tentative_type_lookup         = FALSE;
   cleared_lookup_state.is_linkage_lookup             = FALSE;
+  cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_function_scope      = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
   cleared_lookup_state.skip_first_class_reactivation = FALSE;
@@ -1019,6 +1026,7 @@ value.
   cleared_lookup_state.add_to_active_list            = FALSE;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   cleared_lookup_state.projection_symbol_found       = FALSE;
+  cleared_lookup_state.last_scope_used               = NO_SCOPE_DEPTH;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   cleared_lookup_state.class_with_nonreal_base       = NULL;
   cleared_lookup_state.insert_sym                    = NULL;
@@ -1305,8 +1313,7 @@ that do normal id lookup processing.
 static
 a_symbol_ptr look_for_projected_symbol(a_scope_stack_entry_ptr	ssep,
 				       a_symbol_locator		*locator,
-				       a_lookup_state_ptr	lookup_state,
-				       a_boolean		*end_lookup)
+				       a_lookup_state_ptr	lookup_state)
 /*
 This routine is called as part of the normal_id_lookup processing when
 a class or class reactivation scope is encountered that does not
@@ -1315,7 +1322,7 @@ to a base class symbol could satisfy the lookup.
 
 If a projection symbol is found that does not satisfy the lookup (e.g.,
 it is not a type and we are doing a tentative type lookup), a NULL
-symbol is returned and end_lookup is set to TRUE.  ssep points to
+symbol is returned and terminate_lookup is set to TRUE.  ssep points to
 the scope stack entry for the class or class reactivation scope
 being processed.  locator is the symbol locator for the name being looked up.
 lookup_state is used to pass state information between the various routines
@@ -1336,7 +1343,7 @@ that do normal id lookup processing.
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       lookup_state->projection_symbol_found = TRUE;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-      *end_lookup = TRUE;
+      lookup_state->terminate_lookup = TRUE;
     } else {
       /* A projection symbol was created.  It must still satisfy the
          constraints for this lookup. */
@@ -1368,10 +1375,10 @@ a_symbol_ptr instantiation_context_lookup(
 
 
 static
-a_symbol_ptr scope_stack_lookup(a_symbol_locator	    *locator,
-                                a_lookup_state_ptr	    lookup_state,
-				a_scope_depth		    start_depth,
-				a_scope_depth               end_depth)
+a_symbol_ptr scope_stack_lookup(a_symbol_locator    *locator,
+                                a_lookup_state_ptr  lookup_state,
+				a_scope_depth	    start_depth,
+				a_scope_depth       end_depth)
 /*
 This routine is used by normal_id_lookup to look though a specified
 set of scopes and return the result of a normal_id_lookup when only
@@ -1431,6 +1438,10 @@ that do normal id lookup processing.
       db_scope_stack_entry(ssep);
     }  /* if */
 #endif /* DEBUG */
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+    /* Record the depth of the scope in which the symbol is being sought. */
+    lookup_state->last_scope_used = curr_depth;
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
     /* Clear the flag that indicates whether a projected symbol should be
        sought. */
     lookup_state->look_for_projected_symbol = FALSE;
@@ -1470,10 +1481,8 @@ that do normal id lookup processing.
        found, see if there is a projection of some symbol into the
        scope. */
     if (lookup_state->look_for_projected_symbol) {
-      a_boolean	end_lookup = FALSE;
-      sym = look_for_projected_symbol(ssep, locator, lookup_state,
-                                      &end_lookup);
-      if (end_lookup) break;
+      sym = look_for_projected_symbol(ssep, locator, lookup_state);
+      if (lookup_state->terminate_lookup) break;
     }  /* if */
     if (sym != NULL) break;
     if (lookup_state->is_linkage_lookup) {
@@ -1800,7 +1809,7 @@ C and C++.
     }  /* if */
     /* If this is a linkage lookup, don't do the nested class anachronism
        lookup, or SVR4 mode lookup. */
-    if (!lookup_state.is_linkage_lookup) {
+    if (!lookup_state.is_linkage_lookup && !lookup_state.terminate_lookup) {
       if (!C_mode()) {
         if (sym == NULL) {
           /* See if the nested class anachronism (ARM 18.3.5) yields a symbol.
@@ -1849,8 +1858,11 @@ C and C++.
       }  /* if */
     }  /* if */
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+cfront_global_vs_memer_name_lookup:
     if (cfront_2_1_mode &&
-        (sym != NULL || lookup_state.projection_symbol_found)) {
+        (sym != NULL || lookup_state.projection_symbol_found) &&
+        lookup_state.last_scope_used != NO_SCOPE_DEPTH) {
+      a_scope_stack_entry_ptr	proj_ssep;
       /* Special case to emulate a cfront 2.1 bug.  See the comments
          in check_for_cfront_name_lookup_bug for more information.  The
          special case code is only executed when the symbol found is from
@@ -1863,8 +1875,9 @@ C and C++.
          (projection_symbol_found == TRUE).  Call the special routine to
          see if a file scope name exists that satisfies the required
          criteria. */
-      if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-        a_type_ptr      class_type = ssep->assoc_type;
+      proj_ssep = &scope_stack[lookup_state.last_scope_used];
+      if (proj_ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        a_type_ptr      class_type = proj_ssep->assoc_type;
 	if (last_ctor_or_dtor_sym != NULL &&
             last_ctor_or_dtor_sym->parent.class_type == class_type) {
 	  sym = check_for_cfront_name_lookup_bug(class_type, sym, locator,
