@@ -145,7 +145,7 @@ triggering an internal error.
   (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n",
                 (unsigned long)entry_ptr);
   (void)fprintf(f_debug, "         memory region = %4ld\n",
-                trace_region_being_written);
+                (long)trace_region_being_written);
 }  /* display_il_entry_kind_and_ptr */
 
 #endif /* CHECKING && DEBUG */
