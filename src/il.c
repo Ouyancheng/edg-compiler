@@ -1491,6 +1491,10 @@ at_file_scope == TRUE.
 
 
 a_class_type_supplement_ptr alloc_class_type_supplement(void)
+/*
+Allocate a class-type-supplement entry, initialize its fields, and return
+a pointer to it.
+*/
 {
   a_class_type_supplement_ptr	ctsp;
 
