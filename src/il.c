@@ -911,7 +911,7 @@ static void db_static_initializer(a_constant_ptr  con)
 }  /* db_static_initializer */
 
 
-db_destructor(a_routine_ptr  dtor)
+static void db_destructor(a_routine_ptr  dtor)
 {
   fputs("destructor: ", f_debug);
   db_name(&dtor->source_corresp);
@@ -3502,7 +3502,7 @@ new_temp.  Add the entry to the beginning of the rewritten_temporaries list.
 }  /* add_rewritten_temporary */
 
 
-static free_rewritten_temporaries(void)
+static void free_rewritten_temporaries(void)
 /*
 Free the entries on the rewritten_temporaries list by putting them on
 the avail_rewritten_temporaries list.
