@@ -144,7 +144,7 @@ space.
          explicit specializations and explicit instantiations
 
 The front end now accepts the Microsoft mode storage modifiers __forceinline
-and __inline of declarations that are explicit specializations or explicit
+and __inline on declarations that are explicit specializations or explicit
 instantiations.  For example:
 
   template<class T> struct S { void f(); };
