@@ -17360,30 +17360,38 @@ is_exported is TRUE if this is an exported template.
 */
 {
   a_boolean			result = FALSE;
+  a_boolean			set_flag_at_all = FALSE;
   a_template_instance_ptr	tip = mip->instance;
 
   /* First determine whether the flag should be set at all. */
   if (!is_exported || !more_than_one_non_export_translation_unit) {
     /* When not compiling multiple (non-export) translation units, the
-       can_be_instantiated flag is not set for exported templates.  Exported
-       templates are not handled specially when compiling multiple translation
-       units because such templates cannot be used for instantiation purposes
-       from other compilations (because there is no way to rebuild the
-       context containing a set of translation units). */
-    result = !is_exported;
+       can_be_instantiated flag is set for both exported and non-exported
+       templates.  For exported templates, the flag is set if an exported
+       definition is available.  The prelinker uses information from the .ti
+       file to determine if an exported template can be instantiated even
+       though the can_be_instantiated flag is not set.  This case arises
+       if the file that references an exported template is compiled before
+       the file that defines an exported template.
+
+       Exported templates are not handled specially when compiling multiple
+       translation units because such templates cannot be used for
+       instantiation purposes from other compilations (because there is no
+       way to rebuild the context containing a set of translation units). */
+    set_flag_at_all = TRUE;
   } else {
     /* When compiling multiple (non-export) translation units, we can
        set the can_be_instantiated flag for instances of templates defined
        in the non-export translation units (but not in export translation
        units). */
-    result = tip->exported_template_file != NULL &&
+    set_flag_at_all = tip->exported_template_file != NULL &&
              tip->exported_template_file->translation_unit != NULL &&
              tip->exported_template_file->
                                    translation_unit->specified_on_command_line;
   }  /* if */
   /* If the flag is set so far, check whether we actually have a definition
      from which to generate the instantiation.  If not, clear the flag. */
-  if (result) {
+  if (set_flag_at_all) {
     result = mip->already_instantiated ||
              entity_can_be_instantiated(tip,
                                         /*implicit_inclusion_okay=*/FALSE);
