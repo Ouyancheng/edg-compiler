@@ -2171,12 +2171,6 @@ new expression and should therefore not be treated as a declaration.
              to lookup. */
           tag_sym->is_invisible = TRUE;
         }  /* if */
-        if (secondary_translation_unit_seen()) {
-          /* This class type entry might have been generated during the
-             instantiation of another template.  The correspondence checking
-             process must therefore be notified of its existence. */
-          establish_friend_type_correspondence(class_type);
-        }  /* if */
       }  /* if */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;
@@ -2230,6 +2224,13 @@ new expression and should therefore not be treated as a declaration.
       if (!is_local_class) {
         /* Nonlocal class. */
         set_name_linkage_for_type(class_type);
+      }  /* if */
+      if (is_friend_decl && tag_id_present &&
+          secondary_translation_unit_seen()) {
+        /* This class type entry might have been generated during the
+           instantiation of another template.  The correspondence checking
+           process must therefore be notified of its existence. */
+        establish_friend_type_correspondence(class_type);
       }  /* if */
     }  /* if */
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
