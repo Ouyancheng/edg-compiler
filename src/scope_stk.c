@@ -4302,7 +4302,8 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DEBUG */
 #if DO_IL_LOWERING
     if (kind != (a_scope_kind)sck_function ||
-        !function_body_will_be_discarded) {
+        (!function_body_will_be_discarded &&
+         !ssep->in_prototype_instantiation)) {
       /* Do IL lowering (change the C++ IL into C IL). */
       lower_il_memory_region(old_memory_region_number);
     }  /* if */

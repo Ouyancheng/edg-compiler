@@ -961,6 +961,13 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        an_operand            *result,
 			        a_source_position     *operator_position);
 
+extern void template_binary_operation(
+                                     an_expr_operator_kind op,
+                                     an_operand            *operand_1,
+                                     an_operand            *operand_2,
+                                     an_operand            *result,
+                                     a_source_position     *operator_position);
+
 extern void do_unary_operation(an_expr_operator_kind op,
                                a_token_kind          op_token,
                                an_operand            *operand,
@@ -968,11 +975,22 @@ extern void do_unary_operation(an_expr_operator_kind op,
                                an_operand            *result,
                                a_source_position     *start_position);
 
+extern void template_unary_operation(an_expr_operator_kind op,
+                                     a_token_kind          op_token,
+                                     an_operand            *operand,
+                                     an_operand            *result,
+                                     a_source_position     *start_position);
+
 extern void do_question_operation(an_operand *operand_1,
                                   an_operand *operand_2,
                                   an_operand *operand_3,
                                   a_type_ptr result_type,
                                   an_operand *result);
+
+extern void template_question_operation(an_operand *operand_1,
+                                        an_operand *operand_2,
+                                        an_operand *operand_3,
+                                        an_operand *result);
 
 extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 

@@ -4294,6 +4294,100 @@ if possible.  operator_position indicates the operator position.
 }  /* do_binary_operation */
 
 
+static void add_lvalue_node_to_operand(an_operand *operand)
+/*
+The indicated operand (an lvalue) is about to be used as the operand
+of an expression involving template parameter types.  Because the
+generic (typeless) operators used for such expressions assume their
+operands are rvalues, add an eok_lvalue node to the operand to
+mark it as an lvalue.
+*/
+{
+  an_expr_node_ptr expr;
+  an_operand       orig_operand;
+
+  orig_operand = *operand;
+  expr = make_node_from_operand(operand);
+  expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                            operand->type, expr);
+  make_expression_operand(expr, operand->type, operand);
+  operand->state = orig_operand.state;
+  restore_operand_details_incl_ref(operand, &orig_operand);
+}  /* add_lvalue_node_to_operand */
+
+
+void template_binary_operation(an_expr_operator_kind op,
+                               an_operand            *operand_1,
+                               an_operand            *operand_2,
+                               an_operand            *result,
+                               a_source_position     *operator_position)
+/*
+This routine is a wrapper for do_binary_operation for the case where
+an expression is being built from operands whose types are based
+on template parameter types.  When the current expression kind is
+constant, this can happen in nontype template arguments.  Otherwise,
+it happens in prototype instantiations.  op is the generic operator to
+be used (e.g., eok_add, not eok_iadd).
+*/
+{
+  if (curr_expr_kind_is_const()) {
+    check_assertion_str(is_constant_operand(operand_1) &&
+                        is_constant_operand(operand_2),
+                        "template_binary_operation: non-const operand");
+    /* In a constant expression, only operations on integral types are
+       allowed on operands involving template parameter types, so
+       switch to the integral version of the generic operator if
+       there is one. */
+    switch (op) {
+      case eok_add:
+        op = (an_expr_operator_kind)eok_iadd;
+        break;
+      case eok_subtract:
+        op = (an_expr_operator_kind)eok_isubtract;
+        break;
+      case eok_multiply:
+        op = (an_expr_operator_kind)eok_imultiply;
+        break;
+      case eok_divide:
+        op = (an_expr_operator_kind)eok_idivide;
+        break;
+      case eok_eq:
+        op = (an_expr_operator_kind)eok_ieq;
+        break;
+      case eok_ne:
+        op = (an_expr_operator_kind)eok_ine;
+        break;
+      case eok_gt:
+        op = (an_expr_operator_kind)eok_igt;
+        break;
+      case eok_lt:
+        op = (an_expr_operator_kind)eok_ilt;
+        break;
+      case eok_ge:
+        op = (an_expr_operator_kind)eok_ige;
+        break;
+      case eok_le:
+        op = (an_expr_operator_kind)eok_ile;
+        break;
+      default:;
+        /* Other operators are unchanged. */
+    }  /* switch */
+  } else {
+    /* The current expression is not a constant expression. */
+    /* If either operand is an lvalue, add an operator to indicate that. */
+    if (is_an_lvalue(operand_1)) {
+      add_lvalue_node_to_operand(operand_1);
+    }  /* if */
+    if (is_an_lvalue(operand_2)) {
+      add_lvalue_node_to_operand(operand_2);
+    }  /* if */
+  }  /* if */
+  do_binary_operation(op, operand_1, operand_2,
+                      type_of_unknown_templ_param_nontype,
+                      result, operator_position);
+}  /* template_binary_operation */
+
+
 void do_unary_operation(an_expr_operator_kind op,
                         a_token_kind          op_token,
                         an_operand            *operand,
@@ -4377,6 +4471,43 @@ position.
 }  /* do_unary_operation */
 
 
+void template_unary_operation(an_expr_operator_kind op,
+                              a_token_kind          op_token,
+                              an_operand            *operand,
+                              an_operand            *result,
+                              a_source_position     *start_position)
+/*
+This routine is a wrapper for do_unary_operation for the case where
+an expression is being built from an operand whose type is based
+on template parameter types.  When the current expression kind is
+constant, this can happen in nontype template arguments.  Otherwise,
+it happens in prototype instantiations.  op is the generic operator to
+be used (e.g., eok_negate, not eok_inegate).
+*/
+{
+  if (curr_expr_kind_is_const()) {
+    check_assertion_str(is_constant_operand(operand),
+                        "tempate_unary_operation: non-const operand");
+    /* In a constant expression, only operations on integral types are
+       allowed on operands involving template parameter types, so
+       switch to the integral version of the generic operator if
+       there is one. */
+    if (op == (an_expr_operator_kind)eok_negate) {
+      op = (an_expr_operator_kind)eok_inegate;
+    }  /* if */
+  } else {
+    /* The current expression is not a constant expression. */
+    /* If the operand is an lvalue, add an operator to indicate that. */
+    if (is_an_lvalue(operand)) {
+      add_lvalue_node_to_operand(operand);
+    }  /* if */
+  }  /* if */
+  do_unary_operation(op, op_token, operand,
+                     type_of_unknown_templ_param_nontype,
+                     result, start_position);
+}  /* template_unary_operation */
+
+
 void do_question_operation(an_operand *operand_1,
                            an_operand *operand_2,
                            an_operand *operand_3,
@@ -4405,6 +4536,42 @@ in *result.  Constant operations are not folded.
                                               result);
   }  /* if */
 }  /* do_question_operation */
+
+
+void template_question_operation(an_operand *operand_1,
+                                 an_operand *operand_2,
+                                 an_operand *operand_3,
+                                 an_operand *result)
+/*
+This routine is a wrapper for do_question_operation for the case where
+an expression is being built from operands whose types are based
+on template parameter types.  When the current expression kind is
+constant, this can happen in nontype template arguments.  Otherwise,
+it happens in prototype instantiations.
+*/
+{
+  if (curr_expr_kind_is_const()) {
+    check_assertion_str(is_constant_operand(operand_1) &&
+                        is_constant_operand(operand_2) &&
+                        is_constant_operand(operand_3),
+                        "template_question_operation: non-const operand");
+  } else {
+    /* The current expression is not a constant expression. */
+    /* If any operand is an lvalue, add an operator to indicate that. */
+    if (is_an_lvalue(operand_1)) {
+      add_lvalue_node_to_operand(operand_1);
+    }  /* if */
+    if (is_an_lvalue(operand_2)) {
+      add_lvalue_node_to_operand(operand_2);
+    }  /* if */
+    if (is_an_lvalue(operand_3)) {
+      add_lvalue_node_to_operand(operand_3);
+    }  /* if */
+  }  /* if */
+  do_question_operation(operand_1, operand_2, operand_3,
+                        type_of_unknown_templ_param_nontype,
+                        result);
+}  /* template_question_operation */
 
 
 void add_reference_indirection(an_operand *result)

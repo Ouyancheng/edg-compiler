@@ -3417,13 +3417,14 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   }  /* switch */
   if (is_template_param_type(operand.type)) {
     /* The operand has a template parameter type, so we cannot
-       check its type.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(&operand));
-    do_unary_operation(op, save_token, &operand,
-                       type_of_unknown_templ_param_nontype,
-                       result, &start_position);
+       check its type.  Just produce an expression with a generic
+       operator. */
+    /* Switch to the generic expression operator as needed. */
+    if (save_token == (a_token_kind)tok_minus) {
+      op = (an_expr_operator_kind)eok_negate;
+    }  /* if */
+    template_unary_operation(op, save_token, &operand,
+                             result, &start_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              is_bad_type_for_template_arg_operand(operand.type) &&
@@ -7663,16 +7664,15 @@ be of integral type.  See section 3.3.5 of the standard.
   if (is_template_param_type(operand_1->type) ||
       is_template_param_type(operand_2.type)) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2));
-    op = which_binary_operator(save_token,
-                               integer_type((an_integer_kind)ik_int));
-    do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_nontype,
-                        result, &operator_position);
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    op = (save_token == (a_token_kind)tok_star) ?
+            (an_expr_operator_kind)eok_multiply :
+            ((save_token == (a_token_kind)tok_divide) ?
+               (an_expr_operator_kind)eok_divide :
+               (an_expr_operator_kind)eok_remainder);
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -7771,16 +7771,13 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   if (is_template_param_type(operand_1->type) ||
       is_template_param_type(operand_2.type)) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2));
-    op = which_binary_operator(save_token,
-                               integer_type((an_integer_kind)ik_int));
-    do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_nontype,
-                        result, &operator_position);
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    op = (save_token == (a_token_kind)tok_plus) ?
+                                           (an_expr_operator_kind)eok_add :
+                                           (an_expr_operator_kind)eok_subtract;
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -7990,16 +7987,12 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   if (is_template_param_type(operand_1->type) ||
       is_template_param_type(operand_2.type)) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2));
+       check the operand types.  Just produce an expression with
+       a generic operator. */
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
-    do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_nontype,
-                        result, &operator_position);
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -8177,16 +8170,17 @@ standard.
   if (is_template_param_type(operand_1->type) ||
       is_template_param_type(operand_2.type)) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2));
-    op = which_binary_operator(save_token,
-                               integer_type((an_integer_kind)ik_int));
-    do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_nontype,
-                        result, &operator_position);
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    switch (save_token) {
+      case tok_gt: op = (an_expr_operator_kind)eok_gt; break;
+      case tok_lt: op = (an_expr_operator_kind)eok_lt; break;
+      case tok_ge: op = (an_expr_operator_kind)eok_ge; break;
+      case tok_le: op = (an_expr_operator_kind)eok_le; break;
+      default:     unexpected_condition();
+    }  /* switch */
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -8336,16 +8330,13 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   if (is_template_param_type(operand_1->type) ||
       is_template_param_type(operand_2.type)) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2));
-    op = which_binary_operator(save_token,
-                               integer_type((an_integer_kind)ik_int));
-    do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_nontype,
-                        result, &operator_position);
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    op = (save_token == (a_token_kind)tok_eq) ?
+            (an_expr_operator_kind)eok_eq :
+            (an_expr_operator_kind)eok_ne;
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -8495,16 +8486,12 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   if (is_template_param_type(operand_1->type) ||
       is_template_param_type(operand_2.type)) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2));
+       check the operand types.  Just produce an expression with
+       a generic operator. */
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
-    do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_nontype,
-                        result, &operator_position);
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -8672,16 +8659,12 @@ standard.
   if (is_template_param_type(operand_1->type) ||
       is_template_param_type(operand_2.type)) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2));
+       check the operand types.  Just produce an expression with
+       a generic operator. */
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
-    do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_nontype,
-                        result, &operator_position);
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
              (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -9051,15 +9034,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     if (is_template_param_type(operand_1->type) ||
         is_template_param_type(operand_2.type) ||
         is_template_param_type(operand_3.type)) {
-      /* If any operand has a template parameter type, we cannot
-         check the operand types.  Just produce an expression under a
-         ck_template_param constant. */
-      check_assertion(curr_expr_kind_is_const() &&
-                      is_constant_operand(operand_1) &&
-                      is_constant_operand(&operand_2) &&
-                      is_constant_operand(&operand_3));
-      do_question_operation(operand_1, &operand_2, &operand_3,
-                            type_of_unknown_templ_param_nontype, result);
+      /* If either operand has a template parameter type, we cannot
+         check the operand types.  Just produce an expression with
+         a generic operator. */
+      template_question_operation(operand_1, &operand_2, &operand_3,
+                                  result);
       processed = TRUE;
     } else if (curr_expr_kind_is(ek_template_arg) &&
                (is_bad_type_for_template_arg_operand(operand_1->type) ||
