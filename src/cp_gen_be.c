@@ -315,6 +315,9 @@ typedef int a_gen_decl_options_set;
 			/* Suppress setting the source position. */
 #define GDO_FUNCTION_FRIEND_DECL 0x2
 			/* This is a function friend declaration. */
+#define GDO_FORCE_UNQUALIFIED_NAME 0x4
+			/* Force use of an unqualified name in the
+			   declarator. */
 static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
                              a_source_correspondence      *scp,
@@ -1703,19 +1706,19 @@ Output the name of the indicated variable, qualified if necessary.
 
 
 static void gen_decl_name(a_source_correspondence *scp,
-                          an_il_entry_kind        entry_kind)
+                          an_il_entry_kind        entry_kind,
+                          a_boolean               force_unqualified_name)
 /*
 Output the name of the entity whose source correspondence information
 is given by scp.  This name is being declared in this use, and the
 name is the name in a declarator (i.e., it's not the name in an
 elaborated type specifier).  entry_kind indicates the IL entry kind.
-If the entity is unnamed, generate a name.
+force_unqualified_name is TRUE to force the use of an unqualified
+name -- roughly, when the current use is a declaration rather than
+a definition.
 */
 {
-  if (scp->name_linkage == (a_name_linkage_kind)nlk_external &&
-      curr_name_context_is_a_namespace()) {
-    /* An extern "C" entity declared within a namespace shouldn't
-       get identified as a file-scope entity. */
+  if (force_unqualified_name) {
     gen_unqualified_name(scp, entry_kind);
   } else {
     /* Use a normal, possibly-qualified name */
@@ -2337,7 +2340,7 @@ suppress_def_args is TRUE if default arguments should be suppressed
       /* This is the definition, so put out the parameter names. */
       if (param_var != NULL) {
         for (;;) {
-          gen_decl_name(&param_var->source_corresp, iek_variable);
+          gen_unqualified_name(&param_var->source_corresp, iek_variable);
           /* Stop after the last parameter. */
           param_var = param_var->next;
           if (param_var == NULL) break;
@@ -2498,11 +2501,10 @@ comma-separated declarations (e.g., in a for-init statement).  If
 options & GDO_SUPPRESS_POSITION is TRUE, the output position is not
 set to the source position indicated in *scp.  If options &
 GDO_FUNCTION_FRIEND_DECL is TRUE, this is a friend declaration for
-a function.
+a function.  If options & GDO_FORCE_UNQUALIFIED_NAME is TRUE,
+use an unqualified name when naming the entity in the declarator.
 */
 {
-  a_boolean suppress_position = (options & GDO_SUPPRESS_POSITION) != 0;
-
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -2512,15 +2514,18 @@ a function.
                        &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
-    /* Set the source position for the name. */
-    if (!suppress_position) set_decl_position(scp, sec_decl);
+    if (!(options & GDO_SUPPRESS_POSITION)) {
+      /* Set the source position for the name. */
+      set_decl_position(scp, sec_decl);
+    }  /* if */
     /* Write the name. */
     if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
       gen_friend_function_decl_name(scp);
     } else {
-      gen_decl_name(scp, entry_kind);
+      gen_decl_name(scp, entry_kind,
+                    (options & GDO_FORCE_UNQUALIFIED_NAME) != 0);
     }  /* if */
     /* Push the name context for a class/namespace member. */
     push_name_context_if_member(scp);
@@ -2846,7 +2851,7 @@ declaration following this one is such a continuation.
   /* Set the source position for the name. */
   set_output_position(&constant->source_corresp.decl_position);
   /* Write the name. */
-  gen_decl_name(&constant->source_corresp, iek_constant);
+  gen_unqualified_name(&constant->source_corresp, iek_constant);
   /* Write the second part of the declarator. */
   form_type_second_part_simple(constant->type, /*under_lhs_declarator=*/FALSE,
                                &octl);
@@ -3205,7 +3210,7 @@ static void gen_template_specialization_header(
                                      a_template_arg_ptr      template_arg_list)
 /*
 scp points to the source correspondence entry of a routine, class, or
-variable that has is_specialization TRUE, and template_arg_list is the
+variable that is a specialization, and template_arg_list is the
 template argument list for the entry (NULL for the variable/static data
 member case).  Put out "template<>" as the beginning of a specialization
 declaration.  More precisely, put out one "template<>" for each parent
@@ -6549,6 +6554,7 @@ TRUE if the declaration following this one is such a continuation.
   a_function_state              state;
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
+  a_boolean                     force_unqualified_name;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -6742,6 +6748,10 @@ TRUE if the declaration following this one is such a continuation.
          !typeref_is_typedef(rout_type)) {
     rout_type = rout_type->variant.typeref.type;
   }  /* while */
+  /* An unqualified name is used in the declarator if this is a declaration
+     rather than a definition.  Specializations are an exception, and
+     get the full normal handling. */
+  force_unqualified_name = !is_definition && !is_specialization;
   if (rout_type->kind != (a_type_kind)tk_routine) {
     /* If the function type comes from a typedef, handle the declaration
        in the conventional way.  This can occur only for declarations. */
@@ -6749,8 +6759,9 @@ TRUE if the declaration following this one is such a continuation.
     gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
                                        iek_routine, sec_decl, TQ_NONE,
                                        suppress_specifiers,
-                                       friend_decl ? GDO_FUNCTION_FRIEND_DECL :
-                                                     GDO_NO_OPTIONS);
+                                       friend_decl*GDO_FUNCTION_FRIEND_DECL |
+                                       force_unqualified_name*
+                                                   GDO_FORCE_UNQUALIFIED_NAME);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -6782,7 +6793,8 @@ TRUE if the declaration following this one is such a continuation.
          different than for ordinary declarations. */
       gen_friend_function_decl_name(&rout->source_corresp);
     } else {
-      gen_decl_name(&rout->source_corresp, iek_routine);
+      gen_decl_name(&rout->source_corresp, iek_routine,
+                    force_unqualified_name);
     }  /* if */
     /* Push the name context for a class/namespace member. */
     push_name_context_if_member(&rout->source_corresp);
