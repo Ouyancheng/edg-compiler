@@ -84,9 +84,9 @@ which meant sometimes it could not be used as a compile-time constant.
     int a[i3];                    // Gave error previously
   }
 
-2/11/97 Namespace "std" is now predeclared
+2/11/97 IL entry for namespace "std" is now always created
 
-Code has been added to predeclare namespace "std" -- that is, a namespace
+Code has been added to create the namespace "std" -- that is, a namespace
 entry is created and added to the namespaces list of the file scope and
 the symbol associated with it is created.  However, the symbol is not
 added to the symbol table before it is explicitly declared in the source
