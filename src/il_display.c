@@ -2334,6 +2334,7 @@ Display the name of an expression operator.
     case eok_va_start:          s = "eok_va_start";               break;
     case eok_va_arg:            s = "eok_va_arg";                 break;
     case eok_va_end:            s = "eok_va_end";                 break;
+    case eok_va_copy:           s = "eok_va_copy";                break;
 #ifdef CFE
     case eok_negate:            s = "eok_negate";                 break;
     case eok_post_incr:         s = "eok_post_incr";              break;

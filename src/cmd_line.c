@@ -1508,6 +1508,8 @@ Set the various flags appropriate to C99 mode.
   flexible_array_members_allowed = TRUE;
   /* Universal character names are allowed. */
   universal_character_names_allowed = TRUE;
+  /* The va_copy macro should be recognized. */
+  va_copy_macro_allowed = TRUE;
 }  /* set_c99_mode_flags */
 
 

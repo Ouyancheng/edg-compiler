@@ -5993,6 +5993,8 @@ enum an_expr_operator_kind_tag {
 			   of the expression node. */
   eok_va_end,		/* va_end macro reference.  First operand is lvalue
 			   address of variable of type va_list. */
+  eok_va_copy,		/* va_copy macro reference.  Both operands are
+			   lvalue addresses of variables of type va_list. */
 #ifdef CIL
   /* Operators appearing in prototype instantiations.  The type of the
      operands is generally not known and after instantiation these operators
@@ -8479,7 +8481,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef FIL
    "()", "v()",
 #endif /* ifdef FIL */
-   "va_start", "va_arg", "va_end",
+   "va_start", "va_arg", "va_end", "va_copy",
 #ifdef CIL
    "-G",
    "G++", "G--", "++G", "--G",

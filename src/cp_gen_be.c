@@ -5878,6 +5878,14 @@ finish_new_style_cast:
           gen_lvalue_no_parens(operand_1);
           write_tok_ch(')');
           goto done_with_operation;
+        case eok_va_copy:
+          /* <stdarg.h> va_copy macro, treated as a builtin operator. */
+          write_tok_str("va_copy(");
+          gen_lvalue(operand_1);
+          write_tok_ch(',');
+          gen_lvalue(operand_2);
+          write_tok_ch(')');
+          goto done_with_operation;
         default:
           unexpected_condition_str("gen_expr: bad expression operator");
       }  /* switch */

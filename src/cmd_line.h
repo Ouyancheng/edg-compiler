@@ -1356,6 +1356,13 @@ EXTERN a_boolean
 			/* TRUE if universal character names should be
 			   accepted.  Permitted in C++ and C99 modes. */
 
+EXTERN a_boolean
+		va_copy_macro_allowed /* = FALSE*/;
+			/* TRUE if the va_copy macro should be accepted.
+			   It is permitted in C99 mode.  This is only
+			   meaningful when passing stdarg references in
+			   the generated code. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

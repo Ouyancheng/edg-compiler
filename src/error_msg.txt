@@ -1089,6 +1089,7 @@ ec_exp_string_literal;;"expected a string literal"
 ec_unrecognized_stdc_pragma;;"unrecognized STDC pragma"
 ec_bad_stdc_pragma_arg;;"expected \"ON\", \"OFF\", or \"DEFAULT\""
 ec_stdc_pragma_not_allowed_here;;"a STDC pragma may only appear in the global scope or as the before any statements or declarations in a block scope"
+ec_bad_va_copy;;"incorrect use of va_copy"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

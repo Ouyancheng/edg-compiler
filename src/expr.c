@@ -100,6 +100,7 @@ should be suppressed.
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:
+    case eok_va_copy:
     case eok_post_incr:
     case eok_post_decr:
     case eok_pre_incr:
@@ -4813,6 +4814,75 @@ where va_list_var is a variable declared with the builtin type va_list.
                        &start_position);
   db_exit();
 }  /* scan_va_end_operator */
+
+
+static void scan_va_copy_operator(an_operand *result)
+/*
+Scan a reference to the <stdarg.h> va_copy macro, when it is treated
+as a builtin.  Its form is
+
+  va_copy(va_list_dest, va_list_source)
+
+where va_list_dest and va_list_source are variables declared with the
+builtin type va_list.
+*/
+{
+  a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_expr_node_ptr  node1, node2;
+  a_boolean         err = FALSE;
+
+  db_enter(4, "scan_va_copy_operator");
+  /* Save the position of the va_copy keyword. */
+  start_position = pos_curr_token;
+  /* va_copy not possible in preprocessing expressions. */
+  check_assertion_str(!curr_expr_kind_is(ek_pp),
+                      "scan_va_copy_operator: in preprocessing expr");
+  if (curr_expr_kind_is_const()) {
+    /* va_copy is not allowed in constant expressions. */
+    pos_error(ec_bad_va_copy, &start_position);
+    err = TRUE;
+  }  /* if */
+  /* Advance past va_copy. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  add_stop_token(tok_comma);
+  /* Scan the first expression. */
+  node1 = scan_va_list_lvalue_expr(/*value_used=*/FALSE,
+                                   ec_bad_va_copy, &err);
+  /* Check for and pass over the comma. */
+  add_stop_token(tok_identifier);
+  (void)required_token(tok_comma, ec_exp_comma);
+  remove_stop_token(tok_identifier);
+  remove_stop_token(tok_comma);
+  /* Scan the second expression. */
+  node2 = scan_va_list_lvalue_expr(/*value_used=*/TRUE,
+                                   ec_bad_va_copy, &err);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Create a va_copy expression node. */
+    an_expr_node_ptr va_copy_node;
+
+    node1->next = node2;
+    va_copy_node = make_operator_node((an_expr_operator_kind)eok_va_copy,
+                                       void_type(), node1);
+    make_expression_operand(va_copy_node, va_copy_node->type, result);
+  }  /* if */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  db_exit();
+}  /* scan_va_copy_operator */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -10745,6 +10815,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_va_start:
     case tok_va_arg:
     case tok_va_end:
+    case tok_va_copy:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12166,6 +12237,11 @@ see expr.h).
     case tok_va_end:
       /* <stdarg.h> va_end macro, when treated as a builtin. */
       scan_va_end_operator(&local_result);
+      break;
+
+    case tok_va_copy:
+      /* <stdarg.h> va_copy macro, when treated as a builtin. */
+      scan_va_copy_operator(&local_result);
       break;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

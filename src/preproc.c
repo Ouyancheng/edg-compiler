@@ -884,6 +884,13 @@ e.g., in generated C code.
     (void)enter_predef_macro("va_end", "va_end",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (va_copy_macro_allowed) {
+      /* In addition, va_copy should be recognized in C99 mode. */
+      enter_keyword((a_token_kind)tok_va_copy, "va_copy");
+      (void)enter_predef_macro("va_copy", "va_copy",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
     /* Declare va_list as a type of "void *". */
     declare_builtin_va_list_type();
     if (generate_pp_output) {
