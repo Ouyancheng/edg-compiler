@@ -4718,6 +4718,9 @@ functions could still apply).
         ambiguous = FALSE;
         undecidable_because_of_error = FALSE;
         if (operand_1_is_class) {
+          /* Instantiate the type if it is a template class.  This ensures that
+             member operator functions that could apply are declared. */
+          check_for_uninstantiated_template_class(operand_1->type);
           member_functions_symbol = opname_member_function_symbol(kind,
                                                skip_typerefs(operand_1->type));
           if (member_functions_symbol != NULL) {
