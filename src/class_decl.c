@@ -2760,7 +2760,6 @@ from explicit specification or from "inheriting" its virtualness, mark the
 routine entry and return TRUE; otherwise return FALSE.
 */
 {
-  a_boolean                       is_virtual = virtual_specified;
   a_boolean                       overloaded;
   a_base_class_ptr                bcp;
   a_symbol_ptr                    symbol_list, sym, sym_next;
@@ -2775,6 +2774,7 @@ routine entry and return TRUE; otherwise return FALSE.
   db_enter(4, "check_for_virtual_function");
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
   rout = rout_sym->variant.routine.ptr;
+  rout->is_virtual = virtual_specified;
   registry_ptr = &class_state->override_registry;
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
@@ -2791,7 +2791,7 @@ routine entry and return TRUE; otherwise return FALSE.
         rp = sym->variant.routine.ptr;
         if (rp->is_virtual) {
           /* Base class destructor is virtual. */
-          is_virtual = TRUE;
+          rout->is_virtual = TRUE;
           if (exception_spec_is_less_restrictive(rout->type,
                                                  rp->type)) {
             /* The exception specification for the overriding virtual function
@@ -2936,7 +2936,7 @@ routine entry and return TRUE; otherwise return FALSE.
               goto next_base_class;                                       
             }  /* if */
             /* Match */
-            is_virtual = TRUE;
+            rout->is_virtual = TRUE;
             if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
               /* The exception specification for the overriding virtual
                  function is less restrictive that that of the overridden
@@ -2990,9 +2990,8 @@ routine entry and return TRUE; otherwise return FALSE.
 next_base_class:;
   }  /* for */
 done:
-  if (is_virtual) {
-    /* Mark the routine entry. */
-    rout->is_virtual = TRUE;
+  if (rout->is_virtual) {
+    /* Reflect the presence of a virtual function in the enclosing class. */
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
@@ -3019,7 +3018,7 @@ done:
     }  /* if */
   }  /* if */
   db_exit();
-  return is_virtual;
+  return rout->is_virtual;
 }  /* check_for_virtual_function */
 
 #if ABI_COMPATIBILITY_VERSION >= 232

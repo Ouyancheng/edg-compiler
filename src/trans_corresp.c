@@ -307,12 +307,19 @@ void db_sym_list(a_symbol_list_entry_ptr  entries)
 Dump a short summary of the symbols in the given list.
 */
 {
-  a_line_number                line;
-  char                         *file_name, *full_name;
-  a_boolean                    at_end_of_source;
+  a_line_number            line;
+  char                     *file_name, *full_name;
+  a_boolean                at_end_of_source;
+  a_symbol_list_entry_ptr  first = NULL;
 
   while (entries != NULL) {
     a_symbol_ptr  sym = entries->symbol;
+    if (first == NULL) {
+      first = entries;
+    } else if (entries == first) {
+      fprintf(f_debug, "(CIRCULAR)\n");
+      break;
+    }  /* if */
     db_symbol_name(sym);
     fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
     conv_seq_to_file_and_line(sym->decl_position.seq, &file_name,
@@ -3119,17 +3126,6 @@ routine.
 }  /* is_main_function */
 
 
-static a_boolean routine_has_instance_ptr(a_routine_ptr  routine)
-/*
-Return TRUE if the given routine has an associated symbol and if so if
-it has a non-NULL instance_ptr.
-*/
-{
-  a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
-  return sym != NULL && sym->variant.routine.instance_ptr != NULL;
-}  /* routine_has_instance_ptr */
-
-
 static void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
 /*
 Set the correspondence pointers in the members of a type.  The members' types
@@ -3253,8 +3249,8 @@ are not checked.
         for (; routine != NULL && corresp_routine != NULL;
              routine = skip_generated_routine(routine->next),
              corresp_routine = skip_generated_routine(corresp_routine->next)) {
-          if (routine_has_instance_ptr(routine) ==
-                                   routine_has_instance_ptr(corresp_routine)) {
+          if (routine->compiler_generated ==
+                                         corresp_routine->compiler_generated) {
             set_trans_unit_corresp(iek_routine, routine, corresp_routine);
           } else {
             /* Do not set up a correspondence in this case because it could
