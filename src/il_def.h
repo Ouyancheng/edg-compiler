@@ -6282,8 +6282,8 @@ typedef struct a_try_supplement {
 			/* TRUE if this is a function-try-block. */
   a_statement_ptr
 		statement;
-			/* The list of statements contained within the try
-			   block (i.e., those preceding the first handler). */
+			/* The dependent statement, i.e., the block that
+			   follows the "try" keyword. */
   a_handler_ptr	handlers;
 			/* A linked list of entries describing the handlers
 			   (or catch-clauses) defined in the try block. */
