@@ -10318,7 +10318,8 @@ static void scan_gnu_declarator_attributes(char*             *asm_name,
 /*
 Scan asm_name constructs and attribute lists following a declarator.
 The resulting asm() symbol name tag is return through asm_name.
-The attributes are appended to the list pointed to by *attributes.
+The attributes are appended to the list pointed to by *attributes
+(and *new_attributes is set to TRUE if there are any).
 */
 {
   char  *asm_sym_name = NULL;
@@ -10806,6 +10807,7 @@ continue_with_declaration:
       is_function = (declared_storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
 #if GNU_EXTENSIONS_ALLOWED
+      has_postfix_attributes = (do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
       scan_gnu_declarator_attributes(&asm_name, &declarator_attributes,
                                      &has_postfix_attributes,
                                      declared_storage_class, is_function);

@@ -225,7 +225,10 @@ abstract or real declarator.
 			   but even when that is not the case -- presumably
 			   because the declarator was parenthesized -- this
 			   bit may become set. */
-#define DO_LAST DO_IS_DESTRUCTOR
+#define DO_POSTFIX_ATTRIBUTES ((a_decl_flag_set)0x40)
+			/* This bit is set if the declarator included
+			   trailing GNU-style attributes. */
+#define DO_LAST DO_POSTFIX_ATTRIBUTES
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
 

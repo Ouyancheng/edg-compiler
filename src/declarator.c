@@ -4150,8 +4150,11 @@ function_lparen:
         if (*attributes == NULL) {
           *attributes = *last_attribute_ptr;
         }  /* if */
-        /* Advance to the end of the list. */
-        last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+        if (*last_attribute_ptr != NULL) {
+          *output_flags |= DO_POSTFIX_ATTRIBUTES;
+          /* Advance to the end of the list. */
+          last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+        }  /* if */
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
