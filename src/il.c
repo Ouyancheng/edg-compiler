@@ -200,20 +200,7 @@ static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
                                             an_expr_copy_options_set options);
 static a_constant_hash_value hash_constant(a_constant *cp);
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
-
-static void put_str_to_f_debug(char *str)
-/*
-Output the indicated string to f_debug.  This is used as an output routine
-when using the il_to_str routines.
-*/
-{
-  fputs(str, f_debug);
-}  /* put_str_to_f_debug */
-
-#if !STANDALONE_UTILITY_PROGRAM
-
 /* Forward declaration needed because of mutual recursion. */
 void db_type(a_type *tp);
 
@@ -1069,6 +1056,16 @@ class_struct_union:
 }  /* db_type */
 
 
+static void put_str_to_f_debug(char *str)
+/*
+Output the indicated string to f_debug.  This is used as an output routine
+when using the il_to_str routines.
+*/
+{
+  fputs(str, f_debug);
+}  /* put_str_to_f_debug */
+
+
 void db_constant(a_constant *cp)
 /*
 Dump the contents of the indicated constant, for debug purposes.
@@ -1824,8 +1821,8 @@ the dump (this one counts as the first).
   }  /* if */
 }  /* db_statement_list */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #define TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION 2000
 			/* Initial and incremental allocation size for
@@ -8566,10 +8563,10 @@ purposes.  indent indicates the indentation level.
   }  /* for */
 }  /* db_type_lists */
 
-
 #endif /* DEBUG */
-#endif /* !STANDALONE_UTILITY_PROGRAM */ 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if !STANDALONE_UTILITY_PROGRAM
 #if DEBUG
 
 void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
@@ -8857,11 +8854,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   }  /* if */
 }  /* db_source_sequence_entry */
 
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif /* DEBUG */
-#if !STANDALONE_UTILITY_PROGRAM
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if DEBUG
 
 void db_source_sequence_list(a_source_sequence_entry_ptr  ssep)
 /*
@@ -10116,7 +10108,9 @@ the source sequence entry that follows the entry or entries removed.
 }  /* drop_from_fs_src_seq_list */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if !STANDALONE_UTILITY_PROGRAM
 #if RECORD_TEMPLATES_IN_IL
 
 void add_to_templates_list(a_template_ptr  tp)
