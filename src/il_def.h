@@ -3092,6 +3092,14 @@ typedef struct a_type {
 			   is_placeholder_for_class_instantiation set to
 			   TRUE. */
       a_bit_field
+		referenced_by_nested_class_def_placeholder_typeref:1;
+			/* TRUE if the class is a nested class pointed to by
+			   a nested-class-def placeholder typeref; the type
+			   entry for the associated typeref will be on the
+			   types list of the file scope or a namespace scope
+			   enclosing the parent class and will have
+			   is_placeholder_for_nested_class_def set to TRUE. */
+      a_bit_field
 		originally_unnamed:1;
 			/* TRUE if the class was declared without a tag; in
 			   C++ may be TRUE even when the source-corresp name
@@ -3143,6 +3151,14 @@ typedef struct a_type {
 			   position of the type to which it refers, which is
 			   on the types list of a namespace scope.  Used for
 			   user-defined types that are namespace members. */
+      a_bit_field
+		is_placeholder_for_nested_class_def:1;
+			/* TRUE if the typedef appears on a file-scope or
+			   namespace-scope types list to indicate where a
+			   nested class was defined when its definition was
+			   outside the scope of the parent class; the class
+			   type entry pointed to will be on the types list
+			   of the scope of the parent class. */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */

@@ -985,7 +985,13 @@ do_struct_union:
                               any_virtual_functions_including_in_base_classes);
       if (ptr->variant.class_struct_union.
                        referenced_by_class_instantiation_placeholder_typeref) {
-        disp_boolean("referenced_by_..._placeholder_typeref", TRUE);
+        disp_boolean("referenced_by_class_instantiation_placeholder_typeref",
+                     TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.
+                       referenced_by_nested_class_def_placeholder_typeref) {
+        disp_boolean("referenced_by_nested_class_def_placeholder_typeref",
+                     TRUE);
       }  /* if */
       if (ptr->variant.class_struct_union.originally_unnamed) {
         disp_boolean("originally_unnamed", TRUE);
@@ -1010,6 +1016,8 @@ do_struct_union:
         disp_boolean("is_placeholder_for_class_instantiation", TRUE);
       } else if (ptr->variant.typeref.is_placeholder_for_namespace_type) {
         disp_boolean("is_placeholder_for_namespace_type", TRUE);
+      } else if (ptr->variant.typeref.is_placeholder_for_nested_class_def) {
+        disp_boolean("is_placeholder_for_nested_class_def", TRUE);
       } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
         a_boolean  space_needed = FALSE;
         disp_name("qualifiers");
