@@ -620,10 +620,24 @@ if necessary.
 {
   a_targ_alignment  pack_alignment;
 
-  pack_alignment = class_type->variant.class_struct_union.max_member_alignment;
-  if (pack_alignment > 0 && pack_alignment < *alignment) {
-    *alignment = pack_alignment;
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode && targ_bit_field_container_size < 0 &&
+      is_union_type(class_type)) {
+    /* Versions of GNU C that follow a Microsoft-like bit field allocation
+       strategy (negative targ_bit_field_container_size) do not honor the
+       pack alignment for unions. */
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    pack_alignment =
+                   class_type->variant.class_struct_union.max_member_alignment;
+    if (pack_alignment > 0 && pack_alignment < *alignment) {
+      *alignment = pack_alignment;
+    }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 } /* adjust_alignment_for_packing */
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -888,7 +902,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
       container_alignment = base_type->alignment;
 #if GNU_EXTENSIONS_ALLOWED
       if (field->alignment) {
-        /* Honor the "packed" attribute, even on bit fields. */
+        /* Honor the "packed" or "alignment" attribute, even on bit
+           fields. */
         container_alignment = field->alignment;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -934,6 +949,9 @@ targ_microsoft_bit_field_allocation is FALSE.)
       lob->curr_container_avail_bits = (container_size * targ_char_bit);
     } /* if */
   } else if (bit_size == 0 ||
+#if GNU_EXTENSIONS_ALLOWED
+             field->alignment != 0 ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
              !fits_in_container(container_size, container_alignment)) {
     /* Force alignment. */
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
@@ -2693,14 +2711,8 @@ for handling virtual bases and functions.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
-    if (alignment < lob.alignment) {
-      /* The alignment of the class cannot be reduced. */
-      error(ec_alignment_attribute_decreases_alignment);
-    } else {
-      /* Setting lob.alignment is like imagining that the class had a
-	 field with the desired alignment. */
-      lob.alignment = alignment;
-    } /* if */
+    /* GNU C allows the alignment to be increased or decreased. */
+    lob.alignment = alignment;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Adjust the total size of the class to be consistent with the

@@ -774,27 +774,6 @@ attributes.  */
 }  /* apply_attributes_to_variable_type */
 
 
-static a_boolean check_alignment_attribute(a_type_ptr        type,
-                                           a_targ_alignment  alignment,
-                                           a_source_position *pos)
-/*
-Verify that the alignment specified can be applied to the indicated
-type by an attribute.  If so, return TRUE; otherwise, return FALSE and
-issue a diagnostic.  "pos" gives the position at which errors should
-be emitted.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (alignment < skip_typerefs(type)->alignment) {
-    /* An alignment attribute cannot be used to decrease alignment. */
-    pos_error(ec_alignment_attribute_decreases_alignment, pos);
-    result = FALSE;
-  }  /* if */
-  return result;
-}  /* check_alignment_attribute */
-
-
 static a_boolean check_variable_not_local(a_variable_ptr   variable,
                                           an_attribute_ptr attribute)
 /*
@@ -866,10 +845,7 @@ invalid attributes.
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
         alignment = ap->variant.alignment;
-        if (check_alignment_attribute(vp->type, alignment,
-                                      &ap->position)) {
-          vp->alignment = alignment;
-        }  /* if */
+        vp->alignment = alignment;
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_unused:
@@ -975,10 +951,7 @@ messages about any invalid attributes.
       case ak_aligned:
         /* Make sure that the requested alignment is permissible. */
         alignment = ap->variant.alignment;
-        if (check_alignment_attribute(fp->type, alignment, 
-                                      &ap->position)) {
-          fp->alignment = alignment;
-        }  /* if */
+        fp->alignment = alignment;
         break;
       case ak_packed:
         /* If a field is declared to be "packed", then it is aligned on
@@ -1374,18 +1347,7 @@ Both "from" and "to" are class, struct, or union types.
   check_assertion(is_immediate_class_type(from));
   /* Copy the size and alignment. */
   to->size = from->size;
-#if USER_CONTROL_OF_STRUCT_PACKING
-  if (to->alignment_set_explicitly) {
-    /* If the alignment has already been set -- via a typedef before
-       from was defined -- check that the value used is valid. */
-    (void)check_alignment_attribute(from, to->alignment, 
-                                    &from->source_corresp.decl_position);
-  } else 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  /* Do not insert code here. */
-  {
-    to->alignment = from->alignment;
-  }  /* if */
+  to->alignment = from->alignment;
   /* Copy the fields of a complete type. */
   to->variant.class_struct_union.field_list = 
     from->variant.class_struct_union.field_list;
