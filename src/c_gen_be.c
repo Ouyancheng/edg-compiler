@@ -422,12 +422,18 @@ file.
   }  /* if */
   curr_output_seq_number = seq;
   if (new_output_file != curr_output_file) {
+    char *p;
     /* The file name is put out only if it changed. */
     curr_output_file = new_output_file;
-#if 0
-    /* Need to escape special characters? */
-#endif /* 0 */
-    (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
+    /* Put out the file name, putting escapes on characters as necessary. */
+    (void)putc(' ', f_C_output);
+    (void)putc('"', f_C_output);
+    for (p = curr_output_file->file_name; *p != '\0'; p++) {
+      char ch = *p;
+      if (ch == '"' || ch == '\\') (void)putc('\\', f_C_output);
+      (void)putc(ch, f_C_output);
+    }  /* for */
+    (void)putc('"', f_C_output);
   }  /* if */
   (void)putc('\n', f_C_output);
   curr_output_column = 0;
