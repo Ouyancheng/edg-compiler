@@ -10124,8 +10124,8 @@ Generate a declaration for the indicated macro.  The output is a #define
 or #undef.
 */
 {
-  /* Do not put out macros defined on the command line. */
-  if (!mp->is_command_line_definition) {
+  /* Do not put out macros defined on the command line or predefined macros. */
+  if (!mp->is_command_line_definition && !mp->is_predefined) {
     begin_pp_directive("");
     set_output_position(&mp->source_corresp.decl_position);
     /* Write the macro string. */

@@ -3413,6 +3413,7 @@ fields, and return a pointer to it.
   mp->next = NULL;
   mp->is_undef = FALSE;
   mp->is_command_line_definition = FALSE;
+  mp->is_predefined = FALSE;
   mp->text = NULL;
 
   return mp;

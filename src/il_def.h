@@ -9378,6 +9378,10 @@ typedef struct a_macro {
 		is_command_line_definition;
 			/* TRUE if this entry is for a macro defined on the
 			   command line. */
+  a_byte_boolean
+		is_predefined;
+			/* TRUE if this entry is for a predefined macro
+			   (e.g., __DATE__). */
   char		*text;
 			/* A null-terminated string representing the text of
 			   the macro declaration, starting with the keyword

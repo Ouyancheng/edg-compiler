@@ -3112,6 +3112,8 @@ the macro definition.
   set_source_corresp(&mp->source_corresp, macro_sym);
   mdp->macro = mp;
   mp->is_command_line_definition = (curr_command_line_macro_def != NULL);
+  mp->is_predefined = (macro_pos->seq == 0 &&
+                       macro_pos->column == SP_COL_UNKNOWN);
   /* Add the macro to the IL list. */
   add_to_macros_list(mp);
 }  /* make_il_macro_entry */
@@ -4250,6 +4252,16 @@ symbol entry is returned.
   mdp->param_list  = NULL;
   mdp->repl_text   = (repl_text != NULL) ?
                           make_repl_text(repl_text, (sizeof_t*)NULL) : NULL;
+#if RECORD_MACROS_IN_IL
+  /* Insert predefined macros into the macro list.  This covers
+     macros like __STDC__, __cplusplus, and __DATE__. */
+  if (mdp->repl_text != NULL) {
+    a_source_position pos;
+    pos.seq = 0;
+    pos.column = SP_COL_UNKNOWN;
+    make_il_macro_entry(sym_ptr, &pos);
+  }
+#endif /* RECORD_MACROS_IN_IL */
   return(sym_ptr);
 }  /* enter_predef_macro */
 

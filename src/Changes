@@ -1,5 +1,12 @@
 Version 3.1
 
+9/23/02  Predefined macros recorded in IL
+
+When RECORD_MACROS_IN_IL is TRUE, the front end now also records predefined
+macros (such as __DATE__) in the IL.  A new field "is_predefined" has been
+added to type "a_macro" to distinguish such entries (this is used by the
+C++-generating back end, which does not render these macros).
+
 9/18/02  Microsoft compatibility: "thread" specifier requires variable with
          static storage duration
 
