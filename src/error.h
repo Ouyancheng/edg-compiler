@@ -405,8 +405,8 @@ typedef enum /*an_error_code*/ {
   ec_anon_union_member_access,
   ec_anon_union_member_function,
   ec_anon_union_storage_class,
-  ec_missing_initializer_on_field,
-  ec_cannot_initialize_field,
+  ec_missing_initializer_on_fields,
+  ec_cannot_initialize_fields,
   ec_no_ctor_but_const_or_ref_member,
   ec_var_with_uninitialized_field,
   ec_missing_const_assignment_operator,
@@ -775,6 +775,8 @@ extern void str_catastrophe(an_error_code error_code,
 extern void catastrophe(an_error_code error_code);
 
 /* Interfaces for producing multiple message diagnostics. */
+extern void pos_start_error(an_error_code     error_code,
+                            a_source_position *error_pos);
 extern void pos_st_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
                                char              *error_string);
