@@ -64,11 +64,11 @@ typedef struct an_argument_match_summary {
   an_argument_match_level
 		match_level;
 			/* Match level -- see ARM 13.2.  Primary key. */
-  unsigned long	downward_cast_levels;
-			/* If match_level == aml_standard_conv, and the
+  a_derivation_step_ptr
+		downward_cast_derivation;
+			/* If match_level == aml_std_conversion and the
 			   compatibility involves a downward cast, this is
-			   the count of levels; for a cast to void *,
-			   ULONG_MAX.  Zero otherwise.  Secondary key. */
+			   the derivation.  Otherwise, NULL.  Secondary key. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
