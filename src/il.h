@@ -365,6 +365,11 @@ extern void clear_expr_node(an_expr_node_ptr  node,
 
 extern an_expr_node_ptr alloc_expr_node(an_expr_node_kind node_kind);
 
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+extern an_expr_node_ptr alloc_lowered_eh_construct_node(
+                                             a_lowered_eh_construct_kind kind);
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+
 extern void copy_statement(a_statement *from,
                            a_statement *to);
 
