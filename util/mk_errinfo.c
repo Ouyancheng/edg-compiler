@@ -15,7 +15,6 @@ the error text.
 
 */
 
-#define COMPILING_MK_ERRINFO /* Used by host_envir.h. */
 #include <stdio.h>
 #include <ctype.h>
 #include <malloc.h>
