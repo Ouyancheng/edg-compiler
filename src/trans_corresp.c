@@ -422,8 +422,19 @@ has not yet been examined for a matching entry in another translation unit.
   } else {
     tcp = &trans_unit_corresp_of_unknown_entry(entity);
   }  /* if */
-  if (*tcp != NULL && (*tcp)->canonical != entity) {
+  if (*tcp != NULL && 
+      ((*tcp)->canonical != entity ||
+       ((*tcp)->primary != NULL && (*tcp)->canonical != (*tcp)->primary))) {
     /* Detach the given entity from the correspondence entry. */
+    if ((*tcp)->canonical == entity) {
+      /* Normally, the canonical entry cannot be detached from the
+         correspondence set.  In error cases, however, it is possible
+         that the canonical entry wasn't a match after all.  This only
+         occurs when there is a non-canonical corresponding entry in
+         the primary translation unit. */
+      check_assertion(total_errors != 0);
+      change_canonical_entry(*tcp, (*tcp)->primary);
+    }  /* if */
 #if CHECKING
     --(*tcp)->count;
 #endif /* CHECKING */
@@ -1401,11 +1412,25 @@ is in fact valid.
 */
 {
   a_boolean    match = TRUE;
-  if (has_correspondence(field)) {
+  if (trans_unit_corresp_of(field) != NULL) {
     a_field_ptr  corresp_field = (a_field_ptr)canonical_il_entry_of(field);
     a_source_correspondence_ptr
-                 scp = &field->source_corresp,
-                 corresp_scp = &corresp_field->source_corresp;
+                 scp, corresp_scp;
+
+    if (field == corresp_field) {
+      /* This is the canonical entry.  If applicable, verify the entry in
+         the primary translation unit against this one.  Otherwise, nothing
+         needs to be done. */
+      a_field_ptr  prim = (a_field_ptr)trans_unit_corresp_of(field)->primary;
+      if (prim != NULL && field != prim) {
+        corresp_field = field;
+        field = prim;
+      } else {
+        goto done;
+      }  /* if */
+    }  /* if */
+    scp = &field->source_corresp,
+    corresp_scp = &corresp_field->source_corresp;
   
     match = verify_name_correspondence(field);
     if (match &&
@@ -1442,6 +1467,7 @@ is in fact valid.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   return match;
 }  /* verify_field_correspondence */
 
@@ -1472,12 +1498,27 @@ is in fact valid.
 {
   a_boolean      match = TRUE;
 
-  if (has_correspondence(routine)) {
+  if (trans_unit_corresp_of(routine) != NULL) {
     a_routine_ptr  corresp_routine =
                                 (a_routine_ptr)canonical_il_entry_of(routine);
     a_source_correspondence_ptr
-                   scp = &routine->source_corresp,
-                   corresp_scp = &corresp_routine->source_corresp;
+                   scp, corresp_scp;
+
+    if (routine == corresp_routine) {
+      /* This is the canonical entry.  If applicable, verify the entry in
+         the primary translation unit against this one.  Otherwise, nothing
+         needs to be done. */
+      a_routine_ptr  prim =
+                       (a_routine_ptr)trans_unit_corresp_of(routine)->primary;
+      if (prim != NULL && routine != prim) {
+        corresp_routine = routine;
+        routine = prim;
+      } else {
+        goto done;
+      }  /* if */
+    }  /* if */
+    scp = &routine->source_corresp,
+    corresp_scp = &corresp_routine->source_corresp;
     match = verify_name_correspondence(routine);
     if (match &&
         (!types_are_redecl_compatible(routine->type, corresp_routine->type) ||
@@ -1518,6 +1559,7 @@ is in fact valid.
       report_multiple_definitions(routine);
     }  /* if */
   }  /* if */
+done:
   return match;
 }  /* verify_routine_correspondence */
 
@@ -1530,11 +1572,26 @@ is in fact valid.
 {
   a_boolean       match = TRUE;
 
-  if (has_correspondence(var)) {
+  if (trans_unit_corresp_of(var) != NULL) {
     a_variable_ptr  corresp_var = (a_variable_ptr)canonical_il_entry_of(var);
     a_source_correspondence_ptr
-                    scp = &var->source_corresp,
-                    corresp_scp = &corresp_var->source_corresp;
+                    scp, corresp_scp;
+
+    if (var == corresp_var) {
+      /* This is the canonical entry.  If applicable, verify the entry in
+         the primary translation unit against this one.  Otherwise, nothing
+         needs to be done. */
+      a_variable_ptr  prim =
+                          (a_variable_ptr)trans_unit_corresp_of(var)->primary;
+      if (prim != NULL && var != prim) {
+        corresp_var = var;
+        var = prim;
+      } else {
+        goto done;
+      }  /* if */
+    }  /* if */
+    scp = &var->source_corresp,
+    corresp_scp = &corresp_var->source_corresp;
     match = verify_name_correspondence(var);
     if (match &&
         (!f_types_are_compatible(var->type, corresp_var->type,
@@ -1565,6 +1622,7 @@ is in fact valid.
       report_multiple_definitions(var);
     }  /* if */
   }  /* if */
+done:
   return match;
 }  /* verify_variable_correspondence */
 
@@ -1577,12 +1635,27 @@ is in fact valid.
 {
   a_boolean       match = TRUE;
 
-  if (has_correspondence(constant)) {
+  if (trans_unit_corresp_of(constant) != NULL) {
     a_constant_ptr  corresp_constant =
                                (a_constant_ptr)canonical_il_entry_of(constant);
     a_source_correspondence_ptr
-                    scp = &constant->source_corresp,
-                    corresp_scp = &corresp_constant->source_corresp;
+                    scp, corresp_scp;
+
+    if (constant == corresp_constant) {
+      /* This is the canonical entry.  If applicable, verify the entry in
+         the primary translation unit against this one.  Otherwise, nothing
+         needs to be done. */
+      a_constant_ptr  prim =
+                     (a_constant_ptr)trans_unit_corresp_of(constant)->primary;
+      if (prim != NULL && constant != prim) {
+        corresp_constant = constant;
+        constant = prim;
+      } else {
+        goto done;
+      }  /* if */
+    }  /* if */
+    scp = &constant->source_corresp,
+    corresp_scp = &corresp_constant->source_corresp;
     match = verify_name_correspondence(constant);
     if (match &&
         (!identical_types(constant->type, corresp_constant->type) ||
@@ -1597,6 +1670,7 @@ is in fact valid.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   return match;
 }  /* verify_constant_correspondence */
 
@@ -2069,8 +2143,20 @@ is in fact valid.
   a_boolean     both_defined = type_has_definition(type) &&
                                type_has_definition(corresp_type);
   a_source_correspondence_ptr
-                scp = &type->source_corresp,
-                corresp_scp = &corresp_type->source_corresp;
+                scp, corresp_scp;
+
+  if (type == corresp_type) {
+    /* This is the canonical entry.  If applicable, verify the entry in
+       the primary translation unit against this one.  Otherwise, nothing
+       needs to be done. */
+    a_type_ptr  prim = (a_type_ptr)trans_unit_corresp_of(type)->primary;
+    if (prim != NULL && type != prim) {
+      corresp_type = type;
+      type = prim;
+    }  /* if */
+  }  /* if */
+  scp = &type->source_corresp,
+  corresp_scp = &corresp_type->source_corresp;
 
   check_assertion(corresp_type != NULL);
   if (type == corresp_type) {
@@ -2167,18 +2253,33 @@ is in fact valid.
   a_boolean       match = TRUE;
   a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
 
-  if (has_correspondence(templ)) {
+  if (trans_unit_corresp_of(templ) != NULL) {
     a_template_ptr  corresp_templ =
                                  (a_template_ptr)canonical_il_entry_of(templ);
-    a_symbol_ptr    corresp_sym =
-                        (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+    a_symbol_ptr    corresp_sym;
     a_template_symbol_supplement_ptr
                     tssp = NULL, corresp_tssp = NULL;
     /* Use the canonical template entry for scp since it has the correct
        value for "scp->access". */
     a_source_correspondence_ptr
-                    scp = &templ->canonical_template->source_corresp,
-                    corresp_scp = &corresp_templ->source_corresp;
+                    scp, corresp_scp;
+
+    if (templ == corresp_templ) {
+      /* This is the canonical entry.  If applicable, verify the entry in
+         the primary translation unit against this one.  Otherwise, nothing
+         needs to be done. */
+      a_template_ptr  prim =
+                        (a_template_ptr)trans_unit_corresp_of(templ)->primary;
+      if (prim != NULL && templ != prim) {
+        corresp_templ = templ;
+        templ = prim;
+      } else {
+        goto done;
+      }  /* if */
+    }  /* if */
+    corresp_sym = (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+    scp = &templ->canonical_template->source_corresp,
+    corresp_scp = &corresp_templ->source_corresp;
     match = verify_name_correspondence(templ);
     if (match && is_template_symbol(templ_sym)) {
       /* templ_sym could also be an ordinary member function. */
@@ -2258,6 +2359,7 @@ is in fact valid.
       (void)verify_routine_correspondence(tssp->variant.function.routine);
     }  /* if */
   }  /* if */
+done:
   return match;
 }  /* verify_template_correspondence */
 
