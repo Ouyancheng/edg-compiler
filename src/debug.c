@@ -146,7 +146,7 @@ Returns TRUE if there was an error during parsing of the debug option.
   a_boolean           done;
 
   db_active = TRUE;
-  if isdigit(*debug_option) {
+  if (isdigit(*debug_option)) {
     /* The option is just a number, set the global debug level. */
     debug_level = atoi(debug_option);
   } else {
