@@ -1596,12 +1596,11 @@ addressed to indirect base classes.
 
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-static void set_embedded_virtual_base_class_offset(a_base_class_ptr base_class,
-                                                   a_type_ptr       class_type)
+static void set_embedded_virtual_base_class_offset(a_base_class_ptr base_class)
 /*
 base_class is a direct or indirect virtual base class of class_type.  If
 it is allocated inside another base class, compute its offset within the layout
-for class_type.  Then do the same check for its own direct virtual base
+its class.  Then do the same check for its own direct virtual base
 classes.
 */
 {
@@ -1620,7 +1619,7 @@ classes.
       if (data_section_bcp->is_virtual &&
           data_section_bcp->data_section_base_class != NULL &&
           data_section_bcp->offset == 0) {
-        set_embedded_virtual_base_class_offset(data_section_bcp, class_type);
+        set_embedded_virtual_base_class_offset(data_section_bcp);
       }  /* if */
       /* Look for the corresponding virtual base class. */
       bcp = corresponding_base_class(base_class, data_section_bcp->type);
@@ -1630,19 +1629,23 @@ classes.
       base_class->offset = bcp->offset + data_section_bcp->offset;
     }  /* if */
   }  /* if */
+  /* Update the offsets of nonvirtual base classes from which base_class is
+     derived. */
+  set_base_class_offsets(base_class);
   /* Apply the check recursively to see if there are any indirect virtual
      base classes of class_type that have not been properly assigned an
      offset yet. */
   bcp = base_classes_of(base_class->type);
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->is_virtual && bcp->direct) {
-      curr_class_bcp = corresponding_base_class(bcp, class_type);
+      curr_class_bcp = corresponding_base_class(bcp,
+                                                base_class->derived_class);
       if (curr_class_bcp->data_section_base_class == NULL) {
         /* curr_class_bcp is an indirect virtual base class of class type
            that is not yet marked as embedded. */
         curr_class_bcp->data_section_base_class = base_class;
       }  /* if */
-      set_embedded_virtual_base_class_offset(curr_class_bcp, class_type);
+      set_embedded_virtual_base_class_offset(curr_class_bcp);
     }  /* if */
   }  /* for */
   db_exit();
@@ -1691,7 +1694,7 @@ virtual base class pointer is shared with some other base class.
                                                   pointer_base_class->offset;
       }  /* if */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-      set_embedded_virtual_base_class_offset(virtual_base_class, class_type);
+      set_embedded_virtual_base_class_offset(virtual_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* for */
