@@ -1081,7 +1081,7 @@ Print the name of the indicated variable.
                                            (a_name_linkage_kind)nlk_internal &&
              !is_magic_name(variable->source_corresp.name)) {
     /* Name is at file scope, but is not external.  Add a suffix so
-       that it will not conflict with external names.  See dump_variable.
+       that it will not conflict with external names.  See dump_variable_decl.
        Leave some special names alone. */
     ensure_enough_room_on_line(strlen(variable->source_corresp.name) + 2 +
                                strlen(module_id));
@@ -4571,9 +4571,9 @@ parameters.
            storage class on both declarations of the variable.  This
            is because pcc will not allow two declarations of a static
            variable.  Since the variable will be put out as an external
-           variable, dump_name must modify the names of static non-external
-           variables so that they will not conflict with like-named
-           static variables in separately-compiled modules. */
+           variable, dump_variable_name must modify the names of static
+           non-external variables so that they will not conflict with
+           like-named static variables in separately-compiled modules. */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
       } else {
         dump_variable_storage_class(variable);
