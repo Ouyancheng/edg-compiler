@@ -1340,8 +1340,7 @@ except for casts to ambiguous or inaccessible base classes.
             }  /* if */
           } else {
             /* The operation was successfully folded to a constant. */
-            copy_constant(&local_constant, &operand->variant.constant);
-            operand->type = new_type;
+            make_constant_operand(&local_constant, operand);
           }  /* if */
           break;
         case ok_indefinite_function:
