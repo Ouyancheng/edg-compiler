@@ -7033,12 +7033,12 @@ or the variable's scope must be on the scope stack.
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_vla_dimension_ptr make_vla_dimension(a_type_ptr        array_type,
-                                       an_expr_node_ptr  expr_node)
+                                       an_expr_node_ptr  expr_node,
+                                       a_boolean         in_prototype_scope)
 /*
 Allocate a_vla_dimension entry for the indicated array_type and set its
-type and dimension_expr fields to the values passed in as parameters.
-Add the entry to the list for the current scope.  Return a pointer to
-the entry.
+fields to the values passed in as parameters.  Add the entry to the list
+for the current scope.  Return a pointer to the entry.
 */
 {
   a_scope_stack_entry_ptr ssep;
@@ -7062,6 +7062,7 @@ the entry.
   vdp = alloc_vla_dimension();
   vdp->type = array_type;
   vdp->dimension_expr = expr_node;
+  vdp->in_prototype_scope = in_prototype_scope;
   array_type->variant.array.has_assoc_vla_dimension = TRUE;
   /* Add the vla_dimension to the end of the list. */
   if (il_scope->vla_dimensions == NULL) {

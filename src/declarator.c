@@ -2132,7 +2132,8 @@ may be NULL if it is not needed.
           /* Create a VLA dimension entry to record the expression. */
           a_vla_dimension_ptr  vdp;
 
-          vdp = make_vla_dimension(*new_type_ptr, dim_expr);
+          vdp = make_vla_dimension(*new_type_ptr, dim_expr,
+                                   /*in_prototype_scope=*/FALSE);
           if (in_expression_context()) {
             /* Don't put out an stmk_set_vla_size statement if this is an
                expression context (e.g., a sizeof or cast). */

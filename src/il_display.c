@@ -3950,6 +3950,9 @@ Display the indicated vla_dimension entry.
   disp_ptr("next", (char *)ptr->next, iek_vla_dimension);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("dimension_expr", (char *)ptr->dimension_expr, iek_expr_node);
+  if (ptr->in_prototype_scope) {
+    disp_boolean("in_prototype_scope", TRUE);
+  }  /* if */
 }  /* disp_vla_dimension */
 
 

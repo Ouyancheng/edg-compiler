@@ -593,8 +593,10 @@ extern a_local_static_variable_init_ptr find_local_static_variable_init(
                                                       a_variable_ptr  var,
                                                       a_scope_ptr     scope);
 
-extern a_vla_dimension_ptr make_vla_dimension(a_type_ptr        array_type,
-                                              an_expr_node_ptr  expr_node);
+extern a_vla_dimension_ptr make_vla_dimension(
+                                       a_type_ptr        array_type,
+                                       an_expr_node_ptr  expr_node,
+                                       a_boolean         in_prototype_scope);
 
 extern void get_variable_initializer(a_variable_ptr     variable,
                                      a_scope_ptr        var_scope,

@@ -1534,6 +1534,23 @@ Do C99 lowering for all entities in and under the given scope.
   a_local_static_variable_init_ptr lsvip;
   a_context                        context;
 
+  if (scope->kind == (a_scope_kind)sck_function) {
+    /* Visit all VLA dimension expressions for parameters before pushing the
+       function scope.  This matters when there are compound literals in
+       the dimension expression. */
+    for (vla_dim = scope->vla_dimensions;
+         vla_dim != NULL;
+         vla_dim = vla_dim->next) {
+      /* Entries from prototype scopes are handled above. */
+      if (vla_dim->in_prototype_scope) {
+        /* Temporarily indicate that we're not inside a function. */
+        a_scope_ptr saved_innermost_function_scope = innermost_function_scope;
+        innermost_function_scope = NULL;
+        lower_c99_full_expr(vla_dim->dimension_expr);
+        innermost_function_scope = saved_innermost_function_scope;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   switch (scope->kind) {
     case sck_file:
@@ -1585,7 +1602,10 @@ Do C99 lowering for all entities in and under the given scope.
   for (vla_dim = scope->vla_dimensions;
        vla_dim != NULL;
        vla_dim = vla_dim->next) {
-    lower_c99_full_expr(vla_dim->dimension_expr);
+    /* Entries from prototype scopes are handled above. */
+    if (!vla_dim->in_prototype_scope) {
+      lower_c99_full_expr(vla_dim->dimension_expr);
+    }  /* if */
   }  /* for */
   /* Visit all initializers for local static variables. */
   for (lsvip = scope->local_static_variable_inits;
@@ -1708,13 +1728,23 @@ Do C99 lowering for a memory region.  scope is the top-level scope for
 the memory region, i.e., either the file scope or a function scope.
 */
 {
+  a_context context;
+
   il_lowering_underway = TRUE;
+  if (scope->kind == (a_scope_kind)sck_function) {
+    /* Push the file scope around lowering of a function scope. */
+    push_context(&context, il_header.primary_scope,
+                 (an_object_lifetime_ptr)NULL);
+  }  /* if */
   lower_c99_scope(scope);
   if (scope->kind == (a_scope_kind)sck_file) {
 #if LOWER_COMPLEX
     lower_c99_nonreal_float_types();
 #endif /* LOWER_COMPLEX */
     lower_c99_bool_type();
+  }  /* if */
+  if (scope->kind == (a_scope_kind)sck_function) {
+    pop_context();
   }  /* if */
   il_lowering_underway = FALSE;
 }  /* lower_c99_il_memory_region */

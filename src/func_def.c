@@ -915,7 +915,8 @@ and for the instantiation of template functions.
              expression list to the function memory region and then create
              the vla_dimension entry. */
           (void)make_vla_dimension(vfp->array_type,
-                                   copy_expr_tree(vfp->expr, CE_NO_OPTIONS));
+                                   copy_expr_tree(vfp->expr, CE_NO_OPTIONS),
+                                   /*in_prototype_scope=*/TRUE);
         }  /* if */
       }  /* for */
       free_vla_fixup_list(func_info->vla_fixup_list);
