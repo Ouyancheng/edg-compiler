@@ -128,9 +128,6 @@ Flags to be set when using the KAI inliner.
 
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
-#ifndef __ANSIC__
-#define __BSD__ 1
-#endif /* ifndef __ANSIC__ */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
 #ifndef GCC_IS_C_GEN_BE_TARGET
