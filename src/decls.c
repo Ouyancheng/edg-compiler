@@ -2927,7 +2927,9 @@ otherwise, set *ext_sym to NULL.
                                          (a_name_linkage_kind)nlk_none) {
       /* No prior declaration, so there's no conflict. */
       source_corresp_ptr->name_linkage = def_external_linkage.kind;
-      sym->explicit_linkage_specifier = def_external_linkage.is_explicit;
+      sym->explicit_linkage_specifier = 
+                              (*ext_sym)->explicit_linkage_specifier = 
+                                         def_external_linkage.is_explicit;
       if (overload_symbol != NULL &&
           def_external_linkage.kind == (a_name_linkage_kind)nlk_external) {
         /* "At most one of a set of overloaded functions . . . can have
@@ -2955,8 +2957,14 @@ otherwise, set *ext_sym to NULL.
         /* The linkage kinds (C or C++) are the same; however, the ARM states,
            "A function declaration without a linkage specification may not
            precede the first linkage specification for that function." */
-        err = (!sym->explicit_linkage_specifier &&
-               def_external_linkage.is_explicit);
+        if (def_external_linkage.is_explicit) {
+          err = (!sym->explicit_linkage_specifier &&
+                 !(*ext_sym)->explicit_linkage_specifier);
+          /* Mark the symbols as having an explicit linkage specifier to
+             keep this error from occurring again later. */
+          sym->explicit_linkage_specifier = 
+                              (*ext_sym)->explicit_linkage_specifier = TRUE;
+        }  /* if */
       } else {
         /* Linkage is not the same, but it's no error as long as the current
            specification is implicit. */
