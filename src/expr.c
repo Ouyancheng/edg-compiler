@@ -1839,13 +1839,13 @@ bound with the function in *bound_function_selector.
     /* Check that the left operand is (a pointer to) a complete class,
        struct, or union, for either operator. */
     if (!err) {
-      if (is_template_param_type(orig_class_struct_union_type)) {
-        /* For a template parameter type, switch to the corresponding
-           proxy class. */
-        orig_class_struct_union_type =
-                  proxy_class_for_template_param(orig_class_struct_union_type);
-      }  /* if */
       if (!pcc_mode_integral_pointer_case) {
+        if (is_template_param_type(orig_class_struct_union_type)) {
+          /* For a template parameter type, switch to the corresponding
+             proxy class. */
+          orig_class_struct_union_type =
+                  proxy_class_for_template_param(orig_class_struct_union_type);
+        }  /* if */
         /* Drop any qualifiers or typedefs on the class/struct/union type. */
         class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
         if (is_class_struct_union_type(class_struct_union_type)) {
