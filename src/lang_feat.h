@@ -306,6 +306,21 @@ thread, and naked.
 #endif /* ifndef MICROSOFT_KEYWORDS_ALLOWED */
 
 /*
+Flag that is TRUE if "#pragma pack(n)" and command-line option
+"--pack_alignment=n" are supported.  This feature allows for packing classes
+and structs by specifying a maximum alignment for nonstatic data members,
+even when that alignment is less than the alignment dictated by the member's
+type.
+*/
+#ifndef USER_CONTROL_OF_STRUCT_PACKING
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define USER_CONTROL_OF_STRUCT_PACKING TRUE
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define USER_CONTROL_OF_STRUCT_PACKING FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
+
+/*
 Flag that is TRUE if the "restrict" keyword is allowed (in both C and C++).
 This extension implements NCEG proposal X3J11.1 92-068 ("Aliasing Control
 via Restricted Pointers" by Bill Homer of CRI), which was adapted for C++
