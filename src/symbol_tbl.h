@@ -149,59 +149,59 @@ typedef struct a_symbol_locator {
 		source_position;
 			/* The source position to be used when this symbol
 			   is entered. */
-  unsigned int	is_qualified_name:1;
+  a_bit_field	is_qualified_name:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   (e.g., "A::x" or "::y").  specific_symbol points
 			   to the proper symbol. */
-  unsigned int	is_global_qualified_name:1;
+  a_bit_field	is_global_qualified_name:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   that begins with a unary "::" (e.g., "::y" or
 			   ::A::x). */
-  unsigned int  is_file_scope_qualified_name:1;
+  a_bit_field	is_file_scope_qualified_name:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   that refers to a file scope entity (e.g., ::y
 			   but not ::A::x). */
-  unsigned int  is_operator_name:1;
+  a_bit_field	is_operator_name:1;
 			/* TRUE if the "identifier" is a C++ overloaded
 			   operator name, of the form "operator<token>",
 			   e.g., "operator+".  Cannot be TRUE when
 			   is_conversion_name is TRUE. */
-  unsigned int  is_conversion_name:1;
+  a_bit_field	is_conversion_name:1;
 			/* TRUE if the "identifier" is a C++ user-defined
 			   conversion name, of the form "operator <type-name>",
 			   e.g., "operator int".  Cannot be TRUE when
 			   is_operator_name is TRUE. */
-  unsigned int  is_destructor_name:1;
+  a_bit_field	is_destructor_name:1;
 			/* TRUE if the "identifier" is a C++ destructor
 			   name, of the form "~<name>". */
-  unsigned int  is_semivisible_nested_type:1;
+  a_bit_field	is_semivisible_nested_type:1;
 			/* TRUE if specific_symbol points to a nested type
 			   that is not actually visible, except as a C++
 			   anachronism (ARM 18.3.5). */
-  unsigned int  access_control_error_reported:1;
+  a_bit_field	access_control_error_reported:1;
 			/* TRUE if an accessibility error has already been
 			   issued on the associated symbol. */
-  unsigned int  has_been_coalesced:1;
+  a_bit_field	has_been_coalesced:1;
 			/* TRUE if the identifier has already been processed
 			   by is_generalized_identifier_start -- even if
 			   no coalescing was actually performed.  This
 			   indicates that no processing is needed should
 			   is_generalized_identifier_start be called again. */
-  unsigned int  is_vacuous_destructor_reference:1;
+  a_bit_field	is_vacuous_destructor_reference:1;
 			/* TRUE if the identifier is a destructor name of
 			   a type that has no destructor.  Used for
 			   explicit destructor invocations of the form
 			   p->int::~int.  The type can be a nonclass type
 			   or a class type with no destructor. */
-  unsigned int	is_nonclass_destructor:1;
+  a_bit_field	is_nonclass_destructor:1;
 			/* TRUE for vacuous destructor references for 
 			   nonclass types such as int::~int or i::~i
 			   where "i" is a typedef name. */
-  unsigned int  is_error:1;
+  a_bit_field	is_error:1;
 			/* TRUE if an error has been diagnosed on the use
 			   of the associated identifier and no symbol should
 			   be entered into the symbol table. */
-  unsigned int	do_not_clear_specific_symbol:1;
+  a_bit_field	do_not_clear_specific_symbol:1;
 			/* TRUE if the specific symbol field of the locator
 		           should not be cleared when clear_specific_symbol
                            is called.  This is set when clearing the specific
@@ -210,10 +210,10 @@ typedef struct a_symbol_locator {
 			   process.  This is TRUE for template references
 			   that have been coalesced and for specific symbol
 			   error locators. */
-  unsigned int	is_template_id:1;
+  a_bit_field	is_template_id:1;
 			/* TRUE if the coalesced identifier is a template-id
 			   (i.e., template-name < template-arg-list >). */
-  unsigned int	is_class_member:1;
+  a_bit_field	is_class_member:1;
 			/* TRUE if is_qualified_name is TRUE and the entity
 			   pointed to by the parent field is a class
 			   (not a namespace). */
@@ -417,10 +417,10 @@ typedef struct a_macro_param {
 
 typedef struct a_macro_def {
   /* For macros defined to the preprocessor: */
-  unsigned int	object_like:1;
+  a_bit_field	object_like:1;
 			/* TRUE if this macro is object-like (i.e., has no
 			   parameters). */
-  unsigned int	try_to_scan_and_save_constant_value:1;
+  a_bit_field	try_to_scan_and_save_constant_value:1;
 			/* TRUE if the macro is object-like and its definition
 			   appears to be a single literal constant, so
 			   the constant value should be scanned and saved
@@ -428,15 +428,15 @@ typedef struct a_macro_def {
 			   flag will be set to FALSE, is_manifest_constant
 			   will be set to TRUE, and constant_value will
 			   point to the constant value. */
-  unsigned int	is_manifest_constant:1;
+  a_bit_field	is_manifest_constant:1;
 			/* TRUE if the expansion of this (object-like) macro
 			   is a literal constant, and its value is given
 			   by constant_value. */
-  unsigned int	cannot_be_redefined:1;
+  a_bit_field	cannot_be_redefined:1;
 			/* TRUE if this is a predefined macro that cannot
 			   be redefined later.  This is TRUE for ANSI
 			   predefined macros. */
-  unsigned int	ref_suppresses_pch_file:1;
+  a_bit_field	ref_suppresses_pch_file:1;
 			/* TRUE if referencing this macro within a header is
 			   incompatible with creating a precompiled header
 			   file; TRUE, e.g., for predefined macros __DATE__
@@ -680,64 +680,64 @@ typedef struct a_class_symbol_supplement {
 			   class type.  The entire list or some portion
 			   of the end of the list may be shared between
 			   classes in a given namespace. */
-  unsigned int	constructor_required:1;
+  a_bit_field	constructor_required:1;
 			/* TRUE if the class must have a constructor (either
 			   declared by the user or generated by the compiler)
 			   because it has virtual base classes, virtual
 			   functions, or base classes or members with
 			   constructors. */
-  unsigned int	destructor_required:1;
+  a_bit_field	destructor_required:1;
 			/* TRUE if the class must have a destructor (either
 			   declared by the user or generated by the compiler)
 			   because it has base classes or members with
 			   destructors. */
-  unsigned int	has_default_constructor:1;
+  a_bit_field	has_default_constructor:1;
 			/* TRUE if a default constructor has either been
 			   declared or generated for the class. */
-  unsigned int  has_copy_constructor:1;
+  a_bit_field	has_copy_constructor:1;
 			/* TRUE if a copy constructor has either been declared
 			   or generated for the class. */
-  unsigned int  has_copy_constructor_for_const_object:1;
+  a_bit_field	has_copy_constructor_for_const_object:1;
 			/* TRUE if there is a copy constructor for the class
 			   and it can be used to copy a const object. */
-  unsigned int  assignment_by_bitwise_copy_allowed:1;
+  a_bit_field	assignment_by_bitwise_copy_allowed:1;
 			/* TRUE if assignment can be performed by a bitwise
 			   copy rather than by calling an assignment operator
 			   function (i.e., when the assignment operator is
 			   not user-defined and when the current class has no
 			   virtual base classes and no subobjects for which
 			   bitwise copy is not allowed). */
-  unsigned int	construction_by_bitwise_copy_allowed:1;
+  a_bit_field	construction_by_bitwise_copy_allowed:1;
 			/* TRUE if copy construction can be performed by a
 			   bitwise copy rather than by calling a copy
 			   constructor function. */
-  unsigned int  target_of_conversion_function:1;
+  a_bit_field	target_of_conversion_function:1;
 			/* TRUE if this class is the target of a user-defined
 			   conversion function (for conversion from another
 			   class to this class). */
-  unsigned int  any_ref_member:1;
+  a_bit_field	any_ref_member:1;
 			/* TRUE if this class has any fields of reference
 			   type. */
-  unsigned int  is_class_aggregate:1;
+  a_bit_field	is_class_aggregate:1;
 			/* TRUE if the class has no constructors, no base
 			   classes, no private or protected members, and
 			   no virtual functions (ARM 8.4.1). */
-  unsigned int  has_operator_new:1;
+  a_bit_field	has_operator_new:1;
 			/* TRUE if a member operator new() has been declared
 			   for this class or a class from which it derived. */
-  unsigned int  has_operator_array_new:1;
+  a_bit_field	has_operator_array_new:1;
 			/* TRUE if a member operator new[]() has been
 			   declared for this class or a class from which it
 			   is derived. */
-  unsigned int  has_operator_delete:1;
+  a_bit_field	has_operator_delete:1;
 			/* TRUE if a member operator delete() has been
 			   declared for this class or a class from which it
 			   is derived. */
-  unsigned int  has_operator_array_delete:1;
+  a_bit_field	has_operator_array_delete:1;
 			/* TRUE if a member operator delete[]() has been
 			   declared for this class or a class from which it
 			   is derived. */
-  unsigned int  is_nonreal_class:1;
+  a_bit_field	is_nonreal_class:1;
 			/* TRUE if the class is an instantiation of a class
 			   template based on template arguments that include
 			   one or more template parameters.  For instance,
@@ -749,22 +749,22 @@ typedef struct a_class_symbol_supplement {
 			      template <class T> void f(vec<T,3> *vp) { ... }
                            In addition, classes that are nested within
 			   nonreal classes are marked as nonreal. */
-  unsigned int  is_prototype_instantiation:1;
+  a_bit_field	is_prototype_instantiation:1;
 			/* TRUE when this class is a nonreal class that
 		 	   is the prototype instantiation.  Also TRUE for
 			   classes nested within the prototype
 			   instantiation. */
-  unsigned int	is_specific_template_def:1;
+  a_bit_field	is_specific_template_def:1;
 			/* TRUE if the class is a specific definition of
 			   a template class instance.  FALSE if the
 			   instance was generated from the class template. */
-  unsigned int  any_nonstatic_data_members:1;
+  a_bit_field	any_nonstatic_data_members:1;
 			/* TRUE if the class or any of its base classes has
 			   one or more nonstatic data members. */
-  unsigned int	any_nonreal_base_classes:1;
+  a_bit_field	any_nonreal_base_classes:1;
 			/* For a prototype instantiation this is TRUE
 			   if any of its base classes are nonreal classes. */
-  unsigned int	instantiation_in_progress:1;
+  a_bit_field	instantiation_in_progress:1;
 			/* For an real instantiation, this is TRUE if the
 			   full instantiation is in the process of being
 			   generated. */
@@ -852,29 +852,29 @@ typedef struct a_func_info_block {
 			/* The scope number used for the function prototype
 			   scope for the parameters, to be reused for the
 			   function scope if a body is found. */
-  unsigned int  any_prototype_names_omitted:1;
+  a_bit_field	any_prototype_names_omitted:1;
 			/* TRUE if the parameter list is a prototype list,
 			   and it includes at least one parameter with
 			   just a type and no name. */
-  unsigned int  is_inline:1;
+  a_bit_field	is_inline:1;
 			/* TRUE if inline was specified (C++ only). */
-  unsigned int  is_definition:1;
+  a_bit_field	is_definition:1;
 			/* TRUE if the current declaration is a definition. */
-  unsigned int  is_main_function:1;
+  a_bit_field	is_main_function:1;
 			/* TRUE if the function "main". */
-  unsigned int  is_implicit_declaration:1;
+  a_bit_field	is_implicit_declaration:1;
 			/* TRUE if this is an implicit declaration. */
-  unsigned int	function_type_from_typedef:1;
+  a_bit_field	function_type_from_typedef:1;
 			/* TRUE if the function type came from a typedef
 			   rather than from the declarator.  When it is TRUE,
 			   an error will be issued on a function definition
 			   and param_id_list and prototype_scope_symbols will
 			   be NULL. */
-  unsigned int	any_default_args:1;
+  a_bit_field	any_default_args:1;
 			/* TRUE if the function type declaration included
 			   the declarations of default arguments. */
 #if ASM_FUNCTION_ALLOWED
-  unsigned int	is_asm_function:1;
+  a_bit_field	is_asm_function:1;
 			/* TRUE if the function type declaration included the
 			   asm specifier. */
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -917,12 +917,10 @@ typedef struct a_template_param {
 			   create the parameter types for instances of
 			   the class template when the parameter type
 			   depends on other template parameters. */
-  unsigned int
-		has_default_arg:1;
+  a_bit_field	has_default_arg:1;
 			/* TRUE if a default argument has been declared for
 			   this parameter. */
-  unsigned int
-		def_arg_involves_template_param:1;
+  a_bit_field	def_arg_involves_template_param:1;
 			/* TRUE if the default argument involves a template
 			   parameter.  For nontype parameters, this means
 			   that the constant involves a template parameter.
@@ -943,7 +941,7 @@ typedef struct a_template_param {
 			/* Constant entry for a formal parameter.  A unique
 			   constant entry is created for each template constant
 			   parameter. */
-      unsigned int
+      a_bit_field
 		type_involves_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter constant involves (anywhere in its
@@ -1022,20 +1020,20 @@ typedef struct a_template_instance {
 			   not a "real" instance but a kind of template for a
 			   member function or a static data member).  Otherwise
 			   (i.e., usually) NULL. */
-  unsigned int  instantiation_required:1;
+  a_bit_field	instantiation_required:1;
 			/* TRUE if a routine body or static data member
 			   definition needs to be generated for this instance.
 			   This flag is FALSE if an explicit definition has
 			   been provided by the user (i.e., if specific_def
 			   is set). */
-  unsigned int  specific_decl:1;
+  a_bit_field	specific_decl:1;
 			/* For instances of nonmember function templates,
 			   TRUE if this instance has been explicitly declared
 			   (in which case, instance_sym has been added to the
 			   overload list for this name).  Always TRUE (and
 			   therefore meaningless) for member functions and
 			   static data members of template classes. */
-  unsigned int  specific_def:1;
+  a_bit_field	specific_def:1;
 			/* For instances of nonmember function templates and
 			   member functions of template classes, TRUE if this
 			   instance has been explicitly defined (in which case
@@ -1046,21 +1044,21 @@ typedef struct a_template_instance {
                            specific_def is also set TRUE for entities
 			   whose instantiations have been suppressed using
 			   a do_not_instantiate pragma. */
-  unsigned int	explicit_instantiation:1;
+  a_bit_field	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using a pragma directive. */
-  unsigned int  already_instantiated:1;
+  a_bit_field	already_instantiated:1;
 			/* TRUE if instantiation has already been performed
 			   (for instance, for inline functions, which are
 			   instantiated at the point of first reference). */
-  unsigned int	explicit_do_not_instantiate:1;
+  a_bit_field	explicit_do_not_instantiate:1;
 			/* TRUE if instantiation has been explicitly 
 			   suppressed by a do_not_instantiate pragma. */
-  unsigned int	explicit_can_instantiate:1;
+  a_bit_field	explicit_can_instantiate:1;
 			/* TRUE if instantiation has been explicitly declared
                            as being possible by a can_instantiate pragma. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  unsigned int	in_info_file:1;
+  a_bit_field	in_info_file:1;
 			/* TRUE if the instance was listed in the instantiation
 			   information file as an instantiation assigned to
 			   this compilation. */
@@ -1154,19 +1152,13 @@ typedef struct a_template_symbol_supplement {
 			/* Points to the symbol representing the prototype
 			   instantiation.  The prototype instantiation is
 			   also on the instantiations list above. */
-      unsigned int
+      a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
 			   class template has been completed.  Used to
 			   prevent a real instantiation from occurring while
 			   the prototype instantiation is in progress. */
-#if CHECKING
-      unsigned int
-		dummy:2;
-			/* Extra field that can be initialized to prevent
-			   spurious reference to uninitialized data warnings
-			   from CodeCenter. */
-#endif /* CHECKING */
+      bitfield_to_avoid_codecenter_warnings()
     } class_template;
     /* When symbol kind = sk_function_template: */
     struct {
@@ -1200,19 +1192,13 @@ typedef struct a_template_symbol_supplement {
 			   closing ">" of the template parameter list) and
 			   ends with the last token of the function
 			   declarator. */
-      unsigned int
+      a_bit_field
 		cannot_be_called:1;
 			/* TRUE if this function cannot be called because
 			   not all of the template parameters were used
 			   in function parameter types or were used only
 			   in function parameters that have default values. */
-#if CHECKING
-      unsigned int
-		dummy:2;
-			/* Extra field that can be initialized to prevent
-			   spurious reference to uninitialized data warnings
-			   from CodeCenter. */
-#endif /* CHECKING */
+      bitfield_to_avoid_codecenter_warnings()
       an_unused_instantiation_count
 		unused_instantiations;
 			/* When a function is added to the instantiations
@@ -1326,7 +1312,7 @@ typedef struct a_scope_pointers_block {
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace
 			   for the current scope; NULL if there is none. */
-  unsigned int	add_symbols_to_inactive_list:1;
+  a_bit_field	add_symbols_to_inactive_list:1;
 			/* TRUE for sck_namespace_reactivation scopes if
 			   symbols added to the scope should be added
 			   directly to the inactive list, instead of being
@@ -1372,6 +1358,10 @@ typedef struct a_namespace_symbol_supplement {
 			   class symbol supplement can point to a common
 			   entry for all of the leaf classes (i.e., most
 			   base classes) in a given namespace. */
+  a_byte_boolean
+		visited_by_qualified_lookup;
+			/* Used by the qualified lookup routines to indicate
+			   that this namespace has already been visited. */
 } a_namespace_symbol_supplement;
 
 
@@ -1507,64 +1497,63 @@ typedef struct a_symbol {
 			   otherwise it is NULL. */
   a_symbol_kind kind;
 			/* The kind of symbol. */
-  unsigned int	referenced:1;
+  a_bit_field	referenced:1;
 			/* TRUE if the symbol is actually referenced, not just
 			   declared. */
-  unsigned int	defined:1;
+  a_bit_field	defined:1;
 			/* TRUE if the symbol is actually defined, not just
 			   declared. */
-  unsigned int  explicit_linkage_specifier:1;
+  a_bit_field	explicit_linkage_specifier:1;
 			/* TRUE for variables and routines for which an
 			   explicit external linkage was specified (e.g.,
 			   ``extern "C"'' -- C++ only). */
-  unsigned int  reentered_from_prototype_scope:1;
+  a_bit_field	reentered_from_prototype_scope:1;
 			/* TRUE if symbol was originally declared in a
 			   function prototype scope and was subsequently
 			   reentered in the function scope. */
-  unsigned int	is_class_member:1;
+  a_bit_field	is_class_member:1;
 			/* TRUE if symbol represents a C++ class member; also
 			   TRUE for fields in C.  (Note: it is not set for
 			   anonymous union members whose names are promoted to
 			   a non-class scope.)  */
-  unsigned int  is_error:1;
+  a_bit_field	is_error:1;
 			/* TRUE if the symbol represents an identifier for
 			   which an error has been diagnosed and which should
 			   not be entered into the symbol table. */
-  unsigned int	is_template_param:1;
+  a_bit_field	is_template_param:1;
 			/* TRUE if the symbol represent a template
 			   parameter. */
-  unsigned int  template_param_not_visible:1;
+  a_bit_field	template_param_not_visible:1;
 			/* TRUE if this is a template parameter that should
 			   not be visible for name lookup purposes at this
 			   point in time. */
-  unsigned int	force_external_linkage:1;
+  a_bit_field	force_external_linkage:1;
 			/* TRUE if this is a class or enum type that has been
 			   used in a way that would force external linkage (if
 			   it has linkage at all). */
-  unsigned int	synthesized_namespace_projection:1;
+  a_bit_field	synthesized_namespace_projection:1;
 			/* TRUE for sk_namespace_projection and
 			   sk_overloaded_function symbols that were created
 			   as a result of a lookup that found one or more
 			   symbols that are visible as a result of
 			   using directives. */
-  unsigned int	qualified_lookup:1;
+  a_bit_field	qualified_lookup:1;
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of a namespace
 			   qualified lookup. */
-  unsigned int	must_be_class_or_namespace_lookup:1;
+  a_bit_field	must_be_class_or_namespace_lookup:1;
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of an
 			   IDL_MUST_BE_CLASS_OR_NAMESPACE lookup. */
-  unsigned int	must_be_tag_lookup:1;
+  a_bit_field	must_be_tag_lookup:1;
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of an
 			   IDL_MUST_BE_TAG lookup. */
-  unsigned int	do_not_reuse:1;
+  a_bit_field	do_not_reuse:1;
 			/* TRUE for synthesized namespace symbols generated
 			   as a result of a special lookup that cannot be
 			   reused by a subsequent lookup. */
-  unsigned int
-		ambiguous:1;
+  a_bit_field	ambiguous:1;
 			/* TRUE if the symbol name is ambiguous in
 			   the current scope, i.e., another symbol with the
 			   same name is visible, and there is no reason to
@@ -1612,7 +1601,7 @@ typedef struct a_symbol {
       a_variable_ptr
 		ptr;
 			/* Pointer to the variable entry. */
-      unsigned int
+      a_bit_field
 		value_has_been_set:1;
 			/* TRUE if the variable was initialized (explicitly or
 			   implicitly), has been assigned to, or has had its
@@ -1621,7 +1610,7 @@ typedef struct a_symbol {
 			   been assigned to or has had its address taken.
 			   Also TRUE if its storage class is extern, since its
 			   value will be set where in the definition. */
-      unsigned int
+      a_bit_field
 		used:1;
 			/* TRUE if the variable was directly used or had
 			   its address taken. */
@@ -1688,7 +1677,7 @@ typedef struct a_symbol {
       a_projection_descr_ptr
 		extra_info;
 			/* Additional information about the projection. */
-      unsigned int /*an_access_specifier*/
+      a_bit_field /*an_access_specifier*/
 		access:2;
 			/* Access to the base class member in the scope of the
 			   derived class.  This may differ from the access
@@ -1702,11 +1691,11 @@ typedef struct a_symbol {
 			   class itself (along the "preferred derivation" --
 			   the path affording greatest access -- when there
 			   are multiple paths) within the derived class. */
-      unsigned int
+      a_bit_field
 		is_using_decl:1;
 			/* If TRUE this projection symbol represents a
 			   using-declaration. */
-      unsigned int
+      a_bit_field
 		any_intervening_using_decl:1;
 			/* TRUE if the access of the inherited name was
 			   modified by an using-declaration anywhere on the
@@ -1803,14 +1792,14 @@ typedef struct a_symbol_header {
 			/* sk_extern_variable, sk_extern_routine and
                            synthesized namespace projection symbols
 			   associated with this name. */
-  unsigned int  any_nested_types_on_inactive_list:1;
+  a_bit_field	any_nested_types_on_inactive_list:1;
 			/* TRUE if a symbol for a nested type has been
                            transferred to the inactive list.  This field is
                            used to speed up processing to support the
                            nested class anachronism (ARM 18.3.5) and is
                            only set when anachronisms are allowed. */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  unsigned int  has_cfront_transitional_nested_type_mangled_name:1;
+  a_bit_field	has_cfront_transitional_nested_type_mangled_name:1;
                         /* TRUE if a nested type has been flagged for
                            special handling during name mangling.  The first
                            nested type with a given name will have this flag
@@ -1941,7 +1930,7 @@ typedef struct a_scope_stack_entry {
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.).  See the definition of
 			   a_scope_kind in il_def.h. */
-  unsigned int /*an_access_specifier*/
+  a_bit_field /*an_access_specifier*/
 		current_access:2;
 			/* The access control specification that currently
 			   prevails for declarations in the current scope;
@@ -1951,13 +1940,13 @@ typedef struct a_scope_stack_entry {
 			   the access to be applied to the enumeration
 			   constants may be derived from the setting of this
 			   field.) */
-  unsigned int	inactive_symbols_may_be_visible:1;
+  a_bit_field	inactive_symbols_may_be_visible:1;
 			/* TRUE if the scope stack to this depth contains any
 			   class reactivation entries or class entries for
 			   classes with base classes.  In either case,
 			   symbols on a symbol header's inactive list may be
 			   visible from the current scope. */
-  unsigned int  inside_local_class:1;
+  a_bit_field	inside_local_class:1;
 			/* TRUE if the current scope level is that of a local
 			   class or is (logically) within the scope of a local
 			   class.  Once this flag is set it is usually
@@ -1965,42 +1954,42 @@ typedef struct a_scope_stack_entry {
 			   the stack; the exception is when a template
 			   instantiation scope is pushed, in which case the
 			   flag is cleared. */
-  unsigned int	template_param_decl_scope:1;
+  a_bit_field	template_param_decl_scope:1;
 			/* TRUE if this is the first scope that
 			   affects the declarative level after a template
 			   instantiation scope. */
-  unsigned int	is_loop_scope:1;
+  a_bit_field	is_loop_scope:1;
 			/* TRUE if this scope is associated with the compound
 			   statement of a for, do, or while loop. */
-  unsigned int	slow_lookup_required:1;
+  a_bit_field	slow_lookup_required:1;
 			/* TRUE if this is a scope for which a slow lookup
 			   is required because the scope stack contains a
 			   scope in which certain symbols on the active list
 			   must not be visible. */
-  unsigned int	return_value_optimization_possible:1;
+  a_bit_field	return_value_optimization_possible:1;
 			/* TRUE if this scope is a function scope and return
 			   value optimization is possible for the routine.
 			   That is, the routine returns a class value via
 			   a copy constructor, and all return statements
 			   return a single local variable. */
-  unsigned int	in_prototype_instantiation:1;
+  a_bit_field	in_prototype_instantiation:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template. */
-  unsigned int	defer_access_checks:1;
+  a_bit_field	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level
                            declaration.  Access checks for names
 			   scanned while this is TRUE cannot be done
 			   until the declarator has been scanned. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  unsigned int	source_sequence_entries_disallowed:1;
+  a_bit_field	source_sequence_entries_disallowed:1;
 			/* TRUE if the current scope establishes or belongs to
 			   a context in which source sequence entries should
 			   not be issued -- e.g. a template declaration, a
 			   a template instantiation, or a pragma. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  unsigned int  nested_instantiation:1;
+  a_bit_field	nested_instantiation:1;
                         /* TRUE for a template instantiation scope that
 			   is expected to be nested inside of another
 			   instantiation scope.  This occurs when a friend
@@ -2009,11 +1998,11 @@ typedef struct a_scope_stack_entry {
 			   continue on past the nested instantiation scope so
 			   that names from the outer instantiation scope can
 			   be visible. */
-  unsigned int	is_try_block:1;
+  a_bit_field	is_try_block:1;
 			/* TRUE if the scope is that of the compound statement
 			   of a try block (sck_block only).  Note: not set
 			   for the scope pushed for a catch clause. */
-  unsigned int	within_try_block:1;
+  a_bit_field	within_try_block:1;
 			/* TRUE if is_try_block is TRUE or if this scope is
 			   an sck_block scope nested within a scope for which
 			   is_try_block is set. */
@@ -2467,8 +2456,9 @@ a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr    fund_sym,
                                                a_scope_depth   scope_depth,
                                                a_boolean       suppress_error);
 
-extern a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr  new_sym,
-                                                a_symbol_ptr  other_sym);
+extern a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr    new_sym,
+                                                a_symbol_ptr    other_sym,
+                                                a_namespace_ptr ns_ptr);
 
 extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_locator *location,

@@ -1395,14 +1395,14 @@ called by id_linkage.
       check_assertion(effective_decl_level == depth_innermost_namespace_scope);
       if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
         /* Do the lookup in the file scope. */
-        other_decl = file_scope_id_lookup(locator, IDL_NO_OPTIONS);
+        other_decl = file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
       } else {
         /* Do the lookup in the innermost namespace scope. */
         a_namespace_ptr  nsp;
         nsp = scope_stack[depth_innermost_namespace_scope].il_scope->
                                                        variant.assoc_namespace;
         other_decl = namespace_qualified_id_lookup(locator, nsp,
-                                                   IDL_NO_OPTIONS);
+                                                   IDL_LINKAGE_LOOKUP);
       }  /* if */      
     }  /* if */
     /* Clear out the specific symbol pointer of the locator.  It was set by
@@ -3635,7 +3635,8 @@ on for use in generating cross-reference output describing this declaration.
               list, but it needs to be added to the overload list as well,
               to assure that it will be found by the ordinary overload
               resolution algorithm. */
-          overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
+          overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol,
+                                                        (a_namespace_ptr)NULL);
           sym->variant.routine.instance_ptr->specific_decl = TRUE;
         }  /* if */
         *old_type = routine_ptr->type;
@@ -6157,7 +6158,8 @@ current scope.
           /* Add a new symbol to the overload set. */
           new_sym = make_namespace_projection_symbol(sym, &locator,
                                                      depth_scope_stack);
-          new_sym = add_symbol_to_overload_list(new_sym, overload_sym);
+          new_sym = add_symbol_to_overload_list(new_sym, overload_sym,
+                                                (a_namespace_ptr)NULL);
           overload_sym = new_sym;
         }  /* if */
         set_namespace_membership(new_sym, (a_source_correspondence *)NULL,

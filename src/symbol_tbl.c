@@ -1783,6 +1783,7 @@ return a pointer to it.
   nssp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
   nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
   nssp->namespace_list_entry = NULL;
+  nssp->visited_by_qualified_lookup = FALSE;
 #if DEBUG
   num_namespace_symbol_supplements_allocated++;
 #endif /* DEBUG */
@@ -1825,7 +1826,7 @@ and return a pointer to it.
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
 #if CHECKING 
-      tssp->variant.class_template.dummy = FALSE;
+      tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
       break;
     case sk_function_template:
@@ -1840,7 +1841,7 @@ and return a pointer to it.
       tssp->variant.function.unused_instantiations = 0;
       tssp->variant.function.class_declared_in = NULL;
 #if CHECKING
-      tssp->variant.function.dummy = FALSE;
+      tssp->variant.function.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
       break;
     case sk_static_data_member:
@@ -3016,8 +3017,9 @@ so that there is a symbol against which a reference can be recorded.
 }  /* enter_undefined_member_symbol */
 
 
-a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr  new_sym,
-                                         a_symbol_ptr  other_sym)
+a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr    new_sym,
+                                         a_symbol_ptr    other_sym,
+                                         a_namespace_ptr ns_ptr)
 /*
 new_sym is a newly created function (or function template) symbol that
 shares a name with other_sym, which is either an overloaded function symbol
@@ -3025,6 +3027,13 @@ or another function or function template symbol.  If necessary, create an
 overloaded function symbol and add other_sym to its list.  Add new_sym to
 the new or existing list of overloaded functions, and return a pointer to
 the overloaded function symbol.
+
+If other_sym is not already an sk_overloaded_function symbol, it
+may need to be removed from the symbol header and scope stack lists
+and replaced with the newly created overloaded function symbol.
+Normally, the scope list is found by looking through the scope stack
+for the decl_scope of other_sym.  However, if ns_ptr is non-NULL,
+the pointers block associated with that scope is used instead.
 */
 {
   a_symbol_ptr        overload_sym, prev_sym_ptr;
@@ -3039,20 +3048,26 @@ the overloaded function symbol.
   } else {
     /* The existing symbol is not an sk_overloaded_function symbol
        (i.e., it's a simple function symbol of some kind). */
-    /* Find the scope stack entry associated with this declaration. */
-    ssep = &scope_stack[decl_scope_level];
-    /* If the scope stack entry for the overloaded function is not that of
-       the current scope (e.g., when a friend declaration refers to a function
-       at file scope), find the correct one. */
-    while (ssep->number != other_sym->decl_scope) {
+    if (ns_ptr == NULL) {
+      /* Find the scope stack entry associated with this declaration. */
+      ssep = &scope_stack[decl_scope_level];
+      /* If the scope stack entry for the overloaded function is not that of
+         the current scope (e.g., when a friend declaration refers to a 
+         function at file scope), find the correct one. */
+      while (ssep->number != other_sym->decl_scope) {
 #if CHECKING
-      if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) {
-        internal_error("enter_overloaded_symbol: scope stack overrun error");
-      }  /* if */
+        if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) {
+          internal_error("enter_overloaded_symbol: scope stack overrun error");
+        }  /* if */
 #endif /* CHECKING */
-      --ssep;
+        --ssep;
+      }  /* if */
+      pointers_block = assoc_pointers_block_of(ssep);
+    } else {
+      /* A namespace pointer was passed by the caller.  Use the pointers
+         block associated with this namespace. */
+      pointers_block = pointers_block_for_namespace(ns_ptr);
     }  /* if */
-    pointers_block = assoc_pointers_block_of(ssep);
     /* Create an sk_overloaded_function symbol and attach the old
        function symbol to it. */
     hdr_ptr = other_sym->header;
@@ -3160,7 +3175,8 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
   /* Add the symbol to the overloaded function list. */
-  *overload_sym = add_symbol_to_overload_list(sym_ptr, other_sym);
+  *overload_sym = add_symbol_to_overload_list(sym_ptr, other_sym,
+                                              (a_namespace_ptr)NULL);
   /* Return a pointer to the newly created symbol as well. */
   return sym_ptr;
 }  /* enter_overloaded_symbol */
@@ -6529,14 +6545,15 @@ locator.  In the case of an ambiguity, return NULL.
 
 static
 a_symbol_ptr find_synthesized_projection_symbol(
-                              a_symbol_header_ptr	sym_hdr,
+                              a_symbol_locator          *locator,
                               an_id_lookup_options_set	options,
                               a_boolean			qualified_lookup,
 			      a_namespace_ptr		qualifier_namespace)
 /*
 Look for a synthesized projection symbol from a previous lookup that
-can be reused to capture the results of this lookup.  sym_hdr points
-to the symbol header representing the symbol to be found.
+can be reused to capture the results of this lookup.  locator
+represents the symbol to be found.
+
 qualified_lookup is TRUE if the symbol being found is the result of
 a namespace or file scope qualified lookup.  For qualified lookups
 qualifier_namespace points to the namespace in which the lookup is
@@ -6545,6 +6562,8 @@ the options being used for the lookup.
 */
 {
   a_symbol_ptr		sym = NULL;
+  a_symbol_header_ptr	sym_hdr = locator->symbol_header;
+
   if (is_reusable_using_directive_lookup(options)) {
     /* Only search if the lookup options represent a lookup whose results
        may be reused. */
@@ -6572,6 +6591,17 @@ the options being used for the lookup.
         }  /* if */
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (sym != NULL) {
+   if (sym->kind == (a_symbol_kind)sk_namespace_projection &&
+        !is_function_symbol(fundamental_symbol_of(sym))) {
+      /* A previous lookup created a synthesized namespace
+         projection symbol.  If the fundamental symbol is not a
+	 function symbol, clear the fundamental symbol pointed
+         to.  This is needed in case something has changed that would
+         cause a different symbol to be found. */
+      sym->variant.namespace_projection.fundamental_symbol = NULL;
+    }  /* if */
   }  /* if */
   return sym;
 }  /* find_synthesized_projection_symbol */
@@ -7147,7 +7177,8 @@ scope lookup.  options specifies the options being used for the lookup.
       if (!already_in_lookup_set(curr_sym, new_sym)) {
         new_sym = make_namespace_projection_symbol(new_sym, locator,
                                                    depth_scope_stack);
-        curr_sym = add_symbol_to_overload_list(new_sym, curr_sym);
+        curr_sym = add_symbol_to_overload_list(new_sym, curr_sym,
+                                               qualifier_namespace);
       }  /* if */
     }  /* if */
   } else {
@@ -7171,7 +7202,8 @@ scope lookup.  options specifies the options being used for the lookup.
         new_rout_sym = make_namespace_projection_symbol(rout_sym,
                                                         locator,
                                                         depth_scope_stack);
-        curr_sym = add_symbol_to_overload_list(new_rout_sym, curr_sym);
+        curr_sym = add_symbol_to_overload_list(new_rout_sym, curr_sym,
+                                               qualifier_namespace);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -7360,20 +7392,9 @@ of the lookup is returned to the caller.
         /* Look for a previous synthesized namespace projection symbol
            for this scope. */
         synth_sym = find_synthesized_projection_symbol
-                                            (locator->symbol_header, options,
+                                            (locator, options,
                                              /*qualified_lookup=*/FALSE,
                                              (a_namespace_ptr)NULL);
-        if (synth_sym != NULL &&
-            synth_sym->kind == (a_symbol_kind)sk_namespace_projection &&
-            !is_function_symbol(fundamental_symbol_of(synth_sym))) {
-          /* A previous lookup created a synthesized namespace
-	     projection symbol.  If the fundamental symbol is not a
-	     function symbol, clear the fundamental symbol pointed
-             to.  This is done because the symbol may have been
-             created by a constrained lookup (e.g., a tag lookup)
-             any may not be applicable for this lookup. */
-          synth_sym->variant.namespace_projection.fundamental_symbol = NULL;
-        }  /* if */
         if (sym != NULL) {
           /* The lookup from this scope did find a symbol.  Put it in
              the lookup set. */
@@ -8161,6 +8182,223 @@ end_lookup:
 }  /* class_qualified_id_lookup */
 
 
+/* Forward declaration. */
+static
+a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,
+                                 a_namespace_ptr          ns_ptr,
+                                 an_id_lookup_options_set options,
+                                 a_namespace_ptr	  orig_ns_ptr,
+				 a_symbol_ptr		  *synth_sym,
+                                 a_boolean                *any_errors);
+
+
+static
+a_symbol_ptr qualified_using_directive_lookup(
+                                 a_symbol_locator         *locator,
+                                 a_namespace_ptr          ns_ptr,
+                                 an_id_lookup_options_set options,
+                                 a_namespace_ptr	  orig_ns_ptr,
+				 a_symbol_ptr		  *synth_sym,
+                                 a_boolean                *any_errors)
+/*
+Do a qualified lookup of namespaces nominated by using directives
+in this scope.  This is used for qualified namespace and file scope
+lookups.  For functions, the symbol returned may be an overload set
+containing functions from several namespaces.  For nonfunctions,
+an ambiguity may need to be diagnosed.
+
+locator describes the symbol being looked up.  ns_ptr is the namespace
+in which we should look for the symbol.  options are the lookup
+options to be used.  orig_ns_ptr is the namespace specified in the
+qualifier.  *synth_sym points to a synthesized projection symbol that
+captures the results of the lookup.  *any_errors is set to TRUE if
+an ambiguity is detected.
+
+         D        E
+          \      /
+           B    C
+            \  /
+             A
+
+  namespace E { int l; }  
+  namespace D { int j, l; void g(double); }
+  namespace C { int k;    void g(char); using namespace E; }
+  namespace B { int j;    void g(int);  using namespace D; }
+  namespace A { int i;    void f();     using namespace B; using namespace C;}
+
+A qualified lookup begins with the namespace specified by the qualifier.
+If the name is found there, the lookup stops.  If it is not found there,
+the lookup looks in each of the namespaces used in using directives in
+that namespace.  Functions from each namespace are merged together
+into an overload set.  If more than one name is found, and they are not
+all functions, the lookup is ambiguous.
+
+Using the example above, the result of the following lookups are
+as follows:
+
+	Lookup		Result
+ 	------		------
+	A::i		A::i
+	A::j		B::j
+	A::k		C::k
+	A::l		ambiguous (in D and E)
+	A::f()		A::f()
+	A::g(1)		B::g(int)
+	A::g('x')	C::g(char)
+	A::g(2.0)	ambiguous (B::g or C::g.  D::g is hidden)
+
+*/
+{
+  a_using_directive_ptr			udp;
+  a_symbol_ptr				sym;
+  a_namespace_symbol_supplement_ptr	nssp = NULL;
+
+  /* For a file scope qualified lookup, get its list of using directives
+     from the file scope entry.  For namespace scopes, get it from the
+     scope associated with the namespace. */
+  if (ns_ptr == NULL) {
+    udp = il_header.primary_scope->using_directives;
+  } else {
+    udp = ns_ptr->variant.assoc_scope->using_directives;
+    nssp = namespace_supplement_for_namespace(ns_ptr);
+  }  /* if */
+  /* Set a flag that indicates that this namespace is being processed so
+     that in case of a recursive reference it is not visited again.
+     Note that it is still possible for a namespace to be visited twice
+     if it appears more than once on the lattice.  From a language
+     point of view it should not be visited twice, but our implementation
+     will disregard symbols that are already part of the lookup set. */
+  if (nssp != NULL) nssp->visited_by_qualified_lookup = TRUE;
+  for (; udp != NULL; udp = udp->next) {
+    a_namespace_symbol_supplement_ptr	next_nssp;
+    next_nssp = namespace_supplement_for_namespace(udp->assoc_namespace);
+    /* Skip this namespace if we have already looked in it. */
+    if (next_nssp->visited_by_qualified_lookup) continue;
+    sym = lookup_in_namespace(locator, udp->assoc_namespace, options,
+                              orig_ns_ptr, synth_sym, any_errors);
+    if (sym != NULL && !sym->synthesized_namespace_projection) {
+      /* If this lookup found a symbol, add it to the lookup set.
+         Don't do this if it is already a synthesized namespace
+         projection -- such symbols are already represented in synth_sym. */
+      if (*synth_sym == NULL) {
+        /* Look for an existing synthesized namespace projection symbol
+           from a previous lookup that can be reused. */
+        *synth_sym = find_synthesized_projection_symbol
+                                    (locator, options,
+                                     /*qualified_lookup=*/TRUE, orig_ns_ptr);
+      }  /* if */
+      /* Add the new symbol to an existing lookup set.  Note that
+         *synth_sym may be NULL at this point. */
+      *synth_sym = add_symbol_to_lookup_set(*synth_sym, sym, locator,
+                                            /*qualified_lookup=*/TRUE,
+                                            orig_ns_ptr, options,
+                                            any_errors);
+    }  /* if */
+    /* any_errors will be true if the lookup is ambiguous for some reason.
+       Stop searching once an ambiguity is detected. */
+    if (*any_errors) break;
+  }  /* for */
+  /* Clear the flag that indicates this namespace is being processed. */
+  if (nssp != NULL) nssp->visited_by_qualified_lookup = FALSE;
+  sym = *synth_sym;
+  return sym;
+}  /* qualified_using_directive_lookup */
+
+
+
+static
+a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,
+                                 a_namespace_ptr          ns_ptr,
+                                 an_id_lookup_options_set options,
+                                 a_namespace_ptr	  orig_ns_ptr,
+				 a_symbol_ptr		  *synth_sym,
+                                 a_boolean                *any_errors)
+/*
+Look up the identifier indicated by *locator in the namespace indicated by
+ns_ptr, and return a pointer to the symbol found, or NULL if
+the symbol is not found.  ns_ptr must refer to an actual namespace and not
+a namespace alias.  options indicates a set of special options,
+as a bit set.
+
+This routine is called by namespace_qualified_id_lookup, and then calls
+itself recursively to look in the namespaces of any using directives
+present in the namespace.  A flag is set in the namespace symbol
+supplement when each namespace is searched.  This flag is checked
+to make sure that no namespace is searched more than once.
+
+orig_ns_ptr is a pointer to the namespace specified in the call to
+namespace_qualified_id_lookup.
+*/
+{
+  a_symbol_ptr	sym;
+  a_symbol_ptr	tag_symbol;
+  a_boolean   	 must_be_class_or_namespace
+                                 = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
+  a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
+
+/* Local macro that tests whether or not a symbol is acceptable. */
+#define is_acceptable_symbol(sym, fund_sym)                           \
+  ((!(sym)->is_class_member) &&                                       \
+   (sym)->parent.namespace_ptr == ns_ptr &&                           \
+   (!must_be_class_or_namespace ||				      \
+    symbol_may_precede_qualifier(fund_sym)) &&      \
+   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)))
+
+  db_enter(4, "lookup_in_namespace");
+  /* Search for a symbol in the right scope. */
+  /* First, search the list of inactive symbols.  Namespace symbols
+     are moved to the inactive list after the initial definition of
+     the namespace. */
+  tag_symbol = NULL;
+  for (sym = inactive_symbol_list_from_locator(*locator);
+       sym != NULL;
+       sym = sym->next) {
+    a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+    if (is_acceptable_symbol(sym, fund_sym)) {
+      /* Found an acceptable symbol. */
+      /* If the symbol is a tag symbol, there's the possibility that
+         there is a non-type symbol in the same scope later in the list
+         (because the inactive list is not ordered in any way).  Save the
+         tag symbol and keep looking.  If nothing else turns up,
+         use the tag symbol. */
+      if (!is_tag_symbol(sym)) goto end_lookup;
+      tag_symbol = sym;
+    }  /* if */
+  }  /* for */
+  /* We reached the end of the list.  If there is a tag symbol saved
+     within the loop, use it. */
+  if (tag_symbol != NULL) {
+    sym = tag_symbol;
+    goto end_lookup;
+  }  /* if */
+  /* The name was not found on the inactive symbols list.  Try the
+     active symbols list.  This would be used during the initial
+     definition of the namespace. */
+  for (sym = symbol_list_from_locator(*locator);
+       sym != NULL;
+       sym = sym->next) {
+    a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+    if (is_acceptable_symbol(sym, fund_sym)) {
+      /* Found an acceptable symbol. */
+      goto end_lookup;
+    }  /* if */
+  }  /* for */
+end_lookup:
+  if (sym == NULL && !is_linkage_lookup) {
+     /* If the symbol was not found in this namespace, look in namespaces
+        visible because of using directives.  Skip this process for a
+        linkage lookup.  A linkage lookup should only find names that
+        are actually defined in a scope. */
+    sym = qualified_using_directive_lookup(locator, ns_ptr, options,
+                                           orig_ns_ptr, synth_sym, any_errors);
+  }  /* if */
+  db_exit();
+  return sym;
+#undef is_acceptable_symbol
+}  /* lookup_in_namespace */
+
+
 a_symbol_ptr namespace_qualified_id_lookup(a_symbol_locator         *locator,
                                            a_namespace_ptr          ns_ptr,
                                            an_id_lookup_options_set options)
@@ -8175,64 +8413,22 @@ namespace.  This routine is used only in C++ mode.
 */
 {
   a_symbol_ptr	sym;
-  a_symbol_ptr	tag_symbol;
-  a_boolean   	 must_be_class_or_namespace
-                                 = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
-
-/* Local macro that tests whether or not a symbol is acceptable. */
-#define is_acceptable_symbol(sym, fund_sym)                           \
-  ((!(sym)->is_class_member) &&                                       \
-   (sym)->parent.namespace_ptr == ns_ptr &&                           \
-   (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(fund_sym)) &&      \
-   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)))
+  a_symbol_ptr	synth_sym = NULL;
+  a_boolean	any_errors = FALSE;
 
   db_enter(4, "namespace_qualified_id_lookup");
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
   } else {
     /* Search for a symbol in the right scope. */
-    /* First, search the list of inactive symbols.  Namespace symbols
-       are moved to the inactive list after the initial definition of
-       the namespace. */
-    tag_symbol = NULL;
-    for (sym = inactive_symbol_list_from_locator(*locator);
-         sym != NULL;
-         sym = sym->next) {
-      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-      if (is_acceptable_symbol(sym, fund_sym)) {
-        /* Found an acceptable symbol. */
-        /* If the symbol is a tag symbol, there's the possibility that
-           there is a non-type symbol in the same scope later in the list
-           (because the inactive list is not ordered in any way).  Save the
-           tag symbol and keep looking.  If nothing else turns up,
-           use the tag symbol. */
-        if (!is_tag_symbol(sym)) goto end_lookup;
-        tag_symbol = sym;
-      }  /* if */
-    }  /* for */
-    /* We reached the end of the list.  If there is a tag symbol saved
-       within the loop, use it. */
-    if (tag_symbol != NULL) {
-      sym = tag_symbol;
-      goto end_lookup;
-    }  /* if */
-    /* The name was not found on the inactive symbols list.  Try the
-       active symbols list.  This would be used during the initial
-       definition of the namespace. */
-    for (sym = symbol_list_from_locator(*locator);
-         sym != NULL;
-         sym = sym->next) {
-      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-      if (is_acceptable_symbol(sym, fund_sym)) {
-        /* Found an acceptable symbol. */
-        goto end_lookup;
-      }  /* if */
-    }  /* for */
-end_lookup:
+    sym = lookup_in_namespace(locator, ns_ptr, options, ns_ptr, &synth_sym,
+                              &any_errors);
     locator->specific_symbol = sym;
   }  /* if */
+  /* If the symbol is a projection symbol, reduce it to the fundamental
+     symbol.  The specific_symbol in the locator stays pointing to the
+     projection symbol. */
+  if (sym != NULL) reduce_projection_symbol_to_fundamental_symbol(sym);
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "namespace_qualified_id_lookup: id = %s, %s\n",
@@ -8242,7 +8438,6 @@ end_lookup:
 #endif /* DEBUG */
   db_exit();
   return sym;
-#undef is_acceptable_symbol
 }  /* namespace_qualified_id_lookup */
 
 
@@ -8255,13 +8450,19 @@ options indicates a set of special options, as a bit set.  For example,
 if IDL_MUST_BE_CLASS_OR_NAMESPACE is TRUE, the symbol found must be a class
 name (or a typedef to a class name) or a namespace.  Only symbols in the
 nsk_other name space are considered.  This routine is used for the unary
-"::" qualifier and may only be used in C++ mode.
+"::" qualifier and may only be used in C++ mode.  If the name is not
+found in the file scope, and this is not a linkage lookup, the lookup
+will also look in any namespaces used in using directives in the
+file scope.
 */
 {
-  a_symbol_ptr   sym;
-  a_boolean      must_be_class_or_namespace
+  a_symbol_ptr  sym;
+  a_boolean     must_be_class_or_namespace
                                   = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean      must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_boolean     must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_symbol_ptr	synth_sym = NULL;
+  a_boolean	any_errors = FALSE;
+  a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
@@ -8283,6 +8484,15 @@ nsk_other name space are considered.  This routine is used for the unary
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (is_acceptable_symbol(sym, fund_sym)) break;
     }  /* for */
+    if (sym == NULL && !is_linkage_lookup) {
+       /* If the symbol was not found in this namespace, look in namespaces
+          visible because of using directives.  Skip this process for a
+          linkage lookup.  A linkage lookup should only find names that
+          are actually defined in a scope. */
+      sym = qualified_using_directive_lookup(locator, (a_namespace_ptr)NULL,
+                                             options, (a_namespace_ptr)NULL,
+                                             &synth_sym, &any_errors);
+    }  /* if */
     locator->specific_symbol = sym;
   }  /* if */
 #if DEBUG

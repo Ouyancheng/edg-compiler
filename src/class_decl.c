@@ -6001,7 +6001,8 @@ or implicit) controlling the declaration.
           /* Save new_sym as other_sym, in case is_overloaded is TRUE. */
           other_sym = new_sym;
         } else {
-          other_sym = add_symbol_to_overload_list(new_sym, other_sym);
+          other_sym = add_symbol_to_overload_list(new_sym, other_sym,
+                                                  (a_namespace_ptr)NULL);
           set_mixed_static_nonstatic_flag(other_sym);
         }  /* if */
         if (fund_sym->kind == (a_symbol_kind)sk_member_function &&
