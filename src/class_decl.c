@@ -4085,16 +4085,23 @@ be the last in the anonymous-union-parent chain.
 {
   a_symbol_ptr  new_apo_sym;
 
+  db_enter(4, "find_anonymous_parent_object_symbol_clone");
   /* Loop through the list looking for a symbol that points at the same
      field as apo_sym. */
   for (new_apo_sym = *new_apo_sym_list;
        new_apo_sym != NULL;
        new_apo_sym = new_apo_sym->next) {
     if (new_apo_sym->variant.field.ptr == apo_sym->variant.field.ptr) {
-      /* Found a match -- break. */
+      /* Found a match. */
+      break;
     }  /* if */
   }  /* for */
   if (new_apo_sym == NULL) {
+#if DEBUG
+    if (debug_level >= 4) {
+      db_symbol(apo_sym, "cloning: ", 2);
+    }  /* if */
+#endif /* DEBUG */
     /* None was found, so create a new one. */
     new_apo_sym = make_anonymous_parent_object_symbol((a_symbol_kind)sk_field,
                                                       &apo_sym->decl_position,
@@ -4118,6 +4125,7 @@ be the last in the anonymous-union-parent chain.
     new_apo_sym->next = *new_apo_sym_list;
     *new_apo_sym_list = new_apo_sym;
   }  /* if */
+  db_exit();
   return new_apo_sym;
 }  /* find_anonymous_parent_object_symbol_clone */
 
@@ -4179,6 +4187,19 @@ specified by decl_scope_level.
       internal_error("check_anonymous_union_symbols: bad symbol kind");
 #endif /* CHECKING */
   }  /* switch */
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("adding symbols to ", f_debug);
+    if (class_type != NULL) {
+      db_abbreviated_type(class_type);
+    } else {
+      fputs("file scope", f_debug);
+    }  /* if */
+    fputs(" from ", f_debug);
+    db_abbreviated_type(assoc_object_type);
+    db_symbol(assoc_object_sym, ":\n  ", 4);
+  }  /* if */
+#endif /* DEBUG */
   if (reuse_symbol && !C_mode() && !is_nonstd) {
     ctsp = assoc_object_type->variant.class_struct_union.extra_info;
     if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
@@ -4202,6 +4223,11 @@ specified by decl_scope_level.
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
     if (reuse_symbol) {
+#if DEBUG
+      if (debug_level >= 4) {
+        db_symbol(sym, "promoting: ", 2);
+      }  /* if */
+#endif /* DEBUG */
       /* Disjoin the symbol from the list.  It will be added to another
          list when it is reentered in the symbol table. */
       sym->next_in_scope = NULL;
@@ -4209,13 +4235,16 @@ specified by decl_scope_level.
          rather it will be a member of the class_type. */
       sym->class_of_which_a_member = NULL;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-#if CHECKING
     } else {
+#if DEBUG
+      if (debug_level >= 4) {
+        db_symbol(sym, "cloning: ", 2);
+      }  /* if */
+#endif /* DEBUG */
       /* Creation of a new symbol is only implemented for fields, because it
          can only happen in C mode or with C++ classes that have no C++
          features. */
       check_assertion(sym->kind == (a_symbol_kind)sk_field);
-#endif /* CHECKING */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
     /* Private and protected members are not allowed in an anonymous union
@@ -4245,6 +4274,7 @@ specified by decl_scope_level.
              field-of-assoc-object-type. */
           a_field_ptr      fp = sym->variant.field.ptr;
           a_symbol_locator loc;
+
           make_locator_for_symbol(sym, &loc);
           loc.source_position = assoc_object_sym->decl_position;
           sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
@@ -4349,6 +4379,15 @@ specified by decl_scope_level.
         internal_error("check_anonymous_union_symbols: unexpected sym kind");
 #endif /* CHECKING */
     }  /* switch */
+#if DEBUG
+    if (debug_level >= 4) {
+      if (reuse_symbol) {
+        db_symbol(sym, "after promotion: ", 2);
+      } else {
+        db_symbol(sym, "new symbol: ", 2);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
   }  /* for */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   /* Just to be safe, clear the next pointers on any anonymous union parent
