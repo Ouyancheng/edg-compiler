@@ -5604,8 +5604,7 @@ table.
                                              override_list->primary_function,
                                              rabcp, delta, vcall_index);
           }  /* if */
-          /* The function called performs adjusts "this" so we do not have to
-             do it. */
+          /* The function called adjusts "this" so we do not have to do it. */
           delta = 0;
 #endif /* IA64_ABI */
         }  /* if */
