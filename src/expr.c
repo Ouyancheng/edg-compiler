@@ -11116,26 +11116,7 @@ Return the constant in *constant.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
-  prep_initializer_operand(&result, param_type, (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           /*initializing_variable=*/FALSE,
-                           /*static_lifetime=*/FALSE,
-                           /*is_copy_initialization=*/TRUE,
-                           ec_bad_nontype_template_arg);
-  /* Make a constant from the operand. */
-  extract_constant_from_operand(&result, constant);
-  /* If the template parameter has a reference type, give the constant
-     a reference type (instead of the pointer type it has). */
-  if (is_reference_type(param_type) && !is_error_operand(&result)) {
-    check_assertion(is_pointer_type(constant->type));
-    constant->type = param_type;
-  }  /* if */
-  /* Make the sure that the constant does not use any local variables,
-     etc., since the template will be created at the file scope. */
-  if (constant_references_non_external_entity(constant)) {
-    pos_error(ec_nonexternal_entity_in_template_arg, &result.position);
-    set_error_constant(constant);
-  }  /* if */
+  prep_nontype_template_argument_initializer(&result, param_type, constant);
   pop_expr_stack();
 
 #if DEBUG
