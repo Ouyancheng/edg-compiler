@@ -5008,14 +5008,20 @@ in-class member function declarations.)
 
   db_enter(3, "decl_member_function_template");
   if (!is_error_locator(*locator)) {
+    if (locator->is_operator_name) {
 #if 0
     /* Until support for placement delete is provided, check for potential
        overloading of operator delete. */
 #endif  /* if 0 */
-    if (locator->is_operator_name &&
-        is_delete_operator(locator->variant.opname)) {
-      pos_error(ec_template_operator_delete, &locator->source_position);
-      set_to_named_error_locator(*locator);
+      if (is_delete_operator(locator->variant.opname)) {
+        pos_error(ec_template_operator_delete, &locator->source_position);
+        set_to_named_error_locator(*locator);
+      } else if (is_default_operator_new(locator, member_type)) {
+        /* Overloading should not be allowed on the single-argument
+           version of operator new(size_t). */
+        pos_error(ec_template_operator_new, &locator->source_position);
+        set_to_named_error_locator(*locator);
+      }  /* if */
     }  /* if */
   }  /* if */
   check_operator_function_params(member_type, class_type, locator);
