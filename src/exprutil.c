@@ -3578,10 +3578,11 @@ the member.
     if (con->kind == (a_constant_repr_kind)ck_template_param &&
         con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member &&
-        !con->variant.template_param.variant.is_address) {
+        !con->variant.template_param.variant.is_address &&
+        /* Avoid problems with template-dependent enum constant values. */
+        operand->type == type_of_unknown_templ_param_nontype) {
       con->variant.template_param.variant.is_address = TRUE;
       operand->state = (an_operand_state)os_lvalue;
-      check_assertion(operand->type == type_of_unknown_templ_param_nontype);
     }  /* if */
   }  /* if */
 }  /* change_nonreal_member_constant_operand_to_lvalue */
