@@ -907,6 +907,9 @@ type is legal.
                    pm_member_type(temp_type) == NULL) {
           /* This is an incomplete ptr-to-member type, presumably a
              pointer to member function.  Okay. */
+        } else if (is_template_param_type(temp_type)) {
+          /* This is a declaration in the midst of a template declaration.
+             Okay. */
         } else if (is_class_struct_union_type(temp_type)) {
           check_for_uninstantiated_template_class(temp_type);
           if (is_incomplete_type(temp_type)) {
