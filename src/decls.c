@@ -6666,7 +6666,8 @@ the symbol and its linkage (which is always "none").
 }  /* define_static_data_member */
 
 
-static void remove_any_inherited_type_synonym(a_symbol_locator  *locator)
+static void remove_any_inherited_type_synonym(a_symbol_locator  *locator,
+					      a_symbol_ptr	sym)
 /*
 Microsoft compilers accept code like:
   struct B { typedef int I; };
@@ -6676,17 +6677,15 @@ Microsoft compilers accept code like:
   };
 To emulate this, we must remove projections of a type synonymous with the
 type being declared.
+
+"sym" is a projection symbol found in the scope class scope in which the
+typedef is being declared.
 */
 {
-  a_symbol_ptr  sym = locator->specific_symbol;
-
-  if (sym != NULL) {
-    if (sym->kind == (a_symbol_kind)sk_projection &&
-        !sym->variant.projection.is_using_decl) {
-      remove_symbol(sym);
-    }  /* if */
-    clear_specific_symbol(*locator);
+  if (!sym->variant.projection.is_using_decl) {
+    remove_symbol(sym);
   }  /* if */
+  clear_specific_symbol(*locator);
 }  /* remove_any_inherited_type_synonym */
 
 
@@ -6773,12 +6772,20 @@ return a pointer to it in *symbol_ptr.
   a_boolean                saved_referenced_flag;
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
   a_namespace_ptr          nsp;
+  a_symbol_ptr		   loc_sym;
 
   db_enter(3, "decl_typedef");
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
-  if (microsoft_mode && sym != NULL &&
-      ssep->kind == (a_scope_kind)sck_class_struct_union) {
-    remove_any_inherited_type_synonym(locator);
+  loc_sym = locator->specific_symbol;
+  if (loc_sym != NULL && loc_sym->kind == (a_symbol_kind)sk_projection) {
+    if (microsoft_mode &&
+        ssep->kind == (a_scope_kind)sck_class_struct_union) {
+      remove_any_inherited_type_synonym(locator, loc_sym);
+    } else if (loc_sym->variant.projection.is_using_decl) {
+      /* If the symbol found is from a using-declaration, ignore it.  This
+         will result in an error when the new symbol is entered. */
+      sym = NULL;
+    }  /* if */
   }  /* if */
   if (sym != NULL) {
     /* This name already exists in the current scope.  C++ allows a
