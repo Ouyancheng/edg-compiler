@@ -1774,11 +1774,16 @@ is in fact valid.
     }  /* if */
     scp = &routine->source_corresp,
     corresp_scp = &corresp_routine->source_corresp;
-    if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
+    if (routine->special_kind == (a_special_function_kind)sfk_conversion ||
+        corresp_routine->special_kind ==
+                                     (a_special_function_kind)sfk_conversion) {
       /* Conversion operators aren't identified by name.  For example,
          different instantiations could differ in name because different
          typedefs were used to identify them (and that's OK). */
-      match = (routine->special_kind == corresp_routine->special_kind);
+      if (routine->special_kind != corresp_routine->special_kind) {
+        match = FALSE;
+        process_bad_trans_unit_corresp(iek_routine, routine);
+      }  /* if */
     } else {
       match = verify_name_correspondence(routine);
     }  /* if */
