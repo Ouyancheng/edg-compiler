@@ -769,6 +769,14 @@ extern a_boolean get_class_qualifier(a_scope_number *scope_number,
 /* Get a C++ qualified name, like "A::x". */
 /* See symbol_tbl.h for the options set definition. */
 extern a_boolean get_qualified_name(an_id_lookup_options_set options);
+/* Return TRUE if the current token might be the start of a C++ qualified
+   name. */
+#define is_qualified_name_start()                                     \
+  (curr_token == tok_identifier || curr_token == tok_colon_colon)
+/* Same thing for use in switch statements, in the form
+     case QUALIFIED_NAME_START_CASE:
+*/
+#define QUALIFIED_NAME_START_CASE tok_identifier: case tok_colon_colon
 /* Get a C++ qualified name or a normal id. */
 extern a_symbol_ptr get_normal_id_or_qualified_name(
                                              an_id_lookup_options_set options);
