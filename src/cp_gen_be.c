@@ -2383,7 +2383,12 @@ is the one associated with the definition of the class.
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  if (ctsp != NULL) gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
+  if (ctsp != NULL) {
+    /* Put out modifiers that apply to the class as a whole, e.g.,
+       "class __declspec(dllimport) A {...}". */
+    gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
+    form_type_qualifier(ctsp->qualifiers, /*need_trailing_space=*/TRUE, &octl);
+  }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */
