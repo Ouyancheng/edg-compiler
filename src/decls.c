@@ -89,7 +89,7 @@ Macro that is TRUE if the current token is the start of a type qualifier
 
 /*
 Macro that is TRUE if the current identifier token is the start of a
-pointer-to-member declarator (class-name :: *).  is_qualfied_name_start
+pointer-to-member declarator (class-name :: *).  is_qualified_name_start
 calls is_generalized_identifier_start, which sets curr_token to
 tok_ptr_to_member and returns FALSE if a pointer to member is found.
 */
@@ -5427,7 +5427,7 @@ otherwise it is NULL.  The syntax is:
                      curr_token == tok_compl);
     if (!real_declarator_allowed ||
         (abstract_declarator_allowed && !is_name_start)) {
-      /* Identifier is omitted in an abstract declarator.  Be sure it not a
+      /* Identifier is omitted in an abstract declarator.  Be sure it is not a
          tk_unknown type. */
       check_assertion(specifiers_type == NULL ||
                       !is_unknown_type(specifiers_type));
