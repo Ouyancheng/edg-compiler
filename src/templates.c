@@ -4417,8 +4417,15 @@ are looked up, if needed.  The symbol of the new instance is returned.
     }  /* if */
     prev_new_tap = new_tap;
   }  /* for */
-  new_sym = find_template_class(template_sym, &new_list,
-                                (options & CTWS_PROTOTYPE_ALLOWED) != 0);
+  if (*copy_error) {
+    /* If an error occurred earlier, and in particular while creating one
+       of the template arguments, don't try to find a matching template
+       class. */
+    new_sym = NULL;
+  } else {
+    new_sym = find_template_class(template_sym, &new_list,
+                                  (options & CTWS_PROTOTYPE_ALLOWED) != 0);
+  }  /* if */
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */
 

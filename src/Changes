@@ -1,5 +1,20 @@
 Version 2.39
 
+6/16/98   Internal error in lower_type caused by error type as
+          template argument
+
+When an overload set contains function templates, a non-matching
+template could result in the creation of a template class that has an
+error type as a template argument, resulting in an internal error in
+IL lowering.  This has been fixed.
+
+  template <class T> struct A { };
+  template <class T> A< A<T>::B > f(T, int = 1);
+  template <class T> void f(T);
+  int main() {
+    f(1);
+  }
+
 6/10/98   Overload resolution: callability does not figure in viability
           of function
 
