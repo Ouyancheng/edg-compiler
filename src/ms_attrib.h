@@ -90,7 +90,7 @@ typedef struct an_ms_attribute_kind_descr {
 			   parameters. */
 } an_ms_attribute_kind_descr;
 
-extern an_ms_attribute_ptr scan_microsoft_attributes(void);
+extern an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_parameter);
 
 extern
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,

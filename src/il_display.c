@@ -1107,6 +1107,11 @@ Display a_param_type entry.
     disp_type_mode(ptr->mode);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->ms_attributes != NULL) {
+    disp_ptr("ms-attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (ptr->decl_pos_info != NULL) {
@@ -4115,6 +4120,7 @@ Display the indicated Microsoft attribute entry.
   disp_ptr("next_in_block", (char *)ptr->next_in_block, iek_ms_attribute);
   disp_string_ptr("name", ptr->name, iek_other_text, (sizeof_t)0);
   disp_string_ptr("string", ptr->string, iek_other_text, (sizeof_t)0);
+  disp_source_position("position", &ptr->position);
   for (arg = ptr->arg_list; arg != NULL; arg = arg->next) {
     sprintf(buffer, "  argument %d (", arg_number++);
     (void)strncat(buffer, arg->param_name,

@@ -816,11 +816,14 @@ until the end of the attribute is found.
 }  /* scan_unrecognized_ms_attribute_arg_list */
 
 
-static an_ms_attribute_ptr scan_ms_attribute(void)
+static an_ms_attribute_ptr scan_ms_attribute(a_boolean	is_parameter)
 /*
 Scan a single Microsoft attribute of an attribute block that may contain
 multiple attributes.  Return a pointer to the attribute entry that represents
 the attribute.
+
+is_parameter is TRUE if the attribute is part of a function parameter
+declaration.
 */
 {
   an_ms_attribute_kind_descr_ptr	attr_descr;
@@ -843,6 +846,14 @@ the attribute.
     attr->name = attr_descr->name;
     attr->kind_descr = attr_descr;
     attr->position = start_position;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Create a source sequence entry for the attribute.  This is not done
+       for parameter attributes as they appear within a declaration. */
+    if (!is_parameter) {
+      add_to_source_sequence_list((char *)attr,
+                                  (an_il_entry_kind)iek_ms_attribute);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Look for an argument list.  We do this even for attributes without
        parameters, for error recovery purposes. */
     if (curr_token == tok_assign || curr_token == tok_lparen) {
@@ -879,7 +890,7 @@ the attribute.
     /* Copy the string to IL memory. */
     attr->string = make_copy_of_token_string();
     /* Add the attribute to the IL. */
-    add_to_ms_attributes_list(attr, depth_scope_stack);
+    add_to_ms_attributes_list(attr, decl_scope_level);
 #if DEBUG
     if (db_flag_is_set("msattr")) {
       fprintf(f_debug, "Attribute string: %s\n", attr->string);
@@ -890,7 +901,7 @@ the attribute.
 }  /* scan_ms_attribute */
 
 
-an_ms_attribute_ptr scan_microsoft_attributes(void)
+an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_parameter)
 /*
 Scan a Microsoft attribute block.  The general syntax is:
 
@@ -903,7 +914,8 @@ Attributes can be standalone, in which case they are followed by a ";", or
 can apply to the declaration that follows.
 
 Each attribute block can contain multiple attributes.  A list of the attributes
-is returned.
+is returned.  is_parameter is TRUE if the attribute is part of a function
+parameter declaration.
 */
 {
   an_ms_attribute_ptr	attr_list = NULL;
@@ -925,7 +937,7 @@ is returned.
     do {
       an_ms_attribute_ptr	attr;
       /* Scan the attribute. */
-      attr = scan_ms_attribute();
+      attr = scan_ms_attribute(is_parameter);
       /* A NULL attribute may be returned in certain error cases. */
       if (attr == NULL) continue;
       /* Add it to the list of attributes for this block. */

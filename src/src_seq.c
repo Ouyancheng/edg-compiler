@@ -158,6 +158,13 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         print_type = TRUE;
       }  /* if */
       fputc('"', f_debug);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (kind == (an_il_entry_kind)iek_ms_attribute) {
+      an_ms_attribute_ptr	msap;
+      msap = (an_ms_attribute_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu) ", msap->position.seq);
+      fprintf(f_debug, "%s", msap->string);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       a_source_position             *pos;
       a_source_correspondence       *scp;

@@ -740,6 +740,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        remap_ptr(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case iek_routine_type_supplement:

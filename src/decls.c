@@ -10695,7 +10695,7 @@ of local variables (and types, etc.) of functions and in blocks.
   if (microsoft_mode && curr_token == tok_lbracket) {
     /* A Microsoft attribute of the form "[ ... ]". */
     an_ms_attribute_ptr	ms_attributes;
-    ms_attributes = scan_microsoft_attributes();
+    ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
     if (curr_token == tok_semicolon) {
       /* This is a standalone attribute block.  Make sure all of the specified
          attributes are standalone attributes. */

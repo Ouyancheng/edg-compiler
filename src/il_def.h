@@ -88,6 +88,9 @@ typedef struct a_variable_remapping_for_inlining
 #endif /* MINIMAL_INLINING */
 typedef struct a_template_decl *a_template_decl_ptr;
 typedef struct a_template *a_template_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+typedef struct an_ms_attribute *an_ms_attribute_ptr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
                              a_destructible_entity_descr_dummy_typedef;
@@ -2987,6 +2990,12 @@ typedef struct a_param_type {
 			   then the mode is stored here.  Otherwise,
 			   the value is tmk_none. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_ms_attribute_ptr
+		ms_attributes;
+			/* Linked list of Microsoft attribute entries that
+			   apply to this parameter. */ 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
@@ -9810,7 +9819,6 @@ typedef struct an_ms_attribute_arg {
 /*
 Entry used to describe a use of a given attribute.
 */
-typedef struct an_ms_attribute *an_ms_attribute_ptr;
 typedef struct an_ms_attribute {
   an_ms_attribute_ptr
 		next;

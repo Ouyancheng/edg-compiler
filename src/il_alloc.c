@@ -850,6 +850,9 @@ at file scope.
 #if GNU_EXTENSIONS_ALLOWED
   ptp->mode = (a_type_mode_kind)tmk_none;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ptp->ms_attributes = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ptp->decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
