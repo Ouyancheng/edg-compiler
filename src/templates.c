@@ -13434,7 +13434,7 @@ defer_inline is TRUE.
   db_enter(5, "update_instantiation_required_flag");
   /* Inline functions are not treated differently for instantiation purposes
      in Microsoft mode. */
-  if (microsoft_mode) defer_inline = TRUE;
+  if (microsoft_bugs) defer_inline = TRUE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
