@@ -1032,11 +1032,11 @@ does for symbol entries.
   if (scp1->is_class_member != scp2->is_class_member) {
     result = FALSE;
   } else if (scp1->is_class_member) {
-    result = (canonical_il_entry_of(scp1->parent.class_type) ==
-                              canonical_il_entry_of(scp2->parent.class_type));
+    result = same_entities(scp1->parent.class_type,
+                           scp2->parent.class_type);
   } else {
-    result = (canonical_il_entry_of(scp1->parent.namespace_ptr) ==
-                           canonical_il_entry_of(scp2->parent.namespace_ptr));
+    result = same_entities(scp1->parent.namespace_ptr,
+                           scp2->parent.namespace_ptr);
   }  /* if */
   return result;
 }  /* f_il_entries_have_known_same_parents */
