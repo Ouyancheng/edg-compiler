@@ -404,6 +404,8 @@ set to TRUE if the body of a routine is eliminated.
   a_namespace_ptr    nsp;
   a_pragma_ptr       pragma, prev_pragma;
   a_boolean          keep_on_list;
+  a_scope_pointers_block
+                     *pointers_block;
 
   /* Set the correspondence for this scope, if any. */
   if (scope->kind == (a_scope_kind)sck_file) {
@@ -413,6 +415,7 @@ set to TRUE if the body of a routine is eliminated.
     a_scope_ptr corresp_scope = translation_units->primary_scope;
     checked_trans_unit_corresp_pointer_of(scope) = (char *)corresp_scope;
     mark_to_merge(scope);
+    pointers_block = &curr_translation_unit->file_scope_pointers_block;
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
       /* The object lifetime of the file scope corresponds with the
          object lifetime of the corresponding scope, and gets merged into
@@ -424,7 +427,9 @@ set to TRUE if the body of a routine is eliminated.
   } else {
     /* For a namespace scope, go to the a_namespace entry to find out what
        correspondence there is, if any. */
+    check_assertion(scope->kind == (a_scope_kind)sck_namespace);
     nsp = scope->variant.assoc_namespace;
+    pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
     if (has_corresp(nsp)) {
       /* The namespace scope gets merged into the corresponding scope. */
       a_namespace_ptr corresp_nsp= (a_namespace_ptr)canonical_il_entry_of(nsp);
@@ -480,6 +485,7 @@ set to TRUE if the body of a routine is eliminated.
       }  /* if */
     }  /* if */
   }  /* for */
+  pointers_block->last_type = prev_type;
   /* Visit all static variables (non-static variables come up only
      in function and block scopes, which don't come here). */
   prev_variable = NULL;
@@ -535,6 +541,7 @@ set to TRUE if the body of a routine is eliminated.
       }  /* if */
     }  /* if */
   }  /* for */
+  pointers_block->last_variable = prev_variable;
   /* Visit all dynamic initializations. */
   prev_dyn_init = NULL;
   for (dyn_init = scope->dynamic_inits;
@@ -554,6 +561,7 @@ set to TRUE if the body of a routine is eliminated.
       prev_dyn_init = dyn_init;
     }  /* if */
   }  /* for */
+  pointers_block->last_dynamic_init = prev_dyn_init;
   /* Visit all routines. */
   prev_routine = NULL;
   for (routine = scope->routines;
@@ -622,6 +630,7 @@ set to TRUE if the body of a routine is eliminated.
       }  /* if */
     }  /* if */
   }  /* for */
+  pointers_block->last_routine = prev_routine;
   /* Visit all templates. */
   prev_templ = NULL;
   for (templ = scope->templates;
@@ -644,6 +653,7 @@ set to TRUE if the body of a routine is eliminated.
       }  /* if */
     }  /* if */
   }  /* for */
+  pointers_block->last_template = prev_templ;
   /* Visit all namespaces. */
   for (nsp = scope->namespaces;
        nsp != NULL;
@@ -680,6 +690,7 @@ set to TRUE if the body of a routine is eliminated.
       }  /* if */
     }  /* if */
   }  /* for */
+  pointers_block->last_pragma = prev_pragma;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   if (scope->kind == (a_scope_kind)sck_file &&
       *any_removed_function_bodies) {
@@ -704,6 +715,7 @@ set to TRUE if the body of a routine is eliminated.
         prev_solhp = solhp;
       }  /* if */
     }  /* for */
+    curr_translation_unit->last_scope_orphaned_list_header = prev_solhp;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
