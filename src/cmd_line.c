@@ -13,23 +13,23 @@ cmd_line.c -- Command-line parsing.
 
 */
 
-#include "basics.h"
-#include "target.h"
-#include "cmd_line.h"
-#include "host_envir.h"
-#include "error.h"
-#include "lang_feat.h"
-#include "lexical.h"
-#include "mem_manage.h"
-#include "il.h"
-#include "debug.h"
-#include "pch.h"
-#include "version.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* It's really lexical.h that needs to be included, but since symbol_tbl.h
+   and lexical.h include each other, this is equivalent.  And it is preferred
+   if a precompiled header file is being generated. */
+#include "symbol_tbl.h"
 
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
+#include "pch.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
 #endif /* BACK_END_IS_C_GEN_BE */

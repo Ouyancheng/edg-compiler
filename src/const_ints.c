@@ -13,12 +13,15 @@ const_ints.c -- Manipulation of target integer constants.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "target.h"
-#include "il.h"
-#include "const_ints.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Additional header file. */
 #include "types.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 
 /*
