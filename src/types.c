@@ -934,6 +934,7 @@ of the indicated kind.
     case ik_signed_char:
     case ik_unsigned_char:
       size = 1;
+      alignment = 1;
       break;
     case ik_short:
     case ik_unsigned_short:
