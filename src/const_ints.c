@@ -207,11 +207,11 @@ int cmp_integer_values(an_integer_value *op_1,
 		       an_integer_value *op_2,
 		       a_boolean	op_2_signed)
 /*
-Compare the integer values intval1 and intval2, and return
+Compare the integer values op_1 and op_2, and return
 
-  -1   if intval1 <  intval2
-   0   if intval1 == intval2
-  +1   if intval1 >  intval2
+  -1   if op_1 <  op_2
+   0   if op_1 == op_2
+  +1   if op_1 >  op_2
 
 signed1 and signed2 give the signedness of the two values.
 */
