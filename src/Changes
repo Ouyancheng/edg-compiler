@@ -1,5 +1,12 @@
 Version 3.4
 
+12/11/03 Export inadvertently disabled if ABI_COMPATIBILITY_VERSION not set
+
+Version 3.3 added the EXPORT_ENABLING_POSSIBLE macro to let customers disable
+the export feature.  The code that determines the default value for this
+macro did not work properly if ABI_COMPATIBILITY_VERSION was not set.  This
+would result in the disabling of the export feature.  Now fixed.
+
 12/10/03 Incorrect template file names when using COMPILE_MULTIPLE_SOURCE_FILES
 	 
 When COMPILE_MULTIPLE_SOURCE_FILES is TRUE and when more than one source file

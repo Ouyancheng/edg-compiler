@@ -3274,6 +3274,19 @@ aren't enabled.
 #endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE && DO_IL_LOWERING */
 #endif /* ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
 
+/*
+Flag that is TRUE if support for exported templates can be enabled.
+Export support requires some name mangling features not present in
+ABIs older that 2.32.
+*/
+#ifndef EXPORT_ENABLING_POSSIBLE
+#if ABI_COMPATIBILITY_VERSION < 232
+#define EXPORT_ENABLING_POSSIBLE FALSE
+#else /* !(ABI_COMPATIBILITY_VERSION < 232) */
+#define EXPORT_ENABLING_POSSIBLE TRUE
+#endif /* ABI_COMPATIBILITY_VERSION < 232 */
+#endif /* ifndef EXPORT_ENABLING_POSSIBLE */
+
 #endif /* !defined(TARG_DEF_H) */
 
 

@@ -361,19 +361,6 @@ also be controlled from the command line by --[no_]export.
 #endif /* DEFAULT_EXPORT_TEMPLATE_ALLOWED */
 
 /*
-Flag that is TRUE if support for exported templates can be enabled.
-Export support requires some name mangling features not present in
-ABIs older that 2.32.
-*/
-#ifndef EXPORT_ENABLING_POSSIBLE
-#if ABI_COMPATIBILITY_VERSION < 232
-#define EXPORT_ENABLING_POSSIBLE FALSE
-#else /* !(ABI_COMPATIBILITY_VERSION < 232) */
-#define EXPORT_ENABLING_POSSIBLE TRUE
-#endif /* ABI_COMPATIBILITY_VERSION < 232 */
-#endif /* ifndef EXPORT_ENABLING_POSSIBLE */
-
-/*
 Flag that is TRUE if Sun CC 5.0 compatibility features should be allowed by
 default.  It is the default initial value of the associated global variable
 sun_mode and can be overridden by the command-line options --sun and --no_sun.
