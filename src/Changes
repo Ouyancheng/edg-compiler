@@ -93,7 +93,7 @@ have been changed so that they are also put out on declarations.
 
 8/19/99  Diagnose cv-qualifiers on static member function templates
 
-The front end now diagnoses const- and volatile qualified static member
+The front end now diagnoses const- and volatile-qualified static member
 function templates.  Previously, the front end would silently ignore the
 "static" character of the member function.
 
