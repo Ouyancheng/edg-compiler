@@ -91,7 +91,7 @@ mangled name by IL lowering.  This has been fixed.
 
 An internal error has been fixed in managing the source-sequence lists
 for this rather obscure case, where an omitted parameter appears in a
-function prototype nested within a function prototype:
+function prototype nested within an old-style parameter declaration:
 
   void f(a) int a(int); { ... } 
 
