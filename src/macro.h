@@ -49,7 +49,7 @@ extern void proc_define(void);
 
 #if DEBUG
 /* Show and return the amount of space used by macro entries. */
-extern unsigned long show_macro_space_used(unsigned long *general_space);
+extern unsigned long show_macro_space_used(void);
 #endif /* DEBUG */
 
 extern void macro_proc_init(void);
