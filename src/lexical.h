@@ -872,13 +872,13 @@ typedef struct a_class_qualifier {
                         /* TRUE if the qualifier begins with a unary "::". */
   a_boolean     is_file_scope_qualifier;
                         /* TRUE for file scope qualifiers. */
-  a_boolean     is_ptr_to_member;
+  a_boolean     next_token_is_star;
                         /* TRUE if the qualifier is followed by a "*". */
   a_boolean     err;
                         /* TRUE if there was an error while scanning the
                            qualifier. */
   a_source_position
-                error_position;
+                source_position;
                         /* The position of the start of the qualifier. */
 } a_class_qualifier;
 

@@ -4694,7 +4694,7 @@ original symbol.
 a_boolean get_class_qualifier(a_type_ptr    *class_type,
                               a_boolean     *is_file_scope_qualifier,
                               a_boolean     *has_global_qualifier,
-                              a_boolean     *is_ptr_to_member,
+                              a_boolean     *next_token_is_star,
                               a_boolean     *err)
 /*
 Scan an optional class qualifier, e.g., "A::B::" (note that the final
@@ -4708,7 +4708,7 @@ indicates the file scope, set *class_type to NULL and
 an error.  On return: if there was a qualifier, the current token will be
 tok_class_qualifier and the next token will be the token following the
 final "::"; if there was no qualifier, the current token is the same as on
-entry.  If the token following the qualifier is a "*", *is_ptr_to_member is
+entry.  If the token following the qualifier is a "*", *next_token_is_star is
 will be TRUE.  This routine may only be called in C++ mode. 
 */
 {
@@ -4721,7 +4721,7 @@ will be TRUE.  This routine may only be called in C++ mode.
   *err = FALSE;
   *class_type = NULL;
   *is_file_scope_qualifier = FALSE;
-  *is_ptr_to_member = FALSE;
+  *next_token_is_star = FALSE;
   /* If the current token is a class qualifier it means that we have already
      analized the current qualifier and shouldn't try to do so again.
      Return the status information saved from the previous call.  */
@@ -4730,10 +4730,10 @@ will be TRUE.  This routine may only be called in C++ mode.
     *class_type = curr_class_qualifier.class_type;
     *has_global_qualifier = curr_class_qualifier.has_global_qualifier;
     *is_file_scope_qualifier = curr_class_qualifier.is_file_scope_qualifier;
-    *is_ptr_to_member = curr_class_qualifier.is_ptr_to_member;
+    *next_token_is_star = curr_class_qualifier.next_token_is_star;
     *err = curr_class_qualifier.err;
-    copy_source_position(curr_class_qualifier.error_position, error_position);
-    copy_source_position(error_position, pos_curr_token);
+    error_position = curr_class_qualifier.source_position;
+    pos_curr_token = error_position;
     goto exit;
   }  /* if */
   start_position = pos_curr_token;
@@ -4831,24 +4831,22 @@ will be TRUE.  This routine may only be called in C++ mode.
     }  /* if */
   }  /* if */
   if (is_qualifier) {
-    if (curr_token == tok_star) *is_ptr_to_member = TRUE;
+    if (curr_token == tok_star) *next_token_is_star = TRUE;
     /* If this is a qualifier, unget then token that follows the last "::"
        so that the next token scanned by the caller will be the identifier
        that follows the qualifier. */
     unget_token();
-  }  /* if */
-  /* Save the results of this qualifier scan.  These values will be returned
-     if another scan is attempted of the same qualifier. */
-  if (is_qualifier) { 
+    /* Save the results of this qualifier scan.  These values will be returned
+       if another scan is attempted of the same qualifier. */
     error_position = start_position;
     curr_token = tok_class_qualifier;
     curr_class_qualifier.class_type = *class_type;
     curr_class_qualifier.has_global_qualifier = *has_global_qualifier;
     curr_class_qualifier.is_file_scope_qualifier = *is_file_scope_qualifier;
-    curr_class_qualifier.is_ptr_to_member = *is_ptr_to_member;
+    curr_class_qualifier.next_token_is_star = *next_token_is_star;
     curr_class_qualifier.err = *err;
-    copy_source_position(error_position, curr_class_qualifier.error_position);
-    copy_source_position(error_position, pos_curr_token);
+    curr_class_qualifier.source_position = error_position;
+    pos_curr_token = error_position;
   }  /* if */
 exit:
 #if DEBUG
@@ -4891,7 +4889,7 @@ the error on the final identifier not being found on lookup.
 {
   a_boolean            is_qualified_name = FALSE, qualifier_err, okay;
   a_boolean            is_file_scope_qualifier, has_global_qualifier;
-  a_boolean            is_ptr_to_member;
+  a_boolean            next_token_is_star;
   a_boolean            suppress_error;
   a_type_ptr           class_type;
   a_source_position    start_position;
@@ -4913,7 +4911,7 @@ the error on the final identifier not being found on lookup.
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
            if so, get it and determine the class it represents. */
         if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
-                                &has_global_qualifier, &is_ptr_to_member,
+                                &has_global_qualifier, &next_token_is_star,
                                 &qualifier_err)) {
           /* A class qualifier is present. */
           /* Save the start position of the qualified name (get_class_qualifier
@@ -4928,7 +4926,7 @@ the error on the final identifier not being found on lookup.
               qualifier_err = TRUE;
             }  /* if */
           }  /* if */
-          /* Get then token following the qualifier. */
+          /* Get the token following the qualifier. */
           get_token();
           set_err_pos_to_curr_token();
           okay = FALSE;
@@ -5127,7 +5125,7 @@ of the front end.
   curr_class_qualifier.class_type = NULL;
   curr_class_qualifier.has_global_qualifier = FALSE;
   curr_class_qualifier.is_file_scope_qualifier = FALSE;
-  curr_class_qualifier.is_ptr_to_member = FALSE;
+  curr_class_qualifier.next_token_is_star = FALSE;
   curr_class_qualifier.err = FALSE;
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
