@@ -6041,6 +6041,7 @@ on the ck_template_param constant pointed to by the expression.
     if (is_function_type(tp) ||
         is_void_type(tp) ||
         is_reference_type(tp) ||
+        is_abstract_class_type(tp) ||
         (tp->kind == (a_type_kind)tk_array &&
          !has_unknown_specified_bound(tp) &&
          tp->variant.array.variant.number_of_elements == 0)) {

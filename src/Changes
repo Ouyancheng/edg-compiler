@@ -1,5 +1,19 @@
 Version 2.46
 
+1/30/02  Template arguments and abstract classes
+
+When evaluating explicit template arguments, an attempt to create an
+array of abstract class type should cause argument deduction to fail.
+This is not currently specified in the standard but has been raised
+as a core language issue.  The front end now enforces this rule.
+
+  template <class T, int I> void f(T (*p)[I]){}  // #1
+  template <class T, int I> void f(int i){}  // #2
+  struct A { virtual void f() = 0;};
+  int main() {
+    f<A,5>(0);  // should call #2
+  }
+
 1/30/02  Address of static member of current class is dependent in
          prototype instantiation
 
