@@ -4249,6 +4249,7 @@ static a_boolean cast_type_pre_check(
                                    a_boolean                *cast_to_reference,
                                    a_boolean                *int_to_ptr_case,
                                    a_boolean                *cast_to_func_ptr,
+                                   a_boolean                *templ_cast_to_ptr,
                                    a_local_expr_options_set local_options)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
@@ -4259,9 +4260,10 @@ cast without regard to the source type.  Return TRUE if there is an error.
 (*p_type_cast_to will be adjusted to the corresponding pointer type in
 that case), *int_to_ptr_case is TRUE if the destination type is a pointer
 type in a context that requires that the source type be an integral type,
-and *cast_to_func_ptr is TRUE if the cast is to a pointer-to-function type
-in C++.  This routine is called for both C-style casts and C++
-functional-notation type conversions.
+*cast_to_func_ptr is TRUE if the cast is to a pointer-to-function type
+in C++, and *templ_cast_to_ptr is true if the cast is to a pointer or
+pointer-to-member type in a template argument.  This routine is called
+for both C-style casts and C++ functional-notation type conversions.
 */
 {
   a_boolean  err = FALSE;
@@ -4270,6 +4272,7 @@ functional-notation type conversions.
   *int_to_ptr_case = FALSE;
   *cast_to_reference = FALSE;
   *cast_to_func_ptr = FALSE;
+  *templ_cast_to_ptr = FALSE;
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(type_cast_to);
   /* Check the type to see if it's permissible. */
@@ -4311,8 +4314,15 @@ functional-notation type conversions.
     /* Only casts to arithmetic types are allowed in nontype template
        arguments. */
     if (!is_arithmetic_type(type_cast_to)) {
-      error(ec_non_arith_operation_in_templ_arg);
-      err = TRUE;
+      /* However, a cast of a zero to a pointer or pointer-to-member type is
+         allowed.  The other half of the check is in do_cast. */
+      if (is_pointer_type(type_cast_to) ||
+          is_ptr_to_member_type(type_cast_to)) {
+        *templ_cast_to_ptr = TRUE;
+      } else {
+        error(ec_non_arith_operation_in_templ_arg);
+        err = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     /* Not a special expression kind. */
@@ -4403,6 +4413,7 @@ static void do_cast(a_type_ptr         type_cast_to,
                     a_boolean          cast_to_reference,
                     a_boolean          int_to_ptr_case,
                     a_boolean          cast_to_func_ptr,
+                    a_boolean          templ_cast_to_ptr,
                     a_source_position  *start_position)
 /*
 Do a cast operation.  The operand *operand is to be cast to the type
@@ -4414,9 +4425,10 @@ already been determined that the cast is invalid (this routine does
 additional checking).  cast_to_reference is TRUE if the cast is to a
 reference type.  int_to_ptr_case is TRUE if cast_type_pre_check
 determined that the source type must be integral (that must be checked
-here).  start_position is the source position of the start of the cast.
-This routine is called for both C-style casts and C++ functional-notation
-type conversions.
+here).  templ_cast_to_ptr is TRUE if the cast is to a pointer or pointer-
+to-member type in a template argument.  start_position is the source
+position of the start of the cast.  This routine is called for both
+C-style casts and C++ functional-notation type conversions.
 */
 {
   a_type_ptr        source_type;
@@ -4547,8 +4559,20 @@ type conversions.
         }  /* if */
       } else if (curr_expr_kind_is(ek_template_arg)) {
         /* Only casts between arithmetic types are allowed in nontype template
-           arguments. */
-        if (!is_arithmetic_type(source_type)) {
+           arguments, except for a cast of a zero to a pointer or
+           pointer-to-member type. */
+        if (templ_cast_to_ptr) {
+          if (is_constant_operand(operand) &&
+              is_null_pointer_constant(&operand->variant.constant)) {
+            /* Cast of a null pointer constant to a pointer or
+               pointer-to-member type.  Okay. */
+          } else {
+            /* Cast to a pointer or pointer-to-member type, but the source is
+               not a null pointer constant. */
+            error(ec_non_arith_operation_in_templ_arg);
+            err = TRUE;
+          }  /* if */
+        } if (!is_arithmetic_type(source_type)) {
           error(ec_non_arith_operation_in_templ_arg);
           err = TRUE;
         }  /* if */
@@ -4689,6 +4713,7 @@ or
   a_type_ptr        type_cast_to;
   a_boolean         err = FALSE;
   a_boolean         int_to_ptr_case, cast_to_reference, cast_to_func_ptr;
+  a_boolean         templ_cast_to_ptr;
   a_local_expr_options_set
                     cast_options;
   an_operand        local_bound_function_selector;
@@ -4720,7 +4745,7 @@ or
        better error position. */
     err = cast_type_pre_check(&type_cast_to, &cast_to_reference,
                               &int_to_ptr_case, &cast_to_func_ptr,
-                              local_options);
+                              &templ_cast_to_ptr, local_options);
 
     /* The next token should be the closing rparen. */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -4738,7 +4763,7 @@ or
     /* Check compatibility of the types and do the cast. */
     do_cast(type_cast_to, result, &local_bound_function_selector, err,
             cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
-            &start_position);
+            templ_cast_to_ptr, &start_position);
   } else {
     /* This is an expression in parentheses.  The parentheses do not
        affect the fact that the enclosed expression is an immediate operand
@@ -4820,7 +4845,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
   a_boolean                     err = FALSE;
   a_boolean                     int_to_ptr_case;
   a_boolean                     cast_to_reference;
-  a_boolean                     cast_to_func_ptr;
+  a_boolean                     cast_to_func_ptr, templ_cast_to_ptr;
   a_symbol_ptr                  ctor_sym;
   an_expr_node_ptr              arg_expr_list;
   a_routine_ptr                 ctor_routine;
@@ -4838,7 +4863,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
      for the class case (abstract class). */
   err = cast_type_pre_check(&type_cast_to, &cast_to_reference,
                             &int_to_ptr_case, &cast_to_func_ptr,
-                            local_options);
+                            &templ_cast_to_ptr, local_options);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
@@ -4931,7 +4956,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
       /* Check compatibility of the types and do the cast. */
       do_cast(type_cast_to, result, &local_bound_function_selector, err,
               cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
-              &start_position);
+              templ_cast_to_ptr, &start_position);
     }  /* if */
     /* Check for the closing parenthesis. */
     check_closing_paren_after_expr_list();
