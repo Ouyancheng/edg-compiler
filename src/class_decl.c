@@ -3411,13 +3411,19 @@ or struct definition.  The syntax is
         if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
           a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
           if (tp->kind == (a_type_kind)tk_template_param) {
-            /* No diagnostic on template parameters, which will only show
-               up during prototype instantiations.  Set the flag that
-               indicates that this prototype instantiation has a nonreal
-               base class. */
-            cssp->any_nonreal_base_classes = TRUE;
-            base_class_type = proxy_class_for_template_param(tp);
-            bcp_cssp = symbol_supplement_for_class(base_class_type);
+            if (cssp->is_prototype_instantiation) {
+              /* No diagnostic on template parameters, which will only show
+                 up during prototype instantiations.  Set the flag that
+                 indicates that this prototype instantiation has a nonreal
+                 base class. */
+              cssp->any_nonreal_base_classes = TRUE;
+              base_class_type = proxy_class_for_template_param(tp);
+              bcp_cssp = symbol_supplement_for_class(base_class_type);
+            } else {
+              /* Error case.  Ignore the specifier. */
+              error(ec_bad_base_class);
+              goto skip_base_class;
+            }  /* if */
           }  /* if */
         } /* if */
         if (base_class_type == NULL) {
@@ -3468,6 +3474,12 @@ or struct definition.  The syntax is
             error(ec_incomplete_type_not_allowed);
             goto skip_base_class;
           }  /* if */
+        }  /* if */
+        if (bcp_cssp->is_nonreal_class &&
+            !cssp->is_prototype_instantiation) {
+          /* Error case.  Ignore the base class. */
+          error(ec_bad_base_class);
+          goto skip_base_class;
         }  /* if */
       }  /* if */
       /* Issue a diagnostic if an explicit access specifier was not provided
