@@ -2640,15 +2640,8 @@ Return TRUE if the sequence number seq_number falls within an include file.
   if (proper_file == NULL) {
     /* Sequence number is not in a file, so it's not in an include file. */
     in_include_file = FALSE;
-  } else if (proper_file == eff_primary_source_file()) {
-    /* Sequence number is in the (effective) primary source file, so it's not
-       in an include file.  The effective primary source file can be different
-       than the actual primary source file if the source begins with a
-       #line directive. */
-    in_include_file = FALSE;
   } else {
-    /* Sequence number is in an include file. */
-    in_include_file = TRUE;
+    in_include_file = proper_file->is_include_file;
   }  /* if */
   return in_include_file;
 }  /* seq_is_in_include_file */
