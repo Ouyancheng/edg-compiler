@@ -7256,7 +7256,7 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
-void add_to_src_seq_sublist_list(a_src_seq_sublist_ptr  sublist)
+static void add_to_src_seq_sublist_list(a_src_seq_sublist_ptr  sublist)
 /*
 Add sublist to the end of the source-sequence-sublist list for the current
 scope.
@@ -7274,7 +7274,7 @@ scope.
 }  /* add_to_src_seq_sublist_list */
 
 
-a_src_seq_sublist_ptr make_sublist_header_and_parent(
+static a_src_seq_sublist_ptr make_sublist_header_and_parent(
                                      a_source_sequence_entry_ptr  fs_ssep,
                                      a_source_sequence_entry_ptr  *local_ssep)
 /*
@@ -7406,6 +7406,8 @@ this entity.
   a_memory_region_number        region_to_switch_back_to;
 
   db_enter(4, "f_update_source_sequence_list");
+  check_assertion_str(!source_sequence_entries_disallowed,
+                      "source sequence entries not allowed in current scope");
   if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
       kind != iek_statement && kind != iek_switch_clause &&
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
@@ -7758,20 +7760,10 @@ region -- and then add it to the end of the source sequence list.
   a_source_sequence_entry_ptr  ssep;
 
   db_enter(4, "add_empty_source_sequence_entry");
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-    /* Do not put out an empty source sequence entry during class or function
-       instantiation. */
-#if 0
-    /* We may need to change this for prototype instantiations, however. */
-#endif /* if 0 */
+  if (source_sequence_entries_disallowed) {
+    /* We are in a context in which source sequence entries are not being
+       generated. */
     ssep = NULL;
-  } else if (depth_template_declaration_scope != NO_SCOPE_DEPTH) {
-#if 0
-    /* This should be changed when we add support for source sequence entries
-       for template declarations. */
-#else /* if !0 */
-    ssep = NULL;
-#endif /* if 0 */
   } else {
     check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER ||
                     scope_stack[depth_scope_stack].kind !=
@@ -7800,8 +7792,9 @@ sequence list.
   a_boolean                       force_alloc_in_filescope;
   a_memory_region_number          region_to_switch_back_to;
 
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+  if (!source_sequence_entries_disallowed) {
+    /* We are in a context in which source sequence entries are being
+       generated. */
     if (kind == (a_byte_il_entry_kind)iek_type &&
         curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
       /* Local type. */
