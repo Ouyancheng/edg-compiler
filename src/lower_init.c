@@ -2748,7 +2748,8 @@ be kept, FALSE if it should be deleted.
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
   an_object_lifetime_ptr
-                     lifetime, saved_curr_object_lifetime;
+                     lifetime,
+                     saved_curr_object_lifetime = curr_object_lifetime;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2785,29 +2786,39 @@ be kept, FALSE if it should be deleted.
     /* Put a copy of the initialization position description into the
        dynamic init entry for use at destruction time. */
     dip->init_pos_descr = alloc_init_pos_descr_copy(ipdp);
-    /* If this dynamic init is part of an object lifetime, it may be that it
-       is the first encountered since a label, and it is therefore in a
-       different lifetime section than what we've been thinking of as the
-       current object lifetime.  Update the current lifetime accordingly.
-       This comes up because there is no explicit indication in the IL tree
-       that an olk_block_after_label lifetime has begun. */
+    if (lifetime->kind == (an_object_lifetime_kind)olk_function_static) {
+      /* For local static initializations, make the function static lifetime
+         the current lifetime but restore the previous lifetime after
+         processing the dynamic initialization. */
+      curr_object_lifetime = lifetime;
+    } else {
+      /* Not a local static initialization. */
+      /* If this dynamic init is part of an object lifetime, it may be that it
+         is the first encountered since a label, and it is therefore in a
+         different lifetime section than what we've been thinking of as the
+         current object lifetime.  Update the current lifetime accordingly.
+         This comes up because there is no explicit indication in the IL tree
+         that an olk_block_after_label lifetime has begun. */
 #if CHECKING
-    /* Check that the new lifetime is a successor-after-label of the
-       lifetime we've been considering the current one, if it's different
-       than the current one. */
-    { an_object_lifetime_ptr olp;
-      for (olp = lifetime;
-           olp != curr_object_lifetime;
-           olp = olp->parent_lifetime) {
-        check_assertion_str(olp->kind ==
+      /* Check that the new lifetime is a successor-after-label of the
+         lifetime we've been considering the current one, if it's different
+         than the current one. */
+      { an_object_lifetime_ptr olp;
+        for (olp = lifetime;
+             olp != curr_object_lifetime;
+             olp = olp->parent_lifetime) {
+          check_assertion_str(olp->kind ==
                                 (an_object_lifetime_kind)olk_block_after_label,
-                            "lower_dynamic_init: unexpected object lifetime");
-      }  /* for */
-    }
+                             "lower_dynamic_init: unexpected object lifetime");
+        }  /* for */
+      }
 #endif /* CHECKING */
-    curr_object_lifetime = lifetime;
+      curr_object_lifetime = lifetime;
+      /* This lifetime stays the current lifetime even after the dynamic
+         initialization has been processed. */
+      saved_curr_object_lifetime = curr_object_lifetime;
+    }  /* if */
   }  /* if */
-  saved_curr_object_lifetime = curr_object_lifetime;
   lifetime = dip->init_expr_lifetime;
   if (lifetime != NULL) {
     /* The dynamic init defines a lifetime that surrounds the initialization.
@@ -3146,8 +3157,9 @@ do_assignment:;
     }  /* if */
   }  /* if */
   /* If the dynamic init defines a lifetime that surrounds the initialization,
-     pop that lifetime off the object lifetime stack. */
-  if (lifetime != NULL) curr_object_lifetime = saved_curr_object_lifetime;
+     pop that lifetime off the object lifetime stack.  Also remove a
+     function static lifetime. */
+  curr_object_lifetime = saved_curr_object_lifetime;
   if (!*keep_dynamic_init) {
     /* Clear the initialization part of the dynamic init now that it has
        been rewritten.  This is important because the dynamic init may
@@ -4055,6 +4067,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
   non_C_case = FALSE;
   if (dip->destructor != NULL) {
     /* Initialization with a later destructor. */
+    non_C_case = TRUE;
+  } else if (dip->init_expr_lifetime) {
+    /* Initialization that wraps a lifetime around the initialization (because
+       there are temporaries created in it). */
     non_C_case = TRUE;
   }  /* if */
   switch (dip->kind) {
