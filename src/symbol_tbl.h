@@ -3098,7 +3098,7 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
 /* Return TRUE if a symbol is a class or function template symbol or an
    overload set containing a function template symbol */
 #define symbol_is_or_contains_template(sym)				\
-  ((sym)->kind == (a_symbol_kind)sk_class_template ||			\
+  (is_class_template_or_injected_template_symbol(sym) ||		\
    (sym)->kind == (a_symbol_kind)sk_function_template ||		\
    ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&		\
     overload_set_contains_template(sym)))
