@@ -7597,6 +7597,7 @@ indentation level.
   (void)fprintf(f_debug, "Type list for ");
   db_scope(scope);
   (void)fprintf(f_debug, ":\n");
+  indent += 2;
   for (type = scope->types; type != NULL; type = type->next) {
     for (n = 0; n < indent; n++) fputc(' ', f_debug);
     db_abbreviated_type(type);
