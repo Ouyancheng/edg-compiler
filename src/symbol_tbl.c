@@ -4484,6 +4484,8 @@ cleared.
 {
   a_symbol_locator               locator;
   a_type_ptr                     return_type, param1_type;
+  a_symbol_ptr                   sym;
+  a_routine_type_supplement_ptr  rtsp;
 
   db_enter(5, "make_global_operator_new_or_delete_symbol");
   check_assertion_str(is_new_operator(opname) || is_delete_operator(opname),
@@ -4502,8 +4504,19 @@ cleared.
     /* Type of the one parameter for operator delete is void *. */
     param1_type = make_pointer_type(void_type());
   }  /* if */
-  (void)make_predeclared_function_symbol(&locator, return_type, param1_type,
-                                         (a_type_ptr)NULL, (a_type_ptr)NULL);
+  sym = make_predeclared_function_symbol(&locator, return_type, param1_type,
+                                        (a_type_ptr)NULL, (a_type_ptr)NULL);
+  if (exceptions_enabled) {
+    rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
+    if (is_delete_operator(opname)) {
+      /* Mark the predeclared operator delete function with "throw()". */
+      rtsp->exception_specification = alloc_exception_specification();
+    } else {
+      /* Putting out "throw(std::bad_alloc)" for the predeclared operator new
+         is not yet implemented; it would entail predeclaring namespace std
+         and class std::bad_alloc (and probably class std::exception). */
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
 

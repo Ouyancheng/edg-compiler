@@ -810,20 +810,18 @@ consistent with that of the previous declaration.
         rout_sym = rout_sym->variant.routine.instance_ptr->template_sym;
       }  /* if */
     }  /* if */
-    if (old_tsp == NULL) {
+    if (rp->compiler_generated) {
+      /* Ignore any differences between exception specifications on a
+         compiler generated routine (e.g., predeclared operator new or delete)
+         and the current declaration. */
+    } else if (old_tsp == NULL) {
       /* Previous specification asserted that any exception may be thrown.
          It is compatible only with an identical specification on the current
          declaration. */
       if (new_tsp != NULL) {
-        if (rp->compiler_generated) {
-          /* Don't issue an error on a redeclaration of a compiler-generated
-             function.  This may be the redeclaration of a predeclared
-             operator new or an error case of some sort. */
-        } else {
-          /* Previously the exception specification was absent; now one is
-             provided.  Issue an error. */
-          pos_stsy_error(error_code, throw_pos, "", rout_sym);
-        }  /* if */
+        /* Previously the exception specification was absent; now one is
+           provided.  Issue an error. */
+        pos_stsy_error(error_code, throw_pos, "", rout_sym);
       }  /* if */
     } else if (new_tsp == NULL) {
       /* Issue a diagnostic on the omission of a throw specification on the

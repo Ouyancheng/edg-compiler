@@ -1,5 +1,13 @@
 Version 2.35
 
+1/24/97 Exception specification on predeclared operator delete
+
+An exception specification corresponding to "throw()" is now added to the
+entries for predeclared operator delete and operator delete[] when support
+for exceptions is enabled.  (An analogous change has not yet done for the
+predeclared operator new functions; this it would also involve predeclaring
+namespace std, class std::bad_alloc, and possibly class std::exception.)
+
 1/23/97 Memory mapping portability change
 
 The map_file_region routine in host_envir.c has been changed to no longer
