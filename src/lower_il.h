@@ -567,13 +567,6 @@ typedef struct a_destructor_wrapper_info_block {
 
 extern a_boolean il_lowering_needed(void);
 
-/*
-Return TRUE if either C++ lowering or C99 lowering will be done.
-*/
-#define any_lowering_needed() \
-  ((!C_mode() || c99_mode) && !suppress_il_lowering && total_errors == 0)
-
-
 extern void pop_context(void);
 
 extern void push_context(a_context              *context,
