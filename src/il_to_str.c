@@ -2259,7 +2259,9 @@ precedence confusion.  Do the output in the way described by octl.
     desired_type = con_type;
     desired_type = type_pointed_to(desired_type);
   }  /* if */
-  if (constant->is_reinterpret_cast) reinterpret_cast_needed = TRUE;
+  if (constant->is_reinterpret_cast && !octl->c_generating_back_end) {
+    reinterpret_cast_needed = TRUE;
+  }  /* if */
   /* Examine the addressed entity (without generating any code) to
      determine how it will be put out as an lvalue.  This lets us decide
      on putting out a leading cast, etc. before the lvalue is put out. */
@@ -2524,7 +2526,7 @@ confusion.  Do the output in the way described by octl.
       /* If the constant is implicitly cast to another type, prefix the
          constant with an explicit cast. */
       a_boolean need_cast = FALSE;
-      if (constant->is_reinterpret_cast) {
+      if (constant->is_reinterpret_cast && octl->c_generating_back_end) {
         /* The source form used reinterpret_cast, so a cast is needed. */
         need_cast = TRUE;
         need_reinterpret_cast = TRUE;
