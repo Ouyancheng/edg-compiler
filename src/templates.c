@@ -7780,7 +7780,7 @@ information.
   }  /* if */
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type, &qualifiers,
-                        attributes, /*p_ms_attributes=*/NULL, decl_modifiers,
+                        attributes, (an_ms_attribute_ptr*)NULL, decl_modifiers,
                         decl_pos_block, (a_upc_block_size *)NULL);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
@@ -11803,7 +11803,7 @@ depends on a template parameter type, return TRUE in *template_dependent
                          DSI_IS_TEMPLATE_PARAMETER),
                         &dso_flags, &param_storage_class, param_type_ptr,
                         &qualifiers, (an_attribute_ptr *)NULL,
-                        /*p_ms_attributes=*/NULL, &decl_modifiers,
+                        (an_ms_attribute_ptr*)NULL, &decl_modifiers,
                         &decl_pos_block, (a_upc_block_size *)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
@@ -15226,7 +15226,7 @@ that follows.
 				    DSI_STORAGE_CLASS_SPECIFIER_ALLOWED
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        (an_attribute_ptr *)NULL, /*p_ms_attributes=*/NULL, 
+                        (an_attribute_ptr *)NULL, (an_ms_attribute_ptr*)NULL, 
                         &decl_modifiers, &decl_pos_block,
                         (a_upc_block_size *)NULL);
   /* A storage class is not permitted on an explicit specialization,
@@ -20115,7 +20115,7 @@ instantiation.
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        (an_attribute_ptr *)NULL, /*p_ms_attributes=*/NULL,
+                        (an_attribute_ptr *)NULL, (an_ms_attribute_ptr*)NULL,
                         &decl_modifiers, &decl_pos_block,
                         (a_upc_block_size *)NULL);
   if (is_error_type(type) && !is_declarator_start()) {
