@@ -1,5 +1,12 @@
 Version 2.43
 
+11/23/99 Internal error when redeclaring namespace std using a template-id
+
+The following example no longer triggers an internal error:
+
+  namespace std {}
+  namespace std<> {}  // Used to trigger an internal error
+
 11/22/99 Clearer diagnostic for unresolved type names
 
 During the processing of certain declaration specifiers, the front end now

@@ -8167,7 +8167,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     /* Namespace definition. */
     if (ns_sym == NULL) {
       if (locator.symbol_header == symbol_for_namespace_std->header &&
-          depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+          depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+          !locator.is_error) {
         /* This is the initial explicit declaration of namespace "std".
            Reuse the predeclared symbol. */
         ns_sym = symbol_for_namespace_std;
