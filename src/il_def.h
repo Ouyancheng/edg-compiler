@@ -984,12 +984,14 @@ typedef struct a_per_instantiation_needed_flags_entry {
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+typedef struct a_name_qualifier *a_name_qualifier_ptr;
+typedef struct a_name_reference *a_name_reference_ptr;
+
 #if RECORD_FORM_OF_NAME_REFERENCE
 
 /*
 Entry used to represent the qualifier portion of a qualified name.
 */
-typedef struct a_name_qualifier *a_name_qualifier_ptr;
 typedef struct a_name_qualifier {
   a_name_qualifier_ptr
 		next;	/* Pointer to the next name qualifier entry for
@@ -1018,7 +1020,6 @@ typedef struct a_name_qualifier {
 /*
 Entry used to represent the form of name used to refer to an entity.
 */
-typedef struct a_name_reference *a_name_reference_ptr;
 typedef struct a_name_reference {
   a_name_reference_ptr
 		next;	/* Pointer to the next name reference entry for a
