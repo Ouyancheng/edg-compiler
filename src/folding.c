@@ -2458,6 +2458,44 @@ set if the operation cannot be folded.
 }  /* do_pcompare */
 
 
+static void do_pmcompare(a_constant            *constant_1,
+                         an_expr_operator_kind op,
+                         a_constant            *constant_2,
+                         a_constant            *result)
+/*
+Fold a relational operation on two pointer-to-member constants.
+constant_1 and constant_2 are compared according to the indicated operator,
+and *result is set to an integer 0 or 1 for the result.
+*/
+{
+  long result_value = FALSE;
+
+  if (constant_1->variant.ptr_to_member.class_of_which_a_member ==
+                   constant_2->variant.ptr_to_member.class_of_which_a_member &&
+      constant_1->variant.ptr_to_member.is_function_ptr ==
+                           constant_2->variant.ptr_to_member.is_function_ptr) {
+    if (constant_1->variant.ptr_to_member.is_function_ptr) {
+      result_value = (constant_1->variant.ptr_to_member.variant.routine ==
+                      constant_2->variant.ptr_to_member.variant.routine);
+    } else {
+      result_value = (constant_1->variant.ptr_to_member.variant.field ==
+                      constant_2->variant.ptr_to_member.variant.field);
+    }  /* if */
+  }  /* if */
+  /* result_value is now set for the "==" case.  Complement it for the "!="
+     case. */
+  if (op == (an_expr_operator_kind)eok_pmne) result_value = !result_value;
+  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+  result->variant.integer_value = result_value;
+#if DEBUG
+  if (debug_level  >= 5) {
+    db_binary_operation(db_operator_names[op],
+                        constant_1, constant_2, result, ec_no_error);
+  }  /* if */
+#endif /* DEBUG */
+}  /* do_pmcompare */
+
+
 void binary_operation(an_expr_operator_kind op,
 		      a_constant            *constant_1,
 		      a_constant            *constant_2,
@@ -2624,6 +2662,10 @@ reason.  *err_pos is used as the position for any diagnostics issued.
         case eok_ple:
           do_pcompare(constant_1, op, constant_2, result, did_not_fold,
                       &err_code, &err_severity);
+          break;
+        case eok_pmeq:
+        case eok_pmne:
+          do_pmcompare(constant_1, op, constant_2, result);
           break;
 #if CHECKING
         default:
