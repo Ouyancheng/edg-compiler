@@ -1305,6 +1305,8 @@ extern void set_source_corresp(a_source_correspondence *sc,
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
+extern a_template_param_ptr alloc_template_param(void);
+
 
 /* Examine the list of symbols with a given name, looking for an
    instance with a particular kind. */
