@@ -232,12 +232,14 @@ kind from the current scope, return a pointer to the corresponding symbol.
 Otherwise, return NULL.
 */
 {
-  a_symbol_ptr  sym = symbol_list_from_locator(locator_for_curr_id);
+  a_symbol_ptr    sym = symbol_list_from_locator(locator_for_curr_id);
+  a_scope_number  scope_number;
 
   /* Look for a symbol in the current scope for which the kind matches that
-     specified by the caller. */
+     of the scope level specified by the caller. */
+  scope_number = scope_stack[decl_scope_level].number;
   for (; sym != NULL; sym = sym->next) {
-    if (sym->decl_scope == decl_scope_level && sym->kind == kind) {
+    if (sym->decl_scope == scope_number && sym->kind == kind) {
       /* Found it. */
       break;
     }  /* if */
