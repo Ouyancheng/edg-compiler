@@ -407,7 +407,14 @@ its subtree has been walked.
       /* The IL for the function will not be changing any more, so walk
          it to note what needs to be kept in the IL (specifically, what
          in the file scope memory region needs to be kept in the IL). */
-      mark_to_keep_in_il((char *)scope, iek_scope);
+      if (okay_to_eliminate_unneeded_il_entries) {
+        mark_to_keep_in_il((char *)scope, iek_scope);
+      } else {
+        /* Not removing IL entries, so not maintaining the keep_in_il flag.
+           Set it on the scope entry anyway as an indication that the
+           memory region can be disposed of now. */
+        il_entry_prefix_of(scope).keep_in_il = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* needed_flag_walk_entry_process */
