@@ -2,7 +2,7 @@ Version 3.5
 
 11/4/04  Microsoft compatibility: __declspec ignored on explicit specialization
 
-The __declspec attribute construct (an extensions accepted in Microsoft mode)
+The __declspec attribute construct (an extension accepted in Microsoft mode)
 was incorrectly ignored on some explicit specializations.  For example:
 
   template<typename T> void f();
