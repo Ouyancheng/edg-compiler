@@ -2025,9 +2025,6 @@ enum an_anonymous_union_kind_tag {
   auk_none,		/* Not an anonymous union. */
   auk_variable,		/* Anonymous union is associated with a variable. */
   auk_field,		/* Anonymous union is associated with a field. */
-  auk_nonstandard_field	/* A nonstandard anonymous-union-like construct is
-			   associated with a field (only possible when
-			   ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_anonymous_union_kind;
