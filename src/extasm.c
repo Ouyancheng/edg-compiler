@@ -119,11 +119,18 @@ In the latter case, issues an error.
   unsigned int      md, mn = 0, mx = regmap_size;
   int               comp;
   a_named_register  result = (a_named_register)anr_invalid;
+  char              *name_to_search = name;
 
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
+  if (name[0] == '%') {
+    /* Register names are optionally prefixed with the "%" character. */
+    ++name_to_search;
+  }  /* if */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   /* Binary search regmap array. */
   while (mx > mn) {
     md = (mn + mx) / 2;
-    comp = strcmp(name, regmap[md].name);
+    comp = strcmp(name_to_search, regmap[md].name);
     if (comp > 0) {
       mn = md + 1;
     } else if (comp < 0) {

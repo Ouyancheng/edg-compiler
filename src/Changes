@@ -1,5 +1,10 @@
 Version 3.1
 
+8/16/02   GNU compatibility: x86 register names can be prefixed with %
+
+The GNU compiler accepts a "%" on register names in asm constructs.
+This is now emulated when GNU_X86_ASM_EXTENSIONS_ALLOWED is TRUE.
+
 8/16/02   Abort on use of "::" in #if expression
 
 The front end aborted on use of a leading "::" in an expression
