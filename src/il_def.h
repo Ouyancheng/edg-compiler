@@ -7416,6 +7416,10 @@ enum an_expr_operator_kind_tag {
                            imaginary gives a real result. */
   eok_jdivide,          /* Division of real by imaginary gives an
                            imaginary result with a sign change. */
+  eok_fjadd,            /* Real + imaginary, produces complex. */
+  eok_jfadd,            /* Imaginary + real, produces complex. */
+  eok_fjsubtract,       /* Real - imaginary, produces complex. */
+  eok_jfsubtract,       /* Imaginary - real, produces complex. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
   eok_complex,          /* Join two real operands, produce a complex as the
@@ -10279,6 +10283,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
    "x+=", "x-=", "x*=", "x/=", "j*", "j/",
+   "fj+", "jf+", "fj-", "jf-",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
    "complex",

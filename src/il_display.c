@@ -2902,12 +2902,14 @@ Display the name of an expression operator.
     case eok_ppre_decr:         s = "eok_ppre_decr";              break;
     case eok_lvalue_from_struct_rvalue:
                                 s = "eok_lvalue_from_struct_rvalue";break;
-#endif /* ifdef CFE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:            s = "eok_assume";                 break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#ifdef FFE
+#endif /* ifdef CFE */
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
     case eok_xnegate:           s = "eok_xnegate";                break;
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
     case eok_char_length:       s = "eok_char_length";            break;
     case eok_address_of_value:  s = "eok_address_of_value";       break;
     case eok_loc:               s = "eok_loc";                    break;
@@ -2923,10 +2925,8 @@ Display the name of an expression operator.
     case eok_ilt:               s = "eok_ilt";                    break;
     case eok_ige:               s = "eok_ige";                    break;
     case eok_ile:               s = "eok_ile";                    break;
-#if GNU_EXTENSIONS_ALLOWED
     case eok_ignu_min:          s = "eok_ignu_min";               break;
     case eok_ignu_max:          s = "eok_ignu_max";               break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_iassign:           s = "eok_iassign";                break;
     case eok_fadd:              s = "eok_fadd";                   break;
     case eok_fsubtract:         s = "eok_fsubtract";              break;
@@ -2938,15 +2938,13 @@ Display the name of an expression operator.
     case eok_flt:               s = "eok_flt";                    break;
     case eok_fge:               s = "eok_fge";                    break;
     case eok_fle:               s = "eok_fle";                    break;
-#if GNU_EXTENSIONS_ALLOWED
     case eok_fgnu_min:          s = "eok_fgnu_min";               break;
     case eok_fgnu_max:          s = "eok_fgnu_max";               break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_fassign:           s = "eok_fassign";                break;
     case eok_padd:              s = "eok_padd";                   break;
     case eok_psubtract:         s = "eok_psubtract";              break;
     case eok_passign:           s = "eok_passign";                break;
-#ifdef FFE
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
     case eok_xadd:              s = "eok_xadd";                   break;
     case eok_xsubtract:         s = "eok_xsubtract";              break;
     case eok_xmultiply:         s = "eok_xmultiply";              break;
@@ -2954,6 +2952,20 @@ Display the name of an expression operator.
     case eok_xeq:               s = "eok_xeq";                    break;
     case eok_xne:               s = "eok_xne";                    break;
     case eok_xassign:           s = "eok_xassign";                break;
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_xadd_assign:       s = "eok_xadd_assign";            break;
+    case eok_xsubtract_assign:  s = "eok_xsubtract_assign";       break;
+    case eok_xmultiply_assign:  s = "eok_xmultiply_assign";       break;
+    case eok_xdivide_assign:    s = "eok_xdivide_assign";         break;
+    case eok_jmultiply:         s = "eok_jmultiply";              break;
+    case eok_jdivide:           s = "eok_jdivide";                break;
+    case eok_fjadd:             s = "eok_fjadd";                  break;
+    case eok_jfadd:             s = "eok_jfadd";                  break;
+    case eok_fjsubtract:        s = "eok_fjsubtract";             break;
+    case eok_jfsubtract:        s = "eok_jfsubtract";             break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
     case eok_complex:           s = "eok_complex";                break;
     case eok_ceq:               s = "eok_ceq";                    break;
     case eok_cne:               s = "eok_cne";                    break;
@@ -2979,10 +2991,8 @@ Display the name of an expression operator.
     case eok_plt:               s = "eok_plt";                    break;
     case eok_pge:               s = "eok_pge";                    break;
     case eok_ple:               s = "eok_ple";                    break;
-#if GNU_EXTENSIONS_ALLOWED
     case eok_pgnu_min:          s = "eok_pgnu_min";               break;
     case eok_pgnu_max:          s = "eok_pgnu_max";               break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_pmeq:              s = "eok_pmeq";                   break;
     case eok_pmne:              s = "eok_pmne";                   break;
     case eok_sassign:           s = "eok_sassign";                break;
@@ -3057,6 +3067,9 @@ Display the name of an expression operator.
     case eok_va_arg:            s = "eok_va_arg";                 break;
     case eok_va_end:            s = "eok_va_end";                 break;
     case eok_va_copy:           s = "eok_va_copy";                break;
+    case eok_va_start_single_operand:
+                                s = "eok_va_start_single_operand";
+                                                                  break;
 #ifdef CFE
     case eok_negate:            s = "eok_negate";                 break;
     case eok_post_incr:         s = "eok_post_incr";              break;
@@ -3073,10 +3086,8 @@ Display the name of an expression operator.
     case eok_lt:                s = "eok_lt";                     break;
     case eok_ge:                s = "eok_ge";                     break;
     case eok_le:                s = "eok_le";                     break;
-#if GNU_EXTENSIONS_ALLOWED
     case eok_gnu_min:           s = "eok_gnu_min";                break;
     case eok_gnu_max:           s = "eok_gnu_max";                break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_assign:            s = "eok_assign";                 break;
     case eok_add_assign:        s = "eok_add_assign";             break;
     case eok_subtract_assign:   s = "eok_subtract_assign";        break;
