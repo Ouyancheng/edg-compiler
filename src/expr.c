@@ -7019,6 +7019,8 @@ C-style casts and C++ functional-notation type conversions.
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
         } else if (expl_conversion_possible(source_type, operand_is_constant,
+                                            (a_boolean)operand->
+                                                      is_simple_string_literal,
                                             operand_con, type_cast_to,
                                             ec_bad_cast, &warning_suggested)) {
           /* Valid explicit conversion.  Issue warning on oddball cases. */
@@ -7325,6 +7327,8 @@ Syntax:
           cast_operand_to_void(result, type_cast_to);
         } else if (static_cast_conversion_possible(source_type,
                                                    operand_is_constant,
+                                                   (a_boolean)result->
+                                                      is_simple_string_literal,
                                                    operand_con,
                                                    type_cast_to,
                                                    ec_bad_cast,
@@ -9479,6 +9483,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
       result->variant.constant.is_simple_zero = FALSE;
+      result->is_simple_string_literal = FALSE;
     }  /* if */
   } else {
     /* Build the expression. */

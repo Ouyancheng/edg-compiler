@@ -173,6 +173,7 @@ typedef enum /*an_option_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_import_dir,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  optk_const_string_literals,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -450,6 +451,16 @@ EXTERN a_boolean
                                                                               ;
 			/* TRUE if operator functions can be used to
 			   overload operations on enums. */
+
+EXTERN a_boolean
+		string_literals_are_const
+#if VAR_INITIALIZERS
+                                           = DEFAULT_STRING_LITERALS_ARE_CONST
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if string literals are const, i.e.,
+			   array[n] of const char.  Also controls wide
+			   string literals. */
 
 EXTERN a_boolean
 		special_subscript_cost

@@ -517,6 +517,7 @@ extern a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
 extern a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
+                         a_boolean            source_is_string_literal,
                          a_constant           *source_constant,
                          a_type_ptr           dest_type,
                          a_boolean            check_as_operands_not_conversion,
@@ -531,30 +532,34 @@ extern a_boolean impl_ptr_to_member_conversion(
                          a_boolean            check_as_operands_not_conversion,
                          a_std_conv_descr_ptr std_conv);
 extern a_boolean impl_conversion_possible(
-                                   a_type_ptr           source_type,
-                                   a_boolean            source_is_constant,
-                                   a_constant           *source_constant,
-                                   a_type_ptr           dest_type,
-                                   a_boolean            suppress_extensions,
-                                   an_error_code        default_warning_code,
-                                   a_std_conv_descr_ptr std_conv);
+                                 a_type_ptr           source_type,
+                                 a_boolean            source_is_constant,
+                                 a_boolean            source_is_string_literal,
+                                 a_constant           *source_constant,
+                                 a_type_ptr           dest_type,
+                                 a_boolean            suppress_extensions,
+                                 an_error_code        default_warning_code,
+                                 a_std_conv_descr_ptr std_conv);
 extern a_boolean static_cast_conversion_possible(
-                                          a_type_ptr    source_type,
-                                          a_boolean     source_is_constant,
-                                          a_constant    *source_constant,
-                                          a_type_ptr    dest_type,
-                                          an_error_code default_warning_code,
-                                          an_error_code *warning_suggested);
+                                        a_type_ptr    source_type,
+                                        a_boolean     source_is_constant,
+                                        a_boolean     source_is_string_literal,
+                                        a_constant    *source_constant,
+                                        a_type_ptr    dest_type,
+                                        an_error_code default_warning_code,
+                                        an_error_code *warning_suggested);
 extern a_boolean reinterpret_cast_conversion_possible(
                                              a_type_ptr    source_type,
                                              a_type_ptr    dest_type,
                                              an_error_code *warning_suggested);
-extern a_boolean expl_conversion_possible(a_type_ptr    source_type,
-                                          a_boolean     source_is_constant,
-                                          a_constant    *source_constant,
-                                          a_type_ptr    dest_type,
-                                          an_error_code default_warning_code,
-                                          an_error_code *warning_suggested);
+extern a_boolean expl_conversion_possible(
+                                        a_type_ptr    source_type,
+                                        a_boolean     source_is_constant,
+                                        a_boolean     source_is_string_literal,
+                                        a_constant    *source_constant,
+                                        a_type_ptr    dest_type,
+                                        an_error_code default_warning_code,
+                                        an_error_code *warning_suggested);
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
 extern

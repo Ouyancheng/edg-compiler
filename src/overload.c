@@ -271,6 +271,7 @@ cast.
                 (clear_std_conv_descr(&std_conversion),
                  static_cast_conversion_possible(ptr_routine_type,
                                                  /*source_is_constant=*/FALSE,
+                                           /*source_is_string_literal=*/FALSE,
                                                  (a_constant_ptr)NULL,
                                                  dest_type,
                                                  ec_no_error,
@@ -278,6 +279,7 @@ cast.
                                                           warning_suggested)) :
                 impl_conversion_possible(ptr_routine_type,
                                          /*source_is_constant=*/FALSE,
+                                         /*source_is_string_literal=*/FALSE,
                                          (a_constant_ptr)NULL,
                                          dest_type,
                                          /*suppress_extensions=*/TRUE,
@@ -1173,6 +1175,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   a_base_class_ptr  bcp;
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant, arg_converted_to_rvalue = FALSE;
+  a_boolean         arg_operand_is_simple_string_literal;
   a_constant_ptr    arg_operand_constant;
   an_operand        implicit_arg_operand;
   a_type_ptr        orig_param_type = param_type;
@@ -1333,12 +1336,15 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   arg_is_class_type = is_immediate_class_type(unqual_arg_type);
   /* Determine whether the argument is constant. */
   arg_operand_is_constant = FALSE;
+  arg_operand_is_simple_string_literal = FALSE;
   arg_operand_constant = NULL;
   if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
     /* For a constant argument, get the constant value. */
     arg_operand_is_constant = is_constant_operand(arg_operand);
     if (arg_operand_is_constant) {
       arg_operand_constant = &arg_operand->variant.constant;
+      arg_operand_is_simple_string_literal =
+                                         arg_operand->is_simple_string_literal;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
       /* Microsoft mode allows some expressions as null pointer constants. */
@@ -1428,6 +1434,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
        promotions (case [2] in the ARM). */
     if (impl_conversion_possible(arg_type,
                                  arg_operand_is_constant,
+                                 arg_operand_is_simple_string_literal,
                                  arg_operand_constant,
                                  param_type, /*suppress_extensions=*/TRUE,
                                  ec_incompatible_param, &std_conversion) &&
@@ -4603,6 +4610,7 @@ This routine is only used in C++ mode.
         } else if (!is_reference_binding &&
                    impl_conversion_possible(return_type,
                                             /*source_is_constant=*/FALSE,
+                                            /*source_is_string_literal=*/FALSE,
                                             (a_constant_ptr)NULL, dest_type,
                                             /*suppress_extensions=*/TRUE,
                                             ec_no_error, &std_conversion)) {
@@ -5423,6 +5431,8 @@ the target type to be used).
           arg_match->match_level = aml_none;
         } else if (impl_conversion_possible(operand_type,
                                             source_is_constant,
+                                            (a_boolean)arg_operand->operand.
+                                                      is_simple_string_literal,
                                             source_constant,
                                             eff_specific_type,
                                             /*suppress_extensions=*/TRUE,
@@ -7062,6 +7072,8 @@ rewritten) for use in error messages.
       okay = TRUE;
     } else if (impl_conversion_possible(source_type,
                                         source_is_constant,
+                                        (a_boolean)source_operand->
+                                                      is_simple_string_literal,
                                         source_constant,
                                         dest_type,
                                         /*suppress_extensions=*/FALSE,

@@ -1284,6 +1284,7 @@ values.
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
   operand->is_template_id = FALSE;
+  operand->is_simple_string_literal = FALSE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = null_source_position;
@@ -1751,6 +1752,7 @@ current token will be used as the operand position.
   /* Treat a string literal constant as an lvalue. */
   operand->state = (an_operand_state)os_lvalue;
   operand->type = constant->type;
+  operand->is_simple_string_literal = TRUE;
 }  /* make_string_constant_operand */
 
 
@@ -3130,6 +3132,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
            in the other direction below. */
       } else if (impl_pointer_conversion(operand_2_type,
                                          operand_2_is_constant,
+                                         (a_boolean)operand_2->
+                                                      is_simple_string_literal,
                                          operand_2_constant,
                                          operand_1_type,
                                      /*check_as_operands_not_conversion=*/TRUE,
@@ -3167,6 +3171,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         /* Don't try the conversion in this direction. */
       } else if (impl_pointer_conversion(operand_1_type,
                                          operand_1_is_constant,
+                                         (a_boolean)operand_1->
+                                                      is_simple_string_literal,
                                          operand_1_constant,
                                          operand_2_type,
                                      /*check_as_operands_not_conversion=*/TRUE,
@@ -5825,7 +5831,6 @@ are left alone.
 */
 {
   a_type_ptr ptr_type;
-  an_operand orig_operand;
 
   if (is_array_type(operand->type)) {
     if (is_an_rvalue(operand) && !C_mode()) {
@@ -5836,7 +5841,7 @@ are left alone.
     }  /* if */
     if (is_an_lvalue(operand)) {
       /* An array lvalue -- convert to a pointer. */
-      orig_operand = *operand;
+      an_operand orig_operand = *operand;
       /* Convert to an rvalue that is the pointer, and change its type
          from pointer-to-array to pointer-to-array-element. */
       ptr_type = type_after_array_to_pointer_transformation(operand->type);
@@ -5850,6 +5855,7 @@ are left alone.
          change the kind of reference back to modified or used
          instead of address-taken. */
       restore_operand_details_incl_ref(operand, &orig_operand);
+      operand->is_simple_string_literal= orig_operand.is_simple_string_literal;
     }  /* if */
   }  /* if */
 }  /* conv_array_operand_to_pointer_operand */
@@ -6334,6 +6340,8 @@ types to get a boolean expression (see process_boolean_controlling_expression).
       a_std_conv_descr std_conv;
       if (impl_conversion_possible(operand->type,
                                    is_constant_operand(operand),
+                                   (a_boolean)operand->
+                                                      is_simple_string_literal,
                                    &operand->variant.constant,
                                    bool_type(),
                                    /*suppress_extensions=*/FALSE,

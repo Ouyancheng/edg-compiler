@@ -4670,11 +4670,11 @@ return a pointer to it.
 
 a_type_ptr string_type(a_targ_size_t num_chars)
 /*
-Make or find an entry for a type that is an array of num_chars characters,
-and return a pointer to it.
+Make or find an entry for the type of a string literal of length num_chars
+characters, and return a pointer to it.
 */
 {
-  a_type_ptr pst;
+  a_type_ptr pst, elem_type;
 
   if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH &&
       string_types[num_chars] != NULL) {
@@ -4683,7 +4683,12 @@ and return a pointer to it.
   } else {
     /* The type must be created. */
     pst = alloc_type((a_type_kind)tk_array);
-    pst->variant.array.element_type = integer_type(plain_char_int_kind);
+    elem_type = integer_type(plain_char_int_kind);
+    if (string_literals_are_const) {
+      /* The element type is CONST char. */
+      elem_type = make_qualified_type(elem_type, TQ_CONST);
+    }  /* if */
+    pst->variant.array.element_type = elem_type;
     pst->variant.array.variant.number_of_elements = num_chars;
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
@@ -4702,8 +4707,8 @@ and return a pointer to it.
 
 a_type_ptr wide_string_type(a_targ_size_t num_chars)
 /*
-Make or find an entry for a type that is an array of num_chars wchar_t
-elements, and return a pointer to it.
+Make or find an entry for the type of a wide string literal of length
+num_chars characters, and return a pointer to it.
 */
 {
   a_type_ptr pst;
@@ -4720,6 +4725,10 @@ elements, and return a pointer to it.
       elem_type = wchar_t_type();
     } else {
       elem_type = integer_type((an_integer_kind)targ_wchar_t_int_kind);
+    }  /* if */
+    if (string_literals_are_const) {
+      /* The element type is CONST wchar_t. */
+      elem_type = make_qualified_type(elem_type, TQ_CONST);
     }  /* if */
     pst->variant.array.element_type = elem_type;
     pst->variant.array.variant.number_of_elements = num_chars;

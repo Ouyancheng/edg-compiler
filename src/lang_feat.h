@@ -300,6 +300,17 @@ The variable can also be controlled from the command line by
 #endif /* ifndef DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS */
 
 /*
+Flag that is used as the default setting for global variable
+string_literals_are_const.  This controls whether literals like "abcd"
+have type "array[5] of const char" or the older "array[5] of char".
+The variable can also be controlled from the command line by
+--[no_]const_string_literals.
+*/
+#ifndef DEFAULT_STRING_LITERALS_ARE_CONST
+#define DEFAULT_STRING_LITERALS_ARE_CONST FALSE
+#endif /* ifndef DEFAULT_STRING_LITERALS_ARE_CONST */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

@@ -1153,6 +1153,9 @@ by a command line option.
       /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
       operator_overloading_on_enums_enabled = microsoft_version >= 1000;
     }  /* if */
+    if (!option_kind_used[(int)optk_const_string_literals]) {
+      string_literals_are_const = FALSE;
+    }  /* if */
     if (!option_kind_used[(int)optk_late_tiebreaker]) {
       do_late_ovl_res_tiebreaker = microsoft_bugs;
     }  /* if */
@@ -1381,6 +1384,7 @@ common_cfront_mode_settings:
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
         extern_inline_allowed = FALSE;
         operator_overloading_on_enums_enabled = FALSE;
+        string_literals_are_const = FALSE;
         ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
         do_late_ovl_res_tiebreaker = TRUE;
         break;
@@ -1929,6 +1933,10 @@ enable_microsoft_mode:
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case optk_const_string_literals:
+        /* String literals are const. */
+        string_literals_are_const = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2079,6 +2087,7 @@ enable_microsoft_mode:
     impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
     extern_inline_allowed = FALSE;
     operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
+    string_literals_are_const = FALSE;
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
@@ -2284,6 +2293,11 @@ enable_microsoft_mode:
         /* If enum_overloading was not explicitly set by a command line
            option, set it now. */
         operator_overloading_on_enums_enabled = TRUE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_const_string_literals])) {
+        /* If string_literals_are_const was not explicitly set by a
+           command line option, set it now. */
+        string_literals_are_const = TRUE;
       }  /* if */
       if (!(option_kind_used[(int)optk_nonstandard_qualifier_deduction])) {
         /* If nonstandard_qualifier_deduction was not set on the command line,

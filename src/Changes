@@ -1,6 +1,15 @@
 Version 2.41
 
-1/19/98   C++-generating back end: multiple nested class declarations
+1/21/99   const string literals
+
+String literals and wide string literals now have const type as
+required by the C++ standard.  That is, "abc" has type "array[4] of const
+char", and L"abc" has type "array[4] of const wchar_t".  This
+feature is controlled by DEFAULT_STRING_LITERALS_ARE_CONST (FALSE
+in the release) and by the --[no_]const_string_literals command-line
+option.
+
+1/19/99   C++-generating back end: multiple nested class declarations
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
 to TRUE (so that class template instantiations appear in the generated C++

@@ -233,6 +233,12 @@ typedef struct an_operand {
 			/* TRUE if an explicit template argument list
 			   applies to variant.symbol.  template_arg_list
 			   gives the argument list. */
+  a_bit_field	is_simple_string_literal:1;
+			/* TRUE if this operand is a simple string literal
+			   or wide string literal, or the result of the
+			   decay of such a literal to a pointer.  FALSE
+			   for a string literal that has been subjected to
+			   a cast or other operation. */
   a_source_position
 		position;
 			/* The source position for the operand. */
