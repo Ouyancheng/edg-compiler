@@ -1314,6 +1314,7 @@ information when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  They involved:
   -- address of ellipsis (e.g., &...) (3/9/98)
   -- range for mem-initializer now includes field/base-class name (3/19/98)
   -- variable entry for old-style parameters (5/21/98)
+  -- expressions for condition declarations (7/7/98)
 
 2/16/98   Access check on elided constructor in strict mode
 
