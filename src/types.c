@@ -3247,11 +3247,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     if (types_are_compatible_for_impl_conversion(
                                             unqual_source_type_pointed_to,
                                             unqual_dest_type_pointed_to)) {
-      if (!C_mode () && is_function(unqual_dest_type_pointed_to) &&
+      if (!C_mode () && !check_as_operands_not_conversion &&
+          is_function(unqual_dest_type_pointed_to) &&
           exception_spec_is_less_restrictive(unqual_source_type_pointed_to,
                                              unqual_dest_type_pointed_to)) {
         /* In pointer-to-function assignment and initialization, any exception
-           allowed by the source type must allowed by the destination
+           allowed by the source type must be allowed by the destination
            type; but that's not the case here, so return FALSE. */
       } else {
         /* The types pointed to are compatible, ignoring the type qualifiers.
