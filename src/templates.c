@@ -17217,13 +17217,15 @@ updated.
 {
   a_translation_unit_ptr	tup;
 
-  for (tup = translation_units; tup != NULL; tup = tup->next) {
-    /* Only process translation units loaded to define exported
-       templates. */
-    if (tup->exported_template_file != NULL) {
-      write_dependency_information_for_file(tup->source_file);
-    }  /* if */
-  }  /* for */
+  if (use_template_info_file) {
+    for (tup = translation_units; tup != NULL; tup = tup->next) {
+      /* Only process translation units loaded to define exported
+         templates. */
+      if (tup->exported_template_file != NULL) {
+        write_dependency_information_for_file(tup->source_file);
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* generate_template_dependency_information */
 
 
