@@ -1,5 +1,10 @@
 Version 2.34
 
+11/26/96 C++-generating back end: pragma as sole contents of class
+
+The C++-generating back end has been changed so that it does not get an
+internal error on a class that contains only a pragma.
+
 11/25/96 Folding of floating-point constant comparisons: unordered and !=
 
 do_fcompare has been changed such that when two floating-point constants

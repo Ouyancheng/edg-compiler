@@ -6417,7 +6417,10 @@ that case) and old-style parameter declarations.
     /* Process macros, pragmas. */
     (void)process_preprocessing_directives();
     kind = ss_entry_kind(curr_source_sequence_entry);
-    if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
+    if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
+      /* Macro or pragma with no declaration following it. */
+      break;
+    } else if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
       /* A secondary declaration, i.e., a declaration of something that
          is also defined/declared elsewhere. */
       a_src_seq_secondary_decl_ptr
@@ -6473,8 +6476,6 @@ that case) and old-style parameter declarations.
     /* Loop to do another declaration as part of a comma list. */
     suppress_specifiers = TRUE;
   }  /* for */
-  /* Process macros, pragmas. */
-  (void)process_preprocessing_directives();
 }  /* gen_declaration */
 
 #if RECORD_MACROS_IN_IL
