@@ -3328,7 +3328,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
                                          (a_name_linkage_kind)nlk_none) {
               pos_error(ec_link_scope_requires_external_linkage, position);
             } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
-              /* A redeclaraton cannot relax the link scope of a variable. */
+              /* A redeclaration cannot relax the link scope of a variable. */
               if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
                          (variable->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
                 pos_error(ec_link_scope_relaxation, position);

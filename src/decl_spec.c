@@ -714,7 +714,7 @@ given position.
 #if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
   
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* err_pos and class_defintion are not used in all 
+/*ARGSUSED*/ /* err_pos and class_definition are not used in all 
                 configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_extended_decl_info_for_class(
