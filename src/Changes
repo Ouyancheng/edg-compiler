@@ -1,5 +1,26 @@
 Version 2.18
 
+6/17/93  Complex references of template parameters and nonreal classes
+
+Prior to this change, template parameters were not allowed in
+certain contexts.  We now support
+
+  - template parameters in qualified names such as T::X::Y
+  - nonreal classes in qualified names such as A<T>::X::Y
+  - expressions involving template parameters may be used as array bounds
+    and as nontype arguments of other templates in contexts such as
+    the declarations of member functions (such expressions could already
+    be used in the bodies of template functions)
+  - template nontype parameters whose types depend on other nontype
+    parameters (we already supported nontype parameters that depended
+    on other type parameters)
+
+The changes include the creation of several different kinds of
+tk_template_parameter types and ck_template_param constants,
+changes to the type comparison and type traversal routines to
+handle the new type and constant kinds, and changes to the
+expression routines to deal with the new constant kinds.
+
 6/17/93  Member constants must be of integral type
 
 The member constant extension, already documented as restricted to
