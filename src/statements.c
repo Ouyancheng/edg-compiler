@@ -755,8 +755,7 @@ statement sequence.  The syntax is:
 See also 3.6.4.1.
 */
 {
-  register a_statement_ptr      sp;
-  a_boolean                     err;
+  a_statement_ptr               sp;
   a_struct_stmt_stack_entry_ptr sssep;
 
   db_enter(3, "if_statement");
@@ -775,7 +774,7 @@ See also 3.6.4.1.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression(&err);
+  sp->expr = scan_boolean_controlling_expression();
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -813,8 +812,7 @@ The syntax is:
 See also 3.6.4.2.
 */
 {
-  register a_statement_ptr sp;
-  a_boolean                err;
+  a_statement_ptr sp;
 
   db_enter(3, "switch_statement");
 
@@ -834,10 +832,10 @@ See also 3.6.4.2.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is integral. */
-  sp->expr = scan_expression(&err);
+  sp->expr = scan_expression();
   if (!is_integral_type(sp->expr->type)) {
     /* Error, the expression is not integral. */
-    if (!err && !is_error_type(sp->expr->type)) {
+    if (!is_error_type(sp->expr->type)) {
       error(ec_expr_not_integral);
     }  /* if */
     sp->expr = error_node();
@@ -883,8 +881,7 @@ The syntax is:
 See also 3.6.5.1.
 */
 {
-  register a_statement_ptr sp;
-  a_boolean                err;
+  a_statement_ptr sp;
 
   db_enter(3, "while_statement");
 
@@ -904,7 +901,7 @@ See also 3.6.5.1.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression(&err);
+  sp->expr = scan_boolean_controlling_expression();
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -930,8 +927,7 @@ The syntax is:
 See also 3.6.5.2.
 */
 {
-  register a_statement_ptr sp;
-  a_boolean                err;
+  a_statement_ptr sp;
 
   db_enter(3, "do_statement");
 
@@ -958,7 +954,7 @@ See also 3.6.5.2.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression(&err);
+  sp->expr = scan_boolean_controlling_expression();
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -984,12 +980,11 @@ The syntax is:
 See also 3.6.5.3.
 */
 {
-  register a_statement_ptr sp;
-  a_boolean                err;
-  a_statement_ptr          temp_stmt;
-  a_constant               constant;
-  an_expr_node_ptr         incr_expr, init_expr;
-  a_seq_number             start_seq_number, temp_seq_number;
+  a_statement_ptr  sp;
+  a_statement_ptr  temp_stmt;
+  a_constant       constant;
+  an_expr_node_ptr incr_expr, init_expr;
+  a_seq_number     start_seq_number, temp_seq_number;
 
   db_enter(3, "for_statement");
 
@@ -1024,7 +1019,7 @@ See also 3.6.5.3.
   /* Scan the initializing expression if it is present. */
   if (curr_token != tok_semicolon) {
     temp_seq_number = pos_curr_token.seq;
-    init_expr = scan_void_expression(&err);
+    init_expr = scan_void_expression();
     /* Add the expression if is is not void. */
     if (init_expr != NULL) {
       temp_stmt = add_statement((a_statement_kind)stmk_expr);
@@ -1044,7 +1039,7 @@ See also 3.6.5.3.
   /* Scan the controlling expression if it is present, and check to see
      that it is scalar. */
   if (curr_token != tok_semicolon) {
-    sp->expr = scan_boolean_controlling_expression(&err);
+    sp->expr = scan_boolean_controlling_expression();
   } else {
     /* Use a constant "1" for an omitted expression. */
     set_integer_constant(&constant, 1L);
@@ -1057,7 +1052,7 @@ See also 3.6.5.3.
      for later use as a statement within the loop. */
   if (curr_token != tok_rparen) {
     temp_seq_number = pos_curr_token.seq;
-    incr_expr = scan_void_expression(&err);
+    incr_expr = scan_void_expression();
   } else {
     /* Incrementing expression is omitted. */
     incr_expr = NULL;
@@ -1550,7 +1545,7 @@ Scan a case label definition.  The syntax is:
   constant_ptr = NULL;
   /* Scan the constant expression. */
   scan_integral_constant_expression(&constant, &err);
-  if (err || constant.kind == (a_constant_repr_kind)ck_error) {
+  if (err || is_error_constant(&constant)) {
     /* Error; constant_ptr is left NULL. */
   } else {
 #if CHECKING
@@ -1636,7 +1631,6 @@ Scan a statement.  Add it to the current statement sequence.
 */
 {
   a_statement_ptr  sp;
-  a_boolean        err;
   a_label_ptr      label;
   a_seq_number     temp_seq_number;
   an_expr_node_ptr temp_expr;
@@ -1776,7 +1770,7 @@ expr_statement:
       add_stop_token(tok_semicolon);
       check_for_unreachable_code();
       temp_seq_number = pos_curr_token.seq;
-      temp_expr = scan_void_expression(&err);
+      temp_expr = scan_void_expression();
       if (temp_expr != NULL) {
         sp = add_statement((a_statement_kind)stmk_expr);
         sp->seq_number = temp_seq_number;
