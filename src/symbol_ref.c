@@ -316,6 +316,8 @@ this case and add it to the list for the current scope.
 
 static void add_to_hidden_name_fixup_list(a_symbol_ptr  sym_ptr)
 /*
+Create a symbol-list entry for sym_ptr and add it to the hidden-name fixup
+list for the scope to which sym_ptr belongs.
 */
 {
   a_scope_depth               depth;
@@ -352,6 +354,8 @@ static void add_to_hidden_name_fixup_list(a_symbol_ptr  sym_ptr)
 
 void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list)
 /*
+Do the defeatable-name-hiding check for each symbol on the symbol-list and
+then free the list.
 */
 {
   a_symbol_list_entry_ptr  slep;
