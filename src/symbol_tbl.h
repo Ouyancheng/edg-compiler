@@ -2121,9 +2121,9 @@ typedef struct a_scope_stack_entry {
 			   class type of A<T>.  Contains NULL if the
 			   template is not a member. */
   a_scope_depth depth_innermost_namespace_scope;
-                        /* Depth of the nearest enclosing namespace scope.
-			   This is a copy of the global variable of the
-                           same name. */
+                        /* Depth of the nearest enclosing namespace scope or,
+			   by default, the depth of the file scope. This is
+			   a copy of the global variable of the same name. */
 } a_scope_stack_entry;
 
 
@@ -2217,9 +2217,10 @@ EXTERN a_boolean
 			   i.e., a class defined within a function. */
 EXTERN a_scope_depth
 		depth_innermost_namespace_scope;
-			/* If there are any namespace scopes on the
-                           scope stack, this is the depth of the innermost
-                           one.  Otherwise, NO_SCOPE_DEPTH. */
+			/* If there are any namespace scopes on the scope
+			   stack, this is the depth of the innermost one.
+			   Otherwise, it is the depth of the file scope.
+			   It is defined in both C and C++. */
 EXTERN a_scope_number
 		next_scope_number;
 			/* Next scope number to be assigned.  These are
