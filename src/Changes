@@ -1,5 +1,18 @@
 Version 2.43
 
+9/8/99   Assertion failure after ill-formed default template argument
+
+In certain unusual circumstances, a template parameter with an ill-formed
+default argument would cause an assertion failure when that parameter later
+appears in a default template argument itself.  For example:
+
+  template <class T = operator int> struct A { 
+    template <class U = T&> struct B {};  // Assertion failure on T& when
+  };                                      // instantiated.
+  A<>::B<> ab;
+
+This is now fixed.
+
 9/8/99   Abort in gen_goto_cleanup_actions: labels, object lifetimes, and
          switch statements
 

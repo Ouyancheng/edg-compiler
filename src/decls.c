@@ -6578,10 +6578,13 @@ In C++ mode an error is issued if a type definition appears in a type-name
       }  /* if */
     }  /* if */
   }  /* if */
-  if (any_cfront_mode() &&
-      check_member_function_typedef(*type_ptr, &start_pos)) {
-    /* The type is a cfront-style member function typedef -- it is an error
-       to use it anywhere but in a pointer-to-member declaration. */
+  if ((any_cfront_mode() &&
+       check_member_function_typedef(*type_ptr, &start_pos)) ||
+      is_unknown_type(*type_ptr)) {
+    /* If the type is of the unknown kind, presumably an error occurred and
+       hence an error type should be returned.  If the type is a cfront-style
+       member function typedef -- it is an error to use it anywhere but in a
+       pointer-to-member declaration. */
     *type_ptr = error_type();
   }  /* if */
   copy_source_position(start_pos, error_position);
