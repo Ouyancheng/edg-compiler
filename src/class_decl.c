@@ -4341,7 +4341,8 @@ union type) is "nearly empty", i.e, has no data except a virtual pointer,
 as defined in the IA64 ABI.
 */
 {
-  a_boolean                   nearly_empty = FALSE;
+  a_boolean                   nearly_empty = TRUE;
+  a_field_ptr                 fp;
   a_base_class_ptr            bcp;
   a_class_type_supplement_ptr ctsp;
 
@@ -4349,22 +4350,47 @@ as defined in the IA64 ABI.
   ctsp = type->variant.class_struct_union.extra_info;
   /* If there is no virtual function table, then the class is not nearly 
      empty. */
-  if ((needs_virtual_function_table(type) ||
-       ctsp->virtual_function_info_base_class != NULL) &&
-/* FIXME */
-      ctsp->size_without_virtual_base_classes == targ_sizeof_pointer) {
-    /* Check the base classes. */
-    for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
-      /* Virtual bases don't matter. */
-      if (bcp->is_virtual) continue;
-      /* Empty bases at non-zero offsets make a class not "nearly empty".  */
-      if (bcp->type->variant.class_struct_union.is_empty_class &&
-          bcp->offset != 0) {
+  if (!needs_virtual_function_table(type) &&
+      ctsp->virtual_function_info_base_class == NULL) {
+    nearly_empty = FALSE;
+  } else {
+    /* There must be no non-static data members other than zero-width
+       bitfields.  */
+    for (fp = type->variant.class_struct_union.field_list;
+         fp != NULL;
+         fp = fp->next) {
+      if (!fp->is_bit_field || fp->bit_size != 0) {
+        nearly_empty = FALSE;
         break;
       }  /* if */
     }  /* for */
-    if (bcp == NULL) {
-      nearly_empty = TRUE;
+    /* Check the base classes. */
+    if (nearly_empty) {
+      a_boolean has_non_virtual_nearly_empty_base = FALSE;
+      for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+        /* Virtual (and morally virtual) bases don't matter. */
+        if (any_virtual_steps_in_derivation(bcp)) continue;
+        /* All direct bases must be empty or nearly empty. */
+        if (bcp->direct &&
+            !bcp->type->variant.class_struct_union.is_empty_class) {
+          if (!is_nearly_empty_class(bcp->type)) {
+            nearly_empty = FALSE;
+            break;
+          }  /* if */
+          /* There can be at most one non-virtual, nearly empty direct base
+             class. */
+          if (has_non_virtual_nearly_empty_base) {
+            nearly_empty = FALSE;
+            break;
+          }  /* if */
+          has_non_virtual_nearly_empty_base = TRUE;
+        }  /* if */
+        /* Empty bases at non-zero offsets make a class not "nearly empty". */
+        if (bcp->type->variant.class_struct_union.is_empty_class &&
+            bcp->offset != 0) {
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   return nearly_empty;
