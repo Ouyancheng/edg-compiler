@@ -611,7 +611,7 @@ Initialize target machine characteristics.
             TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT);
     if (bool) {
       internal_error(
-      "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
+    "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
     }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   }
