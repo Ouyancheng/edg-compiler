@@ -1111,9 +1111,15 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+        /* The routines pointed to are not marked definition_needed at
+           this point.  The overridden function definition is not
+           needed at all.  The overriding function definition is needed
+           only if the thunk definition is needed, and that's handled in
+           set_routine_definition_needed. */
         remap_ptr(ptr->overriding_function_for_covariant_return_type,
                   a_routine_ptr, iek_routine);
-        remap_ptr(ptr->overridden_function_for_covariant_return_type,
+        remap_ptr_not_needed(
+                  ptr->overridden_function_for_covariant_return_type,
                   a_routine_ptr, iek_routine);
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED
