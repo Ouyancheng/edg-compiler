@@ -201,8 +201,6 @@ typedef enum /*an_arg_match_level*/ {
   aml_std_conversion,	/* Match with standard conversions. */
   aml_user_conversion,	/* Match with user-defined conversions. */
   aml_ellipsis,		/* Match with ellipsis. */
-  aml_const_anachronism,/* Match of "this" parameter ignoring "const" on
-			   actual argument (anachronism). */
   aml_error,		/* Match with error type (not in ARM). */
   aml_none		/* No match.  Must be last (highest value). */
 } an_arg_match_level;
