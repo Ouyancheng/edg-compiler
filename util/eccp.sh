@@ -1155,6 +1155,15 @@ if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
   error=1
 fi
 
+# Make sure the instantiation directory exists, if one was explicity
+# specified.
+if [ $use_default_instantiation_dir -eq 0 ] ; then
+  if [ ! -d $instantiation_dir ] ; then
+    echo "eccp: instantiation directory \"$instantiation_dir\" does not exist"
+    error=1
+  fi
+fi
+
 # If we are in C mode then disable automatic instantiation just for
 # efficiency.
 if [ $c_mode -eq 1 ] ; then
@@ -1377,7 +1386,7 @@ do
         echo "eccp: cannot create instantiation directory $instantiation_dir"
         exit 1
       else
-        echo "eccp: created instantiation directory $instantiation_dir"
+        echo "eccp: created instantiation directory \"$instantiation_dir\""
       fi
     fi
   fi
