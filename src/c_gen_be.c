@@ -2801,7 +2801,7 @@ process_assignment:
         case eok_comma:
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-          check_assertion_str(il_identical_types(operand_2->type, expr->type),
+          check_assertion_str(il_identical_types(operand_2->type, expr_type),
                               "dump_expr: bad type on eok_comma");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           check_result_not_used_flag(operand_1);
@@ -2822,9 +2822,9 @@ process_assignment:
           /* Three operand operator. */
 #if !STANDALONE_UTILITY_PROGRAM
           check_assertion_str(il_identical_types(operand_2->type,
-                                                 expr->type) &&
+                                                 expr_type) &&
                               il_identical_types(operand_2->next->type,
-                                                 expr->type),
+                                                 expr_type),
                               "dump_expr: bad type on eok_question");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           dump_boolean_controlling_expression(operand_1);
