@@ -8253,13 +8253,25 @@ Process a handler declaration:
             /* Incomplete type is not allowed. */
             pos_error(ec_incomplete_type_not_allowed, &decl_pos);
             type_ptr = error_type();
-          } else if (is_or_contains_local_type(type_ptr)) {
-            /* Since exception types must be externally visible, they cannot
-               be local types. */
-            pos_error(ec_local_type_not_allowed, &decl_pos);
-            type_ptr = error_type();
           } else {
-            type_ptr->used_in_exception = TRUE;
+            /* Mark the type as having been used in an exception.  (Also,
+               if it "contains" any classes, they are marked as requiring
+               external linkage.) */
+            set_used_in_exception_flag(type_ptr);
+            if (is_or_contains_local_type(type_ptr)) {
+              /* Exception types, if they have linkage at all, must have
+                 external linkage; however, it is possible to write a useful
+                 program in which a local type is thrown and caught -- e.g.,
+                   void f() {
+                     class A;
+                     try { ... throw A ... }
+                     catch (A) { ... }
+                   }
+                 We still issue a diagnostic, since there are other cases
+                 (not necessarily detectable by the compiler) in which local
+                 types would be problematic. */
+              pos_remark(ec_local_type_used_in_exception, &decl_pos);
+            }  /* if */
           }  /* if */
         }  /* if */
         handler->parameter = make_handler_parameter(type_ptr);
