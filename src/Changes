@@ -1,6 +1,21 @@
 Version 2.17
 
-5/3/93   Point at which virtual function table is set in constructor wrapper
+5/4/93  rvalue.member is an lvalue in C++
+
+According to ARM 5.2.4, if a nonstatic data member is selected from an
+rvalue class, the result is an lvalue.  This is different from C.
+This is still not clear in the X3J16/WG21 WP, but there seems to be
+some consensus on this point in the committee discussions.
+
+  struct A {int i;};
+  A f();
+  main () {
+    f().i = 1;  // Okay
+    return 0;
+  }
+
+
+5/3/93  Point at which virtual function table is set in constructor wrapper
 
 The virtual function table pointer in a class is now set before the
 members of the class are initialized.  The order of the code in constructor
