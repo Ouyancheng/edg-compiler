@@ -459,7 +459,7 @@ forth, are decremented.
   /* Reset the prev pointer of cfdp's successor on the list, or if there is no
      successor entry reset the list tail pointer. */
   if (cfdp->next == NULL) {
-    check_assertion(cfdp = end_of_control_flow_descr_list);
+    check_assertion(cfdp == end_of_control_flow_descr_list);
     end_of_control_flow_descr_list = cfdp->prev;
   } else {
     cfdp->next->prev = cfdp->prev;
