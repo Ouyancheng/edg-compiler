@@ -9176,7 +9176,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                           result);
     /* The result is an lvalue in C++ if the second and third operands are. */
     if (result_is_an_lvalue) {
-      result->state = (an_operand_state)os_lvalue;
+      if (is_function_type(result_type)) {
+        result->state = (an_operand_state)os_function_designator;
+      } else {
+        result->state = (an_operand_state)os_lvalue;
+      }  /* if */
       result->type = result_type;
       result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
