@@ -1012,6 +1012,9 @@ error code.
     case ec_no_conversion_constructor:
       m = "expression conversion cannot be done -- no appropriate constructor";
       break;
+    case ec_function_qualifier_not_allowed:
+      m = "const or volatile qualifier on this function is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
