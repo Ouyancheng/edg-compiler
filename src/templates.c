@@ -3260,6 +3260,7 @@ type based on the template argument list and the template parameter list
        processing. */
     a_source_position    saved_pos_curr_token;
     a_source_position    saved_error_position;
+    an_extern_linkage    saved_linkage;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_source_position	 locator_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3279,6 +3280,11 @@ type based on the template argument list and the template parameter list
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+    /* Set the default name linkage to extern C++.  It will be active while
+       the function declaration is scanned and then restored. */
+    saved_linkage = def_external_linkage;
+    def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
+    def_external_linkage.is_explicit = FALSE;
     /* Rescan the tokens of the function declaration. */
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
@@ -3324,6 +3330,8 @@ type based on the template argument list and the template parameter list
     }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
+    /* Restore the default name linkage. */
+    def_external_linkage = saved_linkage;
     /* Allocate the template function symbol.  Note that it is not entered
        into the symbol table -- it will appear on a function instantiation
        list under the function template symbol and, optionally, in the overload

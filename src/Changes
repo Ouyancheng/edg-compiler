@@ -1,5 +1,16 @@
 Version 2.34
 
+11/25/96 Routine name linkage on function template instance
+
+When an instance of a function template was first referenced within an
+extern "C" context, the language linkage associated with its type was
+incorrectly set to extern "C" (rather than extern "C++").  Now fixed.
+
+  template <class T> void f(T) { }
+  extern "C" void g() {
+    f(0);                  // The linkage of the type for f(int) is now
+  }                        //   set to extern "C++"
+
 11/25/96 C++-generating back end: macro definition in prototyped parameter list
 
 The C++-generating back end got an internal error on a macro definition
