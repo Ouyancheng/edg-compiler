@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -13,7 +13,7 @@ cfe.c -- Main program for C++/C front end.
 
 Written by J. Stephen Adamczyk and Eric Schwarz, 1988-1989.
 Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
-  1991-1994, and John H. Spicer, 1992-1994.
+  1991-1995, and John H. Spicer, 1992-1995.
 
 */
 
@@ -182,6 +182,6 @@ int edg_main(int argc, char *argv[])
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
