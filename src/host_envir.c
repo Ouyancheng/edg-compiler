@@ -1541,7 +1541,7 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 }  /* write_signoff */
 
 
-DOES_NOT_RETURN cfe_exit(int status)
+static DOES_NOT_RETURN cfe_exit(int status)
 /*
 This is a wrapper around the exit function.  Normally, it just calls
 the exit routine, but when the front end is callable this routine
@@ -1582,17 +1582,22 @@ severe diagnostic issued in this compilation.  This routine does not return.
     case es_none:
     case es_remark:
       cfe_exit(RC_NORMAL);
+      break;
     case es_warning:
       cfe_exit(RC_WARNING);
+      break;
     case es_error:
       cfe_exit(RC_ERROR);
+      break;
     case es_catastrophe:
     case es_command_line_error:
       cfe_exit(RC_CATASTROPHE);
+      break;
     case es_internal_error:
     default:
 #if EXIT_ON_INTERNAL_ERROR
       cfe_exit(RC_CATASTROPHE);
+      break;
 #else /* !EXIT_ON_INTERNAL_ERROR */
       (void)fflush(stderr);
       abort();

@@ -56,7 +56,7 @@ program using the name edg_main.  If EDG_MAIN is not set, the default
 #define EDG_MAIN main
 #endif /* ifndef(EDG_MAIN) */
 
-void cfe_main(int argc, char *argv[])
+static void cfe_main(int argc, char *argv[])
 /*
 This routine does the actual work to perform a compilation.  This is
 called by the EDG_MAIN wrapper that performs error handling when
@@ -192,7 +192,7 @@ status is returned to the caller.
 */
 {
 #if !MAKE_FRONT_END_CALLABLE
-  (void)cfe_main(argc, argv);
+  cfe_main(argc, argv);
   /*NOTREACHED*/
 #else /* MAKE_FRONT_END_CALLABLE */
 
