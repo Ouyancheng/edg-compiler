@@ -4347,6 +4347,63 @@ Generate code for a block statement ("{ ... }").
 }  /* gen_block_statement */
 
 
+static a_boolean is_simple_return(a_statement_ptr statement)
+/*
+Return TRUE if the indicated return statement should be written as a
+simple return statement, i.e., just "return;".
+*/
+{
+  a_boolean simple_return = FALSE;
+
+  if (statement->expr != NULL) {
+    /* The return has an expression. */
+    simple_return = FALSE;
+    /* Suppress the return expression on constructors. */
+    if (curr_function_scope->variant.routine.ptr->special_kind ==
+                                    (a_special_function_kind)sfk_constructor) {
+      simple_return = TRUE;
+    }  /* if */
+  } else if (statement->variant.return_dynamic_init != NULL) {
+    /* The return value is passed via a copy constructor call. */
+    simple_return = FALSE;
+  } else {
+    /* No expression, no dynamic init: a simple return. */
+    simple_return = TRUE;
+  }  /* if */
+  return simple_return;
+}  /* is_simple_return */
+
+
+static a_boolean is_return_at_end_of_function(a_statement_ptr return_stmt)
+/*
+Return TRUE if the indicated return statement is the return at the end of
+the current function.
+*/
+{
+  a_boolean is_return_at_end = FALSE;
+
+  /* Check first that the return is the last statement in its block.  This
+     rules out things like
+       void f() { if (i) goto L; return; L:; }
+                                 ^^^^^^
+  */
+  if (return_stmt->next == NULL) {
+    a_statement_ptr stmt;
+    /* Look through the statements in the top block of the function. */
+    for (stmt = curr_function_scope->assoc_block->variant.block.statements;
+         stmt != NULL;
+         stmt = stmt->next) {
+      if (stmt == return_stmt) {
+        /* Yes, this return statement is at the end of the function. */
+        is_return_at_end = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return is_return_at_end;
+}  /* is_return_at_end_of_function */
+
+
 static void gen_statement(a_statement_ptr statement)
 /*
 Generate code for the indicated statement.
@@ -4454,28 +4511,39 @@ Generate code for the indicated statement.
       break;
     case stmk_return:
       /* "return" statement: generate "return;" or "return expr;". */
-      write_tok_str("return");
-      if (statement->expr != NULL) {
-        /* The return has an expression. */
-        /* Suppress the return expression on constructors. */
-        a_routine_ptr curr_routine = curr_function_scope->variant.routine.ptr;
-        if (curr_routine->special_kind !=
-                                    (a_special_function_kind)sfk_constructor) {
-          a_type_ptr return_type =
+      { a_boolean simple_return = is_simple_return(statement);
+        /* If this is a simple return at the end of the function, it can
+           be omitted.  In fact, cfront doesn't like return statements in
+           inline routines, so it's desirable that it be omitted. */
+        if (simple_return && is_return_at_end_of_function(statement)) {
+          /* Simple return omitted. */
+        } else {
+          /* Put out the return statement. */
+          write_tok_str("return");
+          if (simple_return) {
+            /* Nothing more needed for a simple return. */
+          } else if (statement->expr != NULL) {
+            /* Return with an expression. */
+            a_routine_ptr curr_routine =
+                                      curr_function_scope->variant.routine.ptr;
+            a_type_ptr return_type =
                                curr_routine->type->variant.routine.return_type;
-          write_space();
-          gen_initializer_expr(statement->expr, return_type,
-                               /*need_parens=*/FALSE);
-          end_of_full_expression();
+            write_space();
+            gen_initializer_expr(statement->expr, return_type,
+                                 /*need_parens=*/FALSE);
+            end_of_full_expression();
+          } else {
+            /* The return value is passed via a copy constructor call. */
+            check_assertion(statement->variant.return_dynamic_init != NULL);
+            write_space();
+            gen_dynamic_init(statement->variant.return_dynamic_init,
+                             (a_type_ptr)NULL, /* Not reference, not needed. */
+                             /*parenthesized_init=*/FALSE,
+                             /*force_parens=*/FALSE);
+          }  /* if */
+          write_tok_ch(';');
         }  /* if */
-      } else if (statement->variant.return_dynamic_init != NULL) {
-        /* The return value is passed via a copy constructor call. */
-        gen_dynamic_init(statement->variant.return_dynamic_init,
-                         (a_type_ptr)NULL, /* Not a reference, not needed. */
-                         /*parenthesized_init=*/FALSE,
-                         /*force_parens=*/FALSE);
-      }  /* if */
-      write_tok_ch(';');
+      }
       break;
     case stmk_block:
       /* Block: generate "{ ... }". */
