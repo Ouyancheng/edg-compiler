@@ -151,6 +151,7 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
   rout_type = rout_ptr->type;
   rtsp = rout_type->variant.routine.extra_info;
   tssp = fiep->template_sym->variant.template.extra_info;
+  rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   rescan_reusable_cache(&tssp->body_token_cache);
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                   tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr, fiep);
@@ -1517,6 +1518,7 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
   terminate_token_cache(&local_token_cache);
   rescan_reusable_cache(&local_token_cache);
   (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
+                         DSI_INLINE_ALLOWED |
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
                          &dso_flags, &storage_class, &type);
@@ -1529,7 +1531,8 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
     clear_token_cache(&local_token_cache);
     p_token_cache = &local_token_cache;
   } else {
-    decl_function_template(&locator, type, sym);
+    decl_function_template(&locator, type, sym, storage_class,
+                           (dso_flags & DSO_INLINE) != 0);
     tssp = (*sym)->variant.template.extra_info;
     tssp->variant.function.decl_token_cache = local_token_cache;
     tssp->variant.function.func_info = func_info;

@@ -194,7 +194,9 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
 
 extern void decl_function_template(a_symbol_locator    *locator,
                                    a_type_ptr          type_ptr,
-                                   a_symbol_ptr        *symbol_ptr);
+                                   a_symbol_ptr        *symbol_ptr,
+                                   a_storage_class     storage_class,
+                                   a_boolean           is_inline);
 
 extern an_asm_entry_ptr asm_declaration(a_boolean asm_decl_allowed);
 

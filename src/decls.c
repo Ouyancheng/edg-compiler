@@ -3490,11 +3490,12 @@ skip_overloading:;
 
 void decl_function_template(a_symbol_locator    *locator,
                             a_type_ptr          type_ptr,
-                            a_symbol_ptr        *symbol_ptr)
+                            a_symbol_ptr        *symbol_ptr,
+                            a_storage_class     storage_class,
+                            a_boolean           is_inline)
 /*
 */
 {
-  a_storage_class                   storage_class;
   a_scope_depth                     effective_decl_level;
   a_symbol_ptr                      sym;
   a_symbol_ptr                      overload_symbol = NULL, homonym_symbol;
@@ -3503,7 +3504,12 @@ void decl_function_template(a_symbol_locator    *locator,
   a_memory_region_number            region_to_switch_back_to;
 
   db_enter(3, "decl_function_template");
-  storage_class = (a_storage_class)sc_extern;
+  if (is_inline) {
+    storage_class = (a_storage_class)sc_static;
+  } else if (storage_class == (a_storage_class)sc_unspecified) {
+    /* Default. */
+    storage_class = (a_storage_class)sc_extern;
+  }  /* if */
   effective_decl_level = DEPTH_OF_FILE_SCOPE;
   (void)id_linkage(locator, &storage_class, type_ptr,
                    /*is_main_function=*/FALSE, &sym, &homonym_symbol,
@@ -3530,10 +3536,13 @@ void decl_function_template(a_symbol_locator    *locator,
     tssp->variant.function.routine = rout_ptr = alloc_routine();
     switch_back_to_original_region(region_to_switch_back_to);
     rout_ptr->type = type_ptr;
-    rout_ptr->storage_class = (a_storage_class)sc_extern;
+    rout_ptr->storage_class = storage_class;
+    rout_ptr->is_inline = is_inline;
     set_source_corresp(&rout_ptr->source_corresp, sym);
     rout_ptr->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
+                          (storage_class == (a_storage_class)sc_extern) ?
+                                (a_name_linkage_kind)nlk_cplusplus_external :
+                                (a_name_linkage_kind)nlk_internal;
   }  /* if */
   if (overload_symbol != NULL) {
     a_symbol_ptr  rout_sym;
