@@ -2878,18 +2878,13 @@ constants in other scopes.
 {
   if (crossing_into_file_scope(constant)) {
     /* Don't follow a pointer from the function scope into the file scope;
-       record it as a potential orphan instead.  Note that a class member
-       can never be an orphan, so member constants are not recorded as
-       orphans. */
-    if (!constant->source_corresp.is_class_member) {
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
-      /* When an IL file is being written, the IL walk when writing will
-         mark all the orphans properly.  We don't want to mark them now if
-         we're going to discard the function scope memory region because
-         it turns out not to be needed. */
-#else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT) */
+       record it as a potential orphan instead.  Note that a class or
+       namespace member can never be an orphan, so member constants are
+       not recorded as orphans.  Likewise a named constant must be on
+       some list, so it cannot be an orphan either. */
+    if (!has_name(constant) && !constant->source_corresp.is_class_member &&
+        constant->source_corresp.parent.namespace_ptr == NULL) {
       add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
     }  /* if */
   } else {
     lower_constant(constant);
@@ -4368,6 +4363,32 @@ Do IL lowering of the indicated type and everything under it.
     }  /* switch */
   }  /* if */
 }  /* lower_type */
+
+
+void lower_os_type(a_type_ptr type)
+/*
+A "possibly other scope" version of lower_type; does nothing for
+types in other scopes.  Note that because all types are in the file
+scope, any reference to a type while lowering a function is a
+reference to another scope, and is recorded as a potential orphan
+to be processed later.  Note that a class member or namespace member
+can never be an orphan, so member types are not recorded as orphans.
+Likewise a named type or a tag must be on some list, so it cannot be
+an orphan either.
+*/
+{
+  if (!lowering_file_scope) {
+    if (!has_name(type) && !is_immediate_class_type(type) &&
+        !is_immediate_enum_type(type) &&
+        !type->source_corresp.is_class_member &&
+        type->source_corresp.parent.namespace_ptr == NULL) {
+      add_orphaned_file_scope_il_entry((char *)(type),
+                                       (an_il_entry_kind)iek_type);
+    }  /* if */
+  } else {
+    lower_type(type);
+  }  /* if */
+}  /* lower_os_type */
 
 
 static void lower_namespace(a_namespace_ptr nsp)
