@@ -1267,9 +1267,13 @@ and an indication of that fact should be put out.
       /* old_form=TRUE forces use of the cfront-compatible mangling convention
          for lengths on literals, which though ambiguous is okay here because
          the class cannot be followed by an "_". */
+      a_boolean old_form = !distinct_mangling_for_templates;
+#if ABI_COMPATIBILITY_VERSION < 235
+      old_form = TRUE;
+#endif /* ABI_COMPATIBILITY_VERSION < 235 */
       section_length = mangled_template_arguments(template_args,
                                                   /*partial_spec=*/FALSE,
-                                                  /*old_form=*/TRUE,
+                                                  old_form,
                                                   store_at);
       mangled_name_length += section_length;
       if (store_at != NULL) store_at += section_length;

@@ -1,5 +1,24 @@
 Version 2.35
 
+2/25/97  Name mangling: new-form length for class template nontype arguments
+
+In the name mangling change for templates (see Changes entry of 5/10/96),
+a new encoding for lengths of literals was introduced to avoid an
+ambiguity problem.  The new encoding was not used in the template arguments
+for class templates, though, to preserve more compatibility with cfront.
+However, it turns out there's a remaining possible ambiguity that
+can come up for a class template:
+
+  template<class T, int i> class TA {};
+  template <class T> struct TT {
+    void func(TA<long, 1>); // func__11TT__tm__2_sF17TA__tm__8_lXCiL11_v
+                                                                    ^^problem
+  };
+
+So the new length scheme is now used whenever the new template mangling
+is used.  The old behavior is of course preserved if ABI_COMPATIBILITY_VERSION
+is set to less than 235.
+
 2/24/97  Abort on invalid template friend declaration with global qualifier
 
 An abort would occur on a template friend declaration that refers to a
