@@ -1143,10 +1143,10 @@ a try block with a catch that matches the type of the object thrown.
   } else if (destination_ehsep->kind ==
                                 (an_eh_stack_entry_kind)ehsek_throw_spec) {
     /* A destination stack entry indicates that a throw specification was
-       violated.  Call unexpected.  Remove the throw specification entry
-       (and the throw processing marker that precedes it) from the stack
-       so that it won't be used to check subsequent throws. */
-    __curr_eh_stack_entry = __curr_eh_stack_entry->next->next;
+       violated.  Call unexpected.  The EH stack should point to the
+       entry for the exception specification that was violated.  Remove
+       the throw processing marker from the stack. */
+    __curr_eh_stack_entry = __curr_eh_stack_entry->next;
     __call_unexpected();
   }  /* if */
   return 0;
@@ -1420,6 +1420,61 @@ get called.
 {
   unexpected_condition();
 } /* __suppress_optim_on_vars_in_try */
+
+EXTERN_C an_eh_stack_entry_ptr __get_curr_eh_stack_entry(void)
+/*
+Return a pointer to __get_curr_eh_stack_entry.
+*/
+{
+  return __curr_eh_stack_entry;
+}  /* __get_curr_eh_stack_entry */
+
+
+EXTERN_C void __type_of_thrown_object(STD_NAMESPACE::type_info	**type,
+				      an_ETS_flag_set		*flags)
+/*
+Return a pointer to the typeinfo entry for the type of the object that
+was thrown and the flags associated with the thrown object.
+*/
+{
+  check_assertion(curr_throw_stack_entry != NULL);
+  *type = &curr_throw_stack_entry->type_info->user_type_info;
+  *flags = curr_throw_stack_entry->flags;
+}  /* __type_of_thrown_object */
+
+
+EXTERN_C a_boolean __can_throw_type(const STD_NAMESPACE::type_info *type,
+				    an_ETS_flag_set		   flags)
+/*
+This routine is called by the code that checks whether an exception thrown
+by unexpected() violates the current exception specification.  Find the
+innermost exception specification and check whether the specified type
+and flag combination is allowed.
+*/
+{
+  a_boolean		result = FALSE;
+  an_eh_stack_entry_ptr	ehsep;
+
+  ehsep = __curr_eh_stack_entry;
+  for (ehsep = __curr_eh_stack_entry; ehsep != NULL; ehsep = ehsep->next) {
+    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_throw_spec) break;
+  }  /* for */
+  check_assertion(ehsep != NULL);
+  if (ehsep->variant.throw_specification != NULL) {
+    an_exception_type_specification_ptr	dummy_etsp;
+    int					catch_pos;
+    a_type_info_impl_ptr		thrown_type;
+    thrown_type = (a_type_info_impl_ptr)type;
+    catch_pos = check_exception_type_specifications
+				  (ehsep->variant.throw_specification,
+				   thrown_type, flags,
+				   (an_access_flag_string)NULL,
+				   /*use_access_flags=*/FALSE, (void**)NULL,
+                                   &dummy_etsp);
+    if (catch_pos != 0) result = TRUE;
+  }  /* if */
+  return result;
+}  /* __can_throw_type */
 
 #else /* !EXCEPTION_HANDLING */
 

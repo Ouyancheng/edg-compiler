@@ -20,6 +20,7 @@ Declarations for exception handling.
 #include "runtime.h"
 #include "exception.h"
 #include "rtti.h"
+#include "typeinfo.h"
 #include "vec_newdel.h"
 
 #if EXCEPTION_HANDLING
@@ -348,6 +349,14 @@ EXTERN a_void_function_ptr
 EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep);
 
 EXTERN_C void __eh_exit_processing(void);
+
+EXTERN_C void __type_of_thrown_object(STD_NAMESPACE::type_info	**type,
+				      an_ETS_flag_set		*flags);
+
+EXTERN_C a_boolean __can_throw_type(const STD_NAMESPACE::type_info *type,
+				    an_ETS_flag_set		   flags);
+
+EXTERN_C an_eh_stack_entry_ptr __get_curr_eh_stack_entry(void);
 
 #endif /* EXCEPTION_HANDLING */
 

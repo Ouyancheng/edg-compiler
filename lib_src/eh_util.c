@@ -15,6 +15,7 @@ C++ functions to support exception handling.
 
 #include "basics.h"
 #include "runtime.h"
+#include "typeinfo.h"
 #include "eh.h"
 
 #if EXCEPTION_HANDLING
@@ -82,9 +83,13 @@ _bool uncaught_exception()
 Return TRUE if an exception is in the process of being thrown.
 */
 {
-  an_eh_stack_entry_ptr	ehsep = __curr_eh_stack_entry;
+  an_eh_stack_entry_ptr	ehsep;
   _bool			result;
 
+  /* This function is used instead of simply using __curr_eh_stack_entry
+     because of a problem using this variable in code that also uses
+     it via generated EH code. */
+  ehsep = __get_curr_eh_stack_entry();
   /* TRUE should be returned if uncaught_exception() is called after
      terminate() has been called by the implementation. */
   result = terminate_called;
@@ -111,11 +116,38 @@ the std namespace.
 
 EXTERN_C void __call_unexpected(void)
 /*
-Used by the EH runtime when unexpected needs to be called.  Ensures
-that unexpected does not return.
+Used by the EH runtime when unexpected() needs to be called.  When
+unexpected() exits by throwing an exception the exception must not
+violate the exception specification that caused unexpected() to be
+called in the first place.  If it does violate that exception
+specification, std::bad_exception is thrown provided it is permitted
+by the violated exception specification.  If it is not permitted,
+terminate() is called.
+
 */
 {
-  STD_NAMESPACE::unexpected();
+  try {
+    STD_NAMESPACE::unexpected();
+  }  /* try */
+  catch (...) {
+    STD_NAMESPACE::type_info	*thrown_type;
+    an_ETS_flag_set		thrown_flags;
+    __type_of_thrown_object(&thrown_type, &thrown_flags);
+    if (__can_throw_type(thrown_type, thrown_flags)) {
+      /* If the thrown type is permitted, rethrow it so that it will be
+         handled by an enclosing try block (if any). */
+      throw;
+    } else if (__can_throw_type(&typeid(STD_NAMESPACE::bad_exception),
+                                (an_ETS_flag_set)ETS_NO_FLAGS)) {
+      /* The thrown type is not allowed, but bad_exception is.  Throw
+         bad_exception. */
+      throw STD_NAMESPACE::bad_exception();
+    } else {
+      /* Neither the originally thrown type not bad_exception is permitted.
+         Call terminate. */
+      __call_terminate();
+    }  /* if */
+  }  /* catch */
   abort();
 }  /* __call_unexpected */
 

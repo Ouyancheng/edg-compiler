@@ -1,3 +1,14 @@
+Version 2.41
+
+1/22/99  New semantics for unexpected()
+
+The runtime now implements the semantics of unexpected() described in
+the standard.  Specifically, if unexpected() exits by throwing an
+exception, the new exception must satisfy the requirements of the
+violated exception specification, or the violated exception specification
+must permit std::bad_exception to be thrown.  In the latter case, the
+exception thrown is replaced with a throw of std::bad_exception.
+-------------------------------------------------------------------------------
 Version 2.40, December 8, 1998
 
 11/18/98 Conflicting return types for sti and std functions
