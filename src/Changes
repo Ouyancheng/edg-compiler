@@ -1,6 +1,20 @@
 Version 2.46
 
-3/5/01   C99 variable length arrays with undefined bounds in typedefs
+3/5/01   Diagnostic on fields involving variable length array types
+
+The front end now diagnoses the use of variable length array types in field
+declarations.  In the past, such uses sometimes led to internal errors.
+
+  void* f(int n) {
+    typedef int VLA[n];
+    struct A {
+      VLA a;  /* Used to trigger an internal error.  Now an ordinary error. */
+    };
+    static struct A a;
+    return &a;
+  }
+
+3/5/01   Variable length arrays with undefined bounds in typedef declarations
 
 The front end now issues an error on typedef declarations of function types
 involving variable length arrays with undefined bounds.  For example:

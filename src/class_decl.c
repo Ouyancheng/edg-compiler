@@ -8423,6 +8423,9 @@ respectively.
       decl_info->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
+  } else if (vla_enabled && is_variably_modified_type(field_type)) {
+    pos_error(ec_vla_not_allowed, &locator->source_position);
+    field_type = error_type();
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is not necessarily an error:
        an array of unknown size is sometimes allowed as the last member. */
