@@ -2399,6 +2399,27 @@ Return TRUE if the given using declarations refer to corresponding entities.
 }  /* equiv_base_using_decls */
 
 
+static a_boolean class_specialization_conflict(a_type_ptr  type_1,
+                                               a_type_ptr  type_2)
+/*
+The class types represented by type_1 and type_2 have different values for
+the is_specialized bit.  Return TRUE is this is really a conflict (i.e., if
+the nonspecialized type has a definition).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (!type_1->variant.class_struct_union.is_specialized &&
+      class_type_has_body(type_1)) {
+    result = type_2->variant.class_struct_union.is_specialized;
+  } else if (!type_2->variant.class_struct_union.is_specialized &&
+             class_type_has_body(type_2)) {
+    result = type_1->variant.class_struct_union.is_specialized;
+  }  /* if */
+  return result;
+}  /* class_specialization_conflict */
+
+
 static a_boolean verify_class_type_correspondence(a_type_ptr  type)
 /*
 Check that the recorded translation unit correspondence for the given class
@@ -2685,7 +2706,6 @@ type is in fact valid.
                                            corresp_info.max_member_alignment ||
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
           class_info.is_empty_class != corresp_info.is_empty_class ||
-          class_info.is_specialized != corresp_info.is_specialized ||
           (sup != NULL &&
            (sup->virtual_function_info_offset !=
                                    corresp_sup->virtual_function_info_offset ||
@@ -2698,6 +2718,8 @@ type is in fact valid.
         class_info.is_nonreal_class != corresp_info.is_nonreal_class ||
         class_info.is_prototype_instantiation !=
                                      corresp_info.is_prototype_instantiation ||
+        (class_info.is_specialized != corresp_info.is_specialized &&
+         class_specialization_conflict(type, corresp_type)) ||
         (sup != NULL &&
          (
 #if NEAR_AND_FAR_ALLOWED
