@@ -204,11 +204,11 @@ because it is initialized.  The original type may be shared, and therefore
 a copy is made and modified.
 */
 {
-  a_type_ptr array_type;
+  a_type_ptr array_type, incomplete_type = skip_typerefs(*type);
 
-  check_assertion(!(*type)->variant.array.is_variable_size_array);
+  check_assertion(!incomplete_type->variant.array.is_variable_size_array);
   array_type = alloc_type((a_type_kind)tk_array);
-  copy_type(*type, array_type);
+  copy_type(incomplete_type, array_type);
   array_type->variant.array.variant.number_of_elements = size;
   set_type_size(array_type);
   *type = array_type;
@@ -590,6 +590,7 @@ routine is called in C++ mode only.
 
   db_enter(4, "init_remaining_array_elements");
 
+  array_type = skip_typerefs(array_type);
   if (array_type->variant.array.is_variable_size_array) {
     /* The array size may be template dependent. */
     check_assertion(is_template_dependent_context());
@@ -1110,7 +1111,8 @@ initialize, *any_more_members will be set to TRUE.  If context->type is an
 array type of unknown size, *is_incomplete_array will be set to TRUE.
 */
 {
-  a_type_kind kind = context->type->kind;
+  a_type_ptr  type = skip_typerefs(context->type);
+  a_type_kind kind = type->kind;
 
   *any_more_members = TRUE;  /* Assume. */
   *is_incomplete_array = FALSE;
@@ -1119,8 +1121,8 @@ array type of unknown size, *is_incomplete_array will be set to TRUE.
     *member_type = error_type();
   } else if (kind == (a_type_kind)tk_array) {
     /* Array.  Start with first element. */
-    *is_incomplete_array = is_incomplete_type(context->type);
-    *member_type = context->type->variant.array.element_type;
+    *is_incomplete_array = is_incomplete_type(type);
+    *member_type = type->variant.array.element_type;
     /* Note that arrays of incomplete struct/union types (an extension)
        do not make it to here (they're caught as an error at the top
        level in the routine "initializer" and replaced by an error type),
@@ -1128,8 +1130,8 @@ array type of unknown size, *is_incomplete_array will be set to TRUE.
   } else {
     a_field_ptr field;
     /* Class/struct/union.  Start with first field. */
-    check_assertion(is_immediate_class_type(context->type));
-    field = context->type->variant.class_struct_union.field_list;
+    check_assertion(is_immediate_class_type(type));
+    field = type->variant.class_struct_union.field_list;
     /* Skip past an unnamed field. */
     field = next_initializable_field(field);
     *any_more_members = (field != NULL);
@@ -1197,6 +1199,7 @@ otherwise TRUE is returned and *subscript is set to the scanned value.
         a_boolean overflow;
         a_targ_size_t value = unsigned_value_of_integer_constant(&constant,
                                                                  &overflow);
+        dest_type = skip_typerefs(dest_type);
         if (overflow ||
             (!is_incomplete_type(dest_type) &&
              value >= dest_type->variant.array.variant.number_of_elements)) {
@@ -1432,7 +1435,8 @@ initializer.
   }  /* if */
 #if DEBUG
   if (debug_level == 4) {
-    a_type_ptr member_type = context->type->variant.array.element_type;
+    a_type_ptr member_type = skip_typerefs(context->type)
+                                                 ->variant.array.element_type;
     fprintf(f_debug, "getting initializer for element %d, type = ",
             (int)*curr_array_element);
     db_abbreviated_type(member_type);
@@ -1640,7 +1644,7 @@ this function points to a tree that includes a dynamic-init entry.
   db_enter(4, "get_initializer");
   *nothing_taken = FALSE;
   *any_dynamic_init = FALSE;
-  initialize_init_context(&context, prev_init_context, skip_typerefs(*type));
+  initialize_init_context(&context, prev_init_context, *type);
   if (process_whole_object_init(init_info, &context, &init_con)) {
     /* process_whole_object_init might have found that the "whole object
        initialization" case did not apply, in which case "FALSE" was returned
@@ -1656,7 +1660,8 @@ this function points to a tree that includes a dynamic-init entry.
       /* Make sure it's truly an aggregate and not some non-aggregate class: */
       if (is_class_struct_union_type(context.type) &&
           !symbol_supplement_for_class(context.type)->is_class_aggregate) {
-        if (!context.type->variant.class_struct_union.is_nonreal_class) {
+        if (!skip_typerefs(context.type)
+                              ->variant.class_struct_union.is_nonreal_class) {
           /* For a nonreal class, we cannot relate the initializers to the
              inner type structure of that class.  An error type ensures that
              we just collect the expressions, but no diagnostic should be
@@ -1698,7 +1703,7 @@ this function points to a tree that includes a dynamic-init entry.
       }  /* if */
       /* Get information on the first member of the aggregate to be
          initialized (if any). */
-      kind = context.type->kind;
+      kind = skip_typerefs(context.type)->kind;
       start_aggregate_init_scan_loop(&context, &member_type,
                                      &any_more_members, &is_incomplete_array);
       curr_field = context.field;
@@ -1810,13 +1815,14 @@ this function points to a tree that includes a dynamic-init entry.
             /* Advance to next array element. */
             ++curr_array_element;
             check_assertion(is_template_dependent_context() ||
-                            !context.type->variant.array.
-                                                    is_variable_size_array);
+                            !skip_typerefs(context.type)->variant.array.
+                                                      is_variable_size_array);
             if (!is_incomplete_array) {
               /* Note that we may get here with any_more_members == FALSE and
                  a designator can turn it into TRUE again. */
-              any_more_members = (context.type->variant.array.variant.
-                                    number_of_elements > curr_array_element);
+              any_more_members = (skip_typerefs(context.type)->
+                                    variant.array.variant.number_of_elements
+                                                        > curr_array_element);
             } else {
               /* Keep track of the maximum subscript seen: */
               if (curr_array_element>array_size) {
@@ -1943,8 +1949,7 @@ this function points to a tree that includes a dynamic-init entry.
            initializer. */
         init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
         init_con->type = context.type;
-        init_con->variant.aggregate.first_constant =
-                                          context.constant_list;
+        init_con->variant.aggregate.first_constant = context.constant_list;
         init_con->variant.aggregate.last_constant =
                                           context.end_of_constant_list;
         if (any_more_members) init_info->any_uninitialized_member = TRUE;
