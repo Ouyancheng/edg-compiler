@@ -236,7 +236,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_throw,     "throw");
     enter_keyword((a_token_kind)tok_try,       "try");
     enter_keyword((a_token_kind)tok_virtual,   "virtual");
-    if (cfront_compatibility_mode) {
+    if (allow_anachronisms) {
       enter_keyword((a_token_kind)tok_overload, "overload");
     }  /* if */
     /* Enter keywords for things that are not yet implemented.  Note that
@@ -439,7 +439,7 @@ Initialize things related to preprocessing.
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
       /* If configured to use old-style preprocessing in cfront
          compatibility mode, do not define __STDC__ in that mode. */
-      && !cfront_compatibility_mode
+      && !any_cfront_mode()
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
                                                                       ) {
     (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI);
