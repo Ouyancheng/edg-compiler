@@ -15,6 +15,7 @@ For example:
     };
   }
 
+The internal error was in diag_message ("missing symbol substitution").
 This is now fixed.
 
 9/11/03  C++-generating back end: Avoid line break between template name
