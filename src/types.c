@@ -631,8 +631,8 @@ Return TRUE if the given type is a GNU C transparent union.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_boolean transparent_union_match(a_type_ptr  tp1,
-                                  a_type_ptr  tp2)
+static a_boolean transparent_union_match(a_type_ptr  tp1,
+                                         a_type_ptr  tp2)
 /*
 Return TRUE if one of the types is a transparent union and the other type is
 the type of a field in that union.
