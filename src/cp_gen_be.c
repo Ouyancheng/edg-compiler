@@ -3500,6 +3500,10 @@ done_with_operation:
       }  /* if */
       if (need_parens) write_tok_ch(')');
       break;
+    case enk_object_lifetime:
+      /* Definition of object lifetime (for temporaries).  Ignored. */
+      gen_expr(expr->variant.object_lifetime.expr, need_parens);
+      break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
       /* The temporary is being used as an rvalue here, so the result of
@@ -4326,6 +4330,10 @@ Generate code for the indicated statement.
     case stmk_try_block:
       /* "try" block. */
       gen_try_block_statement(statement);
+      break;
+    case stmk_object_lifetime:
+      /* Statement defining an object lifetime for temporaries.  Ignore. */
+      gen_statement(statement->variant.object_lifetime.statement);
       break;
     case stmk_init:
       /* Initialization for declaration.  Ignored at this level (the
