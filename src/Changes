@@ -159,10 +159,11 @@ switch clause, the break_position is still recorded even though the break
 statement will be recorded as a goto statement (and the implied_break_at_end
 field will be FALSE).
 
-3/30/05  GNU compatibility: Extended asm memory operands can have array type
+3/30/05  GNU compatibility: Extended asm memory operands can have any type
 
 In GNU mode, the front end previously did not accept extended asm operands
-with array types.  Now any object type is accepted.  For example:
+with certain types (e.g., array types).  Now any type is accepted.  For
+example:
 
   void f() {
     unsigned char x[6];

@@ -4418,12 +4418,11 @@ to scan_integer_expression with slightly different checks.
   if (!processed) {
     /* Non-class (i.e., normal) case. */
     a_transformation_options_set options = 
-                                    TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION;
+                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                                 TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION;
     if (output) {
       options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
-    }  /* if */
-    if (!is_object_type(result.type)) {
-      error_in_operand(ec_expression_must_have_object_type, &result);
     }  /* if */
     do_operand_transformations(&result, options);
   }  /* if */
