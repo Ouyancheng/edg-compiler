@@ -6227,9 +6227,8 @@ is set to NULL.
     /* There is at least one function template.  The resolution algorithm
        is therefore the one described in ARM 14.4:
          (1)  Look for an exact match on a normal function.  If there is
-              exactly one, take it.  There shouldn't be more than one
-              because two such functions shouldn't be allowed to be
-              declared.
+              exactly one, take it.  If there is more than one, the call
+              is ambiguous.
          (2)  Look for a function template that can match the arguments
               we have.  If there is exactly one, take it.  If there is
               more than one, the call is ambiguous.
@@ -6261,16 +6260,13 @@ end_exact_test:;
       }  /* if */
     }  /* for */
     if (number_in_best_match_set != 0) {
-      /* There is an exact match. */
-#if CHECKING
-      if (number_in_best_match_set > 1) {
-        /* It shouldn't be possible to get more than one exact match, because
-           it shouldn't be possible to declare two functions with
-           type signatures that close.  See overload_distinguishable. */
-        internal_error("select_best_candidate_functions: >1 exact match");
-      }  /* if */
-#endif /* CHECKING */
-      /* Take the exact match. */
+      /* There is an exact match or several.  Getting more than one match
+         is hard to do, but not impossible:
+           template <class T> void f(T, ...);
+           void f(char, ...);
+           void f(char){}
+           void m() {char c; f(c);}
+      */
       goto create_final_list;
     }  /* if */
     /* There is no exact match.  Try matching the function templates. */
