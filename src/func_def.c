@@ -1077,6 +1077,26 @@ and for the instantiation of template functions.
 }  /* scan_function_body */
 
 
+void adjust_member_routine_type(a_type_ptr	rout_type,
+				a_type_ptr	prev_type)
+/*
+rout_type is the type of a member function or member function template
+that is being defined.  prev_type is the type from the declaration in
+the class.  rout_type is missing certain information, such as the
+this_class information.  Update rout_type with information from prev_type.
+*/
+{
+  prev_type = skip_typerefs(prev_type);
+  rout_type = skip_typerefs(rout_type);
+  rout_type->variant.routine.extra_info->this_class =
+         prev_type->variant.routine.extra_info->this_class;
+  rout_type->variant.routine.extra_info->qualifiers =
+         prev_type->variant.routine.extra_info->qualifiers;
+  rout_type->variant.routine.extra_info->routine_name_linkage =
+         prev_type->variant.routine.extra_info->routine_name_linkage;
+}  /* adjust_member_routine_type */
+
+
 #if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_modifiers is not used in some configurations;
                 decl_pos_block is not used unless extra source-position
@@ -1246,12 +1266,7 @@ member declaration (allowed in Microsoft mode only).
        into type_ptr:  it is always wrong for nonstatic member functions.
        Also be sure the routine name linkage for the type is right. */
     rp = sym->variant.routine.ptr;
-    rout_type->variant.routine.extra_info->this_class =
-           (*old_type)->variant.routine.extra_info->this_class;
-    rout_type->variant.routine.extra_info->qualifiers =
-           (*old_type)->variant.routine.extra_info->qualifiers;
-    rout_type->variant.routine.extra_info->routine_name_linkage =
-           (*old_type)->variant.routine.extra_info->routine_name_linkage;
+    adjust_member_routine_type(rout_type, *old_type);
     /* Do compatibility checking on the throw specification. */
     check_exception_specification(rout_type, sym, &func_info->throw_position,
                                   /*is_redecl=*/TRUE);

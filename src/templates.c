@@ -7897,6 +7897,10 @@ and create a function instantiation entry to bind the two symbols together.
        instantiation.  It serves as the associated "template". */
     rout_sym->variant.routine.ptr->assoc_template =
                                      sym->variant.routine.ptr->assoc_template;
+    check_for_function_template_default_args(
+                                           tssp->variant.function.routine,
+                                           rout_sym->variant.routine.ptr,
+                                           tssp);
   }
 error_exit:
   db_exit();
@@ -10365,11 +10369,15 @@ present, the nesting depth "0" is used.
 }  /* template_nesting_depth */
 
 
-void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp)
+void prescan_function_template_default_arg_expr(
+					a_param_type_ptr  ptp,
+					a_scope_depth	  assoc_scope_depth)
 /*
 Scan a default argument expression and add it to the list of arguments
 pointed to by the template symbol supplement.  "ptp" can be NULL if
-the tokens should be scanned and discarded.
+the tokens should be scanned and discarded.  assoc_scope_depth is the
+depth of the template declaration or instantiation scope associated with
+the declaration that this default argument is associated with.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;
@@ -10381,11 +10389,12 @@ the tokens should be scanned and discarded.
     (void)get_token();
   } else {
     /* The current scope stack entry is expected to be a function prototype
-       scope.  The enclosing scope is expected to be either the template
-       declaration scope for the current function template or the instantiation
-       scope for the partial instantiation of a template function declaration.
-       In the latter case, the tokens that are cached are simply discarded. */
-    ssep = scope_stack_entry_for(depth_scope_stack-1);
+       scope.  The scope specified by assoc_scope_depth is an enclosing scope
+       and is expected to be either the template declaration scope for the
+       current function template or the instantiation scope for the partial
+       instantiation of a template function declaration.  In the latter case,
+       the tokens that are cached are simply discarded. */
+    ssep = scope_stack_entry_for(assoc_scope_depth);
     if (ssep->kind == (a_scope_kind)sck_template_declaration) {
       /* Get a pointer to the declaration token cache for the function
          template. */
@@ -10399,6 +10408,8 @@ the tokens should be scanned and discarded.
                                           (a_symbol_kind)sk_function_template);
       tssp = template_supplement_for_symbol(template_sym);
       decl_cache = &tssp->variant.function.decl_cache.tokens;
+    } else {
+      unexpected_condition();
     }  /* if */
     list = &curr_default_args;
     prescan_default_function_arg_expr(ptp, list, decl_cache,

@@ -5753,6 +5753,15 @@ is a template specialization declaration.
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
         set_to_error_locator(*locator);
+      } else {
+        /* Merge type information from the two declarations. */
+        a_type_ptr	prev_type;
+        tssp = template_supplement_for_symbol(sym);
+        prev_type = tssp->variant.function.routine->type;
+        adjust_member_routine_type(type_ptr, prev_type);
+        reconcile_routine_types(tssp->variant.function.routine, type_ptr,
+                                /*preserve_rout_type=*/TRUE,
+                                /*preserve_type_ptr=*/FALSE);
       }  /* if */
     }  /* if */
   } else if (!is_error_locator(*locator)) {

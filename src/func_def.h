@@ -50,6 +50,9 @@ func_def.h -- Declarations related to func_def.c (having to do with
 			   does not persist once the function body has
 			   terminated. */
 
+extern void adjust_member_routine_type(a_type_ptr	rout_type,
+				       a_type_ptr	prev_type);
+
 extern void scan_function_body(a_routine_ptr      rout_ptr,
                                a_func_info_block  *func_info,
                                a_decl_flag_set    flags);

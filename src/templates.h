@@ -306,7 +306,9 @@ extern a_boolean equiv_templates_given_supplement(
 				a_template_symbol_supplement_ptr	tssp1,
 				a_template_symbol_supplement_ptr	tssp2);
 
-extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
+extern void prescan_function_template_default_arg_expr(
+					a_param_type_ptr  ptp,
+					a_scope_depth	  assoc_scope_depth);
 
 extern void check_for_function_template_default_args(
 		    a_routine_ptr		     templ_rout,

@@ -1479,11 +1479,14 @@ declaration.
              declarations.  Issue an error, but go ahead and scan the
              expression. */
           a_scope_kind		parent_scope_kind;
+          a_scope_stack_entry_ptr
+				parent_ssep;
           a_boolean		is_member_or_friend_function;
           a_boolean		cache_default_arg;
           a_boolean		ignore_default_arg_expr;
           a_boolean		invalid_default_arg = FALSE;
           a_param_type_ptr	ptp_for_scan;
+          a_scope_depth		def_arg_scope_depth = NO_SCOPE_DEPTH;
 
           if (!default_arg_allowed_on_curr_param) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
@@ -1504,7 +1507,8 @@ declaration.
           cache_default_arg = FALSE;
           is_member_or_friend_function = FALSE;
           ignore_default_arg_expr = !default_arg_allowed_on_curr_param;
-          parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
+          parent_ssep = &scope_stack[depth_scope_stack-1];
+          parent_scope_kind = parent_ssep->kind;
           if (default_arg_allowed_on_curr_param) {
             if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
               /* A member function of a class (normal or template) inside
@@ -1516,6 +1520,7 @@ declaration.
               /* A function template declaration.  Note that all default
                  arguments are cached. */
               cache_default_arg = TRUE;
+              def_arg_scope_depth = scope_depth_of(parent_ssep);
             } else if (parent_scope_kind ==
                                    (a_scope_kind)sck_template_instantiation) {
               /* A template instantiation -- the function declarator tokens are
@@ -1523,25 +1528,37 @@ declaration.
                  caches during a later fixup, so ignore the expression now. */
               cache_default_arg = TRUE;
               ignore_default_arg_expr = TRUE;
+              def_arg_scope_depth = scope_depth_of(parent_ssep);
             } else if (parent_scope_kind ==
                                    (a_scope_kind)sck_class_reactivation ||
                        parent_scope_kind ==
                                    (a_scope_kind)sck_namespace_reactivation) {
-              /* First skip surrounding reactivation scopes: */
-              int  template_scope = depth_scope_stack-2;
-              while (scope_stack[template_scope].kind ==
-                                   (a_scope_kind)sck_class_reactivation ||
-                     scope_stack[template_scope].kind ==
-                                   (a_scope_kind)sck_namespace_reactivation) {
-                --template_scope;
+              /* First skip surrounding reactivation scopes.  While doing so
+                 skip any template instantiation scopes pushed as Microsoft
+                 mode specialization scopes.  These should be considered
+                 to be part of the associated class reactivation. */
+              int  template_scope = depth_scope_stack-1;
+              a_scope_stack_entry_ptr	ssep = &scope_stack[template_scope];
+              while (ssep->kind == (a_scope_kind)sck_class_reactivation ||
+                     ssep->kind == (a_scope_kind)sck_namespace_reactivation) {
+                if (ssep->kind == (a_scope_kind)sck_class_reactivation &&
+                    ssep->microsoft_specialization_scope_pushed) ssep--;
+                ssep--;
               }  /* while */
-              if (scope_stack[template_scope].kind ==
-                                     (a_scope_kind)sck_template_declaration) {
+              if (ssep->kind == (a_scope_kind)sck_template_declaration) {
                 /* A member function declaration of a template class outside
-                   of the class declaration.  This is not allowed. */
-                pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-                default_arg_allowed_on_curr_param = FALSE;
-                ignore_default_arg_expr = TRUE;
+                   of the class declaration.  This is not allowed, except
+                   in Microsoft mode. */
+                if (microsoft_mode) {
+                  /* This is a template case, so the default should be
+                     cached. */
+                  cache_default_arg = TRUE;
+                  def_arg_scope_depth = scope_depth_of(ssep);
+                } else {
+                  pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
+                  default_arg_allowed_on_curr_param = FALSE;
+                  ignore_default_arg_expr = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -1581,7 +1598,8 @@ declaration.
                                                        &decl_token_cache);
             } else {
               /* Scan the default arguments for a function template. */
-              prescan_function_template_default_arg_expr(ptp_for_scan);
+              prescan_function_template_default_arg_expr(ptp_for_scan,
+                                                         def_arg_scope_depth);
             }  /* if */
           } else {
             /* Not a case in which the default argument should be

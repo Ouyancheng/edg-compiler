@@ -1,5 +1,17 @@
 Version 2.46
 
+6/7/01   Microsoft compatibility: internal error on default argument in
+         template declaration
+
+The Microsoft compiler allows a default argument to be specified on the
+definition of a member function of a class template that appears outside
+of its class (the standard requires that such default arguments be specified
+on the declaration in the class).  In Microsoft mode, this would result
+in an internal error.  This has been fixed.
+
+  template <class T> struct A { void f(T); };
+  template <class T> void A<T>::f(T value = T() )  { }
+
 6/4/01   C++-generating back end, output of member function calls in
          prototype instantiations
 

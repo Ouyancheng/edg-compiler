@@ -1060,14 +1060,6 @@ Process the default argument expressions for the indicated class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             do_declared_type_fixup = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          } else {
-            /* Get the template symbol from the instance pointer. */
-            tssp = sym->variant.routine.instance_ptr->template_sym->
-                               variant.routine.instance_ptr->template_info;
-            check_for_function_template_default_args(
-                                           tssp->variant.function.routine,
-                                           sym->variant.routine.ptr,
-                                           tssp);
           }  /* if */
         } else {
           /* A friend (or other non-member-function) declaration in a real
