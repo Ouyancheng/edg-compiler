@@ -1583,14 +1583,12 @@ entity is a template class, add the template arguments.
 
 
 static void gen_class_qualifier(a_type_ptr             class_type,
-                                a_boolean              bound_function,
                                 a_gen_name_options_set options,
                                 a_boolean              *need_closing_paren)
 /*
 Generate a class qualifier (e.g., "A::B::") that identifies the indicated
-class type.  If bound_function is TRUE, this class qualifier is for a
-reference to a bound function.  options gives a set of options for gen_name.
-See gen_name for the meaning of need_closing_paren.
+class type.  options gives a set of options for gen_name.  See gen_name
+for the meaning of need_closing_paren.
 */
 {
   /* Ignore anonymous union levels. */
@@ -1600,20 +1598,11 @@ See gen_name for the meaning of need_closing_paren.
   if (class_type->variant.class_struct_union.extra_info->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (class_type->replace_by_generated_typedef) {
     /* Replace the reference to this class type by a reference to a
        generated typedef. */
     gen_temp_name((char *)class_type);
     write_tok_str("::");
-  } else if (bound_function && microsoft_mode &&
-             (class_type->source_corresp.is_class_member ||
-              class_type->source_corresp.parent.namespace_ptr != NULL)) {
-    /* MSVC++ 5.0 has a bug with multi-level qualified names for bound
-       functions.  Just put out a single-level qualified name. */
-    gen_unqualified_name(&class_type->source_corresp, iek_type);
-    write_tok_str("::");
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Use recursion to handle multiple levels of nesting. */
     gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
@@ -1688,7 +1677,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            hiding was effective only if the name was used as a qualifier. */
       } else {
         /* Use a qualified name. */
-        gen_class_qualifier(class_type, /*bound_function=*/FALSE,
+        gen_class_qualifier(class_type,
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
       }  /* if */
@@ -3365,8 +3354,7 @@ declaration following this one is such a continuation.
                                                  FTO_NO_OPTIONS,
                            &octl);
       /* Write the (qualified) name. */
-      gen_class_qualifier(class_type, /*bound_function=*/FALSE,
-                          GN_NO_OPTIONS, (a_boolean *)NULL);
+      gen_class_qualifier(class_type, GN_NO_OPTIONS, (a_boolean *)NULL);
       gen_unqualified_name(&type->source_corresp, iek_type);
       /* Write the second part of the declarator. */
       form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
@@ -3936,8 +3924,7 @@ this selection.
        is not the class indicated by the pointer. */
     selection_class = skip_typerefs(selection_class);
     if (selection_class != naming_class) {
-      gen_class_qualifier(naming_class, /*bound_function=*/FALSE,
-                          GN_NO_OPTIONS, (a_boolean *)NULL);
+      gen_class_qualifier(naming_class, GN_NO_OPTIONS, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
   gen_field_reference(field_expr);
@@ -4727,6 +4714,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 {
   a_routine_ptr rout;
   a_type_ptr    naming_class, selection_class;
+  a_boolean     force_qualified_name = FALSE;
 
   check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
   rout = func_expr->variant.routine;
@@ -4735,24 +4723,33 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   object_expr = skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
   /* Remove unnecessary base class casts. */
   object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+  selection_class = type_pointed_to(object_expr->type);
+  selection_class = skip_typerefs(selection_class);
   if (is_variable_node(object_expr) &&
       !object_expr->implicit_reference_indirection) {
     /* Use a pointer and "->".  Don't do it when there's an implicit
        reference indirection on the object, because that will add a "&"
        that may mean the wrong thing if operator& is overloaded. */
-    if (microsoft_mode && microsoft_version == 1000 &&
-        is_variable_node(object_expr) &&
-        object_expr->variant.variable->is_this_parameter &&
-        rout->special_kind != (a_special_function_kind)sfk_constructor &&
-        rout->special_kind != (a_special_function_kind)sfk_destructor) {
-      /* Suppress "this->", as it's implied.  This is necessary to avoid
-         a bug in MSVC++ 4.2.  Don't do this optimization when a constructor
-         is called explicitly (a Microsoft extension), because
-           this->X::X()   and
-           X::X()
-         mean different things to the Microsoft compiler.  Also don't
-         do it for explicit destructor calls. */
-    } else {
+    if (is_variable_node(object_expr) &&
+        object_expr->variant.variable->is_this_parameter) {
+      /* Suppress "this->", as it's implied. */
+      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+          rout->special_kind == (a_special_function_kind)sfk_destructor) {
+        /* Don't suppress "this->" when a constructor is called explicitly
+           (a Microsoft extension), because
+             this->X::X()   and
+             X::X()
+           mean different things to the Microsoft compiler.  Also don't
+           do it for explicit destructor calls (in any mode). */
+        /* Force the use of a qualified name for these cases. */
+        force_qualified_name = TRUE;
+      } else {
+        /* Suppress "this->". */
+        selection_class = NULL;
+      }  /* if */
+    }  /* if */
+    if (selection_class != NULL) {
+      /* Put out object pointer and "->". */
       gen_expr_with_parens(object_expr);
       write_tok_str("->");
     }  /* if */
@@ -4763,29 +4760,29 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   }  /* if */
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
-       to suppress its virtual-ness in this call, so use a qualified name. */
-    gen_class_qualifier(naming_class, /*bound_function=*/TRUE,
-                        GN_NO_OPTIONS, (a_boolean *)NULL);
-    gen_unqualified_name(&rout->source_corresp, iek_routine);
-  } else {
-    /* Normal case. */
-    /* Use a qualified name if the class in which we want to name the member
-       is not the class indicated by the pointer.  But don't use a
-       qualified name for a virtual function, because that would suppress
-       its virtual-ness (see above). */
-    if (!rout->is_virtual) {
-      selection_class = type_pointed_to(object_expr->type);
-      selection_class = skip_typerefs(selection_class);
-      if (selection_class != naming_class ||
-          /* Use a qualified name for an explicit constructor call (a Microsoft
-             extension). */
-          rout->special_kind == (a_special_function_kind)sfk_constructor) {
-        gen_class_qualifier(naming_class, /*bound_function=*/TRUE,
-                            GN_NO_OPTIONS, (a_boolean *)NULL);
-      }  /* if */
-    }  /* if */
-    gen_unqualified_name(&rout->source_corresp, iek_routine);
+       to suppress its virtual-ness in this call, so force a qualified name. */
+    force_qualified_name = TRUE;
   }  /* if */
+  /* Use a qualifier on the name if one is forced or if the routine was
+     named in a class other than the selector class.  Don't use a qualifier
+     on a virtual function (that would suppress the virtual-ness of the
+     function call, and if we get here with force_qualified_name FALSE
+     we don't want to do that). */
+  if (force_qualified_name ||
+      (selection_class != naming_class && !rout->is_virtual)) {
+    /* Put out a qualifier for the name.  Push the name context associated
+       with the selector so that the qualifier is put out properly qualified
+       for the context.  Don't do this if there is no selector. */
+    if (selection_class != NULL) {
+      a_scope_ptr class_scope = selection_class->variant.class_struct_union.
+                                                       extra_info->assoc_scope;
+      push_name_context(class_scope);
+    }  /* if */
+    gen_class_qualifier(naming_class, GN_NO_OPTIONS, (a_boolean *)NULL);
+    if (selection_class != NULL) pop_name_context();
+  }  /* if */
+  /* Put out the base routine name.*/
+  gen_unqualified_name(&rout->source_corresp, iek_routine);
 }  /* gen_bound_function */
 
 
@@ -5987,7 +5984,7 @@ Generate code for a class member or nonmember using-declaration.
        then valid access declarations as input should produce valid access
        declarations as output. */
     /* Write the access declaration, which is just a qualified name. */
-    gen_class_qualifier(udp->qualifier.class_type, /*bound_function=*/FALSE,
+    gen_class_qualifier(udp->qualifier.class_type,
                         GN_NO_OPTIONS, (a_boolean *)NULL);
   } else {
     /* A nonmember using-declaration. */
@@ -7177,16 +7174,6 @@ a constructor.
       }  /* if */
       switch (ctor_init->kind) {
         case cik_virtual_base_class:
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode) {
-            /* MSVC++ 4.2 and 5.0 have a bug that prevents use of a qualified
-               name for a virtual base class. */
-            type = ctor_init->variant.base_class->type;
-            gen_unqualified_name(&type->source_corresp, iek_type);
-            break;
-          }  /* if */
-          /* FALLTHROUGH */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;
