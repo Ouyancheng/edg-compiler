@@ -1052,7 +1052,8 @@ in the way described by octl.
       if (linkage != (a_name_linkage_kind)nlk_internal &&
           linkage != (a_name_linkage_kind)nlk_none &&
           !routine_linkages_are_compatible(linkage,
-                                           default_routine_name_linkage)) {
+                                           default_routine_name_linkage,
+                                           /*is_impl_conv=*/FALSE)) {
         octl->output_str(" ");
         octl->output_str(name_linkage_kind_names[linkage]);
       }  /* if */
