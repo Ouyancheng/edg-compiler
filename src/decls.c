@@ -1854,15 +1854,19 @@ done:;
 
 static a_source_sequence_entry_ptr init_param_source_sequence_sublist(void)
 /*
+Return a pointer to a source sequence entry that will be the predecessor of
+any entries generated for a function prototoype scope.
 */
 {
   a_source_sequence_entry_ptr  ssep;
 
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    /* Locate the last source sequence entry on the current list. */
     ssep = scope_stack[depth_innermost_ss_list_scope].
                                             last_source_sequence_entry;
     if (ssep != NULL && is_sublist_parent(ssep)) {
+      /* It marks a sublist, so get the last entry on the sublist. */
       ssep = assoc_sublist_of(ssep)->last_source_sequence_entry;
     }  /* if */
   } else {
@@ -1876,6 +1880,11 @@ static void terminate_param_source_sequence_sublist(
                                      a_func_info_block_ptr        func_info,
                                      a_source_sequence_entry_ptr  prev)
 /*
+Add pointers to *func_info identifying the starting and ending source sequence
+entries of the function prototype scope declarations.  If it turns out that
+this declaration is a function definition, the list segment marked by these
+pointers may have to be moved from the file scope source sequence list to the
+function scope source sequence list -- see scan_function_body.
 */
 {
   a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
@@ -1883,59 +1892,75 @@ static void terminate_param_source_sequence_sublist(
 
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    /* The first entry in the function prototype list segment is prev's
+       successor. */
     if (prev != NULL) {
       starting_ssep = prev->next;
     } else {
+      /* Prev is NULL, so use the first entry on the current list. */
       starting_ssep = scope_stack[depth_innermost_ss_list_scope].
                                             il_scope->source_sequence_list;
     }  /* if */
-    check_assertion(starting_ssep != NULL);
-    if (is_sublist_parent(starting_ssep)) {
-      sublist = assoc_sublist_of(starting_ssep);
-      starting_ssep = sublist->source_sequence_list;
-    }  /* if */
-    func_info->prototype_scope_ss_entry_start = starting_ssep;
-    if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
+    if (starting_ssep != NULL) {
+      /* If starting_ssep is a sublist parent, it is the first entry on its
+         sublist we're interested in. */
+      if (is_sublist_parent(starting_ssep)) {
+        sublist = assoc_sublist_of(starting_ssep);
+        starting_ssep = sublist->source_sequence_list;
+      }  /* if */
+      /* Record the starting entry. */
+      func_info->prototype_scope_ss_entry_start = starting_ssep;
+      /* Find the ending entry. */
+      if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
+        /* This function declaration appears inside a function scope, so the
+           ending source sequence entry is the end of the sublist. */
 #if CHECKING
-      {
-      a_source_sequence_entry_ptr  ssep;
+        {
+        a_source_sequence_entry_ptr  ssep;
 
-      ssep = scope_stack[depth_innermost_ss_list_scope].
+        ssep = scope_stack[depth_innermost_ss_list_scope].
                                                  last_source_sequence_entry;
-      check_assertion(is_sublist_parent(ssep));
-      check_assertion(assoc_sublist_of(ssep) ==
+        check_assertion(is_sublist_parent(ssep));
+        check_assertion(assoc_sublist_of(ssep) ==
                         (sublist != NULL ? sublist :
                                            sublist_header_of(starting_ssep)));
-      }
+        }
 #endif /* CHECKING */
-      if (sublist != NULL) {
-        ending_ssep = sublist->last_source_sequence_entry;
+        if (sublist != NULL) {
+          /* The sublist header has already been determined. */
+          ending_ssep = sublist->last_source_sequence_entry;
+        } else {
+          /* The sublist header is unknown, so just search to the end of the
+             list. */
+          ending_ssep = starting_ssep;
+          while (ending_ssep->next != NULL) ending_ssep = ending_ssep->next;
+        }  /* if */
       } else {
-        ending_ssep = starting_ssep;
-        while (ending_ssep->next != NULL) ending_ssep = ending_ssep->next;
+        /* The ending source sequence entry is simply the end of the file scope
+           list. */
+        ending_ssep =
+                 scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
       }  /* if */
-    } else {
-      ending_ssep =
-               scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
-    }  /* if */
-    func_info->prototype_scope_ss_entry_end = ending_ssep;
+      /* Record the ending entry. */
+      func_info->prototype_scope_ss_entry_end = ending_ssep;
 #if DEBUG
-    if (debug_level >= 4) {
-      fputs("function prototype source sequence list:\n", f_debug);
-      if (func_info->prototype_scope_ss_entry_start == NULL) {
-        fputs("  <empty list>\n", f_debug);
-      } else {
-        a_source_sequence_entry_ptr  tmp_prev, tmp_next;
-        tmp_prev = func_info->prototype_scope_ss_entry_start->prev;
-        func_info->prototype_scope_ss_entry_start->prev = NULL;
-        tmp_next = func_info->prototype_scope_ss_entry_end->next;
-        func_info->prototype_scope_ss_entry_end->next = NULL;
-        db_source_sequence_list(func_info->prototype_scope_ss_entry_start);
-        func_info->prototype_scope_ss_entry_start->prev = tmp_prev;
-        func_info->prototype_scope_ss_entry_end->next = tmp_next;
+      if (debug_level >= 4) {
+        fputs("function prototype source sequence list:\n", f_debug);
+        if (func_info->prototype_scope_ss_entry_start == NULL) {
+          fputs("  <empty list>\n", f_debug);
+        } else {
+          a_source_sequence_entry_ptr  tmp_prev, tmp_next;
+          tmp_prev = func_info->prototype_scope_ss_entry_start->prev;
+          func_info->prototype_scope_ss_entry_start->prev = NULL;
+          tmp_next = func_info->prototype_scope_ss_entry_end->next;
+          func_info->prototype_scope_ss_entry_end->next = NULL;
+          db_source_sequence_list(func_info->prototype_scope_ss_entry_start);
+          func_info->prototype_scope_ss_entry_start->prev = tmp_prev;
+          func_info->prototype_scope_ss_entry_end->next = tmp_next;
+        }  /* if */
       }  /* if */
-    }  /* if */
 #endif /* DEBUG */
+    }  /* if */
   }  /* if */
 }  /* terminate_param_source_sequence_sublist */
 
