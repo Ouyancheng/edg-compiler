@@ -550,6 +550,11 @@ extern a_type_ptr make_vptp_type(void);
 extern void overwrite_node(an_expr_node_ptr node,
                            an_expr_node_ptr source_node);
 
+extern void change_node_to_operation(an_expr_node_ptr      node,
+                                     an_expr_operator_kind op,
+                                     a_type_ptr            type,
+                                     an_expr_node_ptr      operand);
+
 extern void set_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
                                               long            con_val,
