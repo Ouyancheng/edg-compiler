@@ -238,7 +238,7 @@ extern_inline_allowed, which can be modified by the "--extern_inline" and
        "inline static" must be used to specify internal linkage;
   -- for member functions
        an inline function, like noninline functions, takes the linkage of
-       the class of which it is a member (which is ususally external).
+       the class of which it is a member (which is usually external).
 When it is FALSE (consistent with the ARM and for cfront compatibility) it
 means
   -- for nonmember functions:
