@@ -1,5 +1,15 @@
 Version 3.5
 
+6/23/04  Microsoft compatibility: nontype template argument bug fixed in 7.1
+
+A bug in handling of nontype template arguments in the Microsoft compiler
+has been fixed in MSVC++ 7.1.  Therefore, we no longer emulate that
+bug in Microsoft mode when microsoft_version >= 1310.
+
+  template <char *P> struct X {};
+  char *p;
+  X<p> x;  // No longer accepted when microsoft_version >= 1310
+
 6/23/04  Incorrect storage class for function template instances
 
 In some cases, function template instances that were not fully instantiated

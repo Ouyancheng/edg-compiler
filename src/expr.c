@@ -16176,12 +16176,13 @@ for the converted result in *constant.  Do various error checks.
 */
 {
   db_enter(3, "prep_nontype_template_argument_initializer");
-  if (microsoft_mode && is_pointer_type(param_type) &&
+  if (microsoft_mode && microsoft_version < 1310 &&
+      is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_constant_operand(operand) &&
       identical_types(operand->type, param_type)) {
     /* In Microsoft mode, an lvalue of type pointer to X can be used
        as the actual argument for a nontype template parameter of type
-       pointer to X. */
+       pointer to X.  Fixed in MSVC++ 7.1. */
     /* Make a constant from the operand. */
     extract_constant_from_operand(operand, constant);
     constant->type = make_reference_type(param_type);
