@@ -109,6 +109,13 @@ typedef struct a_pl_symbol {
 			   object file that is included in the link defines
 		           the symbol.  Not set for tentative definitions. */
   a_byte_boolean
+		definition_seen_in_archive;
+			/* A definition has been seen in an archive, but may
+			   not have been linked in because it may not have
+			   been required.  The presence of such a definition
+			   should suppress the generation of an
+                           instantiation. */
+  a_byte_boolean
 		tentative_definition;
 			/* The symbol has a tentative definition.  This is
 			   set when an object file that is included in the link
@@ -522,6 +529,7 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->possible_instantiation_sites = NULL;
   psp->referenced = FALSE;
   psp->defined = FALSE;
+  psp->definition_seen_in_archive = FALSE;
   psp->tentative_definition = FALSE;
   psp->multiple_definition = FALSE;
   psp->is_template = FALSE;
@@ -1479,8 +1487,8 @@ to resolve an undefined reference or a tentative definition.
     a_pl_symbol_ptr	sym;
     if (psp->defined || psp->tentative_definition) {
       /* Only look the symbol up if this is a definition. */
-      sym = pl_find_symbol(psp->name, psp, /*add=*/FALSE);
-      if (sym != NULL && !sym->defined) {
+      sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE);
+      if (!sym->defined) {
         /* A previously undefined symbol may be resolved by a definition or
            a tentative definition.  A tentative definition may only be
            resolved by a nontentative definition. */
@@ -1489,6 +1497,14 @@ to resolve an undefined reference or a tentative definition.
           result = TRUE;
           break;
         }  /* if */
+        /* An unreferenced symbol is defined in an archive.  Set the flag
+           that indicates that a definition has been seen in the archive.
+           This is used to suppress an instantiation if a reference is seen
+           later.  This can occur when libraries are specified in the wrong
+           order on the link line.  What you want to happen is for the
+           prelinker to fail to generate an instantiation and for the linker
+           to give an undefined symbol error. */
+        sym->definition_seen_in_archive = TRUE;
       }  /* if */
     }  /* if */
     psp = psp->next;
@@ -1750,6 +1766,7 @@ the file is flagged as requiring recompilation.
              !sym->instantiated && !sym->do_not_instantiate &&
              sym->can_be_instantiated &&
             (sym->referenced || sym->tentative_definition) && !sym->defined &&
+            !sym->definition_seen_in_archive &&
             pl_can_instantiate(pifp, sym)) {
           /* Add this symbol to the list of symbols in the info file list.
              Set the instantiation flag and indicate that the info file has

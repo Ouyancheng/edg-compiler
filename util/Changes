@@ -1,5 +1,13 @@
 Version 2.26
 
+9/14/94 Prelinker loop when libraries are specified in the wrong order
+
+A bug has been fixed that could cause the prelinker to loop when
+library files are specified in the wrong order.  The prelinker has
+been changed to suppress the instantiation of any entity for which
+a definition has been seen in an archive, even if the symbol from
+that archive was not actually linked in.
+
 9/8/94  Decoding of names with leading double underscore
 
 decode.c was changed so that it can decode names that in their original
