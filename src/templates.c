@@ -15191,13 +15191,16 @@ that follows.
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_INLINE_ALLOWED |
                          (decl_state->is_member_decl
-                                  ? DSI_IS_MEMBER_DECLARATION
+                                  ? DSI_IS_MEMBER_DECLARATION |
+				    DSI_STORAGE_CLASS_SPECIFIER_ALLOWED
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
                         (an_attribute_ptr *)NULL, &decl_modifiers,
                         &decl_pos_block, (a_upc_block_size *)NULL);
-  /* A storage class is not permitted on an explicit specialization. */
-  check_assertion(storage_class == (a_storage_class)sc_unspecified);
+  /* A storage class is not permitted on an explicit specialization,
+     except for Microsoft in-class specializations. */
+  check_assertion(storage_class == (a_storage_class)sc_unspecified ||
+		  decl_state->is_member_decl);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
@@ -15252,7 +15255,7 @@ that follows.
            flag into declarator.  This flag can only be set when a parent class
            type is provided to declarator. */
         di_flags |= DI_IS_CONSTRUCTOR;
-      } else {
+      } else if (storage_class != (a_storage_class)sc_static) {
         /* A Microsoft in-class specialization should be considered a
            nonstatic member so that qualifiers will be accepted. */
         di_flags |= DI_NONSTATIC_MEMBER;
