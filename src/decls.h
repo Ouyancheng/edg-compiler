@@ -257,10 +257,16 @@ typedef int a_decl_flag_set;
 			   were found before the first non-type-name
 			   identifier was encountered. */
 #define DSO_ELABORATED_TYPE_SPECIFIER 0x800
-                        /* If this bit is set the the declaration specifiers
+                        /* If this bit is set the declaration specifiers
                            consist of (1) a keyword class, struct, union, or
                            enum and (2) an identifier (and optionally (3) the
                            keyword friend). */
+#define DSO_CONSTRUCTOR 0x1000
+			/* If this bit is set the declaration is that of a
+			   constructor.   An identifier will have been found,
+			   but it is the name of the class currently being
+			   defined, followed by a left parenthesis; however,
+			   curr_token will have been left on the identifier. */
 
 extern a_boolean decl_specifiers(a_decl_flag_set input_flags,
 				 a_decl_flag_set *output_flags,
