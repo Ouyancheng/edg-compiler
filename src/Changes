@@ -10,6 +10,10 @@ back end did not quite handle that combination correctly.  Now fixed.
     static void f();  // Was put out as extern "C" void f();
   }
 
+The field "surrounding_name_linkage_state" of "a_routine" entries is now set
+for all routine declarations (not just definitions; see also Changes entry of
+8/31/99).
+
 8/2/00  Correct selection of overriding virtual functions
 
 In some relatively complex situations involving multiple base classes of a

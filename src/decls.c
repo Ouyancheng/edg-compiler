@@ -5347,6 +5347,19 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
+#if BACK_END_IS_CP_GEN_BE
+  if (!C_mode()) {
+    /* Set the "name linkage environment" for this routine.  This is used by
+       the C++-generating back end in cases like the following:
+         extern "C" {
+           static void f() { extern void g(); }
+         }
+       where the extern "C" block must be regenerated so that g() has C
+       linkage.  */
+    routine_ptr->surrounding_name_linkage_state =
+                          scope_stack[depth_scope_stack].default_name_linkage;
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   if (overload_symbol != NULL &&
       sym == overload_symbol->variant.overloaded_function.symbols) {
     /* sym has been newly added to an overload set that may include symbols

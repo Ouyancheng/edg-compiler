@@ -648,17 +648,6 @@ and for the instantiation of template functions.
     add_to_inline_function_list(rout_ptr);
   }  /* if */
   if (!C_mode() && !is_instantiation) {
-#if BACK_END_IS_CP_GEN_BE
-    /* Set the "name linkage environment" for this routine.  This is used by
-       the C++-generating back end in cases like the following:
-         extern "C" {
-           static void f() { extern void g(); }
-         }
-       where the extern "C" block must be regenerated so that g() has C
-       linkage.  */
-    rout_ptr->surrounding_name_linkage_state =
-                          scope_stack[depth_scope_stack].default_name_linkage;
-#endif /* BACK_END_IS_CP_GEN_BE */
     /* Reactivate the class and/or namespace of which the function body is
        a member.  For template instantiations this is done when the
        instantiation scope is pushed, so it should not be done here. */
