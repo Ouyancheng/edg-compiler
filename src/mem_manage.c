@@ -768,7 +768,6 @@ the number of entries indicated by region_number.
                           (sizeof_t)(old_size*sizeof(a_file_position)),
                           (sizeof_t)(size_of_mem_region_table*
                                                     sizeof(a_file_position))); 
-    /* Depending on NULL represented as zero bits here. */
     memzero((char *)&index_for_il_file[old_size],
             size_t_arg((size_of_mem_region_table-old_size)*
                        sizeof(a_file_position)));
@@ -1097,7 +1096,7 @@ memory or with an IL file.
     /* Don't write the memory region again if it has already been written.
        This can happen for cases like inline functions where the function is
        written out but kept in memory. */
-    if (index_for_il_file[region_number] != NULL) {
+    if (index_for_il_file[region_number] != 0) {
       write_region = FALSE;
     }  /* if */
     if (write_region)
