@@ -5210,8 +5210,10 @@ expression.
   if (check_boolean_controlling_expr(result)) {
     /* Issue a remark if the expression is constant.  The check is here
        instead of check_boolean_controlling_expr because we don't want
-       to issue diagnostics for things like "i = 1&&2;". */
-    if (is_constant_operand(result)) {
+       to issue diagnostics for things like "i = 1&&2;".  Do not issue
+       the error in constant expressions (which can happen only for
+       conditional operators, i.e., "?", not for statements). */
+    if (!is_const_expr_kind(expression_kind) && is_constant_operand(result)) {
       pos_remark(ec_boolean_controlling_expr_is_constant, &result->position);
     }  /* if */
   }  /* if */
