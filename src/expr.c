@@ -23,6 +23,7 @@ expr.c -- Expression scanning routines.
 #include "exprutil.h"
 #include "preproc.h"
 #include "folding.h"
+#include "const_ints.h"
 #include "cmd_line.h"
 #include "types.h"
 #include "decls.h"
@@ -3165,8 +3166,9 @@ Syntax:
     set_error_constant(&constant);
   } else {
     clear_constant(&constant, (a_constant_repr_kind)ck_integer);
-    constant.type = integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
-    constant.variant.integer_value = sizeof_type->size;
+    set_unsigned_value_of_integer_constant(&constant,
+                          (unsigned long)sizeof_type->size,
+                          integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND));
   }  /* if */
   make_constant_operand(&constant, result);
 
@@ -3230,8 +3232,9 @@ be inappropriate, because the feature is probably used to implement
     set_error_constant(&constant);
   } else {
     clear_constant(&constant, (a_constant_repr_kind)ck_integer);
-    constant.type = integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
-    constant.variant.integer_value = alignof_type->alignment;
+    set_unsigned_value_of_integer_constant(&constant,
+                          (unsigned long)alignof_type->alignment,
+                          integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND));
   }  /* if */
   make_constant_operand(&constant, result);
   /* Check for and pass over the right parenthesis. */
@@ -7184,6 +7187,7 @@ C++ mode.
 {
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
+  int                 constant_sign;
 
   db_enter(3, "scan_new_array_dimension_expression");
 
@@ -7220,12 +7224,12 @@ C++ mode.
                     "scan_new_array_dimension_expression: array size not int");
         }  /* if */
 #endif /* CHECKING */
-        if (constant->variant.integer_value < 0 &&
-            is_signed_integral_type(constant->type)) {
+        constant_sign = sign_of_integer_constant(constant);
+        if (constant_sign < 0) {
           /* A negative value is an error. */
           error(ec_new_array_size_must_be_nonnegative);
           set_error_constant(constant);
-        } else if (constant->variant.integer_value == 0) {
+        } else if (constant_sign == 0) {
           /* A zero value is returned as an expression to avoid confusing
              array [] and array [0]. */
           *expression = alloc_node_for_constant(constant);

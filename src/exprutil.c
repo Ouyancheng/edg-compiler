@@ -2204,6 +2204,7 @@ value is used).
   a_type_ptr       ptr_element_type, operand_type;
   a_constant_ptr   rhs_con, con;
   a_targ_size_t    num_elements;
+  int              cmp;
 
   *just_past_end = FALSE;
   if (is_operation_node(node) &&
@@ -2265,9 +2266,11 @@ value is used).
                    size 1, since that's probably a clue that the programmer
                    is cheating. */
                 if (num_elements > 1) {
-                  valid = (rhs_con->variant.integer_value <= num_elements);
-                  *just_past_end = (rhs_con->variant.integer_value ==
-                                    num_elements);
+                  cmp = cmpulit_integer_constant(rhs_con,
+                                                 (unsigned long)num_elements);
+                  valid = (cmp <= 0);  /* Subscript <= number of elements */
+                  *just_past_end = (cmp == 0);
+                                       /* Subscript == number of elements */
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -3907,7 +3910,7 @@ in a constant expression.
 */
 {
   register an_expr_node_ptr node;
-  long                      integer_value;
+  long                      char_value;
   a_targ_ptrdiff_t          offset;
   a_constant_ptr            constant, string_constant;
   an_operand                orig_operand;
@@ -3975,15 +3978,14 @@ in a constant expression.
                       offset < string_constant->variant.string.length) {
                     optimized_case = TRUE;
                     /* Build an operand for the character from the string. */
-                    integer_value =
-                                 string_constant->variant.string.value[offset];
+                    char_value = string_constant->variant.string.value[offset];
                     /* Sign-extend the character if necessary. */
                     if (int_kind_is_signed(
                                          char_type->variant.integer.int_kind)&&
-                        (integer_value & (1 << (TARG_CHAR_BIT-1))) != 0) {
-                      integer_value |= ~((1 << TARG_CHAR_BIT)-1);
+                        (char_value & (1 << (TARG_CHAR_BIT-1))) != 0) {
+                      char_value |= ~((1 << TARG_CHAR_BIT)-1);
                     }  /* if */ 
-                    make_integer_constant_operand(operand, integer_value);
+                    make_integer_constant_operand(operand, char_value);
                     operand->type = char_type;
                   }  /* if */
                 }  /* if */
