@@ -6569,11 +6569,15 @@ caller.
   a_boolean                   err = FALSE;
   a_symbol_reference_kind     srk_flags = SRK_DECLARATION;
   a_boolean                   bad_scope_for_namespace_def = FALSE;
+  a_source_sequence_entry_ptr namespace_ssep = NULL;
 
   /* Save the source position of the declaration. */
   namespace_pos = pos_curr_token;
   /* Bypass "namespace". */
   (void)get_token();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  namespace_ssep = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (curr_token == tok_lbrace) {
     /* This must be an unnamed namespace definition. */
     is_unnamed_namespace = TRUE;
@@ -6689,7 +6693,7 @@ caller.
               /* Redefining the alias to the same thing. */
               record_symbol_declaration(srk_flags, ns_sym,
                                         &locator.source_position,
-                                        (a_source_sequence_entry_ptr)NULL);
+                                        namespace_ssep);
             } else {
               pos_sy_error(ec_already_defined, &locator.source_position,
                            ns_sym);
@@ -6715,7 +6719,9 @@ caller.
             ns_sym->variant.namespace_info.extra_info =
                                          alloc_namespace_symbol_supplement();
             add_to_namespaces_list(nsp);
-            mark_defined(ns_sym, &locator.source_position);
+            record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION,
+                                      ns_sym, &locator.source_position,
+                                      namespace_ssep);
           }  /* if */
           mark_referenced(sym, &pos_curr_token);
         }  /* if */
@@ -6817,7 +6823,7 @@ caller.
                                    skip_namespace_aliases(nsp));
       }  /* if */
       record_symbol_declaration(srk_flags, ns_sym, &namespace_pos,
-                                (a_source_sequence_entry_ptr)NULL);
+                                namespace_ssep);
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
@@ -6854,6 +6860,15 @@ caller.
       discard_curr_construct_pragmas();
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* If (because of an error) an empty source-sequence entry was left in the
+     list, remove it now. */
+  if (namespace_ssep != NULL &&
+      namespace_ssep->entity.kind == (an_il_entry_kind)iek_none) {
+    a_src_seq_sublist_ptr  dummy = NULL;
+    remove_from_source_sequence_list(namespace_ssep, &dummy);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* namespace_declaration */
 
 
