@@ -992,7 +992,7 @@ variant fields to default values.
   pte->prototype_scope_types_if_any_promoted = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
-  pte->declaration_put_out = FALSE;
+  pte->first_declaration_pending = FALSE;
   pte->definition_delayed = FALSE;
   pte->elaborated_type_specifier_needed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */

@@ -568,26 +568,77 @@ For a nested class/namespace, also pop the containing classes/namespaces.
 }  /* pop_name_context_if_member */
 
 
-static a_boolean innermost_nonclass_name_context_is_file_scope(void)
+static a_scope_ptr parent_scope_of(a_source_correspondence *scp)
 /*
-Return TRUE if the current innermost nonclass name context is the file scope.
+If the entity whose source correspondence is given by scp is a member of a
+class or namespace, return a pointer to the scope for the class or
+namespace.  Otherwise, return NULL.
 */
 {
-  a_boolean          innermost_nonclass_is_file_scope = FALSE;
+  a_scope_ptr scope;
+
+  if (scp->is_class_member) {
+    scope = scp->parent.class_type->variant.
+                                    class_struct_union.extra_info->assoc_scope;
+  } else if (scp->parent.namespace_ptr != NULL) {
+    scope = scp->parent.namespace_ptr->variant.assoc_scope;
+  } else {
+    scope = NULL;
+  }  /* if */
+  return scope;
+}  /* parent_scope_of */
+
+
+static a_scope_ptr decl_scope_of(a_source_correspondence *scp)
+/*
+Return the scope in which the entity with the given course correspondence
+is declared.  If the entity is local to a function, the innermost block/
+function scope is assumed.
+*/
+{
+  a_scope_ptr scope = parent_scope_of(scp);
+
+  if (scope == NULL) {
+    /* The entity is not a class or namespace member. */
+    if (scp->is_local_to_function) {
+      /* The entity is in a function or block scope.  Find the innermost
+         such scope on the name context stack. */
+      a_name_context_ptr ncp;
+      for (ncp = curr_name_context; ; ncp = ncp->next) {
+        check_assertion_str(ncp != NULL,
+                            "decl_scope_of: function-local scope not found");
+        scope = ncp->assoc_scope;
+        if (scope != NULL &&
+            (scope->kind == (a_scope_kind)sck_block ||
+             scope->kind == (a_scope_kind)sck_function)) break;
+      }  /* for */
+    } else {
+      /* The entity is in the file scope. */
+      scope = il_header.primary_scope;
+    }  /* if */
+  }  /* if */
+  return scope;
+}  /* decl_scope_of */
+
+
+static a_scope_ptr innermost_nonclass_scope(void)
+/*
+Return the current innermost nonclass name context scope.
+*/
+{
+  a_scope_ptr        innermost_scope;
   a_name_context_ptr ncp;
 
   for (ncp = curr_name_context; ; ncp = ncp->next) {
     a_scope_ptr scope = ncp->assoc_scope;
     if (scope != NULL &&
         scope->kind != (a_scope_kind)sck_class_struct_union) {
-      if (scope->kind == (a_scope_kind)sck_file) {
-        innermost_nonclass_is_file_scope = TRUE;
-      }  /* if */
+      innermost_scope = scope;
       break;
     }  /* if */
   }  /* for */
-  return innermost_nonclass_is_file_scope;
-}  /* innermost_nonclass_name_context_is_file_scope */
+  return innermost_scope;
+}  /* innermost_nonclass_scope */
 
 
 /*
@@ -929,11 +980,15 @@ end of the type definition.
 }  /* skip_type_definition_source_sequence_entries */
 
 
-static void skip_type_and_delay_definition(a_type_ptr type,
-                                           a_boolean  is_definition)
+static void skip_type_and_delay_definition(
+                                    a_type_ptr                   type,
+                                    a_src_seq_secondary_decl_ptr sec_decl,
+                                    a_boolean                    is_definition)
 /*
 The current source sequence entry is one for the indicated type;
-it's a definition if is_definition is TRUE.  Advance past the source
+sec_decl points to the secondary declaration source sequence entry for
+the type if there is one, or is NULL if there isn't one; this is a
+definition if is_definition is TRUE.  Advance past the source
 sequence entries for the type, and, if this is a definition, set the
 definition_delayed flag in the type so it will be processed later.
 This is used to skip over a non-autonomous declaration or definition.
@@ -948,6 +1003,11 @@ This is used to skip over a non-autonomous declaration or definition.
   } else {
     /* This is a secondary declaration, so just ignore one source sequence
        entry. */
+    if (sec_decl->first_declaration) {
+      /* This is the first declaration of a tag; do special processing when
+         the tag is next put out. */
+      type->first_declaration_pending = TRUE;
+    }  /* if */
     adv_curr_source_sequence_entry();
   }  /* if */
 }  /* skip_type_and_delay_definition */
@@ -996,7 +1056,7 @@ declarations.
         /* A non-autonomous type declaration (e.g., a type declared in
            a cast in an expression).  Skip it and mark it for later
            processing. */
-        skip_type_and_delay_definition(type, is_definition);
+        skip_type_and_delay_definition(type, sec_decl, is_definition);
       } else {
         /* An implicit declaration of a function.  Ignore the source
            sequence entry. */
@@ -1516,6 +1576,8 @@ Output the name of the indicated variable, qualified if necessary.
 }  /* gen_variable_name */
 
 
+static void gen_decl_name(a_source_correspondence *scp,
+                          an_il_entry_kind        entry_kind)
 /*
 Output the name of the entity whose source correspondence information
 is given by scp.  This name is being declared in this use, and the
@@ -1523,37 +1585,48 @@ name is the name in a declarator (i.e., it's not the name in an
 elaborated type specifier).  entry_kind indicates the IL entry kind.
 If the entity is unnamed, generate a name.
 */
-#define gen_decl_name(scp, entry_kind)                                \
-  gen_name((scp), (entry_kind), /*force_qualified_name=*/FALSE);
+{
+  if (scp->name_linkage == (a_name_linkage_kind)nlk_external &&
+      curr_name_context_is_a_namespace()) {
+    /* An extern "C" entity declared within a namespace shouldn't
+       get identified as a file-scope entity. */
+    gen_unqualified_name(scp, entry_kind);
+  } else {
+    /* Use a normal, possibly-qualified name */
+    /* If a leading "::" will be put on the name, put parentheses around
+       the whole name to avoid making the "::" look like a qualifier
+       on a name in the type specifiers list. */
+    a_source_correspondence *top_scp = scp;
+    for (;;) {
+      if (top_scp->is_class_member) {
+        top_scp = &top_scp->parent.class_type->source_corresp;
+      } else if (top_scp->parent.namespace_ptr != NULL) {
+        top_scp = &top_scp->parent.namespace_ptr->source_corresp;
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+    if (top_scp->global_qualification_needed) write_tok_ch('(');
+    gen_name(scp, entry_kind, /*force_qualified_name=*/FALSE);
+    if (top_scp->global_qualification_needed) write_tok_ch(')');
+  }  /* if */
+}  /* gen_decl_name */
 
 
-static void gen_function_friend_decl_name(a_source_correspondence *scp)
+static void gen_friend_function_decl_name(a_source_correspondence *scp)
 /*
-Output a routine name that is the declarator name in a friend declaration.
+Output a routine name that is the declarator name in a friend function
+declaration.
 */
 {
-  a_boolean restore_global_qualification_needed = FALSE;
-
-  if (scp->global_qualification_needed) {
-    /* This is a friend declaration that looks like it might need a
-       leading "::", but be sure to use that only in the rare cases where
-       it's needed (they involve namespaces), because older compilers don't
-       accept it, and even in newer compilers it's only allowed when
-       referring to a previously-declared function.  See what the
-       innermost nonclass name context is.  If it's not the file scope,
-       the leading "::" really is needed. */
-    if (innermost_nonclass_name_context_is_file_scope()) {
-      /* Suppress the leading "::". */
-      scp->global_qualification_needed = FALSE;
-      restore_global_qualification_needed = TRUE;
-    }  /* if */
+  if (decl_scope_of(scp) == innermost_nonclass_scope()) {
+    /* The name is declared in the innermost nonclass scope, so an unqualified
+       name can be used (and, in some cases, must be used). */
+    gen_unqualified_name(scp, iek_routine);
+  } else {
+    gen_name(scp, iek_routine, /*force_qualified_name=*/FALSE);
   }  /* if */
-  gen_name(scp, iek_routine, /*force_qualified_name=*/FALSE);
-  if (restore_global_qualification_needed) {
-    /* Restore global_qualification_needed for the friend case. */
-    scp->global_qualification_needed = FALSE;
-  }  /* if */
-}  /* gen_function_friend_decl_name */
+}  /* gen_friend_function_decl_name */
 
 
 static void gen_constant(a_constant_ptr constant,
@@ -1824,25 +1897,20 @@ or enum.
        If this is the initial declaration, put out the proper original kind. */
     if (il_header.source_language == sl_Cplusplus &&
         type->kind != (a_type_kind)tk_enum &&
-        !type->declaration_put_out) {
+        type->first_declaration_pending) {
       tag_kind_str =
          tag_kind(type->variant.class_struct_union.extra_info->orig_type_kind);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     write_tok_str(tag_kind_str);
     write_space();
-    if (type->declaration_put_out) {
-      /* References after the declaration can use a global qualifier. */
-      gen_type_name(type);
+    if (type->first_declaration_pending) {
+      /* The initial declaration of a tag cannot use a qualified name. */
+      gen_unqualified_name(&type->source_corresp, iek_type);
+      type->first_declaration_pending = FALSE;
     } else {
-      /* Declarations cannot use a global qualifier. */
-      a_boolean save_global_qualification_needed =
-                              type->source_corresp.global_qualification_needed;
-      type->source_corresp.global_qualification_needed = FALSE;
+      /* References after the initial declaration can use a qualified name. */
       gen_type_name(type);
-      type->source_corresp.global_qualification_needed =
-                                              save_global_qualification_needed;
-      type->declaration_put_out = TRUE;
     }  /* if */
   }  /* if */
 }  /* gen_tag_reference */
@@ -1865,26 +1933,16 @@ A reference is not the definition unless the type is unnamed.
     if (il_header.source_language != sl_Cplusplus) {
       /* The elaborated type specifier is always required in C mode. */
       use_elab_type_spec = TRUE;
-    } else if ((!type->declaration_put_out &&
-                (!is_class_type_kind(type->kind) ||
-                 type->variant.class_struct_union.extra_info->
-                                                 template_arg_list == NULL)) ||
-               type->definition_delayed) {
+    } else if (type->first_declaration_pending || type->definition_delayed) {
       /* You can't omit the "class" etc. on a first use that's a declaration,
-         except for a template entity (the declaration will have been put
-         out, but declaration_put_out is not set). */
+         or on the definition (when delayed and put out through
+         gen_tag_reference). */
       use_elab_type_spec = TRUE;
     } else {
       /* See if the type is a member of a class or namespace.  If so, we
          need to push the hidden name information for that scope to see if
          the elaborated type specifier is needed. */
-      a_scope_ptr scope = NULL;
-      if (type->source_corresp.is_class_member) {
-        scope = type->source_corresp.parent.class_type->variant.
-                                    class_struct_union.extra_info->assoc_scope;
-      } else if (type->source_corresp.parent.namespace_ptr != NULL) {
-        scope = type->source_corresp.parent.namespace_ptr->variant.assoc_scope;
-      }  /* if */
+      a_scope_ptr scope = parent_scope_of(&type->source_corresp);
       if (scope != NULL) {
         /* This type is a member of a class or namespace, so push the
            hidden name information for that name context. */
@@ -1957,7 +2015,7 @@ will be put out when they are encountered when generating the parameter types.
     (void)process_preprocessing_directives();
     /* A type in the function declarator.  Skip over it and mark it for later
        processing. */
-    skip_type_and_delay_definition(type, is_definition);
+    skip_type_and_delay_definition(type, sec_decl, is_definition);
   }  /* for */
 }  /* bypass_prototype_scope_type_src_seq_entries */
 
@@ -2010,7 +2068,7 @@ will be put out when they are encountered when generating the parameter types.
     } else {
       /* Skip past the source sequence entries for a type and mark the
          definition as delayed. */
-      skip_type_and_delay_definition(type, is_definition);
+      skip_type_and_delay_definition(type, sec_decl, is_definition);
     }  /* if */
   }  /* for */
 }  /* bypass_prototyped_param_src_seq_entries */
@@ -2259,7 +2317,7 @@ a function.
     if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
-      gen_function_friend_decl_name(scp);
+      gen_friend_function_decl_name(scp);
     } else {
       gen_decl_name(scp, entry_kind);
     }  /* if */
@@ -2333,7 +2391,6 @@ is the one associated with the definition of the enum.
   check_assertion_str(type->kind == (a_type_kind)tk_enum &&
                       type->variant.integer.enum_type,
                       "gen_enum_definition: not an enum type");
-  type->declaration_put_out = TRUE;
   /* Advance past the source sequence entry for the enum itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
@@ -2709,7 +2766,6 @@ is the one associated with the definition of the class.
     }  /* if */
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  type->declaration_put_out = TRUE;
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
@@ -2978,7 +3034,7 @@ this one is such a continuation.
        Do not put it out at this time.  Mark it for processing when
        it is encountered while traversing the IL tree.  Note that
        anonymous unions associated with variables get this processing too. */
-    skip_type_and_delay_definition(type, is_definition);
+    skip_type_and_delay_definition(type, sec_decl, is_definition);
   } else {
     /* Set the output position. */
     set_decl_position(&type->source_corresp, sec_decl);
@@ -3000,34 +3056,18 @@ this one is such a continuation.
       internal_error("gen_type_decl: suppress_specifiers for non-typedef");
 #endif /* CHECKING */
     } else if (!is_definition) {
-      a_boolean restore_global_qualification_needed = FALSE;
       /* For a secondary declaration, or a primary declaration of a type
          that is never defined, generate a reference to the type instead
          of a definition. */
+      if (sec_decl->first_declaration) {
+        /* This is the first declaration of a tag; do special processing when
+           the tag is next put out. */
+        type->first_declaration_pending = TRUE;
+      }  /* if */
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
-      if (friend_decl) {
-        write_tok_str("friend ");
-        if (type->source_corresp.global_qualification_needed) {
-          /* This is a friend declaration that looks like it might need a
-             leading "::", but be sure to use that only in the rare cases where
-             it's needed (they involve namespaces), because older compilers
-             don't accept it, and even in newer compilers it's only allowed
-             when referring to a previously-declared class.  See what the
-             innermost nonclass name context is.  If it's not the file scope,
-             the leading "::" really is needed. */
-          if (innermost_nonclass_name_context_is_file_scope()) {
-            /* Suppress the leading "::". */
-            type->source_corresp.global_qualification_needed = FALSE;
-            restore_global_qualification_needed = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
+      if (friend_decl) write_tok_str("friend ");
       gen_tag_reference(type);
-      if (restore_global_qualification_needed) {
-        /* Restore the previous setting of global_qualification_needed. */
-        type->source_corresp.global_qualification_needed = TRUE;
-      }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
       gen_enum_definition(type);
@@ -6369,7 +6409,7 @@ TRUE if the declaration following this one is such a continuation.
     if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
-      gen_function_friend_decl_name(&rout->source_corresp);
+      gen_friend_function_decl_name(&rout->source_corresp);
     } else {
       gen_decl_name(&rout->source_corresp, iek_routine);
     }  /* if */

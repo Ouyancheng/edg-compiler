@@ -3116,12 +3116,12 @@ typedef struct a_type {
 			   in those scopes promoted out to the file scope. */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
-  a_bit_field	declaration_put_out:1;
-			/* Used to record whether the declaration of a (tag)
-			   type has been put out by the C++-generating back
-			   end. */
+  a_bit_field	first_declaration_pending:1;
+			/* Used to indicate that the next declaration of this
+			   (tag) type to be put out by the C++-generating back
+			   end is the initial declaration. */
   a_bit_field	definition_delayed:1;
-			/* Used to indicate the definition of a (tag) type
+			/* Used to indicate the definition of this (tag) type
 			   is required and should be put out at the first
 			   opportunity.  Used only within the C++-generating
 			   back end. */
