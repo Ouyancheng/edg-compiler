@@ -3613,7 +3613,11 @@ char_compare:
     case eok_comma:
       dump_expression(operand_1, /*need_parens=*/TRUE);
       fputs(", ", f_C_output);
+      /* Avoid ridiculously long output lines. */
+      indent += 2;
+      startline((a_seq_number)0);
       dump_expression(operand_2, /*need_parens=*/TRUE);
+      indent -= 2;
       break;
 #endif /* ifdef CFE */
     case eok_land:
@@ -3645,6 +3649,9 @@ char_compare:
       /* Three operand operator. */
       dump_boolean_controlling_expression(operand_1);
       fputc('?', f_C_output);
+      /* Avoid ridiculously long output lines. */
+      indent += 2;
+      startline((a_seq_number)0);
       /* pcc does not allow operands of "?" to be void expressions.  If they
          are, enclose them in (expr,0). */
       if (is_void_type(operand_2->type)) {
@@ -3655,6 +3662,8 @@ char_compare:
         dump_expression(operand_2, /*need_parens=*/TRUE);
       }  /* if */
       fputc(':', f_C_output);
+      /* Avoid ridiculously long output lines. */
+      startline((a_seq_number)0);
       if (is_void_type(operand_2->next->type)) {
         fputc('(', f_C_output);
         dump_expression(operand_2->next, /*need_parens=*/TRUE);
@@ -3662,6 +3671,7 @@ char_compare:
       } else {
         dump_expression(operand_2->next, /*need_parens=*/TRUE);
       }  /* if */
+      indent -= 2;
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
