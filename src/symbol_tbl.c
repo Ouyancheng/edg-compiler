@@ -5776,6 +5776,7 @@ needs to be done using the template parameter as the class type.
   /* Create the type for the class. */
   type = alloc_type((a_type_kind)tk_class);
   set_source_corresp(&(type->source_corresp), sym);
+  sym->variant.class_struct_union.type = type;
   type->source_corresp.class_of_which_a_member =
                   sym->class_of_which_a_member = 
                      templ_param_type->source_corresp.class_of_which_a_member;

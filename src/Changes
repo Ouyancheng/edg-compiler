@@ -1,5 +1,22 @@
 Version 2.27
 
+12/2/94  Setting the type field in proxy class symbols
+
+The type field in symbols for template proxy classes was not being
+set.  This did not affect the operation of the front end but
+could affect those making use of the symbol table information
+for other purposes.
+
+A proxy class is created when a template parameter or nonreal instantiation
+is used in a context that requires it to be treated like a real class
+(except that any symbol looked up in the proxy class is considered to
+have been found).
+
+  template <class T> struct A {
+    T::X tx;
+  };
+
+
 12/1/94  Spurious error when comma is missing before ellipsis
 
 In contexts in which the evaluation of default arguments must
