@@ -3670,7 +3670,8 @@ initialized.  These are addressed in the course of the processing.
                    assume new_cip->kind is cik_field. */
                 if (cip->variant.field == field) {
                   /* Error on duplicate initialization will be issued below. */
-                } else if (are_disjoint_members_of_union(cip->variant.field,
+                } else if (!microsoft_mode &&
+                           are_disjoint_members_of_union(cip->variant.field,
                                                          field)) {
                   /* The union (or the anonymous union subobject) has already
                      been initialized. */

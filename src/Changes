@@ -1,5 +1,16 @@
 Version 2.44
 
+3/2/00   Microsoft compatibility: multiple initializations of anonymous
+         union members
+
+In Microsoft mode the front end now accepts multiple mem-initializers for
+members of the same anonymous union.  For example:
+
+  struct X {
+    X(): i(0), j(0.0) {}  // Now accepted in Microsoft mode
+    union { int i; double j; };
+  };
+
 3/2/00   Compilation problem when REPRESENT_EMPTY_STATEMENTS_IN_IL is 0
 
 When REPRESENT_EMPTY_STATEMENTS_IN_IL is 0, the file il_display.c did not
