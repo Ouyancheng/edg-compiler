@@ -2632,6 +2632,20 @@ members in C++ (so that access checking can be done).
 
 
 /*
+Check to see if a symbol found is ambiguous.  If so, call a routine to
+report the error.  Note that although the routine called also does
+access checking, the access checks will not be done because the
+the access checks are suppressed when an ambiguity error is detected.
+The locator is set to an error locator by f_check_ambiguity_and_verify_access.
+*/
+#define check_for_ambiguity(locator)					\
+{ if ((locator)->specific_symbol->ambiguous) {				\
+    f_check_ambiguity_and_verify_access(locator);                	\
+  }  /* if */                                                         	\
+}  /* check_for_ambiguity */
+
+
+/*
 Return TRUE if access1 represents greater accessibility than access2.
 */
 #define is_more_accessible(access1, access2)    \
