@@ -3843,11 +3843,13 @@ is responsible for setting the appropriate flags.
     }  /* if */
 #endif /* DEBUG */
     if (is_static_data_member) {
-      variable->can_be_instantiated = can_instantiate;
+      variable->can_be_instantiated = can_instantiate ||
+                                      tip->already_instantiated;
       variable->instance_required = tip->instantiation_required;
       variable->do_not_instantiate = tip->explicit_do_not_instantiate;
     } else {
-      routine->can_be_instantiated = can_instantiate;
+      routine->can_be_instantiated = can_instantiate ||
+				     tip->already_instantiated;
       routine->instance_required = tip->instantiation_required;
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
     }  /* if */
