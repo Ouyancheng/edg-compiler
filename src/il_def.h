@@ -2701,7 +2701,7 @@ typedef struct a_class_type_supplement {
 			/* Indication of whether this class is an anonymous
 			   union, and if so whether it is a field of some
 			   other class or a variable. */
-  a_field_ptr	field;
+  a_field_ptr	anonymous_union_field;
 			/* If anonymous_union_kind == auk_field, pointer to
 			   the unnamed field entry whose type is the anonymous
 			   union; otherwise NULL. */

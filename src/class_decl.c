@@ -5918,7 +5918,7 @@ specified by decl_scope_level.
     ctsp = assoc_object_type->variant.class_struct_union.extra_info;
     if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
-      ctsp->field = assoc_object_sym->variant.field.ptr;
+      ctsp->anonymous_union_field = assoc_object_sym->variant.field.ptr;
     } else {
       /* Save the storage class, which is used by the C++ generating back
          end.  The variable pointer cannot be stored in the class type
