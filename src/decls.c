@@ -7470,7 +7470,9 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
+            if (num_specifiers > 0 || strict_ansi_mode) {
+              vacuous_decl_allowed = FALSE;
+            }  /* if */
             enum_specifier(vacuous_decl_allowed, type_ptr,
                            &declares_something, &defines_something);
             basic_type = bt_enum;
