@@ -349,6 +349,9 @@ pointed to be "pos" can be freed when this routine returns.
       ap->variant.ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    case ak_init_priority:
+      ap->variant.init_priority = 0;
+      break;
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -420,6 +423,9 @@ Return a copy of the complete attribute list.
         (*end)->variant.ELF_visibility = attributes->variant.ELF_visibility;
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      case ak_init_priority:
+        (*end)->variant.init_priority = attributes->variant.init_priority;
+        break;
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
         break;
@@ -707,6 +713,27 @@ that do take arguments.
       }
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    case ak_init_priority:
+      { a_host_large_integer  priority;
+        a_boolean             error_occurred;
+        a_boolean             ovflo;
+        /* If things go well, result will be reset to TRUE. */
+        result = FALSE;
+        /* Scan the priority. */
+        priority = scan_integral_argument(&error_occurred, &ovflo);
+        /* If there was no integer constant, a message has already
+           been issued. */
+        if (error_occurred) goto done;
+        /* For overflow, issue the message now. */
+        if (ovflo || priority < 101 || priority > 65535) {
+          goto error;
+        }  /* if */
+        /* Remember the value. */
+        attribute->variant.init_priority = priority;
+        /* All went well. */
+        result = TRUE;
+      }
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -855,6 +882,7 @@ function returns the address of the last attribute.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           case ak_visibility:
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+          case ak_init_priority:
             if (!scan_attribute_arguments(attribute)) {
               /* If the arguments were erroneous, it sometimes makes
                  sense to ignore the attribute completely so that we
@@ -1288,6 +1316,9 @@ invalid attributes.
         vp->ELF_visibility = ap->variant.ELF_visibility;
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      case ak_init_priority:
+        vp->init_priority = ap->variant.init_priority;
+        break;
       default:
         /* This attribute is not applicable to variables. */
         pos_sy_warning(ec_attribute_does_not_apply,

@@ -74,6 +74,7 @@ enum an_attribute_kind_tag {
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   ak_visibility,
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  ak_init_priority,
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -120,6 +121,7 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 /* ak_visibility */                 "visibility",
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+/* ak_init_priority */              "init_priority",
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
@@ -207,11 +209,17 @@ typedef struct an_attribute {
 			/* The index (starting from 1) of the argument
 			   that is a format string. */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    /* When kind == ak_visibility. */
     an_ELF_visibility_kind
 		ELF_visibility;
 			/* The visibility of an entity in an ELF object
 			   file. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    /* When kind == ak_init_priority. */
+    a_gnu_init_priority
+		init_priority;
+			/* The initialization priority of a dynamically
+			   initialized namespace-scope variable. */
   } variant;
   an_attribute_ptr
   		next;

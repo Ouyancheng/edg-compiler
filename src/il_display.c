@@ -1955,6 +1955,9 @@ Display the indicated variable.
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
+  if (ptr->init_priority != 0) {
+    disp_unsigned_long("init_priority", (unsigned long)ptr->init_priority);
+  }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
     disp_ELF_visibility_kind(ptr->ELF_visibility);

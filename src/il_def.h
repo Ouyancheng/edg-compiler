@@ -5554,7 +5554,15 @@ typedef struct a_vla_dimension {
 
 #endif /* ifdef CIL */
 
-#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
+
+/*
+The type of the integer values used to represent the priority of dynamic
+initialization using GNU attributes.
+*/
+typedef unsigned short a_gnu_init_priority;
+
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 /*
 ELF visibility kinds (for the GNU C "visibility" attribute).
@@ -5569,7 +5577,8 @@ enum an_ELF_visibility_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_ELF_visibility_kind;
 
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
@@ -5648,6 +5657,12 @@ typedef struct a_variable {
 			/* The explicit alignment specified for the
 			   variable, or zero if there was no explicit
 			   alignment. */
+  a_gnu_init_priority
+		init_priority;
+			/* The initialization priority specified by the GNU
+			   attribute "init_priority."  This value should lie
+			   between 101 and 65535 inclusive, or should be zero
+			   if the attribute was not specified. */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   a_bit_field   ELF_visibility:2;
 			/* The visibility of the variable in the generated
