@@ -11965,6 +11965,8 @@ returned to the caller.
     check_assertion(tssp->il_template_entry != NULL);
     if (decl_state->export_present) {
       tssp->il_template_entry->is_exported = TRUE;
+    }  /* if */
+    if (tssp->il_template_entry->is_exported) {
       add_to_exported_templates_list(sym);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
