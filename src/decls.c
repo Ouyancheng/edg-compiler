@@ -9234,10 +9234,10 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       if (is_incomplete_type(local_type_ptr)) {
-        /* Report an error on a variable for which this is the defining
-           declaration but whose type incomplete.  Also, in C mode, a variable
-           with a tentative declaration but uncompletable type (a case like
-           "void i;" at file scope) also warrants an error. */
+        /* Issue an error on a variable for which this is the defining
+           declaration but whose type is incomplete.  Also, in C mode, issue
+           an error on a variable with a tentative definition but an
+           uncompletable type (a case like "void i;" at file scope). */
         if (is_definition ||
             (is_tentative_definition && is_void_type(local_type_ptr))) {
           if (!incomplete_type_error_reported) {
