@@ -3888,6 +3888,9 @@ variant fields to default values.
 #if BACK_END_IS_CP_GEN_BE
   pte->definition_delayed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  pte->autonomous_primary_tag_decl = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
   pte->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -6750,6 +6753,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_source_correspondence *scp;
       a_symbol_ptr            sym;
       a_boolean               lparen_printed = FALSE;
+      a_boolean               autonomous = FALSE;
 
       if (ssep->entity.ptr == NULL) {
         fputs(" <null entity ptr>", f_debug);
@@ -6759,9 +6763,15 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
                                (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
           scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
           pos = &sssdp->decl_position;
+          if (sssdp->autonomous_tag_decl) autonomous = TRUE;
         } else {
           scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
           pos = &scp->decl_position;
+          if (kind == (an_il_entry_kind)iek_type) {
+            if (((a_type_ptr)ssep->entity.ptr)->autonomous_primary_tag_decl) {
+              autonomous = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
         sym = (a_symbol_ptr)scp->assoc_info;
         if (kind == (an_il_entry_kind)iek_variable &&
@@ -6777,6 +6787,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         if (pos->seq > 0) {
           fprintf(f_debug, "%sat %lu", (lparen_printed ? ", " : " ("),
                   pos->seq);
+          lparen_printed = TRUE;
+        }  /* if */
+        if (autonomous) {
+          fprintf(f_debug, "%sautonomous decl",
+                           (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
         fprintf(f_debug, "%s: \"", (lparen_printed ? ")" : ""));
@@ -6884,6 +6899,7 @@ and return a pointer to it.
   sssdp->decl_position = null_source_position;
   sssdp->entity.kind   = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr    = NULL;
+  sssdp->autonomous_tag_decl = FALSE;
 
   return sssdp;
 }  /* alloc_src_seq_secondary_decl */
@@ -7640,6 +7656,48 @@ respective linked lists.
     scope_stack_ptr->last_src_seq_sublist = prev_sublist;
   }  /* if */
 }  /* remove_sublist_header_and_parent */
+
+
+void set_autonomous_tag_decl_flag(a_type_ptr  type,
+                                  a_boolean   is_definition)
+/*
+Set either the autonomous_primary_tag_decl flag in the type entry or the
+autonomous_tag_decl flag in the corresponding source sequence secondary decl
+entry, if there is one.
+*/
+{
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  if (is_definition) {
+    /* This is a class or enum definition.  Alway set the flag in the type
+       on a definition. */
+    type->autonomous_primary_tag_decl = TRUE;
+  } else {
+    /* This is a vacuous declaration.  Only set the flag in the type if this
+       is the first declaration. */
+    /* Find the last source sequence entry that was created. */
+    ssep = scope_stack[depth_innermost_ss_list_scope].
+                                                   last_source_sequence_entry;
+    check_assertion(ssep != NULL);
+    if (is_sublist_parent(ssep)) {
+      ssep = (assoc_sublist_of(ssep))->last_source_sequence_entry;
+    }  /* if */
+    if (ss_entry_ptr(ssep, a_type_ptr) == type) {
+      /* Even though this is not a definition, this source sequence entry
+         represents (at least temporarily) the primary declaration. */
+      type->autonomous_primary_tag_decl = TRUE;
+    } else if (ssep->entity.kind ==
+                         (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+      /* The source sequence entry found is represents a secondary declaration.
+         If it refers to the same type, set the flag. */
+      sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      if (sssdp->entity.ptr == (char *)type) {
+        sssdp->autonomous_tag_decl = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_autonomous_tag_decl_flag */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
