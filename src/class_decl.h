@@ -28,7 +28,8 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
-extern void prescan_default_arg_expr(a_param_type_ptr  ptp);
+
+extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 
 extern a_boolean simplify_curr_class_qualified_name(void);
 

@@ -15,6 +15,7 @@ decls.c -- Scanning of declarations.
 
 #include "basics.h"
 #include "decls.h"
+#include "def_arg.h"
 #include "class_decl.h"
 #include "il.h"
 #include "symbol_tbl.h"
@@ -1540,26 +1541,14 @@ scope is that of a class definition.
         while (ssep->kind == (a_scope_kind)sck_class_reactivation) {
           --ssep;
         }  /* if */
-        if (ssep->kind == (a_scope_kind)sck_template_declaration) {
-          /* Leave default_arg_expr_allowed set to FALSE, since default args
-             are prohibited on all function template declaration, including
-             those of out of line member functions of class templates.
-             The ARM does not explicitly disallow them, but
-             if they are permitted complications in overload resolution for
-             template functions are introduced.  Rather than invent solutions
-             to such complications, we await clarification in the language
-             definition.  Incidentally, cfront issues an error in this case,
-             too. */
-         } else {
-          /* In C++ mode a default argument may be declared with the parameter
-             unless the function is a user-defined overloaded operator (except
-             operator()(), as an extension) or a user-defined conversion.  Note
-             that locator may be NULL (e.g., with abstract declarators). */
-          if (locator != NULL && !locator->is_conversion_name &&
-              (!locator->is_operator_name ||
-               locator->variant.opname == (an_opname_kind)onk_function_call)) {
-            default_arg_expr_allowed = TRUE;
-          }  /* if */
+        /* In C++ mode a default argument may be declared with the parameter
+           unless the function is a user-defined overloaded operator (except
+           operator()(), as an extension) or a user-defined conversion.  Note
+           that locator may be NULL (e.g., with abstract declarators). */
+        if (locator != NULL && !locator->is_conversion_name &&
+            (!locator->is_operator_name ||
+             locator->variant.opname == (an_opname_kind)onk_function_call)) {
+          default_arg_expr_allowed = TRUE;
         }  /* if */
       }  /* if */
       /* Push a function prototype scope for the parameters. */
@@ -1686,6 +1675,7 @@ scope is that of a class definition.
             /* Argument expressions are not allowed in overloaded operator
                declarations.  Issue an error, but go ahead and scan the
                expression. */
+	    a_scope_kind	parent_scope_kind;
             if (!default_arg_expr_allowed) {
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
             } else if (locator->is_operator_name) {
@@ -1708,19 +1698,29 @@ scope is that of a class definition.
             /* Check the scope immediately containing the current scope, which
                is a function prototype scope.  We may have to cache the
                default argument tokens and rescan them later. */
+	    parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
             if (default_arg_expr_allowed &&
-                scope_stack[depth_scope_stack-1].kind ==
-                                   (a_scope_kind)sck_class_struct_union &&
+                (parent_scope_kind == (a_scope_kind)sck_class_struct_union ||
+                 parent_scope_kind == 
+				    (a_scope_kind)sck_template_declaration) &&
                 curr_token != tok_comma && curr_token != tok_rparen &&
                 curr_token != tok_semicolon && curr_token != tok_rbrace && 
                 curr_token != tok_lbrace) {
-              /* This function declaration appears within a class definition.
-                 The tokens for the default argument expression are cached at
-                 this point and only scanned once the entire class has been
+              /* This function declaration appears within a class definition
+		 or is a function template definition.  The tokens for
+		 the default argument expression are cached at this
+		 point and only scanned once the entire class has been
                  defined.  This is because forward references may legally
                  appear in the default argument expression (C++ draft standard,
                  section 8.2.6, para 3). */
-              prescan_default_arg_expr(ptp);
+	      if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
+                prescan_member_function_default_arg_expr(ptp);
+              } else {
+#if 0
+		/* Function template default argument scanning will go here. */
+#endif
+		unexpected_condition();
+	      }  /* if */
             } else {
               /* Not a class scope -- or else a syntax error.  Go ahead and
                  scan the expression and convert it to the required type. */

@@ -41,6 +41,7 @@ in the include files will become external definitions for the symbols.
 #include "debug.h"
 #include "decl_inits.h"
 #include "decls.h"
+#include "def_arg.h"
 #include "error.h"
 #include "expr.h"
 #include "exprutil.h"
@@ -760,6 +761,7 @@ Initialize everything that has to do with the front end.
   sym_tbl_init();
   keyword_init();
   class_decl_init();
+  def_arg_init();
   expr_init();
   macro_proc_init();
   /* preproc_init must be called after keyword initialization so that
