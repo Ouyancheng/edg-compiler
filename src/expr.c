@@ -1051,8 +1051,6 @@ function, so build an argument operand list and return a pointer to it in
 *arg_operand_list.  routine points to the routine being called; it's NULL
 if the specific function being called is not known, e.g., when
 overloaded_function_case is TRUE or when calling through a pointer.
-(Actually, it's ignored when overloaded_function_case is TRUE, so it
-can be anything, including an overloaded function symbol, in that case.)
 */
 {
   a_param_type_ptr    curr_param_type;
@@ -1463,6 +1461,7 @@ is after the closing parenthesis of the argument list.
 */
 {
   a_boolean           overloaded_function_case = FALSE;
+  a_routine_ptr       routine;
   a_type_ptr          routine_type;
   a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
@@ -1476,6 +1475,7 @@ is after the closing parenthesis of the argument list.
     /* Constructor is not overloaded.  In this case, the argument types
        can be checked as the argument list is scanned. */
     routine_type = routine_symbol_type(constructor_sym);
+    routine = constructor_sym->variant.routine.ptr;
   } else {
     check_assertion_str(
               constructor_sym->kind == (a_symbol_kind)sk_overloaded_function ||
@@ -1484,10 +1484,11 @@ is after the closing parenthesis of the argument list.
     /* Constructor is overloaded or a template. */
     overloaded_function_case = TRUE;
     routine_type = NULL;
+    routine = NULL;
   }  /* if */
 
   /* Scan the arguments. */
-  scan_call_arguments(routine_type, constructor_sym->variant.routine.ptr,
+  scan_call_arguments(routine_type, routine,
                       /*already_after_left_paren=*/TRUE,
                       arg_expr_list, overloaded_function_case,
                       &arg_operand_list);
