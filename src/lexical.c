@@ -3626,8 +3626,10 @@ If expand_macros is TRUE, preprocessing macros are expanded as they are
 scanned.  The caller sees only the tokens after expansion.
 
 If in_preprocessing_directive is TRUE, the definition of white space is
-changed to that for within preprocessing directives, keywords are not
-recognized, and newline, "#", and "##" are recognized and returned as tokens.
+changed to that for within preprocessing directives, and newline is
+returned as a token.  If in_preprocessing_directive is TRUE
+processing_C_code_in_pragma is FALSE, keywords are not recognized, and
+"#", and "##" are recognized and returned as tokens.
 
 If in_pp_if_expression is TRUE (indicating that we are inside a
 preprocessing #if expression), integer constants will get an implicit
@@ -4096,8 +4098,10 @@ id_scan:
           } else if (id_kind == (a_symbol_kind)sk_keyword) {
             /* Keyword, return the proper token for it.  When fetching raw
                preprocessing tokens, or inside a preprocessing directive,
-               the keywords mean nothing. */
-            if (!fetch_pp_tokens && !in_preprocessing_directive) {
+               the keywords mean nothing.  An exception is when we are
+	       processing a pragma that contains C code. */
+            if (!fetch_pp_tokens &&
+	        (!in_preprocessing_directive || processing_C_code_in_pragma)) {
               ctoken = assoc_symbol->variant.keyword_token;
 #if 0
               goto end_id_scan;
@@ -4167,7 +4171,8 @@ end_id_scan:
         goto end_of_token_scan;
       }  /* if */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-      if (C_dialect != C_dialect_pcc && in_preprocessing_directive) {
+      if (C_dialect != C_dialect_pcc && in_preprocessing_directive &&
+	  !processing_C_code_in_pragma) {
         /* We recognize and return these preprocessing tokens even if
            we do not know that we are in the body of a #define; this
            helps produce reasonable error messages. */
@@ -4183,7 +4188,17 @@ end_id_scan:
         if (!currently_in_pp_if_skip) {
           remember_token_start();  /* For the "#" pseudo-token. */
           curr_char_loc++;  /* Skip over the "#". */
+#if CHECKING
+	  {
+	  a_cached_token_ptr	curr_cached_token = cached_token_rescan_list;
+#endif /* CHECKING */
           pp_directive();
+#if CHECKING
+	  if (curr_cached_token != cached_token_rescan_list) {
+	    internal_error("get_token: token cache affected by preprocessing directive");
+	  }  /* if */
+          }
+#endif /* CHECKING */
           /* After the directive has been processed, go skip white space and
              scan another token. */
           skip_white_space();
@@ -4276,7 +4291,8 @@ concatenate_adjacent_string_literals:
   /* Come here after scanning a string literal or wide string literal.
      If appropriate, string literals following the current one will be
      concatenated with it.  See 2.1.1.2, translation phase 6. */
-  if (!(fetch_pp_tokens || in_preprocessing_directive)) {
+  if (!(fetch_pp_tokens ||
+        (in_preprocessing_directive && !processing_C_code_in_pragma))) {
     /* The standard says that a wide string literal next to a normal
        string literal is undefined; we choose not to concatenate them
        unless wchar_t is char. */
@@ -4538,33 +4554,43 @@ This routine cannot be used when fetching raw preprocessing tokens.
 }  /* next_token */
 
 
-static a_token_kind next_two_tokens(a_token_kind	*token_2)
+static a_token_kind next_two_tokens(a_token_kind	first_token_must_be,
+				    a_token_kind	*token_2)
+
 /*
 Return the next two tokens after the current one while leaving the current
-token unchanged.  The next token is the return value of the function, the
-second token is returned in the argument "token_2".  This is like next_token
-except it fetches the next two tokens instead of only one.  This routine
+token unchanged.  The second token is only fetched if the first token matches
+the value passed by the caller, otherwise the second token is tok_error.
+The next token is the return value of the function, the second token is
+returned in the argument "token_2".  This is like next_token except it
+fetches the next two tokens instead of only one.  This routine
 cannot be used when fetching raw preprocessing tokens.
 */
 {
   a_token_cache cache;
   a_token_kind	ntoken;
 
-  db_enter(3, "next_token");
+  db_enter(3, "next_two_tokens");
   /* Put the current token into a token cache so it can be rescanned. */
   clear_token_cache(&cache);
   cache_curr_token(&cache);
-  /* Fetch the two next tokens and remember their kinds. */
+  /* Fetch the token or possibly the two next tokens and remember their
+     kinds.  If the first token doesn't match the value specified by the
+     caller the caller should not use the value in *token_2. */
   ntoken = get_token();
-  cache_curr_token(&cache);
-  *token_2 = get_token();
-  /* Put the three tokens in the cache (original, next 1, next 2) on the
-     rescan list, and refetch the original token.  Note that the "next"
-     token remains on the rescan list. */
+  if (ntoken == first_token_must_be) {
+    cache_curr_token(&cache);
+    *token_2 = get_token();
+  } else {
+    *token_2 = tok_error;
+  }  /* if */
+  /* Put the two or three tokens in the cache (original, next 1, and possibly
+     next 2) on the rescan list, and refetch the original token.  Note
+     that the "next" token remains on the rescan list. */
   rescan_cached_tokens(&cache);
   db_exit();
   return ntoken;
-}  /* next_two_token */
+}  /* next_two_tokens */
 
 
 void unget_token(void)
@@ -5191,11 +5217,13 @@ This routine may only be called in C++ mode.
      a token than begins a simple type.  We will check later to determine
      whether the identifier is a class name or a type name, if needed.  */
   if ((curr_token == tok_identifier &&
-      ((next_tok = next_two_tokens(&next_tok_2)) == tok_colon_colon ||
-				        next_tok == tok_lt)) ||
+      ((next_tok = next_two_tokens(tok_colon_colon, &next_tok_2)) ==
+							 tok_colon_colon ||
+       next_tok == tok_lt)) ||
       /* Check for a things like "int::~". */
       (dtor_must_be_nonclass && ((dtor_class_type = type_keyword()) != NULL) &&
-       (next_tok = next_two_tokens(&next_tok_2)) == tok_colon_colon &&
+       (next_tok = next_two_tokens(tok_colon_colon, &next_tok_2)) ==
+							 tok_colon_colon &&
         next_tok_2 == tok_compl)) {
     /* Look up the identifier to see if it could be a class name.  Note that
        we don't consider the normal eclipsing rules.  A class can be found
@@ -5325,7 +5353,7 @@ This routine may only be called in C++ mode.
         /* Skip over the class-name, and the "::". */
         (void)get_token();
         if (get_token() != tok_identifier ||
-            next_two_tokens(&next_tok_2) != tok_colon_colon) {
+            next_two_tokens(tok_colon_colon, &next_tok_2) != tok_colon_colon) {
           /* Not an identifier followed by "::", so end the loop. */
           break;
         }  /* if */

@@ -684,6 +684,9 @@ typedef struct a_function_instantiation_entry {
 			   set, no implicitly instantiation will be done.
 			   The specific_decl flag will always be TRUE when
 			   this flag is set. */
+  unsigned int	explicit_instantiation:1;
+			/* TRUE if an instantiation has been explicitly
+			   requested using a pragma directive. */
 } a_function_instantiation_entry;
 
 

@@ -530,7 +530,9 @@ typedef enum /*an_error_code*/ {
   ec_not_instantiatable_entity,
   ec_compiler_generated_function_cannot_be_instantiated,
   ec_inline_function_cannot_be_instantiated,
-  ec_pure_virtual_function_cannot_be_instantiated
+  ec_pure_virtual_function_cannot_be_instantiated,
+  ec_instantiation_requested_no_definition_supplied,
+  ec_instantiation_requested_and_specific_definition
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

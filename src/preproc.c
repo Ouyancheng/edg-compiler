@@ -16,6 +16,7 @@ preproc.c -- Preprocessing directives.
 
 #include "basics.h"
 #include "preproc.h"
+#include "decls.h"
 #include "error.h"
 #include "lexical.h"
 #include "mem_manage.h"
@@ -24,6 +25,7 @@ preproc.c -- Preprocessing directives.
 #include "cmd_line.h"
 #include "expr.h"
 #include "symbol_tbl.h"
+#include "templates.h"
 #include "macro.h"
 #include "const_ints.h"
 
@@ -818,12 +820,391 @@ generate_pp_output is TRUE.
 }  /* pass_directive_to_output */
 
 
+static a_boolean can_be_instantiated(a_symbol_ptr	sym,
+				     a_boolean		issue_errors)
+/*
+Determine whether the template function specified by sym can be instantiated.
+Inline functions and compiler generated routines (which also happen to be
+inline) cannot be instantiated.  Pure virtual functions cannot be
+instantiated.
+*/
+{
+  a_boolean	result = TRUE;
+  a_routine_ptr	routine;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
+		  sym->kind == (a_symbol_kind)sk_member_function);
+  routine = sym->variant.routine.ptr;
+  if (routine->compiler_generated) {
+    result = FALSE;
+    if (issue_errors) {
+      sym_error(ec_compiler_generated_function_cannot_be_instantiated, sym);
+    }  /* if */
+  } else if (routine->is_inline) {
+    result = FALSE;
+    if (issue_errors) {
+      sym_error(ec_inline_function_cannot_be_instantiated, sym);
+    }  /* if */
+  } else if (routine->pure_virtual) {
+    result = FALSE;
+    if (issue_errors) {
+      sym_error(ec_pure_virtual_function_cannot_be_instantiated, sym);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* can_be_instantiated */
+
+
+static void update_instantiation_flags(a_symbol_ptr	sym,	
+				       a_boolean	instantiate)
+/*
+Given a pointer to either a routine, member function, or static data member
+symbol, set either the instantiation required flag (if instantiate is TRUE)
+or the specific definition flag (if instantiate is FALSE).
+*/
+{
+  db_enter(3, "update_instantiation_flags");
+  if (is_function_symbol(sym)) {
+    if (can_be_instantiated(sym, /*issue_errors=*/TRUE)) {
+      a_function_instantiation_entry_ptr	fiep;
+      fiep = sym->variant.routine.instance_ptr;
+      if (instantiate) {
+        update_instantiation_required_flag(fiep, TRUE);
+      } else {
+        fiep->specific_def = TRUE;
+        fiep->instantiation_required = FALSE;
+      }  /* if */
+    }  /* if */
+  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+#if 0
+    /* Still need to do something here. */
+#endif
+  } else {
+    unexpected_condition();
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    fprintf(f_debug, "Updated instantiation flags for:\n");
+    if (sym != NULL) {
+      db_symbol(sym, "", 2);
+    } else {
+      fprintf(f_debug, "<NULL>");
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif
+  db_exit();
+}  /* update_instantiation_flags */
+
+
+static void update_instantiation_flags_for_class(a_symbol_ptr	sym,
+						 a_boolean	instantiate)
+/*
+Updates the instantiation flags for all of the member functions and static
+data members within a given template class.
+*/
+{
+  a_symbol_ptr	mem_sym;
+
+  check_assertion(is_template_class_symbol(sym));
+  mem_sym = sym->variant.class_struct_union.extra_info->symbols;
+  /* Loop through all the member symbols looking for member functions. */
+  for (; mem_sym != NULL; mem_sym = mem_sym->next_in_scope) {
+    a_symbol_ptr	list_sym;
+    a_boolean		is_list;
+    if (is_member_function_symbol(mem_sym)) {
+      /* If this is an overloaded function, loop through each of the
+	 functions underneath it. */
+      if (mem_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        list_sym = mem_sym->variant.overloaded_function.symbols;
+        is_list = TRUE;
+      } else {
+	list_sym = mem_sym;
+        is_list = FALSE;
+      }  /* if */
+      for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
+        /* Only set the flags for things that can be instantiated. */
+        if (can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
+          update_instantiation_flags(list_sym, instantiate);
+       	}  /* if */
+      }  /* for */
+    } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
+#if 0
+      /* Still need to do something here. */
+#endif
+    }  /* if */
+  }  /* for */
+}  /* update_instantiation_flags_for_class */
+
+
+static a_symbol_ptr sym_if_template_class_member_function(a_symbol_ptr sym)
+/*
+If sym is a nonoverloaded member function symbol it is simply returned.
+If it is an overloaded function symbol we determine if only one of the
+overloaded functions is not compiler generated.  If so, we return that
+symbol, otherwise we return NULL.
+*/
+{
+  a_symbol_ptr	result_sym = NULL;
+
+  if (is_member_function_symbol(sym)) {
+    /* A member function (possibly overloaded) or non-overloaded
+       function.  If this is an overloaded member function, determine
+       whether only one of the functions is a user declared
+       (i.e., not compiler generated) function.  If so, assume that
+       the user declared function is the one intended, otherwise issue
+       an error. */
+
+    if (sym->kind == (a_symbol_kind)sk_member_function) {
+      result_sym = sym;
+    } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* It must be an overloaded member function -- we can't get here
+	 for an overloaded nonmember function. */
+      a_symbol_ptr	list_sym;
+      a_boolean		any_found = FALSE;
+      a_symbol_ptr	new_sym = NULL;
+      list_sym = sym->variant.overloaded_function.symbols;
+      for (; list_sym != NULL; list_sym = list_sym->next) {
+        if (!list_sym->variant.routine.ptr->compiler_generated) {
+	  if (any_found) {
+	    /* We have found a second match -- return a NULL. */
+	    new_sym = NULL;
+	    break;
+	  }  /* if */
+	  any_found = TRUE;
+	  new_sym = list_sym;
+	  }  /* if */
+      }  /* for */
+      result_sym = new_sym;
+    }  /* if */
+  }  /* if */
+  return result_sym;
+} /* sym_if_template_class_member_function */
+
+
+static void instantiation_pragma(void)
+/*
+Processes pragmas to request that certain template function(s) or
+static data member(s) should be or should not be instantiated.
+The pragmas are:
+
+	#pragma instantiate <id or function declaration>
+	#pragma do_not_instantiate <id or function declaration>
+
+The pragma name can be followed by either a qualified name or a 
+complete function declaration.  The name can be something like:
+
+	A<int>
+	A<int>::f
+
+If a template class name is used (i.e., A<int>) all of the member functions
+and static data members will be instantiated.  If a member name (i.e.,
+A<int>::f) is used it must refer to a unique (i.e., not overloaded),
+user-defined, non-inline member function or static data member.  The
+name may, however, refer to an overloaded function where only one of the
+functions is user defined.  This will occur in a class with a user defined
+constructor and a compiler generated copy constructor.  In this case the
+name A<int>::A may still be used to refer to the one user defined constructor.
+
+Instantiations of function templates and of overloaded member functions
+(except for the special case described above) must be done using
+complete function declarations such as:
+
+	void A::f(int)
+	f(int, const float*)
+
+Note that like all other function declarations a return type of int is
+assumed if the return type is omitted.
+*/
+{
+  a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean		save_expand_macros = expand_macros;
+  a_boolean		save_processing_C_code_in_pragma =
+						 processing_C_code_in_pragma;
+  a_boolean		err = FALSE;
+  a_symbol_ptr		sym;
+  a_symbol_ptr		new_sym;
+  a_source_position	start_pos;
+  a_boolean		instantiate;
+
+  if (curr_id_is("instantiate")) {
+    instantiate = TRUE;
+  } else if (curr_id_is("do_not_instantiate")) {
+    instantiate = FALSE;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  fetch_pp_tokens = FALSE;
+  expand_macros = TRUE;
+  processing_C_code_in_pragma = TRUE;
+  /* Skip past the pragma name. */
+  (void)get_token();
+  start_pos = pos_curr_token;
+  if (is_generalized_identifier_start(GID_NO_OPTIONS) &&
+      next_token() == tok_newline) {
+    /* An identifier followed by a newline -- this is the simple
+       identifier case. */
+    sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+						     ilm_normal, &err);
+    if (sym != NULL && !err) {
+      if (is_template_class_symbol(sym)) {
+         /* Process all member functions and static data members. */
+	update_instantiation_flags_for_class(sym, instantiate);
+      } else if ((new_sym = sym_if_template_class_member_function(sym))
+								 != NULL) {
+	sym = new_sym;
+	update_instantiation_flags(sym, instantiate);
+      } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
+		 sym->variant.variable.template_info != NULL) {
+	/* A static data member -- set the instantiation required flag. */
+#if 0
+	/* Stil need the code that goes here. */
+#endif
+      } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
+		 sym->kind == (a_symbol_kind)sk_function_template) {
+        /* An overloaded function name or a plain function template name.
+	   A full type declaration is required for an overloaded function. */
+	sym_error(ec_indeterminate_overloaded_function, sym);
+	err = TRUE;
+      } else {
+        /* Something else -- issue an error. */
+        sym_error(ec_not_instantiatable_entity, sym);
+	err = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Get the token after the identifier -- it should be a newline. */
+    get_token();
+  } else if (is_decl_start(/*expr_context=*/FALSE,
+                    /*real_declarator_allowed=*/TRUE) ||
+             is_declarator_start()) {
+    /* Process the function declaration case. */
+    a_storage_class    storage_class;
+    a_type_ptr         type;
+    a_symbol_locator   locator;
+    a_decl_flag_set    do_flags, dso_flags;
+    a_func_info_block  func_info;
+    a_type_ptr         bottom_derived_type = NULL;
+    an_expr_node_ptr   dim_expr_ptr;
+    a_symbol_ptr       templ_sym;
+    a_symbol_ptr       orig_templ_sym;
+
+    add_stop_token(tok_newline);
+    (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+			   DSI_TYPE_SPECIFIER_ALLOWED),
+                          &dso_flags, &storage_class, &type);
+    if (is_error_type(type) && !is_declarator_start()) {
+      /* Error of some sort. */
+      set_to_error_locator(locator);
+    } else {
+      declarator((DI_REAL_DECLARATOR_ALLOWED |
+                  DI_QUALIFIED_NAME_ALLOWED),
+                 &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+                 &bottom_derived_type, &func_info, &dim_expr_ptr);
+    }  /* if */
+    remove_stop_token(tok_newline);
+    /* Look up the identifier scanned in the declarator.  If the
+       declarator contains a qualified name it will already have
+       been looked up. */
+    templ_sym = locator.specific_symbol;
+    if (templ_sym == NULL) {
+      templ_sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+    }  /* if */
+    orig_templ_sym = templ_sym;
+    if (templ_sym == NULL) {
+      /* No symbol was found.  If the declarator has a function type
+	 then say that the name is undefined.  If it was not a function
+	 type then say it is an invalid pragma argument. */
+      if (is_error_locator(locator) ||
+	  (type != NULL && type->kind != (a_type_kind)tk_routine)) {
+        pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
+      } else {
+        pos_st_error(ec_undefined_identifier,
+		     &locator.source_position,
+		     locator.symbol_header->identifier);
+      }  /* if */
+      err = TRUE;
+    } else if (!is_function_symbol(templ_sym)) {
+      /* Not a function symbol -- issue an error. */
+      sym_error(ec_not_instantiatable_entity, sym);
+      err = TRUE;
+    } else if (is_member_function_symbol(templ_sym)) {
+      /* A member function symbol, find the member function that matches
+	 the specified type. */
+      sym = member_function_redecl_sym(templ_sym, type);
+      if (sym == NULL) {
+	sym_error(ec_no_matching_function, orig_templ_sym);
+	err = TRUE;
+      } else {
+        /* Update the flags for the symbol found. */
+        update_instantiation_flags(sym, instantiate);
+      }  /* if */
+    } else {
+      /* A regular function name that is expected to represent one or
+	 more function templates.  Loop through the function templates
+	 and find an instance that matches the specified function type.
+	 If none exists, a new one can is generated, if possible.  If
+         more than one exists (or can be generated) an error is issued. */
+      a_boolean		is_list;
+      a_boolean		any_found = FALSE;
+      if (templ_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        templ_sym = templ_sym->variant.overloaded_function.symbols;
+        is_list = TRUE;
+      } else {
+        is_list = FALSE;
+      }  /* if */
+      for (; templ_sym != NULL; templ_sym = is_list ? templ_sym->next : NULL) {
+	a_symbol_ptr	lookup_sym = NULL;
+	/* If this is a function template symbol, use it to find a function
+	   that matches the type we are looking for.  If it is a member
+	   function symbol, get the corresponding function template symbol
+	   from the function instantiation entry. */
+        if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
+          lookup_sym = templ_sym;
+	} else if (templ_sym->kind == (a_symbol_kind)sk_member_function &&
+		   templ_sym->variant.routine.instance_ptr != NULL) {
+	  lookup_sym = templ_sym->variant.routine.instance_ptr->template_sym;
+        }  /* if */
+        /* Look for a match on the list of instantiations. */
+        if (lookup_sym != NULL) {
+          sym = matching_template_function(lookup_sym, type,
+                                           &locator.source_position);
+          if (sym != NULL) {
+	    if (any_found) {
+	      sym_error(ec_ambiguous_overloaded_function, orig_templ_sym);
+	      err = TRUE;
+	      break;
+            }  /* if */
+	    any_found = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      if (!any_found) {
+	sym_error(ec_no_matching_function, orig_templ_sym);
+	err = TRUE;
+      } else if (!err) {
+        /* Update the flags for the symbol found. */
+        update_instantiation_flags(sym, instantiate);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Not an identifier or a declaration. */
+    error(ec_invalid_instantiation_pragma_argument);
+    err = TRUE;
+  }  /* if */
+
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  expand_macros = save_expand_macros;
+  processing_C_code_in_pragma = save_processing_C_code_in_pragma;
+}  /* instantiation_pragma */
+
+
 static void proc_pragma(void)
 /*
 Scan and process a #pragma directive.
 */
 {
   a_boolean processed = FALSE;
+  a_boolean newline_fetched = FALSE;
 
   if (generate_pp_output) {
     /* Generating preprocessing output for some other compiler.  Pass the
@@ -844,8 +1225,15 @@ Scan and process a #pragma directive.
            arguments on call. */
         arg_pragma = (an_arg_pragma_kind)apk_scanf;
         processed = TRUE;
+      } else if (curr_id_is("instantiate") ||
+		 curr_id_is("do_not_instantiate")) {
+        /* Instantiate, or suppress instantiation of, a template class,
+	    function, or static data member. */
+        instantiation_pragma();
+	processed = TRUE;
+	newline_fetched = TRUE;
       }  /* if */
-      if (processed) (void)get_token();
+      if (processed && !newline_fetched) (void)get_token();
     }  /* if */
     if (!processed) {
       /* Unrecognized pragma, just ignore (this is required by the

@@ -1837,6 +1837,12 @@ error code.
     case ec_pure_virtual_function_cannot_be_instantiated:
       m = "pure virtual function %n cannot be instantiated";
       break;
+    case ec_instantiation_requested_no_definition_supplied:
+      m = "%n cannot be instantiated -- no template definition was supplied";
+      break;
+    case ec_instantiation_requested_and_specific_definition:
+      m = "%n cannot be instantiated -- a specific definition has been supplied";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -339,6 +339,7 @@ Initialize things related to preprocessing.
   fetch_pp_tokens = FALSE;
   expand_macros = TRUE;
   in_preprocessing_directive = FALSE;
+  processing_C_code_in_pragma = FALSE;
   in_pp_if_expression = FALSE;
   exp_header_name = FALSE;
   exp_digit_sequence = FALSE;

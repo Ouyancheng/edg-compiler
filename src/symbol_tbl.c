@@ -6698,6 +6698,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   ptr->instantiation_required = FALSE;
   ptr->specific_decl = FALSE;
   ptr->specific_def = FALSE;
+  ptr->explicit_instantiation = FALSE;
 
   db_exit();
   return ptr;
@@ -6821,23 +6822,33 @@ which instantiations are required.
   a_template_definition_ptr           tdp;
   a_function_instantiation_entry_ptr  fiep;
   a_static_data_member_def_ptr        sdmdp;
+  a_boolean			      none_mode;
 
   db_enter(3, "instantiation_wrapup");
+  none_mode = instantiation_mode == tim_none;
   for (tdp = instantiations_required; tdp != NULL; tdp = tdp->next) {
     if (tdp->is_function_instantiation) {
       /* Function instantiation. */
-      if (instantiation_mode == tim_none) {
-        /* No instantiations are done in this mode. */
-      } else {
-        fiep = tdp->variant.function_instance;
-        if (!fiep->instantiation_required) {
-          /* Something can appear on the list with this flag FALSE if, for
-             instance, a reference that forced instantiation was followed by
-             a specific definition that made it unnecessary. */
-        } else if (fiep->template_sym->variant.template_info->
+      fiep = tdp->variant.function_instance;
+      /* An instantiation will be done if an explicit instantiation has
+	 been requested (i.e., via a pragma) or if an instantiation is
+	 required because the function has been referenced and we are not
+	 in "instantiate none" mode.  Note that the pragma overrides the
+	 command line option.  Something can appear on the list with the
+         instantiation required flag FALSE if, for instance, a reference
+	 that forced instantiation was followed by a specific definition
+	 that made it unnecessary. */
+      if (fiep->explicit_instantiation ||
+	  (fiep->instantiation_required && !none_mode)) {
+        if (fiep->template_sym->variant.template_info->
                                            token_cache.first_token == NULL) {
           /* A function template can be declared and referenced without ever
-             being defined. */
+             being defined.  If an instantiation was explicitly requested,
+	     an error is issued. */
+	  if (fiep->explicit_instantiation) {
+	    sym_error(ec_instantiation_requested_no_definition_supplied,
+		      fiep->routine_sym);
+          }  /* if */
         } else {
           /* There is a body. */
 #if DEBUG
@@ -6845,7 +6856,12 @@ which instantiations are required.
             db_symbol(fiep->routine_sym, "Instantiating:", 2);
           }  /* if */
 #endif /* DEBUG */
-          instantiate_template_function(fiep);
+	  if (fiep->explicit_instantiation && fiep->specific_def) {
+	    sym_error(ec_instantiation_requested_and_specific_definition,
+		      fiep->routine_sym);
+	  } else {
+            instantiate_template_function(fiep);
+	  }  /* if */
           /* Usually template functions are instantiated "on demand" and the
              referenced flag will already have been set.  But if the
              instantiation mode says to instantiate whether or not there is
