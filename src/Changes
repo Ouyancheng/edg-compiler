@@ -1,5 +1,14 @@
 Version 3.1
 
+12/2/02  GNU compatibility: Attributes in parenthesized declarators
+
+In GNU mode, the front end now accepts attributes as the first component of
+a parenthesized member declarator.  For example:
+
+  struct S {
+    void (__attribute__((stdcall)) *pf)();
+  };
+
 12/1/02   Microsoft property fields, reference types
 
 Microsoft property fields did not work quite right when the "get"
