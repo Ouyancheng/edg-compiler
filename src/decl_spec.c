@@ -828,11 +828,12 @@ the template.
            __virtual_inheritance
          The syntax is
            class-keyword inheritance-kind class-name ;
-      */
+         (Single-underscore versions of the keywords are also allowed.) */
       char  *name = locator_for_curr_id.symbol_header->identifier;
 
-      if (*(name++) == '_' && *(name++) == '_') {
-        /* Leading double underscore. */
+      if (*(name++) == '_') {
+        if (*name == '_') name++;
+        /* Leading single or double underscore. */
         if (strcmp(name, "single_inheritance") == 0) {
           inheritance_kind = (an_inheritance_kind)ihk_single;
         } else if (strcmp(name, "multiple_inheritance") == 0) {
