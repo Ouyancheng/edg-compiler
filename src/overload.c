@@ -2523,7 +2523,7 @@ Return
 This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
 */
 {
-  int                      cmp = 0;
+  int                      cmp = 0, prev_cmp = 0;
   an_arg_match_summary_ptr arg1, arg2;
   a_type_ptr               param_type1, param_type2;
 
@@ -2540,7 +2540,6 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
   for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
        arg1 != NULL;
        arg1 = arg1->next, arg2 = arg2->next) {
-    int prev_cmp = cmp;
     cmp = 0;
     check_assertion(arg2 != NULL);
     if (arg1->conversion.std.type_qualifiers_added ||
@@ -2579,14 +2578,19 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
              are added to get to param_type1, and argument 1 is better. */
           cmp = 1;
         }  /* if */
-        /* This tie-breaker applies only if no other arguments contradict
-           it.  If there is no contradiction, we keep going to see if any
-           later argument contradicts this one. */
-        if (cmp != 0 && prev_cmp != 0 && prev_cmp != cmp) {
-          /* This contradicts a previous argument, so the tie-breaker does
-             not apply. */
-          cmp = 0;
-          break;
+        if (cmp != 0) {
+          /* This tie-breaker applies only if no other arguments contradict
+             it. */
+          if (prev_cmp == 0) {
+            /* No previous argument had a tiebreaker.  Remember this one and
+               keep going to see if any later argument contradicts it. */
+            prev_cmp = cmp;
+          } else if (prev_cmp != cmp) {
+            /* This contradicts a previous argument, so the tie-breaker does
+               not apply. */
+            cmp = 0;
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2603,9 +2607,12 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
         cmp = 1;
       }  /* if */
       /* This tie-breaker applies only if no other arguments contradict
-         it.  If there is no contradiction, we keep going to see if any
-         later argument contradicts this one. */
-      if (prev_cmp != 0 && prev_cmp != cmp) {
+         it. */
+      if (prev_cmp == 0) {
+        /* No previous argument had a tiebreaker.  Remember this one and
+           keep going to see if any later argument contradicts it. */
+        prev_cmp = cmp;
+      } else if (prev_cmp != cmp) {
         /* This contradicts a previous argument, so the tie-breaker does
            not apply. */
         cmp = 0;
