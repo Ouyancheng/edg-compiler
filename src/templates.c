@@ -3762,7 +3762,7 @@ match is found.
         }  /* if */
       }  /* if */
     } else if (tssp->is_nonreal_member || templ_tssp->is_nonreal_member) {
-     /* Nonreal members have must have the same name and parent class. */
+      /* Nonreal members have must have the same name and parent class. */
       a_template_ptr	tp = tssp->il_template_entry;
       a_template_ptr	templ_tp = templ_tssp->il_template_entry;
       if (strcmp(tp->source_corresp.name,
@@ -3776,7 +3776,7 @@ match is found.
           match = TRUE;
         }  /* if */
       }  /* if */
-     } else {
+    } else {
       /* The template template is not a template template parameter.  Just make
          sure the templates match. */
       match = equiv_templates_given_supplement(tssp, templ_tssp);
@@ -8354,7 +8354,8 @@ using a qualified name.  Return TRUE if an error was detected.
     pos_sy_error(ec_bad_scope_for_definition,
                  &locator->source_position, sym);
     result = TRUE;
-  } else if (is_definition) {
+  } else {
+    /* Check for the definition of a nonreal member. */
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(sym);
     if (tssp != NULL && tssp->is_nonreal_member) {
