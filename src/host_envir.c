@@ -3189,6 +3189,8 @@ This is done before command line processing.
   (void)strcpy(current_directory_name, ptr);
   preinclude_file_list = NULL;
   macro_preinclude_file_list = NULL;
+  preinclude_file_tail = NULL;
+  macro_preinclude_file_tail = NULL;
   template_search_path = NULL;
   template_search_path_tail = NULL;
 }  /* host_envir_early_init */

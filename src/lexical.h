@@ -1670,6 +1670,18 @@ EXTERN a_boolean
 EXTERN a_boolean
 		no_token_separators_in_this_line_of_pp_output;
 
+EXTERN a_preinclude_file_ptr
+		next_preinclude_file;
+			/* The next preinclude file to be processed in either
+			   the normal or macro-only preinclude file list,
+			   depending on the setting of
+			   processing_macro_preincludes. */
+
+EXTERN a_boolean
+		processing_macro_preincludes;
+			 /* TRUE when processing the list of macro-only
+			    preincludes. */
+
 /*
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.
@@ -1861,6 +1873,8 @@ Unified Parallel C adds several new type qualifiers.
   or_is_unaligned_token(tok))                                                 \
   or_is_upc_qual_token((tok))
 
+
+extern void push_next_preinclude_file(void);
 
 /* Push a file onto the input stack. */
 extern void open_file_and_push_input_stack(char      *file_name,

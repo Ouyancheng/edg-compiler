@@ -1,5 +1,10 @@
 Version 3.2
 
+4/14/03  Multiple preinclude search path problem
+
+When using multiple preinclude files, the incorrect include file search path
+was used for some of the preinclude files.  This has been fixed.
+
 4/14/03  Microsoft C compatibility: output of __int8
 
 The __int8 type, distinct from normal integers when microsoft_version

@@ -969,33 +969,6 @@ source file's compilation.
 }  /* fe_init_part_1 */
 
 
-static void push_preinclude_files(a_preinclude_file_ptr	list,
-				  a_boolean		macros_only)
-/*
-"list" is a list of preinclude files to be included at the beginning of
-the compilation.  Push each of them onto the input stack.  Note
-that the list is constructed in reverse order so that after the
-files are pushed onto the input stack they will be scanned in
-the order specified on the command line.  "macros_only" is TRUE if
-*/
-{
-  a_preinclude_file_ptr	pfp;
-  for (pfp = list; pfp != NULL; pfp = pfp->next) {
-    open_file_and_push_input_stack(
-                 strcpy(alloc_primary_file_scope_il(
-                                   (sizeof_t)(strlen(pfp->file_name)+1)),
-                        pfp->file_name),
-                 /*use_search_path=*/TRUE,
-                 /*is_include_file=*/TRUE,
-                 /*is_system_include=*/FALSE,
-                 /*is_preinclude=*/TRUE,
-                 /*is_macro_preinclude=*/macros_only,
-                 /*is_implicit_include=*/FALSE,
-                 /*is_include_next=*/FALSE);
-  }  /* for */
-}  /* push_preinclude_files */
-
-
 static void open_primary_source_file(a_boolean pch_prefix_scan)
 /*
 Open the primary source file, push the input stack, and get the
@@ -1028,11 +1001,11 @@ scan of a file to build the PCH prefix information.
   curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
   if (!pch_prefix_scan && !using_a_pch_file) {
     /* If there are preinclude files to be included at the beginning of
-       the compilation, push each of them onto the input stack.  The files
-       are scanned in the reverse order in which they are pushed.  The
-       macro-only files must be scanned first, so they are pushed last. */
-    push_preinclude_files(preinclude_file_list, /*macros_only=*/FALSE);
-    push_preinclude_files(macro_preinclude_file_list, /*macros_only=*/TRUE);
+       the compilation, push the first file onto the stack.  The
+       macro-only files must be scanned first. */
+    next_preinclude_file = macro_preinclude_file_list;
+    processing_macro_preincludes = TRUE;
+    push_next_preinclude_file();
   }  /* if */
   /* Read the first line. */
   (void)read_logical_source_line(/*do_pop_on_end_of_file=*/TRUE,

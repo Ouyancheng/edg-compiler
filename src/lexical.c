@@ -3272,6 +3272,53 @@ include is suppressed for some reason.
 }  /* check_for_generation_of_pch_on_return_to_primary_file */
 
 
+static a_boolean no_more_preinclude_files(void)
+/*
+Returns TRUE if we are processing the last preinclude file.
+
+next_preinclude_file points to the next preinclude file to be processed from
+the current list (either the preinclude list or the macro preinclude list).
+It is NULL when the end of either list is reached.  push_next_preinclude_file
+begins processing the preinclude list after the macro preinclude list has
+been exhausted.
+*/
+{
+  return next_preinclude_file == NULL &&
+         (!processing_macro_preincludes || preinclude_file_list == NULL);
+}  /* no_more_preinclude_files */
+
+
+void push_next_preinclude_file(void)
+/*
+If there were preinclude files specified, push next preinclude file onto
+the input stack.  next_preinclude_file is initially set to the list of
+macro-only include files.  When we reach the end of the macro-only preinclude
+list, we process the normal (non-macro-only) preincludes.
+*/
+{
+  char	*file_name;
+  if (next_preinclude_file == NULL && processing_macro_preincludes) {
+    next_preinclude_file = preinclude_file_list;
+    processing_macro_preincludes = FALSE;
+  }  /* if */
+  if (next_preinclude_file != NULL) {
+    file_name = next_preinclude_file->file_name;
+    open_file_and_push_input_stack(
+                 strcpy(alloc_primary_file_scope_il(
+                                   (sizeof_t)(strlen(file_name)+1)),
+                        file_name),
+                 /*use_search_path=*/TRUE,
+                 /*is_include_file=*/TRUE,
+                 /*is_system_include=*/FALSE,
+                 /*is_preinclude=*/TRUE,
+                 /*is_macro_preinclude=*/processing_macro_preincludes,
+                 /*is_implicit_include=*/FALSE,
+                 /*is_include_next=*/FALSE);
+    next_preinclude_file = next_preinclude_file->next;
+  }  /* if */
+}  /* push_next_preinclude_file */
+
+
 static void display_included_file_name(int	depth,
 				       char	*file_name)
 /*
@@ -3826,6 +3873,7 @@ at the next level down.
 {
   a_boolean	is_end_of_primary_source_file = TRUE;
   a_byte	ifg_state;
+  a_boolean	is_end_of_preinclude = curr_ise->is_preinclude;
 
   db_enter(2, "pop_input_stack");
 #if DEBUG
@@ -3905,7 +3953,7 @@ at the next level down.
      for the purpose of defining macros.  We will continue reading the
      primary source file. */
   if (curr_ise->preinclude_macros_only) at_end_of_source_file = FALSE;
-  if (curr_ise->is_preinclude) {
+  if (curr_ise->is_preinclude && no_more_preinclude_files()) {
     /* See if the end of the preinclude marks the end of the text that is
        part of the precompiled header being generated. */
     if (header_stop_position_pending &&
@@ -4060,6 +4108,11 @@ at the next level down.
     /* Check whether a PCH file should be generated at the end of the
        execution of this include directive. */
     check_for_generation_of_pch_on_return_to_primary_file();
+  }  /* if */
+  if (is_end_of_preinclude) {
+    /* If this is the end of a preincluded file, see if there is another
+       file to be preincluded. */
+    push_next_preinclude_file();
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
@@ -13623,6 +13676,8 @@ of the front end.
   octl.output_str = put_str_to_temp_text_buffer;
   octl.gen_compilable_code = TRUE;
 #endif /* TOKENS_TO_STRING_NEEDED */
+  next_preinclude_file = NULL;
+  processing_macro_preincludes = FALSE;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;

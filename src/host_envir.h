@@ -1708,12 +1708,18 @@ only for the purpose of setting macros, and another that can define macros
 as well as include other code.  The macro preincludes are processed before
 the other preincludes.  When multiple source files are compiled,
 this is included at the beginning of each compilation.  The list is
-allocated in general storage, not IL storage.  The lists are built
-in reverse order.
+allocated in general storage, not IL storage.
 */
 EXTERN struct a_preinclude_file
 		*preinclude_file_list,
 		*macro_preinclude_file_list;
+
+/*
+Pointer to the end of each of the preinclude lists.
+*/
+EXTERN struct a_preinclude_file
+		*preinclude_file_tail,
+		*macro_preinclude_file_tail;
 
 /*
 Object file name, usually derived from the primary source file name.
