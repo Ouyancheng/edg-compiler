@@ -697,6 +697,15 @@ typedef struct a_scope_stack_entry {
 			   with linkage have compatible but not identical
 			   types, and the outer-scope type must be restored
 			   at the end of the inner scope. */
+  a_constant_ptr
+		shareable_constants_list;
+			/* List of shared constants for the current scope.
+			   Only used if the scope is a function scope.
+			   These are constants that refer to something local
+			   to the scope, and therefore cannot be shared at 
+			   the file scope.  The only meaningful case is
+			   a constant indicating the address of a local
+			   variable. */
 
   /* The following pointers are the end pointers for the lists begun
      in the current IL scope entry.  They are needed only while the scope
@@ -773,6 +782,13 @@ EXTERN a_scope_depth
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
+EXTERN a_scope_number
+		next_scope_number;
+			/* Next scope number to be assigned.  These are
+			   unique identifiers for each scope, not just
+			   the scope nesting depth.  Also used for the
+			   pseudo-scopes associated with the members of
+			   structs and unions in C (not C++). */
 
 
 /*
