@@ -10658,7 +10658,10 @@ Check that this is a valid type and if so make member_type a friend.
       pos_error(ec_no_typename_in_friend_class_decl,
                 &decl_info->decl_start_pos);
     } else {
-      if (!(decl_info->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
+      if (decl_info->dso_flags & (DSO_INLINE | DSO_VIRTUAL)) {
+        /* A friend class declaration cannot contain any of these specifiers. */
+        pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
+      } else if (!(decl_info->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
         char  *class_key_string;
         switch (skip_typerefs(member_type)->kind) {
           case tk_class:   class_key_string = "class";   break;
