@@ -983,7 +983,7 @@ void repeat_constructor_init(a_dynamic_init_ptr  ctor_dip,
 Define a dynamic init entry for a nonconstant aggregate, which will always be
 for an array whose elements are to be initialized by a series of constructor
 calls.  The dynamic entry to be defined (new_dip) has already been allocated;
-the dynamic init entry that represents the constuctor is ctor_dip.  count is
+the dynamic init entry that represents the constructor is ctor_dip.  count is
 the number of elements in the array to be initialized.
 */
 {
@@ -1458,7 +1458,7 @@ scan_paren:
         if (required_token(tok_lparen, ec_exp_lparen)) {
           if (is_class_struct_union_type(init_type)) {
             /* This is either a base class or a field of class type.  In
-               either case, it wil be initialized by a constructor call if
+               either case, it will be initialized by a constructor call if
                a constructor exists.  Otherwise, it will be initialized
                like any scalar. */
             an_expr_node_ptr  arg_list;

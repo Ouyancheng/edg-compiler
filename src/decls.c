@@ -278,7 +278,7 @@ examine what follows.  The technique is discussed in ARM 6.8.
   is_decl = is_decl_start();
   if (C_dialect == C_dialect_cplusplus) {
     if (!is_decl) {
-      /* Check for "overload" ananchronism. */
+      /* Check for "overload" anachronism. */
       is_decl = is_overload_specifier();
     } else if (next_token() == tok_lparen &&
                ((curr_token == tok_identifier && curr_id_is_type_name()) ||
@@ -2192,7 +2192,7 @@ new declaration are given by *linkage and *storage_class.  Issue a diagnostic
     /* External versus internal linkage conflict. */
     if (!suppress_diagnostic) {
       if (C_dialect == C_dialect_cplusplus) {
-        /* This is explcitly an error (ARM 7.1.1).  This also catches the case
+        /* This is explicitly an error (ARM 7.1.1).  This also catches the case
            in which a nonmember function declared "extern" is then redeclared
            "inline", which, though permitted by cfront 2.1, is explicitly
            prohibited (ARM 7.1.2, annotation). */

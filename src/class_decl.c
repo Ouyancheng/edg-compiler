@@ -1486,7 +1486,7 @@ other instance of the base class.
                            base_class_access)) {
       recompute_path_and_access = TRUE;
       if (base_class->direct) {
-        /* Since the other declaration, whose path will be superceded by the
+        /* Since the other declaration, whose path will be superseded by the
            present one, was for a direct base class, we again have the
            situation where a base class is marked "direct" but has a longer
            path. */
@@ -2554,7 +2554,7 @@ special function kind (e.g., constructor, destructor), if any.
       rtn->special_kind = (a_special_function_kind)sfk_operator;
       rtn->opname_kind = locator->variant.opname;
       /* If this is an assignment operator, record a pointer to it in the
-         symbol -- to facilite generating default assignment operators. */
+         symbol -- to facilitate generating default assignment operators. */
       if (rtn->opname_kind == (an_opname_kind)onk_assign) {
         if (cssp->assignment_operator == NULL) {
           cssp->assignment_operator = sym;
@@ -4088,7 +4088,7 @@ operator routine or do bitwise assignment.
   a_boolean                      pass_by_value;
 
   db_enter(4, "make_default_assignment_body");
-  /* The source variable of the copy is the first parameter on the paramters
+  /* The source variable of the copy is the first parameter on the parameters
      list for the routine.  There must be exactly one parameter for an
      assignment function. */
   rtsp = scope->variant.routine.ptr->type->variant.routine.extra_info;
@@ -4186,7 +4186,7 @@ operator routine or do bitwise assignment.
           } while(is_array_type(tp));
           tp = skip_typerefs(tp);
         }  /* if */
-        /* The destination is the appriate field (lvalue) of the "this"
+        /* The destination is the appropriate field (lvalue) of the "this"
            parameter. */
         dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
         /* The source will be the appropriate field of the first argument,
@@ -4356,8 +4356,8 @@ destructors, assignment operators, and conversion functions.
 static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
                                                      a_boolean     *const_okay)
 /*
-Return TRUE if sym is not NULL and qualfies as an assignment operator that
-can copy a class object (ARM 12.8).  It qualfies if its first parameter
+Return TRUE if sym is not NULL and qualifies as an assignment operator that
+can copy a class object (ARM 12.8).  It qualifies if its first parameter
 has a type of "const A&" or "A&", where "A" is the class of which it is a
 member.  If sym is an overloaded function, return TRUE if at least one of
 the functions qualifies.  Set *const_okay TRUE if a const object can be
@@ -4423,7 +4423,7 @@ static void default_assignment_operator_check(a_type_ptr  class_type,
                                               a_boolean   *bitwise_copy_okay)
 /*
 We are about to create a compiler-generated default assignment operator.
-Some of its characterstics are dependent on the assignment operators
+Some of its characteristics are dependent on the assignment operators
 defined for base classes and fields of the current class (class_type).
 Specifically, we need to determine whether the default assignment operator
 can copy a const object and whether bitwise copying is allowed.
