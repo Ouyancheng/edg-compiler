@@ -866,7 +866,8 @@ Convert an integer constant to a pointer to member.
 #if CHECKING
   /* The only valid constant is zero. */
   if (old_constant->kind != (a_constant_repr_kind)ck_integer ||
-      old_constant->implicit_cast) {
+      old_constant->implicit_cast ||
+      !is_zero_constant(old_constant)) {
     internal_error("conv_integer_to_ptr_to_member: bad source constant");
   }  /* if */
 #endif /* CHECKING */
@@ -1088,33 +1089,51 @@ exit:
 
 a_boolean is_zero_constant(a_constant *constant)
 /*
-Return TRUE if the constant is an integer, pointer, or floating zero.
-This is supposed to duplicate the test on the boolean controlling 
-expressions in statements and the ?:, &&, and || operators.
+Return TRUE if the constant is an integer or floating zero.
 */
 {
   a_boolean is_zero = FALSE;
   a_float_kind float_kind;
 
-  switch (constant->kind) {
-    case ck_integer:
-      /* Either an integer zero or a zero cast to a pointer type is
-         acceptable, so it is not necessary to check the constant type. */
-      is_zero = (cmplit_integer_constant(constant, 0L) == 0);
-      break;
-    case ck_float:
-      float_kind = skip_typerefs(constant->type)->variant.float_kind;
-      is_zero = fp_is_zero_constant(float_kind,
-                                    &constant->variant.float_value);
-      break;
-    default:
-      /* Note that ck_address constants are always non-NULL and therefore
-         is_zero is left FALSE. */
-      break;
-  }  /* switch */
-
+  if (constant->kind == (a_constant_repr_kind)ck_integer &&
+      !constant->implicit_cast) {
+    is_zero = (cmplit_integer_constant(constant, 0L) == 0);
+  } else if (constant->kind == (a_constant_repr_kind)ck_float) {
+    float_kind = skip_typerefs(constant->type)->variant.float_kind;
+    is_zero = fp_is_zero_constant(float_kind,
+                                  &constant->variant.float_value);
+  }  /* if */
   return is_zero;
 }  /* is_zero_constant */
+
+
+a_boolean is_false_constant(a_constant *constant)
+/*
+Return TRUE if the constant is an integer, floating, pointer, or
+pointer to member zero.  This is supposed to duplicate the test on
+the boolean controlling expressions in statements and the ?:, &&, and ||
+operators.  Can also be used to test for a NULL pointer or pointer to member.
+*/
+{
+  a_boolean is_false = FALSE;
+
+  if (is_zero_constant(constant)) {
+    /* Zero integral or floating constant. */
+    is_false = TRUE;
+  } else if (constant->kind == (a_constant_repr_kind)ck_integer &&
+             constant->implicit_cast) {
+    /* Check for NULL pointer constant (0 cast to a pointer type). */
+    is_false = (cmplit_integer_constant(constant, 0L) == 0);
+  } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    /* Pointer to member constant.  See if null. */
+    is_false = constant->variant.ptr_to_member.is_function_ptr ?
+                    (constant->variant.ptr_to_member.variant.routine == NULL) :
+                    (constant->variant.ptr_to_member.variant.field == NULL);
+  }  /* if */
+  /* Note that ck_address constants are always non-NULL and therefore
+     is_false is left FALSE. */
+  return is_false;
+}  /* is_false_constant */
 
 
 a_boolean is_null_pointer_constant(a_constant *constant)
@@ -1286,7 +1305,7 @@ Do the "!" (not) operation on all types of scalars.
 {
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
-                    (long)is_zero_constant(constant));
+                    (long)is_false_constant(constant));
 
 #if DEBUG
   db_unary_operation("!", constant, result, ec_no_error);
@@ -1814,8 +1833,8 @@ Do the logical "and" (&&) operation on integers, floats, and pointers.
 {
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
-                    (long)(!is_zero_constant(constant_1) &&
-                           !is_zero_constant(constant_2)));
+                    (long)(!is_false_constant(constant_1) &&
+                           !is_false_constant(constant_2)));
 #if DEBUG
   db_binary_operation("&&", constant_1, constant_2, result, ec_no_error);
 #endif /* DEBUG */
@@ -1831,8 +1850,8 @@ Do the logical "or" (||) operation on integers, floats, and pointers.
 {
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
-                    (long)(!is_zero_constant(constant_1) ||
-                           !is_zero_constant(constant_2)));
+                    (long)(!is_false_constant(constant_1) ||
+                           !is_false_constant(constant_2)));
 #if DEBUG
   db_binary_operation("||", constant_1, constant_2, result, ec_no_error);
 #endif /* DEBUG */
