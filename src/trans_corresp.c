@@ -387,14 +387,14 @@ the primary translation unit is preferred.
          that depends on the canonical entry. */
       switch (kind) {
         case iek_routine:
-          if (!in_secondary_trans_unit(entity)) {
+          {
             a_routine_ptr  routine = (a_routine_ptr)entity;
             if (routine->is_template_function &&
                 !routine->is_prototype_instantiation) {
               set_master_instance_for_new_canonical_routine(
                                       routine, (a_routine_ptr)tcp->canonical);
             }  /* if */
-          }  /* if */
+          }
           break;
         case iek_template:
           { /* Since the canonical template is changing, the associated
@@ -426,7 +426,7 @@ the primary translation unit is preferred.
           }
           break;
         case iek_variable:
-          if (!in_secondary_trans_unit(entity)) {
+          {
             a_variable_ptr  var = (a_variable_ptr)entity;
             if (var->is_template_static_data_member &&
                 !var->source_corresp.parent.class_type
@@ -434,7 +434,7 @@ the primary translation unit is preferred.
               set_master_instance_for_new_canonical_variable(
                                          var, (a_variable_ptr)tcp->canonical);
             }  /* if */
-          }  /* if */
+          }
           break;
         default:
           /* Nothing to be done. */
@@ -3006,8 +3006,7 @@ given type.
            Force the verification of the previous canonical entry against the
            new one. */
         (void)verify_class_type_correspondence(type);
-        if (!in_secondary_trans_unit(type) &&
-            type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
           /* The master instance is found using the canonical entry.  We are
              creating a new canonical entry, so we must make sure its master
              instance pointer is set for the class members. */
