@@ -11570,16 +11570,19 @@ bits of information that were acquired while parsing.
 }  /* complete_class_definition */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !PROTOTYPE_INSTANTIATIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+             /* il_template_entry is not used unless prototype instantiations
+                are recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !PROTOTYPE_INSTANTIATIONS_IN_IL */
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,
                                 a_boolean        is_local_class,
                                 a_boolean        delayed_nested_class_def,
-                                a_boolean	 is_template_instantiation,
+                                a_boolean        is_template_instantiation,
+                                a_template_ptr   il_template_entry,
                                 a_decl_pos_block *decl_pos_block)
 /*
 Scan the body of a class definition, including the base classes list.
@@ -11595,7 +11598,8 @@ completed (C++ only).  is_template_instantiation is TRUE when a template
 is being instantiated either for the purpose of producing the prototype
 instantiation or for generating a real instantiation.  It is also TRUE for
 nested classes when their definition appears outside of the class template.
-*/
+If a prototype instantiation is produced, il_template_entry is set to the
+template entry for the class template definition; otherwise it is NULL. */
 {
   a_boolean                        err = FALSE;
   a_symbol_ptr                     tag_sym;
@@ -12010,11 +12014,10 @@ next_declaration:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the class definition. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (class_state.is_nonreal_instantiation &&
-        assoc_template_of(class_type) != NULL) {
+    if (il_template_entry != NULL) {
       /* This is a prototype instantiation of a class template. */
       add_end_of_construct_source_sequence_entry(
-                                        (char *)assoc_template_of(class_type),
+                                        (char *)il_template_entry,
                                         (a_byte_il_entry_kind)iek_template);
     } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */

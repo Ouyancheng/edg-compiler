@@ -1580,7 +1580,8 @@ the scope being pushed.
         a_template_symbol_supplement_ptr tssp =
                      template_supplement_for_symbol(
                          (a_symbol_ptr)assoc_type->source_corresp.assoc_info);
-        prototype_in_real_instance = (tssp->prototype_template != NULL);
+        prototype_in_real_instance = (tssp->prototype_template != NULL &&
+                                      !tssp->is_specific_definition);
       }  /* if */
       source_sequence_entries_disallowed = !prototype_instantiations_in_il ||
                                            prototype_in_real_instance;

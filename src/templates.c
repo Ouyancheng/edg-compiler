@@ -2005,6 +2005,7 @@ might not be able to if the template itself has not yet been defined.
                     depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/is_class_member,
                     /*is_template_instantiation=*/TRUE,
+                    (a_template_ptr)NULL,
                     (a_decl_pos_block_ptr)NULL);
       pending_class_definitions--;
       set_instantiation_required_for_template_class_members(class_type);
@@ -2423,7 +2424,8 @@ and a list of the unprocessed entries is returned to the caller.
 static
 void instantiate_class_template(a_symbol_ptr                 template_sym,
                                 a_type_ptr                   prototype_type,
-                                a_template_cache_segment_ptr *tcsp)
+                                a_template_cache_segment_ptr *tcsp,
+                                a_tmpl_decl_state_ptr        decl_state)
 /*
 This routine is called to do a "prototype instantiation" of a class template,
 namely, to scan the template definition even though the template parameters
@@ -2514,6 +2516,7 @@ A pointer to the head of the list is returned in tcsp.
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/is_class_member,
                               /*is_template_instantiation=*/TRUE,
+                              decl_state->il_template_entry,
                               (a_decl_pos_block_ptr)NULL);
   prototype_type->source_corresp.access = access_for_symbol(template_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -12548,7 +12551,7 @@ any non-empty template parameter lists that were scanned.
         assoc_template_of(prototype_type) = tssp->il_template_entry;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         instantiate_class_template(sym, prototype_type,
-                                   &class_templ_cache_segments);
+                                   &class_templ_cache_segments, decl_state);
         prototype_type->source_corresp.decl_position = sym->decl_position;
         if (tag_resolution) {
           /* This is the resolution of a previously incomplete template

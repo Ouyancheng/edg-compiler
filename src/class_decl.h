@@ -63,7 +63,8 @@ extern a_boolean scan_class_definition(
                                    a_scope_depth    orig_decl_level,
                                    a_boolean        is_local_class,
                                    a_boolean        delayed_nested_class_def,
-                                   a_boolean	    is_template_instantiation,
+                                   a_boolean        is_template_instantiation,
+                                   a_template_ptr   il_template_entry,
                                    a_decl_pos_block *decl_pos_block);
 
 extern void process_deferred_class_fixups_and_instantiations(void);
