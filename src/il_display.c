@@ -2194,7 +2194,7 @@ do_label:
       disp_ptr("statement", (char *)ptr->variant.for_loop.statement,
                iek_statement);
       disp_ptr("increment",
-               ((char *)ptr->variant.for_loop.extra_info->increment,
+               (char *)ptr->variant.for_loop.extra_info->increment,
                iek_expr_node);
       break;
     case stmk_switch:
