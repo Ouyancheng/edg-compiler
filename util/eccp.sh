@@ -629,6 +629,7 @@ check_abbreviation()
 --no_special_subscript_cost
 --no_standard_includes
 --no_stdarg_builtin
+--no_std_libs
 --no_sun
 --no_svr4
 --no_typename
@@ -868,6 +869,10 @@ process_option()
     --nm)
 #     Run nm on the generated object files (used for debugging)
       nm_on_objects=1
+      ;;
+    --no_std_libs)
+#     Don't include EDG_STD_LIBS in the link.
+      EDG_STD_LIBS=
       ;;
     -patch | --patch)
 #     Use "patch" for handling static constructors and destructors
