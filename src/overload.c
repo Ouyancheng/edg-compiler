@@ -3028,8 +3028,10 @@ create_final_list:
       candidates->next == NULL) {
     /* A single candidate function template was unambiguously selected.
        Create the template function instance. */
+    a_symbol_ptr sym = candidates->function_symbol;
+    reduce_projection_symbol_to_fundamental_symbol(sym);
     candidates->function_symbol =
-                         find_template_function(candidates->function_symbol,
+                         find_template_function(sym,
                                                 &candidates->template_arg_list,
                                                 source_pos);
     candidates->is_function_template = FALSE;
