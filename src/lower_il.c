@@ -4208,7 +4208,6 @@ variable's mangled name.
   check_assertion(variable->source_corresp.name_has_been_mangled &&
                   variable->storage_class == (a_storage_class)sc_unspecified);
   variable->comdat_group = variable->source_corresp.name;
-  (void)strcpy(variable->comdat_group, variable->source_corresp.name);
 } /* put_variable_into_comdat_group */
 
 
