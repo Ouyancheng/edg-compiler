@@ -1,5 +1,16 @@
 Version 3.6
 
+2/9/05   GNU C++ compatibility: Static data members in unnamed class types
+
+In GNU C++ mode, the front end now accepts static data members in unnamed
+class types.  For example:
+
+  typedef struct {
+    static int sm;  // Now accepted in GNU C++ mode.
+  } S;
+
+(This was already accepted in Microsoft and cfront modes.)
+
 2/9/05   GNU C++ compatibility: Extraneous qualification in elaborated names
 
 In GNU C++ mode, with gnu_version < 30400, the front end now ignores a

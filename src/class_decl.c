@@ -8037,12 +8037,12 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   } else if (is_union_type(class_type)) {
     /* Unions are not allowed to have static data members. */
     pos_error(ec_static_data_member_not_allowed, &decl_info->decl_start_pos);
-  } else if (!any_cfront_mode() && !microsoft_mode &&
+  } else if (!any_cfront_mode() && !microsoft_mode && !gpp_mode &&
              is_or_is_nested_within_unnamed_class(class_type)) {
-    /* Except for cfront or Microsoft compatibility, static data members may
-       not be declared in an unnamed class or a class contained within an
-       unnamed class (9.4.2 [class.static.data]). However, permit this with
-       a warning if anachronisms are enabled. */
+    /* Except for cfront, Microsoft, and GNU compatibility, static data members
+       may not be declared in an unnamed class or a class contained within an
+       unnamed class (9.4.2 [class.static.data]). However, permit this with a
+       warning if anachronisms are enabled. */
     pos_diagnostic(anachronism_error_severity,
                    ec_static_data_member_not_allowed,
                    &decl_info->decl_start_pos);
