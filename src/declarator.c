@@ -2283,18 +2283,20 @@ to FALSE if the entity being declared is not initializable.
              above. */
           (void)simplify_curr_class_qualified_name();
         }  /* if */
-      } else if ((scope_stack[depth_scope_stack].kind ==
-                                    (a_scope_kind)sck_namespace) &&
-                 (qualifier_namespace_ptr(locator_for_curr_id) ==
-                               scope_stack[decl_scope_level].il_scope->
-                                                   variant.assoc_namespace)) {
-        /* The declarator name is qualified by the current namespace. */
-        pos_diagnostic(strict_ansi_mode ?
-                         strict_ansi_error_severity : es_warning,
-                       ec_qualified_name_not_allowed, &pos_curr_token);
-        /* Reset the fields in the locator to make it appear as if the
-           qualifier were not present. */
-        clear_qualifier_from_locator(&locator_for_curr_id);
+      } else {
+        a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+        if ((ssep->kind == (a_scope_kind)sck_namespace ||
+             ssep->kind == (a_scope_kind)sck_namespace_extension) &&
+            ssep->il_scope->variant.assoc_namespace ==
+                        qualifier_namespace_ptr(locator_for_curr_id)) {
+          /* The declarator name is qualified by the current namespace. */
+          pos_diagnostic(strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning,
+                         ec_qualified_name_not_allowed, &pos_curr_token);
+          /* Reset the fields in the locator to make it appear as if the
+             qualifier were not present. */
+          clear_qualifier_from_locator(&locator_for_curr_id);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* The declarator may be a qualified name or a normal name. */
