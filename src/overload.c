@@ -6059,6 +6059,7 @@ user-defined conversion part (if any) of any required conversion.
              (stack-based) temporary would be returned to the caller. */
           pos_warning(ec_return_ref_init_requires_temp,
                       &source_operand->position);
+          warn = TRUE;
         }  /* if */
         if (!err && !warn && conversion_to_temp_done) {
           /* Let the user know a temp was used. */
