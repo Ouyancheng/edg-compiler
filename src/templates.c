@@ -7901,7 +7901,8 @@ instantiation.
                              (GID_CLASS_TEMPLATE_REQUIRED, ilm_linkage, &err);
       /* If the class name is a template ID, then this is probably a
          declaration of a partial specialization. */
-      if (locator_for_curr_id.is_template_id) {
+      if (sym != NULL && is_template_class_symbol(sym) &&
+          locator_for_curr_id.is_template_id) {
         is_partial_specialization = TRUE;
       }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
