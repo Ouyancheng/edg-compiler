@@ -903,7 +903,7 @@ Initialize the option information table.
                          "no_stdarg_builtin",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
+#endif /* DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE */
 }  /* initialize_option_descriptions */
 
 
