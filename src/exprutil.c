@@ -3085,12 +3085,14 @@ reference entry, or is NULL if none is needed.
   an_expr_node_ptr node;
   a_type_ptr       variable_type = variable->type;
 
-  if (is_void_type(variable_type) && !is_qualified_type(variable_type)) {
+  if ((strict_ansi_mode || !C_mode()) &&
+      is_void_type(variable_type) && !is_qualified_type(variable_type)) {
     /* If the variable has type void, make an rvalue instead of an lvalue.
        See ANSI C 3.2.2.1.  This helps with
          extern void x;
          x;
          &x;
+       Do this only in C++ and strict C mode.
     */
     make_expression_operand(var_rvalue_expr(variable), variable_type,
                             result);

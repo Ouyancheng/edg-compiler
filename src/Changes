@@ -1,5 +1,13 @@
 Version 2.22
 
+2/23/94  Address of void variable an error only in C++ and strict C mode
+
+The error on the following, added in the previous release, has been
+removed in non-strict C mode:
+
+  extern void v;
+  &v;  /* Error, "v" is not an lvalue. */
+
 2/23/94  Checking for missing arguments at the end of a printf/scanf
 
 The check in a printf/scanf for remaining formatting specifiers for which
