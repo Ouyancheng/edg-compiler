@@ -71,59 +71,63 @@ itself recursively to process classes nested within this class.
   a_type_ptr			type;
   
   ctsp = class_type->variant.class_struct_union.extra_info;
-  /* Normally, function instantiation entries are not marked for actual
-     instantiation (that is, for generation of the function body) until there
-     is an invocation of the function.  This is partly under user control,
-     however: if instantiation_mode is tim_all, mark it immediately.
-     Moreover, if the function is virtual, mark it for instantiation no
-     matter what the instantiation mode, since a virtual function table may
-     have to be put out for it. */
-  rout = ctsp->assoc_scope->routines;
-  while (rout != NULL) {
-    sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
-    tip = sym->variant.routine.instance_ptr;
-    if (tip != NULL) {
-      /* Under certain conditions the instance pointer will be NULL.  This
-         occurs for compiler generated routines and under some error
-         conditions.  Simply skip this routine. */
-      if (instantiation_mode == tim_all ||
-          sym->variant.routine.ptr->is_virtual) {
-        update_instantiation_required_flag(tip, /*value=*/TRUE);
-      }  /* if */
-    }  /* if */
-    rout = rout->next;
-  }  /* while */
-  
-  /* Static data members are eligible for a compiler-generated definition
-     only if a template definition appears in the source.  However, it
-     still needs to appear on the instantiation-required list (because
-     instantiation is required required somewhere in the program even if
-     not in the current translation unit). */
-  if (instantiation_mode != tim_none) {
-    var = class_type->variant.class_struct_union.extra_info->
-							assoc_scope->variables;
-    while (var != NULL) {
-      sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-      tip = sym->variant.variable.instance_ptr;
-#if 0
-      /* Are there error cases when tip can be NULL?  It is probably safer
-         to skip setting the instantiation required flag rather than
-         generate a possibly spurious internal error. */
-#endif /* 0 */
+  /* The assoc_scope pointer can be NULL if errors occurred during the
+     instantiation of the class. */
+  if (ctsp->assoc_scope != NULL) {
+    /* Normally, function instantiation entries are not marked for actual
+       instantiation (that is, for generation of the function body) until there
+       is an invocation of the function.  This is partly under user control,
+       however: if instantiation_mode is tim_all, mark it immediately.
+       Moreover, if the function is virtual, mark it for instantiation no
+       matter what the instantiation mode, since a virtual function table may
+       have to be put out for it. */
+    rout = ctsp->assoc_scope->routines;
+    while (rout != NULL) {
+      sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+      tip = sym->variant.routine.instance_ptr;
       if (tip != NULL) {
-        update_instantiation_required_flag(tip, /*value=*/TRUE);
+        /* Under certain conditions the instance pointer will be NULL.  This
+           occurs for compiler generated routines and under some error
+           conditions.  Simply skip this routine. */
+        if (instantiation_mode == tim_all ||
+            sym->variant.routine.ptr->is_virtual) {
+          update_instantiation_required_flag(tip, /*value=*/TRUE);
+        }  /* if */
       }  /* if */
-      var = var->next;
+      rout = rout->next;
+    }  /* while */
+    
+    /* Static data members are eligible for a compiler-generated definition
+       only if a template definition appears in the source.  However, it
+       still needs to appear on the instantiation-required list (because
+       instantiation is required required somewhere in the program even if
+       not in the current translation unit). */
+    if (instantiation_mode != tim_none) {
+      var = class_type->variant.class_struct_union.extra_info->
+  							assoc_scope->variables;
+      while (var != NULL) {
+        sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+        tip = sym->variant.variable.instance_ptr;
+#if 0
+        /* Are there error cases when tip can be NULL?  It is probably safer
+           to skip setting the instantiation required flag rather than
+           generate a possibly spurious internal error. */
+#endif /* 0 */
+        if (tip != NULL) {
+          update_instantiation_required_flag(tip, /*value=*/TRUE);
+        }  /* if */
+        var = var->next;
+      }  /* while */
+    }  /* if */
+    /* Process any classes nested within this class. */
+    type = ctsp->assoc_scope->types;
+    while (type != NULL) {
+      if (is_class_struct_union_type(type)) {
+        update_instantiation_required_for_template_class_members(type);
+      }  /* if */
+      type = type->next;
     }  /* while */
   }  /* if */
-  /* Process any classes nested within this class. */
-  type = ctsp->assoc_scope->types;
-  while (type != NULL) {
-    if (is_class_struct_union_type(type)) {
-      update_instantiation_required_for_template_class_members(type);
-    }  /* if */
-    type = type->next;
-  }  /* while */
 }  /* update_instantiation_required_for_template_class_members */
 
 
