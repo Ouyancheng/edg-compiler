@@ -5795,10 +5795,11 @@ must do that).
   /* Make sure the IL scope that the temporary is part of exists.  Even though
      the temporary does not exist as a variable, it's still (from a language
      point of view) part of this scope.  That's important, because it has to
-     be destroyed at the right point. */
+     be destroyed at the right point.  (Note, however, that when a temp is
+     created for a default argument in the context of a function prototype
+     scope, no IL scope will be created; that's okay, since the expression
+     will be copied in a context that will have an IL scope.) */
   (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
-  check_assertion_str(scope_stack[decl_scope_level].il_scope != NULL,
-                      "alloc_temp_init_node: NULL IL scope");
   return temp_init_node;
 }  /* alloc_temp_init_node */
 
