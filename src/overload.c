@@ -3990,10 +3990,18 @@ be processed under an ellipsis).
        alternatives. */
     issue_warning_from_arg_match_summary(arg_match,
                                          &arg_operand->operand.position);
-    /* Cast the argument to the right type. */
-    prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
-                                            &arg_match->conversion);
-    arg = make_node_from_operand(&arg_operand->operand);
+    if (arg_match->match_level == aml_error) {
+      /* The argument match indicates the argument or the parameter had
+         an error type.  Do not go through the normal casting, because
+         for template functions it is possible the instantiation ended
+         up with a different parameter type. */
+      arg = error_node();
+    } else {
+      /* Cast the argument to the right type. */
+      prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
+                                              &arg_match->conversion);
+      arg = make_node_from_operand(&arg_operand->operand);
+    }  /* if */
   }  /* if */
   return arg;
 }  /* node_for_arg_of_overloaded_function_call */
