@@ -904,11 +904,12 @@ user-declared A::operator=(const B&) will block the implicit generation of
 A::operator=(const A&).  This flag is the initial value of global variable
 allow_copy_assignment_op_with_base_class_param.  Whatever its initial value,
 the variable is set to FALSE in strict-ANSI and Microsoft-compatibility
-modes and to TRUE in cfront-compatibility mode.  By default, the setting is
-TRUE in default mode because the ATT/USL iostream library depends on it.
+modes and to TRUE in cfront-compatibility mode.  Note that some
+versions of the ATT/USL iostream library will not compile when the
+value is FALSE.
 */
 #ifndef DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM
-#define DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM TRUE
+#define DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM FALSE
 #endif /* ifndef DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM */
 
 /*
