@@ -19,18 +19,17 @@ used.
 
 9/28/00  Preprocessor output: #include <stdarg.h>
 
-The preprocessor used to tokenize the expansion of a macro even when it
-appeared in a #include directive.  A visible consequence for configurations
-with DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE set to TRUE was for
+In configurations with DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE set
+to TRUE the preprocessor used to generate
+
+  #include <stdarg . h>
+
+for the input
 
   #define M <stdarg.h>
   #include M
 
-to be output by the preprocessor as
-
-  #include <stdarg . h>
-
-(note the extra whitespace).  This is now fixed.
+(note the extra spaces).  This is now fixed.
 
 9/28/00  Preprocessor output: separate stringized token when necessary
 

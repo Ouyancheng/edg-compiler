@@ -3193,6 +3193,10 @@ enable_microsoft_mode:
     pcc_preprocessing_mode = TRUE;
   }  /* if */
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
+  /* In PCC preprocessing mode no token separators are emitted (normally these
+     make sure that the preprocessor output contains the same sequence of
+     tokens as its input). */
+  no_token_separators_in_pp_output = pcc_preprocessing_mode;
 
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,

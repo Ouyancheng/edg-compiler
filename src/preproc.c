@@ -939,6 +939,14 @@ in which the current file was found).
     /* Ignore trailing junk on the line.  Do this before pushing the new file,
        so the error can be produced on the old line. */
     ignore_harmless_trailing_comment();
+    /* Make sure no extra token separators are emitted while generating
+       preprocessor (or raw listing) output.  This is necessary to avoid
+       turning
+         #define M <stdarg.h>
+         #include M
+       into
+         #include<stdarg . h>  */
+    no_token_separators_in_this_line_of_pp_output = TRUE;
     if (pass_stdarg_references_to_generated_code &&
         (strcmp(name_start_pos, "stdarg.h") == 0 ||
          (!C_mode() && strcmp(name_start_pos, "cstdarg") == 0))) {

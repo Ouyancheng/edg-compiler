@@ -2043,7 +2043,8 @@ where token confusion might result without the blank.  token_start is TRUE
 if this is the start of a new token; if so, ch is the first character
 of the new token, and prev_ch is the previous character.  prev_ch is
 updated on return (always).  token_start is reset to FALSE if it was TRUE.
-In pcc mode, no blank is ever put out.
+In some modes (pcc mode, #include directives for stdarg.h) no blank is ever
+put out.
 
 NOTE:  This check needs to be pretty fast.  It is only run when
 preprocessing or raw listing output is being created, and then
@@ -2062,7 +2063,7 @@ token and not part of another, then no space is needed.
 { a_byte cat_ch, cat_prev_ch;                                         \
   if (token_start) {                                                  \
     token_start = FALSE;                                              \
-    if (!pcc_preprocessing_mode) {                                    \
+    if (!no_token_separators_in_this_line_of_pp_output) {             \
       if ((cat_prev_ch = pp_lexical_category[prev_ch-CHAR_MIN]) ==    \
                                                          PLC_SINGLETON || \
           (cat_ch = pp_lexical_category[ch-CHAR_MIN]) == PLC_SINGLETON) { \
@@ -3319,6 +3320,10 @@ that was used to find this file.
   if (f_raw_listing != NULL) {
     gen_raw_listing_output_for_curr_line();
   }  /* if */
+  /* Reset the per-line state of whether token separators should be emitted
+     in the generated output. */
+  no_token_separators_in_this_line_of_pp_output =
+                                             no_token_separators_in_pp_output;
   /* Check for the need to expand the input stack. */
   if (depth_input_stack+1 == size_input_stack) {
     /* Expand the input stack by reallocating it. */
@@ -3541,6 +3546,10 @@ at the next level down.
   if (f_raw_listing != NULL) {
     gen_raw_listing_output_for_curr_line();
   }  /* if */
+  /* Reset the per-line state of whether token separators should be emitted
+     in the generated output. */
+  no_token_separators_in_this_line_of_pp_output =
+                                             no_token_separators_in_pp_output;
   /* Check that all #ifs were closed.  In ANSI, this has to happen at
      the end of each source file.  In pcc, this has to happen only at
      the end of the whole compilation. */
@@ -4022,6 +4031,10 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   if (f_raw_listing != NULL) {
     gen_raw_listing_output_for_curr_line();
   }  /* if */
+  /* Reset the per-line state of whether token separators should be emitted
+     in the generated output. */
+  no_token_separators_in_this_line_of_pp_output =
+                                             no_token_separators_in_pp_output;
   /* Get the first character of the line, checking for end of file in
      doing so.  If eof_read_on_curr_input_stream is already TRUE,
      the end of file has already been read (this handles the case

@@ -1513,6 +1513,19 @@ void move_cached_tokens(a_cached_token_ptr	first_token,
 			a_token_cache		*from_cache,
                         a_token_cache		*to_cache);
 
+
+/*
+Variables to flag whether extra token separators should be emitted in
+preprocessed (or raw listing) output to ensure that the output is correctly
+tokenizable.  The second variable only applies to the next line of output
+(after which it is reset to the value of the first variable).
+*/
+EXTERN a_boolean
+		no_token_separators_in_pp_output;
+
+EXTERN a_boolean
+		no_token_separators_in_this_line_of_pp_output;
+
 /*
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.
