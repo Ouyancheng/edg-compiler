@@ -1511,13 +1511,27 @@ base class of class_type, and allocate space for the latter.
                                                        use_decl_order);
   }  /* if */
   for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && !bcp->complete_subobject) {
-      /* bcp is a direct base class (either of lob->class_type or of
-         base_class->type) and it is not a complete subobject.  That means
-         it must be the first non-virtual direct base class in the list.
-         There will not be any others, so we break after processing it. */
-      cfc_set_virtual_base_class_offsets(lob, bcp, !use_decl_order);
-      break;
+    if (bcp->direct) {
+      /* bcp is a direct base class either of lob->class_type or of
+         base_class->type. */
+      if (base_class == NULL) {
+        /* This is a "top-level" base class list -- i.e., a direct base
+           of lob->class_type. */
+        if (!bcp->complete_subobject) {
+          /* bcp is not a complete subobject.  That means it must be the
+             first non-virtual direct base class in the list. There will not
+             be any others, so we break after processing it. */
+          cfc_set_virtual_base_class_offsets(lob, bcp, !use_decl_order);
+          break;
+        }  /* if */
+      } else {
+        /* This is a direct base class of base_class->type but an indirect
+           base class of lob->class_type.  More important, it is a base
+           class of an incomplete subobject, which means virtual base
+           classes from which it is derived may not have been embedded,
+           whether bcp is itself incomplete or not. */
+        cfc_set_virtual_base_class_offsets(lob, bcp, !use_decl_order);
+      }  /* if */
     }  /* if */
   }  /* for */
   if (!use_decl_order) {
