@@ -1,5 +1,16 @@
 Version 2.46
 
+3/1/01   C99 compound literals not considered "side effects"
+
+The creation of a C99 compound literal is no longer considered
+a "side effect" in an expression.  This change allows warnings
+for declared-but-not-referenced variables to come out in cases
+where the variables are initialized with a compound literal.
+
+  void f() {
+    int i = (int){1};  // Now gets a warning
+  }
+
 2/28/01  Lowering of C99 designated initializers: bad code generated
 
 In some obscure cases involving designated initializers for unions
