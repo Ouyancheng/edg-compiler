@@ -7189,6 +7189,27 @@ specifier is restored.
 }  /* linkage_specification */
 
 
+static a_boolean is_invalid_catch_type(a_type_ptr type, a_source_position *pos)
+{
+  a_boolean result = FALSE;
+  if (is_incomplete_type(type)) {
+    pos_error(ec_incomplete_type_not_allowed, pos);
+    result = TRUE;
+  } else if (is_ptr_or_ref_type(type)) {
+    if (is_incomplete_type(type_pointed_to(type))) {
+      pos_diagnostic(strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_ptr_or_ref_to_incomplete_type, pos);
+      result = TRUE;
+    }  /* if */
+  } else if (is_abstract_class_type(type)) {
+    report_abstract_class_error(ec_abstract_class_catch_type, type, pos);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* invalid_catch_type */
+
+
 void handler_declaration(a_statement_ptr     try_block_stmt,
                          a_source_position*  catch_pos)
 /*
@@ -7283,9 +7304,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
           /* Adjust the type if necessary (for example, "array of x"
              becomes "pointer to x"). */
           adjust_parameter_type(&type_ptr, /*restrict_qualified=*/FALSE);
-          if (is_incomplete_type(type_ptr)) {
-            /* Incomplete type is not allowed. */
-            pos_error(ec_incomplete_type_not_allowed, &decl_pos);
+          if (is_invalid_catch_type(type_ptr, &decl_pos)) {
+            /* An appropriate error message will have been issued by
+               invalid_catch_type. */
             type_ptr = error_type();
           } else {
             /* Mark the type as having been used in an exception.  (Also,

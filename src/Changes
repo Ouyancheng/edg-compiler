@@ -1,5 +1,19 @@
 Version 2.43
 
+8/25/99  Stricter checking of catch types
+
+The front end now checks whether a catch type is an abstract class (an error)
+or a reference or pointer to an incomplete type (an error in strict mode, a
+warning otherwise).  For example:
+
+  struct I;
+  struct A { virtual ~A() = 0; };
+  void f() try {
+    try {
+    } catch (I*) { // Warning or error: cannot catch pointer to
+    }              // incomplete type.
+  } catch (A) {}   // Error: cannot catch abstract class type.
+
 8/24/99  Unimplemented data structure for comments removed from IL
 
 The IL definition contained a data structure intended to represent
