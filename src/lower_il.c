@@ -4200,12 +4200,10 @@ entry, unless it is already non-zero.
        by converting from the base to the most-derived class. */
     eff_bcp = find_base_sharing_virtual_function_table(eff_bcp, ctor_bcp);
   }  /* if */
-  if (ctor_bcp == NULL && eff_bcp != NULL) {
+  if (eff_bcp != NULL) {
     /* For a base class that has no virtual function table by the
-       Cfront-ABI definition, and for which we want to use the virtual
-       function table for the base class itself, go down into the primary
-       base class. */
-    while (!base_class_has_vtbl(eff_bcp)) {
+       Cfront-ABI definition, go down into the primary base class. */
+    while (!needs_virtual_function_table(eff_bcp->type)) {
       eff_bcp = eff_bcp->primary_base_class;
       check_assertion(eff_bcp != NULL);
     }  /* while */
