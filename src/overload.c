@@ -6908,13 +6908,15 @@ initializer has previously been found to be acceptable, and
              in a way that requires a temporary.  This is an error according
              to the ARM (8.4.3), but we allow it as an anachronism. */
           if (cfront_argument_case ||
+              (cfront_3_0_mode && innermost_function_scope != NULL) ||
               (cfront_2_1_mode && operand_is_temp_init(source_operand) &&
                source_operand->variant.expression->variant.
                                    init.dynamic_init->kind ==
                                        (a_dynamic_init_kind)dik_constructor)) {
             /* In cfront mode we allow this also for a ref to non-const if
                we're passing an argument, or if we have a constructed
-               temporary in 2.1 mode. */
+               temporary in 2.1 mode, or if we're initializing a non-global
+               in 3.0 mode. */
             pos_warning(ref_to_const_volatile ?
                                        ec_const_volatile_ref_init_anachronism :
                                        ec_nonconst_ref_init_anachronism,
