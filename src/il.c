@@ -3984,6 +3984,13 @@ rather than determined directly.
     }  /* if */
     type_ptr->next = NULL;
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
+#if DEBUG
+    if (db_flag_is_set("dump_type_lists")) {
+      fprintf(f_debug, "Added to types list:  ");
+      db_abbreviated_type(type_ptr);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
     if (!C_mode()
 #if DO_IL_LOWERING
         && !il_lowering_underway
@@ -4043,6 +4050,13 @@ determined directly.
       pointers_block->last_type = type_ptr;
       type_ptr->next = NULL;
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("dump_type_lists")) {
+      fprintf(f_debug, "Moved to end of list: ");
+      db_abbreviated_type(type_ptr);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
     if (!C_mode()
 #if DO_IL_LOWERING
         && !il_lowering_underway
@@ -4077,6 +4091,13 @@ determined directly.
           pointers_block->last_type->next = tp;
           pointers_block->last_type = tp;
           tp->next = NULL;
+#if DEBUG
+          if (db_flag_is_set("dump_type_lists")) {
+            fprintf(f_debug, "Moved to end of list: ");
+            db_abbreviated_type(tp);
+            fprintf(f_debug, "\n");
+          }  /* if */
+#endif /* DEBUG */
         }  /* if */
       }  /* if */
     }  /* if */

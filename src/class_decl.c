@@ -9248,6 +9248,14 @@ next_declaration:
            move_to_end_of_types_list also takes care of the placeholder
            typerefs associated with this class. */
         move_to_end_of_types_list(class_type, effective_decl_level);
+#if DEBUG
+      } else {
+        if (db_flag_is_set("dump_type_lists")) {
+          fprintf(f_debug, "Not moving to end of type list: ");
+          db_abbreviated_type(class_type);
+          fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
       }  /* if */
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
