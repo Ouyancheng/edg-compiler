@@ -5955,11 +5955,14 @@ process_class_specifier:
           /* Two special cases. */
           if (type_specifier_allowed && basic_type == bt_none &&
               sign == sign_none && size == size_none &&
-              locator_for_curr_id.specific_symbol == NULL) {
-            /* No type name has been seen and the current token is an
-               undeclared identifier.  If the next token is the start of a
-               declarator, we may plausibly have something like "extern x y"
-               or "static x *z", where x can be interpreted as a type name. */
+              (locator_for_curr_id.specific_symbol == NULL ||
+               locator_for_curr_id.specific_symbol->kind ==
+                                   (a_symbol_kind)sk_undefined)) {
+            /* No type name has been seen and the current token may be
+               undeclared identifier or an invalid qualified name.  If the
+               next token is the start of a declarator, we may plausibly
+               have something like "extern x y" or "static x *z", where x
+               can be interpreted as a type name. */
             a_token_cache  cache;
             a_boolean      is_declarator;
 
@@ -5977,12 +5980,18 @@ process_class_specifier:
               /* Assume that the undefined identifier that is apparently
                  followed by a declarator was intended to be a type name. */
               err = TRUE;
-              if (normal_id_lookup(&locator_for_curr_id,
-                                   IDL_NO_OPTIONS) == NULL) {
-                str_error(ec_undefined_identifier,
-                          locator_for_curr_id.symbol_header->identifier);
-              } else {
-                error(ec_exp_type_specifier);
+              if (locator_for_curr_id.specific_symbol == NULL) {
+                /* This is not an invalid qualified name, but it may be that
+                   it is a valid identifier, just not a type name.  Treat
+                   undefined-names and defined-but-not-a-type-names with
+                   different diagnostics. */
+                if (normal_id_lookup(&locator_for_curr_id,
+                                     IDL_NO_OPTIONS) == NULL) {
+                  str_error(ec_undefined_identifier,
+                            locator_for_curr_id.symbol_header->identifier);
+                } else {
+                  error(ec_exp_type_specifier);
+                }  /* if */
               }  /* if */
               basic_type = bt_typedef;
               *type_ptr = error_type();
