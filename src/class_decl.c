@@ -6366,12 +6366,14 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);
                   }  /* if */
+#if 0
+/* The following code is removed on the assumption (based on Stroustrup et al.,
+   document X3J16/92-133) that any "free-symbol" referenced in a prototype
+   instantiation must be completely defined at that point. */
                 } else if (is_nonreal_instantiation) {
                   /* Issue no error on incomplete types if the class currently
                      being defined is a prototype instantiation or a class
                      nested within a prototype instantiation. */
-#if 0
-#else
                   /* Is it better to set the type to error-type or just to
                      skip the call to decl_nonstatic_data_member?  Or is there
                      another approach? */
