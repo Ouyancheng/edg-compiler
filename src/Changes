@@ -4,8 +4,12 @@ Version 2.27
 
 The front end optionally supports certain Microsoft keywords.  The
 keywords are recognized when MICROSOFT_EXTENSIONS_ALLOWED is TRUE
-and the --microsoft command line option is used.  The keywords
-recognized are
+and when microsoft_mode is TRUE.  microsoft_mode is TRUE by default
+when MICROSOFT_EXTENSIONS_ALLOWED is TRUE.  The default can be changed
+by setting DEFAULT_MICROSOFT_MODE to FALSE.  The value of microsoft_mode
+can also be specified using the --microsoft and --no_microsoft options.
+
+The keywords recognized are
 
 	__cdecl
 	__fastcall
