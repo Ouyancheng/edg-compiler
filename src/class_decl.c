@@ -2963,50 +2963,6 @@ the current class (class_type).
 }  /* decl_friend_class */
 
 
-#if MICROSOFT_KEYWORDS_ALLOWED
-static a_boolean microsoft_calling_conventions_match(a_type_ptr *orig_type,
-                                                     a_type_ptr *new_type)
-/*
-Microsoft allows a member function to be declared within the class
-with a calling convention, but for the calling convention to be
-omitted on the declaration outside of the class.  This routine
-does the compatibility checking of any qualifiers on the
-member type when Microsoft mode is being used.
-*/
-{
-  a_type_qualifier_set    new_qualifiers;
-  a_type_qualifier_set	  orig_qualifiers;
-  a_type_qualifier_set    new_calling_convention;
-  a_type_qualifier_set	  orig_calling_convention;
-  a_boolean		  match = FALSE;
-
-  new_qualifiers = get_type_qualifiers(*new_type);
-  orig_qualifiers = get_type_qualifiers(*orig_type);
-  /* Get just the calling convention bits. */
-  new_calling_convention = new_qualifiers & TQ_CALLING_CONVENTION_QUALIFIERS;
-  orig_calling_convention = orig_qualifiers & TQ_CALLING_CONVENTION_QUALIFIERS;
-  /* Exclude the calling conventions from the remaining qualifiers. */
-  new_qualifiers &= ~TQ_CALLING_CONVENTION_QUALIFIERS;
-  orig_qualifiers &= ~TQ_CALLING_CONVENTION_QUALIFIERS;
-  *new_type = skip_typerefs(*new_type);
-  *orig_type = skip_typerefs(*orig_type);
-  if (orig_qualifiers == new_qualifiers) {
-    /* The non-calling convention qualifiers match.  Now check the
-       calling conventions. */
-    if (new_calling_convention == TQ_NONE) {
-      /* If the new call has no calling convention, just use the
-         one from the original declaration. */
-      match = TRUE;
-    } else if (orig_calling_convention == new_calling_convention) {
-      /* They both have calling conventions and they both match. */
-      match = TRUE;
-    }  /* if */
-  }  /* if */
-  return match;
-}  /* microsoft_calling_conventions_match */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-
-
 a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                         a_type_ptr    new_type)
 /*
@@ -3040,8 +2996,7 @@ have a non-NULL implicit_this_param_type and the type match must be done
 without it.
 */
 {
-  a_boolean                      is_overloaded_function;
-  a_boolean                      match;
+  a_boolean                      is_overloaded_function, match;
   a_type_ptr                     orig_type, orig_this_type, new_this_type;
   a_routine_type_supplement_ptr  orig_rts, new_rts;
   a_boolean                      orig_function_is_qualified;
@@ -3083,24 +3038,15 @@ without it.
         new_rts->implicit_this_param_type = NULL;
         orig_rts->implicit_this_param_type = NULL;
       }  /* if */
+      match = (orig_type == new_type) ||
+              /* Note that error types are not considered equal here. */
+              f_types_are_compatible(orig_type, new_type,
 #if MICROSOFT_KEYWORDS_ALLOWED
-      /* Before checking the types, see if the calling conventions and
-         any other qualifiers match.  This test is done first because
-         it strips off the qualifiers, which must be done before the
-         types_are_strictly_compatible call. */
-      if (microsoft_mode) {
-        match = microsoft_calling_conventions_match(&orig_type, &new_type);
-      } else {
-        match = TRUE;
-      }  /* if */
-#else /* MICROSOFT_KEYWORDS_ALLOWED */
-      match = TRUE;
+                                     TCF_IGNORE_CALLING_CONVENTIONS
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+                                     TCF_NO_OPTIONS
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
-      if (match) {
-        /* So far there is a match, check the types for compatibility
-           as the final test. */
-        match = types_are_strictly_compatible(orig_type, new_type);
-      }  /* if */
+                                     );
       if (!new_function_is_qualified) {
         /* Restore the implicit "this" parameter types in orig_type and
            new_type. */
