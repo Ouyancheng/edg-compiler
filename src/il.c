@@ -267,6 +267,7 @@ Dump a member function (a routine entry), for debug purposes.
     fputs(" static", f_debug);
   }  /* if */
   if (rp->is_virtual) {
+    if (rp->pure_virtual) fputs(" pure", f_debug);
     fprintf(f_debug, " virtual (%d)", rp->virtual_function_number);
   }  /* if */
   fputs(" member function \"", f_debug);
@@ -509,8 +510,11 @@ class_struct_union:
         a_boolean         any_virtual_base_classes = FALSE;
         a_boolean         any_indirect_base_classes = FALSE;
 
+        if (ctsp != NULL) {
+          if (ctsp->abstract) fputs(" (abstract)", f_debug);
+          bcp = ctsp->base_classes;
+        }  /* if */
         fputs(" {", f_debug);
-        if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) {
             db_direct_base_class(bcp, 0);
@@ -2203,6 +2207,7 @@ a pointer to it.
   ctsp->size_without_virtual_base_classes      = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
   ctsp->virtual_function_count                 = 0;
+  ctsp->abstract                               = FALSE;
   ctsp->virtual_function_info_offset           = 0;
   ctsp->access_adjustments                     = NULL;
   ctsp->befriending_classes                    = NULL;
@@ -3069,6 +3074,7 @@ to it.
   rp->special_kind            = (a_special_function_kind)sfk_none;
   rp->is_inline               = FALSE;
   rp->is_virtual              = FALSE;
+  rp->pure_virtual            = FALSE;
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #ifdef FIL

@@ -956,6 +956,12 @@ typedef struct a_class_type_supplement {
 		virtual_function_count;
 			/* The number of virtual member functions declared in
 			   in the current class. */
+  a_byte_boolean
+		abstract;
+			/* If TRUE, as a result of having one or more pure
+			   virtual member functions, this is an "abstract"
+			   class and is subject to certain restrictions
+			   (ARM 10.3). */
   a_targ_size_t	virtual_function_info_offset;
 			/* The offset within the class object to a field
 			   containing information about the virtual functions
@@ -1564,11 +1570,15 @@ typedef struct a_routine {
 			   ordinary member function or not a member function
 			   at all. */
   unsigned int	is_inline:1;
-			/* TRUE for functions declared with an inline
-			   specification (C++ only). */
+			/* TRUE for functions declared with an "inline"
+			   specifier (C++ only). */
   unsigned int	is_virtual:1;
 			/* TRUE for class member functions declared with a
-			   virtual specification (C++ only). */
+			   "virtual" specifier (C++ only). */
+  unsigned int	pure_virtual:1;
+			/* TRUE for virtual member functions declared with a
+			   "pure" specifier (C++ only).  TRUE only if
+			   is_virtual is also TRUE. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that
