@@ -261,6 +261,15 @@ defined" by the ANSI C standard.
 #define STACK_REFERENCED_INCLUDE_DIRECTORIES FALSE
 #endif /* ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES */
 
+/*
+Flag that is TRUE if a set of extensions is supported that permits features
+similar to C++ anonymous unions (1) in C mode and (2) with structs (in both
+C and C++) and classes (in C++) as well.  This functionality emulates an
+extension provided by Microsoft C and C++ compilers.
+*/
+#ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS FALSE
+#endif /* ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
