@@ -1,5 +1,11 @@
 Version 2.13
 
+1/6/93 A function template may not have the name "main"
+
+A function template named "main" is not explicitly prohibited in the
+ARM, but disallowing it is consistent with the restrictions in section
+3.4.
+
 1/6/93 Bug fixed in resolution of pointer to overloaded function
 
 A bug that caused an internal error on the following has been fixed:

@@ -3657,6 +3657,16 @@ class template.
         set_to_error_locator(*locator);
       }  /* if */
     }  /* if */
+  } else if (!is_error_locator(*locator)) {
+    a_symbol_header_ptr  hdr = locator->symbol_header;
+    if (hdr->identifier != NULL &&
+        (strcmp(hdr->identifier, "main") == 0)) {
+      /* A function template named "main" is not allowed.  (This prohibition
+         is not explicit in the ARM, but it makes sense, since a function
+         named "main" cannot be called (ARM 3.4). */
+      pos_error(ec_function_template_named_main, &locator->source_position);
+      set_to_error_locator(*locator);
+    }  /* if */
   }  /* if */
   if (sym == NULL) {
     /* id_linkage will set sym to point to an existing symbol when we have
