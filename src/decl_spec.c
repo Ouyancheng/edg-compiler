@@ -1651,9 +1651,9 @@ is a that of a constructor.
 
   db_enter(4, "is_constructor_decl");
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  if (locator_for_curr_id.symbol_header == tag_sym->header &&
-      (!locator_for_curr_id.is_qualified_name ||
-       qualifier_class_type(locator_for_curr_id) == class_type)) {
+  if (locator_for_curr_id.specific_symbol == NULL ?
+        locator_for_curr_id.symbol_header == tag_sym->header :
+        locator_for_curr_id.specific_symbol == tag_sym) {
     /* The name is the same as that of a class being defined.  This is treated
        as a constructor declaration if the next two tokens are a left paren
        and declaration start token.  Use token caching in the look-ahead,
