@@ -13393,7 +13393,8 @@ octl describes the output method.
 static char* get_decorated_function_name(a_routine_ptr  rp)
 /*
 Return a null-terminated character string representing the name of the
-given routine decorated with its argument and parameter types.
+given routine decorated with its argument and parameter types.  This
+is used in g++ compatibility mode for the __FUNCTION__ keyword.
 */
 {
   an_il_to_str_output_control_block  octl;
