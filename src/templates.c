@@ -5836,92 +5836,41 @@ been instantiated, update the befriending information for the instances.
 }  /* add_befriending_class_to_function_template */
 
 
-static a_symbol_ptr function_template_declaration
-                    (a_symbol_locator                 *locator,
-                     an_access_specifier              access,
-                     a_scope_depth                    effective_decl_level,
-		     a_func_info_block                *func_info,
-		     a_storage_class                  storage_class,
-		     a_decl_modifier                  decl_modifiers,
-		     a_type_ptr                       type,
-		     a_template_decl_info_ptr	      template_decl_info,
-		     a_token_cache                    *decl_token_cache,
-		     a_boolean                        *decl_token_cache_used,
-                     a_decl_flag_set                  dso_flags,
-		     a_type_ptr                       class_declared_in,
-		     a_template_symbol_supplement_ptr *p_tssp,
-		     a_boolean                        *defines_something)
+static void complete_function_template_decl(
+                     a_symbol_ptr                     sym,
+                     a_func_info_block                *func_info,
+                     a_template_decl_info_ptr         template_decl_info,
+                     a_token_cache                    *decl_token_cache,
+                     a_boolean                        *decl_token_cache_used,
+                     a_boolean                        is_template_friend,
+                     a_type_ptr                       class_declared_in,
+                     a_template_symbol_supplement_ptr *p_tssp,
+                     a_boolean                        *defines_something)
 /*
-Scan a function template declaration or the declaration of a member
-function of a class template.  locator identifies the static data
-member being declared.  type is the type pointer returned by
-declarator.  template_decl_info points to the template declaration
-information (parameter list, declaration scope, etc.) for this
+Complete the processing for a function template declaration.  sym is a symbol
+indicating the template.  func_info points to the block of information for
+the current function declaration.  template_decl_info points to the template
+declaration information (parameter list, declaration scope, etc.)  for this
 template declaration.  decl_token_cache points to the token cache that
-contains the token comprising the function declarator.
-decl_token_cache_used is set to TRUE if the pointer to this token
-cache is recorded in the template symbol supplement for this template.
-p_tssp points to the location in which the template symbol supplement
-for this template should be returned to the caller.  defines_something
-is set to TRUE if this is a function definition and not just a
-declaration.
+contains the token comprising the function declarator.  decl_token_cache_used
+is set to TRUE if the pointer to this token cache is recorded in the template
+symbol supplement for this template.  is_template_friend is TRUE if this is a
+friend declaration.  class_declared_in indicates the class body in which the
+current declaration appeared.  p_tssp points to the location in which the
+template symbol supplement for this template should be returned to the
+caller.  defines_something is set to TRUE if this is a function definition
+and not just a declaration.
 */
 {
-  a_boolean                        err = FALSE;
-  a_symbol_ptr                     sym = NULL;
+  a_boolean                        err = sym->is_error;
   a_template_symbol_supplement_ptr tssp = NULL;
-  a_template_param_ptr		   template_param_list =
+  a_template_param_ptr             template_param_list =
                                                template_decl_info->parameters;
-  a_boolean                        is_template_friend =
-                                                      (dso_flags & DSO_FRIEND);
-  a_boolean			   in_prototype_instantiation;
-  a_boolean                        is_definition;
+  a_boolean                        in_prototype_instantiation;
 
-  db_enter(4, "function_template_declaration");  
-  /* Set a flag in each param type entry whose associated type is or
-     contains a template parameter. */
-  set_type_involves_template_param_flags(type);
-  is_template_friend = ((dso_flags & DSO_FRIEND) != 0);
-  if (curr_token == tok_lbrace ||
-      (curr_token == tok_colon && (dso_flags & DSO_CONSTRUCTOR))) {
-    is_definition = TRUE;
-    /* A function template defined inside a class or class template is
-       implicitly "inline". */
-    if (class_declared_in != NULL) func_info->is_inline = TRUE;
-  } else {
-    is_definition = FALSE;
-  }  /* if */
+  tssp = template_supplement_for_symbol(sym);
   in_prototype_instantiation = scope_stack[depth_scope_stack].
                                                     in_prototype_instantiation;
-  /* Process a function template declaration. */
-  if (class_declared_in == NULL || (dso_flags & DSO_FRIEND)) {
-    decl_function_template(locator, type, func_info, &sym, storage_class,
-                           decl_modifiers, template_param_list,
-                           effective_decl_level);
-  } else {
-    decl_member_function_template(locator, class_declared_in, type, func_info,
-                                  effective_decl_level, access, dso_flags,
-                                  decl_modifiers, &sym);
-  }  /* if */
-  if (is_error_locator(*locator)) {
-    err = TRUE;
-  } else if (is_definition) {
-    if (sym->defined) {
-      pos_sy_error(ec_already_defined, &locator->source_position, sym);
-      err = TRUE;
-    } /* if */
-    mark_defined(sym, &locator->source_position);
-  } else {
-    mark_declared(sym, &locator->source_position);
-    if (sym->kind == (a_symbol_kind)sk_member_function &&
-	!is_template_friend) {
-      /* A non-defining declaration of a member function is not
-	 allowed. */
-      pos_sy_error(ec_member_function_redecl_outside_class,
-		   &locator->source_position, sym);
-    } /* if */
-  } /* if */
-  tssp = template_supplement_for_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_function_template &&
       sym->is_class_member && !is_template_friend) {
     if (in_prototype_instantiation) {
@@ -5947,7 +5896,7 @@ declaration.
   if (sym->is_class_member &&
       (class_declared_in == NULL || is_template_friend)) {
     if (!member_template_param_list_matches_class(template_decl_info,
-						  sym, &error_position)) {
+                                                  sym, &error_position)) {
       err = TRUE;
     } /* if */
   } /* if */
@@ -5955,19 +5904,19 @@ declaration.
     a_token_cache  local_token_cache;
     clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
     cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-				 defines_something, sym);
+                                 defines_something, sym);
     discard_token_cache(&local_token_cache);
   } else {
-    a_def_arg_expr_fixup_ptr	daefp;
-    a_token_cache  		local_token_cache;
-    a_token_sequence_number	first_token_number;
-    a_token_sequence_number	last_token_number;
+    a_def_arg_expr_fixup_ptr    daefp;
+    a_token_cache               local_token_cache;
+    a_token_sequence_number     first_token_number;
+    a_token_sequence_number     last_token_number;
 
     clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
     first_token_number = curr_token_sequence_number;
     cache_function_template_body(&local_token_cache,
-				 is_constructor_symbol(sym),
-				 defines_something, sym);
+                                 is_constructor_symbol(sym),
+                                 defines_something, sym);
     last_token_number = curr_token_sequence_number;
     if (in_prototype_instantiation) {
       if (sym->is_class_member && class_declared_in != NULL &&
@@ -5997,12 +5946,14 @@ declaration.
       }  /* if */
       if (*defines_something || 
           tssp->variant.function.func_info.param_id_list == NULL) {
-        /* The func_info block should point to the declaration associated
-           with the definition, if a definition is present. */
-        tssp->variant.function.func_info = *func_info;
-        /* Copy the func_info block and then null out its param-id
-           pointer so that it won't be freed. */
-        func_info->param_id_list = NULL;
+        if (func_info != NULL) {
+          /* The func_info block should point to the declaration associated
+             with the definition, if a definition is present. */
+          tssp->variant.function.func_info = *func_info;
+          /* Copy the func_info block and then null out its param-id
+             pointer so that it won't be freed. */
+          func_info->param_id_list = NULL;
+        }  /* if */
         /* Save the token cache and associated template declaration
            information.  This is done for the initial declaration and
            is done again if the function is defined later. */
@@ -6048,9 +5999,60 @@ declaration.
     /* Go back through the template params and make sure that all of the
        template parameters were used in a way that effects the function
        signature. */
+    a_type_ptr  type = tssp->variant.function.routine->type;
     check_function_template_param_usage(sym, type, template_param_list, tssp);
   }  /* if */
   *p_tssp = tssp;
+}  /* complete_function_template_decl */
+
+
+static a_symbol_ptr function_template_declaration
+                              (a_symbol_locator          *locator,
+                               a_scope_depth             effective_decl_level,
+                               a_func_info_block         *func_info,
+                               a_storage_class           storage_class,
+                               a_decl_modifier           decl_modifiers,
+                               a_type_ptr                type,
+                               a_template_decl_info_ptr  template_decl_info,
+                               a_boolean                 is_template_friend)
+/*
+Scan a function template declaration or the declaration of a member function
+of a class template.  locator identifies the function template being
+declared.  func_info points to the block of information for the current
+function declaration.  storage_class, decl_modifiers, and type indicate
+information returned from decl_specifiers and declarator.  template_decl_info
+points to the template declaration information (parameter list, declaration
+scope, etc.)  for this template declaration.  is_template_friend is TRUE if
+this is a friend declaration.
+*/
+{
+  a_symbol_ptr  sym = NULL;
+
+  db_enter(4, "function_template_declaration");  
+  /* Set a flag in each param type entry whose associated type is or
+     contains a template parameter. */
+  set_type_involves_template_param_flags(type);
+  /* Process a function template declaration. */
+  decl_function_template(locator, type, func_info, &sym, storage_class,
+                         decl_modifiers, template_decl_info->parameters,
+                         effective_decl_level);
+  if (!is_error_locator(*locator)) {
+    if (func_info->is_definition) {
+      if (sym->defined) {
+        pos_sy_error(ec_already_defined, &locator->source_position, sym);
+      } /* if */
+      mark_defined(sym, &locator->source_position);
+    } else {
+      mark_declared(sym, &locator->source_position);
+      if (sym->kind == (a_symbol_kind)sk_member_function &&
+          !is_template_friend) {
+        /* A non-defining declaration of a member function is not
+           allowed. */
+        pos_sy_error(ec_member_function_redecl_outside_class,
+                     &locator->source_position, sym);
+      } /* if */
+    } /* if */
+  } /* if */
   db_exit();
   return sym;
 }  /* function_template_declaration */
@@ -6386,10 +6388,22 @@ as the current token; otherwise, it is consumed.
         !is_declarator_start()) {
       /* Template parameters are declared, but the declaration is missing. */
       pos_error(ec_exp_declaration, &pos_curr_token);
-#if 0
     } else if (is_member_decl && !is_template_friend) {
       /* A member template declaration. */
-#endif /* if 0 */
+      sym = class_member_template_declaration(class_declared_in);
+      complete_function_template_decl(sym, (a_func_info_block *)NULL,
+                                      template_decl_info, &decl_token_cache,
+                                      &decl_token_cache_used,
+                                      /*is_template_friend=*/FALSE,
+                                      class_declared_in, &tssp,
+                                      defines_something);
+#if RECORD_TEMPLATES_IN_IL
+      if (*defines_something) {
+        /* Save a pointer to the token cache for function body.  tssp may
+           be NULL in error cases. */
+        if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
+      } /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
     } else {
       a_type_ptr         type;
       a_symbol_locator   locator;
@@ -6431,15 +6445,16 @@ as the current token; otherwise, it is consumed.
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
 #endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
-        sym = function_template_declaration(&locator, access,
-                                            effective_decl_level, &func_info,
-                                            storage_class, decl_modifiers,
-                                            type, template_decl_info,
-					    &decl_token_cache,
-					    &decl_token_cache_used, dso_flags,
-					    class_declared_in, &tssp,
-					    defines_something);
-
+        sym = function_template_declaration(&locator, effective_decl_level,
+                                            &func_info, storage_class,
+                                            decl_modifiers, type,
+                                            template_decl_info,
+                                            is_template_friend);
+        complete_function_template_decl(sym, &func_info,
+                                        template_decl_info, &decl_token_cache,
+                                        &decl_token_cache_used,
+                                        is_template_friend, class_declared_in,
+                                        &tssp, defines_something);
 #if RECORD_TEMPLATES_IN_IL
         if (*defines_something) {
           /* Save a pointer to the token cache for function body.  tssp may
