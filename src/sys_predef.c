@@ -1159,7 +1159,6 @@ Enter the predeclared functions for Microsoft mode.
 */
 {
   a_symbol_ptr                  sym;
-  a_routine_ptr                 rout;
 
   if (microsoft_version >= 1300) {
     sym = enter_builtin_function("__debugbreak",
@@ -1169,7 +1168,6 @@ Enter the predeclared functions for Microsoft mode.
                                  (a_type_ptr)NULL,
                                  (a_type_ptr)NULL,
                                  /*is_varargs=*/FALSE);
-    rout = sym->variant.routine.ptr;
   }  /* if */
 }  /* enter_microsoft_predeclared_functions */
 
