@@ -4864,6 +4864,9 @@ implement <stdarg.h>, a standard feature.
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment    alignment = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+  a_boolean           use_field_alignment = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
   db_enter(4, "scan_alignof_operator");
 
@@ -4931,6 +4934,30 @@ implement <stdarg.h>, a standard feature.
     a_local_expr_options_set  local_options = EOPT_NO_OPTIONS;
     if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
     scan_expr(&operand, PREC_PREFIX, local_options);
+#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+    if (gnu_mode && gnu_version >= 30300 && is_expression_operand(&operand) &&
+        operand.variant.expression->kind == (an_expr_node_kind)enk_operation) {
+      /* In recent GNU C and C++ compilers, __alignof__ applied to an field
+         selection operation (. or ->) results in the "field alignment" rather
+         than the intrinsic alignment.  For example (assuming recent GNU rules
+         on the IA-32 architecture where long long is intrinsically aligned to
+         8-byte boundaries, but aligned to 4-byte boundaries when laying out
+         fields):
+           struct S { long long x; } s;
+           int a1 = __alignof__(s.x);      // a1 == 4
+           int a2 = __alignof__((&s)->x);  // a2 == 4
+           int a3 = __alignof__(*&s.x);    // a3 == 8
+      */
+      an_expr_operator_kind  opkind = operand.variant.expression
+                                                      ->variant.operation.kind;
+      if (opkind == (an_expr_operator_kind)eok_field ||
+          opkind == (an_expr_operator_kind)eok_value_field ||
+          opkind == (an_expr_operator_kind)eok_bit_field ||
+          opkind == (an_expr_operator_kind)eok_value_bit_field) {
+        use_field_alignment = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
        Likewise do not convert arrays to pointers, or lvalues to rvalues. */
@@ -4985,7 +5012,15 @@ implement <stdarg.h>, a standard feature.
                                   targ_size_t_int_kind);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    a_targ_alignment  alignof_value = alignment_of_type(alignof_type);
+    a_targ_alignment  alignof_value;
+#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+    if (use_field_alignment) {
+      alignof_value = field_alignment_for(alignof_type);
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+    {
+      alignof_value = alignment_of_type(alignof_type);
+    }  /* if */
     if (is_incomplete_type(alignof_type)) {
       an_error_severity  severity;
       if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||

@@ -62,6 +62,10 @@ extern a_targ_alignment current_max_alignment_for_class_members(void);
 extern a_targ_alignment current_pack_pragma_value(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+extern a_targ_alignment field_alignment_for(a_type_ptr  type);
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+
 extern void do_class_layout(a_type_ptr  class_type);
 
 extern void layout_one_time_init(void);

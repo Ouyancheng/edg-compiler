@@ -151,9 +151,9 @@ B.  Layout options
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*
 GNU C and C++ distinguishes between two alignments for fundamental types:
-The intrinsic alignment (returned by __alignof__ and imbued on complete
-objects of that type), and the field alignment (used to align fields of
-that type).  For example, on some Intel-based configurations, long long is
+The intrinsic alignment (returned by __alignof__ in most cases, and imbued on
+complete objects of that type), and the field alignment (used to align fields
+of that type).  For example, on some Intel-based configurations, long long is
 normally 8-byte aligned, but a struct containing a long long need only be
 4-byte aligned.  The a_type entry contains the intrinsic alignment.  The
 field alignment is accessed through the following arrays.
@@ -211,7 +211,7 @@ floating point types.
 }  /* init_field_alignment_tables */
 
 
-static a_targ_alignment field_alignment_for(a_type_ptr  type)
+a_targ_alignment field_alignment_for(a_type_ptr  type)
 /*
 Return the field alignment for the given type.
 */
