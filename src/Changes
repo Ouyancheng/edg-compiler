@@ -30,7 +30,14 @@ sort:
 Errors will still be reported during real instantiations of C (except
 C<int>).
 
-2/18/93   Bug in argument widening done in IL lowering
+2/18/93  Change in representing "error locators" and "error symbols"
+
+An error locator and an error symbol can now point to a symbol header
+that specifies the name of an associated identifier.  This permits a
+diagnostic message to display the name actually specified in the user's
+code instead of "<error>" or "<error>::X".
+
+2/18/93  Bug in argument widening done in IL lowering
 
 The argument widening done when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is true
 did not work for file-scope function calls, as in
