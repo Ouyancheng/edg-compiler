@@ -1,5 +1,15 @@
 Version 3.1
 
+12/3/02  GNU C compatibility: Implicitly declared exit() function
+
+In GNU C mode, implicitly declaring the exit() function (by calling it)
+makes it visible in the file scope.  The following complete program is
+therefore accepted:
+
+  int main() { exit(0); }
+  void (*pf)(int) = (void(*)(int))exit;  // Accepted in GNU C mode, but not
+                                         // in strict ANSI C mode.
+
 12/2/02  GNU compatibility: Attributes in parenthesized declarators
 
 In GNU mode, the front end now accepts attributes as the first component of

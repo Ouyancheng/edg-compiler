@@ -7415,6 +7415,25 @@ return_point:
 }  /* decl_typedef */
 
 
+static a_boolean implicitly_predeclared_gcc_function(a_symbol_ptr  sym)
+/*
+GNU C predeclares the "exit" function implicitly; i.e., the declaration is
+not visible by default, but if "exit" is called, then it becomes visible in
+the file scope.  This function returns TRUE if sym represents "exit".
+*/
+{
+  a_boolean result = FALSE;
+
+  if (sym->kind == (a_symbol_kind)sk_routine) {
+    char  *name = sym->header->identifier;
+    if (name != NULL && strcmp(name, "exit") == 0) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* implicitly_predeclared_gcc_function */
+
+
 void decl_default_function(a_symbol_ptr symbol_ptr)
 /*
 Declare the given symbol as a default function.  This routine is called
@@ -7440,7 +7459,8 @@ symbol has already been entered as an undefined symbol.
   set_symbol_kind(symbol_ptr, (a_symbol_kind)sk_routine);
   /* In pcc mode, all routines are entered at file scope level.  Remove
      and re-enter the symbol (if necessary) so it will be there. */
-  if (C_dialect == C_dialect_pcc) {
+  if (C_dialect == C_dialect_pcc ||
+      (gcc_mode && implicitly_predeclared_gcc_function(symbol_ptr))) {
     if (symbol_ptr->decl_scope != file_scope_number) {
       /* Take the symbol out of the symbol table. */
       remove_symbol(symbol_ptr);
