@@ -381,7 +381,10 @@ cmd_tmp_file=$TMPDIR/cl$$
 #
 # Trap the "abort" signal to eliminte the shell-supplied diagnostic line
 # that frequently includes the process number.
-trap "exit 134" 6
+trap "exit 134" 6 # abort
+trap "exit 137" 9 # kill (used by timeout detection)
+trap "exit 138" 10 # bus error
+trap "exit 139" 11 # segmentation fault
 #
 # Function that compiles a generated C file
 #
