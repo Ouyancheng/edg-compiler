@@ -6239,7 +6239,7 @@ parameters.
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_dialect_is_generated_code_target) {
-      /* Microsoft-specific keywords. */
+        /* Microsoft-specific keywords. */
         a_decl_modifier decl_modifiers = variable->decl_modifiers;
         /* __declspec(selectany) applies only to definitions. */
         if (!dump_initializers && init_con != NULL) {
