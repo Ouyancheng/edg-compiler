@@ -2983,8 +2983,8 @@ catch a B.
              seen on the list. */
           if (estp2->redundant) continue;
           /* The types "match" if a handler for estp1->type can catch
-             estp2->type -- e.g., if the types are identical or espt1->type
-             is a public and unambiguous base class of espt2->type. */
+             estp2->type -- e.g., if the types are identical or estp1->type
+             is a public and unambiguous base class of estp2->type. */
           if (type_is_catchable_by_handler_for_other_type(estp2->type,
                                                           estp1->type)) {
             /* Match. */

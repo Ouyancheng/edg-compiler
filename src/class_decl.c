@@ -2004,7 +2004,7 @@ routine entry and return TRUE; otherwise return FALSE.
                                                (a_symbol_ptr)NULL, bcp);
                     }  /* if */
                   } else {
-                    /* Error -- return type must be identical to or convariant
+                    /* Error -- return type must be identical to or covariant
                        with that of the overridden function. */
                     pos_syty_error(
                          ec_bad_return_type_on_virtual_function_override,
