@@ -3167,6 +3167,13 @@ for more information.
                    together. */
                 identical = (list1 == NULL && list2 == NULL);
               }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (identical && microsoft_mode) {
+                /* The types are identical so far.  Check the calling
+                   conventions. */
+                identical = calling_conventions_are_compatible(type_1, type_2);
+              }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
           }
           break;

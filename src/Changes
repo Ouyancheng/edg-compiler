@@ -1,5 +1,21 @@
 Version 3.6
 
+11/30/04 Microsoft compatibility: calling conventions ignored in certain
+         type comparisons
+
+In Microsoft mode, certain routine type comparisons ignored the calling
+conventions of the routines types involved.  One consequence of this
+problem is that two template references that differ only in calling
+conventions would end up referring to the same template instance.  Now
+fixed.
+
+  template <class T> struct A { };
+  int main() {
+    A<int (__fastcall*)()> a;
+    A<int (*)()> a2;
+    a = a2;  // should result in an error
+  }
+
 11/30/04 GNU C++ compatibility: In-class pointer initializers
 
 In GNU C++ mode with gnu_version < 30300 the front end now accepts in-class
