@@ -50,7 +50,7 @@ Error routines.
   }
 
 #define check_assertion(test)						\
-  if (test) {								\
+  if (!(test)) {							\
     assert_msg()							\
   }
 #define unexpected_condition()						\
