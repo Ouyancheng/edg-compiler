@@ -296,11 +296,13 @@ static a_type_ptr
 Bit set values for the flags byte of base_class_spec.  These must
 match the runtime's definition.
 */
-#define BCS_INDIRECT		0x01
+#define BCS_VIRTUAL		0x01
 			/* TRUE if the offset gives the position of a
 			   pointer to the (virtual) base class rather than
 			   the offset to the base class itself. */
-#define BCS_LAST		0x02
+#define BCS_AMBIGUOUS		0x02
+			/* TRUE if the base class is ambiguous. */
+#define BCS_LAST		0x04
 			/* TRUE if this is the last base class specification
 			   in the array. */
 
@@ -387,8 +389,8 @@ This is used as part of the typeinfo information.
   for (bcp = type->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
-    /* Include information only on direct base classes. */
-    if (bcp->direct) {
+    /* Include information only on direct and virtual base classes. */
+    if (bcp->direct || bcp->is_virtual) {
       /* The base class specification consists of three fields:
            1)  A pointer to the typeinfo variable for the base class.
            2)  The offset of the base class in the derived class.
@@ -407,7 +409,7 @@ This is used as part of the typeinfo information.
         /* Virtual base class.  The offset is to the pointer, and a flag in the
            flags byte indicates indirection. */
         offset = bcp->pointer_offset;
-        flags_value |= BCS_INDIRECT;
+        flags_value |= BCS_VIRTUAL;
       } else {
         /* Non-virtual base class.  The offset is to the data. */
         offset = bcp->offset;
@@ -417,6 +419,8 @@ This is used as part of the typeinfo information.
                                                         (unsigned long)offset,
                                                         TARG_DELTA_INT_KIND);
       /* Make the flags constant. */
+      /* If the base class is ambiguous, turn on the ambiguous bit. */
+      if (bcp->ambiguous) flags_value |= BCS_AMBIGUOUS;
       flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_unsigned_integer_constant(flags_con, flags_value,
                                     (an_integer_kind)ik_unsigned_char);
@@ -1974,17 +1978,18 @@ Do IL lowering for an stmk_try_block statement.
   for (handler = handlers;
        handler != NULL;
        handler = handler->next) {
+    a_statement_ptr dep_statement = handler->statement;
     catch_clause_number++;
     prev_if_stmt = if_stmt;
     /* lower the dependent statement of the catch clause. */
-    lower_statement(handler->statement);
+    lower_statement(dep_statement);
     if (handler->parameter == NULL) {
       /* This is an ellipsis entry.  No "if" is required, since it accepts
          any type.  Previous error checks have ensured that this is the
          last clause. */
       check_assertion_str(handler->next == NULL,
                           "lower_try_block: ellipsis clause not last");
-      prev_if_stmt->variant.if_stmt.else_statement = handler->statement;
+      prev_if_stmt->variant.if_stmt.else_statement = dep_statement;
     } else {
       /* An entry other than an ellipsis.  Test the catch clause number
          returned by the runtime if an "if" statement:
@@ -2002,9 +2007,9 @@ Do IL lowering for an stmk_try_block statement.
 #if 0
       /* Position in a_handler? */
 #endif /* 0 */
-      if_stmt->position = handler->statement->position;
+      if_stmt->position = dep_statement->position;
       if_stmt->expr = compare_node;
-      if_stmt->variant.if_stmt.then_statement = handler->statement;
+      if_stmt->variant.if_stmt.then_statement = dep_statement;
       prev_if_stmt->variant.if_stmt.else_statement = if_stmt;
     }  /* if */
   }  /* for */
