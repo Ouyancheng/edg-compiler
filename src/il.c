@@ -991,20 +991,22 @@ Dump the contents of the indicated type entry, for debug purposes.
         if (rtsp->assoc_routine != NULL) {
           fputs(" ", f_debug);
           db_name(&rtsp->assoc_routine->source_corresp);
-        } else if (rtsp->this_class != NULL) {
-          /* If there is no associated routine this is presumably just a type,
-             but we still want an indication of the parent type in case we are
-             dealing with a member function type. */
-          fputs(" ", f_debug);
-          db_type_name(rtsp->this_class);
-          fputs("::", f_debug);
-        }  /* if */
+        }
+        fputs("(", f_debug);
         if (!rtsp->prototyped) {
           fputs(" unprototyped", f_debug);
         }  /* if */
-        fputs("(", f_debug);
+        if (rtsp->this_class != NULL) {
+          /* Display the type of *this (without qualifications. */
+          fputs("this: ", f_debug);
+          db_type_name(rtsp->this_class);
+          comma_required = TRUE;
+        } else {
+          /* No comma should be displayed next since we haven't emitted the
+             first parameter yet. */
+          comma_required = FALSE;
+        }  /* if */
         ptp = rtsp->param_type_list;
-        comma_required = FALSE;
         while (ptp != NULL) {
           if (comma_required) fputs(", ", f_debug);
           if (ptp->qualifiers != TQ_NONE &&
