@@ -1083,16 +1083,6 @@ extern a_boolean f_get_opname(void);
 /* Test for ":: new" and ":: delete". */
 extern a_boolean is_global_new_or_delete(void);
 
-
-/*
-Check whether the a symbol represents a class template and if so,
-call the routine to scan the argument list.  Otherwise just return the
-original symbol.
-*/
-#define check_for_class_template(sym, options, err)			      \
-  ((sym) != NULL ? coalesce_template_class_reference(sym, options, err) : sym)
-
-
 extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
 			 an_identifier_options_set options,

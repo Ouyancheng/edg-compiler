@@ -5613,7 +5613,16 @@ This routine may only be called in C++ mode.
     locator_for_curr_id.specific_symbol = NULL;
     /* If the class symbol is for a class template, process the argument
        list. */
-    class_symbol = check_for_class_template(class_symbol, options, &err);
+    if (class_symbol != NULL &&
+        (class_symbol->kind == (a_symbol_kind)sk_class_template ||
+         next_tok == tok_lt)) {
+      /* Process a template reference.  This is considered a potential
+         template reference if the symbol points to a class template
+         or if the next token is a "<" (the latter case is handled here
+         for error recovery purposes. */
+      class_symbol = coalesce_template_class_reference(class_symbol,
+                                                       options, &err);
+    }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
        template argument list. */
@@ -6235,7 +6244,9 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
        to a instance of the class template.  Scan the argument list and
        get a pointer to the symbol for the specific instance of the template
        class. */
-    symbol = check_for_class_template(symbol, options, &templ_err);
+    if (symbol != NULL && symbol->kind == (a_symbol_kind)sk_class_template) {
+      symbol = coalesce_template_class_reference(symbol, options, &templ_err);
+    }  /* if */
     *err |= templ_err;
     /* If an error occurred while scanning the template argument list,
        return a NULL symbol.  The locator will already be set to an error
