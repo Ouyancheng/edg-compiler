@@ -5330,7 +5330,9 @@ This routine may only be called in C++ mode.
       is_qualified_name = TRUE;
       is_file_scope_qualified_name = FALSE;
     } else if (next_token() == tok_colon_colon) {
-      a_boolean    first_class = TRUE;
+      a_boolean         first_class = TRUE;
+      a_source_position type_position;
+      type_position = start_position;
       /* This is a qualifier. */
       is_qualified_name = TRUE;
       is_file_scope_qualified_name = FALSE;
@@ -5405,7 +5407,7 @@ This routine may only be called in C++ mode.
 	       currently being defined -- it is considered complete if it
 	       is being defined.  We determine this by checking the
 	       assoc_scope field of the class type supplement. */
-            pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
+            pos_error(ec_incomplete_type_not_allowed, &type_position);
 	    err = TRUE;
 	    class_symbol = NULL;
           } else {
@@ -5427,6 +5429,7 @@ This routine may only be called in C++ mode.
           }  /* if */
         }  /* if */
         first_class = FALSE;
+        type_position = pos_curr_token;
       }  /* for */
     }  /* if */
   }  /* if */
