@@ -2418,9 +2418,11 @@ into the primary translation unit il_header.
   if (tup->il_header.main_routine != NULL) {
     /* "main" is defined in the secondary translation unit.  Indicate
        that it is now defined in the primary translation unit. */
-    check_assertion(il_header.main_routine == NULL);
-    il_header.main_routine =
+    a_routine_ptr primary_main =
         (a_routine_ptr)transitive_copy_address_of(tup->il_header.main_routine);
+    check_assertion(il_header.main_routine == NULL ||
+                    il_header.main_routine == primary_main);
+    il_header.main_routine = primary_main;
   }  /* if */
 }  /* merge_il_headers */
 
