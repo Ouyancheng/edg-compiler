@@ -1564,6 +1564,15 @@ static void pop_generated_routine_context(
 Pop function corresponding to push_generated_routine_context.
 */
 {
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  /* If there is reason to promote the local types and static variables
+     to the file scope, do that now and clear the lists.  That makes the
+     promoted entities part of the file scope and no longer orphans. */
+  if (local_entities_should_be_promoted(scope)) {
+    promote_local_entities_to_file_scope(scope,
+                                         scope->variant.routine.ptr);
+  }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   pop_context();
   /* Restore and pop the lifetime attached to the scope so that it can be
      deleted if it is empty. */

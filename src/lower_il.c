@@ -7631,7 +7631,7 @@ scope and all subscopes.
 
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
-static a_boolean local_entities_should_be_promoted(a_scope_ptr scope)
+a_boolean local_entities_should_be_promoted(a_scope_ptr scope)
 /*
 Return TRUE if the local entities of the indicated scope or any of its
 subscopes should be promoted to the file scope because they are referenced
@@ -7741,8 +7741,8 @@ Clear its is_local_to_function flag and the flags of any subtypes.
 }  /* clear_is_local_to_function_flag_in_type */
 
 
-static void promote_local_entities_to_file_scope(a_scope_ptr   scope,
-                                                 a_routine_ptr routine)
+void promote_local_entities_to_file_scope(a_scope_ptr   scope,
+                                          a_routine_ptr routine)
 /*
 Promote the local types and static variables of the indicated
 scope and its subscopes to the file scope.  The scope is a function or
