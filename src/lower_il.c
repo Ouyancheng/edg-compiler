@@ -9175,7 +9175,7 @@ lvalue to its logical "not".
     set_integer_constant(&result_constant,
                          (a_host_large_integer)1,
                          targ_bool_int_kind);
-    result_constant.type = expr->type;
+    result_constant.type = bool_type();
     result_value_node = alloc_node_for_constant(&result_constant);
     operand_node->next = result_value_node;
     set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
@@ -9206,7 +9206,7 @@ lvalue to its logical "not".
       set_integer_constant(&result_constant,
                            (a_host_large_integer)1,
                            targ_bool_int_kind);
-      result_constant.type = expr->type;
+      result_constant.type = bool_type();
       result_value_node = alloc_node_for_constant(&result_constant);
     } else {
       /* Decrement.  Build !temp. */
