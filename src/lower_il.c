@@ -72,6 +72,8 @@ constant, and return information about it in *delta.
   a_field_ptr      field;
   a_targ_ptrdiff_t offset = 0;
 
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+                  !constant->variant.ptr_to_member.is_function_ptr);
   field = constant->variant.ptr_to_member.variant.field;
   /* Use offset == 0 for NULL, otherwise the field offset. */
   if (field != NULL) {
@@ -111,6 +113,8 @@ NULL.
 {
   a_routine_ptr routine;
 
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+                  constant->variant.ptr_to_member.is_function_ptr);
   routine = constant->variant.ptr_to_member.variant.routine;
   /* The first field is the delta value, the offset of the class of the
      routine relative to the class pointed to by the pointer-to-member. */
@@ -274,7 +278,8 @@ static void lower_related_class_cast(an_expr_node_ptr node,
 static void adjust_bool_operation_types(an_expr_node_ptr expr,
                                         a_boolean        *p_adjusted,
                                         a_boolean        see_if_possible);
-static void lower_pm_comparison(an_expr_node_ptr expr);
+static void lower_pm_comparison(an_expr_node_ptr expr,
+                                a_boolean        operand1_lowered);
 static void do_scope_namespace_member_promotion(a_scope_ptr scope);
 
 
@@ -6685,7 +6690,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
     mark_as_not_visited(zero_node->variant.constant);
     /* Note that zero_expr is not lowered; that allows the subroutine to
        generate better code. */
-    lower_pm_comparison(expr);
+    lower_pm_comparison(expr, /*operand1_lowered=*/TRUE);
   }  /* if */
 }  /* lower_bool_cast */
 
@@ -7300,11 +7305,12 @@ can have changed since the first reference.
 }  /* expr_for_pmf_component */
 
 
-static void lower_pm_comparison(an_expr_node_ptr expr)
+static void lower_pm_comparison(an_expr_node_ptr expr,
+                                a_boolean        operand1_lowered)
 /*
 Lower comparison of two pointers to members.  The operands of the expression
-need not have been lowered yet (but it's okay if they have been); if they're
-unlowered, an optimization is possible on comparisons to constants.
+are usually unlowered.  When operand1_lowered is TRUE, however, the
+first operand (but not the second) has been lowered already.
 */
 {
   an_expr_node_ptr select1_node, select2_node, compare_i_node;
@@ -7329,7 +7335,7 @@ unlowered, an optimization is possible on comparisons to constants.
     /* Lower the operand nodes if they aren't constants.  If they are
        constants, leave them alone and generate code that compares directly
        against the components of the pointer-to-member structure. */
-    if (!is_constant_node(op1_node)) {
+    if (!is_constant_node(op1_node) && !operand1_lowered) {
       lower_expr(op1_node, /*is_lvalue=*/FALSE);
     }  /* if */
     if (!is_constant_node(op2_node)) {
@@ -7430,7 +7436,7 @@ unlowered, an optimization is possible on comparisons to constants.
     }  /* if */
   } else {
     /* Pointer-to-data-member comparison: turns into integer comparison. */
-    lower_expr(op1_node, /*is_lvalue=*/FALSE);
+    if (!operand1_lowered) lower_expr(op1_node, /*is_lvalue=*/FALSE);
     lower_expr(op2_node, /*is_lvalue=*/FALSE);
     if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
       op1_node->next = NULL;
@@ -7852,7 +7858,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  op == (an_expr_operator_kind)eok_pmne) {
         /* Lower pointer-to-member comparison before the operands have been
            lowered, to allow an optimization on comparisons to constants. */
-        lower_pm_comparison(expr);
+        lower_pm_comparison(expr, /*operand1_lowered=*/FALSE);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has boolean-controlling-expression operands. */
