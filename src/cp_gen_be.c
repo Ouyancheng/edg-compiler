@@ -383,6 +383,7 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_routine:
       case iek_asm_entry:
       case iek_src_seq_secondary_decl:
+      case iek_pragma:
         /* This is a declaration. */
         is_decl = TRUE;
         break;
@@ -4407,6 +4408,30 @@ exception-handling "try" block.
 }  /* gen_try_block_statement */
 
 
+static void gen_pragma(void)
+/*
+Generate a declaration for a pragma.  The current source sequence entry
+is the one associated with the pragma.
+*/
+{
+  a_pragma_ptr pp = ss_entry_ptr(curr_source_sequence_entry, a_pragma_ptr);
+
+  /* Advance past the source sequence entry for the pragma. */
+  adv_curr_source_sequence_entry();
+  /* Ignore this entry if told to do so. */
+  if (!pp->ignore_in_back_end) {
+    end_output_line_if_begun();
+    set_output_position(&pp->decl_position);
+    disable_line_wrapping();
+    write_str("#pragma ");
+    check_assertion_str(pp->pragma_text != NULL,
+                        "dump_pragma: NULL pragma_text");
+    write_str(pp->pragma_text);
+    end_output_line();
+  }  /* if */
+}  /* gen_pragma */
+
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch,
                                a_statement_ptr *last_statement)
@@ -4467,6 +4492,9 @@ on the list, or NULL if the list is empty.
              gen_statement deal with it. */
           break;
         }  /* if */
+      } else if (ss_entry_kind(curr_source_sequence_entry) == iek_pragma) {
+        /* A pragma in executable code. */
+        gen_pragma();
       } else {
         /* We don't know what this next thing is.  Leave it alone and
            go on. */
@@ -5511,6 +5539,9 @@ sequence entry.
     case iek_constant:
       /* Manifest constant macros are ignored. */
       adv_curr_source_sequence_entry();
+      break;
+    case iek_pragma:
+      gen_pragma();
       break;
     default:
       unexpected_condition_str(
