@@ -2,6 +2,23 @@ Version 2.24, July 8, 1994
 
 7/8/94   IL version number changed to 2.16
 
+7/8/94   Tag kind resolution for incompletely instantiated template class
+
+The tag kind of an incompletely instantiated template class is now
+adjusted to agree with the tag kind of a subsequent class template
+definition.  For instance:
+
+  template <class T> class A;      // class template A starts out as "class"
+  A<int> *pa;                      // incompletely instantiated A<int> is
+                                   //   also marked as "class"
+  template <class T> struct A {    // class template A is changed to "struct"
+    int i;                         //   -- and now A<int> is changed to
+  };                               //   "struct" also.
+  main() {
+    pa->i = 0;                     // A<int> is instantiated; spurious error
+  }                                //   (inaccessible A<int>::i) is no longer
+                                   //   issued
+
 7/6/94   Diagnostic on storage class with autonomous tag declaration
 
 An error (but still a warning in cfront mode) is issued when a storage
