@@ -14,8 +14,8 @@ inline.c -- Minimal inlining for IL lowering.
 Does inlining of calls to inline functions, doing the transformations
 on code in IL tree form as part of IL lowering.  Intended to be "minimal"
 and mostly for use with the C-generating back end.  Intended to do
-inlining at about the same level as cfront.  Since it runs as part of
-IL lowering, does not do inlining of C code.
+inlining at about the same level as cfront.  Called from IL lowering
+to handle C++ lowering, and from C99 IL lowering to handle C99 lowering.
 */
 
 #include "basic_hdrs.h"

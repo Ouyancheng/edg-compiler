@@ -24,7 +24,7 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Only include this code if it is needed: */
-#if C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
+#if DO_C99_IL_LOWERING
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -860,9 +860,18 @@ constructs.
 }  /* lower_c99_temp_init */
 
 
-static void lower_c99_expr(an_expr_node_ptr  expr)
+/* Macro interface to lower_c99_expr_full for the normal case. */
+#define lower_c99_expr(expr) lower_c99_expr_full(expr, (a_statement_ptr)NULL)
+
+#if !MINIMAL_INLINING
+/*ARGSUSED*/ /* <-- statement is not used in this case. */
+#endif /* !MINIMAL_INLINING */
+static void lower_c99_expr_full(an_expr_node_ptr  expr,
+                                a_statement_ptr   statement)
 /*
 Transform the given expression to remove certain C99-specific constructs.
+If statement is non-NULL, expr is the expression of the expression
+statement statement.
 */
 {
   an_expr_node_ptr  operand;
@@ -877,6 +886,12 @@ Transform the given expression to remove certain C99-specific constructs.
       }  /* if */
       /* Then transform the current operator if needed. */
       lower_c99_operator(expr);
+#if MINIMAL_INLINING
+      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
+        /* Do inlining of a call if appropriate. */
+        if (inlining_enabled) do_inlining_of_call(expr, statement);
+      }  /* if */
+#endif /* MINIMAL_INLINING */
       break;
     case enk_constant:
       lower_c99_constant_expr(expr);
@@ -894,7 +909,7 @@ Transform the given expression to remove certain C99-specific constructs.
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;
   }  /* switch */
-}  /* lower_c99_expr */
+}  /* lower_c99_expr_full */
 
 
 static void lower_c99_dynamic_init(a_dynamic_init_ptr dip)
@@ -957,7 +972,11 @@ Do C99 lowering on the indicated statement.
   saved_error_position = error_position;
   set_position_from_stmt_source_position(error_position, statement->position);
   if (statement->expr != NULL) {
-    lower_c99_expr(statement->expr);
+    /* Lower the expression.  For an expression statement, pass the
+       statement pointer to allow better inlining. */
+    lower_c99_expr_full(statement->expr,
+                        (statement->kind == (a_statement_kind)stmk_expr) ?
+                                            statement : (a_statement_ptr)NULL);
   }  /* if */
   switch (statement->kind) {
     case stmk_expr:
@@ -1002,7 +1021,15 @@ Do C99 lowering on the indicated statement.
       lower_c99_statement(statement->variant.for_loop.statement);
       break;
     case stmk_block:
-      lower_c99_statement_list(statement->variant.block.statements);
+      { a_context context;
+        a_scope_ptr scope = statement->variant.block.extra_info->assoc_scope;
+        if (scope != NULL) {
+          /* The block has an associated scope.  Push it. */
+          push_context(&context, scope, (an_object_lifetime_ptr)NULL);
+        }  /* if */
+        lower_c99_statement_list(statement->variant.block.statements);
+        if (scope != NULL) pop_context();
+      }
       break;
     case stmk_switch:
       { a_switch_clause_ptr scp;
@@ -1078,7 +1105,9 @@ Do C99 lowering for all entities in and under the given scope.
   a_scope_ptr                      block_scope;
   a_vla_dimension_ptr              vla_dim;
   a_local_static_variable_init_ptr lsvip;
+  a_context                        context;
 
+  push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   switch (scope->kind) {
     case sck_file:
     case sck_block:
@@ -1113,10 +1142,6 @@ Do C99 lowering for all entities in and under the given scope.
        block_scope = block_scope->next) {
     lower_c99_scope(block_scope);
   }  /* for */
-  if (scope->kind == (a_scope_kind)sck_function) {
-    /* Lower the function block statement. */
-    lower_c99_statement(scope->assoc_block);
-  }  /* if */
   /* Visit all VLA dimension expressions. */
   for (vla_dim = scope->vla_dimensions;
        vla_dim != NULL;
@@ -1129,6 +1154,26 @@ Do C99 lowering for all entities in and under the given scope.
        lsvip = lsvip->next) {
     lower_c99_initializer(lsvip->init_kind, &lsvip->initializer);
   }  /* for */
+  if (scope->kind == (a_scope_kind)sck_function) {
+    /* Lower the function block statement. */
+    lower_c99_statement(scope->assoc_block);
+#if MINIMAL_INLINING
+    if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
+      /* For an inline routine, set the inlinable flag now that the body has
+         been processed. */
+      set_up_routine_for_inlining(scope);
+    }  /* if */
+#endif /* MINIMAL_INLINING */
+  } else if (scope->kind == (a_scope_kind)sck_file) {
+#if MINIMAL_INLINING
+    if (inlining_enabled) {
+      /* For any inline routines for which all calls were expanded inline,
+         mark the routines as being unreferenced. */
+      mark_inlined_routines_as_unreferenced();
+    }  /* if */
+#endif /* MINIMAL_INLINING */
+  }  /* if */
+  pop_context();
 }  /* lower_c99_scope */
 
 
@@ -1225,6 +1270,10 @@ are handled in lower_c99_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#if MINIMAL_INLINING
+  /* Do inline.c initialization. */
+  if (inlining_enabled) inline_one_time_init();
+#endif /* MINIMAL_INLINING */
 }  /* lower_c99_one_time_init */
 
 
@@ -1273,10 +1322,13 @@ front end.
     (void)lowered_complex_type((a_float_kind)fk_double);
     (void)lowered_complex_type((a_float_kind)fk_long_double);
   }  /* if */
+#if MINIMAL_INLINING
+  /* Do inline.c initialization. */
+  if (inlining_enabled) inline_init();
+#endif /* MINIMAL_INLINING */
 }  /* lower_c99_init */
 
-
-#endif /* C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
+#endif /* DO_C99_IL_LOWERING */
 
 /******************************************************************************
 *                                                             \  ___  /       *
