@@ -4161,7 +4161,11 @@ a named address space.
 
   check_assertion(curr_token == tok_identifier);
   if (named_address_spaces_enabled) {
-    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    /* Use IDL_TENTATIVE_TYPE_LOOKUP to avoid warnings generated for the
+       the "out-of-scope lookup" feature (carried over from SVR4 C to other
+       nonstrict C modes). */
+    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id,
+                                         IDL_TENTATIVE_TYPE_LOOKUP);
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_address_space) {
       result = TRUE;
     }  /* if */
