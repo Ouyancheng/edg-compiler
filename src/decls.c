@@ -1763,6 +1763,10 @@ scope is that of a class definition.
             /* X::X(X) is not allowed -- ARM 12.1. */
             pos_error(ec_bad_constructor_param, &param_type_pos);
             param_type_ptr = error_type();
+          } else if (is_incomplete_type(param_type_ptr)) {
+            /* Incomplete type is not allowed. */
+            pos_error(ec_incomplete_type_not_allowed, &param_type_pos);
+            param_type_ptr = error_type();
           } else if (C_dialect == C_dialect_cplusplus &&
                      is_illegal_abstract_class_type(param_type_ptr)) {
             /* Abstract class may not be used as an arg type (ARM 10.3). */
@@ -8022,6 +8026,11 @@ continue_with_declaration:
         symbol_ptr = param_id->symbol;
         copy_source_position(locator.source_position,
                              symbol_ptr->decl_position);
+        if (is_incomplete_type(local_type_ptr)) {
+          /* Incomplete type is not allowed. */
+          pos_error(ec_incomplete_type_not_allowed, &decl_start_pos);
+          local_type_ptr = error_type();
+        }  /* if */
         param_id->type = local_type_ptr;
         param_id->storage_class = local_storage_class;
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
