@@ -3509,8 +3509,9 @@ cross-reference output describing this declaration.
          to set the location where the VLA is to be allocated. */
       a_statement_ptr vla_stmt;
 
-      vla_stmt = add_statement_at_stmt_pos(stmk_alloc_vla_variable,
-                                           &locator->source_position);
+      vla_stmt = 
+          add_statement_at_stmt_pos((a_statement_kind)stmk_alloc_vla_variable,
+                                    &locator->source_position);
       vla_stmt->variant.vla_variable = variable_ptr;
       /* Indicate that the VLA variable needs to be deallocated. */
       variable_ptr->vla_requires_deallocation = TRUE;
@@ -5449,6 +5450,8 @@ In C++ mode an error is issued if a type definition appears in a type-name
   if (is_abstract_declarator_start()) {
     di_flags = DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED;
     if (vla_enabled) {
+      /* A variable length array declaration may only appear in a function
+         prototype scope or inside a function. */
       a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
       if (ssep->kind == (a_scope_kind)sck_func_prototype ||
           ssep->kind == (a_scope_kind)sck_function ||
@@ -7761,6 +7764,8 @@ continue_with_declaration:
     }  /* if */
     if (is_old_style_param_decl) {
       di_flags |= DI_IS_PARAMETER_DECL;
+      /* A variable length array declaration is permitted in an old-style
+         parameter declaration. */
       if (vla_enabled) di_flags |= DI_VLA_ALLOWED;
     } else if (vla_enabled) {
       if (!function_definition_allowed &&
