@@ -1004,7 +1004,7 @@ current scope.
                                                 (a_symbol_kind)sk_variable,
                                                 &pos_curr_token);
   assoc_object_sym->variant.variable.ptr = vp;
-  check_anonymous_union_symbols(assoc_object_sym);
+  check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL);
 }  /* make_anonymous_union_variable */
 
 

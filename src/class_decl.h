@@ -36,7 +36,8 @@ extern a_boolean scan_class_definition(
                                    a_scope_depth  effective_decl_level,
                                    a_boolean      is_local_class);
 
-extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym);
+extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
+                                          a_type_ptr    class_type);
 
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
 extern void set_class_assoc_operator_new_routine(a_type_ptr class_type);
