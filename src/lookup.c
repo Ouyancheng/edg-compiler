@@ -1073,6 +1073,11 @@ scope lookup.  options specifies the options being used for the lookup.
                Simply ignore the new one. */
           }  /* if */
         }  /* if */
+      } else if (is_type_symbol(new_sym) && is_type_symbol(fund_curr_sym) &&
+                 identical_types(skip_typerefs(type_symbol_type(new_sym)),
+                             skip_typerefs(type_symbol_type(fund_curr_sym)))) {
+        /* The two symbols refer to the same type.  Ignore the new one. */
+        err = FALSE;
       } else if ((options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 &&
                  is_type_symbol(new_sym) && !is_type_symbol(fund_curr_sym)) {
         /* We are doing a tentative type lookup and the new symbol is
