@@ -3826,6 +3826,30 @@ typedef struct a_virtual_step_stack_entry {
 } a_virtual_step_stack_entry;
 
 
+static an_access_specifier access_to_end_of_virtual_step_stack(
+                             an_access_specifier            access,
+                             a_virtual_step_stack_entry_ptr virtual_step_stack)
+/*
+Determine and return the amount of access available to an entity with
+access "access" across the concatenation of the derivation paths indicated
+by the stack of entries in virtual_step_stack.
+*/
+{
+  if (virtual_step_stack != NULL) {
+    /* Do a recursive call to do all the path segments for the stack entries
+       following the first one. */
+    access = access_to_end_of_virtual_step_stack(access,
+                                                 virtual_step_stack->next);
+    /* Add in the access for the segment represented by the first stack
+       entry. */
+    access = access_to_end_of_path(access,
+                                   virtual_step_stack->virtual_step->next,
+                                   virtual_step_stack->derivation);
+  }  /* if */
+  return access;
+}  /* access_to_end_of_virtual_step_stack */
+
+
 static a_boolean have_access_across_path(
                              a_symbol_ptr                   fund_sym,
                              a_type_ptr                     viewpoint_class,
@@ -3936,7 +3960,16 @@ have_proj_sym:
       /* The access must be determined by looking at the derivation steps.
          This is probably a little faster than looking for the projection
          symbol. */
-      access = access_to_end_of_path(access_for_symbol(fund_sym), path, bcdp);
+      access = access_for_symbol(fund_sym);
+      /* Adjust the access for any path sequences indicated in the virtual
+         step stack. */
+      if (virtual_step_stack != NULL) {
+        access = access_to_end_of_virtual_step_stack(access,
+                                                     virtual_step_stack);
+      }  /* if */
+      /* Adjust the access for the path remaining after the steps indicated in
+         the stack. */
+      access = access_to_end_of_path(access, path, bcdp);
     }  /* if */
   }  /* if */
   /* We now have the effective access to the member in the viewpoint class,
