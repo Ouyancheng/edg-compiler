@@ -3607,7 +3607,7 @@ special function kind (e.g., constructor, destructor), if any.
       } else if (is_void_type(tp)) {
         /* Except in cfront-compatibility mode, conversion to void type will
            already have been checked for. */
-        check_assertion(cfront_compatibility_mode);
+        check_assertion(any_cfront_mode());
         is_usable = FALSE;
       }  /* if */
       if (is_usable) {
@@ -3620,7 +3620,7 @@ special function kind (e.g., constructor, destructor), if any.
            a base class or a reference to a base class "is never used" (WP
            12.3.2; that is, it is not used in implicit or explicit conversions
            but only in an explicit invocations of the function). */
-        pos_sy_diagnostic(cfront_compatibility_mode ? es_remark : es_warning,
+        pos_sy_diagnostic(any_cfront_mode() ? es_remark : es_warning,
                           ec_conversion_function_not_usable,
                           &locator->source_position, sym);
       }  /* if */
@@ -5232,7 +5232,7 @@ control checking is done.
       an_error_severity  severity = es_error;
       /* Normally an error, but in cfront mode there is a special case
          involving a private base class destructor where we issue a warning. */
-      if (cfront_compatibility_mode &&
+      if (any_cfront_mode() &&
           is_cfront_base_class_destructor_access_bug(sym, rp,
                                                      class_of_object)) {
         severity = es_warning;
@@ -6628,7 +6628,7 @@ Scan the body of a class definition, including the base classes list.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
                 func_info.declarator_ssep = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                if (cfront_compatibility_mode &&
+                if (any_cfront_mode() &&
                     rout_type->variant.routine.extra_info->
                                             implicit_this_param_type != NULL) {
                   /* We have a situation in which a typedef has been declared
@@ -6678,7 +6678,7 @@ Scan the body of a class definition, including the base classes list.
                                              /*is_volatile=*/FALSE);
                     local_type->variant.routine.extra_info->
                                       implicit_this_param_type = tp;
-                  } else if (cfront_compatibility_mode) {
+                  } else if (any_cfront_mode()) {
                     /* Just in case this is a copy of the weird
                        cfront-compatibility typedef, clear out the implicit
                        this-param pointer in the copied type entry. */
@@ -7473,8 +7473,8 @@ to indicate whether the class/struct/union is actually defined.
              During prototype instantiation we have to assume that T can be a
              valid class name.  Therefore "class T x" is treated as synonymous
              with "T x".  In addition, "friend class T" is also supported. */
-        } else if (cfront_compatibility_mode) {
-          /* Cfront 2.1 bug that allows this:
+        } else if (any_cfront_mode()) {
+          /* Cfront bug that allows this:
                typedef class A B;
                class B;
                class B *pa;
