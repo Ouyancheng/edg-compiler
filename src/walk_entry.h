@@ -1079,7 +1079,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                                        (a_base_class_derivation_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_base_class_derivation_ptr,
                        iek_base_class_derivation);
-        walk_list(ptr->derivation, a_derivation_step_ptr, iek_derivation_step);
+        walk_list(ptr->path, a_derivation_step_ptr, iek_derivation_step);
       }
       break;
     case iek_base_class:
