@@ -7030,19 +7030,12 @@ The subtree of the node has not yet been lowered.
          is initialized. */
       set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
       /* Generate code for the initialization. */
-      if (is_array_type(ndsp->type) &&
-          dip->kind == (a_dynamic_init_kind)dik_zero &&
-          skip_typerefs(ndsp->type)->variant.array.is_variable_size_array) {
-        /* lower_dynamic_init can't handle a variable-length array, so
-           do that specially. */
-      } else {
-        lower_dynamic_init(dip, &ipd,
-                           (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                           (a_constructor_init_ptr)NULL, LDIO_NONE,
-                           /*others_follow_in_aggr=*/FALSE,
-                           &insert_location, (a_boolean *)NULL,
-                           (a_constant **)NULL);
-      }  /* if */
+      lower_dynamic_init(dip, &ipd,
+                         (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                         (a_constructor_init_ptr)NULL, LDIO_NONE,
+                         /*others_follow_in_aggr=*/FALSE,
+                         &insert_location, (a_boolean *)NULL,
+                         (a_constant **)NULL);
       /* Now that the entity is initialized, turn off the freeing on
          exception. */
       turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
