@@ -957,6 +957,11 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
   ((sym)->kind == (a_symbol_kind)sk_type ||                           \
    (C_dialect == C_dialect_cplusplus && is_tag_symbol(sym)))
 
+/* Return TRUE if a symbol is a function symbol. */
+#define is_function_symbol(sym)                                       \
+  ((sym)->kind == (a_symbol_kind)sk_routine ||                        \
+   (sym)->kind == (a_symbol_kind)sk_member_function)
+
 /* Return TRUE if a symbol is a constructor symbol. */
 #define is_constructor_symbol(sym)                                    \
   ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
