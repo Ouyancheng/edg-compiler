@@ -499,6 +499,14 @@ pragma warning is issued and the pragma is discarded.
 #endif /* !defined(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL) */
 
 /*
+Flag that is TRUE to include a set of EDG provided set test pragmas in the
+front end.
+*/
+#ifndef INCLUDE_EDG_TEST_PRAGMAS
+#define INCLUDE_EDG_TEST_PRAGMAS FALSE
+#endif /* !defined(INCLUDE_EDG_TEST_PRAGMAS) */
+
+/*
 Flag that is TRUE to specify that source files should be read in
 binary mode under MS-DOS.  In this mode, carriage return and control-Z
 are handled by the front end instead of the host C runtime library.

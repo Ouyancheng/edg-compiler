@@ -1370,15 +1370,14 @@ enum a_pragma_kind_tag {
 			   may be done in the current translation unit if
 			   needed; front-end only. */
 
-#if 0
-#else
-  /* Temporary -- for testing only. */
+#if INCLUDE_EDG_TEST_PRAGMAS
+  /* For testing purposes. */
   pk_test_next_statement,
   pk_test_next_decl,
   pk_test_immediate,
   pk_test_other,
   pk_test_bind_next_pass,
-#endif /* if 0 */
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
 
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
@@ -1413,15 +1412,14 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_instantiate */		"instantiate",
 /* pk_do_not_instantiate */	"do_not_instantiate",
 /* pk_can_instantiate */	"can_instantiate",
-#if 0
-#else
-/* Temporary -- for testing only. */
+#if INCLUDE_EDG_TEST_PRAGMAS
+/* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
 /* pk_test_next_decl */		"test_next_decl",
 /* pk_test_immediate */		"test_immediate",
 /* pk_test_other */		"test_other",
 /* pk_test_bind_next_pass */	"test_bind_next_pass",
-#endif /* if 0 */
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */

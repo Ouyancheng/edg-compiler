@@ -41,6 +41,7 @@ the release should contain no defines.
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define LONG_LONG_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#define INCLUDE_EDG_TEST_PRAGMAS 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
@@ -75,6 +76,7 @@ the release should contain no defines.
 /* Options for UnixWare test version. */
 #define __SYSV__
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
+#define INCLUDE_EDG_TEST_PRAGMAS 1
 #define STAT_FIRST_PARAM_IS_CONST 1
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4

@@ -1148,15 +1148,14 @@ Print the name of a pragma kind.
     case pk_instantiate:          s = "pk_instantiate";         break;
     case pk_do_not_instantiate:   s = "pk_do_not_instantiate";  break;
     case pk_can_instantiate:      s = "pk_can_instantiate";     break;
-#if 0
-#else
-    /* Temporary, for testing purposes. */
+#if INCLUDE_EDG_TEST_PRAGMAS
+    /* For testing purposes. */
     case pk_test_next_statement:  s = "pk_test_next_statement"; break;
     case pk_test_next_decl:       s = "pk_test_next_decl";      break;
     case pk_test_immediate:       s = "pk_test_immediate";      break;
     case pk_test_other:           s = "pk_test_other";          break;
     case pk_test_bind_next_pass:  s = "pk_test_bind_next_pass"; break;
-#endif /* if 0 */
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:         s = "pk_unrecognized";	break;
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */

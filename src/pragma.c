@@ -261,15 +261,14 @@ possible.
     case pk_lint_varargs_count:
       ppp->variant.lint_varargs_count = 0;
       break;
-#if 0
-#else /* 0 */
+#if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:
     case pk_test_immediate:
     case pk_test_other:
     case pk_test_bind_next_pass:
       break;
-#endif /* if 0 */
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
       /* No special initialization is required. */
@@ -1199,8 +1198,7 @@ Initialize the pragma description table.
 		 /*processing_C_code_in_pragma=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 es_error);
-#if 0
-#else /* 0 */
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
 		 (a_next_construct_pragma_function_ptr)NULL,
@@ -1219,11 +1217,11 @@ Initialize the pragma description table.
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/FALSE,
 		 /*may_bind_to_stmt=*/TRUE,
-                 /*automatically_include_in_il=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
-		 /*ignore_in_back_end=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate,
@@ -1259,7 +1257,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-#endif /* 0 */
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   /* When unrecognized pragmas are being included in the IL, we need a
      pragma description that can be used for the unrecognized pragmas.

@@ -6705,15 +6705,14 @@ pointer to it.
   pp->pragma_text           = NULL;
   switch (kind) {
     case pk_none:
-#if 0
-#else
+#if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:
     case pk_test_immediate:
     case pk_test_other:
     case pk_test_bind_next_pass:
       pp->variant.dummy = 0;
-#endif /* if 0 */
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
       break;
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
