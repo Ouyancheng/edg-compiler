@@ -15362,6 +15362,16 @@ see expr.h).
 scan_new:
       /* C++ "new" operator. */
       scan_new_operator(&local_result);
+      if (strict_ansi_mode) {
+        /* The syntax does not allow a postfix-precedence operator following
+           a new, e.g., new (double *)[17].  Give the syntax error only
+           in strict mode. */
+        if (!token_ends_expr(curr_token, PREC_PREFIX, local_options)) {
+          pos_diagnostic(strict_ansi_discretionary_severity,
+                         ec_operator_not_allowed,
+                         &pos_curr_token);
+        }  /* if */
+      }  /* if */
       break;
     case tok_delete:
 scan_delete:
