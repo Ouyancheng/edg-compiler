@@ -1635,12 +1635,11 @@ Do the remainder operation ("%") on all types of integers.
   } else {
     if (int_constant_is_signed(result)) {
       /* Remainder on signed integers. */
-      /* Check for overflow possibility on a twos' complement machine. */
-      if ((LONG_MIN + LONG_MAX) < 0 &&
-          value_1 == LONG_MIN && value_2 == -1) {
-        /* Smallest integer / -1 -- Overflow on 2's complement machines. */
-        *err_code = ec_integer_overflow;
-        *err_severity = es_error;
+      if (value_2 == -1) {
+        /* x % -1 is always 0.  Done as a special case to avoid potential
+           problems when evaluating smallest-int % -1 on a two's complement
+           machine.  The corresponding division overflows, but % is
+           well-defined. */
         result_value = 0;
       } else {
         /* No overflow. */

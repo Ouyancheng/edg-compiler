@@ -1,5 +1,11 @@
 Version 2.11
 
+10/17/92 Fix of bug in folding of "%" operator
+
+The folding of smallest-integer % -1 on a two's complement machine
+used to result in a warning.  It now returns simply the correct
+result, which is well-defined and equal to zero.
+
 10/16/92  Fixed bug in name mangling
 
 Sometimes when nested classes were used, the mangled names were wrong
