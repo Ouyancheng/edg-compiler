@@ -5507,7 +5507,7 @@ member declaration, respectively.
   sym->variant.static_data_member.variable = var;
   set_class_membership(sym, &var->source_corresp, class_type);
   decl_info->member_sym = sym;
-  if (decl_info->is_member_template) {
+  if (decl_info->is_member_template && !sym->is_error) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position, sym);
   }  /* if */
   /* Static data members will have the same name linkage as the class of
@@ -6744,7 +6744,7 @@ specific information about the member declaration, respectively.
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
   set_class_membership(member_sym, &field->source_corresp, class_type);
-  if (decl_info->is_member_template) {
+  if (decl_info->is_member_template && !member_sym->is_error) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position,
                  member_sym);
   }  /* if */
