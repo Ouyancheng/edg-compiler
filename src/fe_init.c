@@ -844,11 +844,16 @@ source file's compilation.
 #if RUNTIME_USES_NAMESPACES
     need_std = TRUE;
 #endif /* RUNTIME_USES_NAMESPACES */
-    if (need_std) {  /*lint !e774*/
+    if (need_std || ignore_std_namespace) {  /*lint !e774*/
       /* Predeclare namespace "std" and create a symbol for it.  Note that
          the symbol is not actually added to the symbol table until namespace
-         "std" is explicitly declared. */
+         "std" is explicitly declared (unless the --ignore_std option is
+         used). */
       make_symbol_for_namespace_std();
+      if (ignore_std_namespace) {
+        clear_locator(&locator_for_curr_id, &null_source_position);
+        enter_symbol_for_namespace_std(&locator_for_curr_id);
+      }  /* if */
     }  /* if */
     /* Add symbols for ::operator new and ::operator delete to the symbol
        table.  This is delayed till now (rather than done with other symbol

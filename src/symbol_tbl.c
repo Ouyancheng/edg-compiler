@@ -4762,6 +4762,11 @@ namespace std was encountered in the source.
   /* Add the symbol to the symbol table. */
   link_symbol_into_symbol_table(symbol_for_namespace_std, DEPTH_OF_FILE_SCOPE,
                                 suppress_error);
+#if RECORD_HIDDEN_NAMES_IN_IL
+  /* In some cases, this symbol is predeclared.  Make sure this flag is
+     set in case this is such an implicit declaration. */
+  symbol_for_namespace_std->header->any_decl_in_file_or_namespace_scope = TRUE;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 }  /* enter_symbol_for_namespace_std */
 
 
