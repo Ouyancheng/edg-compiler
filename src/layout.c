@@ -665,7 +665,7 @@ returned.
   a_targ_size_t     container_size;
   a_targ_alignment  container_alignment;
   a_boolean         overflow = FALSE;
-  int               bit_size = (int)field->bit_size;
+  unsigned int      bit_size = (int)field->bit_size;
   a_type_ptr        base_type = skip_typerefs(field->type);
 
   db_enter(4, "align_offsets_for_bit_field");

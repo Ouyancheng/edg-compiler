@@ -3918,8 +3918,12 @@ preference is given to the first.
      parameter type in its list being the composite of the corresponding
      parameter types in the two lists. */
   comp_prototyped = rtsp1->prototyped || rtsp2->prototyped;
-  if (rtsp1->prototyped != comp_prototyped) return_type1_as_comp_type = FALSE;
-  if (rtsp2->prototyped != comp_prototyped) return_type2_as_comp_type = FALSE;
+  if ((a_boolean)(rtsp1->prototyped) != comp_prototyped) {
+    return_type1_as_comp_type = FALSE;
+  }  /* if */
+  if ((a_boolean)(rtsp2->prototyped) != comp_prototyped) {
+    return_type2_as_comp_type = FALSE;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   comp_calling_convention = rtsp1->calling_convention;
   if (comp_calling_convention == (a_calling_convention)cc_default) {
