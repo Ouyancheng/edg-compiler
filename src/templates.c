@@ -365,12 +365,15 @@ typedef struct a_tmpl_decl_state {
 			/* Points to the template declaration information
 			   associated with the innermost template declaration
 			   scope.  Contains NULL for full specializations. */
-  a_scope_depth	effective_decl_level;
+  a_scope_depth	orig_decl_level;
 			/* The scope depth of the scope containing the
-			   template declaration.  This is initially set
+			   template declaration. */
+  a_scope_depth	effective_decl_level;
+			/* The effective declaration scope of the
+			   template declaration.  This is normally the
 			   to the scope that contains the template
-			   declaration and may be adjusted later for
-			   friend declarations. */
+			   declaration, but is the nearest namespace scope
+			   for friend declarations. */
   unsigned long	number_of_template_decl_scopes;
 			/* The number of template declaration scopes pushed
 			   while processing this template declaration. */
@@ -453,6 +456,7 @@ Initialize a template declaration state block.
   tdsp->nesting_depth = 0;
   tdsp->final_token_ptr = NULL;
   tdsp->decl_info = NULL;
+  tdsp->orig_decl_level = NO_SCOPE_DEPTH;
   tdsp->effective_decl_level = NO_SCOPE_DEPTH;
   tdsp->number_of_template_decl_scopes = 0;
   tdsp->number_of_template_param_clauses = 0;
@@ -9423,7 +9427,7 @@ instantiation.
          level for this declaration because decl_scope_level currently
          points to the template declaration scope. */
       a_scope_depth	saved_decl_scope_level = decl_scope_level;
-      decl_scope_level = decl_state->effective_decl_level;
+      decl_scope_level = decl_state->orig_decl_level;
       sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
       decl_scope_level = saved_decl_scope_level;
     }  /* if */
@@ -9471,11 +9475,6 @@ instantiation.
         /* A template friend declaration that refers to a nonreal template
            is not allowed. */
         pos_error(ec_friend_is_nonreal_template, &locator.source_position);
-      }  /* if */
-      if (!decl_state->in_prototype_instantiation) {
-        /* Adjust the effective declaration level.  Friend declarations
-           are added to the nearest enclosing namespace scope. */
-        decl_state->effective_decl_level = depth_innermost_namespace_scope;
       }  /* if */
     } else if (friend_token_seen) {
       /* A friend declaration in a nonclass scope.  Only issue the error
@@ -10639,6 +10638,7 @@ parameter based on the current state.
                                         curr_state->in_prototype_instantiation;
   new_state->nesting_depth = 0;
   new_state->decl_info = curr_state->decl_info;
+  new_state->orig_decl_level = curr_state->orig_decl_level;
   new_state->effective_decl_level = curr_state->effective_decl_level;
   new_state->enclosing_scope = curr_state->enclosing_scope;
   new_state->param_list_cache = curr_state->param_list_cache;
@@ -11313,12 +11313,18 @@ set, and its source sequence entry, if any, has been put out.)
           } else {
             il_template_entry->prototype_instantiation.type = NULL;
           }  /* if */
-          il_template_entry->canonical_template = tssp->il_template_entry;
-          if (decl_state->defines_something &&
-              tssp->il_template_entry->definition_template == NULL) {
-            /* With nested class templates, multiple definitions may be seen
-               but only the first one is a true prototype instantiation. */
-            tssp->il_template_entry->definition_template = il_template_entry;
+          if (tssp->is_nonreal_member) {
+            /* The class referenced is a nonreal member.  Don't consider it
+               tobe the canonical template. */
+            il_template_entry->canonical_template = il_template_entry;
+          } else {
+            il_template_entry->canonical_template = tssp->il_template_entry;
+            if (decl_state->defines_something &&
+                tssp->il_template_entry->definition_template == NULL) {
+              /* With nested class templates, multiple definitions may be seen
+                 but only the first one is a true prototype instantiation. */
+              tssp->il_template_entry->definition_template = il_template_entry;
+            }  /* if */
           }  /* if */
           break;
         case sk_function_template:
@@ -12202,7 +12208,7 @@ information returned from decl_specifiers and declarator.
   /* Process a function template declaration. */
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, decl_state->decl_info,
-                         decl_state->effective_decl_level,
+                         decl_state->orig_decl_level,
                          decl_state->is_specialization);
   if (func_info->is_definition) {
     
@@ -13633,6 +13639,13 @@ differs between function and nonfunction declarations.
     err = TRUE;
   }  /* if */
   if (err) depth = NO_SCOPE_DEPTH;
+  decl_state->orig_decl_level = depth;
+  if (decl_state->is_template_friend &&
+      !decl_state->in_prototype_instantiation) {
+    /* For friend declarations (that are not in a prototyep instantiation),
+       the effective declaration level is the nearest namespace scope. */
+    depth = depth_innermost_namespace_scope;
+  }  /* if */
   decl_state->effective_decl_level = depth;
   /* Determine whether this is a friend declaration.  For declarations
      inside a class this is determine by inspecting the tokens that
@@ -13724,6 +13737,7 @@ keyword.
     /* Set the effective declaration level to a valid value for the remainder
        of the processing. */
     decl_state.effective_decl_level = depth_scope_stack;
+    decl_state.orig_decl_level = depth_scope_stack;
   }  /* if */
   if (export_present) {
     if (decl_state.is_member_decl) {
