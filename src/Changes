@@ -1,5 +1,15 @@
 Version 3.3
 
+5/15/03  Microsoft C mode: Accept leading ", ..." parameter declaration
+
+In Microsoft C mode, the front end now accepts a leading parameter spelled
+", ..." as a way to indicate that a function can take an arbitrary sequence
+of call arguments.  For example:
+
+  void f(, ...) {}  /* Accepted in Microsoft C mode. */
+
+Note that the C++ alternative "(...)" is still not accepted.
+
 5/15/03  Incorrect IL increment operator, IA-64 ABI zeroing helper routine
 
 In the code created by IL lowering in a generated routine that

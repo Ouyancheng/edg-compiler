@@ -1166,8 +1166,11 @@ declaration.
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
   a_func_info_block       local_func_info_block;
-  a_token_cache		  decl_token_cache;
+  a_token_cache           decl_token_cache;
   a_boolean               is_top_level_declarator = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean               microsoft_C_leading_ellipsis = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1215,6 +1218,16 @@ declaration.
                               "bad default name linkage kind");
   }  /* if */
 #endif /* CHECKING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && C_mode() && curr_token == tok_comma &&
+      next_token() == tok_ellipsis) {
+    /* Microsoft C accepts "(,...)" as a way to request an arbitrary
+       set of call arguments.  Skip the comma so the ellipsis is seen
+       below. */
+    (void)get_token();
+    microsoft_C_leading_ellipsis = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_rparen) {
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ f() is equivalent to f(void).  Leave param_type_list empty. */
@@ -1225,7 +1238,8 @@ declaration.
     }  /* if */
     any_params = FALSE;
   } else if (curr_token == tok_ellipsis &&
-             (!C_mode() || allow_ellipsis_only_param_in_C_mode)) {
+             (!C_mode() || allow_ellipsis_only_param_in_C_mode ||
+              microsoft_C_leading_ellipsis)) {
     /* The first thing in the parameter list is an ellipsis. */
     if (is_destructor) {
       /* Destructors are allowed no arguments. */
