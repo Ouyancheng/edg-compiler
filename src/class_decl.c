@@ -6949,9 +6949,10 @@ function or NULL if none can be found.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes and asm_name are not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
+#if !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes and asm_name are only used for GNU extensions.
+                    p_ms_attributes is only used for Microsoft extensions. */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_type_ptr              class_type,
                                  a_type_ptr              member_type,
@@ -7894,9 +7895,10 @@ unnamed class.
 }  /* is_or_is_nested_within_unnamed_class */
     
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes and asm_name are not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
+#if !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes and asm_name are only used for GNU extensions.
+                    p_ms_attributes is only used for Microsoft extensions. */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
 static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_type_ptr              class_type,
                                     a_type_ptr              member_type,
@@ -9473,9 +9475,10 @@ respectively.
 }  /* check_field_type */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
+#if !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes is only used for GNU extensions.
+                    p_ms_attributes is only used for Microsoft extensions. */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
 static void decl_nonstatic_data_member(
                                      a_symbol_locator        *locator,
                                      a_type_ptr              class_type,
