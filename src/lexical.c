@@ -11202,7 +11202,7 @@ of the front end.
      end of the previous range. */
   {
     unsigned long	last_end = 0;
-    int			i;
+    unsigned int	i;
     for (i = 0; i < sizeof(UCN_table) / sizeof(a_UCN_range); i++) {
       a_UCN_range_ptr	p = &UCN_table[i];
       check_assertion_str2(p->start <= p->end && p->start > last_end,
