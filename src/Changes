@@ -1793,9 +1793,9 @@ incorrectly considered to be incomplete.  This has been fixed.
 
 3/5/96    #pragma pack and class template instantiation
 
-An instantiation of a class template takes the packing characteristics
-that are enabled at the point of the template definition instead of
-those of the instantiation context:
+When USER_CONTROL_OF_STRUCT_PACKING is TRUE, an instantiation of a class
+template takes the packing characteristics that are enabled at the point of
+the template definition instead of those of the instantiation context:
 
   #pragma pack(2)
   template <class T> class A { ... };
