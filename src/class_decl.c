@@ -5648,6 +5648,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_layout_block          layout_block;
   a_boolean               is_template_instantiation;
   a_boolean               is_nonreal_instantiation = FALSE;
+  a_boolean               error_on_def_in_return_type_already_issued;
 
   db_enter(3, "scan_class_definition");
   /* Set a flag to indicate whether we scanning a class template declaration
@@ -6004,6 +6005,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
         }  /* if */
         /* A declarator list should be present.  Scan it. */
         first_declarator = TRUE;
+        error_on_def_in_return_type_already_issued = FALSE;
         do {
           a_symbol_locator   locator;
           a_type_ptr         local_type;
@@ -6106,7 +6108,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 pos_error(ec_abstract_class_object_not_allowed,
                           &locator.source_position);
               }  /* if */
-              if (local_defines_something && first_declarator) {
+              if (local_defines_something &&
+                  !error_on_def_in_return_type_already_issued) {
                 /* The ARM (8.2.5) explicitly prohibits defining a type in
                    a function return type.  This is taken to apply to
                    pointer-to-function type declarations as well to the
@@ -6118,6 +6121,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                        definition. */
                     pos_error(ec_type_def_not_allowed_in_func_type_decl,
                               &decl_start_pos);
+                    error_on_def_in_return_type_already_issued = TRUE;
                     break;
                   } else if (is_ptr_or_ref_type(tp)) {
                     /* Get type pointed to and continue. */
