@@ -760,9 +760,8 @@ static void db_static_initializer(a_constant_ptr  con)
     }  /* for */
     fputs(" }", f_debug);
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-    fprintf(f_debug, "%d reps of [[ ", con->variant.init_repeat.count);
+    fprintf(f_debug, "%d repetitions of: ", con->variant.init_repeat.count);
     db_static_initializer(con->variant.init_repeat.constant);
-    fputs(" ]]", f_debug);
   } else {
     db_constant(con);
   }  /* if */
@@ -810,13 +809,18 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
     if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
       a_dynamic_init_ptr  dip = con->variant.dynamic_init;
       switch (dip->kind) {
+        case dik_expression:
+          db_expr_node(dip->variant.expression, level);
+          break;
+        case dik_constructor:
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          db_constructor_initializer(dip, level + 2);
+          break;
+#if 0
         case dik_constant:
           for (a = 0; a < level; a++) fputs(" ", f_debug);
           db_static_initializer(dip->variant.constant);
           fputc('\n', f_debug);
-          break;
-        case dik_expression:
-          db_expr_node(dip->variant.expression, level);
           break;
         case dik_aggregate:
           fputs("aggregate with non-constants:\n", f_debug);
@@ -824,15 +828,27 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
                                             variant.aggregate.first_constant,
                                    level + 2);
           break;
-        case dik_constructor:
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
-          db_constructor_initializer(dip, level + 2);
-          break;
+#endif /* if 0 */
+#if CHECKING
+        default:
+          fputs("**UNEXPECTED DYNAMIC INIT KIND**", f_debug);
+#endif /* CHECKING */
       }  /* switch */
     } else {
       for (a = 0; a < level; a++) fputs(" ", f_debug);
-      db_static_initializer(con);
-      fputc('\n', f_debug);
+      if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+        fputs("aggregate:\n", f_debug);
+        db_nonconstant_aggregate(con->variant.aggregate.first_constant,
+                                 level + 2);
+      } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+        fprintf(f_debug, "%d repetitions of:\n",
+                         con->variant.init_repeat.count);
+        db_nonconstant_aggregate(con->variant.init_repeat.constant,
+                                 level + 2);
+      } else {
+        db_constant(con);
+        fputc('\n', f_debug);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* db_nonconstant_aggregate */
