@@ -2627,7 +2627,7 @@ merging of the default arguments occurs in composite_type.
 void check_old_specialization_allowed(a_symbol_ptr       sym,
                                       a_source_position  *pos)
 /*
-Issue a discretionary error if oldstyle template specializations are not
+Issue a discretionary error if old-style template specializations are not
 allowed.  sym is the instance symbol, pos the error position.
 */
 {
