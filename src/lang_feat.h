@@ -218,6 +218,25 @@ to be performed when the compiler is executed.
 #endif /* !defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
 #endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
+/*
+Flag that is TRUE if a stack model is used to manage the include search
+list and FALSE if some other model (by default, a replace-restore model) is
+to be used instead.  The stack model says that when an include file is
+opened, its directory becomes the new primary include search directory by
+being added to the front of the list of directories to search for nested
+include files; the former head of the list is demoted to second place.
+This model is used by Microsoft C compilers.  An alternative model is that
+of pcc, in which the current primary include search directory is removed
+from the search path altogether and the new one takes its place at the head
+of the list; the removed directory is then restored to the head of the list
+when the include file is closed.  This is the approach that predominates on
+UNIX systems.  Note that behavior in this area is left "implementation
+defined" by the ANSI C standard.
+*/
+#ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES
+#define STACK_REFERENCED_INCLUDE_DIRECTORIES FALSE
+#endif /* ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
