@@ -2654,16 +2654,21 @@ symbol supplement.
       add_instantiation(corresp_tssp, inst);
       set_no_class_type_correspondence(class_type);
     } else {
-      /* Restore the type to an unvisited state before setting the
-         correspondence (which will effectively remark it as visited). */
+      /* Record the necessary correspondences. */
       a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
-      checked_trans_unit_corresp_pointer_of(class_type) = NULL;
-      record_trans_unit_corresp(class_type, corresp_type);
-      establish_trans_unit_correspondences_for_class(class_type);
       if (!sym_entry->symbol->defined && inst->defined) {
+        if (in_secondary_trans_unit(corresp_type)) {
+          /* Prefer the new type as the canonical entry. */
+          a_type_ptr  new_type = class_type;
+          class_type = corresp_type;
+          corresp_type = new_type;
+          set_no_class_type_correspondence(corresp_type);
+        }  /* if */
         /* Prefer a definition as the representative. */
         sym_entry->symbol = inst;
       }  /* if */
+      record_trans_unit_corresp(class_type, corresp_type);
+      establish_trans_unit_correspondences_for_class(class_type);
     }  /* if */
   }  /* if */
 }  /* record_class_template_instantiation */
@@ -2764,7 +2769,8 @@ template.
              primary translation unit.  The new instantiation should become
              the canonical correspondence. */
           a_type_ptr  sec = type_symbol_type(slep->symbol);
-          check_assertion(in_secondary_trans_unit(sec));
+          check_assertion(in_secondary_trans_unit(sec) &&
+                          !has_correspondence(sec));
           (void)seek_type_corresp(sec, prim);
           /* It is tempting to set slep->symbol = inst at this point, but we
              may need to have a record of sec to set correspondences for its
