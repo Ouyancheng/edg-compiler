@@ -401,6 +401,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_register_storage_class_conflict)*/
 /*lint -esym(769,ec_aliased_variable_cannot_have_register_storage_class)*/
 /*lint -esym(769,ec_register_in_use)*/
+/*lint -esym(769,ec_missing_named_register_storage_class)*/
+/*lint -esym(769,ec_previous_decl_at)*/
+/*lint -esym(769,ec_register_too_small)*/
+/*lint -esym(769,ec_no_named_register_for_array)*/
 #endif /* !NAMED_REGISTERS_ALLOWED */
 #if !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
       NAMED_REGISTERS_ALLOWED)
