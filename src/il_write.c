@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -966,6 +966,6 @@ Write the indicated memory region to the file f_il_output.
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

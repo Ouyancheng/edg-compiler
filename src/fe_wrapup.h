@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -31,7 +31,7 @@ extern void fe_wrapup_part_2(void);
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 

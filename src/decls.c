@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -12721,6 +12721,6 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
