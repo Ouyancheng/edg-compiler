@@ -885,13 +885,8 @@ and return a pointer to it.  Its definition is
 #if IA64_ABI 
     const class_type_info 
                   *tinfo;  // typeinfo for base class
-#if POINTERS_HAVE_AT_LEAST_32_BITS
     long          offset_flags; 
                            // Combined offset and flags.
-#elif // !POINTERS_HAVE_AT_LEAST_32_BITS
-    ptrdiff_t     offset;  // Offset of base class in derived class
-    unsigned int  flags;   // Flags
-#endif // !POINTERS_HAVE_AT_LEAST_32_BITS
 #else // !IA64_ABI
     const typeinfo
                   *tinfo;  // typeinfo for base class
@@ -918,8 +913,17 @@ and return a pointer to it.  Its definition is
                                                             (a_type_ptr)NULL),
                                          TQ_CONST)),
                        base_class_spec_type, &last_field);
+    /* field: short offset */
+    make_lowered_field("offset", 
+                       integer_type(TARG_DELTA_INT_KIND),
+                       base_class_spec_type, &last_field);
+    /* field: unsigned char flags */
+    make_lowered_field("flags",
+                       integer_type((an_integer_kind)ik_unsigned_char),
+                       base_class_spec_type, &last_field);
 #else /* IA64_ABI */
-    /* field: const class_type_info *tinfo (IA-64 ABI). */
+    /* IA-64 ABI. */
+    /* field: const class_type_info *tinfo. */
     make_lowered_field("tinfo", 
                        make_pointer_type(
                                 make_qualified_type(
@@ -927,21 +931,11 @@ and return a pointer to it.  Its definition is
                                                             (a_type_ptr)NULL),
                                          TQ_CONST)),
                        base_class_spec_type, &last_field);
+    /* field: long offset_flags */
+    make_lowered_field("offset_flags", 
+                       integer_type((an_integer_kind)ik_long),
+                       base_class_spec_type, &last_field);
 #endif /* IA64_ABI */
-    /* field: short offset */
-    make_lowered_field("offset", 
-                       integer_type(TARG_DELTA_INT_KIND),
-                       base_class_spec_type, &last_field);
-    /* field: unsigned char flags */
-    make_lowered_field("flags",
-                       integer_type((an_integer_kind)
-#if IA64_ABI
-                                    ik_unsigned_int
-#else /* !IA64_ABI */
-                                    ik_unsigned_char
-#endif /* !IA64_ABI */
-                                    ),
-                       base_class_spec_type, &last_field);
     finish_class_type(base_class_spec_type);
   }  /* if */
   return base_class_spec_type;
@@ -1622,7 +1616,7 @@ typeinfo variable in a COMDAT group.
       case tik_si_class:
       case tik_vmi_class:
         /* Single- and multiple-inheritance classes. */
-        { a_constant_ptr         class_con, base_con, flags_con; 
+        { a_constant_ptr         class_con, base_con, flags_con;
           a_constant_ptr         offset_con, count_con, base_info_con;
           a_constant_ptr         base_array_con;
           a_base_class_ptr       base;
@@ -1685,7 +1679,7 @@ typeinfo variable in a COMDAT group.
                                           make_typeinfo_type(tik_class,
                                                              (a_type_ptr)NULL),
                                           TQ_CONST)));
-              /* Offset field. */
+              /* offset_flags field.  Value is offset<<8 plus flags. */
 	      offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
               if (base->is_virtual) {
                 offset = (a_host_large_integer)(base->vbase_offset_index *
@@ -1693,7 +1687,6 @@ typeinfo variable in a COMDAT group.
               } else {
                 offset = (a_host_large_integer)base->offset;
               }  /* if*/
-	      set_integer_constant(offset_con, offset, TARG_DELTA_INT_KIND);
               /* Flags field. */
               base_flags_value = 0;
               if (base->is_virtual) {
@@ -1703,17 +1696,15 @@ typeinfo variable in a COMDAT group.
                   (an_access_specifier)as_public) { 
                 base_flags_value |= BCS_PUBLIC;
               }  /* if */
-              flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-              set_integer_constant(flags_con, base_flags_value,
-                                   (an_integer_kind)ik_unsigned_int);
+              set_integer_constant(offset_con, (offset<<8) | base_flags_value,
+                                   (an_integer_kind)ik_long);
               /* Initialize the array entry. */
               base_con->next = offset_con;
-              offset_con->next = flags_con;
               base_info_con = alloc_constant(
                                          (a_constant_repr_kind)ck_aggregate);
               base_info_con->type = make_base_class_spec_type();
               base_info_con->variant.aggregate.first_constant = base_con;
-              base_info_con->variant.aggregate.last_constant = flags_con;
+              base_info_con->variant.aggregate.last_constant = offset_con;
               /* Add it to the array. */
               if (base_array_con->variant.aggregate.first_constant == NULL) {
                 base_array_con->variant.aggregate.first_constant = 

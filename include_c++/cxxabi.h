@@ -57,8 +57,7 @@ namespace __cxxabiv1 {
 
   struct __base_class_type_info {
     const __class_type_info *__base_type;
-    __EDG_DELTA_TYPE __offset;
-    unsigned int __flags;
+    long __offset_flags;
 
     enum __offset_flags_masks {
       __virtual_mask = 0x1,
