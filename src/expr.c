@@ -1312,6 +1312,7 @@ Syntax:
            pointer to member function.  Suppress argument checking. */
         routine_type = NULL;
         routine = NULL;
+        unknown_dependent_function = TRUE;
       }  /* if */
     }  /* if */
     /* Change the kind in the reference entry for the function from an
