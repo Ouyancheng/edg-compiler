@@ -4334,7 +4334,7 @@ for the GNU C multiline string extension.
 		  olmp;
   a_source_line_modif_ptr
 		  slmp;
-  sizeof_t        offset_in_line, offset_to_invalid_char;
+  sizeof_t        offset_in_line, offset_to_invalid_char = 0;
   char		  *after_curr_source_line_minus_term =
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
@@ -4463,13 +4463,10 @@ for the GNU C multiline string extension.
             goto possible_trigraph;
           }  /* if */
         } else if (local_ch == LE_ESCAPE) {
-          /* The zero character is reserved for internal use.  Replace it
-             by a blank and save the error position for later display. */
-          local_ch = ' ';
-          if (!has_invalid_char) {
-            has_invalid_char = TRUE;
-            offset_to_invalid_char = local_loc_in_line - curr_source_line;
-          }  /* if */
+          /* The zero character is reserved for internal use. */
+          ch = local_ch;
+          loc_in_line = local_loc_in_line;
+          goto null_character;
         }  /* if */
         /* Check that there is still room in the line buffer.  We have to
            leave room for both the final newline and line-end escapes. */
@@ -4525,8 +4522,9 @@ return_with_line:
   if (has_invalid_char) {
     /* Put out an error if the line contains any invalid characters.  Only the
        position of the first one is identified. */
-    error_at_line_pos(ec_invalid_char,
-                      curr_source_line + offset_to_invalid_char);
+    diagnostic_at_line_pos(gcc_mode ? es_warning : es_error,
+                           ec_invalid_char,
+                           curr_source_line + offset_to_invalid_char);
   }  /* if */
   /* Set the input character position to the start of the line. */
   if (!extend_current_line) {
@@ -4633,6 +4631,12 @@ possible_trigraph:
   curr_column = loc_in_line - curr_source_line + 1;
   goto entry_for_possible_trigraph;
 
+null_character:
+  /* There is a null character in the input line.  Go into the expensive
+     loop. */
+  curr_column = loc_in_line - curr_source_line + 1;
+  goto entry_for_null_character;
+
 line_splice:
   /* A backslash has been detected at the end of the first line.
      Go into the general-purpose algorithm. */
@@ -4720,6 +4724,7 @@ entry_for_possible_trigraph:
       } else if (ch == LE_ESCAPE) {
         /* The zero character is reserved for internal use.  Replace it
            by a blank and save the error position for later display. */
+entry_for_null_character:
         *loc_in_line = ch = ' ';
         if (!has_invalid_char) {
           has_invalid_char = TRUE;
