@@ -6428,6 +6428,7 @@ C-style casts and C++ functional-notation type conversions.
       }  /* if */
       /* Check for different types of casts and do the cast. */
       if (!err) {
+        a_boolean      is_reinterpret_cast = FALSE;
         a_boolean      operand_is_constant;
         a_constant_ptr operand_con = NULL;
         /* The bound function test is done first to make sure bound functions
@@ -6477,8 +6478,7 @@ C-style casts and C++ functional-notation type conversions.
           conv_function_designator_to_ptr_to_function(operand,
                                                       /*allow_ctor=*/FALSE);
           cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
-                       /*is_implicit_cast=*/FALSE,
-                       /*is_reinterpret_cast=*/FALSE);
+                       /*is_implicit_cast=*/FALSE, is_reinterpret_cast);
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
@@ -6486,6 +6486,7 @@ C-style casts and C++ functional-notation type conversions.
                                             (a_boolean)operand->
                                                       is_simple_string_literal,
                                             operand_con, type_cast_to,
+                                            &is_reinterpret_cast,
                                             ec_bad_cast, &warning_suggested)) {
           /* Valid explicit conversion. */
           if (microsoft_bugs && is_an_lvalue(operand) &&
@@ -6525,8 +6526,7 @@ C-style casts and C++ functional-notation type conversions.
             }  /* if */
             /* Do the actual cast. */
             cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
-                         /*is_implicit_cast=*/FALSE,
-                         /*is_reinterpret_cast=*/FALSE);
+                         /*is_implicit_cast=*/FALSE, is_reinterpret_cast);
             if (cast_to_reference) {
               /* The result of a cast to reference is an lvalue. */
               conv_object_pointer_to_lvalue(operand);

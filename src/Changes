@@ -1,5 +1,21 @@
 Version 2.43
 
+9/16/99  Conversions and pointer-to-members
+
+The front end now accepts reinterpret_cast conversions on pointer-to-member
+constants, but the result is no longer a constant.  Static_cast conversions
+are allowed as part of pointer-to-member constant-expressions.
+
+  struct A { void f(); };
+  struct B {};
+  struct C: B { void f(); };
+  void (B::*pmf1)() = (void (B::*)())&A::f; // Dynamic initialization
+                                            // (like a reinterpret_cast)
+  void (B::*pmf2)() = (void (B::*)())&C::f; // Static initialization
+                                            // (like a static_cast)
+  void (B::*pmf3)() = reinterpret_cast<void (B::*)()>(&C::f);
+                                            // Dynamic initialization
+
 9/16/99  Assignment problems in cfront mode introduced in 2.42
 
 A change for operator= functions made in version 2.42 (see Changes

@@ -4545,6 +4545,7 @@ a_boolean expl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_string_literal,
                                    a_constant    *source_constant,
                                    a_type_ptr    dest_type,
+                                   a_boolean     *reinterpret_cast_needed,
                                    an_error_code default_warning_code,
                                    an_error_code *warning_suggested)
 /*
@@ -4567,7 +4568,9 @@ Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
 explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
 are allowed.  Reference conversions have been turned into pointer conversions
 by the time they get here.  Note that this routine does not handle user-defined
-conversions (constructors and conversion functions).
+conversions (constructors and conversion functions).  If the conversion
+requires a reinterpret_cast-like operation, *reinterpret_cast_needed will be
+set to TRUE (otherwise it is left unchanged).
 */
 {
   a_boolean     okay = FALSE;
@@ -4619,6 +4622,7 @@ conversions (constructors and conversion functions).
         /* The conversion can be done as a reinterpret_cast, without a
            warning. */
         okay = TRUE;
+        *reinterpret_cast_needed = TRUE;
       } else if (static_cast_okay) {
         /* static_cast is okay but with a warning. */
         okay = TRUE;
@@ -4627,6 +4631,7 @@ conversions (constructors and conversion functions).
         /* reinterpret_cast is okay but with a warning. */
         okay = TRUE;
         *warning_suggested = reinterpret_cast_warning_suggested;
+        *reinterpret_cast_needed = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
