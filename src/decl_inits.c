@@ -757,7 +757,11 @@ The syntax is:
       err = TRUE;
     }  /* if */
   } else {
-    if (!paren_flag) check_for_opening_brace(&brace_flag);
+    if (paren_flag) {
+      add_stop_token(tok_rparen);
+    } else {
+      check_for_opening_brace(&brace_flag);
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus ||
         (vp != NULL && has_static_storage_duration(vp->storage_class))) {
       /* Scan a potentially non-constant initializer expression.  The result
@@ -794,9 +798,14 @@ The syntax is:
         initialization_is_dynamic = TRUE;
       }  /* if */
     }  /* if */
-    /* If an extra opening brace was ignored earlier, ignore the matching
-       closing brace now. */
-    check_for_matching_closing_brace(brace_flag);
+    if (paren_flag) {
+      remove_stop_token(tok_rparen);
+      (void)required_token(tok_rparen, ec_exp_rparen);
+    } else {
+      /* If an extra opening brace was ignored earlier, ignore the matching
+         closing brace now. */
+      check_for_matching_closing_brace(brace_flag);
+    }  /* if */
   }  /* if */
   if (put_init_in_variable) {
     if (C_dialect == C_dialect_cplusplus) {
@@ -814,7 +823,7 @@ The syntax is:
         /* Issue a warning for a dynamic initialization in an unreachable
            block. */
         if (!curr_code_reachable()) {
-          warning(ec_initialization_not_reachable);
+          pos_warning(ec_initialization_not_reachable, source_pos);
         }  /* if */
       }  /* if */
       /* Generate a dynamic initialization entry (based on local_di) and
