@@ -14475,12 +14475,11 @@ rather than a static variable.
   } else if (microsoft_mode) {
     /* Microsoft mode keywords are always string literals. */
     is_string = TRUE;
-  } else if (gcc_mode) {
+  } else if (gcc_mode && gnu_version < 30400) {
     /* gcc mode keywords are strings except for __func__ (which is
        a variable because it's from C99).  The gcc documentation says
        that the string cases will be changed to variables in gcc 3.2,
-       but as of 3.3 they are still strings.  In 3.4 they appear to
-       be variables. */
+       but as of 3.3 they are still strings.  In 3.4 they are variables. */
     is_string = (token != tok_func_name);
   } else {
     /* Other cases (C99, g++): use a static variable. */
