@@ -20,7 +20,6 @@ lower_hdrs.h -- Inclusion of header files used by files involved in IL
 #include "lower_init.h"
 #include "lower_name.h"
 #include "pch.h"
-#include "types.h"
 				   
 /******************************************************************************
 *                                                             \  ___  /       *
