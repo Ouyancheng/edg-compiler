@@ -2,6 +2,15 @@ Version 2.33, October 1, 1996
 
 10/1/96 IL version number changed to 2.25
 
+10/1/96 IL lowering: two bugs with type-as-subobject of class in namespace
+
+Two bugs have been corrected in IL lowering's processing of the
+type-as-subobject class associated with a class that is the last type
+in a namespace.  The first problem caused an internal error in
+ensure_il_scope_exists, and the second resulted in incorrect generated
+code (the type_as_subobject was referenced, but did not appear in
+the final IL tree).
+
 9/30/96 Dynamic initialization of local static variable
 
 In C++, when the initializer of a local static variable is a non-integral

@@ -3889,16 +3889,28 @@ this routine to do a relatively simple copy of the all the fields.
        If the class type is the last entry on some type list,
        use add_to_types_list to get the last_type pointer updated. */
     if (class_type->next == NULL) {
-      /* The class type is the last on a list.  See if the list is one of the
-         ones being tracked in the scope stack. */
-      for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
-        if (class_type ==
+      /* The class type is the last on a list.  Use add_to_types_list to add
+         the subobject type so that the last-pointer will be updated. */
+      if (class_type->source_corresp.parent.namespace_ptr != NULL) {
+        /* For namespace members, add_to_types_list can figure out the right
+           processing, and the loop below fails if it runs into a namespace
+           reactivation. */
+        add_to_types_list(subobject_type, NO_SCOPE_DEPTH);
+        goto added_to_list;
+      } else {
+        /* See if the list is one of the ones being tracked in the scope
+           stack. */
+        for (scope_depth = depth_scope_stack;
+             scope_depth >= 0;
+             scope_depth--) {
+          if (class_type ==
               assoc_pointers_block_of(&scope_stack[scope_depth])->last_type) {
-          /* Found the list.  Add the subobject type to its end. */
-          add_to_types_list(subobject_type, scope_depth);
-          goto added_to_list;
-        }  /* if */
-      }  /* for */
+            /* Found the list.  Add the subobject type to its end. */
+            add_to_types_list(subobject_type, scope_depth);
+            goto added_to_list;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
     /* The class type is not the last on a list we're tracking. */
     subobject_type->next = class_type->next;
@@ -9928,7 +9940,17 @@ have been promoted out of those classes.
             scope->types = temp_type_next;
           }  /* if */
           /* Stop on reaching the type pointed to by the placeholder. */
-          if (temp_type == namespace_type) break;
+          if (temp_type == namespace_type) {
+            /* If the type is followed by its type-as-subobject, go around
+               once more to move that too. */
+            if (is_immediate_class_type(temp_type) && temp_type_next != NULL &&
+                temp_type->variant.class_struct_union.extra_info->
+                                         type_as_subobject == temp_type_next) {
+              namespace_type = temp_type_next;
+            } else {
+              break;
+            }  /* if */
+          }  /* if */
         }  /* for */
       }  /* if */
       /* Remove the placeholder type entry from the list.  It's just
