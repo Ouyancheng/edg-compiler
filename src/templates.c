@@ -262,7 +262,7 @@ increase pos_in_temp_text_buffer by the number of characters added.
              curr_token == tok_digit_sequence ||
              curr_token == tok_cpp_quote ||
              curr_token == tok_ptr_to_member) {
-    internal_error("make_template_string: unexpected token");
+    internal_error("add_token_to_template_string: unexpected token");
 #endif /* CHECKING */
   } else if (curr_token == tok_identifier) {
     /* An identifier. */
@@ -407,10 +407,16 @@ the "text" field of *template_ptr to point to it.
       break;
     }  /* if */
   }  /* for */
-  /* Terminate the string with a semicolon (which will not have been
-     included among the cached tokens). */
-  ensure_temp_text_buffer_space(pos_in_temp_text_buffer + 1);
-  temp_text_buffer[pos_in_temp_text_buffer++] = ';';
+  if (template_body_cache != NULL &&
+      (template_ptr->kind == templk_function ||
+       template_ptr->kind == templk_member_function)) {
+    /* Function template definition -- no semicolon needed. */
+  } else {
+    /* Terminate the string with a semicolon (which will not have been
+       included among the cached tokens). */
+    ensure_temp_text_buffer_space(pos_in_temp_text_buffer + 1);
+    temp_text_buffer[pos_in_temp_text_buffer++] = ';';
+  }  /* if */
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
   il_string = (char *)alloc_il(pos_in_temp_text_buffer + 1);
