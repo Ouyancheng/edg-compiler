@@ -402,9 +402,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 
 
 static a_boolean increment_field_offsets(a_targ_size_t *byte_offset,
-                                         int           *bit_offset,
+                                         unsigned int  *bit_offset,
                                          a_targ_size_t byte_incr,
-                                         int           bit_incr)
+                                         unsigned int  bit_incr)
 /*
 Increment the byte and bit offsets by the indicated amount, checking for
 overflow.  Return TRUE if the update is successful, FALSE if there was an
@@ -451,7 +451,7 @@ overflow error.
 
 
 a_boolean do_alignment(a_targ_size_t    *byte_offset,
-                       int              *bit_offset,
+                       unsigned int     *bit_offset,
                        a_targ_alignment alignment)
 /*
 Increment the byte and bit offsets to align them with the indicated 
@@ -485,7 +485,7 @@ there was an overflow error.
 
 static a_boolean align_offsets_for_bit_field(int              bit_size,
                                              a_targ_size_t    *byte_offset,
-                                             int              *bit_offset,
+                                             unsigned int     *bit_offset,
 					     a_targ_alignment *p_alignment,
                                              a_type_ptr       base_type)
 /*
@@ -655,7 +655,7 @@ aligned according to container_alignment.
 
 a_boolean set_field_size_and_offset(a_field_ptr      field,
                                     a_targ_size_t    *p_byte_offset,
-                                    int              *p_bit_offset,
+                                    unsigned int     *p_bit_offset,
                                     a_targ_alignment *p_alignment)
 /*
 field points to a new field of a structure.  So far in the structure, the
@@ -671,7 +671,7 @@ if there's no overflow TRUE is returned.
   a_targ_alignment field_alignment;
   a_boolean	   overflow;
   a_targ_size_t    save_byte_offset;
-  int		   save_bit_offset;
+  unsigned int	   save_bit_offset;
 
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
@@ -850,7 +850,8 @@ will already have been done.
   a_type_ptr           class_type = lob->class_type;
   a_field_ptr          field;
   a_targ_size_t        local_byte_offset;
-  int                  local_bit_offset, count;
+  unsigned int         local_bit_offset;
+  int                  count;
   an_access_specifier  access;
 
   db_enter(4, "set_offsets_for_remaining_fields");

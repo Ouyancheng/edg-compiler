@@ -712,7 +712,7 @@ Put the wide character ch into the string pointed to by *pstr, and increment
 *pstr by the proper amount.
 */
 {
-  int  i;
+  unsigned int  i;
   char *p = *pstr;
 
   /* This is basically a copy of an integer to an array of characters;
