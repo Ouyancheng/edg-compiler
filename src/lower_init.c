@@ -1725,7 +1725,7 @@ Pop function corresponding to push_generated_routine_context.
   innermost_function_scope = grcontext->innermost_function_scope;
   curr_cleanup_state = grcontext->curr_cleanup_state;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
-  done_with_memory_region(region_number);
+  check_for_done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
 }  /* pop_generated_routine_context */
 

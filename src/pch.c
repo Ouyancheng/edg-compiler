@@ -1506,12 +1506,11 @@ write out the precompiled header file.
 void header_stop_no_longer_pending(void)
 /*
 This routine is called when we are no longer generating information that
-may potentially be part of a precompiled header.  We may have just
-generated a precompiled header file, or we may have determined that
-generating one is not possible.  This routine goes back of the
-memory regions that have already been generate and re-calls
-done_with_memory_region so that the IL file can be written (if needed)
-and the memory freed (if appropriate).
+may potentially be part of a precompiled header.  We may have just generated
+a precompiled header file, or we may have determined that generating one is
+not possible.  This routine goes back of the memory regions that have already
+been completed and calls check_for_done_with_memory_region so that the IL
+file can be written (if needed) and the memory freed (if appropriate).
 */
 {
   a_memory_region_number	n;
@@ -1529,7 +1528,7 @@ and the memory freed (if appropriate).
          popped off of the scope stack. */
     } else {
       /* The scope is no longer active. */
-      done_with_memory_region(n);
+      check_for_done_with_memory_region(n);
     }  /* if */
   }  /* for */
   free_unused_pch_memory();
