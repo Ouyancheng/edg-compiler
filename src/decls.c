@@ -2780,7 +2780,8 @@ declaration of this symbol.
                struct s {int b;};
            The first "struct s" is a different type than the second, which is
            probably not what was wanted. */
-        if (kind != (a_symbol_kind)sk_constant) {
+        if (kind != (a_symbol_kind)sk_constant &&
+            !is_error_locator(*locator)) {
           pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
         }  /* if */
       }  /* if */
@@ -6749,50 +6750,54 @@ Returns TRUE if there is an error in the specifiers.
           /* More than  one storage class may not be specified. */
           error(ec_mult_storage_classes);
           err = TRUE;
-        } else {
-          if (is_parameter && curr_token != tok_register &&
-              (C_dialect != C_dialect_cplusplus || curr_token != tok_auto)) {
-            /* For parameters, the only allowed storage class specifiers are
-	       "register" and (in C++ only) "auto". */
+        } else if (is_parameter && curr_token != tok_register &&
+                   (C_dialect != C_dialect_cplusplus ||
+                    curr_token != tok_auto)) {
+          /* For parameters, the only allowed storage class specifiers are
+             "register" and (in C++ only) "auto". */
+          if (curr_token == tok_typedef) {
+            /* Error will be handled by caller. */
+            *storage_class = (a_storage_class)sc_typedef;
+          } else {
             error(ec_bad_param_storage_class);
             err = TRUE;
-          } else if (is_inline && curr_token != tok_static) {
-            error(ec_bad_storage_class_with_inline);
-            err = TRUE;
-          } else if (is_member_decl &&
-                     curr_token != tok_static && curr_token != tok_typedef) {
-            error(ec_bad_member_storage_class);
-            err = TRUE;
-          } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION &&
-                     curr_token != tok_extern && curr_token != tok_static) {
-            error(ec_bad_storage_class_on_template_decl);
-            err = TRUE;
-          } else {
-            if (C_dialect != C_dialect_pcc && !err) {
-              if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
-                                   (is_inline ? 1 : 0)) {
-                /* Issue a warning if the storage class is not the first
-                   specifier (except for "inline" or "friend"). */
-                warning(ec_storage_class_not_first);
-              }  /* if */
-            }  /* if */
-            switch (curr_token) {
-              case tok_typedef:
-                *storage_class = (a_storage_class)sc_typedef;  break;
-              case tok_extern:
-                *storage_class = (a_storage_class)sc_extern;   break;
-              case tok_static:
-                *storage_class = (a_storage_class)sc_static;   break;
-              case tok_auto:
-                *storage_class = (a_storage_class)sc_auto;     break;
-              case tok_register:
-                *storage_class = (a_storage_class)sc_register; break;
-#if CHECKING
-              default:
-                internal_error("decl_specifiers: bad storage class");
-#endif /* CHECKING */
-            }  /* switch */
           }  /* if */
+        } else if (is_inline && curr_token != tok_static) {
+          error(ec_bad_storage_class_with_inline);
+          err = TRUE;
+        } else if (is_member_decl &&
+                   curr_token != tok_static && curr_token != tok_typedef) {
+          error(ec_bad_member_storage_class);
+          err = TRUE;
+        } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION &&
+                   curr_token != tok_extern && curr_token != tok_static) {
+          error(ec_bad_storage_class_on_template_decl);
+          err = TRUE;
+        } else {
+          if (C_dialect != C_dialect_pcc && !err) {
+            if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
+                                 (is_inline ? 1 : 0)) {
+              /* Issue a warning if the storage class is not the first
+                 specifier (except for "inline" or "friend"). */
+              warning(ec_storage_class_not_first);
+            }  /* if */
+          }  /* if */
+          switch (curr_token) {
+            case tok_typedef:
+              *storage_class = (a_storage_class)sc_typedef;  break;
+            case tok_extern:
+              *storage_class = (a_storage_class)sc_extern;   break;
+            case tok_static:
+              *storage_class = (a_storage_class)sc_static;   break;
+            case tok_auto:
+              *storage_class = (a_storage_class)sc_auto;     break;
+            case tok_register:
+              *storage_class = (a_storage_class)sc_register; break;
+#if CHECKING
+            default:
+              internal_error("decl_specifiers: bad storage class");
+#endif /* CHECKING */
+          }  /* switch */
         }  /* if */
         break;
       case tok_const:
@@ -9256,7 +9261,8 @@ continue_with_declaration:
   if (curr_token == tok_semicolon && !decl_specifiers_omitted) {
     if (err) {
       /* There was a previous error, so do not check further. */
-    } else if (is_old_style_param_decl && C_dialect != C_dialect_pcc) {
+    } else if (is_old_style_param_decl && C_dialect != C_dialect_pcc &&
+               (declares_something || defines_something)) {
       /* ANSI C does not allow freestanding declarations (as of structs)
          within an old-style parameter list.  pcc, on the other hand,
          will allow something like
@@ -9265,7 +9271,8 @@ continue_with_declaration:
             struct s a;
             { ... }
       */
-      error(ec_decl_should_be_of_param);
+      diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                 ec_decl_should_be_of_param);
     } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
                defines_something && type_ptr->kind == (a_type_kind)tk_union &&
                storage_class != (a_storage_class)sc_typedef) {
@@ -9507,22 +9514,29 @@ continue_with_declaration:
          the param_id_list.  Also adjust the type if necessary
          (for example, "array of x" becomes "pointer to x"). */
       if (local_is_old_style_param_decl) {
-        param_id = param_id_on_list(&locator, param_id_list);
-        if (param_id == NULL) {
-          /* The identifier was not found on the list. */
-          error(ec_decl_should_be_of_param);
-          /* Enter the declared object as a variable rather than as a
-             parameter.  */
+        if (local_storage_class == (a_storage_class)sc_typedef) {
+          pos_error(ec_decl_should_be_of_param, &decl_start_pos);
+          set_to_error_locator(locator);
           local_is_old_style_param_decl = FALSE;
-        } else if (param_id->type != NULL) {
-          /* Parameter has already been declared. */
-          str_error(ec_id_already_declared, locator.symbol_header->identifier);
-        }  /* if */
-        adjust_parameter_type(&local_type_ptr);
-        is_function = top_declarator_type_is_function = FALSE;
-        /* For pcc compatibility, promote float parameters to double. */
-        if (C_dialect == C_dialect_pcc) {
-          promote_float_to_double(local_type_ptr);
+        } else {
+          param_id = param_id_on_list(&locator, param_id_list);
+          if (param_id == NULL) {
+            /* The identifier was not found on the list. */
+            error(ec_decl_should_be_of_param);
+            /* Enter the declared object as a variable rather than as a
+               parameter.  */
+            local_is_old_style_param_decl = FALSE;
+          } else if (param_id->type != NULL) {
+            /* Parameter has already been declared. */
+            str_error(ec_id_already_declared,
+                      locator.symbol_header->identifier);
+          }  /* if */
+          adjust_parameter_type(&local_type_ptr);
+          is_function = top_declarator_type_is_function = FALSE;
+          /* For pcc compatibility, promote float parameters to double. */
+          if (C_dialect == C_dialect_pcc) {
+            promote_float_to_double(local_type_ptr);
+          }  /* if */
         }  /* if */
       }  /* if */
       /* See if any type qualifiers were specified, and if they are okay. */
