@@ -7562,24 +7562,34 @@ Any cleanup code inserted is placed after the last statement.
       scope = innermost_function_scope;
     }  /* if */
     if (scope != NULL) lifetime = scope->lifetime;
+    /* If the block was originally empty but some statements were
+       added (e.g., to initialize the catch handler parameter), find the
+       last statement. */
+    if (last_statement == NULL &&
+        block_statement->variant.block.statements != NULL) {
+      last_statement = last_statement_in_block(block_statement);
+    }  /* if */
+    if (last_statement == NULL) {
+      /* The block is empty, so insert at its beginning. */
+      set_block_start_insert_location(block_statement, &insert_location);
+    } else {
+      /* Insert after the last statement. */
+      set_insert_location(last_statement, &insert_location);
+    }  /* if */
     /* Insert any cleanup actions after the last statement in the block
        if the end of the block is reachable. */
     if (block->end_of_block_reachable) {
-      /* If the block was originally empty but some statements were
-         added (e.g., to initialize the catch handler parameter), find the
-         last statement. */
-      if (last_statement == NULL &&
-          block_statement->variant.block.statements != NULL) {
-        last_statement = last_statement_in_block(block_statement);
-      }  /* if */
-      if (last_statement == NULL) {
-        /* The block is empty, so insert at its beginning. */
-        set_block_start_insert_location(block_statement, &insert_location);
-      } else {
-        /* Insert after the last statement. */
-        set_insert_location(last_statement, &insert_location);
-      }  /* if */
       gen_cleanup_actions(lifetime, &insert_location);
+#if !DO_FULL_PORTABLE_EH_LOWERING
+    } else if (scope != innermost_function_scope) {
+      /* For the partially-lowered EH schemes, indicate the cleanup state
+         even if the end of the block is not reachable since the cleanup
+         state operation might be used to build a table instead of being
+         considered executable.  This is not needed at the end of the
+         top block of a function. */
+      set_curr_cleanup_state(curr_context->saved_curr_cleanup_state,
+                             &insert_location);
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
     }  /* if */
   }  /* if */
   if (context_pushed) {
