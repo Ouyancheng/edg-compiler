@@ -107,7 +107,7 @@ the function takes a variable number of arguments.
 
   name = builtin_function_kind_names[(int)bfk];
   clear_locator(&loc, &null_source_position);
-  (void)find_symbol(name, strlen(name), &loc);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
   sym = make_predeclared_function_symbol(&loc, return_type, param1_type,
 					 param2_type, param3_type,
 					 param4_type);
