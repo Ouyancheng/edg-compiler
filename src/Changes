@@ -1,5 +1,16 @@
 Version 2.45
 
+9/28/00  Microsoft compatibility: Usual arithmetic conversions and sized
+         types like __int32
+
+When the changes were made in version 2.44 to treat Microsoft sized types
+like __int32 as distinct from the same-sized standard types (see
+Changes entry of 12/14/99), the usual arithmetic conversion rules
+weren't updated accordingly.  An operation like __int32 + short should
+have type __int32, but instead it was given type int (the standard
+integral type with the same size as __int32).  Now the sized type is
+used.
+
 9/28/00  Preprocessor output: #include <stdarg.h>
 
 The preprocessor used to tokenize the expansion of a macro even when it

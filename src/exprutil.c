@@ -3275,6 +3275,43 @@ Likewise for operand_2/operand_2_type.
     }  /* if */
   }  /* if */
 done:;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && is_integral_or_enum_type(result_type)) {
+    /* Preserve the microsoft_sized_int_type flag in the result type if
+       it is there in the operand types.  That prevents returning, e.g.,
+       long long when the right answer is __int64. */
+    a_boolean  result_is_microsoft_sized_int = FALSE;
+    a_type_ptr base_result_type = skip_typerefs(result_type);
+    a_type_ptr base_type_1 = skip_typerefs(type_1);
+    a_type_ptr base_type_2 = skip_typerefs(type_2);
+    a_boolean  type_1_same_int_as_result = 
+                            (is_integral_or_enum_type(base_type_1) &&
+                             base_type_1->variant.integer.int_kind ==
+                                   base_result_type->variant.integer.int_kind);
+    a_boolean  type_2_same_int_as_result = 
+                            (is_integral_or_enum_type(base_type_2) &&
+                             base_type_2->variant.integer.int_kind ==
+                                   base_result_type->variant.integer.int_kind);
+    if (type_1_same_int_as_result && type_2_same_int_as_result) {
+      if (base_type_1->variant.integer.microsoft_sized_int_type &&
+          base_type_2->variant.integer.microsoft_sized_int_type) {
+        result_is_microsoft_sized_int = TRUE;
+      }  /* if */
+    } else if (type_1_same_int_as_result) {
+      if (base_type_1->variant.integer.microsoft_sized_int_type) {
+        result_is_microsoft_sized_int = TRUE;
+      }  /* if */
+    } else if (type_2_same_int_as_result) {
+      if (base_type_2->variant.integer.microsoft_sized_int_type) {
+        result_is_microsoft_sized_int = TRUE;
+      }  /* if */
+    }  /* if */
+    if (result_is_microsoft_sized_int) {
+      result_type = microsoft_sized_integer_type(
+                                   base_result_type->variant.integer.int_kind);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_exit();
   return result_type;
