@@ -304,7 +304,7 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
           f_types_are_compatible((t1), (t2),                          \
                        TCF_IGNORE_CALLING_CONVENTIONS | (extra_flags)))
 #else /* !MICROSOFT_KEYWORDS_ALLOWED */
-#define routine_types_are_compatible(t1, t2)                          \
+#define routine_types_are_compatible(t1, t2, extra_flags)             \
          ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2), TCF_NO_FLAGS | (extra_flags)))
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
