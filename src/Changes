@@ -1,5 +1,13 @@
 Version 2.14
 
+2/2/93  Incomplete types from function prototypes not on types list
+
+In C mode an incomplete type that is declared in a function prototype
+that is not immediately followed by a function definition was not
+being added to the types list of the function prototype scope.
+It is unlikely that this would actually create any problems, but has
+been corrected to keep the IL representation as consistent as possible.
+
 1/29/93 Explicit signedness flag for bit fields
 
 The IL a_field entry now has a field bit_field_is_signed that indicates
