@@ -1353,7 +1353,7 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		universal_character_names_allowed /* = FALSE*/;
-			/* TRUE if Universal character names should be
+			/* TRUE if universal character names should be
 			   accepted.  Permitted in C++ and C99 modes. */
 
 /* Process the command line arguments. */
