@@ -6777,7 +6777,7 @@ whether the member should be (pure) virtual.  Issue an error for member
 functions that cannot be (user-)declared in interface class types.
 */
 {
-  a_boolean  is_virtual = TRUE;
+  a_boolean  is_virtual = FALSE;
 
   switch (rtn->special_kind) {
     case sfk_none:
