@@ -2050,6 +2050,29 @@ macros need to be there.
 }  /* alloc_text_of_string_literal */
 
 
+void set_arg_transfer_method_flag(a_param_type_ptr ptp)
+/*
+Set the flag in the indicated parameter type entry to indicate whether
+or not the parameter should be passed using a copy constructor.
+*/
+{
+  a_type_ptr param_type;
+
+  if (C_dialect == C_dialect_cplusplus) {
+    param_type = ptp->type;
+    param_type = skip_typerefs(param_type);
+    if (is_class_struct_union_type(param_type)) {
+      /* The parameter is a class passed by value.  See if the class
+         has a copy constructor. */
+      if (symbol_supplement_for_class(param_type)->has_copy_constructor) {
+        /* Yes. */
+        ptp->passed_via_copy_constructor = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_arg_transfer_method_flag */
+
+
 a_param_type_ptr alloc_param_type(a_type_ptr type,
                                   a_boolean  at_file_scope)
 /*
@@ -2075,12 +2098,8 @@ the file scope if at_file_scope == TRUE.
   ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_expr = NULL;
-  /* Note that passed_via_copy_constructor could be set approximately based
-     on the parameter type, but sometimes the parameter type is incomplete
-     at the point of declaration of the function and is completed by the
-     point of call, so the processing is done by
-     set_routine_calling_method_flags rather than here. */
   ptp->passed_via_copy_constructor = FALSE;
+  set_arg_transfer_method_flag(ptp);
   db_exit();
   return ptp;
 }  /* alloc_param_type */
@@ -2849,6 +2868,52 @@ Return a type that is the unqualified version of the type given by type.
 
   return type;
 }  /* make_unqualified_type */
+
+
+void set_routine_calling_method_flag(a_type_ptr routine_type)
+/*
+Set the calling-method flag in the indicated routine type; that flag
+is used when the function result is returned to a temporary provided by
+the caller.  This routine may be called more than once, since the
+information on the return type can be incomplete at the original
+declaration of the function and must be completed by the point of call.
+*/
+{
+  a_routine_type_supplement_ptr rtsp;
+  a_type_ptr                    return_type;
+  a_class_type_supplement_ptr   ctsp;
+
+  rtsp = skip_typerefs(routine_type)->variant.routine.extra_info;
+  if (rtsp->assoc_routine != NULL) {
+    /* The routine has been defined, so the flags are set correctly. */
+  } else if (C_dialect != C_dialect_cplusplus) {
+    /* The flags cannot be set in C mode. */
+  } else {
+    /* If the function returns a class object whose address may have to be
+       taken, make the caller provide a temporary for the result. */
+    return_type = routine_type->variant.routine.return_type;
+    return_type = skip_typerefs(return_type);
+    if (is_class_struct_union_type(return_type)) {
+      ctsp = return_type->variant.class_struct_union.extra_info;
+      if (ctsp->base_classes != NULL) {
+        /* The class has base classes.  The address of the class object
+           will be required to do base class casts. */
+        rtsp->caller_provides_place_to_put_return_value = TRUE;
+      } else {
+        a_scope_ptr scope = ctsp->assoc_scope;
+        if (scope != NULL) {
+          /* The class definition is known. */
+          if (scope->routines != NULL) {
+            /* The class has member functions, so the class object address
+               will have to be passed as a "this" parameter.  (This could
+               be refined to exclude static member functions.) */
+            rtsp->caller_provides_place_to_put_return_value = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_routine_calling_method_flag */
 
 
 void copy_type(a_type_ptr from,

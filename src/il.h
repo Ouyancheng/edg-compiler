@@ -58,6 +58,8 @@ extern void clear_constant(a_constant           *cp,
 
 extern void set_error_constant(a_constant *cp);
 
+extern void set_arg_transfer_method_flag(a_param_type_ptr ptp);
+
 extern a_param_type_ptr alloc_param_type(a_type_ptr type,
                                          a_boolean  at_file_scope);
 
@@ -112,6 +114,11 @@ extern a_type_ptr make_qualified_type(a_type_ptr old_type,
                                       a_boolean  is_const,
                                       a_boolean  is_volatile);
 extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
+
+extern void set_routine_calling_method_flag(a_type_ptr routine_type);
+
+extern void copy_type(a_type_ptr from,
+                      a_type_ptr to);
 
 extern void switch_il_region(a_memory_region_number region_number);
 
@@ -239,9 +246,6 @@ extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
 extern a_boolean seq_is_in_include_file(a_seq_number seq_number);
 
 extern void set_default_source_corresp(a_source_correspondence *sc);
-
-extern void copy_type(a_type_ptr from,
-                      a_type_ptr to);
 
 /* Copy a constant entry. */
 #define copy_constant(from, to) (*(to) = *(from))

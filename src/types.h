@@ -152,7 +152,6 @@ extern a_type_ptr composite_type(a_type_ptr type_1,
 extern a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
                                           a_type_ptr    new_type,
                                           an_error_code *err_code);
-extern void set_routine_calling_method_flags(a_type_ptr routine_type);
 extern a_type_ptr make_file_scope_type(a_type_ptr old_type);
 
 /*
