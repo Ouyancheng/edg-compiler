@@ -9830,6 +9830,20 @@ TRUE if the declaration following this one is such a continuation.
       is_definition = FALSE;
     }  /* if */
   }  /* if */
+#if RECORD_FORM_OF_NAME_REFERENCE && \
+    FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+  if (name_ref != NULL &&
+      name_ref->qualifier == NULL &&
+      rout->source_corresp.is_class_member &&
+      (curr_name_context == NULL || curr_name_context->class_type == NULL)) {
+    /* The name reference for an in-class member definition does not normally
+       have a qualifier.  However, when the definition is moved out of the
+       class, a qualifier should be added.  Since the name reference does
+       not specify the class qualifier, we ignore the form of reference in
+       that case. */
+    name_ref = NULL;
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE && FRIEND_AND_MEMBER_... */
   check_assertion_str(rout_type != NULL,
                       "gen_routine_decl: declared_type is NULL");
   unqual_rout_type = skip_typerefs(rout_type);

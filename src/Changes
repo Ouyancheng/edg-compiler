@@ -1,5 +1,21 @@
 Version 3.2
 
+2/5/03   C++-generating back end: Invalid rendering of inline members
+
+When FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS and
+RECORD_FORM_OF_NAME_REFERENCE are TRUE, the front end combined with
+the C++-generating back end sometimes rendered the input
+
+  struct S { void f() {} };
+
+as:
+
+  struct S { inline void f(); };
+  void f() {}  // Missing qualifier!
+
+I.e.,  it mistakenly omitted class qualifiers on definitions that were
+moved outside the class.  This is now fixed.
+
 2/5/03   Microsoft compatibility: argument-dependent lookup
 
 Argument-dependent lookup is enabled when microsoft_version is >= 1310 (i.e.,
