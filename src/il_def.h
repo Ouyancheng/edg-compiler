@@ -1066,7 +1066,8 @@ typedef struct a_source_correspondence {
 			/* TRUE if this entity is a static variable or function
 			   that is referenced from an instantiation and
 			   therefore needs to be made external (unless the
-			   should_not_be_externalized flag is set). */
+			   duplicate_static_in_instantiation_slices flag is
+			   set). */
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
   a_bit_field	duplicate_static_in_instantiation_slices:1;
 			/* TRUE if this is a special internal entity that
