@@ -440,7 +440,8 @@ typedef struct a_constant {
   union {
     /* When kind == ck_error, no variant fields. */
     /* When kind == ck_integer: */
-    long        integer_value;
+    an_integer_value
+	        integer_value;
                         /* A target integer. */
 #ifdef CIL
                         /* Used for long, int, short, and char, in both
