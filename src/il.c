@@ -7643,7 +7643,7 @@ entry is needed.)
   } else {
     check_assertion_str2(curr_object_lifetime->kind !=
                                   (an_object_lifetime_kind)olk_expr_temporary,
-                         "push_object_lifetime: ",
+                         "push_object_lifetime:",
                          "pushing on top of olk_expr_temporary not allowed");
     /* Link the new entry into the object lifetime tree. */
     parent = curr_object_lifetime;
@@ -7659,7 +7659,17 @@ entry is needed.)
       /* Don't add the current entry to the parent's list of children, and
          don't update the sibling pointer. */
     } else {
-      check_assertion(in_file_scope(olp) == in_file_scope(parent));
+#if CHECKING
+      if (in_file_scope(olp) != in_file_scope(parent)) {
+        if (in_file_scope(parent)) {
+          unexpected_condition_str2("push_object_lifetime: parent is in",
+                                    "file scope memory, new olp is not");
+        } else {
+          unexpected_condition_str2("push_object_lifetime: new olp is in",
+                                    "file scope memory, parent is not");
+        }  /* if */
+      }  /* if */
+#endif /* CHECKING */
       /* If the parent already has a list of children, add the new entry to
          the front of the list. */
       olp->next = parent->child_lifetime;
