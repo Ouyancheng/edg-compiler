@@ -6644,25 +6644,17 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu): ", sseocp->source_position.seq);
       switch (sseocp->entity.kind) {
-        case iek_block:
-          fputs("block", f_debug);
+        case iek_statement:
+          fputs("block statement", f_debug);
           break;
         case iek_type:
           fputc('"', f_debug);
           db_type_name((a_type_ptr)sseocp->entity.ptr);
           fputc('"', f_debug);
           break;
-        case iek_routine:
-          fputs("func-prototype", f_debug);
-          if (sseocp->entity.ptr != NULL) {
-            fputs(" for \"", f_debug);
-            db_name(&((a_routine_ptr)sseocp->entity.ptr)->source_corresp);
-            fputc('"', f_debug);
-          }  /* if */
-          break;
         default:
           fprintf(f_debug, "***BAD END-OF-CONSTRUCT KIND %s***",
-                           il_entry_kind_names[(int)kind]);
+                           il_entry_kind_names[(int)sseocp->entity.kind]);
           
       }  /* switch */
     } else {
