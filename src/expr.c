@@ -1564,8 +1564,8 @@ the symbol into the symbol table so it can be found on subsequent
 uses of the name.
 */
 {
-  reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
   sym->is_error = TRUE;
+  reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
 }  /* enter_undefined_symbol */
 
 
