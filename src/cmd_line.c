@@ -2275,6 +2275,12 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
        command line, enable them now. */
     allow_dollar_in_id_chars = TRUE;
   }  /* if */
+  if (!(option_kind_used[(int)optk_stdarg_builtin])) {
+    /* <stdarg.h> should be included as a normal header file.  Various
+       __builtin_... entities may be predefined to accommodate it (if
+       GCC_BUILTIN_VARARGS is TRUE). */
+    pass_stdarg_references_to_generated_code = FALSE;
+  }  /* if */
   /* Enable // comments. */
   end_of_line_comments_allowed = TRUE;
   /* Enable recognition of digraphs. */

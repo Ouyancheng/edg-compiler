@@ -4401,8 +4401,14 @@ this one is such a continuation.
         write_tok_str("friend ");
         gen_type_name(type);
       } else if (type->is_builtin_va_list) {
-        /* This is the declaration of the builtin va_list, from <stdarg.h>.
-           Don't put it out -- put out an #include of the header instead. */
+        /* This is the declaration of the builtin va_list, from <stdarg.h>. */
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+        /* This is the intrinsic GNU C type __builtin_va_list.  No declaration
+           should be generated for it. */
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
+        /* The va_list type was automatically generated when
+           "#include <stdarg.h>" was seen (without parsing the header file).
+           Put out the #include directive at this point. */
         type->typedef_definition_has_been_put_out = TRUE;
         suppress_closing_punct = TRUE;
         adv_curr_source_sequence_entry();
@@ -4424,6 +4430,7 @@ this one is such a continuation.
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
         begin_pp_directive("#include <stdarg.h>");
         end_pp_directive();
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
       } else {
         /* A typedef definition. */
         if (!C_mode() &&
@@ -6460,17 +6467,37 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_stdarg_start(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_start(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           gen_lvalue(operand_1);
           write_tok_ch(',');
           gen_lvalue(operand_2);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
+        case eok_va_start_single_operand:
+          /* <varargs.h> va_start macro, treated as a builtin operator. */
+          disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_varargs_start(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
+          write_tok_str("va_start(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
+          gen_lvalue(operand_1);
+          write_tok_ch(')');
+          enable_line_wrapping();
+          goto done_with_operation;
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_va_arg(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_arg(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           gen_lvalue(operand_1);
           write_tok_ch(',');
           gen_type(expr->type);
@@ -6480,7 +6507,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_va_end(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_end(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           gen_lvalue_no_parens(operand_1);
           write_tok_ch(')');
           enable_line_wrapping();
@@ -6488,7 +6519,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_copy:
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_va_copy(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_copy(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           gen_lvalue(operand_1);
           write_tok_ch(',');
           gen_lvalue(operand_2);

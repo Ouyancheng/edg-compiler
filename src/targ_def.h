@@ -1712,20 +1712,20 @@ use typename.
 #define RUNTIME_USES_TYPENAME FALSE
 #endif /* ifndef RUNTIME_USES_TYPENAME */
 
-#if BACK_END_IS_C_GEN_BE
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
-Switch that is TRUE if the C-generating back end should generate code for
-gcc (the GNU C compiler).
+Switch that is TRUE if the C-generating or C++-generating back end should
+generate code for the GNU C compiler (gcc or g++).
 */
 
-#ifndef GCC_IS_C_GEN_BE_TARGET
-#ifdef __GNUC__
-#define GCC_IS_C_GEN_BE_TARGET TRUE
-#else /* !defined(__GNUC__) */
-#define GCC_IS_C_GEN_BE_TARGET FALSE
-#endif /* ifdef __GNUC__ */
-#endif /* ifndef GCC_IS_C_GEN_BE_TARGET */
-#endif /* BACK_END_IS_C_GEN_BE */
+#ifndef GCC_IS_GENERATED_CODE_TARGET
+#if defined(__GNUC__) || defined(GCC_IS_C_GEN_BE_TARGET)
+#define GCC_IS_GENERATED_CODE_TARGET TRUE
+#else /* !(defined(__GNUC__) || defined(GCC_IS_C_GEN_BE_TARGET)) */
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
+#endif /* defined(__GNUC__) || defined(GCC_IS_C_GEN_BE_TARGET) */
+#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
@@ -1749,11 +1749,11 @@ Switch that is TRUE if the C-generating back end should generate ANSI C
 instead of K&R C.
 */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
-#if GCC_IS_C_GEN_BE_TARGET || USING_ISO_C
+#if GCC_IS_GENERATED_CODE_TARGET || USING_ISO_C
 #define C_GEN_BE_GENERATES_ANSI_C TRUE
-#else /* !(GCC_IS_C_GEN_BE_TARGET || USING_ISO_C) */
+#else /* !(GCC_IS_GENERATED_CODE_TARGET || USING_ISO_C) */
 #define C_GEN_BE_GENERATES_ANSI_C FALSE
-#endif /* GCC_IS_C_GEN_BE_TARGET || USING_ISO_C */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || USING_ISO_C */
 #endif /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
 #endif /* BACK_END_IS_C_GEN_BE */
 

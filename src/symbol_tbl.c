@@ -5100,7 +5100,7 @@ called at the point where the #include <stdarg.h> appears.
          built-in va_list. */
       clear_locator(&locator, &null_source_position);
       (void)find_symbol(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME,
-                      (sizeof_t)(sizeof(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)-1),
+                        (sizeof_t)(sizeof(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)-1),
                         &locator);
       sym = file_scope_id_lookup(il_header.primary_scope, &locator,
                                  IDL_NO_OPTIONS);

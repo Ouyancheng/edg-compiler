@@ -106,9 +106,9 @@ about and can work around.  Note this is for the SunOS 4.x compiler.
 */
 #ifndef SUNCC
 #ifdef sun
-#if !C_GEN_BE_GENERATES_ANSI_C && !GCC_IS_C_GEN_BE_TARGET
+#if !C_GEN_BE_GENERATES_ANSI_C && !GCC_IS_GENERATED_CODE_TARGET
 #define SUNCC TRUE
-#endif /* !C_GEN_BE_GENERATES_ANSI_C && !GCC_IS_C_GEN_BE_TARGET */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C && !GCC_IS_GENERATED_CODE_TARGET */
 #endif /* ifdef sun */
 #ifndef SUNCC
 #define SUNCC FALSE
@@ -131,9 +131,9 @@ See if the target is the SGI C compiler, which we know something about.
 */
 #ifndef SGIC
 #ifdef __sgi
-#if !GCC_IS_C_GEN_BE_TARGET
+#if !GCC_IS_GENERATED_CODE_TARGET
 #define SGIC TRUE
-#endif /* !GCC_IS_C_GEN_BE_TARGET */
+#endif /* !GCC_IS_GENERATED_CODE_TARGET */
 #endif /* ifdef __sgi */
 #ifndef SGIC
 #define SGIC FALSE
@@ -1852,13 +1852,13 @@ is non-NULL, in which case that is the function scope.
             name = param->name;
 #else /* !RECORD_NAME_IN_PARAM_TYPE_ENTRY */
             /* We don't have the name. */
-#if GCC_IS_C_GEN_BE_TARGET
+#if GCC_IS_GENERATED_CODE_TARGET
             /* gcc has difficulty with [*] VLA parameter types when the
                parameter is unnamed, so generate a temporary name in C99
                mode.  (We don't have an easy way to test whether the
                parameter has a VLA [*] in it.) */
             if (c99_mode) temp = (char *)param;
-#endif /* GCC_IS_C_GEN_BE_TARGET */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
             /* If the type was qualified in the original, and the qualifiers
                were removed in C++, restore them here. */
@@ -2116,8 +2116,14 @@ Print a typedef declaration.
 {
   if (start_unreferenced_bracket(&type->source_corresp)) {
     if (type->is_builtin_va_list) {
-      /* This is the declaration of the built-in va_list, from <stdarg.h>.
-         Don't put it out -- put out an #include of the header instead. */
+      /* This is the declaration of the builtin va_list, from <stdarg.h>. */
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+      /* This is the intrinsic GNU C type __builtin_va_list.  No declaration
+         should be generated for it. */
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
+      /* The va_list type was automatically generated when
+         "#include <stdarg.h>" was seen (without parsing the header file).
+         Put out the #include directive at this point. */
       /* If the guard macros were defined already, put out #defines so that
          the expansion of <stdarg.h> does not define va_list again. */
 #ifdef GUARD_MACRO_FOR_VA_LIST
@@ -2131,6 +2137,7 @@ Print a typedef declaration.
       }  /* if */
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
       write_pp_directive("#include <stdarg.h>", (char *)NULL);
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
     } else {
       /* Dump any pragmas associated with the type. */
       dump_decl_associated_pragmas(&type->source_corresp);
@@ -2277,7 +2284,7 @@ final semicolon if output_final_semi is TRUE.
       if (!field->is_bit_field) {
         a_type_ptr field_type = field->type;
         /* Not a bit field. */
-#if GCC_IS_C_GEN_BE_TARGET
+#if GCC_IS_GENERATED_CODE_TARGET
         /* Check for a flexible array member and put out its bound as [0]
            instead of [] because gcc accepts it that way. */
         if (type->variant.class_struct_union.contains_flexible_array_member &&
@@ -2285,7 +2292,7 @@ final semicolon if output_final_semi is TRUE.
             is_incomplete_type(field_type)) {
           skip_typerefs(field_type)->variant.array.bound_is_zero = TRUE;
         }  /* if */
-#endif /* GCC_IS_C_GEN_BE_TARGET */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
         /* Note that a name will be generated for an anonymous union in C++. */
         /* Note that "const" is dropped; that's important so that
            initialization code rewritten as executable code by IL lowering
@@ -4010,17 +4017,37 @@ process_assignment:
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_stdarg_start(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_start(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           dump_lvalue(operand_1);
           write_tok_ch(',');
           dump_lvalue(operand_2);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
+        case eok_va_start_single_operand:
+          /* <varargs.h> va_start macro, treated as a builtin operator. */
+          disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_varargs_start(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
+          write_tok_str("va_start(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
+          dump_lvalue(operand_1);
+          write_tok_ch(')');
+          enable_line_wrapping();
+          goto done_with_operation;
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_va_arg(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_arg(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           dump_lvalue(operand_1);
           write_tok_ch(',');
           dump_type(expr->type, /*add_pointer_to=*/FALSE);
@@ -4030,7 +4057,11 @@ process_assignment:
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_va_end(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_end(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           dump_lvalue(operand_1);
           write_tok_ch(')');
           enable_line_wrapping();
@@ -4038,7 +4069,11 @@ process_assignment:
         case eok_va_copy:
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+          write_tok_str("__builtin_va_copy(");
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
           write_tok_str("va_copy(");
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
           dump_lvalue(operand_1);
           write_tok_ch(',');
           dump_lvalue(operand_2);
@@ -4478,7 +4513,7 @@ initialization code invoked at program startup time.
 #endif /* USE_INIT_SECTION_IN_GENERATED_C */
 
 #if !C_GEN_BE_GENERATES_ANSI_C || USE_INIT_SECTION_IN_GENERATED_C || \
-    GCC_IS_C_GEN_BE_TARGET || SUNPRO_C_IS_C_GEN_BE_TARGET
+    GCC_IS_GENERATED_CODE_TARGET || SUNPRO_C_IS_C_GEN_BE_TARGET
 /*
 Return TRUE if the given routine is an initialization routine generated by
 IL lowering.
@@ -7116,13 +7151,13 @@ if this routine has a body (dump nothing if it has no body).
        in C++ when INSTANTIATE_EXTERN_INLINE is enabled, and in C99
        for "inline definitions".  Don't put out the body. */
     has_defn = FALSE;
-#if GCC_IS_C_GEN_BE_TARGET
+#if GCC_IS_GENERATED_CODE_TARGET
     /* gcc has a way of indicating a function whose definition is
        provided only for the purpose of inlining -- "extern inline".
        Put out the definition in that case. */
     has_defn = TRUE;
     storage_class = (a_storage_class)sc_extern;
-#endif /* GCC_IS_C_GEN_BE_TARGET */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0 &&
@@ -7222,7 +7257,7 @@ if this routine has a body (dump nothing if it has no body).
     }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GCC_IS_C_GEN_BE_TARGET
+#if GCC_IS_GENERATED_CODE_TARGET
     /* gcc will be used to compile this generated code, so we know how to
        indicate an inline function. */
     if (rout->is_inline) {
@@ -7233,7 +7268,7 @@ if this routine has a body (dump nothing if it has no body).
         write_tok_str("__inline__ ");
       }  /* if */
     }  /* if */
-#endif /* GCC_IS_C_GEN_BE_TARGET */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
     if (!is_definition) {
       /* A declaration of the routine. */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
@@ -7242,14 +7277,14 @@ if this routine has a body (dump nothing if it has no body).
          This must precede all attribute specifications. */
       write_asm_name (rout->asm_name);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
+#if GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
       /* gcc has a special way of indicating that a routine should be
          called at program startup.  If this is an initialization routine,
          arrange for it to be called. */
       if (routine_is_init_routine(rout)) {
         write_tok_str(" __attribute__((__constructor__))");
       }  /* if */
-#endif /* GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit attributes associated with the routine. */
       write_routine_attributes(rout);
@@ -7375,14 +7410,14 @@ by IL lowering.
        called before it is declared. */
     write_tok_str(name);
     write_tok_str("()");
-#if GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
+#if GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
     /* gcc has a special way of indicating that a routine should be
        called at program startup. */
     if (!file_scope_init_routine_called) {
       write_tok_str(" __attribute__((constructor))");
       file_scope_init_routine_called = TRUE;
     }  /* if */
-#endif /* GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
     write_tok_str(" {");
 #if USE_INIT_SECTION_IN_GENERATED_C
     if (!file_scope_init_routine_called) {
@@ -7405,7 +7440,7 @@ by IL lowering.
       file_scope_init_routine_called = TRUE;
     }  /* if */
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
-#if !GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
+#if !GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
     if (!file_scope_init_routine_called) {
       /* No place (such as "main") was found to call the file-scope
          initialization routine generated by the C-generating back end.
@@ -7448,7 +7483,7 @@ by IL lowering.
 "program.\n");
       }  /* if */
     }  /* if */
-#endif /* !GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* !GCC_IS_GENERATED_CODE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
   }  /* if */
 }  /* dump_file_scope_initialization_routine */
 

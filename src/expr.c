@@ -5082,7 +5082,7 @@ know what the underlying implementation is).
   /* The operand must be an lvalue of the builtin type va_list. */
   check_assertion(builtin_va_list_type != NULL);
   if (!is_an_lvalue(&operand) ||
-      !f_same_entities(builtin_va_list_type,
+      !identical_types(builtin_va_list_type,
                        make_unqualified_type(operand.type))) {
     if (!is_error_operand(&operand)) {
       error_in_operand(err_code, &operand);
@@ -5100,15 +5100,21 @@ know what the underlying implementation is).
 }  /* scan_va_list_lvalue_expr */
 
 
-static void scan_va_start_operator(an_operand *result)
+static void scan_va_start_operator(an_operand *result,
+                                   a_boolean  single_operand)
 /*
-Scan a reference to the <stdarg.h> va_start macro, when it is treated
-as a builtin.  Its form is
+Scan a reference to the <stdarg.h> or <varargs.h> va_start macro, when it is
+treated as a builtin.  The <stdarg.h> form is expected when single_operand is
+FALSE:
 
   va_start(va_list_var, last_param)
 
 where va_list_var is a variable declared with the builtin type va_list,
 and last_param is the last parameter before the "..." of the function.
+When single_operand is TRUE, the <varargs.h> form is expected:
+
+  va_start(va_list_var)
+
 */
 {
   a_source_position start_position;
@@ -5139,26 +5145,31 @@ and last_param is the last parameter before the "..." of the function.
   /* Scan the first expression. */
   node1 = scan_va_list_lvalue_expr(/*value_used=*/FALSE,
                                    ec_bad_va_start, &err);
-  /* Check for and pass over the comma. */
-  add_stop_token(tok_identifier);
-  (void)required_token(tok_comma, ec_exp_comma);
-  remove_stop_token(tok_identifier);
-  remove_stop_token(tok_comma);
-  /* Scan the second expression. */
-  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  do_operand_transformations(&operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-  /* The expression must be a parameter of the function. */
-  if (is_an_lvalue(&operand) &&
-      is_expression_operand(&operand) &&
-      is_variable_address_node(node2 = operand.variant.expression) &&
-      node2->variant.variable->is_parameter) {
-    /* Okay. */
-  } else {
-    if (!is_error_operand(&operand)) {
-      error_in_operand(ec_bad_va_start, &operand);
+  if (!single_operand) {
+    /* Check for and pass over the comma. */
+    add_stop_token(tok_identifier);
+    (void)required_token(tok_comma, ec_exp_comma);
+    remove_stop_token(tok_identifier);
+    remove_stop_token(tok_comma);
+    /* Scan the second expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    do_operand_transformations(&operand,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+    /* The expression must be a parameter of the function. */
+    if (is_an_lvalue(&operand) &&
+        is_expression_operand(&operand) &&
+        is_variable_address_node(node2 = operand.variant.expression) &&
+        node2->variant.variable->is_parameter) {
+      /* Okay. */
+      if (!err) {
+        node1->next = node2;
+      }  /* if */
+    } else {
+      if (!is_error_operand(&operand)) {
+        error_in_operand(ec_bad_va_start, &operand);
+      }  /* if */
+      err = TRUE;
     }  /* if */
-    err = TRUE;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
@@ -5172,9 +5183,11 @@ and last_param is the last parameter before the "..." of the function.
     /* Create a va_start expression node. */
     an_expr_node_ptr va_start_node;
 
-    node1->next = node2;
-    va_start_node = make_operator_node((an_expr_operator_kind)eok_va_start,
-                                       void_type(), node1);
+    va_start_node =
+      make_operator_node(single_operand ?
+                             (an_expr_operator_kind)eok_va_start_single_operand
+                           : (an_expr_operator_kind)eok_va_start,
+                         void_type(), node1);
     make_expression_operand(va_start_node, va_start_node->type, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -11793,6 +11806,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_va_arg:
     case tok_va_end:
     case tok_va_copy:
+    case tok_va_start_single_operand:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13333,7 +13347,12 @@ see expr.h).
 
     case tok_va_start:
       /* <stdarg.h> va_start macro, when treated as a builtin. */
-      scan_va_start_operator(&local_result);
+      scan_va_start_operator(&local_result, /*single_operand=*/FALSE);
+      break;
+
+    case tok_va_start_single_operand:
+      /* <varargs.h> va_start macro, when treated as a builtin. */
+      scan_va_start_operator(&local_result, /*single_operand=*/TRUE);
       break;
 
     case tok_va_arg:

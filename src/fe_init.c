@@ -373,6 +373,15 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_inline, "inline");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
     enter_keyword((a_token_kind)tok_extension, "__extension__");
+#if GCC_BUILTIN_VARARGS
+    /* Enable built-in support for <stdarg.h> and <varargs.h>. */
+    enter_keyword((a_token_kind)tok_va_start, "__builtin_stdarg_start");
+    enter_keyword((a_token_kind)tok_va_arg,   "__builtin_va_arg");
+    enter_keyword((a_token_kind)tok_va_end,   "__builtin_va_end");
+    enter_keyword((a_token_kind)tok_va_copy, "__builtin_va_copy");
+    enter_keyword((a_token_kind)tok_va_start_single_operand,
+                  "__builtin_varargs_start");
+#endif /* GCC_BUILTIN_VARARGS */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_asm, "__asm");
     enter_gnu_keyword((a_token_kind)tok_const, "__const");

@@ -6954,6 +6954,11 @@ enum an_expr_operator_kind_tag {
 			   address of variable of type va_list. */
   eok_va_copy,		/* va_copy macro reference.  Both operands are
 			   lvalue addresses of variables of type va_list. */
+  eok_va_start_single_operand,
+			/* Same as eok_va_start, but without the second operand.
+			   This is typically used to implement the <varargs.h>
+			   variant of va_start (as opposed to the variant from
+			   <stdarg.h>. */
 #ifdef CIL
   /* Operators appearing in prototype instantiations.  The type of the
      operands is generally not known and after instantiation these operators
@@ -9539,7 +9544,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef FIL
    "()", "v()",
 #endif /* ifdef FIL */
-   "va_start", "va_arg", "va_end", "va_copy",
+   "va_start", "va_arg", "va_end", "va_copy", "va_start",
 #ifdef CIL
    "-G",
    "G++", "G--", "++G", "--G",

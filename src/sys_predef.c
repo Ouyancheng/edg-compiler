@@ -794,7 +794,8 @@ Enter the standard predeclared functions for GCC.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if 0 /* Not needed in default version, but perhaps useful to some. */
+#if GNU_EXTENSIONS_ALLOWED
+
 static void enter_predefined_type(a_type_ptr type,
                                   char       *name)
 /*
@@ -808,8 +809,8 @@ Enter a predefined type.
   sym_ptr->variant.type.ptr = type;
   set_source_corresp(&type->source_corresp, sym_ptr);
 }  /* enter_predefined_type */
-#endif /* 0 */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -876,6 +877,19 @@ Enter predeclared symbols as required by the implementation.
 #if GNU_EXTENSIONS_ALLOWED
   if (gcc_mode) {
     enter_gnu_predeclared_functions();
+    /* On many GNU C configurations (e.g., linux) __builtin_va_list is a type
+       compatible with void*.  On other configurations, the following may need
+       to be adapted to the actual structure of __builtin_va_list.  On some
+       systems (such as Solaris), va_list is a simple typedef of void* and no
+       __builtin_va_list is defined. */
+#if GCC_BUILTIN_VARARGS
+    builtin_va_list_type = alloc_type((a_type_kind)tk_typeref);
+    builtin_va_list_type->variant.typeref.type =
+                                               make_pointer_type(void_type());
+    builtin_va_list_type->is_builtin_va_list = TRUE;
+    add_to_types_list(builtin_va_list_type, DEPTH_OF_FILE_SCOPE);
+    enter_predefined_type(builtin_va_list_type, "__builtin_va_list");
+#endif /* GCC_BUILTIN_VARARGS */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* enter_system_specific_predeclared_symbols */

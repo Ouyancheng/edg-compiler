@@ -414,6 +414,18 @@ The value of the __GNUC_MINOR__ macro in gcc mode.
 #endif /* ifndef GCC_MINOR_VERSION */
 
 /*
+Flag that is TRUE if GNU C builtin operators should be accepted in support of
+<stdarg.h> and <varargs.h>.
+*/
+#ifndef GCC_BUILTIN_VARARGS
+#ifdef __linux__
+#define GCC_BUILTIN_VARARGS 1
+#else /* !__linux__ */
+#define GCC_BUILTIN_VARARGS 0
+#endif /* __linux__ */
+#endif /* ifndef GCC_MINOR_VERSION */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.
