@@ -4360,6 +4360,38 @@ the "-D").
 }  /* process_command_line_macro_definitions */
 
 
+static void init_c99_predefined_macros(void)
+/*
+Enter symbols for the C99 predefined macros.
+*/
+{
+  /* Predefined the C99 __STDC_HOSTED__ macro based on the STDC_HOSTED
+     configuration flag. */
+  (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                                   (unsigned long)STDC_HOSTED),
+                           "__STDC_HOSTED__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#if STDC_IEC_559
+  (void)enter_predef_macro("1", "__STDC_IEC_559__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* STDC_IEC_559 */
+#if STDC_IEC_559_COMPLEX
+  (void)enter_predef_macro("1", "__STDC_IEC_559_COMPLEX__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* STDC_IEC_559_COMPLEX */
+#if STDC_ISO_10646
+  (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                          (unsigned long)STDC_ISO_10646_VALUE),
+                           "__STDC_ISO_10646__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* STDC_ISO_10646 */
+}  /* init_c99_predefined_macros */
+
+
 void init_predefined_macros(char  curr_date_time[26])
 /*
 Enter symbols for predefined macros, including those established by
@@ -4417,11 +4449,14 @@ command line -D options.
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
-    /* __STDC_VERSION__ is defined to 199409L in ANSI C mode and is undefined
-       in all other modes. */
-    (void)enter_predef_macro("199409L", "__STDC_VERSION__",
+    /* __STDC_VERSION__ is defined based on the version of C being used. */
+    char *stdc_version = c99_mode ? (char *)"199901L" : (char *)"199409L";
+    (void)enter_predef_macro(stdc_version, "__STDC_VERSION__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (c99_mode) {
+      init_c99_predefined_macros();
+    }  /* if */
   }  /* if */
   /* __cplusplus is defined as 199711L if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */

@@ -163,6 +163,10 @@ C99 mode:
 -- The __generic pseudo-macro, an EDG extension used to implement the
    type-generic math <tgmath.h> header
 -- A trailing comma is allowed on an enum declaration
+-- _Pragma operator
+-- Predefined pragmas (e.g., FP_CONTRACT)
+-- New predefined macros
+-- Universal character names
 
 The following features are disabled:
 

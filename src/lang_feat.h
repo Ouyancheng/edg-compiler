@@ -864,6 +864,55 @@ value of which may be modified using command line options.
 #endif /* ifndef DEFAULT_C99_MODE */
 
 /*
+Flag that is TRUE if the C99 predefined macro __STDC_HOSTED__ should be
+set to 1 to indicate a hosted implementation.  If it is FALSE, the macro
+is predefined to 0 to indicate a non-hosted implementation.
+*/
+#ifndef STDC_HOSTED
+#define STDC_HOSTED 1
+#endif /* ifndef STDC_HOSTED */
+
+/*
+Flag that is TRUE if the C99 macro __STDC_IEC_559__ should be predefined
+with the value 1.  When the flag is FALSE, the macro is left undefined.
+When this flag is TRUE, the compiler is indicating that both the compiler
+and runtime library conform to C99 Annex F, which describes the IEC 60559
+floating point requirements.
+*/
+#ifndef STDC_IEC_559
+#define STDC_IEC_559 0
+#endif /* ifndef STDC_IEC_559 */
+
+/*
+Flag that is TRUE if the C99 macro __STDC_IEC_559_COMPLEX__ should be
+predefined with the value 1.  When the flag is FALSE, the macro is left
+undefined.  When this flag is TRUE, the compiler is indicating that both
+the compiler and runtime library conform to C99 Annex G, which describes
+the IEC 60559 complex arithmetic requirements.
+*/
+#ifndef STDC_IEC_559_COMPLEX
+#define STDC_IEC_559_COMPLEX 0
+#endif /* ifndef STDC_IEC_559_COMPLEX */
+
+/*
+Flag that is TRUE if the C99 macro __STDC_ISO_10646__ should be
+predefined with the value STDC_ISO_10646_VALUE.  When the flag is FALSE,
+the macro is left undefined.  These macros are used to indicate whether
+the wchar_t values being used conform to a particular version of the ISO
+10646 standard.  When STDC_ISO_10646_VALUE is defined it should be
+defined with a value of the form yyyymmL (e.g., 199712L).
+*/
+#ifndef STDC_ISO_10646
+#define STDC_ISO_10646 0
+#endif /* ifndef STDC_ISO_10646 */
+
+#if STDC_ISO_10646
+#ifndef STDC_ISO_10646_VALUE
+ #error -- STDC_ISO_10646_VALUE must be defined when STDC_ISO_10646 is set
+#endif /* ifndef STDC_ISO_10646_VALUE */
+#endif /* STDC_ISO_10646 */
+
+/*
 Flag that is TRUE if support for bool can be enabled.
 */
 #ifndef BOOL_ENABLING_POSSIBLE
