@@ -10048,7 +10048,7 @@ successor of ssep.
       break;
     case iek_src_seq_secondary_decl:
       sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      if (!sssdp->autonomous_tag_decl) {
+      if (!sssdp->autonomous_tag_decl && !sssdp->declared_in_func_prototype) {
         if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
           /* ssep is a nonautonomous secondary declaration of a tag or
              typedef.  We're only interested in the former. */
