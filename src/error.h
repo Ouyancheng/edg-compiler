@@ -351,7 +351,9 @@ typedef enum /*an_error_code*/ {
   ec_function_redefinition,
   ec_overloaded_function_incompatible_type,
   ec_no_matching_function,
-  ec_type_def_not_allowed_in_func_type_decl
+  ec_type_def_not_allowed_in_func_type_decl,
+  ec_default_arg_not_at_end,
+  ec_default_arg_already_defined
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

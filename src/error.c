@@ -990,6 +990,12 @@ error code.
     case ec_type_def_not_allowed_in_func_type_decl:
       m = "type definition not allowed in function return type declaration";
       break;
+    case ec_default_arg_not_at_end:
+      m = "default argument not at end of parameter list";
+      break;
+    case ec_default_arg_already_defined:
+      m = "redefinition of default argument";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
