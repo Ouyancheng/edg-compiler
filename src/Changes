@@ -87,7 +87,7 @@ For example:
                                                      // Previously an error.
 
 Note that in cases like this GNU compilers sometimes issue hard errors
-if the type involve is a typedef, but we do not emulate this distinction:
+if the type involved is a typedef, but we do not emulate this distinction:
 A warning is issued in all cases.
 
 6/3/03   Microsoft compatibility: abort on in-class specialization
