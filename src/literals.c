@@ -27,8 +27,8 @@ literals.c -- Literal constant conversion to and from internal form.
 
 
 /* Convert a character hex digit to the associated hex digit value. */
-#define hexvalue(ch) ((ch) - (isdigit(ch) ? '0' : \
-                                            (islower(ch) ? 'a'-0xa : 'A'-0xA)))
+#define hexvalue(ch) ((ch) - (isdigit((unsigned char)ch) ? '0' : \
+                             (islower((unsigned char)ch) ? 'a'-0xa : 'A'-0xA)))
 
 
 void conv_integer_literal(int           radix,
@@ -421,11 +421,11 @@ this character is going (char or wchar_t).
       case 'x':
         /* Hexadecimal escape.  There can be many digits, but there must be
            at least one.  If not, treat as just "x". */
-        if (!isxdigit(*lptr)) {
+        if (!isxdigit((unsigned char)*lptr)) {
           unrecognized = TRUE;
         } else {
           targ_ch = hexvalue(*lptr);  /* First digit. */
-          while (isxdigit(tch = *(++lptr))) {
+          while (isxdigit((unsigned char)(tch = *(++lptr)))) {
             if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
               /* Error will be processed below.  We must keep going and take
                  all the digits. */
@@ -444,11 +444,13 @@ this character is going (char or wchar_t).
            Note that there is code in accum_quoted_string that must match
            this code. */
         targ_ch = tch - '0';  /* First digit. */
-        if (isdigit(tch = *lptr) && tch != '8' && tch != '9') {
+        tch = *lptr;
+        if (isdigit((unsigned char)tch) && tch != '8' && tch != '9') {
           /* Second digit. */
-          lptr++;
           targ_ch = (targ_ch << 3) | (tch - '0');
-          if (isdigit(tch = *lptr) && tch != '8' && tch != '9') {
+          lptr++;
+          tch = *lptr;
+          if (isdigit((unsigned char)tch) && tch != '8' && tch != '9') {
             /* Third digit. */
             lptr++;
             targ_ch = (targ_ch << 3) | (tch - '0');
