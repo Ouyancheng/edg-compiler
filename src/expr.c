@@ -4264,11 +4264,11 @@ the entire array.
   a_dynamic_init_ptr  array_dip;
 
   /* The IL structure is
-       dynamic init (ck_nonconstant_aggregate) ->
+       dynamic init (dik_nonconstant_aggregate) ->
          constant (ck_aggregate) ->
            constant (ck_init_repeat) ->
              constant (ck_dynamic_init) ->
-               original dynamic init (ck_constructor)
+               original dynamic init (dik_constructor)
   */
   array_dip =
        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
