@@ -2308,7 +2308,8 @@ entry.
      valid access declarations as input should produce valid access
      declarations as output. */
   /* Write the access declaration, which is just a qualified name. */
-  gen_qualified_name(scp, entry_kind);
+  gen_class_qualifier(using_decl->class_specified_in_qualifier);
+  gen_unqualified_name(scp, entry_kind);
   write_tok_ch(';');
   write_space();
   /* For overloaded functions, there is a class-member-using-decl entry and
@@ -2325,7 +2326,9 @@ entry.
                                       a_class_member_using_decl_ptr);
       /* Keep going on using declarations for routines with the same name
          and the same class. */
-      if ((an_il_entry_kind)extra_using_decl->entity.kind != iek_routine) {
+      if ((an_il_entry_kind)extra_using_decl->entity.kind != iek_routine ||
+          extra_using_decl->class_specified_in_qualifier !=
+                using_decl->class_specified_in_qualifier) {
         break;
       }  /* if */
       extra_using_routine = (a_routine_ptr)extra_using_decl->entity.ptr;

@@ -1,5 +1,22 @@
 Version 2.31
 
+12/8/95   C++-generating back end: class qualifier correct on class member
+          using-declarations
+
+By using the new field class_specified_in_qualifier the C++-generating
+back end now produces qualified names in class member using declarations
+that have the class qualifier as written in the source code:
+
+  struct A {
+	void f();
+  };
+  struct B : A {};
+  struct C : A {};
+  struct D : B, C {
+    using B::f;    // Both came out
+    using C::f;    //   as A::f previously, which was ambiguous
+  };
+
 12/7/95   Incorrect handling of default template arguments and default
           function template arguments when template parameter names
           differ between declarations
