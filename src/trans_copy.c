@@ -404,11 +404,24 @@ copy address pointer to point to the copy.
 
 
 /*
-Change a pointer to the corresponding address in the primary IL.
+Fix the indicated "last" pointer in a pointers block for a namespace
+by remapping it to the corresponding primary IL address.  In the
+case where the last entry was not copied, recompute the last pointer
+by running through the list from the start.
 */
-#define change_pointer_to_primary_IL_pointer(ptr, ptr_type, kind) \
-{ if ((ptr) != NULL) \
-  (ptr) = (ptr_type)primary_il_entry_of((char *)(ptr), (kind)); }
+#define fix_last_pointer(last_ptr, first_ptr, ptr_type, kind) \
+{ if ((last_ptr) != NULL) { \
+    if (!entry_to_be_merged(last_ptr)) { \
+      (last_ptr) = (ptr_type)primary_il_entry_of((char *)(last_ptr), (kind)); \
+    } else { \
+      ptr_type ptr = (first_ptr); \
+      if (ptr != NULL) { \
+        while (ptr->next != NULL) ptr = ptr->next; \
+      }  /* if */ \
+      (last_ptr) = ptr; \
+    }  /* if */ \
+  }  /* if */ \
+}  /* fix_last_pointer */
 
 
 static void update_namespace_pointers_block(a_scope_ptr scope)
@@ -421,26 +434,26 @@ entries in the primary IL.
 {
   a_scope_pointers_block *pointers_block = get_pointers_block_for_scope(scope);
 
-  change_pointer_to_primary_IL_pointer(pointers_block->last_constant,
-                                       a_constant_ptr, iek_constant);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_type,
-                                       a_type_ptr, iek_type);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_variable,
-                                       a_variable_ptr, iek_variable);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_routine,
-                                       a_routine_ptr, iek_routine);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_asm_entry,
-                                       an_asm_entry_ptr, iek_asm_entry);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_dynamic_init,
-                                       a_dynamic_init_ptr, iek_dynamic_init);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_namespace,
-                                       a_namespace_ptr, iek_namespace);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_using_decl,
-                                       a_using_decl_ptr, iek_using_decl);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_pragma,
-                                       a_pragma_ptr, iek_pragma);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_template,
-                                       a_template_ptr, iek_template);
+  fix_last_pointer(pointers_block->last_constant, scope->constants,
+                   a_constant_ptr, iek_constant);
+  fix_last_pointer(pointers_block->last_type, scope->types,
+                   a_type_ptr, iek_type);
+  fix_last_pointer(pointers_block->last_variable, scope->variables,
+                   a_variable_ptr, iek_variable);
+  fix_last_pointer(pointers_block->last_routine, scope->routines,
+                   a_routine_ptr, iek_routine);
+  fix_last_pointer(pointers_block->last_asm_entry, scope->asm_entries,
+                   an_asm_entry_ptr, iek_asm_entry);
+  fix_last_pointer(pointers_block->last_dynamic_init, scope->dynamic_inits,
+                   a_dynamic_init_ptr, iek_dynamic_init);
+  fix_last_pointer(pointers_block->last_namespace, scope->namespaces,
+                   a_namespace_ptr, iek_namespace);
+  fix_last_pointer(pointers_block->last_using_decl, scope->using_decls,
+                   a_using_decl_ptr, iek_using_decl);
+  fix_last_pointer(pointers_block->last_pragma, scope->pragmas,
+                   a_pragma_ptr, iek_pragma);
+  fix_last_pointer(pointers_block->last_template, scope->templates,
+                   a_template_ptr, iek_template);
 }  /* update_namespace_pointers_block */
 
 
