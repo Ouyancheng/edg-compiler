@@ -1978,6 +1978,341 @@ done:;
 }  /* function_template_call_argument_deduction */
 
 
+static void determine_function_viability(
+                 a_symbol_ptr             proj_function_symbol,
+                 a_boolean                is_template_id,
+                 a_template_arg_ptr       template_arg_list,
+                 a_type_ptr               routine_type,
+                 an_arg_operand_ptr       arg_operand_list,
+                 a_boolean                have_selector,
+                 an_operand               *bound_function_selector,
+                 a_boolean                selector_is_object_pointer,
+                 a_type_ptr               implicit_selector_type,
+                 a_boolean                ctor_conversion_case,
+                 a_boolean                effects_copy_initialization,
+                 a_candidate_function_ptr *candidate_functions,
+                 a_boolean                *matched_except_for_missing_selector)
+/*
+Determine whether a function is viable in overload resolution, which
+means whether it has the right number of parameters of the right types.
+proj_function_symbol indicates the function; it may be a projection
+symbol, but it is not an overloaded function.  is_template_id is TRUE if
+the symbol has an associated explicit template argument list; if so,
+template_arg_list gives the argument list.  proj_function_symbol is NULL
+for the surrogate function call case (see [over.call.object] in the C++
+standard); routine_type gives the function type in that case.  The
+argument list for the call is given by arg_operand_list, and the selector
+is given by bound_function_selector (if have_selector is TRUE).
+have_selector can be TRUE and bound_function_selector NULL when calling
+constructors.  bound_function_selector is an object pointer if
+selector_is_object_pointer is TRUE, an object otherwise.  Any viable
+functions are added to the candidate_functions list along with
+information on the level of argument matches.  If a match would have
+been found except for the absence of a selector, set
+*matched_except_for_missing_selector TRUE; that allows a different error
+message.  If ctor_conversion_case is TRUE, this analysis is being done
+as part of resolving an implicit or explicit conversion to a class type:
+the functions are constructors, have_selector is FALSE (sic; the "this"
+parameter is not matched up); the "conversion" field is set in any
+candidate function entries created.  effects_copy_initialization is TRUE
+if this call is the user-defined conversion in a copy-initialization;
+user-defined conversions are not tried on argument matches, and
+constructors that are marked "explicit" are ignored.
+*/
+{
+  a_symbol_ptr             function_symbol;
+  a_routine_ptr            routine;
+  a_routine_type_supplement_ptr
+                           rtsp;
+  an_arg_operand_ptr       arg_operand;
+  a_param_type_ptr         param;
+#if DEBUG
+  unsigned long            narg = 0;
+#endif /* DEBUG */
+  a_boolean                reached_ellipsis;
+  an_arg_match_summary_ptr this_match, this_match_next;
+  an_arg_match_summary_ptr arg_match = NULL;
+  an_arg_match_summary_ptr arg_match_list = NULL;
+  an_arg_match_summary_ptr end_arg_match_list = NULL;
+  a_boolean                function_template_case = FALSE;
+  a_template_arg_ptr       local_template_arg_list = NULL;
+
+  if (proj_function_symbol != NULL) {
+    /* Normal case: a known function. */
+    /* Ignore friend functions that aren't visible.  Note that this
+       test is done on the projection symbol, if any, and not on the
+       underlying fundamental symbol. */
+    if (proj_function_symbol->is_invisible) goto reject_function;
+    /* Remove projection, if any. */
+    function_symbol = fundamental_symbol_of(proj_function_symbol);
+    function_template_case = (function_symbol->kind ==
+                                          (a_symbol_kind)sk_function_template);
+    if (is_ambiguous_by_inheritance(proj_function_symbol)) {
+      /* The symbol is ambiguous, and as such is an arbitrary
+         representative of a set of functions that collided due
+         to inheritance.  There's no point in seeing whether the function
+         indicated matches up, since there might be another function
+         that isn't represented that would match better.  Just put the
+         symbol in the candidate functions set.  It will stay in there
+         and cause the overload resolution to be ambiguous. */
+      goto accept_function;
+    }  /* if */
+    if (!function_template_case) {
+      /* The symbol is not a function template (i.e., it's a normal
+         function). */
+      routine = function_symbol->variant.routine.ptr;
+      routine_type = routine->type;
+      if (is_template_id) {
+        /* An explicit list of template arguments (e.g., f<int>) rules out
+           non-templates. */
+        goto reject_function;
+      }  /* if */
+    } else {
+      /* The symbol is a function template. */
+      routine=function_symbol->variant.template_info->variant.function.routine;
+      routine_type = routine->type;
+      if (template_arg_list != NULL) {
+        /* Substitute the explicitly-specified template arguments into the
+           template and get the updated routine type.  This also creates
+           an updated template argument list (template arguments are cast to
+           the types of the template parameters), which may be different for
+           each template considered. */
+        routine_type = substitute_template_arguments(
+                         function_symbol, template_arg_list,
+                         &local_template_arg_list, (a_template_param_ptr)NULL);
+        /* Bail out if there is a mismatch. */
+        if (routine_type == NULL) goto reject_function;
+      }  /* if */
+    }  /* if */
+    if (effects_copy_initialization && routine->is_explicit_constructor) {
+      /* Constructors marked "explicit" are to be ignored. */
+      goto reject_function;
+    }  /* if */
+  } else {
+    /* Surrogate function call case.  We have routine_type but not
+       proj_function_symbol. */
+    check_assertion(routine_type != NULL);
+  }  /* if */
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
+  /* Do a quick pass through the lists to eliminate a function with an
+     obviously wrong number of parameters quickly.  This is not just a
+     speed optimization; it avoids recursion loops on constructors
+     that look like
+       struct A { A(A, xxx, yyy); }
+     which look viable as copy constructors on the first argument. */
+  param = rtsp->param_type_list;
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+    /* See if the parameter list is exhausted. */
+    if (param == NULL) {
+      /* More arguments than required.  No match unless there is an
+         ellipsis. */
+      if (rtsp->has_ellipsis) break;
+      goto reject_function;
+    }  /* if */
+    param = param->next;
+  }  /* for */
+  /* Check that the argument and parameter lists ended at the same place. */
+  if (param != NULL) {
+    /* Fewer arguments than required.  No match unless there are default
+       argument values.  Note that has_default_arg is not used here,
+       because there are cases where has_default_arg is set and
+       default_arg_expr is not set yet.  A default argument with a NULL
+       default_arg_expr is accepted if it has an unevaluated template
+       value, because we know this value can be produced when the call
+       is generated. */
+    if (!param->has_unevaluated_template_default &&
+        param->default_arg_expr == NULL) goto reject_function;
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "determine_function_viability: default arg match\n");
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  /* The function looks okay from the standpoint of argument count. */
+  if (function_template_case) {
+    /* Do template argument deduction on the parameter types. */
+    routine_type = function_template_call_argument_deduction(
+                                                   function_symbol,
+                                                   routine_type,
+                                                   arg_operand_list,
+                                                   &local_template_arg_list);
+    if (routine_type == NULL) {
+      /* Deduction failed. */
+      goto reject_function;
+    }  /* if */
+    routine_type = skip_typerefs(routine_type);
+    rtsp = routine_type->variant.routine.extra_info;
+  }  /* if */
+  /* Look at each argument and see whether or not it can match the formal
+     parameter, and if so, how well. */
+  reached_ellipsis = FALSE;
+  param = rtsp->param_type_list;
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+#if DEBUG
+    narg++;
+    if (debug_level >= 4) {
+      fprintf(f_debug, "determine_function_viability: arg %lu\n", narg);
+    }  /* if */
+#endif /* DEBUG */
+    /* Add an entry to the end of the arg_match_list to record whether or
+       not this argument matches. */
+    arg_match = alloc_arg_match_summary();
+    if (arg_match_list == NULL) {
+      arg_match_list = arg_match;
+    } else {
+      end_arg_match_list->next = arg_match;
+    }  /* if */
+    end_arg_match_list = arg_match;
+    /* See if the parameter list is exhausted. */
+    if (param == NULL) {
+      /* More arguments than required.  Since the function was not rejected
+         in the initial argument-count check, it must have an ellipsis. */
+      check_assertion_str(rtsp->has_ellipsis,
+                          "determine_function_viability: no arg, no ellipsis");
+      reached_ellipsis = TRUE;
+      /* There is an ellipsis, so there is a match, but with a low
+         desirability. */
+      arg_match->match_level = aml_ellipsis;
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "determine_function_viability: ellipsis match\n");
+      }  /* if */
+#endif /* DEBUG */
+    } else {
+      /* Both the actual argument and formal parameter are available.
+         See how well they match. */
+      determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+                                param->type,
+                                /*try_user_conversions=*/
+                                                  !effects_copy_initialization,
+                                arg_match);
+      /* If no match is possible, go on to the next function. */
+      if (arg_match->match_level == aml_none) goto reject_function;
+    }  /* if */
+    /* Go on to the next parameter. */
+    if (!reached_ellipsis) param = param->next;
+  }  /* for */
+  /* If param != NULL here, there are default arguments (because we
+     got past the argument-count check above). */
+  check_assertion_str(param == NULL || param->has_default_arg,
+                     "determine_function_viability: no param, no default arg");
+  /* All the arguments can be made to match the parameters. */
+  /* See if the "this" parameter, if any, matches. */
+  /* Do not process the "this" parameter for constructors in a conversion
+     case. */
+  if (!ctor_conversion_case) {
+    a_boolean function_is_nonstatic_member_function =
+                       routine_type_is_nonstatic_member_function(routine_type);
+    if (have_selector) {
+      /* We have a selector. */
+      /* Put a match entry for it on the front of the match list. */
+      this_match = alloc_arg_match_summary();
+      this_match->next = this_match_next = arg_match_list;
+      arg_match_list = this_match;
+      if (!function_is_nonstatic_member_function) {
+        /* The function has no "this" parameter, so it does not need a
+           selector.  We would discard it if this function is chosen,
+           but we still need a match entry for it.  It counts as an
+           exact match. */
+        this_match->match_level = aml_exact;
+        this_match->is_match_for_this_param = TRUE;
+      } else {
+        /* The function requires a selector, and we have one. */
+        /* Determine the effective "this" parameter type.  When namespaces
+           are involved in classes, the parameter type is taken to be the
+           class in which the "using" occurs. */
+        a_type_ptr this_param_type =
+                      this_param_type_for_overload_res(routine_type,
+                                                       proj_function_symbol,
+                                                       /*is_conv_func=*/FALSE);
+        if (implicit_selector_type != NULL) {
+          /* The selector is an implicit "this->".  See how well it
+             matches.  It might not match at all. */
+          determine_selector_match_level(implicit_selector_type,
+                                         this_param_type,
+                                         this_match);
+          /* Set the "next" pointer again, because it is cleared by
+             determine_selector_match_level. */
+          this_match->next = this_match_next;
+          if (this_match->match_level == aml_none) {
+            /* Mismatch. */
+            a_type_ptr this_class = type_pointed_to(this_param_type);
+            a_type_ptr sel_class  = type_pointed_to(implicit_selector_type);
+            if (!is_same_class_or_base_class_thereof(sel_class, this_class)){
+              /* "this" and the member function are in unrelated classes,
+                 so it's as if no selector appears. */
+              *matched_except_for_missing_selector = TRUE;
+            }  /* if */
+            goto reject_function;
+          }  /* if */
+        } else {
+          /* See how the selector expression matches the "this" parameter
+             type. */
+          selector_match_with_this_param(bound_function_selector,
+                                         selector_is_object_pointer,
+                                         routine,
+                                         this_param_type, this_match);
+          /* Set the "next" pointer again, because it is cleared by
+             selector_match_with_this_param. */
+          this_match->next = this_match_next;
+          if (this_match->match_level == aml_none) goto reject_function;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* We have no selector. */
+      if (function_is_nonstatic_member_function) {
+        /* A selector is needed and one is not available, so the function
+           is not suitable.  Remember this case to select a different
+           error message if it turns out no function matches. */
+        *matched_except_for_missing_selector = TRUE;
+        goto reject_function;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+accept_function:
+  /* The function is a viable candidate.  Add it to the candidates list. */
+  if (function_template_case) {
+    /* The symbol is a function template. */
+    add_function_template_to_candidate_functions_list(
+                                               proj_function_symbol,
+                                               is_template_id,
+                                               local_template_arg_list,
+                                               arg_match_list,
+                                               candidate_functions);
+  } else {
+    /* The symbol is a normal function. */
+    add_function_to_candidate_functions_list(proj_function_symbol,
+                                             arg_match_list,
+                                             candidate_functions);
+  }  /* if */
+  if (ctor_conversion_case) {
+    /* If we are analyzing a constructor to resolve an implicit or
+       explicit conversion, set "conversion" appropriately.
+       Note that this can happen for the template case also, with a
+       member template, but "routine" in that case is still the
+       prototype instantiation version of the routine.  The true
+       routine is not known until later, when the template is chosen
+       and instantiated. */
+    a_candidate_function_ptr candidate = *candidate_functions;
+    candidate->is_user_conversion = TRUE;
+    if (!function_template_case) candidate->conversion.routine = routine;
+  }  /* if */
+  goto end_of_routine;
+reject_function:
+  /* The function is not suitable. */
+  /* Free any argument match summary entries built for it. */
+  free_arg_match_summary_list(arg_match_list);
+  /* Free any template argument list built for it. */
+  free_template_arg_list(local_template_arg_list);
+end_of_routine:;
+}  /* determine_function_viability */
+
+
 static void try_overloaded_function_match(
                  a_symbol_ptr             overloaded_function_symbol,
                  a_boolean                is_template_id,
@@ -2015,24 +2350,11 @@ user-defined conversions are not tried on argument matches, and constructors
 that are marked "explicit" are ignored.
 */
 {
-  a_boolean                overloaded_function_case;
-  a_symbol_ptr             function_symbol, proj_function_symbol;
-  a_type_ptr               routine_type;
-  a_routine_ptr            routine;
-  a_routine_type_supplement_ptr
-                           rtsp;
-  a_param_type_ptr         param;
-  a_boolean                reached_ellipsis;
-  an_arg_match_summary_ptr this_match, this_match_next;
-  an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
-  an_arg_operand_ptr       arg_operand;
-  a_boolean                function_is_nonstatic_member_function;
-  a_boolean                function_template_case;
-  a_template_arg_ptr       local_template_arg_list;
-  a_type_ptr               implicit_selector_type = NULL;
-#if DEBUG
-  unsigned long            narg;
-#endif /* DEBUG */
+  a_boolean     overloaded_function_case;
+  a_symbol_ptr  function_symbol, proj_function_symbol;
+  a_type_ptr    routine_type;
+  a_routine_ptr routine;
+  a_type_ptr    implicit_selector_type = NULL;
 
   function_symbol = fundamental_symbol_of(overloaded_function_symbol);
   /* Determine whether or not the symbol is an overloaded function. */
@@ -2097,283 +2419,24 @@ that are marked "explicit" are ignored.
 #if DEBUG
     if (debug_level >= 4) {
       db_symbol(proj_function_symbol,
-                "try_overloaded_function_match: considering ", 2); 
+                "try_overloaded_function_match: considering ", 2);
     }  /* if */
-    narg = 0;
 #endif /* DEBUG */
-    /* local_template_arg_list, arg_match_list, and end_arg_match_list are
-       set early so we know, upon goto to reject_function, what has to be
-       freed. */
-    local_template_arg_list = NULL;
-    arg_match_list = end_arg_match_list = NULL;
-    /* Ignore friend functions that aren't visible.  Note that this
-       test is done on the projection symbol, if any, and not on the
-       underlying fundamental symbol. */
-    if (proj_function_symbol->is_invisible) goto reject_function;
-    /* Remove projection, if any. */
-    function_symbol = fundamental_symbol_of(proj_function_symbol);
-    function_template_case = (function_symbol->kind ==
-                                          (a_symbol_kind)sk_function_template);
-    if (is_ambiguous_by_inheritance(proj_function_symbol)) {
-      /* The symbol is ambiguous, and as such is an arbitrary
-         representative of a set of functions that collided due
-         to inheritance.  There's no point in seeing whether the function
-         indicated matches up, since there might be another function
-         that isn't represented that would match better.  Just put the
-         symbol in the candidate functions set.  It will stay in there
-         and cause the overload resolution to be ambiguous. */
-      goto accept_function;
-    }  /* if */
-    if (!function_template_case) {
-      /* The symbol is not a function template (i.e., it's a normal
-         function). */
-      routine = function_symbol->variant.routine.ptr;
-      routine_type = routine->type;
-      if (is_template_id) {
-        /* An explicit list of template arguments (e.g., f<int>) rules out
-           non-templates. */
-        goto reject_function;
-      }  /* if */
-    } else {
-      /* The symbol is a function template. */
-      routine=function_symbol->variant.template_info->variant.function.routine;
-      routine_type = routine->type;
-      if (template_arg_list != NULL) {
-        /* Substitute the explicitly-specified template arguments into the
-           template and get the updated routine type.  This also creates
-           an updated template argument list (template arguments are cast to
-           the types of the template parameters), which may be different for
-           each template considered. */
-        routine_type = substitute_template_arguments(
-                         function_symbol, template_arg_list,
-                         &local_template_arg_list, (a_template_param_ptr)NULL);
-        /* Bail out if there is a mismatch. */
-        if (routine_type == NULL) goto reject_function;
-      }  /* if */
-    }  /* if */
-    routine_type = skip_typerefs(routine_type);
-    rtsp = routine_type->variant.routine.extra_info;
-    if (effects_copy_initialization && routine->is_explicit_constructor) {
-      /* Constructors marked "explicit" are to be ignored. */
-      goto reject_function;
-    }  /* if */
-    /* Do a quick pass through the lists to eliminate a function with an
-       obviously wrong number of parameters quickly.  This is not just a
-       speed optimization; it avoids recursion loops on constructors
-       that look like
-         struct A { A(A, xxx, yyy); }
-       which look viable as copy constructors on the first argument. */
-    param = rtsp->param_type_list;
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
-      /* See if the parameter list is exhausted. */
-      if (param == NULL) {
-        /* More arguments than required.  No match unless there is an
-           ellipsis. */
-        if (rtsp->has_ellipsis) break;
-        goto reject_function;
-      }  /* if */
-      param = param->next;
-    }  /* for */
-    /* Check that the argument and parameter lists ended at the same place. */
-    if (param != NULL) {
-      /* Fewer arguments than required.  No match unless there are default
-         argument values.  Note that has_default_arg is not used here,
-         because there are cases where has_default_arg is set and
-         default_arg_expr is not set yet.  A default argument with a NULL
-         default_arg_expr is accepted if it has an unevaluated template
-         value, because we know this value can be produced when the call
-         is generated. */
-      if (!param->has_unevaluated_template_default &&
-          param->default_arg_expr == NULL) goto reject_function;
-#if DEBUG
-      if (debug_level >= 4) {
-        fprintf(f_debug, "try_overloaded_function_match: default arg match\n");
-      }  /* if */
-#endif /* DEBUG */
-    }  /* if */
-    /* The function looks okay from the standpoint of argument count. */
-    if (function_template_case) {
-      /* Do template argument deduction on the parameter types. */
-      routine_type = function_template_call_argument_deduction(
-                                                   function_symbol,
-                                                   routine_type,
-                                                   arg_operand_list,
-                                                   &local_template_arg_list);
-      if (routine_type == NULL) {
-        /* Deduction failed. */
-        goto reject_function;
-      }  /* if */
-      routine_type = skip_typerefs(routine_type);
-      rtsp = routine_type->variant.routine.extra_info;
-    }  /* if */
-    /* Look at each argument and see whether or not it can match the formal
-       parameter, and if so, how well. */
-    reached_ellipsis = FALSE;
-    param = rtsp->param_type_list;
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
-#if DEBUG
-      narg++;
-      if (debug_level >= 4) {
-        fprintf(f_debug, "try_overloaded_function_match: arg %lu\n", narg);
-      }  /* if */
-#endif /* DEBUG */
-      /* Add an entry to the end of the arg_match_list to record whether or
-         not this argument matches. */
-      arg_match = alloc_arg_match_summary();
-      if (arg_match_list == NULL) {
-        arg_match_list = arg_match;
-      } else {
-        end_arg_match_list->next = arg_match;
-      }  /* if */
-      end_arg_match_list = arg_match;
-      /* See if the parameter list is exhausted. */
-      if (param == NULL) {
-        /* More arguments than required.  Since the function was not rejected
-           in the initial argument-count check, it must have an ellipsis. */
-        check_assertion_str(rtsp->has_ellipsis,
-                         "try_overloaded_function_match: no arg, no ellipsis");
-        reached_ellipsis = TRUE;
-        /* There is an ellipsis, so there is a match, but with a low
-           desirability. */
-        arg_match->match_level = aml_ellipsis;
-#if DEBUG
-        if (debug_level >= 4) {
-          fprintf(f_debug, "try_overloaded_function_match: ellipsis match\n");
-        }  /* if */
-#endif /* DEBUG */
-      } else {
-        /* Both the actual argument and formal parameter are available.
-           See how well they match. */
-        determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
-                                  param->type,
-                                  /*try_user_conversions=*/
-                                                  !effects_copy_initialization,
-                                  arg_match);
-        /* If no match is possible, go on to the next function. */
-        if (arg_match->match_level == aml_none) goto reject_function;
-      }  /* if */
-      /* Go on to the next parameter. */
-      if (!reached_ellipsis) param = param->next;
-    }  /* for */
-    /* If param != NULL here, there are default arguments (because we
-       got past the argument-count check above). */
-    check_assertion_str(param == NULL || param->has_default_arg,
-                    "try_overloaded_function_match: no param, no default arg");
-    /* All the arguments can be made to match the parameters. */
-    /* See if the "this" parameter, if any, matches. */
-    /* Do not process the "this" parameter for constructors in a conversion
-       case. */
-    if (!ctor_conversion_case) {
-      function_is_nonstatic_member_function =
-                       routine_type_is_nonstatic_member_function(routine_type);
-      if (have_selector) {
-        /* We have a selector. */
-        /* Put a match entry for it on the front of the match list. */
-        this_match = alloc_arg_match_summary();
-        this_match->next = this_match_next = arg_match_list;
-        arg_match_list = this_match;
-        if (!function_is_nonstatic_member_function) {
-          /* The function has no "this" parameter, so it does not need a
-             selector.  We would discard it if this function is chosen,
-             but we still need a match entry for it.  It counts as an
-             exact match. */
-          this_match->match_level = aml_exact;
-          this_match->is_match_for_this_param = TRUE;
-        } else {
-          /* The function requires a selector, and we have one. */
-          /* Determine the effective "this" parameter type.  When namespaces
-             are involved in classes, the parameter type is taken to be the
-             class in which the "using" occurs. */
-          a_type_ptr this_param_type =
-                      this_param_type_for_overload_res(routine_type,
-                                                       proj_function_symbol,
-                                                       /*is_conv_func=*/FALSE);
-          if (implicit_selector_type != NULL) {
-            /* The selector is an implicit "this->".  See how well it
-               matches.  It might not match at all. */
-            determine_selector_match_level(implicit_selector_type,
-                                           this_param_type,
-                                           this_match);
-            /* Set the "next" pointer again, because it is cleared by
-               determine_selector_match_level. */
-            this_match->next = this_match_next;
-            if (this_match->match_level == aml_none) {
-              /* Mismatch. */
-              a_type_ptr this_class = type_pointed_to(this_param_type);
-              a_type_ptr sel_class  = type_pointed_to(implicit_selector_type);
-              if (!is_same_class_or_base_class_thereof(sel_class, this_class)){
-                /* "this" and the member function are in unrelated classes,
-                   so it's as if no selector appears. */
-                *matched_except_for_missing_selector = TRUE;
-              }  /* if */
-              goto reject_function;
-            }  /* if */
-          } else {
-            /* See how the selector expression matches the "this" parameter
-               type. */
-            selector_match_with_this_param(bound_function_selector,
-                                           selector_is_object_pointer,
-                                           routine,
-                                           this_param_type, this_match);
-            /* Set the "next" pointer again, because it is cleared by
-               selector_match_with_this_param. */
-            this_match->next = this_match_next;
-            if (this_match->match_level == aml_none) goto reject_function;
-          }  /* if */
-        }  /* if */
-      } else {
-        /* We have no selector. */
-        if (function_is_nonstatic_member_function) {
-          /* A selector is needed and one is not available, so the function
-             is not suitable.  Remember this case to select a different
-             error message if it turns out no function matches. */
-          *matched_except_for_missing_selector = TRUE;
-          goto reject_function;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-accept_function:
-    /* The function is a viable candidate.  Add it to the candidates
-       list. */
-    if (function_template_case) {
-      /* The symbol is a function template. */
-      add_function_template_to_candidate_functions_list(
-                                               proj_function_symbol,
-                                               is_template_id,
-                                               local_template_arg_list,
-                                               arg_match_list,
-                                               candidate_functions);
-    } else {
-      /* The symbol is a normal function. */
-      add_function_to_candidate_functions_list(proj_function_symbol,
-                                               arg_match_list,
-                                               candidate_functions);
-    }  /* if */
-    if (ctor_conversion_case) {
-      /* If we are analyzing a constructor to resolve an implicit or
-         explicit conversion, set "conversion" appropriately.
-         Note that this can happen for the template case also, with a
-         member template, but "routine" in that case is still the
-         prototype instantiation version of the routine.  The true
-         routine is not known until later, when the template is chosen
-         and instantiated. */
-      a_candidate_function_ptr candidate = *candidate_functions;
-      candidate->is_user_conversion = TRUE;
-      if (!function_template_case) candidate->conversion.routine = routine;
-    }  /* if */
-    goto next_function;
-reject_function:
-    /* The function is not suitable. */
-    /* Free any argument match summary entries built for it. */
-    free_arg_match_summary_list(arg_match_list);
-    /* Free any template argument list built for it. */
-    free_template_arg_list(local_template_arg_list);
-next_function:;
-    /* Keep looping to try all the functions in the overload set. */
+    /* Determine whether the function is viable by looking at the arguments.
+       Add the function to the candidates list if it is viable. */
+    determine_function_viability(proj_function_symbol,
+                                 is_template_id,
+                                 template_arg_list,
+                                 routine_type,
+                                 arg_operand_list,
+                                 have_selector,
+                                 bound_function_selector,
+                                 selector_is_object_pointer,
+                                 implicit_selector_type,
+                                 ctor_conversion_case,
+                                 effects_copy_initialization,
+                                 candidate_functions,
+                                 matched_except_for_missing_selector);
   }  /* for */
 }  /* try_overloaded_function_match */
 
