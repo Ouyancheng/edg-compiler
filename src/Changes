@@ -1,5 +1,23 @@
 Version 2.44
 
+4/12/00  Incorrect handling of template template arguments in
+         nested instantiations
+
+When a function template with a template template parameter passes that
+template template parameter on to another function template, the
+second template does not get the correct argument value.
+
+This could result in incorrect behavior, incorrect mangled names, and
+possibly internal errors.  This has been fixed.
+
+  template <class T> struct B { };
+  // T will have the wrong type inside g()
+  template <template <class _T> class T> void g() { T<int> ti; }
+  template <template <class _T> class T> void f() { g<T>(); }
+  int main() {
+    f<B>();
+  }
+
 4/7/00   Abort in Microsoft mode on duplicate dllimport definition
 
 The front end used to abort processing when encountering a duplicate

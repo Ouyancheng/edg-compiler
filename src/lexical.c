@@ -8092,15 +8092,17 @@ err_pos is the position to be used to report any errors.
     any_errors = TRUE;
     syntax_error(ec_exp_identifier);
   }  /* if */
+  if (sym != NULL) {
+    /* If this is a template template parameter, replace the template symbol
+       with the one referred to by the parameter. */
+    sym =  template_argument_if_template_template_param(sym);
+  }  /* if */
   if (!any_errors && param_template != NULL) {
     /* Make sure this argument is compatible with the template template
        parameter. */
     a_template_symbol_supplement_ptr	tssp1;
     a_template_symbol_supplement_ptr	tssp2;
     tssp1 = template_supplement_for_template(param_template);
-    /* If this is a template template parameter, replace the template symbol
-       with the one referred to by the parameter. */
-    sym =  template_argument_if_template_template_param(sym);
     tssp2 = sym->variant.template_info;
     if (!tssp1->is_nonreal_member && !tssp2->is_nonreal_member) {
       /* Nonreal members have no template parameter lists.  The comparison
