@@ -191,6 +191,17 @@ typedef struct an_internal_float_value {
   a_byte bytes[TARG_SIZEOF_LONG_DOUBLE];
 } an_internal_float_value;
 
+/* 
+In C++ classes with virtual functions provide a special mechanism for
+dynamic function binding.  Typically, this is a virtual function table,
+and each object of the class contains a pointer to the table.  For each
+class with virtual functions the front end allocates a field to contain
+such a pointer -- or other data as required by a given implementation.
+The size and alignment of such a field are defined by the following.
+*/
+#define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO TARG_SIZEOF_POINTER
+#define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO TARG_ALIGNOF_POINTER
+
 /*
 Enumerated types:
 */
