@@ -31,6 +31,17 @@ types.h -- Declarations related to types.c (having to do with types).
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
 
+/* When Microsoft extensions are enabled, we need a special routine that
+   can skip typerefs over a possibly null referenced type.  When these
+   extensions are not enabled, we can just use the normal skip_typerefs. */
+#if MICROSOFT_KEYWORDS_ALLOWED
+extern
+a_type_ptr skip_typerefs_allow_null_referenced_type(a_type_ptr type_ptr);
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+#define skip_typerefs_allow_null_referenced_type(tp) skip_typerefs(tp)
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+
 /* Fast macro version of is_error_type. */
 #define m_is_error_type(tp)                                           \
   (skip_typerefs(tp)->kind == (a_type_kind)tk_error)

@@ -87,65 +87,93 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			/* If this bit is set decl_specifiers is being called
 			   for an old-style parameter declaration.  Some error
 			   checking is affected. */
+#define DSI_MICROSOFT_QUALIFIERS_ALLOWED 0x4000
+#if MICROSOFT_KEYWORDS_ALLOWED
+#define DSI_LAST DSI_MICROSOFT_QUALIFIERS_ALLOWED
+			/* Last bit in the bit vector that is in use. */
+#else /* MICROSOFT_KEYWORDS_ALLOWED */
 #define DSI_LAST DSI_IS_OLD_STYLE_PARAM_DECL
 			/* Last bit in the bit vector that is in use. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
-#define DSO_HAS_EXPLICIT_TYPE_SPECIFIER 0x1
+#define DSO_HAS_EXPLICIT_TYPE_SPECIFIER	\
+				0x1
 			/* If this bit is set the declaration specifiers
 			   were found to have at least one type specifier. */
-#define DSO_INLINE 0x2
+#define DSO_INLINE 		0x2
 			/* If this bit is set the function specifier "inline"
 			   was found. */
-#define DSO_VIRTUAL 0x4
+#define DSO_VIRTUAL 		0x4
 			/* If this bit is set the function specifier "volatile"
 			   was found. */
-#define DSO_FRIEND 0x8
+#define DSO_FRIEND		 0x8
 			/* If this bit is set the declaration specifier
 			   "friend" was found. */
-#define DSO_DECLARES_SOMETHING 0x10
+#define DSO_DECLARES_SOMETHING	0x10
 			/* If this bit is set the declaration specifiers
 			   actually declare something (a tag or enumeration
 			   members). */
-#define DSO_DEFINES_SOMETHING 0x20
+#define DSO_DEFINES_SOMETHING	0x20
 			/* If this bit is set the declaration specifiers
 			   actually define something (a class, struct, union,
 			   or enumeration). */
-#define DSO_JUST_VOID 0x40
+#define DSO_JUST_VOID 		0x40
 			/* If this bit is set the keyword "void" was found,
 			   and nothing else. */
-#define DSO_DANGLING_TYPE_SPECIFIER 0x80
+#define DSO_DANGLING_TYPE_SPECIFIER	\
+				0x80
 			/* If this bit is set a malformed type specification
 			   was detected, probably caused by a missing
 			   semicolon following an class, struct, union, or
 			   enum declaration.  Error reporting is left to the
 			   caller in such cases. */
-#define DSO_NO_DECL_SPECIFIERS 0x100
+#define DSO_NO_DECL_SPECIFIERS	 0x100
 			/* If this bit is set then no declaration specifiers
 			   were found before the first non-type-name
 			   identifier was encountered. */
-#define DSO_ELABORATED_TYPE_SPECIFIER 0x200
+#define DSO_ELABORATED_TYPE_SPECIFIER	\
+				0x200
                         /* If this bit is set the declaration specifiers
                            consist of (1) a keyword class, struct, union, or
                            enum and (2) an identifier (and optionally (3) the
                            keyword friend). */
-#define DSO_CONSTRUCTOR 0x400
+#define DSO_CONSTRUCTOR 	0x400
 			/* If this bit is set the declaration is for a
 			   constructor, in which case the type returned from
 			   decl_specifiers is tk_void. */
-#define DSO_DESTRUCTOR 0x800
+#define DSO_DESTRUCTOR 		0x800
 			/* If this bit is set the declaration appears to be
                            that of a destructor (a "~" was seen, and the
                            specifiers, if any, are consistent with those
 			   allowed on a destructor declaration), and so a type
                            of tk_void was returned. */
-#define DSO_CLASS_TEMPLATE 0x1000
+#define DSO_CLASS_TEMPLATE 	0x1000
 			/* If this bit is set the declaration appears to be
 			   that of a class template. */
+#if MICROSOFT_KEYWORDS_ALLOWED
+#define DSO_MICROSOFT_INLINE 	0x2000
+			/* The Microsoft __inline keyword was present. */
+#define DSO_DLLIMPORT		0x4000
+			/* The Microsoft __declspec(dllimport) construct was
+			   used. */
+#define DSO_DLLEXPORT		0x8000
+			/* The Microsoft __declspec(dllexport) construct was
+			   used. */
+#define DSO_THREAD		0x10000
+			/* The Microsoft __declspec(thread) construct was
+			   used. */
+#define DSO_NAKED		0x20000
+			/* The Microsoft __declspec(naked) construct was
+			   used. */
+#define DSO_LAST DSO_NAKED
+			/* Last bit in the bit vector that is in use. */
+#else /* MICROSOFT_KEYWORDS_ALLOWED */
 #define DSO_LAST DSO_CLASS_TEMPLATE
 			/* Last bit in the bit vector that is in use. */
-
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* DECL_SPEC_H */
 
 /******************************************************************************

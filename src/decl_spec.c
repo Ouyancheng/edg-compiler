@@ -1335,6 +1335,68 @@ is a that of a constructor.
 }  /* is_constructor_decl */
 
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+static void scan_microsoft_extended_decl_modifiers(a_decl_flag_set *flags,
+						   a_boolean       *err)
+/*
+Scan the Microsoft __declspec specifier, which has the form
+
+	__declspec ( extended-decl-modifier-seq)
+
+	extended-decl-modifier-seq:
+		extended-decl_modifier
+		                      opt
+		extended-decl-modifier-seq extended-decl-modifier
+
+	extended-decl_modifier:
+		thread
+		naked
+		dllimport
+		dllexport
+
+Update "flags" to reflect the modifiers that were found.  If an error
+occurs (e.g., an invalid modifier), set err to TRUE.  err is unchanged if
+there are no errors.
+
+When this routine is called, the current token must be the __declspec
+keyword.
+*/
+{
+  check_assertion_str2(curr_token == tok_declspec,
+                       "scan_microsoft_extended_decl_modifiers:",
+                       "curr_token not tok_declspec");
+  *flags = DSO_NO_OUTPUT_FLAGS;
+  /* Bypass the __declspec token. */
+  (void)get_token();
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    add_stop_token(tok_rparen);
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+    } else {
+      while (curr_token == tok_identifier) {
+        char	*modifier;
+        modifier = locator_for_curr_id.symbol_header->identifier;
+        if (strcmp(modifier, "dllexport") == 0) {
+          *flags |= DSO_DLLEXPORT;
+        } else if (strcmp(modifier, "dllimport") == 0) {
+          *flags |= DSO_DLLIMPORT;
+        } else if (strcmp(modifier, "thread") == 0) {
+          *flags |= DSO_THREAD;
+        } else if (strcmp(modifier, "naked") == 0) {
+          *flags |= DSO_NAKED;
+        } else {
+          str_error(ec_bad_declspec_modifier, modifier);
+          *err = TRUE;
+        }  /* if */
+        (void)get_token();
+      }  /* while */
+    }  /* if */
+    remove_stop_token(tok_rparen);
+  }  /* if */
+}  /* scan_microsoft_extended_decl_modifiers */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+
 a_boolean decl_specifiers(a_decl_flag_set       input_flags,
                           a_decl_flag_set       *output_flags,
                           a_storage_class       *storage_class,
@@ -1389,11 +1451,43 @@ least one specifier.  The ANSI C syntax is as follows:
 		const
 		volatile
 
+When Microsoft keywords are recognized, additional the syntax is
+amended as follows (see comments below regarding recognition of the
+modified syntax):
+
+        storage-class-specifier:
+		__declspec ( extended-decl-modifier-seq )
+		__inline
+
+	type-qualifier:
+		__stdcall
+		__fastcall
+		__stdcall
+
+	extended-decl-modifier-seq:
+		extended-decl_modifier
+		                      opt
+		extended-decl-modifier-seq extended-decl-modifier
+
+	extended-decl_modifier:
+		thread
+		naked
+		dllimport
+		dllexport
+
 The DSI_IS_PARAMETER bit of input_flags is set if these specifiers are
 part of the declaration of a parameter, and, for C++, the
 DSI_VIRTUAL_OR_FRIEND_ALLOWED bit is set when a declaration appears within
 a class declaration, to permit recognition of "virtual" and "friend"
 keywords.
+
+The syntax for the Microsoft extensions does not exactly match the
+syntax described in the Microsoft documentation.  It does, however,
+match the observed behavior of the Microsoft compiler.  The
+additional type qualifiers are only recognized when the
+DSI_MICROSOFT_QUALIFIERS_ALLOWED bit of input_flags is set.  The
+additional storage class specifiers are recognized anywhere that
+storage classes are normally allowed.
 
 Returns *storage_class set to the storage class scanned (or
 sc_unspecified if none was scanned), *type_ptr pointing to the type
@@ -1421,7 +1515,8 @@ Returns TRUE if there is an error in the specifiers.
   a_symbol_ptr               curr_token_type_symbol;
   a_boolean                  err = FALSE;
   a_boolean                  bad_combination_of_type_specifiers = FALSE;
-  a_source_position          start_pos, const_volatile_pos;
+  a_source_position          start_pos;
+  a_source_position          non_restrict_qualifier_pos;
   a_type_kind                kind;
   an_integer_kind            ikind;
   a_float_kind               fkind;
@@ -1548,6 +1643,66 @@ Returns TRUE if there is an error in the specifiers.
           }  /* switch */
         }  /* if */
         break;
+#if MICROSOFT_KEYWORDS_ALLOWED
+      case tok_microsoft_inline:
+      case tok_declspec:
+        {
+          a_decl_flag_set	new_output_flags = DSO_NO_OUTPUT_FLAGS;
+          a_source_position	specifier_start_pos = pos_curr_token;
+          /* A Microsoft storage class modifier.  If this is a __declspec,
+             scan the list of declaration modifiers. */
+          switch (curr_token) {
+            case tok_declspec:
+              scan_microsoft_extended_decl_modifiers(&new_output_flags, &err);
+              break;
+            case tok_microsoft_inline:
+	      new_output_flags = DSO_MICROSOFT_INLINE;
+              break;
+          }  /* switch */
+          if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
+            pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
+            err = TRUE;
+          } else {
+            /* There were no errors, update the output flags to reflect
+               this specifier. */
+            *output_flags |= new_output_flags;
+            if (is_parameter) {
+              /* For parameters, warn if a storage class modifier is used. */
+              pos_warning(ec_bad_param_storage_class, &specifier_start_pos);
+            }  /* if */
+          }  /* if */
+        }
+        break;
+        case tok_cdecl:
+        case tok_fastcall:
+        case tok_stdcall:
+          /* Microsoft calling convention specifiers.  These are treated
+             like type qualifiers. */
+          {
+            a_type_qualifier_set	new_qualifier = 0;
+            if (!(input_flags & DSI_MICROSOFT_QUALIFIERS_ALLOWED)) {
+              error(ec_calling_convention_not_allowed);
+            } else {
+              switch (curr_token) {
+                case tok_cdecl:    new_qualifier = TQ_CDECL;    break;
+                case tok_fastcall: new_qualifier = TQ_FASTCALL; break;
+                case tok_stdcall:  new_qualifier = TQ_STDCALL;  break;
+                default: unexpected_condition(); break;
+              }  /* switch */
+              if ((*qualifiers & TQ_CALLING_CONVENTION_QUALIFIERS) != 0 &&
+                  (new_qualifier & *qualifiers) == 0) {
+                /* The qualifier bit set already contains a calling
+                   convention.  The same convention may be specified more
+		   than once, but conflicting ones cannot be specified. */
+                error(ec_conflicting_calling_conventions);
+              } else {
+                *qualifiers |= new_qualifier;
+                non_restrict_qualifier_pos = pos_curr_token;
+              }  /* if */
+            }  /* if */
+          }
+          break;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       case tok_const:
         /* const type qualifier (3.5.3). */
         if (*qualifiers & TQ_CONST) {
@@ -1558,7 +1713,7 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (*qualifiers == TQ_NONE) const_volatile_pos = pos_curr_token;
+          non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_CONST;
         }  /* if */
         break;
@@ -1572,7 +1727,7 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (*qualifiers == TQ_NONE) const_volatile_pos = pos_curr_token;
+          non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_VOLATILE;
         }  /* if */
         break;
@@ -2345,7 +2500,9 @@ no_get_token:
     if (input_flags & DSI_COLLECT_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers (e.g., in a
          pointer declarator). */
-      if (!is_type_qualifier()) goto exit_loop;
+      if (!is_type_qualifier() || is_microsoft_type_qualifier()) {
+        goto exit_loop;
+      }  /* if */
     } else if (defines_something &&
                input_flags & DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER) {
       /* The basic type is a class, struct, union, or enum that actually
@@ -2654,11 +2811,13 @@ exit_loop:
                 qualifiers may not. */
             if ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
               *qualifiers &= TQ_RESTRICT;
-              pos_warning(ec_useless_type_qualifiers, &const_volatile_pos);
+              pos_warning(ec_useless_type_qualifiers,
+                          &non_restrict_qualifier_pos);
             }  /* if */
 #else /* !RESTRICT_ALLOWED */
             *qualifiers = TQ_NONE;
-            pos_warning(ec_useless_type_qualifiers, &const_volatile_pos);
+            pos_warning(ec_useless_type_qualifiers,
+                        &non_restrict_qualifier_pos);
 #endif /* RESTRICT_ALLOWED */
           }  /* if */        
         } else {

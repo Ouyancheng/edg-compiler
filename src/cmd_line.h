@@ -103,6 +103,9 @@ typedef enum /*an_option_kind*/ {
   optk_restrict,
 #endif /* RESTRICT_ALLOWED */
   optk_long_lifetime_temps,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  optk_microsoft_mode,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -448,6 +451,16 @@ EXTERN a_boolean
 			   end of full expression.  If TRUE, temporaries
 			   have lifetimes that end at end of scope, label,
 			   or end of switch clause. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		microsoft_mode
+#if VAR_INITIALIZERS
+                               = FALSE
+#endif /* VAR_INITIALIZERS */
+                                      ;
+			/* TRUE if microsoft extensions are to be accepted. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /* Process the command line arguments. */

@@ -27,6 +27,18 @@ decls.c -- Scanning of declarations.
 /* Additional header files. */
 #include "statements.h"
 
+/*
+Macro that is TRUE if the current token is a Microsoft storage class
+specifier.
+*/
+#if MICROSOFT_KEYWORDS_ALLOWED
+#define is_microsoft_storage_class()					\
+  (curr_token == tok_declspec || curr_token == tok_microsoft_inline)
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+/* When Microsoft keywords are not allowed, simply return FALSE. */
+#define is_microsoft_storage_class() (FALSE)
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
 
 /*
 Macro that is TRUE if the current token is the start of a storage class
@@ -35,7 +47,7 @@ specifier (3.5.1).
 #define is_storage_class()                                            \
   (curr_token == tok_typedef  || curr_token == tok_extern   ||        \
    curr_token == tok_static   || curr_token == tok_auto     ||        \
-   curr_token == tok_register)
+   curr_token == tok_register || is_microsoft_storage_class())
 
 /*
 Macro that is TRUE if the current token is the start of a function

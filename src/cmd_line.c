@@ -370,6 +370,11 @@ Initialize the option information table.
   add_option_description(optk_long_lifetime_temps, "short_lifetime_temps",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  add_option_description(optk_microsoft_mode, "microsoft",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -1173,6 +1178,13 @@ Process the arguments on the command line that invoked the compiler.
         /* Long or short lifetime temporaries. */
         long_lifetime_temps = opt_value;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case optk_microsoft_mode:
+        /* Enable Microsoft extensions. */
+        check_assertion(opt_value == TRUE);
+        microsoft_mode = TRUE;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

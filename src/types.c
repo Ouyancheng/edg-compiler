@@ -129,6 +129,30 @@ of the macro to avoid multiple evaluations of the argument.
 }  /* f_skip_typerefs */
 
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+a_type_ptr skip_typerefs_allow_null_referenced_type(a_type_ptr type_ptr)
+/*
+Similar to skip_typerefs, except the referenced type may be NULL.  This 
+is used while scanning a declarator when some qualifiers may have been
+scanned, but the underlying type is not yet known.  This condition only
+occurs when Microsoft keywords are allowed.
+
+Normally this routine returns the referenced type under the typerefs.
+When the referenced type is NULL, a NULL pointer is returned.
+*/
+{
+  if (microsoft_mode) {
+    while (type_ptr != NULL && type_ptr->kind == (a_type_kind)tk_typeref) {
+      type_ptr = type_ptr->variant.typeref.type;
+    }  /* while */
+  } else {
+    type_ptr = skip_typerefs(type_ptr);
+  }  /* if */
+  return type_ptr;
+}  /* skip_typerefs_allow_null_referenced_type */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+
 a_type_ptr skip_typedefs(a_type_ptr type_ptr)
 /*
 Strip any typedef entries off the given type to get to the real type, and

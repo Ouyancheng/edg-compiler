@@ -80,6 +80,33 @@ scanned are coalesced prior to analysis.
 }  /* get_token_and_coalesce_if_identifier */
 
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+static void prescan_microsoft_extended_decl_modifiers(void)
+/*
+Prescan the Microsoft __declspec specifier:
+
+	__declspec ( extended-decl-modifier-seq )
+
+When this routine is called, the current token must be the __declspec
+keyword.
+*/
+{
+  check_assertion_str2(curr_token == tok_declspec,
+                       "prescan_microsoft_extended_decl_modifiers:",
+                       "curr_token not tok_declspec");
+  /* Bypass the __declspec token. */
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    get_token_and_coalesce_if_identifier();
+    while (curr_token == tok_identifier) {
+      get_token_and_coalesce_if_identifier();
+    }  /* while */
+    if (curr_token == tok_rparen) get_token_and_coalesce_if_identifier();
+  }  /* if */
+}  /* prescan_microsoft_extended_decl_modifiers */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+
 static void prescan_decl_specifiers(a_token_cache  *token_cache_ptr,
                                     a_boolean      *may_be_decl)
 /*
@@ -101,6 +128,10 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       /* Mutable keyword is not yet implemented. */
       case tok_mutable:
 #endif /* 0 */
+#if MICROSOFT_KEYWORDS_ALLOWED
+      /* The Microsoft __inline keyword is treated as a storage class. */
+      case tok_microsoft_inline:
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       /* Function specifiers. */
       case tok_inline:
       case tok_virtual:
@@ -108,6 +139,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_friend:
       case tok_typedef:
         break;
+#if MICROSOFT_KEYWORDS_ALLOWED
+      case tok_declspec:
+        prescan_microsoft_extended_decl_modifiers();
+        break;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       /* Type specifier - identifier that may be a simple type name.
          If we haven't yet seen a type specifier, then this identifier,
          if it is a type, is the type specifier.  Otherwise, this is
@@ -155,6 +191,12 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if RESTRICT_ALLOWED
       case tok_restrict:
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_KEYWORDS_ALLOWED
+      /* Microsoft type qualifiers. */
+      case tok_cdecl:
+      case tok_fastcall:
+      case tok_stdcall:
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
         break;
       case tok_class:
       case tok_struct:
@@ -309,10 +351,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
          * cv-qualifier-list
          & cv-qualifier-list
          complete-class-name :: * cv-qualifier-list
+         microsoft-qualifier-list
      Note that neither pointer declarators nor qualifiers are allowed in
      in expressions, so their presence means this is a declaration. */
   for (;;) {
-    if (curr_token == tok_star || curr_token == tok_ampersand) {
+    if (curr_token == tok_star || curr_token == tok_ampersand ||
+        is_microsoft_type_qualifier()) {
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
