@@ -5357,7 +5357,12 @@ of the function, and again overloading is a possibility.
         /* "inline" may not be introduced by this declaration. */
         if (func_info->is_inline && !func_info->is_definition &&
             !sym->variant.routine.ptr->is_inline) {
-          error(ec_inline_not_allowed);
+          if (microsoft_mode) {
+            /* Microsoft compilers ignore the inline specifier in this case. */
+            func_info->is_inline = FALSE;
+          } else {
+            error(ec_inline_not_allowed);
+          }  /* if */
         }  /* if */
       }  /* if */
       if (sym != NULL) {
