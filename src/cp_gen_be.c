@@ -2288,6 +2288,7 @@ definition, or is NULL otherwise.
            declaration that included this default argument expression. */
         if (param->default_arg_expr != NULL &&
             (func_sse == NULL ||
+             param->rout_src_seq_entry_for_default_arg_decl == NULL ||
              func_sse == param->rout_src_seq_entry_for_default_arg_decl)) {
           write_tok_str(" = ");
           gen_initializer_expr(param->default_arg_expr, param->type,
