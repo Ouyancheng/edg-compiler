@@ -198,8 +198,10 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_normal,		/* Find any symbol. */
   ilm_class,		/* Find only class names. */
   ilm_tag,		/* Find only tag names. */
-  ilm_tentative_type	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
+  ilm_tentative_type,	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
 			   to do the lookup. */
+  ilm_tag_declaration	/* Special mode that searches for tags and does not
+			   create projection symbols. */
 } an_identifier_lookup_mode;
 
 

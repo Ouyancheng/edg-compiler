@@ -5542,6 +5542,10 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
       case ilm_tentative_type:
         idl_options = IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME;
         break;
+      case ilm_tag_declaration:
+        idl_options = IDL_MUST_BE_TAG |
+                      IDL_DO_NOT_MAKE_PROJECTION;
+        break;
       case ilm_normal:
         idl_options = IDL_NO_OPTIONS;
         break;

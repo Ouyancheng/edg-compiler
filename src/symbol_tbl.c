@@ -4081,8 +4081,10 @@ C and C++.
           }  /* for */
           if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
             /* For class scopes, look for a symbol projected (inherited)
-               into the class scope. */
-            look_for_projected_symbol = TRUE;
+               into the class scope.  Don't do this if the options flag
+               IDL_DO_NOT_MAKE_PROJECTION has been specified.  */
+            look_for_projected_symbol =
+                                     !(options & IDL_DO_NOT_MAKE_PROJECTION);
             add_to_active_list = TRUE;
             insert_sym = prev_active_sym;
           } else {
