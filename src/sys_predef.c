@@ -62,7 +62,7 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("1", "__i486__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* ifdef __i486__ */
-  if (!gcc_mode) {
+  if (!gnu_mode) {
     /* The following macros enable the use of some Linux system header
        files (like stdio.h) when not in GNU C mode. */
     /* Setting __STRICT_ANSI__ disables parts of Linux headers that rely on
@@ -901,7 +901,7 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* 0 */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gpp_mode) {
+  if (gnu_mode) {
     enter_gnu_predeclared_functions();
     /* On many GNU C configurations (e.g., linux) __builtin_va_list is a type
        compatible with void*.  On other configurations, the following may need
