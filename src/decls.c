@@ -5898,6 +5898,15 @@ to indicate whether an enumeration is actually defined.
           scan_integral_constant_expression(&constant);
           if (is_error_constant(&constant)) {
             err = TRUE;
+          } else if (constant.kind ==
+                                (a_constant_repr_kind)ck_template_param) {
+            /* We are doing a prototype instantiation and we have a case like
+               this:
+                 template <int N> class A { enum e { e1 = N }; };
+               This is perfectly legal, but for convenience we represent the
+               value as though this had been an error.  It will have no
+               effect on other processing. */
+            err = TRUE;
           } else {
             check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
             /* Check the value to see if it is out of range.  (3.5.2.2,
