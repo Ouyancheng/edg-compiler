@@ -890,7 +890,7 @@ linking the entries, this routine also checks to see if the resulting
 type is legal.
 */
 {
-  a_type_ptr              temp_type, prev_temp_type, pt;
+  a_type_ptr              temp_type, prev_temp_type, tp;
   a_boolean               err = FALSE;
   a_type_kind             tkind;
   a_boolean               array_of_incomp_struct_or_union = FALSE;
@@ -928,11 +928,23 @@ type is legal.
            of zero, which is the case for the partial array and pointer
            types. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type) || is_pointer_type(temp_type) ||
-            (temp_type->kind == (a_type_kind)tk_array &&
-             (temp_type->variant.array.is_variable_size_array ||
-              temp_type->variant.array.variant.number_of_elements != 0))) {
+        if (is_object_type(temp_type) || is_pointer_type(temp_type)) {
           /* Okay. */
+        } else if (temp_type->kind == (a_type_kind)tk_array &&
+                   (temp_type->variant.array.is_variable_size_array ||
+                    temp_type->
+                           variant.array.variant.number_of_elements != 0)) {
+          /* Okay. */
+          tp = underlying_array_element_type(temp_type);
+          if (tp != NULL) {
+            tp = skip_typerefs(tp);
+            if (is_immediate_class_type(tp) && is_incomplete_type(tp)) {
+              /* This is an array of array ... of incomplete class type.  A
+                 diagnostic may be issued in C mode, but only when the class is
+                 the immediate element type (see below). */
+              array_of_incomp_struct_or_union = TRUE;
+            }  /* if */
+          }  /* if */
         } else if (is_ptr_to_member_type(temp_type) &&
                    pm_member_type(temp_type) == NULL) {
           /* This is an incomplete ptr-to-member type, presumably a
@@ -940,13 +952,13 @@ type is legal.
         } else if (is_template_param_type(temp_type)) {
           /* This is a declaration in the midst of a template declaration.
              Okay. */
-        } else if (is_class_struct_union_type(temp_type)) {
+        } else if (is_immediate_class_type(temp_type)) {
           check_for_uninstantiated_template_class(temp_type);
           if (is_incomplete_type(temp_type)) {
             /* As an extension in C mode, allow an array of incomplete struct
                or or union type.  In C++ this is apparently not an extension,
                since the ARM imposes no restriction.  Obviously, the element
-               type has to be completed before the arrays is actually used.
+               type has to be completed before the array is actually used.
                Add the array type to a list of array types to be fixed up when
                the class/struct/union declaration is completed. */
             array_of_incomp_struct_or_union = TRUE;
@@ -978,7 +990,7 @@ type is legal.
         (*bottom_derived_type)->variant.array.element_type = new_type_ptr;
       } else if (is_pointer_type(*bottom_derived_type)) {
         /* Pointer type. */
-        a_type_ptr  class_type, rout_type, tp;
+        a_type_ptr  class_type, rout_type;
 
         if (is_cfront_member_function_typedef(new_type_ptr, &rout_type,
                                               &class_type)) {
@@ -1114,27 +1126,27 @@ type is legal.
               tkind = prev_temp_type->kind;
               switch (tkind) {
                 case tk_array:
-                  pt = prev_temp_type->variant.array.element_type;
+                  tp = prev_temp_type->variant.array.element_type;
                   break;
                 case tk_pointer:
-                  pt = prev_temp_type->variant.pointer.type;
+                  tp = prev_temp_type->variant.pointer.type;
                   break;
                 case tk_routine:
-                  pt = prev_temp_type->variant.routine.return_type;
+                  tp = prev_temp_type->variant.routine.return_type;
                   break;
                 case tk_typeref:
-                  pt = prev_temp_type->variant.typeref.type;
+                  tp = prev_temp_type->variant.typeref.type;
                   break;
                 case tk_ptr_to_member:
-                  pt = pm_member_type(prev_temp_type);
+                  tp = pm_member_type(prev_temp_type);
                   break;
 #if CHECKING
                 default:
                   internal_error("add_to_derived_type_list: bad type in list");
 #endif /* CHECKING */
               }  /* switch */
-              if (pt == temp_type) break;
-              prev_temp_type = pt;
+              if (tp == temp_type) break;
+              prev_temp_type = tp;
             }  /* for */
             /* Found the previous type entry.  Keep looping. */
             temp_type = prev_temp_type;
