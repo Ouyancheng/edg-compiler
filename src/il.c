@@ -2050,11 +2050,12 @@ macros need to be there.
 }  /* alloc_text_of_string_literal */
 
 
-a_param_type_ptr alloc_param_type(a_boolean at_file_scope)
+a_param_type_ptr alloc_param_type(a_type_ptr type,
+                                  a_boolean  at_file_scope)
 /*
 Allocate a new parameter type entry and return a pointer to it.  Set
-its fields to default values.  Allocate it at the file scope if
-at_file_scope == TRUE.
+its fields to default values and its type to "type".  Allocate it at
+the file scope if at_file_scope == TRUE.
 */
 {
   a_param_type_ptr ptp;
@@ -2070,14 +2071,13 @@ at_file_scope == TRUE.
   num_param_types_allocated++;
 #endif /* DEBUG */
   ptp->next = NULL;
-  ptp->type = NULL;
+  ptp->type = type;
   ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_expr = NULL;
   ptp->dynamic_init = NULL;
-
   db_exit();
-  return (ptp);
+  return ptp;
 }  /* alloc_param_type */
 
 
@@ -2920,7 +2920,7 @@ Initialize a dynamic_init entry of the kind specified.
 a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind)
 /*
 Allocate a dynamic initialization entry, clear it to default values, set
-its kind to kind and its variable to variable, and return a pointer to it.
+its kind to kind, and return a pointer to it.
 */
 {
   a_dynamic_init_ptr dip;
@@ -2936,6 +2936,33 @@ its kind to kind and its variable to variable, and return a pointer to it.
   db_exit();
   return dip;
 }  /* alloc_dynamic_init */
+
+
+a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
+                                           a_type_ptr          type)
+/*
+Allocate a dynamic initialization entry, clear it to default values, set
+its kind to kind, and return a pointer to it.  If type is a type that
+requires a destructor, put the destructor routine pointer into the dynamic
+initialization entry.
+*/
+{
+  a_dynamic_init_ptr            dip = alloc_dynamic_init(kind);
+  a_class_symbol_supplement_ptr cssp;
+
+  if (is_class_struct_union_type(type)) {
+    /* The class is a class. */
+    cssp = symbol_supplement_for_class(type);
+    if (cssp != NULL) {
+      /* The class is a C++ class. */
+      if (cssp->destructor != NULL) {
+        /* The class has a destructor. */
+        dip->destructor = cssp->destructor->variant.routine;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return dip;
+}  /* alloc_dtor_dynamic_init */
 
 
 void add_to_dynamic_inits_list(a_dynamic_init_ptr dip)

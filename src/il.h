@@ -58,7 +58,8 @@ extern void clear_constant(a_constant           *cp,
 
 extern void set_error_constant(a_constant *cp);
 
-extern a_param_type_ptr alloc_param_type(a_boolean at_file_scope);
+extern a_param_type_ptr alloc_param_type(a_type_ptr type,
+                                         a_boolean  at_file_scope);
 
 extern an_access_adjustment_ptr alloc_access_adjustment(
                                               an_access_adjustment_kind  kind);
@@ -148,6 +149,9 @@ extern void clear_dynamic_init(a_dynamic_init_ptr  dip,
                                a_dynamic_init_kind kind);
 
 extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
+
+extern a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
+                                                  a_type_ptr          type);
 
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
