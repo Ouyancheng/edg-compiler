@@ -6484,6 +6484,15 @@ block.
         ns_sym->variant.namespace_info.ptr = nsp;
         ns_sym->variant.namespace_info.extra_info =
                                        alloc_namespace_symbol_supplement();
+        /* Set a flag indicating that this namespace is itself an unnamed
+           namespace or is enclosed by an unnamed namespace. */
+        if (is_unnamed_namespace ||
+            (ns_sym->parent.namespace_ptr != NULL &&
+             namespace_supplement_for_namespace(ns_sym->parent.namespace_ptr)->
+                                                  within_unnamed_namespace)) {
+          ns_sym->variant.namespace_info.extra_info->
+                                             within_unnamed_namespace = TRUE;
+        }  /* if */
         add_to_namespaces_list(nsp);
         /* Do processing required for any pragmas bound to the current
            declaration. */

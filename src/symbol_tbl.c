@@ -604,6 +604,7 @@ do_variable:
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
         if (rp->is_template_function) put_string("is instance");
+        if (rp->is_specialization) put_string("specialization");
 #if MAINTAIN_NEEDED_FLAGS
         if (rp->source_corresp.needed) put_string("needed");
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -780,8 +781,10 @@ do_variable:
           fprintf(f_debug, "\n");
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
+            a_routine_ptr rp = tip->instance_sym->variant.routine.ptr;
             fprintf(f_debug, "%*sinstantiation", indentation, "");
-            if (tip->instantiation_required || tip->specific_decl) {
+            if (tip->instantiation_required || tip->specific_decl ||
+                rp->is_specialization) {
               char* comma = "";
               fputs(" (", f_debug);
               if (tip->instantiation_required) {
@@ -790,6 +793,9 @@ do_variable:
               }  /* if */
               if (tip->specific_decl) {
                 fprintf(f_debug, "%sspecific decl", comma);
+              }  /* if */
+              if (rp->is_specialization) {
+                fprintf(f_debug, "%sexplicit specialization", comma);
               }  /* if */
               fputc(')', f_debug);
             }  /* if */
@@ -1456,6 +1462,7 @@ return a pointer to it.
   nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
   nssp->namespace_list_entry = NULL;
   nssp->visited_by_qualified_lookup = FALSE;
+  nssp->within_unnamed_namespace = FALSE;
 #if DEBUG
   num_namespace_symbol_supplements_allocated++;
 #endif /* DEBUG */

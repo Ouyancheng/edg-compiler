@@ -1370,10 +1370,12 @@ typedef struct a_namespace_symbol_supplement {
 			   class symbol supplement can point to a common
 			   entry for all of the leaf classes (i.e., most
 			   base classes) in a given namespace. */
-  a_byte_boolean
-		visited_by_qualified_lookup;
+  a_bit_field	visited_by_qualified_lookup:1;
 			/* Used by the qualified lookup routines to indicate
 			   that this namespace has already been visited. */
+  a_bit_field	within_unnamed_namespace:1;
+			/* TRUE when the namespace is itself an unnamed
+			   namespace or is enclosed by an unnamed namespace. */
 } a_namespace_symbol_supplement;
 
 
