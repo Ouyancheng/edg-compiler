@@ -4259,8 +4259,9 @@ class_type if any are needed.
                                           force_static);
       }  /* if */
       /* The vtbl variable is referenced if the class is referenced. */
-      ctsp->virtual_function_table_var->source_corresp.referenced =
-                                         class_type->source_corresp.referenced;
+      if (class_type->source_corresp.referenced) {
+        ctsp->virtual_function_table_var->source_corresp.referenced = TRUE;
+      }  /* if */
     }  /* if */
     /* Generate the virtual function table for each base class when it
        is contained within a complete object of the primary class. */
@@ -4281,8 +4282,9 @@ class_type if any are needed.
           }  /* if */
         }  /* if */
         /* The vtbl variable is referenced if the class is referenced. */
-        bcp->virtual_function_table_var->source_corresp.referenced =
-                                         class_type->source_corresp.referenced;
+        if (class_type->source_corresp.referenced) {
+          bcp->virtual_function_table_var->source_corresp.referenced = TRUE;
+        }  /* if */
       }  /* for */
     }  /* if */
   }  /* if */
@@ -9864,6 +9866,7 @@ constructor, but may instead be after an assignment to "this".
        in the current class. */
     vtbl_addr_node = make_variable_lvalue_node(primary_vtbl_var);
     primary_vtbl_var->address_taken = TRUE;
+    primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
                                       (an_expr_operator_kind)eok_passign,
@@ -9881,6 +9884,7 @@ constructor, but may instead be after an assignment to "this".
          class. */
       vtbl_addr_node = make_variable_lvalue_node(vtbl_var);
       vtbl_var->address_taken = TRUE;
+      vtbl_var->source_corresp.referenced = TRUE;
       if (!bcp->is_virtual) {
         /* For non-virtual base classes, the base class can be accessed
            directly. */
@@ -10194,6 +10198,7 @@ destructor scope.
        in the current class. */
     vtbl_addr_node = make_variable_lvalue_node(primary_vtbl_var);
     primary_vtbl_var->address_taken = TRUE;
+    primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
                                       (an_expr_operator_kind)eok_passign,
@@ -10237,6 +10242,7 @@ destructor scope.
          current class. */
       vtbl_addr_node = make_variable_lvalue_node(vtbl_var);
       vtbl_var->address_taken = TRUE;
+      vtbl_var->source_corresp.referenced = TRUE;
       /* Build a node to address the virtual table pointer.  Since we do not
          know whether or not we have a complete object, use the virtual base
          class pointers. */
