@@ -498,6 +498,11 @@ as the class type, and use as a base class.
     cssp->member_decl_scope = take_next_scope_number();
     cssp->template_param_for_proxy_class = templ_param_type;
     type->variant.class_struct_union.is_nonreal_class = TRUE;
+    if (prototype_instantiations_in_il) {
+      /* When prototype instantiations are included in the IL, add the proxy
+         class to the IL. */
+      add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
+    }  /* if */
   }  /* if */
   return tptsp->class_type;
 }  /* proxy_class_for_template_param */
