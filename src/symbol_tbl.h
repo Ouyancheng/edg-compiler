@@ -270,6 +270,9 @@ Clear a symbol locator.
 #ifndef DEF_ARG_H
 #include "def_arg.h"
 #endif /* ifndef DEF_ARG_H */
+#ifndef PRAGMA_H
+#include "pragma.h"
+#endif /* ifndef PRAGMA_H */
 
 /*
 Kinds of symbols in the symbol table.

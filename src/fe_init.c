@@ -56,6 +56,7 @@ in the include files will become external definitions for the symbols.
 #include "macro.h"
 #include "mem_manage.h"
 #include "overload.h"
+#include "pragma.h"
 #include "preproc.h"
 #include "statements.h"
 #include "symbol_tbl.h"
@@ -744,6 +745,7 @@ Initialize everything that has to do with the front end.
   expr_init();
   macro_proc_init();
   statements_init();
+  pragma_init();
   /* preproc_init must be called after keyword initialization so that
      macros have priority over keywords.  It also must be called after
      lexical_init so that is_id_char is set.  And, it must be called after
