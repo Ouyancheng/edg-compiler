@@ -4027,7 +4027,7 @@ a diagnostic is put out in some cases.
              If it is a member of a template class, be sure it has a valid
              return type.  (Note:  template classes may define operator->
              functions that return invalid types as long as they are never
-             called. */
+             called.) */
           if (symbol_supplement_for_class(rp->source_corresp.
                             class_of_which_a_member)->class_template != NULL) {
             /* If the return type is invalid, change the return type to an
@@ -4139,18 +4139,9 @@ in *result.
     /* Make an expression node for the function, link it to the argument
        list, then build a call node that points to the function/arguments
        list. */
-    if (function_operand->bound_function) {
-      /* Bound function.  bound_function_selector indicates the object. */
-      implicit_this_argument = make_node_from_operand(bound_function_selector);
-      /* Pass a "this" pointer as the first argument. */
-      implicit_this_argument->next = argument_list;
-      argument_list = implicit_this_argument;
-    }  /* if */
     /* Make the function address node.  This might have type pointer-to-
        member-function in a case like (p->*pmf)(). */
     function_node = make_node_from_operand(function_operand);
-    /* Link the function address node to the argument list. */
-    function_node->next = argument_list;
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       function_type = pm_member_type(function_node->type);
@@ -4158,7 +4149,20 @@ in *result.
       /* Normal call using a pointer to function. */
       function_type = type_pointed_to(function_node->type);
     }  /* if */
+    if (function_operand->bound_function) {
+      /* Bound function.  bound_function_selector indicates the object. */
+      implicit_this_argument = make_node_from_operand(bound_function_selector);
+      /* Cast if necessary to handle any const etc. adjustment. */
+      cast_node(&implicit_this_argument,
+                implicit_this_param_type_of(function_type),
+                /*is_implicit_cast=*/TRUE,
+                &bound_function_selector->position);
+      /* Pass a "this" pointer as the first argument. */
+      implicit_this_argument->next = argument_list;
+      argument_list = implicit_this_argument;
+    }  /* if */
     /* Make the call node. */
+    function_node->next = argument_list;
     make_function_call(function_node, function_type,
                        (a_boolean)function_operand->virtual_function, 
                        (a_boolean)function_operand->is_qualified_name,
