@@ -10030,6 +10030,7 @@ pointer to it.
   mip->already_instantiated        = FALSE;
   mip->automatically_instantiated  = FALSE;
   mip->add_to_request_file	   = FALSE;
+  mip->is_static_or_inline	   = FALSE;
   return mip;
 }  /* alloc_master_instance */
 
@@ -10064,7 +10065,6 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->explicit_do_not_instantiate = FALSE;
   tip->explicit_can_instantiate    = FALSE;
   tip->can_be_instantiated	   = FALSE;
-  tip->is_static_or_inline	   = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   tip->declared_type               = NULL;

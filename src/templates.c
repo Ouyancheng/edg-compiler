@@ -14661,7 +14661,7 @@ data member is a member of an unnamed namespace.
   }  /* if */
   /* Save the result.  If this flag is set, its value is used instead of
      calling this routine again. */
-  tip->is_static_or_inline = result;
+  master_instance_of(tip)->is_static_or_inline = result;
   return result;
 }  /* f_is_static_or_inline_template_entity */
 
@@ -14675,8 +14675,8 @@ Note that the routine can be called more than once if the flag is FALSE.
 This is needed because a routine could be declared and later declared inline.
 */
 #define is_static_or_inline_template_entity(tip)			\
-  ((tip)->is_static_or_inline						\
-		? (tip)->is_static_or_inline				\
+  (master_instance_of(tip)->is_static_or_inline				\
+		? master_instance_of(tip)->is_static_or_inline		\
 		: f_is_static_or_inline_template_entity(tip))
 
 
@@ -16649,7 +16649,7 @@ be processed.
        is_static_or_inline_emplate_entity.  This is necessary because that
        function cannot be called successfully after the file scope has
        been lowered. */
-    if (tip->is_static_or_inline) continue;
+    if (mip->is_static_or_inline) continue;
     /* Get a pointer to the IL entry to be processed.  The instance used
        is an arbitrary one, so we need to get the canonical entry
        to ensure that the flags used and set are the correct ones. */

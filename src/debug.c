@@ -99,7 +99,7 @@ typedef struct a_debug_stack_entry {
 #endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 } a_debug_stack_entry;
 
-#define DEBUG_STACK_SIZE 300
+#define DEBUG_STACK_SIZE 600
 static a_debug_stack_entry 
 		debug_stack[DEBUG_STACK_SIZE];
 static int	depth_debug_stack = 0;
