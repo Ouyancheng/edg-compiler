@@ -1519,21 +1519,34 @@ initialized is not a reference.
                                   type->variant.class_struct_union.field_list);
     }  /* if */
     /* Loop through the list of initializer constants. */
-    for (sub_con = constant->variant.aggregate.first_constant;
-         sub_con != NULL;) {
-      /* Determine the type of the entity initialized by the next constant. */
-      if (!array_case) {
-        check_assertion_str(field != NULL,
-                            "gen_initializer_constant: ran out of fields");
-        sub_type = field->type;
-        field = next_initializable_field(field->next);
-      }  /* if */
-      gen_initializer_constant(sub_con, sub_type);
-      sub_con = sub_con->next;
-      /* Stop after the last constant. */
-      if (sub_con == NULL) break;
-      write_tok_str(", ");
-    }  /* for */
+    sub_con = constant->variant.aggregate.first_constant;
+    if (sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+      /* A ck_init_repeat constant is used to do default initialization
+         (via constructor) on all the elements of an array. */
+      check_assertion(array_case);
+    } else {
+      for (; sub_con != NULL;) {
+        /* Determine the type of the entity initialized by the next
+           constant. */
+        if (!array_case) {
+          check_assertion_str(field != NULL,
+                              "gen_initializer_constant: ran out of fields");
+          sub_type = field->type;
+          field = next_initializable_field(field->next);
+        }  /* if */
+        gen_initializer_constant(sub_con, sub_type);
+        sub_con = sub_con->next;
+        /* Stop after the last constant. */
+        if (sub_con == NULL) break;
+        if (sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+          /* A ck_init_repeat constant is used to do default initialization
+             (via constructor) on all remaining elements of an array. */
+          check_assertion(array_case);
+          break;
+        }  /* if */
+        write_tok_str(", ");
+      }  /* for */
+    }  /* if */
     write_tok_ch('}');
   } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* Dynamic initialization for an element of an aggregate. */
