@@ -2572,8 +2572,21 @@ the constant.
       constant->source_corresp.assoc_info = (char *)assoc_var;
       constant->assoc_var_assigned = TRUE;
       /* Make the ck_aggregate constant the initial value of the variable. */
-      assoc_var->init_kind = (an_init_kind)initk_static;
-      assoc_var->initializer.constant = constant;
+      /* If the variable is automatic, dynamic initialization must be used.
+         It would be better yet to use a static variable in that case, but
+         since the constant is in the function scope memory region, it
+         couldn't be the initial value of a static variable. */
+      if (assoc_var->storage_class == (a_storage_class)sc_static) {
+        assoc_var->init_kind = (an_init_kind)initk_static;
+        assoc_var->initializer.constant = constant;
+      } else {
+        a_dynamic_init_ptr dip =
+                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variable = assoc_var;
+        dip->variant.constant = constant;
+        assoc_var->init_kind = (an_init_kind)initk_dynamic;
+        assoc_var->initializer.dynamic = dip;
+      }  /* if */
     }  /* if */
   }  /* if */
   *temp_var = assoc_var;

@@ -1,5 +1,15 @@
 Version 2.24
 
+7/5/94   Initialization of variable created to hold pointer-to-member constant
+
+For a case where a pointer-to-member-function constant is used in an
+expression, IL lowering creates a dummy variable that is initialized to
+the proper aggregate value for the pointer-to-member.  The variable is
+then used in the expression.  When such pointers-to-members were used
+in constructor mem-initializers, the resulting IL was incorrect, because
+it had an automatic variable initialized with a static initialization.
+That has been changed to a dynamic initialization.
+
 7/4/94   Argument of class type that allows bitwise copy but has destructor
 
 Arguments of a class type that allows bitwise copy construction but
