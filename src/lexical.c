@@ -5113,7 +5113,7 @@ constant_accumulated:
          #define a 7
          int i = 1a;
        The "a" in "1a" should not be treated as a separate token. */
-    while (isalnum((unsigned char)(ch = *curr_char_loc))) {
+    while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN]) {
       /* Alphanumeric character.  Keep accumulating. */
       curr_char_loc++;
     }  /* while */
@@ -9985,10 +9985,16 @@ are handled in lexical_init.)
      set applies.  See standard, 3.1.8. */
   for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
     is_id_char[c-CHAR_MIN] = (isalpha((unsigned char)c) ||
-                              isdigit((unsigned char)c) ||
-                              c == '_' ||
-                              (c == '$' && allow_dollar_in_id_chars));
+                              isdigit((unsigned char)c));
   }  /* for */
+  is_id_char['_' - CHAR_MIN] = TRUE;
+  if (allow_dollar_in_id_chars) {
+    is_id_char['$' - CHAR_MIN] = TRUE;
+  }  /* if */
+  /* Some German character sets use "]" for "U umlaut", so isalpha is TRUE
+     for that character (a setlocale call has been done already).  Take
+     it back. */
+  is_id_char[']' - CHAR_MIN] = FALSE;
   /* Also initialize pp_lexical_category, used to determine whether or
      not extra token-separating blanks are required between tokens resulting
      from macro expansion.  See gen_pp_output_for_curr_line. */

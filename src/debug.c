@@ -195,7 +195,7 @@ Returns TRUE if there was an error during parsing of the debug option.
 
         /* Gather up the name of the routine. */
         curr_name_ptr = curr_name;
-        while (isalnum((unsigned char)*curr_char) || (*curr_char == '_')) {
+        while (is_id_char[*curr_char-CHAR_MIN]) {
 	  *curr_name_ptr++ = *curr_char++;
         }  /* while */
         *curr_name_ptr = '\0';
