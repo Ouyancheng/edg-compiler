@@ -5849,7 +5849,7 @@ Scan the body of a class definition, including the base classes list.
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
            processing. */
-        select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
+        (void)select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
@@ -5911,7 +5911,8 @@ Scan the body of a class definition, including the base classes list.
         } else if (curr_token == tok_asm) {
           /* An asm declaration is not allowed in a class definition, but
              scan it anyway (after issuing the error). */
-          (void)asm_declaration(/*asm_decl_allowed=*/FALSE);
+          (void)asm_declaration(/*asm_decl_allowed=*/FALSE,
+                                /*is_asm_statement=*/FALSE);
         }  /* if */
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
@@ -6752,7 +6753,6 @@ Scan the body of a class definition, including the base classes list.
               }  /* if */
             }  /* if */
           }  /* if */
-          wrapup_pragmas_bound_to_curr_decl_or_stmt();
           remove_stop_token(tok_comma);
           first_declarator = FALSE;
           /* Loop for additional declarators. */
@@ -6771,7 +6771,6 @@ Scan the body of a class definition, including the base classes list.
           (void)required_token(tok_semicolon, ec_exp_semicolon);
         }  /* if */
 next_declaration:
-        wrapup_pragmas_bound_to_curr_decl_or_stmt();
         if (curr_routine_fixup != NULL) {
           /* If the currently active routine fixup entry has been modified
              such that a fixup pass over its tokens is required, add it to

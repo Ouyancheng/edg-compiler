@@ -9127,8 +9127,8 @@ definition.
   
   /* Determine whether a lint argsused comment immediately preceded this
      function definition. */
-  ppp = get_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
-                             (a_statement_ptr)NULL);
+  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
+                                 (a_statement_ptr)NULL);
   if (ppp != NULL) {
     /* There is a currenly active argsused comment. */
     rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
@@ -9141,8 +9141,8 @@ definition.
   }  /* if */
   /* Determine whether a lint varargs count comment immediately preceded this
      function definition. */
-  ppp = get_specific_pragmas((a_pragma_kind)pk_lint_varargs_count,
-                             rout_sym, (a_statement_ptr)NULL);
+  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_varargs_count,
+                                 rout_sym, (a_statement_ptr)NULL);
   if (ppp != NULL) {
     /* There is a currenly active varargs comment. */
     if (rtsp == NULL) {
@@ -9937,7 +9937,7 @@ of local variables (and types, etc.) of functions and in blocks.
   }  /* if */
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
+  (void)select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
   if (curr_token == tok_asm) {
@@ -10795,7 +10795,6 @@ continue_with_declaration:
   (void)required_token(tok_semicolon, ec_exp_semicolon);
 
 return_point:
-  wrapup_pragmas_bound_to_curr_decl_or_stmt();
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
   remove_all_local_stop_tokens();
