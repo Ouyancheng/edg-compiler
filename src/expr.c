@@ -12246,6 +12246,27 @@ and scan_aggregate_class_initializer_expression.
 #endif /* !BACK_END_IS_CP_GEN_BE */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (microsoft_bugs && C_mode() &&
+      is_void_type(result.type) &&
+      is_pointer_type(required_type)) {
+    /* In Microsoft C mode, allow (void)0 to be treated as a null
+       pointer constant. */
+    if (is_expression_operand(&result)) {
+      an_expr_node_ptr expr = result.variant.expression;
+      if (is_operation_node(expr) &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+        expr = expr->variant.operation.operands;
+        if (is_constant_node(expr) &&
+            is_null_pointer_constant(expr->variant.constant)) {
+          /* The expression is (void)0.  Replace it by 0. */
+          an_operand orig_result;
+          orig_result = result;
+          make_constant_operand(expr->variant.constant, &result);
+          restore_operand_details(&result, &orig_result);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
