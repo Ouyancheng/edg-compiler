@@ -277,6 +277,36 @@ whether the constant is non-NULL, the safe value is FALSE.
 }  /* is_constant_valued_expression */
 
 
+static a_boolean func_body_has_side_effects(a_routine_ptr routine)
+/*
+Return TRUE if the indicated routine's body has side effects.  The
+safe answer is TRUE.
+*/
+{
+  a_boolean       has_side_effects = TRUE;
+  a_scope_ptr     scope = il_header.region_scope_entry[routine->assoc_scope];
+  a_statement_ptr stmt = scope->assoc_block;
+
+  /* Only consider functions where the top block contains only a return
+     statement. */
+  if (stmt->kind == (a_statement_kind)stmk_block) {
+    stmt = stmt->variant.block.statements;
+    if (stmt != NULL &&
+        stmt->kind == (a_statement_kind)stmk_return &&
+        stmt->next == NULL) {
+      check_assertion(stmt->variant.return_dynamic_init == NULL);
+      if (stmt->expr != NULL) {
+        has_side_effects = node_has_side_effects(stmt->expr,
+                                                 (a_boolean *)NULL);
+      } else {
+        has_side_effects = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return has_side_effects;
+}  /* func_body_has_side_effects */
+
+
 static void set_up_variable_remapping_for_inlining(
                                            a_scope_ptr        scope,
                                            an_expr_node_ptr   arg_expr_list,
@@ -299,7 +329,20 @@ The code is inserted at *insert_location, and *insert_location is updated.
 #if DEBUG
   a_boolean        first = TRUE;
 #endif /* DEBUG */
+  a_boolean        call_has_side_effects;
 
+  /* Determine whether the call has side effects, either because the
+     function body has side effects or because the argument expressions
+     have side effects. */
+  call_has_side_effects = func_body_has_side_effects(routine);
+  if (!call_has_side_effects) {
+    for (arg = arg_expr_list; arg != NULL; arg = arg->next) {
+      if (node_has_side_effects(arg, (a_boolean *)NULL)) {
+        call_has_side_effects = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* Process the parameters. */
   for (param_var = scope->variant.routine.parameters, arg = arg_expr_list;
        param_var != NULL;
@@ -364,12 +407,16 @@ The code is inserted at *insert_location, and *insert_location is updated.
                temp_expr->kind == (an_expr_operator_kind)eok_cast) {
           temp_expr = temp_expr->variant.operation.operands;
         }  /* while */
-        /* An auto variable whose address has not been taken is invariant
-           across the call. */
         if (temp_expr->kind == (an_expr_node_kind)enk_variable) {
           var = temp_expr->variant.variable;
           if (!has_static_storage_duration(var->storage_class) &&
               !var->address_taken) {
+            /* An auto variable whose address has not been taken is invariant
+               across the call. */
+            arg_is_constant = TRUE;
+          } else if (!call_has_side_effects) {
+            /* If the call has no side effects, the value of a variable
+               will not change, so it is invariant. */
             arg_is_constant = TRUE;
           }  /* if */
         }  /* if */

@@ -27,7 +27,9 @@ expression can be used directly in place of the parameter, e.g., when
 the argument expression is a constant.  Now, no temporary is used
 when the argument is an auto variable whose address has not been
 taken, since such a variable cannot change its value across the
-function call.
+function call.  (2/3/99:)  Also, if the function call has no side
+effects, an argument that is a simple global variable can be
+passed without using a parameter.
 
 1/29/99   lower_name.c reworked
 
