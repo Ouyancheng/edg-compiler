@@ -167,10 +167,14 @@ optimization is suppressed.
   } else if (is_type_start()) {
     /* Is start of type. */
     is_start = TRUE;
+#if 0
+/* It's not clear whether "namespace" and "using" should be included.  It's
+   at least clear that they should not be accepted in all contexts. */
   } else if (curr_token == tok_namespace || curr_token == tok_using) {
     /* A namespace or namespace-alias declaration, a using-directive, or
        a using-declaration. */
     is_start = TRUE;
+#endif /* if 0 */
   } else if (curr_token == tok_identifier &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
