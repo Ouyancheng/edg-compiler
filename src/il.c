@@ -325,6 +325,23 @@ is TRUE, include type information for function parameters.
     /* Add function parameter types. */
     a_routine_ptr rout = (a_routine_ptr)scp;
     form_function_declarator(f_skip_typerefs(rout->type), &octl);
+#if IA64_ABI
+    switch (rout->ctor_dtor_kind) {
+      case cdk_complete:
+        add_string_to_text_buffer(db_name_str_buffer, " [complete]");
+        break;
+      case cdk_subobject:
+        add_string_to_text_buffer(db_name_str_buffer, " [subobject]");
+        break;
+      case cdk_deleting:
+        add_string_to_text_buffer(db_name_str_buffer, " [deleting]");
+        break;
+      case cdk_none:
+        break;
+      default:
+        unexpected_condition_str("bad ctor_dtor_kind");
+    }  /* switch */
+#endif /* IA64_ABI */
   }  /* if */
   add_char_to_text_buffer(db_name_str_buffer, '\0');
   return db_name_str_buffer->buffer;
@@ -13748,7 +13765,7 @@ eliminated, if appropriate.
               okay_to_clear_flag = FALSE;
             }  /* if */
           }  /* if */
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
           if (okay_to_clear_flag) {
             if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
                 rp->special_kind == (a_special_function_kind)sfk_destructor) {
@@ -13767,7 +13784,7 @@ eliminated, if appropriate.
               }  /* for */
             }  /* if */
           }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
           if (okay_to_clear_flag) {
             set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
           }  /* if */
