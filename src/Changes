@@ -3,6 +3,28 @@ Version 2.16
 -------------------------------------------------------------------------------
 Version 2.15, March 24, 1993
 
+3/24/92 Abort in class template declaration with nonreal base class
+
+In certain unusual cases the front end aborted when a class template
+had a base class specifier that was a nonreal class, e.g.,
+
+  template <class T, int I> class A { /* ... */ };
+  template <class T> class B : public A<T,0> { /* ... */ };
+
+The failure, which occurred during prototype instantiation, is now fixed.
+
+3/23/92 Diagnostic on linkage conflict
+
+Now in default mode a remark is issued (instead of a warning) when
+there the linkage specified in a declaration is inconsistent with that
+of a previous declaration.  Note that an error or warning is still
+issued in strict ANSI mode.
+
+3/23/92 Diagnostic on duplicate friend declaration
+
+Now a remark is issued (instead of a warning) on duplicate friend
+declarations.
+
 3/23/92 IL walk routines speeded up
 
 The routines that walk the intermediate language tree have been speeded
@@ -10,6 +32,17 @@ up.  This was accomplished largely by moving a lot of code from il_walk.c
 out to a new file walk_entry.h, and then compiling it twice with
 different macro settings so as to avoid a lot of extra testing during
 processing.
+
+3/22/93 Spurious errors in initialization of arrays
+
+Spurious errors are no longer issued on (1) initialization of a const
+array of unspecified size, e.g.,
+
+  const int a[] = { 1, 2, 3 };
+
+and (2) initialization of const array with too few initializers, e.g.,
+
+  const int a[3] = { 1, 2 };
 
 3/22/93 C-generating back end no longer outputs useless code
 
