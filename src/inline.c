@@ -295,6 +295,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
         (void)insert_var_assignment_statement(temp_var,
                                               (an_expr_operator_kind)eok_last,
                                               arg, insert_location);
+        temp_var->initialization_rewritten_as_assignment = TRUE;
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) {
