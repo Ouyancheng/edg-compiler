@@ -609,11 +609,18 @@ typedef struct a_goto_entry {
 			/* The goto statement in which the given label is
 			   referenced; always a forward reference (i.e., to
 			   to a label that has not yet been defined). */
+  a_statement_ptr
+		assoc_block;
+			/* The block on whose statement list the goto statement
+			   appears. */
+  a_source_position
+		source_position;
+			/* Source position of the goto statement. */
   unsigned long
-		curr_scope_init_count;
-			/* The number of initializing declarations that
-			   have appeared in the scope of the goto statement
-			   and that precede it. */
+		block_init_count;
+			/* The number of initializing declarations that have
+			   appeared thus far (i.e., preceding the goto) in the
+			   block to which the goto statement belongs. */
 } a_goto_entry;
 
 
@@ -1162,10 +1169,10 @@ typedef struct a_symbol {
 			   references (used in C++ only). */
         /* When defined == TRUE. */
 	unsigned long
-		curr_scope_init_count;
+		curr_block_init_count;
 			/* When the label has been defined, the number of
 			   initializing declarations that have appeared in
-			   the scope to which the label belongs and lexically
+			   the block to which the label belongs and lexically
 			   precede the label (used in C++ only). */
       } variant;
     } label;
@@ -1960,6 +1967,8 @@ extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_template_instance_ptr alloc_template_instance(void);
 extern void add_to_instantiations_required_list(a_template_instance_ptr  tip);
+extern a_goto_entry_ptr alloc_goto_entry(void);
+extern void free_goto_entry_list(a_goto_entry_ptr *list);
 extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
