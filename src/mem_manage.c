@@ -1351,6 +1351,7 @@ Do one-time initialization of variables related to the mem_manage routines.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
+  il_header.region_scope_entry = NULL;
 }  /* mem_manage_one_time_init */
 
 

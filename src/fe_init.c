@@ -657,6 +657,18 @@ after the command-line processing has been done.
 #if NEED_NAME_MANGLING
   name_lower_one_time_init();
 #endif /* NEED_NAME_MANGLING */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(il_header.primary_scope);
+  register_trans_unit_variable(il_header.main_routine);
+#if RECORD_MACROS_IN_IL
+  register_trans_unit_variable(il_header.macros);
+#endif /* RECORD_MACROS_IN_IL */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  register_trans_unit_variable(il_header.scope_orphaned_list_headers);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  register_trans_unit_variable(
+                             il_header.nontag_types_used_in_exception_or_rtti);
 }  /* fe_one_time_init */
 
 
@@ -770,18 +782,14 @@ source file's compilation.
   debug_level = save_debug_level;
 #endif /* DEBUG */
 
-  il_header.main_routine = NULL;
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  il_header.scope_orphaned_list_headers = NULL;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.plain_chars_are_signed = targ_has_signed_chars;
 #ifdef FIL
   il_header.one_trip_do_loops = FALSE;
   il_header.case_sensitive_identifiers = TRUE;
   il_header.local_vars_are_static = FALSE;
 #endif /* ifdef FIL */
-  /* il_header.region_scope_entry is not changed; it already has a
-     meaningful value. */
+  /* il_header.region_scope_entry was initialized in mem_manage.c and already
+     has meaningful value. */
   il_header.source_language =
                       (C_dialect == C_dialect_cplusplus) ? sl_Cplusplus : sl_C;
   il_header.pcc_compatibility_mode = (C_dialect == C_dialect_pcc);
@@ -790,9 +798,6 @@ source file's compilation.
 #if USER_CONTROL_OF_STRUCT_PACKING
   il_header.default_max_member_alignment = default_max_member_alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if RECORD_MACROS_IN_IL
-  il_header.macros = NULL;
-#endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.microsoft_mode = microsoft_mode;
   il_header.microsoft_version = microsoft_version;
@@ -810,7 +815,6 @@ source file's compilation.
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.number_of_external_nonclass_template_entities = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  il_header.nontag_types_used_in_exception_or_rtti = NULL;
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
@@ -986,6 +990,16 @@ when it is a secondary file.
   push_file_scope();
   check_assertion(curr_translation_unit->primary_scope->number ==
                                                            file_scope_number);
+  /* il_header fields that are per-translation-unit: */
+  il_header.primary_scope = curr_translation_unit->primary_scope;
+  il_header.main_routine = NULL;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  il_header.scope_orphaned_list_headers = NULL;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_MACROS_IN_IL
+  il_header.macros = NULL;
+#endif /* RECORD_MACROS_IN_IL */
+  il_header.nontag_types_used_in_exception_or_rtti = NULL;
   if (!C_mode()) {
     /* This is done even when RTTI is not enabled because the type_info
        struct may still be defined when RTTI is disabled. */
@@ -1043,11 +1057,7 @@ when it is a secondary file.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_primary_translation_unit) {
-    /* For the primary translation unit, record the primary scope in the
-       IL header. */
-    il_header.primary_scope = curr_translation_unit->primary_scope;
-  } else {
+  if (!is_primary_translation_unit) {
     /* Preprocessing output cannot be generated for secondary translation
        units. */
     f_pp_output = NULL;
