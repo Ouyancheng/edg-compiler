@@ -1,5 +1,19 @@
 Version 3.4
 
+3/5/04   Abort on undefined virtual inline member in secondary translation unit
+
+When compiling multiple translation units simultaneously, an internal error
+was sometimes triggered if a secondary translation unit contained an undefined
+virtual inline member function.  For example:
+
+  File 1:
+  int x;
+
+  File 2:
+  struct S { virtual inline void f(); };  // Triggered abort.
+
+This is now fixed.
+
 3/4/04   Spurious error on "using typename ..." with --ignore_std
 
 When the --ignore_std option is used, a spurious error was issued

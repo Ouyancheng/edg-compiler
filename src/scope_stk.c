@@ -3590,7 +3590,8 @@ body.  Only called in C++ mode.
                                   ec_virtual_inline_never_defined,
                                   &sym->decl_position, sym);
 #if DO_IL_LOWERING
-              } else if (inline_virtual_function_definitions_needed(
+              } else if (is_primary_translation_unit &&
+                         inline_virtual_function_definitions_needed(
                                                  scope->variant.assoc_type)) {
                 /* The virtual function table will be generated for the
                    class in this translation unit, so the function's
