@@ -3956,7 +3956,6 @@ and entity pointer are updated.
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
   a_boolean                is_variable_def = FALSE;
-  a_boolean                is_tentative_def = FALSE;
 
   db_enter(3, "decl_var_or_routine");
   *old_type = NULL;
