@@ -6964,6 +6964,73 @@ in *bound_function_selector.
 }  /* scan_cast_expression */
 
 
+static void scan_compound_literal(a_type_ptr        *p_literal_type,
+                                  a_source_position *type_position,
+                                  an_operand        *result)
+/*
+Scan a compound literal.  See 6.5.2.5 in the C9X standard.  A compound
+literal looks like a cast in which the source expression is a brace-
+enclosed initializer, e.g.,
+
+  (int []){1, 2, 3}
+
+On entry, the current token is the "{", *p_literal_type indicates the type
+of the compound literal, and *type_position is the position of that type.
+On exit, the current token is the token after the "}", and *result is set
+to the compound literal.
+*/
+{
+  a_boolean               err = FALSE;
+  a_type_ptr              literal_type = *p_literal_type;
+  a_dynamic_init_ptr      dip;
+  a_boolean               is_static = (innermost_function_scope == NULL);
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  check_assertion(C_mode() &&
+                  !curr_expr_kind_is(ek_pp) &&
+                  !curr_expr_kind_is(ek_template_arg));
+  if (curr_expr_kind_is(ek_integral_constant)) {
+    /* A compound literal is not allowed in an integral constant expression. */
+    pos_error(ec_bad_integral_compound_literal, type_position);
+    err = TRUE;
+  } else if (vla_enabled && is_vla_type(literal_type)) {
+    /* Variable-length arrays are not allowed. */
+    pos_error(ec_vla_not_allowed, type_position);
+    err = TRUE;
+  } else if (is_object_type(literal_type)) {
+    /* Object type, okay. */
+  } else if (is_array_type(literal_type) &&
+             is_object_type(array_element_type(literal_type))) {
+    /* Incomplete arrays are okay as long as the underlying type is
+       complete. */
+  } else {
+    /* Some other type; error. */
+    pos_ty_error(ec_bad_compound_literal_type, type_position, literal_type);
+    err = TRUE;
+  }  /* if */
+  if (err) literal_type = error_type();
+  /* Save, clear, and later restore the expression stack, since the
+     initializer is not part of any expression we may currently be
+     inside of. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+  /* Scan the brace-enclosed initializer. */
+  scan_compound_literal_initializer(&literal_type, is_static, &dip);
+  /* The type can be updated for an incomplete array. */
+  *p_literal_type = literal_type;
+  expr_stack = saved_expr_stack;
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Allocate an enk_temp_int node. */
+    an_expr_node_ptr expr =
+             alloc_temp_init_node(literal_type, dip, /*result_is_addr=*/TRUE);
+    make_expression_operand(expr, literal_type, result);
+    result->state = (an_operand_state)os_lvalue;
+  }  /* if */
+}  /* scan_compound_literal */
+
+
 static void scan_cast_or_expr(
                              an_operand               *result,
                              an_operand               *bound_function_selector,
@@ -6972,13 +7039,16 @@ static void scan_cast_or_expr(
 Scan something after an opening left paren.  This may be a cast operation or
 just an expression in parentheses.  Return the scanned expression in
 *result (and, if it is a C++ bound function, return the object in
-*bound_function_selector).  See section 3.3.4 of the standard.
+*bound_function_selector).  See section 6.3.4 of the ISO C89 standard.
 
 Syntax:
  	( type-name ) expression
 or
 	( expression )
 
+Also scans C9X compound literals:
+
+        ( type-name ) { expression, expression, ... }
 */
 {
   a_source_position start_position, type_position;
@@ -7014,22 +7084,32 @@ or
     /* Get the type to cast to. */
     type_position = pos_curr_token;
     type_name(&type_cast_to);
-    /* Check the type to see if it is valid in general terms. */
-    err = cast_type_pre_check(&type_cast_to);
-
     /* The next token should be the closing rparen. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
 
-    /* Scan the expression to be cast. */
-    scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
-                         result, &local_bound_function_selector);
+    if (compound_literals_allowed &&
+        curr_token == tok_lbrace) {
+      /* A compound literal, e.g., (int []){1, 2, 3}.  See 6.5.2.5 in C9X. */
+      scan_compound_literal(&type_cast_to, &type_position, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = result->end_position;
+      end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Check compatibility of the types and do the cast. */
-    do_cast(type_cast_to, result, &local_bound_function_selector,
-            local_options, err, &type_position, &start_position);
+    } else {
+      /* Normal cast (not a compound literal). */
+      /* Check the type to see if it is valid in general terms. */
+      error_position = type_position;
+      err = cast_type_pre_check(&type_cast_to);
+      /* Scan the expression to be cast. */
+      scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
+                           result, &local_bound_function_selector);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = result->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Check compatibility of the types and do the cast. */
+      do_cast(type_cast_to, result, &local_bound_function_selector,
+              local_options, err, &type_position, &start_position);
+    }  /* if */
   } else {
     /* This is an expression in parentheses. */
     /* Parentheses do not affect the fact that the expression is the

@@ -1021,6 +1021,10 @@ ec_friend_qualification_ignored;;"the qualifier on this friend declaration is ig
 ec_no_range_designator_with_dynamic_init;;"array range designators cannot be applied to dynamic initializers"
 ec_property_name_not_allowed;;"property name cannot appear here"
 ec_inline_qualifier_ignored;;"\"inline\" used as a function qualifier is ignored"
+ec_cl_compound_literals_option_only_in_C;;"option \"compound_literals\" can be used only when compiling C"
+ec_vla_not_allowed;;"a variable-length array type is not allowed"
+ec_bad_integral_compound_literal;;"a compound literal is not allowed in an integral constant expression"
+ec_bad_compound_literal_type;;"a compound literal of type %t is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

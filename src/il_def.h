@@ -5195,7 +5195,8 @@ enum an_expr_node_kind_tag {
   enk_field,            /* Used in an eok_field, eok_value_field, etc.
                            operation to indicate the field. */
   enk_temp_init,	/* Initialization of a temporary within an
-			   expression.  C++ only. */
+			   expression.  C++ only.  Used in C for C9X
+			   compound literals. */
   enk_new_delete,	/* C++ "new" or "delete". */
   enk_throw,		/* C++ throw expression. */
   enk_condition,	/* C++ condition -- a variable declaration with
@@ -5907,7 +5908,7 @@ typedef struct an_expr_node {
                            to an eok_field or eok_value_field operation
                            (or the similar bit-field operators). */
     /* When kind == enk_temp_init: */
-    /* C++ only. */
+    /* C++ only, but used in C for C9X compound literals. */
     struct {
       a_bit_field
 		result_is_addr:1;

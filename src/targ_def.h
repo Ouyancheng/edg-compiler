@@ -2018,6 +2018,20 @@ of times.
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
 
 /*
+This switch controls whether support for compound literals (a C9X feature)
+can be enabled.  Having this TRUE means the back end is prepared to
+accept compound literals, which are represented as enk_temp_init nodes.
+The C-generating and C++-generating back ends can handle compound literals
+(but that's useful only if the downstream compiler also handles them).
+*/
+#ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
+#endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
+#if !COMPOUND_LITERAL_ENABLING_POSSIBLE && DEFAULT_COMPOUND_LITERALS_ALLOWED
+ #error -- compound literal enabling not allowed
+#endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
+
+/*
 This switch controls whether or not "guard" code is placed around
 initializations of static data members of templates.  Such guard code is
 necessary if template instantiation resolution is done by instantiating

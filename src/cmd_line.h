@@ -184,6 +184,7 @@ typedef enum /*an_option_kind*/ {
   optk_variadic_macros,
   optk_extended_variadic_macros,
   optk_include_file_suffixes,
+  optk_compound_literals,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -562,6 +563,16 @@ EXTERN a_boolean
                                                                               ;
 			/* TRUE if '#define EVM(args ...) args' should be
 			   accepted. */
+
+EXTERN a_boolean
+		compound_literals_allowed
+#if VAR_INITIALIZERS
+                                          = DEFAULT_COMPOUND_LITERALS_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if C9X compound literals, which look like a
+			   cast including a brace-enclosed initializer, e.g.,
+			   (int []){1, 2, 3}, should be accepted. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

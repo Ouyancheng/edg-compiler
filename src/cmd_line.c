@@ -818,6 +818,16 @@ Initialize the option information table.
   add_option_description(optk_include_file_suffixes, "incl_suffixes", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+#if COMPOUND_LITERAL_ENABLING_POSSIBLE
+  add_option_description(optk_compound_literals,
+                         "compound_literals",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_compound_literals,
+                         "no_compound_literals",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
 }  /* initialize_option_descriptions */
 
 
@@ -2097,6 +2107,10 @@ enable_microsoft_mode:
            include file name specified with no suffix. */
         include_file_suffixes = opt_arg;
         break;
+      case optk_compound_literals:
+        /* Compound literals should or should not be accepted. */
+        compound_literals_allowed = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2289,6 +2303,9 @@ enable_microsoft_mode:
       command_line_error(ec_cl_extended_designators_option_only_in_C);
     }  /* if */
     extended_designators_allowed = FALSE;
+    if (option_kind_used[(int)optk_compound_literals]) {
+      command_line_error(ec_cl_compound_literals_option_only_in_C);
+    }  /* if */
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
@@ -2385,6 +2402,11 @@ enable_microsoft_mode:
              mode. */
           designators_allowed = FALSE;
         }  /* if */
+      }  /* if */
+      if (!(option_kind_used[(int)optk_compound_literals])) {
+        /* Support for compound literals is turned off by default in strict
+           C mode. */
+        compound_literals_allowed = FALSE;
       }  /* if */
     } else {
       /* Set optional features to standard settings for strict C++ mode. */

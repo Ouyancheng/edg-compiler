@@ -286,15 +286,22 @@ static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
 
-/*
-Static variables that control dump_initializer output:
-*/
 static a_boolean
-		initializer_constants_started;
+		output_initializer_code_directly;
+			/* If TRUE, initializer executable code can be
+			   output directly to f_C_output instead of to
+			   a temporary file. */
+
+
+/*
+Block of state variables used by dump_initializer and its subroutines:
+*/
+typedef struct an_init_control_block *an_init_control_block_ptr;
+typedef struct an_init_control_block {
+   a_boolean	initializer_constants_started;
 			/* At least one constant has been put out in this
 			   initialization. */
-static unsigned long
-		num_initializer_open_braces_deferred;
+  unsigned long	num_initializer_open_braces_deferred;
 			/* Count of the number of open braces deferred at the
 			   beginning of putting out a constant initializer.
 			   The braces are deferred until we see the first
@@ -304,21 +311,18 @@ static unsigned long
 			   is a union, i.e., that we can't initialize
 			   any of the entity.  We would then have put out
 			   something syntactically invalid like "= {}". */
-static a_boolean
-		initializer_assignments_started;
+  a_boolean	initializer_assignments_started;
 			/* At least one initializer assignment has been
 			   put out in this initialization. */
-static a_boolean
-		first_time_test_closing_needed;
+  a_boolean	suppress_initializer_equals;
+			/* Suppress the "=" at the beginning of an
+			   initializer. */
+  a_boolean	first_time_test_closing_needed;
 			/* A first-time test was generated around the
 			   assignments in this initialization.  Therefore,
 			   the test must be closed at the end of the
 			   assignments. */
-static a_boolean
-		output_initializer_code_directly;
-			/* If TRUE, initializer executable code can be
-			   output directly to f_C_output instead of to
-			   a temporary file. */
+} an_init_control_block;
 
 
 /* Value to use to specify that no name is provided. */
@@ -355,6 +359,7 @@ static void dump_expr(an_expr_node_ptr expr,
 #define dump_expr_with_parens(expr) dump_expr(expr, /*need_parens=*/TRUE)
 #define dump_expression(expr)       dump_expr(expr, /*need_parens=*/FALSE)
 static void dump_boolean_controlling_expression(an_expr_node_ptr node);
+static void dump_compound_literal(an_expr_node_ptr expr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void dump_asm_function_body(char *p);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3727,6 +3732,10 @@ done_with_operation:
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;
+    case enk_temp_init:
+      /* Used for C9X compound literals. */
+      dump_compound_literal(expr);
+      break;
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* This code is here as a debugging aid.  Normally, these nodes are
        not seen by the C-generating back end. */
@@ -3811,7 +3820,6 @@ done_with_operation:
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
-    case enk_temp_init:   /* enk_temp_init is used in C++ only. */
     case enk_new_delete:  /* enk_new_delete is used in C++ only. */
     case enk_condition:   /* enk_condition is used in C++ only. */
     case enk_typeid:      /* enk_typeid is used in C++ only. */
@@ -4118,15 +4126,16 @@ the "routine" is a block.
 }  /* dump_rout_initializations */
 
 
-static void clear_initialization_flags(void)
+static void clear_initialization_flags(an_init_control_block_ptr icbp)
 /*
 Clear the flags that control dump_initializer output.
 */
 {
-  initializer_constants_started = FALSE;
-  num_initializer_open_braces_deferred = 0;
-  initializer_assignments_started = FALSE;
-  first_time_test_closing_needed = FALSE;
+  icbp->initializer_constants_started = FALSE;
+  icbp->num_initializer_open_braces_deferred = 0;
+  icbp->initializer_assignments_started = FALSE;
+  icbp->suppress_initializer_equals = FALSE;
+  icbp->first_time_test_closing_needed = FALSE;
 }  /* clear_initialization_flags */
 
 
@@ -4291,25 +4300,26 @@ Generate code to set the indicated variable entirely to zeros.
 }  /* zero_variable */
 
 
-static void start_initializer_constants(void)
+static void start_initializer_constants(an_init_control_block_ptr icbp)
 /*
 An initializer constant is about to be put out.  Put out the "=" at the
 start of an initializer if this is the first constant.  Also put out any
 open braces that were deferred until this point.
 */
 {
-  if (!initializer_constants_started) {
-    initializer_constants_started = TRUE;
-    write_tok_str(" = ");
-    for (; num_initializer_open_braces_deferred != 0;
-         num_initializer_open_braces_deferred--) {
+  if (!icbp->initializer_constants_started) {
+    icbp->initializer_constants_started = TRUE;
+    if (!icbp->suppress_initializer_equals) write_tok_str(" = ");
+    for (; icbp->num_initializer_open_braces_deferred != 0;
+         icbp->num_initializer_open_braces_deferred--) {
       write_tok_ch('{');
     }  /* if */
   }  /* if */
 }  /* start_initializer_constants */
 
 
-static void start_initializer_assignments(a_variable_ptr variable)
+static void start_initializer_assignments(a_variable_ptr            variable,
+                                          an_init_control_block_ptr icbp)
   
 /*
 An initializer assignment for variable "variable" is about to be put out.
@@ -4318,8 +4328,8 @@ If this assignment is the first one, put out anything that must precede it.
 {
   FILE *save_f_C_output;
 
-  if (!initializer_assignments_started) {
-    initializer_assignments_started = TRUE;
+  if (!icbp->initializer_assignments_started) {
+    icbp->initializer_assignments_started = TRUE;
     /* If the variable is unreferenced, put out an unreferenced bracket. */
     set_init_file(variable, &save_f_C_output);
     (void)start_unreferenced_bracket(&variable->source_corresp);
@@ -4333,9 +4343,9 @@ If this assignment is the first one, put out anything that must precede it.
       write_tok_str(
              "{static int __init_done=0; if (!__init_done) {__init_done=1;");
       unset_init_file(save_f_C_output);
-      first_time_test_closing_needed = TRUE;
+      icbp->first_time_test_closing_needed = TRUE;
     }  /* if */
-    if (!initializer_constants_started) {
+    if (!icbp->initializer_constants_started) {
       /* There was no constant initialization at all, so we are generating
          assignments for the entire initialization of the variable.  If the
          variable is not static, start by zeroing it if it is
@@ -4357,7 +4367,8 @@ If this assignment is the first one, put out anything that must precede it.
 }  /* start_initializer_assignments */
 
 
-static void end_initializer_assignments(a_variable_ptr variable)
+static void end_initializer_assignments(a_variable_ptr            variable,
+                                        an_init_control_block_ptr icbp)
 /*
 If any initializer assignments were generated, do anything needed to wrap up
 at the end of the assignments.
@@ -4365,11 +4376,11 @@ at the end of the assignments.
 {
   FILE *save_f_C_output;
   
-  if (initializer_assignments_started) {
-    initializer_assignments_started = FALSE;
+  if (icbp->initializer_assignments_started) {
+    icbp->initializer_assignments_started = FALSE;
     /* Close off the first-time test generated for local static variables
        in start_initializer_assignments. */
-    if (first_time_test_closing_needed) {
+    if (icbp->first_time_test_closing_needed) {
       set_init_file(variable, &save_f_C_output);
       write_tok_str("}}");
       unset_init_file(save_f_C_output);
@@ -4383,30 +4394,30 @@ at the end of the assignments.
 }  /* end_initializer_assignments */
 
 
-static void initializer_open_brace(void)
+static void initializer_open_brace(an_init_control_block_ptr icbp)
 /*
 Output an open brace for an initializer.  If no initializer constants have
 been output yet, defer the output of the opening brace in case no constants
 prove to be needed.
 */
 {
-  if (initializer_constants_started) {
+  if (icbp->initializer_constants_started) {
     write_tok_ch('{');
   } else {
-    num_initializer_open_braces_deferred++;
+    icbp->num_initializer_open_braces_deferred++;
   }  /* if */
 }  /* initializer_open_brace */
     
 
-static void initializer_close_brace(void)
+static void initializer_close_brace(an_init_control_block_ptr icbp)
 /*
 Output a closing brace for an initializer.  If the corresponding opening
 brace was deferred in initializer_open_brace and then never put out,
 do not put out the closing brace either.
 */
 {
-  if (num_initializer_open_braces_deferred != 0) {
-    num_initializer_open_braces_deferred--;
+  if (icbp->num_initializer_open_braces_deferred != 0) {
+    icbp->num_initializer_open_braces_deferred--;
   } else {
     write_tok_ch('}');
   }  /* if */
@@ -4528,7 +4539,8 @@ static void dump_initializer_part(a_variable_ptr           variable,
                                   a_type_ptr               type,
                                   a_constant_ptr           constant,
                                   a_boolean                *gen_assignments,
-                                  a_gen_init_pos_descr_ptr outer_level_pos)
+                                  a_gen_init_pos_descr_ptr outer_level_pos,
+                                  an_init_control_block    *icbp)
 /*
 Dump out an initializer for part of a variable.  The variable being
 initialized is "variable"; the piece of it being initialized has type
@@ -4541,7 +4553,9 @@ If *gen_assignments is TRUE, assignment statements rather than constants
 must be generated for the initializer list (this flag will be set to
 TRUE upon encountering something that cannot be rendered as constants
 in an initializer).  The statements are written to f_C_output or a
-temporary file (see start_initializer_assignments).
+temporary file (see start_initializer_assignments).  variable can
+be NULL if no assignments will be output.  icbp points to a control
+block with state information for the processing.
 */
 {
   a_gen_init_pos_descr ipd, *ipdp = &ipd;
@@ -4570,14 +4584,15 @@ temporary file (see start_initializer_assignments).
       /* Generate an assignment statement. */
       /* Do any first-time processing necessary.  This call will force the
          call of zero_variable for the constant == NULL case. */
-      start_initializer_assignments(variable);
+      check_assertion(variable != NULL);
+      start_initializer_assignments(variable, icbp);
       if (constant != NULL) {
         dump_init_assignment(variable, outer_level_pos, constant);
       }  /* if */
     } else {
       /* Generate a constant in an initializer list. */
       /* Do any first-time processing necessary. */
-      start_initializer_constants();
+      start_initializer_constants(icbp);
       if (constant == NULL) {
         /* Initialize to zero. */
         write_tok_ch('0');
@@ -4645,7 +4660,7 @@ temporary file (see start_initializer_assignments).
     }  /* switch */
     /* If generating initializer constants, output a "{". */
     if (!*gen_assignments) {
-      initializer_open_brace();
+      initializer_open_brace(icbp);
       need_close_brace = TRUE;
     }  /* if */
     if (elem_type == NULL) {
@@ -4659,7 +4674,7 @@ temporary file (see start_initializer_assignments).
          (the issue here is not initialization, it's keeping in sync). */
       if (!*gen_assignments) {
         /* Do any first-time processing necessary. */
-        start_initializer_constants();
+        start_initializer_constants(icbp);
         write_tok_ch('0');
       }  /* if */
     } else {
@@ -4674,7 +4689,7 @@ temporary file (see start_initializer_assignments).
         if (elem_con != NULL &&
             elem_con->kind == (a_constant_repr_kind)ck_designator) {
           /* Put out the introduction for a designated initializer. */
-          if (!*gen_assignments) start_initializer_constants();
+          if (!*gen_assignments) start_initializer_constants(icbp);
           dump_designator(elem_con, &ipdp->curr_field);
           elem_con = elem_con->next;
           check_assertion(elem_con != NULL &&
@@ -4711,7 +4726,7 @@ temporary file (see start_initializer_assignments).
           check_assertion(type->kind == (a_type_kind)tk_array);
           for (;;) {
             dump_initializer_part(variable, elem_type, rep_con,
-                                  gen_assignments, ipdp);
+                                  gen_assignments, ipdp, icbp);
             if (--count == 0) break;
             /* Put out a comma between constants. */
             if (!*gen_assignments) write_tok_ch(',');
@@ -4720,7 +4735,7 @@ temporary file (see start_initializer_assignments).
         } else {
           /* Normal case (not a repeated constant). */
           dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
-                                ipdp);
+                                ipdp, icbp);
         }  /* if */
         /* Stop if we entered the loop with elem_con == NULL. */
         if (elem_con == NULL) break;
@@ -4748,7 +4763,7 @@ temporary file (see start_initializer_assignments).
       }  /* for */
     }  /* if */
     /* If generating initializer constants, output a "}". */
-    if (need_close_brace) initializer_close_brace();
+    if (need_close_brace) initializer_close_brace(icbp);
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
   }  /* if */
 }  /* dump_initializer_part */
@@ -4822,6 +4837,8 @@ it will be rendered as executable code.
 {
   a_type_ptr type = skip_typerefs(variable->type);
   a_boolean  gen_assignments = is_dynamic_init;
+  an_init_control_block
+             icb;
 
 #if !C_GEN_BE_GENERATES_ANSI_C
   if (!gen_assignments) {
@@ -4838,13 +4855,50 @@ it will be rendered as executable code.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Set flags to indicate that nothing (either constant or executable) has
      been put out yet for this initializer. */
-  clear_initialization_flags();
+  clear_initialization_flags(&icb);
   /* Generate the initialization (constants and/or assignments). */
   dump_initializer_part(variable, type, constant, &gen_assignments,
-                        (a_gen_init_pos_descr_ptr)NULL);
+                        (a_gen_init_pos_descr_ptr)NULL, &icb);
   /* If any assignments were generated, do any wrapup required. */
-  end_initializer_assignments(variable);
+  end_initializer_assignments(variable, &icb);
 }  /* dump_initializer */
+
+
+static void dump_compound_literal(an_expr_node_ptr expr)
+/*
+Generate code for a compound literal (a C9X feature), which is represented
+as an enk_temp_init expression.
+*/
+{
+  a_dynamic_init_ptr    dip = expr->variant.init.dynamic_init;
+  a_type_ptr            temp_type;
+  a_boolean             gen_assignments = FALSE;
+  a_boolean             is_scalar;
+  an_init_control_block icb;
+
+  /* An example of the form of a compound literal:
+       (int []){1, 2, 3}
+  */
+  temp_type = expr->type;
+  if (expr->variant.init.result_is_addr) {
+    temp_type = type_pointed_to(temp_type);
+  }  /* if */
+  dump_cast(temp_type);
+  clear_initialization_flags(&icb);
+  icb.suppress_initializer_equals = TRUE;
+  is_scalar = !is_aggregate_or_union_type(temp_type);
+  if (is_scalar) {
+    /* Scalar initialization.  Put an extra set of braces around the
+       initializer. */
+    initializer_open_brace(&icb);
+  }  /* if */
+  check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+  dump_initializer_part((a_variable *)NULL, temp_type, dip->variant.constant,
+                        &gen_assignments, (a_gen_init_pos_descr_ptr)NULL,
+                        &icb);
+  check_assertion(!gen_assignments);
+  if (is_scalar) initializer_close_brace(&icb);
+}  /* dump_compound_literal */
 
 
 static a_constant_ptr constant_initializer(a_variable_ptr variable,
@@ -5459,9 +5513,10 @@ code for non-constant initializations; the constant initializations are
 handled in declaration processing in dump_variable_decl.
 */
 {
-  a_variable_ptr variable = dip->variable;
-  FILE           *save_f_C_output;
-  a_boolean      gen_assignments = TRUE;
+  a_variable_ptr        variable = dip->variable;
+  FILE                  *save_f_C_output;
+  a_boolean             gen_assignments = TRUE;
+  an_init_control_block icb;
 
   /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output);
@@ -5470,8 +5525,10 @@ handled in declaration processing in dump_variable_decl.
        dip->variant.constant->kind == (a_constant_repr_kind)ck_string)) {
     /* Aggregate initialization.  Only comes up in C++, for aggregate
        initializations to constants done in the middle of blocks. */
+    clear_initialization_flags(&icb);
     dump_initializer_part(variable, variable->type, dip->variant.constant,
-                          &gen_assignments, (a_gen_init_pos_descr_ptr)NULL);
+                          &gen_assignments, (a_gen_init_pos_descr_ptr)NULL,
+                          &icb);
   } else {
     set_output_position(&variable->source_corresp.decl_position);
     switch (dip->kind) {
@@ -5509,9 +5566,10 @@ Generate code for a dynamic initialization that applies to a whole variable.
 This is used for stmk_init statements.
 */
 {
-  a_variable_ptr whole_variable = dip->variable;
-  a_boolean      init_already_done = FALSE;
-  an_init_kind   init_kind;
+  a_variable_ptr        whole_variable = dip->variable;
+  a_boolean             init_already_done = FALSE;
+  an_init_kind          init_kind;
+  an_init_control_block icb;
 
   /* If the initial value is a constant, the initialization was
      done in dump_variable_decl and should not be done here. */
@@ -5524,10 +5582,10 @@ This is used for stmk_init statements.
   if (!init_already_done) {
     /* Initialization needs to be done.  It wasn't done by
        dump_variable_decl. */
-    clear_initialization_flags();
-    start_initializer_assignments(whole_variable);
+    clear_initialization_flags(&icb);
+    start_initializer_assignments(whole_variable, &icb);
     dump_dynamic_init(dip);
-    end_initializer_assignments(whole_variable);
+    end_initializer_assignments(whole_variable, &icb);
   }  /* if */
 }  /* dump_whole_variable_dynamic_init */
 

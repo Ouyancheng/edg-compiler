@@ -1092,6 +1092,16 @@ the initial value of the global variable extended_variadic_macros_allowed.
 #endif /* DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED */
 
 /*
+Flag that is TRUE if compound literals, which look vaguely like a cast
+whose source expression is a brace-enclosed initializer (e.g.,
+(int []){1, 2, 3}) should be accepted in expressions.  It is the
+initial value of the global variable compound_literals_allowed.
+*/
+#ifndef DEFAULT_COMPOUND_LITERALS_ALLOWED
+#define DEFAULT_COMPOUND_LITERALS_ALLOWED FALSE
+#endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
+
+/*
 Flag that is TRUE if the tiebreaker processing in overload resolution
 (e.g., to decide between "void f(int &)" and "void f(const int &)")
 should be done late by default.  It is the initial value of the
