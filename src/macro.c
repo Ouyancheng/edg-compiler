@@ -1670,8 +1670,12 @@ end_scan_for_macro_modifs:;
           if (pp == NULL) {
             /* Too many arguments. */
             if (!too_many_args_diag_given) {
-              if (pcc_preprocessing_mode || SVR4_C_mode) {
-                /* In pcc mode and SVR4 C compatibility mode, this is only a
+              if (pcc_preprocessing_mode || SVR4_C_mode
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                  || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                       ) {
+                /* In pcc, SVR4 C, and Microsoft mode, this is only a
                    warning. */
                 warning(ec_too_many_macro_args);
               } else {
@@ -1839,9 +1843,12 @@ end_arg_expansion:;
       }  /* if */
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
-        /* An argument is missing.  This is an error, except in PCC
-           preprocessing mode and in SVR4 C mode. */
+        /* An argument is missing.  This is an error, except in pcc
+           preprocessing mode, SVR4 C mode, and Microsoft mode. */
         diagnostic(pcc_preprocessing_mode || SVR4_C_mode
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                         ? es_warning : es_discretionary_error,
                    ec_too_few_macro_args);
         /* Set the rest of the parameters to null strings. */

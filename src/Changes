@@ -1,5 +1,10 @@
 Version 2.32
 
+4/9/96  Warning only on too few or too many macro arguments in Microsoft mode
+
+In Microsoft mode, the error of having too few or too many arguments in a
+macro invocation now draws only a warning.
+
 4/9/96  Lvalue casts in Microsoft C++ mode
 
 In Microsoft C++ mode, an lvalue of an integral type cast to the same
