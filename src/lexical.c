@@ -7340,7 +7340,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
                            (options & GID_IS_FIELD_SELECTION_OPERAND) != 0;
     is_expr_context = (options & GID_IS_EXPR_CONTEXT) != 0;
     is_error_symbol = template_sym == NULL || template_sym->is_error ||
-                      template_sym->ambiguous;
+                      template_sym->ambiguous ||
+                      template_sym->kind == (a_symbol_kind)sk_undefined;
     if (template_sym != NULL &&
         is_type_symbol(template_sym) && next_tok == tok_lt &&
         !lt_permitted_context) {
