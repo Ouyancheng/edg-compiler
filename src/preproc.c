@@ -1249,9 +1249,7 @@ Scan and process a #pragma directive.
 }  /* proc_pragma */
 
 
-#if !IDENT_PRAGMA
-/*ARGSUSED*/ /* <-- *directive_pos is only used in emulating a pragma. */
-#endif /* !IDENT_PRAGMA */
+#if IDENT_DIRECTIVE_AND_PRAGMA
 static void proc_ident(a_source_position  *directive_pos)
 /*
 Scan and process a #ident directive.
@@ -1262,18 +1260,14 @@ Scan and process a #ident directive.
        directive unchanged to output. */
     pass_directive_to_output();
   } else {
-#if IDENT_PRAGMA
+    /* #ident "xxx" is treated as another spelling of #pragma ident "xxx",
+       so put out a pending-pragma entry for it. */
     enter_pending_pragma(pragma_description_for_pragma_kind[(int)pk_ident],
                          directive_pos, &pos_curr_token);
-#else /* !IDENT_PRAGMA */
-    /* Ignore the directive. */
-    flush_to_newline();
-#endif /* IDENT_PRAGMA */
   }  /* if */
 }  /* proc_ident */
 
 
-#if IDENT_PRAGMA
 void ident_pragma(a_pending_pragma_ptr ppp)
 /*
 Process a cached #pragma ident directive.  The syntax is:
@@ -1304,7 +1298,7 @@ where <string> is a quoted character string (not wide chars).
     ppp->il_pragma_entry->variant.ident_string = cp;
   }  /* if */
 }  /* ident_pragma */
-#endif /* IDENT_PRAGMA */
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
 
 #if ALIAS_DIRECTIVE
@@ -1477,10 +1471,12 @@ execute the preprocessor directive.
       case ppd_pragma:
         proc_pragma(&start_of_dir_position);
         break;
+#if IDENT_DIRECTIVE_AND_PRAGMA
       case ppd_ident:
         nonstandard_pp_directive();
         proc_ident(&start_of_dir_position);
         break;
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if ALIAS_DIRECTIVE
       case ppd_alias:
         nonstandard_pp_directive();
