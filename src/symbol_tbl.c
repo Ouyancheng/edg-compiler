@@ -1765,7 +1765,8 @@ the latter will be NULL for variables.
              name.  The error is issued later. */
           if (param_types_are_compatible(
                                  rout_type,
-                                 sym_ptr->variant.extern_symbol_descr->type)) {
+                                 sym_ptr->variant.extern_symbol_descr->type,
+                                 /*allow_error_type=*/TRUE)) {
             /* Param types are compatible, so we have a match.  */
             break;
           }  /* if */
