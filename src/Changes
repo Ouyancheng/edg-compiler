@@ -818,10 +818,10 @@ equally good).
     return 0;
   }
 
-This behavior is controlled by the variable do_late_ovl_res_tiebreaker
-and the configuration macro DEFAULT_DO_LATE_OVL_RES_TIEBREAKER.
-There is, at present, no associated command-line option, but the
-appropriate setting is established in strict mode (FALSE), cfront
+This behavior is controlled by the variable do_late_ovl_res_tiebreaker,
+the configuration macro DEFAULT_DO_LATE_OVL_RES_TIEBREAKER,
+and the command line options --late_tiebreaker and --early_tiebreaker.
+The appropriate setting is established in strict mode (FALSE), cfront
 mode (TRUE), and Microsoft bugs mode (TRUE).
 
 On a related issue, the tie-breaker for adding cv-qualifiers under
