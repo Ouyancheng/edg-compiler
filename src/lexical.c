@@ -6349,28 +6349,35 @@ a routine to lookup the appropriate instance (or generate one if needed).
   class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
   if (next_tok != tok_lt) {
-     /* There is no template argument list.  If we are in an instantiation of
-        this class template, use the symbol associated with the innermost
-        instantiation of this class, otherwise just return the class
-        template symbol. */
-    new_sym = current_instantiation_sym;
-    if (class_is_being_instantiated) {
-      /* We have the symbol for the current instantiation of the
-         class template. */
-      goto normal_exit;
+    if (options & GID_CLASS_TEMPLATE_REQUIRED) {
+      /* The caller wants the class template symbol.  Just return the
+         class template symbol that we started with. */
+      new_sym = template_sym;
+      goto skip_processing;
     } else {
-      if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
-         /* Template arguments are not required -- simply return the
-            symbol of the class template. */
-         goto skip_processing;
-      } else {
-        /* Issue an error and return an error locator. */
-        pos_sy_error(ec_missing_template_arg_list, &start_position,
-                     template_sym);
-        make_specific_symbol_error_locator(&locator_for_curr_id);
-        new_sym = locator_for_curr_id.specific_symbol;
-        any_errors = TRUE;
+      /* There is no template argument list.  If we are in an instantiation of
+          this class template, use the symbol associated with the innermost
+          instantiation of this class, otherwise just return the class
+          template symbol. */
+      new_sym = current_instantiation_sym;
+      if (class_is_being_instantiated) {
+        /* We have the symbol for the current instantiation of the
+           class template. */
         goto normal_exit;
+      } else {
+        if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
+           /* Template arguments are not required -- simply return the
+              symbol of the class template. */
+           goto skip_processing;
+        } else {
+          /* Issue an error and return an error locator. */
+          pos_sy_error(ec_missing_template_arg_list, &start_position,
+                       template_sym);
+          make_specific_symbol_error_locator(&locator_for_curr_id);
+          new_sym = locator_for_curr_id.specific_symbol;
+          any_errors = TRUE;
+          goto normal_exit;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

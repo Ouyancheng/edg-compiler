@@ -578,7 +578,10 @@ class a friend and update the friend information.
     /* Only update the friend information when the class being made a friend
        is a real class type. */
     for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
-      decl_friend_class(clep->class_type, class_type);
+      if (clep->class_type != class_type) {
+         /* Don't declare the current class as a friend. */
+        decl_friend_class(clep->class_type, class_type);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* update_befriending_classes_for_class */
@@ -4213,7 +4216,10 @@ been instantiated, update the befriending information for the instances.
     a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym)) {
       /* Don't do this for the nonreal class types. */
-      decl_friend_class(class_declared_in, tp);
+      if (class_declared_in != tp) {
+         /* Don't declare the current class as a friend. */
+        decl_friend_class(class_declared_in, tp);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* add_befriending_class_to_class_template */
@@ -4395,7 +4401,7 @@ instantiation.
     /* For member templates, is simplify_curr_class_qualified_name needed? */
 #endif /* 0 */
     sym = coalesce_and_lookup_generalized_identifier
-                             (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+                             (GID_CLASS_TEMPLATE_REQUIRED, ilm_normal, &err);
     locator = locator_for_curr_id;
     next_tok = next_token();
   }  /* if */

@@ -336,6 +336,12 @@ typedef int an_identifier_options_set;
 			/* Specifies that the name being looked up follows the
 			   typename keyword.  This affects the way that
 			   a qualified name is handled. */
+#define GID_CLASS_TEMPLATE_REQUIRED 0x1000
+			/* Specifies that a class template name that is not
+			   followed by an argument list must be returned as
+			   the class template and should not be converted to
+			   the current instantiation of the template, if such
+			   an instantiation is currently in scope. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
