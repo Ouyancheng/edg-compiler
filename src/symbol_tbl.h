@@ -1728,6 +1728,12 @@ typedef struct a_scope_stack_entry {
 			/* End of the list of hidden-name entries entered on
 			   the corresponding IL scope entry; NULL if none. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if RECORD_TEMPLATES_IN_IL
+  a_template_ptr
+		last_template;
+			/* End of the list of template entries entered on
+			   the corresponding IL scope entry; NULL if none. */
+#endif /* RECORD_TEMPLATES_IN_IL */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;
