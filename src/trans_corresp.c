@@ -2178,12 +2178,11 @@ Set the correspondence pointers in the members of a type.  The members' types
 are not checked.
 */
 {
-  a_type_ptr  corresp_type = in_secondary_trans_unit(type) ?
-                               (a_type_ptr)trans_unit_corresp_pointer_of(type)
-                             : NULL;
+  a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
 
-  if (corresp_type == NULL  || corresp_type == type) {
-    /* No corresponding entry: nothing to be done. */
+  check_assertion(type != NULL);
+  if (corresp_type == type) {
+    /* The canonical entry: nothing to be done. */
   } else if (!is_immediate_class_type(corresp_type)) {
     /* An error: caught elsewhere. */
   } else if (!class_type_has_body(type)) {
@@ -2821,14 +2820,14 @@ supplement for an instantiation that matches inst.
                                  ctsp->partial_spec_template_arg_list,
                                  corresp_ctsp->partial_spec_template_arg_list,
                                  ETA_IS_NONREAL_MEMBER)) {
-      if (temp_corresp_used) {
-        trans_unit_corresp_of(corresp_type) = NULL;
-      }  /* if */
+        if (temp_corresp_used) {
+          trans_unit_corresp_of(corresp_type) = NULL;
+        }  /* if */
         break;
       }  /* if */
-      if (temp_corresp_used) {
-        trans_unit_corresp_of(corresp_type) = NULL;
-      }  /* if */
+    }  /* if */
+    if (temp_corresp_used) {
+      trans_unit_corresp_of(corresp_type) = NULL;
     }  /* if */
   }  /* for */
   /* Restore the original correspondence. */
