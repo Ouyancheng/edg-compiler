@@ -1,5 +1,40 @@
 Version 2.37
 
+9/25/97   Redundant secondary-decl source sequence entry for class template
+          instantiation
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
+to TRUE, the source-sequence representation of class instantiations often
+involved a redundant secondary-decl source sequence entry (representing
+the "partial instantiation") immediately before the primary source sequence
+entry for the instantiation.  The extra entry has now been removed,
+resulting in cleaner C++ output.  For example,
+
+  template <class T> A { T t; };
+  A<int> ai;
+
+used to be transformed by the C++-generating back end as follows (with
+the class instantiation represented as an explicit specialization):
+
+  template <class T> A { T t; };
+  template<> A<int>;               // Superfluous -- no longer put out
+  template<> A<int> { int t; };
+  A<int> ai;
+
+9/25/97   Source-sequence representation of nested class instantiations
+          triggered during parent class instantiation
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
+to TRUE, the source-sequence representation of nested class instantiations
+triggered during instantiation of a parent template class was incorrect.
+As a result, the generated C++ would not compile.  This has been fixed.
+
+  template <class T> class A {
+    class B { ... };       // Instantiation of A<int>::B is triggered by
+    B b;                   //   declaration of b before instantiation of
+  };                       //   A<int> is completed
+  A<int> ai;
+
 9/24/97   Spurious error when a typedef to a template-dependent name is
           used as a base class
 
@@ -57,9 +92,9 @@ the prelinker when using distinct template signatures.
 
   "ex.c", line 2: warning: variable "i" was declared but never referenced
           template <int I, class T2> int f(T2){int i; return 0;}
-                                                 ^
+                                                   ^
             detected during instantiation of
-                  "int A<T>::f<I,T2>(T2) [with T=int, I=1, T2=char]" at line 6
+                "int A<T>::f<I,T2>(T2) [with T=int, I=1, T2=char]" at line 6
 
 9/22/97   IL lowering exception handling for freeing of storage allocated
           in "new"
