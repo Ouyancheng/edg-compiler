@@ -386,7 +386,7 @@ class is made.
   a_type_ptr                     rout_type, class_type, tp;
   a_class_symbol_supplement_ptr  cssp;
 
-  rout_type = rout_ptr->type;
+  rout_type = skip_typerefs(rout_ptr->type);
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
   cssp = symbol_supplement_for_class(class_type);
   tp = skip_typerefs(rout_type->variant.routine.return_type);
@@ -719,7 +719,7 @@ supplement for routine rp.
       /* The routine was declared in terms of a typedef.  Don't add throw
          specifications. */
     } else {
-      rtsp = rp->type->variant.routine.extra_info;
+      rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
       check_assertion(rtsp->exception_specification == NULL);
       rtsp->exception_specification = func_info->exception_specification;
     }  /* if */
@@ -729,7 +729,7 @@ supplement for routine rp.
 
 
 void check_exception_specification(a_func_info_block_ptr  func_info,
-                               a_routine_ptr          rp)
+                                   a_routine_ptr          rp)
 /*
 Check that the throw specification on the current declaration, if any, is
 consistent with that of the previous declaration.
@@ -744,7 +744,8 @@ consistent with that of the previous declaration.
   db_enter(4, "check_exception_specification");
   if (exceptions_enabled) {
     rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-    old_tsp = rp->type->variant.routine.extra_info->exception_specification;
+    old_tsp = skip_typerefs(rp->type)->
+                         variant.routine.extra_info->exception_specification;
     new_tsp = func_info->exception_specification;
     if (new_tsp != NULL && func_info->is_main_function) {
       /* main() cannot have a throw specification, since there's no call stack
@@ -1957,6 +1958,7 @@ not be TRUE.
          unshared). */
       if (comp_type != rout_type) {
         comp_type = skip_typerefs(comp_type);
+        rout_type = skip_typerefs(rout_type);
         /* Transfer the composite type to rout_type, which is unshared.
            We want to preserve fields like assoc_routine and arg_pragma in
            rout_type, so we can't just do a copy_type. */
@@ -3831,7 +3833,8 @@ definition.
   a_pending_pragma_ptr           ppp;
   a_routine_type_supplement_ptr  rtsp = NULL;
   
-  rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
+  rtsp = skip_typerefs(rout_sym->variant.routine.ptr->type)->
+                                                   variant.routine.extra_info;
   /* Determine whether a lint argsused comment immediately preceded this
      function definition. */
   ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
@@ -3875,7 +3878,7 @@ type, so that it can be referenced during argument processing.
 {
   if (sym->kind == (a_symbol_kind)sk_routine ||
       sym->kind == (a_symbol_kind)sk_member_function) {
-    sym->variant.routine.ptr->type->
+    skip_typerefs(sym->variant.routine.ptr->type)->
            variant.routine.extra_info->arg_pragma = ppp->descr_ptr->kind;
   } else {
     /* Diagnostic? */
