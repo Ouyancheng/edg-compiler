@@ -1,5 +1,11 @@
 Version 3.2
 
+3/30/03  IA-64 ABI: abort in lower_eh.c on RTTI for local enum
+
+An abort in make_typeinfo_var in lower_eh.c has been eliminated.
+It came up in versions using the IA-64 ABI for uses of typeid
+or throw/catch on an enum type that is a member of a local class.
+
 3/28/03  Unnecessary VTT parameter on constructors/destructors, IA-64 ABI
 
 When the IA-64 ABI is used, IL lowering adds parameters to

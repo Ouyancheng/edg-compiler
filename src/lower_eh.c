@@ -2045,6 +2045,12 @@ pointers-to-members).
           } else {
             if (type->source_corresp.is_local_to_function) {
               a_routine_ptr enclosing_routine = NULL;
+              /* For members of local classes, go up through all the containing
+                 classes to get to the class declared directly in the
+                 function. */
+              while (type->source_corresp.is_class_member) {
+                type = type->source_corresp.parent.class_type;
+              }  /* while */
               /* For an enum or class, see what function the type is
                  declared in. */
               if (is_enum_type(type)) {
