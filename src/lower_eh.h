@@ -41,12 +41,14 @@ extern void type_is_used_in_exception(a_type_ptr type);
 
 extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
 
+#if DO_FULL_PORTABLE_EH_LOWERING
+extern a_handle_number object_addr_table_index(void);
+
 extern void init_object_addr_table_entry(
                                        an_init_pos_descr_ptr ipdp,
                                        a_handle_number       entry_number,
                                        an_insert_location    *insert_location);
-
-extern a_handle_number object_addr_table_index(void);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 extern a_cleanup_region_number cleanup_region_number(a_dynamic_init_ptr dip);
 

@@ -740,8 +740,10 @@ and return a pointer to it.
   dedp->next = NULL;
   clear_init_pos_descr(&dedp->init_pos_descr);
   dedp->conditional_flag_var = NULL;
-#if GENERATE_EH_TABLES
+#if DO_FULL_PORTABLE_EH_LOWERING
   dedp->conditional_flag_handle = 0;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
   dedp->region_number = null_eh_region_number;
   dedp->cleanup_state_to_set_when_starting_destruction = NULL;
   dedp->region_table_entry = NULL;
@@ -850,12 +852,11 @@ cannot be a bitfield selection.
 
 static an_expr_node_ptr modify_init_entity_node(
                                         an_expr_node_ptr         entity_node,
-                                        an_init_pos_descr_ptr    ipdp,
                                         an_init_pos_modifier_ptr modifiers,
                                         a_boolean                using_as_dest)
 /*
-Add the address modifiers from the list given by "modifiers" (from the
-init position description ipdp) to the entity address expression "entity_node"
+Add the address modifiers from the list given by "modifiers" (from an
+init position description) to the entity address expression "entity_node"
 and return a pointer to the modified expression tree.  If using_as_dest is
 TRUE, the entity is the destination of an initialization operation.
 */
@@ -867,7 +868,7 @@ TRUE, the entity is the destination of an initialization operation.
     /* Process the modifiers preceding the final modifier, then add the final
        qualifier (recall that the modifiers are in order from the innermost
        to the outermost). */
-    entity_node = modify_init_entity_node(entity_node, ipdp, modifiers->next,
+    entity_node = modify_init_entity_node(entity_node, modifiers->next,
                                           using_as_dest);
     /* Add the final modifier. */
     if (modifiers->curr_field != NULL) {
@@ -949,7 +950,7 @@ TRUE, the entity is the destination of an initialization operation.
     entity_node = drop_const_on_init_entity_node(entity_node, ipdp);
   }  /* if */
   /* Add the modifiers to the base address. */
-  entity_node = modify_init_entity_node(entity_node, ipdp, ipdp->modifiers,
+  entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
                                         using_as_dest);
   return entity_node;
 }  /* make_init_entity_node */
@@ -2323,28 +2324,27 @@ may be many different such routines generated (all unnamed).
 }  /* file_scope_term_insert_location */
 
 
-#if !GENERATE_EH_TABLES
-/*ARGSUSED*/  /* <-- cond_var_handle is not used in that case. */
-#endif /* !GENERATE_EH_TABLES */
-void init_conditional_flag_var(a_variable_ptr     cond_var,
-                               a_handle_number    cond_var_handle,
-                               an_insert_location *insert_location)
+void init_conditional_flag_var(
+                              a_destructible_entity_descr_ptr dedp,
+                              an_insert_location              *insert_location)
 /*
 Insert code to initialize a conditional flag variable to zero.
-cond_var is the variable.  cond_var_handle is the variable's index
-number in the object address table; code is inserted to set the
-object address table entry to the address of the variable.  The code is
-inserted at *insert_location.
+dedp points to the destructible entity description for the
+entity whose conditional flag should be initialized.  If code needs
+to be inserted, it is inserted at *insert_location.
 */
 {
-#if GENERATE_EH_TABLES
+  a_variable_ptr cond_var = dedp->conditional_flag_var;
+
+#if DO_FULL_PORTABLE_EH_LOWERING
   if (exceptions_enabled) {
     an_init_pos_descr ipd;
     /* Put the address of the variable into the object address table. */
     set_var_init_pos_descr(cond_var, &ipd);
-    init_object_addr_table_entry(&ipd, cond_var_handle, insert_location);
+    init_object_addr_table_entry(&ipd, dedp->conditional_flag_handle,
+                                 insert_location);
   }  /* if */
-#endif /* GENERATE_EH_TABLES */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* If the conditional flag is static, initialization to zero is
      implicit and requires nothing special in the IL. */
   if (cond_var->storage_class != (a_storage_class)sc_static) {
@@ -4598,13 +4598,7 @@ constructor scope, and also lower the user code.
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
         set_block_start_insert_location(scope->assoc_block, &insert_location);
-        init_conditional_flag_var(dedp->conditional_flag_var,
-#if GENERATE_EH_TABLES
-                                  dedp->conditional_flag_handle,
-#else /* !GENERATE_EH_TABLES */
-                                  (a_handle_number)0,
-#endif /* GENERATE_EH_TABLES */
-                                  &insert_location);
+        init_conditional_flag_var(dedp, &insert_location);
       }  /* if */
     }  /* if */
   }

@@ -71,6 +71,7 @@ finish_array_var).
   return array_type;
 }  /* array_of */
 
+#if DO_FULL_PORTABLE_EH_LOWERING
 
 static a_variable_ptr make_unnamed_local_array_var(a_type_ptr elem_type)
 /*
@@ -84,6 +85,7 @@ current function scope even if the current context is a block inside that.
   return make_function_scope_temporary(array_of(elem_type));
 }  /* make_unnamed_local_array_var */
 
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 static a_variable_ptr make_unnamed_local_static_array_var(
                                                   a_type_ptr elem_type,
@@ -745,12 +747,35 @@ been generated already.
 }  /* define_scope_class_typeinfo_vars */
 
 
+#if DO_FULL_PORTABLE_EH_LOWERING
 /*
 Pointer to the variable entry for the object address array table of
 a function.  NULL until allocated.
 */
 static a_variable_ptr
 		object_addr_table_var;
+
+
+a_handle_number object_addr_table_index(void)
+/*
+Add an entry to the object address table array (creating the table and its
+associated variable if necessary) and return its index number.  The entry
+is not filled in (that's done by init_object_addr_table_entry); this routine
+just increases the size of the array by one.
+*/
+{
+  a_handle_number entry_number;
+
+  /* Make the variable if it has not yet been made. */
+  if (object_addr_table_var == NULL) {
+    /* The variable is an array whose elements have type "void *". */
+    a_type_ptr elem_type = void_star_type();
+    object_addr_table_var = make_unnamed_local_array_var(elem_type);
+  }  /* if */
+  /* Add an element to the object address table array. */
+  entry_number = incr_nelems_of_array_var(object_addr_table_var);
+  return entry_number;
+}  /* object_addr_table_index */
 
 
 void init_object_addr_table_entry(an_init_pos_descr_ptr ipdp,
@@ -783,25 +808,147 @@ at *insert_location and *insert_location is updated.
                                     object_addr_node, insert_location);
 }  /* init_object_addr_table_entry */
 
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if !DO_FULL_PORTABLE_EH_LOWERING
 
-a_handle_number object_addr_table_index(void)
+static a_targ_size_t offset_for_init_modifiers(
+                                            an_init_pos_modifier_ptr modifiers)
 /*
-Add an entry to the object address table array (creating the table and its
-associated variable if necessary) and return its index number.
+Return the byte offset that results from the indicated list of modifiers
+of an init position description.
 */
 {
-  a_handle_number entry_number;
+  a_targ_size_t offset = 0;
 
-  /* Make the variable if it has not yet been made. */
-  if (object_addr_table_var == NULL) {
-    /* The variable is an array whose elements have type "void *". */
-    a_type_ptr elem_type = void_star_type();
-    object_addr_table_var = make_unnamed_local_array_var(elem_type);
+  /* If there are no modifiers, return 0. */
+  if (modifiers != NULL) {
+    /* Process the modifiers preceding the final modifier, then add the final
+       qualifier (recall that the modifiers are in order from the innermost
+       to the outermost). */
+    offset = offset_for_init_modifiers(modifiers->next);
+    /* Add the final modifier. */
+    if (modifiers->curr_field != NULL) {
+      /* Add a field selection. */
+      a_field_ptr field = modifiers->curr_field;
+      offset += field->offset;
+    } else if (modifiers->curr_base != NULL) {
+      /* Add a base class selection.  Note that we assume a complete object
+         here, which is okay for the intended use of this routine. */
+      offset += modifiers->curr_base->offset;
+    } else {
+      /* Add an array element selection. */
+      a_type_ptr elem_type = f_skip_typerefs(modifiers->type);
+      offset += elem_type->size * modifiers->curr_elem;
+    }  /* if */
   }  /* if */
-  /* Add an element to the object address table array. */
-  entry_number = incr_nelems_of_array_var(object_addr_table_var);
-  return entry_number;
-}  /* object_addr_table_index */
+  return offset;
+}  /* offset_for_init_modifiers */
+
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+
+/* Type used to carry information about the location of an entity in the
+   form used in the region table. */
+#if DO_FULL_PORTABLE_EH_LOWERING
+/* In the portable scheme, all that's needed is an index into the object
+   address table. */
+typedef a_handle_number a_handle;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+typedef struct a_handle {
+  /* Representation for the non-portable scheme, which can result in a
+     ck_stack_offset constant. */
+  a_variable_ptr
+		variable;
+			/* A variable whose offset in the stack is the base
+			   for the handle value, or NULL if there is no such
+			   variable.  If this is non-NULL, a ck_stack_offset
+			   constant will be required. */
+  a_targ_size_t	offset;	/* Offset relative to the variable if there is one, or
+			   constant value if there is no variable. */
+  unsigned long	flags;	/* Extra flag bits needed, e.g., RDF_INDIRECT. */
+} a_handle;
+
+static void clear_handle(a_handle *handle)
+/*
+Clear the fields of a handle to default values.  A handle is used to
+represent the address of an entity in the region table.
+*/
+{
+  handle->variable = NULL;
+  handle->offset = 0;
+  handle->flags = 0;
+}  /* clear_handle */
+
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+
+/*
+Bit flags for the flags field of a region description.  These must match
+the runtime's definition.
+*/
+#define RDF_INDIRECT		0x01
+			/* TRUE if the address provided by the handle field
+			   is a pointer to the object.  Not used in the
+			   portable scheme. */
+#define RDF_CONDITIONAL_FLAG	0x02
+			/* TRUE if the object has an associated flag that
+			   indicates whether the construction has occurred.
+			   The region entry following this one gives the
+			   location of the flag. */
+#define RDF_NEW_ALLOCATION	0x04
+			/* TRUE if the object was allocated by new and
+			   is to be freed in the event of a throw. */
+#define RDF_ARRAY		0x08
+			/* TRUE if the object is an array (or requires
+			   information normally provided only for arrays). */
+#define RDF_THIS_PARAM_OFFSET	0x10
+			/* TRUE if the object is a base class of an
+			   object being constructed or destructed.  Not
+			   used in the portable scheme. */
+
+
+#if !DO_FULL_PORTABLE_EH_LOWERING
+/*ARGSUSED*/ /* <-- insert_location is not used. */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+static void make_handle_for_entity(an_init_pos_descr_ptr ipdp,
+                                   a_handle              *handle,
+                                   an_insert_location    *insert_location)
+/*
+Return the handle (identifier to be used in the region table) for the
+entity indicated by ipdp.  The handle is placed in *handle.  If any code
+needs to be generated to establish that handle, insert the code at
+*insert_Location.
+*/
+{
+#if DO_FULL_PORTABLE_EH_LOWERING
+  /* Portable scheme: allocate the proper entry in the object address table. */
+  a_handle_number handle_number = object_addr_table_index();
+  *handle = handle_number;
+  /* Put the entity address in the object address table. */
+  init_object_addr_table_entry(ipdp, handle_number, insert_location);
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* Non-portable scheme.  Use a stack offset, with variations. */
+  clear_handle(handle);
+  if (ipdp->indirect_through_variable) {
+    if (ipdp->variable->is_this_parameter) {
+      /* This entity is relative to the "this" parameter, e.g., it's a
+         member or base class being initialized in a constructor. */
+      handle->flags |= RDF_THIS_PARAM_OFFSET;
+      handle->offset = offset_for_init_modifiers(ipdp->modifiers);
+      /* variable stays NULL. */
+    } else {
+      /* Simple indirection through a variable. */
+      check_assertion_str(ipdp->modifiers == NULL,
+                          "make_handle_for_entity: non-simple indirection");
+      handle->flags |= RDF_INDIRECT;
+      handle->variable = ipdp->variable;
+      /* offset stays zero. */
+    }  /* if */
+  } else {
+    /* Not indirect. */
+    handle->variable = ipdp->variable;
+    handle->offset = offset_for_init_modifiers(ipdp->modifiers);
+  }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+}  /* make_handle_for_entity */
 
 
 /*
@@ -821,6 +968,7 @@ if it is not made already, and return a pointer to it.  Its definition is
 
   struct array_descr {
     unsigned short handle;     // Index of object in object address table
+                               // (or stack offset in non-portable scheme)
     size_t         elem_size;  // Array element size
     long           elem_count; // Element count
   };
@@ -836,9 +984,9 @@ if it is not made already, and return a pointer to it.  Its definition is
     add_to_front_of_file_scope_types_list(array_descr_type);
     byte_offset = 0;
     last_field = NULL;
-    /* field: unsigned short handle */
+    /* field: unsigned short (or whatever) handle */
     make_lowered_field("handle",
-                       integer_type(TARG_VAR_HANDLE_INT_KIND),
+                       integer_type(targ_var_handle_int_kind),
                        &byte_offset, array_descr_type, &last_field);
     /* field: size_t elem_size */
     make_lowered_field("elem_size",
@@ -865,31 +1013,27 @@ static a_constant_ptr
 		array_table_aggr_con;
 
 
-static a_handle_number array_table_entry(
-                                        an_init_pos_descr_ptr ipdp,
-                                        an_insert_location    *insert_location)
+static void make_array_table_entry(an_init_pos_descr_ptr ipdp,
+                                   a_handle              *handle,
+                                   an_insert_location    *insert_location)
 /*
 Add an entry to the array table (creating the table and its associated
 variable if necessary) for the object whose position is given by ipdp.
-Return the index number into the array table.  Also insert (at
-*insert_location) initialization code for the proper entry in the
-object address table.  This routine can also be called for non-arrays
-in cases where an array table entry is needed to provide information
-not included in the region description entry (for example, for a
-new-allocation record in a case where the delete routine requires a
-second parameter giving the size; the size is not available in the
-region description entry).
+Return a handle (identifying information for the region table) for
+the object in *handle.  Also insert (at *insert_location) initialization
+code to initialize for the handle if necessary.  This routine
+can also be called for non-arrays in cases where an array table entry
+is needed to provide information not included in the region description
+entry (for example, for a new-allocation record in a case where the
+delete routine requires a second parameter giving the size; the size
+is not available in the region description entry).
 */
 {
-  a_handle_number  object_addr_index, entry_number;
+  a_handle_number  handle_offset, entry_number;
   a_targ_ptrdiff_t elem_count;
   a_constant_ptr   index_con, elem_size_con, size_con, aggr_con;
   a_type_ptr       elem_type;
 
-  /* Allocate the proper entry in the object address table. */
-  object_addr_index = object_addr_table_index();
-  /* Insert code to put the array address into the object address table. */
-  init_object_addr_table_entry(ipdp, object_addr_index, insert_location);
   /* Make the variable for the array table if it has not yet been made. */
   if (array_table_var == NULL) {
     /* The variable is an array whose elements have type array_descr. */
@@ -898,13 +1042,20 @@ region description entry).
                                                    /*in_function_scope=*/TRUE,
                                                    &array_table_aggr_con);
   }  /* if */
+  /* Make the handle for the entity, which describes its address. */
+  make_handle_for_entity(ipdp, handle, insert_location);
   /* Make the aggregate constant for the entry in the array table.  It consists
-     of the index in the object address table, the size of each element, and
-     the number of elements. */
+     of the handle offset, the size of each element, and the number of
+     elements. */
+#if DO_FULL_PORTABLE_EH_LOWERING
+  handle_offset = *handle;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  handle_offset = handle->offset;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   index_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant_with_overflow_check(index_con,
-                                                    object_addr_index,
-                                                    TARG_VAR_HANDLE_INT_KIND);
+                                                    handle_offset,
+                                                    targ_var_handle_int_kind);
   /* For the element size: note that the init_pos_descr has the type of an
      element, not of the whole array.  For non-arrays, the type is of
      course as expected. */
@@ -932,8 +1083,14 @@ region description entry).
   /* Add the aggregate as an element of the object address table array. */
   entry_number = add_elem_to_array_var(aggr_con, array_table_var,
                                        array_table_aggr_con);
-  return entry_number;
-}  /* array_table_entry */
+#if DO_FULL_PORTABLE_EH_LOWERING
+  *handle = entry_number;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  handle->offset = entry_number;
+  /* Note that the other fields are left as they were set by
+     make_handle_for_entity. */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+}  /* make_array_table_entry */
 
 
 /*
@@ -942,26 +1099,6 @@ region for exception processing).  NULL until created.
 */
 static a_type_ptr
 		region_descr_type;
-
-
-/*
-Bit flags for the flags field of a region description.  These must match
-the runtime's definition.
-*/
-#define RDF_INDIRECT		0x01
-			/* TRUE if the address provided by the handle field
-			   is a pointer to the object. */
-#define RDF_CONDITIONAL_FLAG	0x02
-			/* TRUE if the object has an associated flag that
-			   indicates whether the construction has occurred.
-			   The region entry following this one gives the
-			   location of the flag. */
-#define RDF_NEW_ALLOCATION	0x04
-			/* TRUE if the object was allocated by new and
-			   is to be freed in the event of a throw. */
-#define RDF_ARRAY		0x08
-			/* TRUE if the object is an array (or requires
-			   information normally provided only for arrays). */
 
 
 static a_type_ptr make_region_descr_type(void)
@@ -973,6 +1110,7 @@ and return a pointer to it.  Its definition is
   struct region_descr {
     __vptp         dtor;    // Destructor or delete routine pointer
     unsigned short handle;  // Index of object in object address table
+                            // (or stack offset in non-portable scheme)
     unsigned short next;    // Next cleanup region
     unsigned char  flags;   // Bit flags
   };
@@ -991,9 +1129,9 @@ and return a pointer to it.  Its definition is
     /* field: __vptp dtor */
     make_lowered_field("dtor", make_vptp_type(), &byte_offset,
                        region_descr_type, &last_field);
-    /* field: unsigned short handle */
+    /* field: unsigned short (or whatever) handle */
     make_lowered_field("handle",
-                       integer_type(TARG_VAR_HANDLE_INT_KIND),
+                       integer_type(targ_var_handle_int_kind),
                        &byte_offset, region_descr_type, &last_field);
     /* field: unsigned short next */
     make_lowered_field("next",
@@ -1062,6 +1200,7 @@ This routine is used to relink entries after they've been created.
   con->next = con_next;
 }  /* set_next_region_number */
 
+#if DO_UNORDERED_EH_PROCESSING
 
 static a_cleanup_region_number get_next_region_number(a_dynamic_init_ptr dip)
 /*
@@ -1076,6 +1215,7 @@ Fetch the next region number of the indicated destruction.
   return next_region_number;
 }  /* get_next_region_number */
 
+#endif /* DO_UNORDERED_EH_PROCESSING */
 
 static a_cleanup_region_number
 		next_avail_region_number;
@@ -1121,13 +1261,13 @@ a pointer to the aggregate constant created.
 
 static a_constant_ptr add_region_table_entry(
                                          a_routine_ptr           dtor_routine,
-                                         a_handle_number         handle_number,
+                                         a_handle                *handle,
                                          a_cleanup_region_number next_region,
                                          unsigned long           flags_value)
 /*
 Create an entry in the exception cleanup region table.  dtor_routine,
-handle_number, next_region, and flags_value give the values for the
-various fields.   Create an aggregate constant for the entry and add
+handle, next_region, and flags_value give the values for the various
+fields.   Create an aggregate constant for the entry and add
 it to the initial value of region_table_var.  Return the address of
 the aggregate constant.
 */
@@ -1140,6 +1280,7 @@ the aggregate constant.
        struct region_descr {
          __vptp         dtor;    // Destructor or delete routine pointer
          unsigned short handle;  // Index of object in object address table
+                                 // (or stack offset in non-portable scheme)
          unsigned short next;    // Next cleanup region
          unsigned char  flags;   // Bit flags
        };
@@ -1159,10 +1300,30 @@ the aggregate constant.
     implicit_cast(dtor_con, ptr_func_type);
   }  /* if */
   /* Make the handle. */
+#if DO_FULL_PORTABLE_EH_LOWERING
+  /* Portable scheme: the number is the index in the object address table
+     or the array table. */
   handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant_with_overflow_check(handle_con,
-                                                    handle_number,
-                                                    TARG_VAR_HANDLE_INT_KIND);
+                                                    (unsigned long)*handle,
+                                                    targ_var_handle_int_kind);
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* Non-portable scheme -- can use a ck_stack_offset for the offset of
+     a variable. */
+  if (handle->variable != NULL) {
+    handle_con = alloc_constant((a_constant_repr_kind)ck_stack_offset);
+    handle_con->type = integer_type(targ_var_handle_int_kind);
+    handle_con->variant.stack_offset.variable = handle->variable;
+    handle_con->variant.stack_offset.offset = handle->offset;
+  } else {
+    /* No variable, so this is a simple constant (e.g., an index into the
+       array table). */
+    handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
+    set_unsigned_integer_constant_with_overflow_check(handle_con,
+                                                 (unsigned long)handle->offset,
+                                                 targ_var_handle_int_kind);
+  }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Make the next region index number.  NOTE that next_region_number_constant
      expects the constant to be the third one on the list. */
   next_con = alloc_constant((a_constant_repr_kind)ck_integer);
@@ -1187,7 +1348,7 @@ static a_constant_ptr make_region_table_entry(
                               a_routine_ptr           routine,
                               a_boolean               is_delete,
                               a_variable_ptr          conditional_flag_var,
-                              a_handle_number         conditional_flag_handle,
+                              a_handle                *conditional_flag_handle,
                               a_cleanup_region_number next_region_number,
                               a_cleanup_region_number *region_number,
                               an_insert_location      *insert_location)
@@ -1198,7 +1359,7 @@ a destructor (is_delete == FALSE) or a delete routine (is_delete ==
 TRUE) to be called to do cleanup on the object.  conditional_flag_var,
 if non-NULL, points to a conditional flag variable that is non-zero to
 indicate that the destruction or deletion should be done.  In that case,
-conditional_flag_handle gives the object address table index for the
+conditional_flag_handle gives the handle for the address for the
 conditional flag.  next_region_number is used as the
 next-region-table-entry number for the new entry.  The region table
 entry number for the new entry is returned in *region_number.  Any
@@ -1207,7 +1368,7 @@ The region table variable is created if necessary.  Return a pointer
 to the aggregate constant for the region table entry.
 */
 {
-  a_handle_number handle_number;
+  a_handle        handle;
   unsigned long   flags_value = 0;
   a_constant_ptr  region_table_entry;
   a_boolean       need_array_info = FALSE;
@@ -1227,16 +1388,16 @@ to the aggregate constant for the region table entry.
   }  /* if */
   if (need_array_info) {
     /* We need an entry in the array table. */
-    handle_number = array_table_entry(ipdp, insert_location);
+    make_array_table_entry(ipdp, &handle, insert_location);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
   } else {
     /* Non-array. */
-    /* Allocate the proper entry in the object address table. */
-    handle_number = object_addr_table_index();
-    /* Put the entity address in the object address table. */
-    init_object_addr_table_entry(ipdp, handle_number, insert_location);
+    make_handle_for_entity(ipdp, &handle, insert_location);
   }  /* if */
+#if !DO_FULL_PORTABLE_EH_LOWERING
+  flags_value |= handle.flags;
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   if (conditional_flag_var != NULL) {
     /* This entry needs a conditional flag.  More on this below. */
     /* The object address table entry must be initialized when the conditional
@@ -1261,7 +1422,7 @@ to the aggregate constant for the region table entry.
   *region_number = next_avail_region_number;
   /* Make the region table entry. */
   region_table_entry = add_region_table_entry(routine,
-                                              handle_number,
+                                              &handle,
                                               next_region_number,
                                               flags_value);
   if (conditional_flag_var != NULL) {
@@ -1339,8 +1500,20 @@ necessary.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_handle                        conditional_flag_handle;
 
   check_assertion(dedp != NULL);
+  /* Make a handle that describes the address of the conditional flag if
+     any. */
+  if (dedp->conditional_flag_var != NULL) {
+#if DO_FULL_PORTABLE_EH_LOWERING
+    conditional_flag_handle = dedp->conditional_flag_handle;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+    an_init_pos_descr ipd;
+    set_var_init_pos_descr(dedp->conditional_flag_var, &ipd);
+    make_handle_for_entity(&ipd, &conditional_flag_handle, insert_location);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  }  /* if */
   dedp->next_in_region_table = next_dip;
   dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
   dedp->region_table_entry =
@@ -1349,7 +1522,7 @@ necessary.
                                      (a_boolean)dip->
                                             is_freeing_of_storage_on_exception,
                                      dedp->conditional_flag_var,
-                                     dedp->conditional_flag_handle,
+                                     &conditional_flag_handle,
                                      cleanup_region_number(curr_cleanup_state),
                                      &dedp->region_number,
                                      insert_location);
@@ -2025,7 +2198,9 @@ statement if necessary.
 */
 {
   a_routine_ptr             routine;
+  an_insert_location        insert_location;
   a_boolean                 need_function_epilogue = FALSE;
+  a_return_memo_ptr         rmp;
 #if DO_FULL_PORTABLE_EH_LOWERING
   a_type_ptr                routine_type, spec_array_ptr;
   an_exception_specification_ptr
@@ -2036,9 +2211,7 @@ statement if necessary.
   an_expr_node_ptr          func_frame_function_obj_table;
   an_expr_node_ptr          func_frame_function_array_table;
   an_expr_node_ptr          func_frame_function_saved_region_number;
-  an_insert_location        insert_location;
   a_boolean                 need_throw_epilogue = FALSE;
-  a_return_memo_ptr         rmp;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   /* The insert location for the statements is the start of the top block of
@@ -2171,14 +2344,16 @@ statement if necessary.
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
     /* Non-portable schemes: generate an enk_lowered_eh_construct/
        leck_routine_prologue expression node. */
-  { an_expr_node node = alloc_lowered_eh_construct(
-                           (a_lowered_eh_construct_kind)leck_routine_prologue);
+  { an_expr_node_ptr node = alloc_lowered_eh_construct_node(
+                          (a_lowered_eh_construct_kind)leck_function_prologue);
     an_eh_prologue_supplement_ptr psp =
                                 node->variant.lowered_eh.variant.prologue_info;
     psp->routine = routine;
+#if GENERATE_EH_TABLES
     psp->region_table = region_table_var;
     psp->array_table = array_table_var;
-    (void)insert_expr_statement(node, insert_location);
+#endif /* GENERATE_EH_TABLES */
+    (void)insert_expr_statement(node, &insert_location);
   }
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
@@ -2198,10 +2373,10 @@ statement if necessary.
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
         /* Insert an enk_lowered_eh_construct node to represent the
            function epilogue. */
-        an_expr_node node = alloc_lowered_eh_construct(
-                           (a_lowered_eh_construct_kind)leck_routine_epilogue);
+        an_expr_node_ptr node = alloc_lowered_eh_construct_node(
+                          (a_lowered_eh_construct_kind)leck_function_epilogue);
         node->variant.lowered_eh.variant.epilogue_routine = routine;
-        (void)insert_expr_statement(node, insert_location);
+        (void)insert_expr_statement(node, &insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
       }  /* if */
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -2226,8 +2401,11 @@ Find and return the address of the handler for the current catch clause.
   a_handler_ptr handler = NULL;
 
   for (context = curr_context; context != NULL; context = context->parent) {
-    handler = context->scope->assoc_handler;
-    if (handler != NULL) break;
+    a_scope_ptr scope = context->scope;
+    if (scope->kind == (a_scope_kind)sck_block) {
+      handler = scope->variant.assoc_handler;
+      if (handler != NULL) break;
+    }  /* if */
   }  /* for */
   check_assertion(handler != NULL);
   return handler;
@@ -2235,6 +2413,9 @@ Find and return the address of the handler for the current catch clause.
 
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
+#if !DO_FULL_PORTABLE_EH_LOWERING
+/*ARGSUSED*/ /* <-- param_type is not used. */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 an_expr_node_ptr make_caught_object_address_node(a_type_ptr param_type)
 /*
 Make an expression node for the address of the object caught at the
@@ -2312,7 +2493,7 @@ the context for the try block.  Any code generated is inserted at
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In other schemes, insert an enk_lowered_eh_construct/leck_try_epilogue
      expression node. */
-  an_expr_node_ptr node = alloc_lowered_eh_construct(
+  an_expr_node_ptr node = alloc_lowered_eh_construct_node(
                                (a_lowered_eh_construct_kind)leck_try_epilogue);
   node->variant.lowered_eh.variant.epilogue_try_block = try_block;
   (void)insert_expr_statement(node, insert_location);
@@ -2355,20 +2536,22 @@ generated is inserted at insert_location.
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In other schemes, insert an enk_lowered_eh_construct/leck_catch_epilogue
      expression node. */
-  an_expr_node_ptr node = alloc_lowered_eh_construct(
+  an_expr_node_ptr node = alloc_lowered_eh_construct_node(
                              (a_lowered_eh_construct_kind)leck_catch_epilogue);
   node->variant.lowered_eh.variant.epilogue_handler = handler;
-  (void)insert_expr_statement(node insert_location);
+  (void)insert_expr_statement(node, insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* cleanup_on_exit_from_catch */
 
 
+#if DO_FULL_PORTABLE_EH_LOWERING
 /*
 Pointer to the routine entry for the runtime routine setjmp.  NULL until
 created.
 */
 static a_routine_ptr
 		setjmp_routine;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 
 void lower_try_block(a_statement_ptr statement)
@@ -2376,31 +2559,42 @@ void lower_try_block(a_statement_ptr statement)
 Do IL lowering for an stmk_try_block statement.
 */
 {
-  a_handler_ptr      handlers, handler;
-  a_variable_ptr     try_frame, catch_array_var;
+  a_try_supplement_ptr
+                     tsp = statement->variant.try_block;
+  a_statement_ptr    stmt_to_try = tsp->statement;
+  a_statement_ptr    orig_stmt, orig_stmt_to_try;
+  a_handler_ptr      handlers = tsp->handlers, handler;
   an_insert_location insert_location;
-  a_statement_ptr    stmt_to_try, copy_of_orig_stmt;
+  a_context          context;
+  an_object_lifetime_ptr
+                     lifetime;
+#if DO_FULL_PORTABLE_EH_LOWERING
+  a_variable_ptr     try_frame, catch_array_var;
   an_expr_node_ptr   try_frame_catch_entries, try_frame_setjmp_buffer;
   an_expr_node_ptr   try_frame_rtinfo, try_frame_region_number;
   an_expr_node_ptr   setjmp_call, compare_node, catch_clause_number_node;
   a_statement_ptr    prev_if_stmt, if_stmt;
   long               catch_clause_number;
   a_constant         null_constant;
-  a_context          context;
-  a_try_supplement_ptr
-                     tsp = statement->variant.try_block;
-  an_object_lifetime_ptr
-                     lifetime;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
+#if DO_FULL_PORTABLE_EH_LOWERING
   /* Change the stmk_try_block statement into a block, and prepare to insert
      code at the start of the block. */
-  turn_statement_into_block(statement, &insert_location, &copy_of_orig_stmt);
+  turn_statement_into_block(statement, &insert_location, &orig_stmt);
   /* Generate code to push a stack frame. */
   push_eh_stack_frame(ehsek_try_block, &try_frame, &insert_location);
+  orig_stmt_to_try = stmt_to_try;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* In the non-portable schemes, we keep the original "try" statement. */
+  orig_stmt = statement;
+  turn_statement_into_block(stmt_to_try, &insert_location, &orig_stmt_to_try);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Push a context around the try and catch.  This is needed to ensure that
      the "try" stack frame is popped on a goto out of the try or catch. */
   lifetime = tsp->lifetime;
   push_context(&context, (a_scope_ptr)NULL, lifetime);
+#if DO_FULL_PORTABLE_EH_LOWERING
   curr_context->try_frame = try_frame;
   if (keep_object_lifetime_info_in_lowered_il) {
     /* To keep the object lifetime when the try block is eliminated,
@@ -2409,9 +2603,9 @@ Do IL lowering for an stmk_try_block statement.
     bind_object_lifetime(lifetime, iek_block,
                          (char *)statement->variant.block.extra_info);
   }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   begin_object_lifetime(lifetime, &insert_location);
-  stmt_to_try = tsp->statement;
-  handlers = tsp->handlers;
+#if DO_FULL_PORTABLE_EH_LOWERING
   /* Generate a description of the catch clause types. */
   catch_array_var = make_catch_array_var(handlers);
   /* Put the address of the catch types description array into the stack
@@ -2485,26 +2679,29 @@ Do IL lowering for an stmk_try_block statement.
   compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                     setjmp_call->type, setjmp_call);
   /* Rewrite the stmk_try_block as an "if". */
-  set_statement_kind(copy_of_orig_stmt, (a_statement_kind)stmk_if);
-  copy_of_orig_stmt->expr = compare_node;
+  set_statement_kind(orig_stmt, (a_statement_kind)stmk_if);
+  if_stmt = orig_stmt;
+  orig_stmt->expr = compare_node;
   /* The dependent statement is the statement under the "try". */
-  copy_of_orig_stmt->variant.if_stmt.then_statement = stmt_to_try;
-  /* Lower the dependent statement of the try. */
-  lower_statement(stmt_to_try);
-  if_stmt = copy_of_orig_stmt;
-  /* Walk through the catch clauses and turn each one into an "if" in the
-     "else" part of the previous "if". */
+  orig_stmt->variant.if_stmt.then_statement = orig_stmt_to_try;
   catch_clause_number = 0;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  /* Lower the dependent statement of the try. */
+  lower_statement(orig_stmt_to_try);
+  /* Walk through the catch clauses. */
   for (handler = handlers;
        handler != NULL;
        handler = handler->next) {
     a_statement_ptr dep_statement = handler->statement;
+#if DO_FULL_PORTABLE_EH_LOWERING
     catch_clause_number++;
     prev_if_stmt = if_stmt;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Lower the dependent statement of the catch clause. */
     /* Note that the code to initialize the parameter (if there is one)
        is generated during the lowering of the dependent statement. */
     lower_statement(dep_statement);
+#if DO_FULL_PORTABLE_EH_LOWERING
     if (handler->parameter == NULL) {
       /* This is an ellipsis entry.  No "if" is required, since it accepts
          any type.  Previous error checks have ensured that this is the
@@ -2535,10 +2732,11 @@ Do IL lowering for an stmk_try_block statement.
        a C field. */
     handler->statement->variant.block.extra_info->assoc_scope->
                                                   variant.assoc_handler = NULL;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   }  /* for */
   /* Generate code to pop the "try" frame off the stack after the rewritten
      "if" statement. */
-  set_insert_location(copy_of_orig_stmt, &insert_location);
+  set_insert_location(orig_stmt, &insert_location);
   gen_cleanup_actions(lifetime, &insert_location);
   /* Pop the context pushed around the try block. */
   pop_context();
@@ -2696,13 +2894,14 @@ void lower_throw(an_expr_node_ptr expr)
 Lower an enk_throw expression node.
 */
 {
-  a_type_ptr         throw_type, ptr_throw_type;
+  a_type_ptr         throw_type;
   a_dynamic_init_ptr dip;
   an_init_pos_descr  ipd;
   an_insert_location insert_location;
   a_boolean          keep_dynamic_init;
   an_expr_node_ptr   temp_node;
 #if DO_FULL_PORTABLE_EH_LOWERING
+  a_type_ptr         ptr_throw_type;
   a_variable_ptr     temp_var, typeinfo_var;
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
   an_expr_node_ptr   access_node, assign_node;
@@ -2727,7 +2926,6 @@ Lower an enk_throw expression node.
     throw_type = expr->variant.throw_info->type;
     lower_os_type(throw_type);
     throw_type = f_skip_typerefs(throw_type);  /* Probably unnecessary. */
-    ptr_throw_type = make_pointer_type(throw_type);
     dip = expr->variant.throw_info->dynamic_init;
     /* There should be no destructor indicated, because the runtime handles
        the destruction. */
@@ -2742,6 +2940,7 @@ Lower an enk_throw expression node.
        that a pointer to the typeinfo type is being thrown; and access
        is non-NULL when throwing a class -- it is a character string
        indicating which of the base classes are accessible. */
+    ptr_throw_type = make_pointer_type(throw_type);
     temp_var = make_lowered_temporary(ptr_throw_type);
     /* Make the typeinfo variable for the throw type. */
     typeinfo_var = typeinfo_var_for_type(throw_type, &flags_value);
@@ -2803,7 +3002,7 @@ Lower an enk_throw expression node.
     /* We need to provide an insert location, so we make a dummy expression
        node and insert before it, then extract the inserted code. */
     temp_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-    set_expr_insert_location(temp_node, &insert_location)
+    set_expr_insert_location(temp_node, &insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Generate code to copy the thrown expression to the runtime. */
     lower_dynamic_init(dip, &ipd,
@@ -2817,7 +3016,7 @@ Lower an enk_throw expression node.
     check_assertion(temp_node->kind == (an_expr_operator_kind)eok_comma);
     temp_node = temp_node->variant.operation.operands;
     temp_node->next = NULL;
-    expr->variant.throw_info->expr = temp_info;
+    expr->variant.throw_info->expr = temp_node;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
 }  /* lower_throw */
@@ -2853,6 +3052,7 @@ location in the program) to cleanup_state, and generate code at
      into the node. */
   node->variant.lowered_eh.variant.cleanup_ptr = cleanup_state;
 #endif /* GENERATE_EH_TABLES */
+  (void)insert_expr_statement(node, insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* set_curr_cleanup_state */
 
@@ -2863,8 +3063,10 @@ Initialize static variables needed on a per-function basis for
 IL lowering for exceptions.
 */
 {
-#if GENERATE_EH_TABLES
+#if DO_FULL_PORTABLE_EH_LOWERING
   object_addr_table_var = NULL;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
   array_table_var = NULL;
   array_table_aggr_con = NULL;
   region_table_var = NULL;
@@ -2959,6 +3161,7 @@ invocation of the front end.
   free_thrown_object_routine = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Variables in lower_eh.h: */
+#if GENERATE_EH_TABLES
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
   { a_targ_size_t    size;
@@ -2973,6 +3176,7 @@ invocation of the front end.
       null_eh_region_number = ((unsigned long)1 << size) - 1;
     }  /* if */
   }
+#endif /* GENERATE_EH_TABLES */
 }  /* eh_lower_init */
 
 #endif /* DO_IL_LOWERING */

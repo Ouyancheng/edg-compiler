@@ -6123,14 +6123,14 @@ whether the construction was done.
 
   cond_var = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
   dedp->conditional_flag_var = cond_var;
-#if GENERATE_EH_TABLES
+#if DO_FULL_PORTABLE_EH_LOWERING
   if (exceptions_enabled) {
     /* Pre-assign the object address table slot for the conditional variable,
        because we're going to have to set that entry of the object address
        table right away. */
     dedp->conditional_flag_handle = object_addr_table_index();
   }  /* if */
-#endif /* GENERATE_EH_TABLES */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* add_conditional_flag */
 
 
@@ -6175,14 +6175,7 @@ If insert_location == NULL, no initialization code is generated.
 #endif /* DO_UNORDERED_EH_PROCESSING */
     add_conditional_flag(dip);
     if (insert_location != NULL) {
-      init_conditional_flag_var(dip->destructible_entity_descr->
-                                                          conditional_flag_var,
-#if GENERATE_EH_TABLES
-                                dip->destructible_entity_descr->
-                                                       conditional_flag_handle,
-#else /* !GENERATE_EH_TABLES */
-                                (a_handle_number)0,
-#endif /* GENERATE_EH_TABLES */
+      init_conditional_flag_var(dip->destructible_entity_descr,
                                 insert_location);
     }  /* if */
   }  /* if */

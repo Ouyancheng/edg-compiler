@@ -72,9 +72,9 @@ extern an_expr_node_ptr make_init_entity_node(
                                        a_boolean             using_as_address,
                                        a_boolean             using_as_dest);
 
-extern void init_conditional_flag_var(a_variable_ptr     cond_var,
-                                      a_handle_number    cond_var_handle,
-                                      an_insert_location *insert_location);
+extern void init_conditional_flag_var(
+                             a_destructible_entity_descr_ptr dedp,
+                             an_insert_location              *insert_location);
 
 extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                an_init_pos_descr_ptr    ipdp,

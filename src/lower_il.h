@@ -75,12 +75,12 @@ when a just-allocated entry requires lowering.
 #define mark_as_not_visited(entry_ptr) (il_lowering_flag_of(entry_ptr) = FALSE)
 
 
-/* This type is defined even if GENERATE_EH_TABLES is FALSE because it's
-   used as a parameter type. */
+#if GENERATE_EH_TABLES
 typedef unsigned long a_handle_number;
 			/* Number in the region table that identifies an
 			   entry in the object address table or in the array
 			   table. */
+#endif /* GENERATE_EH_TABLES */
 
 /*
 Types used to describe a position within an initialization:
@@ -94,7 +94,9 @@ typedef struct an_init_pos_modifier {
 			/* Pointer to the similar entry at the next
 			   level out. */
   a_type_ptr	type;
-			/* Type of entity being initialized at this level. */
+			/* Type of entity being initialized at this level.
+			   This is the type after the modification at this
+			   level. */
   a_targ_size_t	curr_elem;
 			/* If the entity is an array, this is the number of
 			   the element currently being initialized.  Ignored
@@ -181,12 +183,14 @@ typedef struct a_destructible_entity_descr {
 			   conditional flag variable that is set to non-zero
 			   to indicate that the initialization has been
 			   done. */
-#if GENERATE_EH_TABLES
+#if DO_FULL_PORTABLE_EH_LOWERING
   a_handle_number
 		conditional_flag_handle;
 			/* If conditional_flag_var is non-NULL, this is
 			   the object table index number for the conditional
 			   flag variable. */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
   a_cleanup_region_number
 		region_number;
 			/* When exceptions are enabled, this is the
