@@ -1,5 +1,12 @@
 Version 2.46
 
+7/13/01  Information on object type in overload resolution errors
+
+Overload resolution errors now list the type of the object in
+a member function call, which can be helpful in figuring out
+why no function is callable or why there is an ambiguity (e.g.,
+because the object is const-qualified).
+
 7/13/01  Operator keywords in #if directives
 
 The front end now correctly processes operator keywords (like "compl" or

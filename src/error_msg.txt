@@ -4,7 +4,7 @@
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2000 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2001 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 
@@ -1133,13 +1133,13 @@ ec_field_name_conflicts_with_class;;"a field with the same name as its class can
 ec_cl_implicit_include_incompatible_with_multiple_trans_units;;"\"implicit_include\" cannot be used when compiling more than one translation unit"
 ec_corrupted_export_template_file;;"exported template file %sq is corrupted"
 ec_exported_instantiation_and_specialized;;"%n cannot be instantiated -- it has been explicitly specialized in the translation unit containing the exported definition"
+ec_object_type_add_on;INTERNAL;"object type is: %s"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2000 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2001 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
-
