@@ -395,8 +395,8 @@ even if they are invalid.
   int              i, j;
   a_named_register r;
 
-  memzero(regs_clobbered, sizeof regs_clobbered);
-  memzero(regs_used, sizeof regs_used);
+  memzero((char*)regs_clobbered, sizeof regs_clobbered);
+  memzero((char*)regs_used, sizeof regs_used);
   for (i = 0; i < num_operands; i++) {
     for (j = 0;
          single_register_constraints[j].cons != (a_named_register)anr_last;
@@ -547,9 +547,10 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).
   }  /* if */
   if (n > 0) {
     result = (an_asm_operand_ptr)
-      alloc_in_region(curr_il_region_number, n * sizeof(an_asm_operand));
-    memcpy(result, operands,
-           size_t_arg(n * sizeof(an_asm_operand)));  /*lint !e645*/
+      alloc_in_region(curr_il_region_number,
+                      size_t_arg(n * sizeof(an_asm_operand)));
+    (void)memcpy((char*)result, (char*)operands,
+                 size_t_arg(n * sizeof(an_asm_operand)));  /*lint !e645*/
   }  /* if */
   *p_operands = result;
   db_exit();
@@ -616,7 +617,8 @@ The syntax is
   if (n > 0) {
     int i;
     clobbers = (a_named_register *)
-         alloc_in_region(curr_il_region_number, n * sizeof(a_named_register));
+         alloc_in_region(curr_il_region_number,
+                         size_t_arg(n * sizeof(a_named_register)));
     for (i = 0; i < n; ++i) {
       a_named_register_list_entry_ptr  to_free = first_reg;
       clobbers[i] = first_reg->reg;
@@ -668,17 +670,17 @@ extended asm statements.
      anr_invalid or anr_last. */
   regmap_size = (int)anr_last - 1;
   regmap_size += (sizeof(extra_reg_names) / sizeof(struct name_to_reg)) - 1;
-  regmap = (struct name_to_reg *)
-                      alloc_general(regmap_size * sizeof(struct name_to_reg));
+  regmap = (struct name_to_reg *)alloc_general(
+                        size_t_arg(regmap_size * sizeof(struct name_to_reg)));
   /* Start with i = 1 since anr_invalid is not copied. */
   for (i = 1; i < (int)anr_last; i++) {
     regmap[i-1].name = named_register_names[i];
     regmap[i-1].reg = i;
   }  /* for */
-  memcpy(&regmap[(int)anr_last-1], extra_reg_names,
-         regmap_size * sizeof(struct name_to_reg));
+  (void)memcpy((char*)&regmap[(int)anr_last-1], (char*)extra_reg_names,
+               size_t_arg(regmap_size * sizeof(struct name_to_reg)));
   /* name_to_register requires that regmap be sorted. */
-  qsort(regmap, (qsort_nmemb_type)regmap_size,
+  qsort((a_void_ptr)regmap, (qsort_nmemb_type)regmap_size,
         (qsort_nmemb_type)sizeof(struct name_to_reg), compare_n2r);
   /* Save variables from extasm.h and extasm.c that are needed for
      precompiled headers */
