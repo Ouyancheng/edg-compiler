@@ -42,15 +42,15 @@ only a subset, the C and F suffixes identify the subset being used.
 #ifdef CIL
 #ifdef FIL
 /* This version of the IL uses all features. */
-#define IL_VERSION_NUMBER "2.15CF"
+#define IL_VERSION_NUMBER "2.16CF"
 #else /* !defined(FIL) */
 /* This version of the IL uses only those features required for C. */
-#define IL_VERSION_NUMBER "2.15C"
+#define IL_VERSION_NUMBER "2.16C"
 #endif /* ifdef FIL */
 #else /* !defined(CIL) */
 #ifdef FIL
 /* This version of the IL uses only those features required for Fortran. */
-#define IL_VERSION_NUMBER "2.15F"
+#define IL_VERSION_NUMBER "2.16F"
 #else /* !defined(FIL) */
 error -- at least one of "CIL" and "FIL" must be defined.
 #endif /* ifdef FIL */
