@@ -1468,6 +1468,9 @@ error code.
       m =
       "protected member %n is not accessible through this pointer or object";
       break;
+    case ec_param_not_allowed:
+      m = "a parameter is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
