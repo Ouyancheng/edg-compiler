@@ -770,7 +770,9 @@ entry is returned in etsp_found.
            call to check throw specifications and no object is involved.
 	   Don't attempt the conversion of the pointer passed by the caller
            is NULL. */
+#if DEBUG
         void* orig_ptr = *object_ptr;
+#endif /* DEBUG */
         derived_to_base_conversion(object_ptr, typeinfo, etsp->typeinfo);
 #if DEBUG
         if (__debug_level >= 3) {
