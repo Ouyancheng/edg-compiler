@@ -5679,6 +5679,7 @@ specification allow a variable-sized array as the top type.
     ndsp = new_node->variant.new_delete;
     ndsp->is_new = TRUE;
     ndsp->placement_new = placement_new;
+    ndsp->global_new_or_delete = use_global_new;
     ndsp->type = new_type;
     /* Put the routine and argument list into the supplement.  Note that
        the argument list is present even when the routine is NULL -- that's
@@ -5950,6 +5951,7 @@ As an anachronism, allow an expression inside the [ ].
       ndsp = delete_node->variant.new_delete;
       ndsp->is_new = FALSE;
       ndsp->array_delete = array_delete;
+      ndsp->global_new_or_delete = use_global_delete;
       ndsp->type = delete_type;
       ndsp->arg = ptr_node;
       delete_type = skip_typerefs(delete_type);
