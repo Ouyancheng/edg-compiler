@@ -259,6 +259,13 @@ is TRUE if it is known that the entry has been or will be processed
       entry_copy_address_assigned(ptr) = TRUE;
       /* Set the flag to request copying. */
       set_entry_needs_copy_flag(ptr);
+#if DEBUG
+      if (db_has_traced_name(ptr, kind)) {
+        fprintf(f_debug, "assigned addr for copy in secondary at %lx:\n",
+                         (unsigned long)copy);
+        db_entity_info(ptr, kind);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   } else {
     /* The entry has no correspondence.  Allocate space for it in the primary
@@ -278,6 +285,13 @@ is TRUE if it is known that the entry has been or will be processed
       entry_copy_address_assigned(ptr) = TRUE;
       /* Set the flag to request copying. */
       set_entry_needs_copy_flag(ptr);
+#if DEBUG
+      if (db_has_traced_name(ptr, kind)) {
+        fprintf(f_debug, "assigned addr for copy to primary at %lx:\n",
+                         (unsigned long)copy);
+        db_entity_info(ptr, kind);
+      }  /* if */
+#endif /* DEBUG */
       if (!known_will_process_in_curr_walk) {
         /* We don't know for sure that the entry will be processed in the
            current IL walk.  It might be from another secondary translation
@@ -458,6 +472,13 @@ and remap the pointers in the copy by calling remap_function.
     walk_remap_func = saved_walk_remap_func;
     scp = source_corresp_for_il_entry(copy, kind);
     if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
+#if DEBUG
+    if (db_has_traced_name(ptr, kind)) {
+      fprintf(f_debug, "copying from secondary to primary (at address %lx):\n",
+                       (unsigned long)copy);
+      db_entity_info(ptr, kind);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   /* Clear the needed and keep_in_il flags in the copy (or original,
@@ -1269,6 +1290,15 @@ the lists.
                !typeref_is_typedef(ref_type));
       keep_on_list = entry_should_be_copied(ref_type, iek_type);
     }  /* if */
+#if DEBUG
+    if (db_has_traced_name(type, iek_type)) {
+      fprintf(f_debug, "prepare_for_trans_unit_copy, ");
+      fprintf(f_debug, "%skeeping on list, ", keep_on_list ? "" : "not ");
+      fprintf(f_debug, "%smerging:\n",
+                       entry_to_be_merged(type) ? "" : "not ");
+      db_entity_info((char *)type, iek_type);
+    }  /* if */
+#endif /* DEBUG */
     if (keep_on_list) {
       prev_type = type;
       any_members_to_process = TRUE;
@@ -1308,6 +1338,15 @@ the lists.
         keep_on_list = TRUE;
       }  /* if */
     }  /* if */
+#if DEBUG
+    if (db_has_traced_name(variable, iek_variable)) {
+      fprintf(f_debug, "prepare_for_trans_unit_copy, ");
+      fprintf(f_debug, "%skeeping on list, ", keep_on_list ? "" : "not ");
+      fprintf(f_debug, "%smerging:\n",
+                       entry_to_be_merged(variable) ? "" : "not ");
+      db_entity_info((char *)variable, iek_variable);
+    }  /* if */
+#endif /* DEBUG */
     if (keep_on_list) {
       prev_variable = variable;
       any_members_to_process = TRUE;
@@ -1395,6 +1434,15 @@ the lists.
     } else {
       /* This routine has no correspondence in the primary file IL. */
     }  /* if */
+#if DEBUG
+    if (db_has_traced_name(routine, iek_routine)) {
+      fprintf(f_debug, "prepare_for_trans_unit_copy, ");
+      fprintf(f_debug, "%skeeping on list, ", keep_on_list ? "" : "not ");
+      fprintf(f_debug, "%smerging:\n",
+                       entry_to_be_merged(routine) ? "" : "not ");
+      db_entity_info((char *)routine, iek_routine);
+    }  /* if */
+#endif /* DEBUG */
     if (keep_on_list) {
       prev_routine = routine;
       any_members_to_process = TRUE;
