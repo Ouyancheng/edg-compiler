@@ -1,5 +1,18 @@
 Version 2.13
 
+1/18/93 Fixed bug with type qualifiers on function template arguments
+
+The following is now handled correctly:
+
+  template<class T> void f(const T *p) {}
+  void main()
+  {
+    const volatile int i = 0;
+    volatile int j;
+    f(&i);                    // okay
+    f(&j);                    // error
+  }
+
 1/18/93 Checking for function templates that are too similar
 
 There is now an error check for function templates that are too similar
