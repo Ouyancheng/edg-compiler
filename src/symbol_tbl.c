@@ -3164,7 +3164,13 @@ class) and the access specification *access.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (sym == NULL) sym = tag_sym;
+  if (sym == NULL) {
+    sym = tag_sym;
+  } else if (is_destructor_symbol(sym)) {
+    /* A destructor cannot be inherited (ARM 12.4) so don't make a projection
+       symbol for it. */
+    sym = NULL;
+  }  /* if */
   if (sym != NULL) {
     /* Found in the base class itself. */
 #if DEBUG
