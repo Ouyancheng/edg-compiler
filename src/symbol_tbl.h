@@ -1046,7 +1046,7 @@ typedef struct a_template_decl_info {
 
 
 /*
-Structure that contains suppelemtary declarative information (much of it
+Structure that contains supplementary declarative information (much of it
 nonstandard, e.g., as used in Microsoft-compatibility mode).  This block is
 passed around during declaration processing; its contents may be copied into
 IL entries after the appropriate checking is done.
