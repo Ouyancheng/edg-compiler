@@ -47,6 +47,66 @@ static a_type_ptr canonical_il_void_type;
 static a_type_ptr canonical_il_wchar_t_type;
 static a_type_ptr canonical_il_bool_type;
 
+/*
+Whenever the canonical entry of a correspondence set changes from an entry
+in a translation unit that is already processed to an entry in the current
+translation unit, the previous canonical entry must be verified against the
+new one.  However, this verification must be delayed until all the
+correspondences have been set.  Therefore a list of "previous canonical
+entry" is created to keep track of items to verify later on.
+*/
+typedef struct a_verification_entry *a_verification_entry_ptr;
+typedef struct a_verification_entry {
+  a_verification_entry_ptr
+		next;
+			/* The next item to verify. */
+  an_il_entry_kind
+		kind;
+			/* The kind of entry pointed to by il_entry. */
+  char		*il_entry;
+			/* A pointer to an IL entry whose correspondence
+			   must be verified against the canonical entry. */
+} a_verification_entry;
+
+/* Pointer to the head of the list of IL entries to verify. */
+static a_verification_entry_ptr
+	verification_list;
+
+static a_verification_entry_ptr
+	avail_verification_entries;
+
+
+static void add_verification_entry(an_il_entry_kind  kind,
+                                   char              *il_entry)
+/*
+Record an IL entry to be verified at the end of verification processing.
+*/
+{
+  a_verification_entry_ptr  entry;
+
+  if (avail_verification_entries != NULL) {
+    entry = avail_verification_entries;
+    avail_verification_entries = avail_verification_entries->next;
+  } else {
+    entry = (a_verification_entry_ptr)alloc_fe(sizeof(a_verification_entry));
+  }  /* if */
+  entry->next = verification_list;
+  verification_list = entry;
+  entry->kind = kind;
+  entry->il_entry = il_entry;
+}  /* add_verification_entry */
+
+
+static void free_verification_entry(a_verification_entry_ptr  entry)
+/*
+Return the given entry to the list of available entries.
+*/
+{
+  entry->next = avail_verification_entries;
+  avail_verification_entries = entry->next;
+}  /* free_verification_entry */
+
+
 /* Forward declarations. */
 static void clear_scope_correspondence(a_scope_ptr  scope,
                                        a_boolean    visited);
@@ -64,7 +124,9 @@ static a_symbol_list_entry_ptr find_class_template_instantiation(
 static a_boolean verify_type_correspondence(a_type_ptr  type);
 static a_boolean verify_template_correspondence(a_template_ptr  templ);
 static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
-static void establish_instantiation_correspondences(a_template_ptr  templ);
+static void establish_instantiation_correspondences(
+                                               a_template_ptr  templ,
+                                               a_template_ptr  corresp_templ);
 
 
 static a_boolean type_has_definition(a_type_ptr  type)
@@ -352,6 +414,9 @@ the primary translation unit is preferred.
           unexpected_condition_str("Bad kind for correspondence checking");
       }  /* switch */
       if (do_update) {
+        if (in_secondary_trans_unit(tcp->canonical)) {
+          add_verification_entry(kind, tcp->canonical);
+        }  /* if */
         change_canonical_entry(tcp, entity);
       }  /* if */
     }  /* if */
@@ -2647,7 +2712,7 @@ are not checked.
             set_no_trans_unit_corresp(iek_template, templ);
           } else {
             set_trans_unit_corresp(iek_template, templ, corresp_templ);
-            establish_instantiation_correspondences(templ);
+            establish_instantiation_correspondences(templ, corresp_templ);
           }  /* if */
         }  /* for */
       }
@@ -3396,13 +3461,17 @@ done:
 }  /* record_instantiation */
 
 
-static void establish_instantiation_correspondences(a_template_ptr  templ)
+static void establish_instantiation_correspondences(
+                                                a_template_ptr  templ,
+                                                a_template_ptr  corresp_templ)
 /*
 Find correspondences for every instantiation of the given template.
 This routine should only be called for templates that have an associated
 sk_class_template or sk_function_template symbol.  Other template entries
 correspond to class members (e.g., a member function of a class template)
-and are handled elsewhere.
+and are handled elsewhere.  corresp_templ is the template whose prototype
+instantiation should match that of templ (the canonical entry of templ may
+be templ itself and therefore unusable).
 */
 {
   a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
@@ -3420,9 +3489,7 @@ and are handled elsewhere.
       record_class_template_instantiation(inst);
     }  /* for */
     /* Also process the prototype instantiation. */
-    proto_inst = ((a_symbol_ptr)
-                 ((a_template_ptr)canonical_il_entry_of(templ))
-                                                   ->source_corresp.assoc_info)
+    proto_inst = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                    ->variant.template_info
                    ->variant.class_template.prototype_instantiation;
     /* For instantiations from template template parameters proto_inst will
@@ -3434,7 +3501,7 @@ and are handled elsewhere.
       a_type_ptr    class_type = tssp
                               ->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
-      if (canonical_il_entry_of(templ) != (char*)templ) {
+      if (corresp_templ->canonical_template != templ->canonical_template) {
         set_trans_unit_corresp(iek_type, class_type,
                                proto_inst->variant.class_struct_union.type);
       } else {
@@ -3448,11 +3515,10 @@ and are handled elsewhere.
       record_function_template_instantiation(inst);
     }  /* for */
     /* Also process prototype instantiation. */
-    if (((a_template_ptr)canonical_il_entry_of(templ))->canonical_template !=
-                                                  templ->canonical_template) {
+    if (corresp_templ->canonical_template != templ->canonical_template) {
       set_trans_unit_corresp(iek_routine,
                              tssp->variant.function.routine,
-                             ((a_symbol_ptr)canonical_template_entry_of(templ)
+                             ((a_symbol_ptr)corresp_templ
                                                    ->source_corresp.assoc_info)
                                   ->variant.template_info
                                   ->variant.function.routine);
@@ -3642,7 +3708,7 @@ entities.
     } else if (corresp_templ != NULL) {
       /* Record the correspondence. */
       set_trans_unit_corresp(iek_template, templ, corresp_templ);
-      establish_instantiation_correspondences(templ);
+      establish_instantiation_correspondences(templ, corresp_templ);
     } else {
       /* Mark this template as visited. */
       set_no_trans_unit_corresp(iek_template, templ);
@@ -4174,6 +4240,50 @@ scope.  The process is repeated in nested scopes.
 }  /* verify_trans_unit_correspondences_for_scope */
 
 
+static void process_verification_list(void)
+/*
+Traverse the list of entries from other translation units that need to be
+verified against their canonical entry (which is presumably in the current
+translation unit).
+*/
+{
+  while (verification_list != NULL) {
+    a_verification_entry_ptr  entries = verification_list, entry;
+    verification_list = NULL;
+    while (entries != NULL) {
+      entry = entries;
+      entries = entries->next;
+      switch (entry->kind) {
+        case iek_constant:
+          verify_constant_correspondence((a_constant_ptr)entry->il_entry);
+          break;
+        case iek_field:
+          verify_field_correspondence((a_field_ptr)entry->il_entry);
+          break;
+        case iek_namespace:
+          verify_namespace_correspondence((a_namespace_ptr)entry->il_entry);
+          break;
+        case iek_routine:
+          verify_routine_correspondence((a_routine_ptr)entry->il_entry);
+          break;
+        case iek_template:
+          verify_template_correspondence((a_template_ptr)entry->il_entry);
+          break;
+        case iek_type:
+          verify_type_correspondence((a_type_ptr)entry->il_entry);
+          break;
+        case iek_variable:
+          verify_variable_correspondence((a_variable_ptr)entry->il_entry);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      free_verification_entry(entry);
+    }  /* while */
+  }  /* while */
+}  /* process_verification_list */
+
+
 void set_trans_unit_correspondences(void)
 /*
 Establish correspondences between entities with linkage in the
@@ -4186,6 +4296,7 @@ units.
   correspondence_checking_underway = TRUE;
   establish_trans_unit_correspondences_for_scope(file_scope);
   verify_trans_unit_correspondences_for_scope(file_scope);
+  process_verification_list();
   correspondence_checking_underway = FALSE;
   correspondence_checking_done = TRUE;
 }  /* set_trans_unit_correspondences */
@@ -4611,6 +4722,8 @@ for each compilation.
   canonical_il_void_type = NULL;
   canonical_il_wchar_t_type = NULL;
   canonical_il_bool_type = NULL;
+  verification_list = NULL;
+  avail_verification_entries = NULL;
 }  /* corresp_init */
 
 
