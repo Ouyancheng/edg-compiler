@@ -62,6 +62,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_translation_unit)*/
 /*lint -esym(714,db_translation_unit_stack)*/
 /*lint -esym(714,f_db_sym_has_traced_name)*/
+/*lint -esym(714,db_top_of_scope_stack)*/
 /*lint -esym(759,f_db_sym_has_traced_name)*/
 /*lint -esym(765,f_db_sym_has_traced_name)*/
 /*lint -esym(755,db_sym_has_traced_name)*/
