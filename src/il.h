@@ -643,9 +643,9 @@ extern void add_end_of_construct_source_sequence_entry(
 
 /* Add a source sequence entry to mark the end of a block.  The current
    token should be tok_rbrace. */
-#define add_end_of_block_source_sequence_entry(block)                   \
+#define add_end_of_block_source_sequence_entry(block_stmt)              \
   add_end_of_construct_source_sequence_entry(                           \
-                        (char *)block, (a_byte_il_entry_kind)iek_block);
+               (char *)block_stmt, (a_byte_il_entry_kind)iek_statement);
 /* Add a source sequence entry to mark the end of a class or enum definition
    (at the rbrace) or the end of a function prototype (at the rparen). */
 #define add_end_of_type_source_sequence_entry(type)                     \
