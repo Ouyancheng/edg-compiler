@@ -1425,6 +1425,7 @@ fields to default values.
       num_new_delete_supplements_allocated++;
 #endif /* DEBUG */
       ndsp->is_new       = TRUE;
+      ndsp->placement_new= FALSE;
       ndsp->array_delete = FALSE;
       ndsp->type         = NULL;
       ndsp->routine      = NULL;

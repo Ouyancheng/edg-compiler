@@ -4413,6 +4413,9 @@ typedef struct a_new_delete_supplement {
 		is_new;
 			/* TRUE for new, FALSE for delete. */
   a_byte_boolean
+		placement_new;
+			/* TRUE for a "placement" new. */
+  a_byte_boolean
 		array_delete;
 			/* TRUE if this is an array delete. */
   a_type_ptr	type;

@@ -1828,6 +1828,8 @@ Display the indicated new/delete supplement to an expression node.
 */
 {
   disp_boolean("is_new", (a_boolean)ndsp->is_new);
+  disp_boolean("placement_new", (a_boolean)ndsp->placement_new);
+  disp_boolean("array_delete", (a_boolean)ndsp->array_delete);
   disp_ptr("type", (char *)ndsp->type, iek_type);
   disp_ptr("routine", (char *)ndsp->routine, iek_routine);
   disp_ptr("arg", (char *)ndsp->arg, iek_expr_node);
