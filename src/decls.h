@@ -237,7 +237,7 @@ typedef int a_decl_flag_set;
 #define DSI_TYPE_SPECIFIER_ALLOWED 0x2
 			/* If this bit is set the declaration specifiers may
 			   include a type specifier. */
-#define DSI_VIRTUAL_OR_FRIEND_ALLOWED 0x4
+#define DSI_IS_MEMBER_DECLARATION 0x4
 			/* If this bit is set the declaration specifiers may
 			   include the keyword "virtual" or "friend". */
 #define DSI_IS_PARAMETER 0x8
@@ -248,12 +248,11 @@ typedef int a_decl_flag_set;
 			   non-type-name identifier is found before the first
 			   specifier.  Simply set the default type and return
 			   a flag signaling that there are no specifiers. */
-#define DSI_CONSTRUCTOR_DESTRUCTOR_ALLOWED 0x20
-			/* If this bit is set allow the declaration of a
-                           constructor or a destructor. */
-#define DSI_SUPPRESS_MISSING_TYPE_SPEC_WARNING 0x40
+#define DSI_SUPPRESS_MISSING_TYPE_SPEC_WARNING 0x20
                         /* If this bit is set do not issue a warning on a
                            missing type specifier. */
+#define DSI_INLINE_ALLOWED 0x40
+			/* If this bit is set allow an inline specifier. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
