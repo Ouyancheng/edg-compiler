@@ -5568,7 +5568,8 @@ point to the character after the universal character name.
   if (!err && issue_diagnostics) {
     an_error_code	err_code = ec_no_error;
     if (result <= 255 && !is_nonstandard_character((char)result)) {
-      /* A UCN cannot be used to name a character in the basic character set. */
+      /* A UCN cannot be used to name a character in the basic character
+         set. */
       err_code = ec_UCN_names_basic_char;
     } else if (result < 0x20 || (result >= 0x7f && result <= 0x9f)) {
       /* These characters are disallowed by the standard. */

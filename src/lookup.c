@@ -2179,7 +2179,7 @@ C and C++.
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.hidden_name_lookup = (options & IDL_HIDDEN_NAME_LOOKUP) != 0;
     lookup_state.do_not_create_proj_sym =
-                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0;
+                                   (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0;
     lookup_state.skip_template_decl_scopes =
                                 (options & IDL_SKIP_TEMPLATE_DECL_SCOPES) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
@@ -2720,14 +2720,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                                    class_type,
                                                    &add_to_active_list,
                                                    &insert_sym);
-        (void)find_projected_symbol(class_type, locator, options,
-                                    /*tentative_type_lookup=*/FALSE,
-                                    /*tentative_template_lookup=*/FALSE,
-                                    (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
-                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
-                                    add_to_active_list, insert_sym, &sym,
-                                    !(options &
-                                             IDL_DO_NOT_ADD_TO_NONREAL_CLASS));
+        (void)find_projected_symbol(
+                                 class_type, locator, options,
+                                 /*tentative_type_lookup=*/FALSE,
+                                 /*tentative_template_lookup=*/FALSE,
+                                 (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
+                                 (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
+                                 add_to_active_list, insert_sym, &sym,
+                                 !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS));
         if (sym == NULL && locator->is_conversion_name &&
             cssp->conversion_template_list != NULL &&
             (options & IDL_USING_DECLARATION) == 0) {
