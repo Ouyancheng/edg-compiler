@@ -199,7 +199,8 @@ Return TRUE if the given type is an object type (3.1.2.5).
 
 a_boolean is_void_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is the void type (3.1.2.5).
+Return TRUE if the given type is the void type (3.1.2.5) or a cv-qualified
+version thereof.
 */
 {
   tp = skip_typerefs(tp);
