@@ -928,7 +928,7 @@ to point to the lifetime promote_to.
         break;
       case cfdk_label:
         /* Pull out the label statement pointer. */
-        sp = cfdp->variant.goto_statement.ptr;
+        sp = cfdp->variant.label_statement;
         break;
       case cfdk_block:
         if (cfdp->variant.block.goto_count > 0 ||
