@@ -1794,9 +1794,12 @@ this function points to a tree that includes a dynamic-init entry.
           /* Advance to the next named field of the class or struct. */
           curr_field = next_initializable_field(curr_field->next);
           context.field = curr_field;
+          /* Note that any_more_members might be FALSE and then turn TRUE
+             again because a designator was encountered. */
+          any_more_members = (curr_field != NULL);
           /* Check for no fields remaining. */
           if (curr_field == NULL) {
-            any_more_members = FALSE;
+            /* Nothing to do. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (microsoft_mode && top_level) {
             /* In Microsoft C mode, the check for a field of incomplete array
