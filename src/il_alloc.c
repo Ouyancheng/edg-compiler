@@ -905,6 +905,9 @@ to default values.
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
+      /* Clear size and alignment because they aren't used in typerefs. */
+      pte->size = 0;
+      pte->alignment = 1;
       break;
     case tk_ptr_to_member:
       pte->variant.ptr_to_member.class_of_which_a_member = FALSE;
