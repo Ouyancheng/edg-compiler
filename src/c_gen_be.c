@@ -2241,6 +2241,8 @@ Dump a single #pragma from the IL entry.
   indent = 0;
   disable_line_wrapping();
   write_str("#pragma ");
+  check_assertion_str(pp->pragma_text != NULL,
+                      "dump_pragma: NULL pragma_text");
   write_str(pp->pragma_text);
   enable_line_wrapping();
   end_output_line();
