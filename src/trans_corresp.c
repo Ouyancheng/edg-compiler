@@ -1446,6 +1446,10 @@ translation unit correspondence pointer if one is found.
       }  /* if */
     }  /* if */
   }  /* for */
+  if (trans_unit_corresp_pointer_of(nsp) == NULL) {
+    /* Mark this namespace as visited. */
+    set_no_trans_unit_corresp(nsp);
+  }  /* if */
 }  /* find_namespace_correspondence */
 
 
@@ -1505,41 +1509,44 @@ the instantiation to the list of instantiations in the associated template
 symbol supplement.
 */
 {
-  a_symbol_ptr    templ_sym = primary_template_of(
+  a_type_ptr      class_type = type_symbol_type(inst);
+
+  if (trans_unit_corresp_pointer_of(class_type) == NULL) {
+    a_symbol_ptr    templ_sym = primary_template_of(
                                     inst->variant.class_struct_union.extra_info
                                         ->class_template);
-  a_template_symbol_supplement_ptr
-                  tssp = templ_sym->variant.template_info;
-  a_template_ptr  templ = tssp->il_template_entry,
-                  corresp_templ = canonical_template_entry_of(templ);
-  a_template_symbol_supplement_ptr
-                  corresp_tssp =
+    a_template_symbol_supplement_ptr
+                    tssp = templ_sym->variant.template_info;
+    a_template_ptr  templ = tssp->il_template_entry,
+                    corresp_templ = canonical_template_entry_of(templ);
+    a_template_symbol_supplement_ptr
+                    corresp_tssp =
                        ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                          ->variant.template_info;
-  a_symbol_list_entry_ptr
-                  sym_entry = corresp_tssp->all_instantiations;
-  a_type_ptr      class_type = type_symbol_type(inst);
-  a_template_arg_ptr
-                  templ_args = class_type
+    a_symbol_list_entry_ptr
+                    sym_entry = corresp_tssp->all_instantiations;
+    a_template_arg_ptr
+                    templ_args = class_type
                     ->variant.class_struct_union.extra_info->template_arg_list;
-  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
-    a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
-    if (equiv_template_arg_lists(corresp_type
-                                   ->variant.class_struct_union.extra_info
-                                   ->template_arg_list,
-                                 templ_args, ETA_NO_OPTIONS)) {
-      record_trans_unit_corresp(class_type, corresp_type);
-      establish_trans_unit_correspondences_for_class(class_type);
-      break;
+    for (; sym_entry != NULL; sym_entry = sym_entry->next) {
+      a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
+      if (equiv_template_arg_lists(corresp_type
+                                     ->variant.class_struct_union.extra_info
+                                     ->template_arg_list,
+                                   templ_args, ETA_NO_OPTIONS)) {
+        record_trans_unit_corresp(class_type, corresp_type);
+        establish_trans_unit_correspondences_for_class(class_type);
+        break;
+      }  /* if */
+    }  /* for */
+    if (sym_entry == NULL) {
+      /* The instantiation was not found on the canonical list.  Add it now. */
+      a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+      slep->next = corresp_tssp->all_instantiations;
+      corresp_tssp->all_instantiations = slep;
+      slep->symbol = inst;
+      set_no_trans_unit_corresp(class_type);
     }  /* if */
-  }  /* for */
-  if (sym_entry == NULL) {
-    /* The instantiation was not found on the canonical list.  Add it now. */
-    a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
-    slep->next = corresp_tssp->all_instantiations;
-    corresp_tssp->all_instantiations = slep;
-    slep->symbol = inst;
-    set_no_trans_unit_corresp(class_type);
   }  /* if */
 }  /* record_class_template_instantiation */
 
@@ -1973,6 +1980,9 @@ way, determine to which other IL entry this might correspond.
     if (root == NULL) {
       /* Not a class member. */
       switch (kind) {
+        case iek_namespace:
+          find_namespace_correspondence((a_namespace_ptr)scp);
+          break;
         case iek_routine:
           {
             a_routine_ptr  routine = (a_routine_ptr)scp;
@@ -2040,9 +2050,11 @@ correspondences with other translation units.)
 {
   a_namespace_ptr  result = nsp;
 
-  if (nsp != NULL) {
-    check_assertion(!has_name(nsp) ||
-                    trans_unit_corresp_pointer_of(nsp) != NULL);
+  if (nsp != NULL && il_entry_prefix_of(nsp).secondary_trans_unit) {
+    /* If we're in the process of establishing correspondences, this particular
+       entry may need to be processed now.  Otherwise, it should already have
+       been done or no correspondence can be expected. */
+    determine_correspondence(&nsp->source_corresp, iek_namespace);
     result = (a_namespace_ptr)canonical_il_entry_of(nsp);
   }  /* if */
   return result;
@@ -2056,7 +2068,7 @@ in another translation unit, do so now.  Then return the established canonical
 entry.
 */
 {
-  a_field_ptr              result = field;
+  a_field_ptr  result = field;
 
   if (field != NULL && il_entry_prefix_of(field).secondary_trans_unit) {
     /* If we're in the process of establishing correspondences, this particular
@@ -2076,7 +2088,7 @@ in another translation unit, do so now.  Then return the established canonical
 entry.
 */
 {
-  a_routine_ptr              result = routine;
+  a_routine_ptr  result = routine;
 
   if (routine != NULL && il_entry_prefix_of(routine).secondary_trans_unit) {
     determine_correspondence(&routine->source_corresp, iek_routine);
