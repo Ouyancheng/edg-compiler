@@ -1,8 +1,14 @@
 Version 2.26
 
+9/2/94   "static" with anonymous unions within a class
+
+We used to issue an error message saying that an anonymous union cannot be
+a static data member.  Now we complain about an omitted declarator.  This
+change also has an effect on error recovery in obscure cases.
+
 9/1/94   Extension to allow nonstandard anonymous unions
 
-This is a misnomer, since it allows anonymous structs and classes as well,
+It is a misnomer, since it allows anonymous structs and classes as well,
 but the extension is controlled by ALLOW_NONSTANDARD_ANONYMOUS_UNIONS,
 defined in lang_feat.h.  The extension emulates functionality provided
 by Microsoft C and C++ compilers, including the following:
