@@ -65,6 +65,18 @@ compiling with a C++ compiler it is set to ``extern "C"''.
 #endif /* __cplusplus */
 
 /*
+Determine if this is a WIN32 (e.g., Windows-NT) system.  __MSDOS__ will
+also be defined below.
+*/
+#ifndef __WIN32__
+#ifdef _WIN32
+#define __WIN32__ 1
+#else /* !_WIN32 */
+#define WIN32 0
+#endif /* _WIN32 */
+#endif /* ifndef __WIN32__ */
+
+/*
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No other
 MS-DOS compilers are considered at this time.  If "__MSDOS__" is defined, as
 in Turbo-C, use it as is.  If it is not defined, and some other compiler pre-
