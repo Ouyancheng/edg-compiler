@@ -2860,6 +2860,33 @@ in the source program.
 }  /* have_access_to_symbol */
 
 
+static void issue_access_error(a_symbol_ptr       sym,
+                               a_source_position  *err_pos)
+/*
+Issue the appropriate error on the inaccessibility of sym.
+*/
+{
+  an_error_code  error_code = ec_no_access_to_name;
+  a_routine_ptr  rp;
+
+  if (is_function_symbol(sym)) {
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      rp = sym->variant.overloaded_function.symbols->variant.routine;
+    } else {
+      rp = sym->variant.routine;
+    }  /* if */
+    if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+        rp->special_kind == (a_special_function_kind)sfk_destructor ||
+        rp->special_kind == (a_special_function_kind)sfk_conversion ||
+        (rp->special_kind == (a_special_function_kind)sfk_operator &&
+         rp->opname_kind == (an_opname_kind)onk_assign)) {
+      error_code = ec_inaccessible_special_function;
+    }  /* if */
+  }  /* if */
+  pos_sy_error(error_code, err_pos, sym);
+}  /* issue_access_error */
+
+
 void member_check_ambiguity_and_verify_access(a_symbol_locator *locator)
 /*
 Verify that the indicated member symbol is not ambiguous and that we have
@@ -2868,21 +2895,20 @@ check_ambiguity_and_verify_access.  In case of an ambiguity, the locator
 is set to an error locator.
 */
 {
-  a_symbol_ptr symbol = locator->specific_symbol;
+  a_symbol_ptr   sym = locator->specific_symbol;
 
   /* This routine looks like overload_check_ambiguity_and_verify_access. */
   /* Issue an error if the symbol is ambiguous.  Only a symbol projected
      into a derived class by inheritance can be ambiguous.  Ambiguity checking
      must precede access control (ARM, 10.1.1). */
-  if (symbol->kind == (a_symbol_kind)sk_projection &&
-      symbol->variant.projection.ambiguous) {
+  if (sym->kind == (a_symbol_kind)sk_projection &&
+      sym->variant.projection.ambiguous) {
     pos_st_error(ec_ambiguous_name, &locator->source_position,
-                 symbol->header->identifier);
+                 sym->header->identifier);
     set_to_error_locator(*locator);
-  } else if (!have_access_to_symbol(symbol)) {
+  } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible. */
-    pos_sy_error(ec_no_access_to_name, &locator->source_position, 
-                 fundamental_symbol_of(symbol));
+    issue_access_error(fundamental_symbol_of(sym), &locator->source_position);
     locator->access_control_error_reported = TRUE;
   }  /* if */
 }  /* member_check_ambiguity_and_verify_access */
@@ -2930,8 +2956,8 @@ a projection symbol pointing to that sk_overloaded_function symbol.
                                derivation,
                                overloaded_symbol)) {
         /* The symbol is not accessible. */
-        pos_sy_error(ec_no_access_to_name, &locator->source_position,
-                     locator->specific_symbol);
+        issue_access_error(fundamental_symbol_of(locator->specific_symbol),
+                           &locator->source_position);
         locator->access_control_error_reported = TRUE;
       }  /* if */
     }  /* if */
