@@ -1593,9 +1593,9 @@ Syntax:
   } else if (unknown_dependent_function) {
     /* A call of a function whose type is not completely known, in
        a prototype instantiation.  Make a generic call. */
-    an_expr_node_ptr      function_node, call_node, implicit_this_argument;
-    an_expr_operator_kind op = (an_expr_operator_kind)eok_generic_call;
+    an_expr_node_ptr function_node, call_node, implicit_this_argument;
     function_node = make_node_from_operand(operand);
+    op = (an_expr_operator_kind)eok_generic_call;
     if (operand->bound_function) {
       implicit_this_argument = make_node_from_operand(bound_function_selector);
       implicit_this_argument->next = argument_list;
