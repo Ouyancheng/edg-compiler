@@ -4329,10 +4329,23 @@ a pointer over a reference type or creating an array of references.
       case tk_typeref:
         /* Make an identically qualified type of a copy (or reuse) of the type
            that underlies the typeref. */
-        tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list,
-                                         depth, source_pos, options,
-                                         copy_error);
-        new_type = type_plus_qualifiers_from_second_type(tp, type);
+        { a_type_qualifier_set	qualifiers;
+          a_type_ptr		type_without_typerefs;
+          type_without_typerefs = skip_typerefs(type);
+          tp = copy_type_with_substitution(type_without_typerefs,
+                                           templ_arg_list,
+                                           depth, source_pos, options,
+                                           copy_error);
+          qualifiers = get_type_qualifiers(type);
+          if (type_without_typerefs->kind == (a_type_kind)tk_routine &&
+              qualifiers != TQ_NONE) {
+            /* An attempt to place a qualifier on top of a function type.
+               This is not allowed. */
+            *copy_error = TRUE;
+          } else {
+            new_type = make_qualified_type(tp, qualifiers);
+          }  /* if */
+        }
         break;
       case tk_ptr_to_member:
         /* Make a pointer to member type.  The current pointer to member type
