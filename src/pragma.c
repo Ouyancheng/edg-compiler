@@ -291,6 +291,9 @@ possible.
 #if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if IDENT_PRAGMA
+    case pk_ident:
+#endif /* IDENT_PRAGMA */
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -657,9 +660,9 @@ there is additional processing to be done.
 }  /* add_pragma_to_il */
 
 
-static void create_il_entry_for_pragma(a_pending_pragma_ptr ppp,
-                                       a_symbol_ptr         sym,
-                                       a_statement_ptr      sp)
+void create_il_entry_for_pragma(a_pending_pragma_ptr ppp,
+                                a_symbol_ptr         sym,
+                                a_statement_ptr      sp)
 /*
 Create an IL pragma entry for a pending pragma entry.  If either
 sym or sp is non-NULL, bind the pragma IL entry to the IL entry
@@ -1275,6 +1278,19 @@ Initialize the pragma description table.
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if IDENT_PRAGMA
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_ident,
+                 ident_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
+                 es_error);
+#endif /* IDENT_PRAGMA */
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
