@@ -1,5 +1,13 @@
 Version 2.06
 
+5/11/92  Extended standard conversions for pointers-to-members.
+
+It is now legal to convert implicitly from a "X A::*" to a "const X A::*".
+That is, one can add type qualifiers to the type referenced by a pointer
+to member.  That is not specifically allowed by the ARM, but there's a
+Suite++ test that wants it, and the behavior is sensible by analogy with
+the corresponding pointer case (ARM 4.6, 5.17, 8.4).
+
 5/8/92   Fixed bug in virtual function table generation/use in IL lowering.
 
 Previously, virtual function tables were not generated for
