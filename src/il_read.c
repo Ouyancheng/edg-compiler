@@ -14,12 +14,6 @@ il_read.c -- Read the intermediate language.
 */
 
 #include "basic_hdrs.h"
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-#if BACK_END_SHOULD_BE_CALLED || STANDALONE_UTILITY_PROGRAM
-/* Header files common to all files. */
-#include "fe_common.h"
-#endif /* BACK_END_SHOULD_BE_CALLED || STANDALONE_UTILITY_PROGRAM */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -38,6 +32,10 @@ il_read.c -- Read the intermediate language.
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL reading is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
+/* Header files common to all files. */
+#include "fe_common.h"
+
+/* Additional files. */
 #include "il_file.h"
 #include "il_read.h"
 #include "il_walk.h"

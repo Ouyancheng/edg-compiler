@@ -14,10 +14,6 @@ il_write.c -- Write the intermediate language to a file.
 */
 
 #include "basic_hdrs.h"
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-/* Header files common to all files. */
-#include "fe_common.h"
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -32,6 +28,10 @@ il_write.c -- Write the intermediate language to a file.
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL writing is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
+/* Header files common to all files. */
+#include "fe_common.h"
+
+/* Additional files. */
 #include "il_file.h"
 #include "il_walk.h"
 #include "il_write.h"
