@@ -988,6 +988,75 @@ promotions case).
 }  /* default_argument_promotion */
 
 
+a_type_ptr type_of_complete_object(an_expr_node_ptr node)
+/*
+Return the type of the complete object that contains the location indicated
+by node (an lvalue address), or NULL if no complete object can be determined.
+NULL is always a safe answer; non-NULL values may permit optimizations.
+Note that "complete object" means an object that is not a base class of
+another object, not necessarily a top-level object.  This is used only in
+C++ mode; it is useful to know what the complete object type is to optimize
+base class casts and virtual function calls.
+*/
+{
+  a_type_ptr            complete_object_type = NULL;
+  a_constant_ptr        constant;
+  an_expr_operator_kind op;
+  an_expr_node_ptr      first_operand;
+
+  switch (node->kind) {
+    case enk_error:
+    case enk_variable:
+      /* Complete object not known. */
+      break;
+    case enk_constant:
+      constant = node->variant.constant;
+      if (constant->kind == (a_constant_repr_kind)ck_address &&
+          constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable &&
+          constant->variant.address.offset == 0 &&
+          !constant->implicit_cast) {
+        /* Unmodified address of a variable.  The variable is the complete
+           object and its type is the complete object type. */
+        complete_object_type =
+                              constant->variant.address.variant.variable->type;
+      }  /* if */
+      break;
+    case enk_variable_address:
+      /* Address of a variable.  The variable is the complete object and its
+         type is the complete object type. */
+      complete_object_type = node->variant.variable->type;
+      break;
+    case enk_operation:
+      /* Operator. */
+      first_operand = node->variant.operation.operands;
+      op = node->variant.operation.kind;
+      if (op == (an_expr_operator_kind)eok_field ||
+          op == (an_expr_operator_kind)eok_bit_field) {
+        /* Field selection (normal or bit-field).  The field itself is a
+           complete object. */
+        complete_object_type = first_operand->next->variant.field->type;
+      } else if (op == (an_expr_operator_kind)eok_base_class_cast) {
+        /* Cast to a base class.  Do a recursive call on the first operand
+           to find the complete object. */
+        complete_object_type = type_of_complete_object(first_operand);
+      } else if (op == (an_expr_operator_kind)eok_padd ||
+                 op == (an_expr_operator_kind)eok_padd_subsc ||
+                 op == (an_expr_operator_kind)eok_psubtract) {
+        /* Pointer addition (subscripting) or subtraction.  Do a recursive
+           call on the first operand to find the complete object. */
+        complete_object_type = type_of_complete_object(first_operand);
+      }  /* if */
+      break;
+#if CHECKING
+    default:
+      internal_error("type_of_complete_object: bad expression kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return complete_object_type;
+}  /* type_of_complete_object */
+
+
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
 static a_boolean same_repr_int_types(a_type_ptr type_1,
                                      a_type_ptr type_2)

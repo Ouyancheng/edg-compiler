@@ -106,6 +106,7 @@ extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
 extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
+extern a_type_ptr type_of_complete_object(an_expr_node_ptr node);
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/FALSE))
 #define il_identical_types(t1, t2) \

@@ -478,7 +478,7 @@ issue it at *err_pos;
       } else {
         if (dsp->base_class->any_virtual_steps_in_derivation) {
           /* Casting to a virtual base class.  This can only be folded if we
-             have a whole object of the derived class type. */
+             have a complete object of the derived class type. */
           if (constant_1->kind == (a_constant_repr_kind)ck_address &&
               constant_1->variant.address.kind ==
                                           (an_address_base_kind)abk_variable &&
