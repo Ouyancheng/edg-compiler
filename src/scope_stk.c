@@ -2868,6 +2868,10 @@ End a name scope by popping an entry off the scope stack.
       /* It must also be called before the depth_in_scope_stack flag is
          cleared. */
       mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
+      /* Similarly, set the "keep_in_il" flag on the routine itself and on
+         everything in the IL tree dependent on it. */
+      il_entry_prefix_of(curr_routine).keep_in_il = FALSE;
+      mark_to_keep_in_il((char *)curr_routine, (an_il_entry_kind)iek_routine);
     }  /* if */
   } else if (kind == (a_scope_kind)sck_file) {
     /* Set the "needed" flag in defined variables with external linkage --
@@ -2875,8 +2879,13 @@ End a name scope by popping an entry off the scope stack.
     end_of_file_scope_needed_flags_phase = TRUE;
     set_needed_flags_at_end_of_file_scope(il_scope);
     end_of_file_scope_needed_flags_phase = FALSE;
-    /* Now all IL entries that are "really needed" are so marked.  The rest
-       can be eliminated from the IL. */
+    /* Set the "keep_in_il" flag for all file-scope IL entries that must be
+       kept to maintain the integrity of the IL. */
+    mark_to_keep_in_il((char *)il_scope, (an_il_entry_kind)iek_scope);
+    end_of_file_scope_needed_flags_phase = FALSE;
+    /* Now all IL entries that are really needed are so marked, and other
+       entries that they may depend on are also marked, with "keep_in_il" set
+       to TRUE.  Everything else can be eliminated from the IL. */
     eliminate_unneeded_il_entries(il_scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
