@@ -1508,59 +1508,93 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
   return result;
 }  /* base_subobject_conflict */
 
-
-static a_boolean type_has_subobject_of_empty_type(a_type_ptr  type,
-                                                  a_type_ptr  subobject_type)
+#if (defined(__sun) || defined(sun)) && (defined(sparc) || defined(__sparc))
 /*
-Return TRUE if and only if "type" contains a (direct or indirect) base or
-field whose type is the empty class subobject_type.
+The GNU first field conflict bug only exists on some platforms.  
+In particular, it does not exist in GNU compilers built for the Sun SPARC
+architecture.
+*/
+#define GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED 0
+#else /* !((defined(__sun) ... )) */
+#define GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED 1
+#endif /* (defined(__sun) || defined(sun)) &&
+          (defined(sparc) || defined(__sparc)) */
+
+#if GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED
+
+static a_boolean gnu_conflict_found(a_type_ptr  subobject_type,
+                                    a_type_ptr  eb_type)
+/*
+This is a helper routine to identify the "GNU first field conflict" (see
+gnu_first_field_conflict below).  It may call itself recursively if needed.
+eb_type is the type of an empty base class (of the complete type being
+laid out) for which conflicts are considered.  subobject_type is the type of
+a subobject of the first field (and initially, that first field itself) in
+which a conflict is looked for.
+
+See gnu_first_field_conflict for a description of this GNU C++ layout bug.
 */
 {
   a_boolean  result = FALSE;
   a_field_ptr  field;
 
-  if (!is_immediate_class_type(type) ||
-      !symbol_supplement_for_class(type)->has_empty_class_subobject) {
+  if (!is_immediate_class_type(subobject_type) ||
+      !symbol_supplement_for_class(subobject_type)
+                                                ->has_empty_class_subobject) {
     goto done;
   }  /* if */
-  field = type->variant.class_struct_union.field_list;
+  field = subobject_type->variant.class_struct_union.field_list;
   for (; field != NULL; field = field->next) {
     a_type_ptr  field_type = skip_typerefs(field->type);
     if (is_array_type(field_type)) {
       field_type = underlying_array_element_type(field_type);
       field_type = skip_typerefs(field_type);
     }  /* if */
-    if (is_immediate_class_type(field_type)) {
-      if (identical_types(field_type, subobject_type) ||
-          type_has_subobject_of_empty_type(field_type, subobject_type)) {
+    /* The "GNU first field conflict" only occurs with fields that start in
+       the first 16 bytes of their enclosing class (but not necessarily
+       within the first 16 bytes of the complete object they belong too). */
+    if (field->offset < 16 && is_immediate_class_type(field_type)) {
+      if (identical_types(field_type, eb_type) ||
+          gnu_conflict_found(field_type, eb_type)) {
         result = TRUE;
         break;
       }  /* if */
     }  /* if */
   }  /* for */
   if (!result) {
-    a_base_class_ptr  bcp = base_classes_of(type);
+    a_base_class_ptr  bcp = base_classes_of(subobject_type);
     for (; bcp != NULL; bcp = bcp->next) {
-      if (identical_types(bcp->type, subobject_type) ||
-          type_has_subobject_of_empty_type(bcp->type, subobject_type)) {
-        result = TRUE;
-        break;
+      if (bcp->offset == 0) {
+        /* Unlike field subobjects, only base class subobjects at offset
+           zero are considered for this kind of conflicts. */
+        if (identical_types(bcp->type, eb_type) ||
+            gnu_conflict_found(bcp->type, eb_type)) {
+          result = TRUE;
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
 done:
   return result;
-}  /* type_has_subobject_of_empty_type */
+}  /* gnu_conflict_found */
 
 
 static a_boolean gnu_first_field_conflict(a_type_ptr     class_type,
                                           a_field_ptr    field,
                                           a_targ_size_t  offset)
 /*
-If field is the first field of class_type, and it contains (at any offset)
-a subobject of the same type as an empty base class at the given offset
-in class type, then return TRUE.  Otherwise, return FALSE.  This is used
-to emulate a layout bug in early GNU implementation of the IA-64 ABI.
+This routine identifies a strange (but not entirely unusual) situation where
+certain GNU C++ compilers incorrectly assume that the first field (given by
+field) of a class (given by class_type) conflicts with an empty base class.
+
+These situations are described as follows.  Assume the given class type has
+an empty base of type E at the given offset, and let F be the type of the 
+first field.  If F has a field e of type E such that the offset of e within
+F is less than 16, the situation is encountered and this routine returns
+TRUE.  If this is not the case, this rule is applied to every field of F
+whose offset is less than 16, and to every base class subobject of F whose
+offset is zero.
 */
 {
   a_boolean  result = FALSE;
@@ -1568,9 +1602,13 @@ to emulate a layout bug in early GNU implementation of the IA-64 ABI.
   if (class_type->variant.class_struct_union.field_list == field) {
     a_base_class_ptr  bcp = base_classes_of(class_type);
     for (; bcp != NULL; bcp = bcp->next) {
+      /* Examine every empty base class subobject that has no empty base class
+         subobjects of its own (if it has a base class subobject of its own,
+         any conflict would also occur with the latter base subobject). */
       if (bcp->offset == offset &&
           bcp->type->variant.class_struct_union.is_empty_class &&
-          type_has_subobject_of_empty_type(field->type, bcp->type)) {
+          base_classes_of(bcp->type) == 0 &&
+          gnu_conflict_found(field->type, bcp->type)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1579,6 +1617,7 @@ to emulate a layout bug in early GNU implementation of the IA-64 ABI.
   return result;
 }  /* gnu_first_field_conflict */
 
+#endif /* GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED */
 #endif /* !IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
@@ -1717,10 +1756,13 @@ there's no overflow TRUE is returned.
           while (subobject_conflict(lob->class_type, field_type,
                                     save_byte_offset,
                                     /*consider_bases=*/TRUE,
-                                    /*consider_virtual_bases=*/TRUE) ||
-                 (emulate_gnu_abi_bugs &&
-                  gnu_first_field_conflict(lob->class_type, field,
-                                           save_byte_offset))) {
+                                    /*consider_virtual_bases=*/TRUE)
+#if GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED
+                 || (emulate_gnu_abi_bugs &&
+                     gnu_first_field_conflict(lob->class_type, field,
+                                              save_byte_offset))
+#endif /* GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED */
+                                                                ) {
             /* The field can't go at this offset.  Advance by the field
                alignment. */
             if (!increment_field_offsets(&lob->byte_offset,
