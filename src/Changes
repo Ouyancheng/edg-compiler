@@ -1,5 +1,15 @@
 Version 2.44
 
+7/31/00  Abort when redeclaring a namespace name as an alias
+
+The front end used to abort when a name first declared as a namespace was
+redeclared as a namespace alias.
+
+  namespace N {}
+  namespace N = N;
+
+This is now fixed (a normal diagnostic is issued).
+
 7/30/00  C++-generating back end: Abort on type declaration within cast
          in C+ mode
 
