@@ -4922,21 +4922,22 @@ is an error, return NULL.
       }  /* if */
     } else if (tag_sym == NULL) {
       /* This is the first appearance of the tag in the current scope.  This
-         is not its definition, so it is either a reference or a "vacuous
-         declaration" (e.g. "struct S;" or "enum E;").  (The effect of a
-         vacuous declaration (unless we are in pcc mode) is to establish the
-         name in the current scope, even if the tag name exists in a containing
-         scope or is inherited from a base class.)  For enum declarations it
-         is an extension in strict ANSI mode. */
+         is not its definition, so it is either a reference to an existing
+         tag or a declaration of a new (incomplete) tag. */
+      if (strict_ansi_mode && tag_kind == (a_symbol_kind)sk_enum_tag) {
+        /* Incomplete enum declarations are nonstandard in C and C++. */
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_nonstd_forward_def_enum,
+                       &locator->source_position);
+      }  /* if */
+      /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").
+         The effect of a vacuous declaration (unless we are in pcc mode) is
+         to establish the name in the current scope, even if the tag name
+         exists in a containing scope or is inherited from a base class. */
       if (next_tok == tok_semicolon && check_for_vacuous_decl &&
           C_dialect != C_dialect_pcc) {
         /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
            to force the creation of a new symbol in the current scope. */
-        if (tag_kind == (a_symbol_kind)sk_enum_tag && strict_ansi_mode) {
-          pos_diagnostic(strict_ansi_error_severity,
-                         ec_nonstd_forward_def_enum,
-                         &locator->source_position);
-        }  /* if */
       } else {
         /* This may be a reference to an existing tag from a containing
            scope or a base class.  This can be ascertained by doing a full
@@ -5137,33 +5138,30 @@ to indicate whether an enumeration is actually defined.
     *defines_something = TRUE;
     if (tag_sym != NULL) tag_sym->defined = TRUE;
     (void)get_token();
+    if (C_dialect == C_dialect_cplusplus) {
+      /* In C++ (see ARM 7.2) the type of an enumerator is the same as that
+         of its enumeration -- i.e., enum_type and enum_con_type are the
+         same.  enum_type may have to be adjusted later to match the range
+         of the enumeration constant values. */
+      enum_con_type = enum_type;
+    } else {
+      /* The type of the constants is always "int", regardless of
+         the type of the enumerated type (see 3.5.2.2).  However, it is
+         tagged with enum_constant_list pointing to the constant list, so
+         that enum compatibility warnings can be generated later. */
+      enum_con_type = alloc_type((a_type_kind)tk_integer);
+      enum_con_type->variant.integer.int_kind = (an_integer_kind)ik_int;
+      /* enum_con_type->variant.integer.enum_constant_list is set below when
+         the first constant is put on the list. */
+      set_type_size(enum_con_type);
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus && curr_token == tok_rbrace) {
-      /* An enumerator constant list is optional in C++.  Give the enumeration
-         an integer kind of char. */
-      enum_type->variant.integer.int_kind = plain_char_int_kind;
-      /*  Advance past the right brace. */
-      (void)get_token();
+      /* An enumerator constant list is optional in C++. */
+      min_value = max_value = 0;
     } else {
       add_stop_token(tok_rbrace);
       curr_value = -1;  /* Incremented before first use. */
       end_of_enum_con_list = NULL;
-      if (C_dialect == C_dialect_cplusplus) {
-        /* In C++ (see ARM 7.2) the type of an enumerator is the same as that
-           of its enumeration -- i.e., enum_type and enum_con_type are the
-           same.  enum_type may have to be adjusted later to match the range
-           of the enumeration constant values. */
-        enum_con_type = enum_type;
-      } else {
-        /* The type of the constants is always "int", regardless of
-           the type of the enumerated type (see 3.5.2.2).  However, it is
-           tagged with enum_constant_list pointing to the constant list, so
-           that enum compatibility warnings can be generated later. */
-        enum_con_type = alloc_type((a_type_kind)tk_integer);
-        enum_con_type->variant.integer.int_kind = (an_integer_kind)ik_int;
-        /* enum_con_type->variant.integer.enum_constant_list is set below when
-           the first constant is put on the list. */
-        set_type_size(enum_con_type);
-      }  /* if */
       /* Scan the list of enumerated constants. */
       do {
         add_stop_token(tok_comma);
@@ -5268,44 +5266,42 @@ to indicate whether an enumeration is actually defined.
         remove_stop_token(tok_comma);
       } while (!done);
       remove_stop_token(tok_rbrace);
-      /* Check for and pass over the closing "}". */
-      (void)required_token(tok_rbrace, ec_exp_rbrace);
-      /* Determine the representation type for the enumeration.  In pcc mode,
-         and when enum_types_can_be_smaller_than_int is FALSE, it's always
-         "int", and that's already set.  Otherwise, pick the first of "char",
-         "signed char", "unsigned char", "short", "unsigned short", and
-         "int" into which the enumeration values will fit.  Note that
-         it is pointless to try "unsigned int", because all enumeration
-         values must fall in the "int" range. */	
-      if (C_dialect != C_dialect_pcc && enum_types_can_be_smaller_than_int) {
-        if (min_value >= targ_min_char && max_value <= targ_max_char) {
-          /* "Plain" char. */
-          enum_type->variant.integer.int_kind = plain_char_int_kind;
-        } else if (min_value >= TARG_SCHAR_MIN &&
-                   max_value <= TARG_SCHAR_MAX) {
-          /* Signed char. */
-          enum_type->variant.integer.int_kind =
-                                          (an_integer_kind)ik_signed_char;
-        } else if (min_value >= 0 && max_value <= TARG_UCHAR_MAX) {
-          /* Unsigned char. */
-          enum_type->variant.integer.int_kind =
-                                          (an_integer_kind)ik_unsigned_char;
-        } else if (min_value >= TARG_SHRT_MIN && max_value <= TARG_SHRT_MAX) {
-          /* Short. */
-          enum_type->variant.integer.int_kind = (an_integer_kind)ik_short;
-        } else if (min_value >= 0 && max_value <= TARG_USHRT_MAX) {
-          /* Unsigned short.  Note that we can only get here if
-             sizeof(short) < sizeof(int) on the target, for otherwise the
-             previous test (for "short") is testing the same range as "int"
-             (into which all enumeration values must fall), so "short" would
-             have been selected.  This is important, as we would not want
-             to pick "unsigned short" if the integral promotions would
-             promote it to "unsigned int" rather than "int". */
-          enum_type->variant.integer.int_kind =
-                                          (an_integer_kind)ik_unsigned_short;
-        } else {
-          /* Representation type should be int, which is already set. */
-        }  /* if */
+    }  /* if */
+    /* Check for and pass over the closing "}". */
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
+    /* Determine the representation type for the enumeration.  In pcc mode,
+       and when enum_types_can_be_smaller_than_int is FALSE, it's always
+       "int", and that's already set.  Otherwise, pick the first of "char",
+       "signed char", "unsigned char", "short", "unsigned short", and
+       "int" into which the enumeration values will fit.  Note that
+       it is pointless to try "unsigned int", because all enumeration
+       values must fall in the "int" range. */	
+    if (C_dialect != C_dialect_pcc && enum_types_can_be_smaller_than_int) {
+      if (min_value >= targ_min_char && max_value <= targ_max_char) {
+        /* "Plain" char. */
+        enum_type->variant.integer.int_kind = plain_char_int_kind;
+      } else if (min_value >= TARG_SCHAR_MIN && max_value <= TARG_SCHAR_MAX) {
+        /* Signed char. */
+        enum_type->variant.integer.int_kind = (an_integer_kind)ik_signed_char;
+      } else if (min_value >= 0 && max_value <= TARG_UCHAR_MAX) {
+        /* Unsigned char. */
+        enum_type->variant.integer.int_kind =
+                                             (an_integer_kind)ik_unsigned_char;
+      } else if (min_value >= TARG_SHRT_MIN && max_value <= TARG_SHRT_MAX) {
+        /* Short. */
+        enum_type->variant.integer.int_kind = (an_integer_kind)ik_short;
+      } else if (min_value >= 0 && max_value <= TARG_USHRT_MAX) {
+        /* Unsigned short.  Note that we can only get here if
+           sizeof(short) < sizeof(int) on the target, for otherwise the
+           previous test (for "short") is testing the same range as "int"
+           (into which all enumeration values must fall), so "short" would
+           have been selected.  This is important, as we would not want
+           to pick "unsigned short" if the integral promotions would
+           promote it to "unsigned int" rather than "int". */
+        enum_type->variant.integer.int_kind =
+                                            (an_integer_kind)ik_unsigned_short;
+      } else {
+        /* Representation type should be int, which is already set. */
       }  /* if */
     }  /* if */
     /* Set the type size (based on the integral type it is mapped onto). */
