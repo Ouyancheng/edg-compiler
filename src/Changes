@@ -1,5 +1,11 @@
 Version 2.21
 
+12/20/93 Division by zero warning using simulated integers
+
+Expressions such as 0/0 produced "divide by zero" warnings when using
+host integers but not simulated integers.  Warnings are now issued
+in both modes.
+
 12/19/93 address_taken flag in variables and routines
 
 An address_taken flag has been added to the routine entry.  The
