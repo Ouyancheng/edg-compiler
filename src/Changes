@@ -79,7 +79,7 @@ circumstances.  For example:
   void f() {
     switch (1) {
       my_label:
-        ;  // Empty statement.  Previous rendered after all switch clauses
+        ;  // Empty statement.  Previously rendered after all switch clauses
            // along with a spurious goto statement.
       default: break;
     }
