@@ -4360,7 +4360,7 @@ This routine returns TRUE if guard code was emitted.
   /* Make the guard variable at the file scope. */
   test_var = make_instantiation_var("__SDG__", (an_integer_kind)ik_int,
                                     &variable->source_corresp);
-  if (variable->specific_def) {
+  if (variable->suppress_instantiation) {
     /* This variable is a specialization of a template entity, so its
        initialization should take precedence over any initialization code
        for other instances.  Initialize the guard variable to -1 to lock out

@@ -1055,17 +1055,6 @@ typedef struct a_template_instance {
 			   overload list for this name).  Always TRUE (and
 			   therefore meaningless) for member functions and
 			   static data members of template classes. */
-  a_bit_field	specific_def:1;
-			/* For instances of nonmember function templates and
-			   member functions of template classes, TRUE if this
-			   instance has been explicitly defined (in which case
-			   no implicit instantiation will be done). The
-			   specific_decl flag will always be TRUE when this
-			   flag is set.  For static data members its value is
-			   identical to the defined flag in instance_sym.
-                           specific_def is also set TRUE for entities
-			   whose instantiations have been suppressed using
-			   a do_not_instantiate pragma. */
   a_bit_field	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using a pragma directive. */

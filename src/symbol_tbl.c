@@ -781,8 +781,7 @@ do_variable:
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
-            if (tip->instantiation_required || tip->specific_decl ||
-                tip->specific_def) {
+            if (tip->instantiation_required || tip->specific_decl) {
               char* comma = "";
               fputs(" (", f_debug);
               if (tip->instantiation_required) {
@@ -791,10 +790,6 @@ do_variable:
               }  /* if */
               if (tip->specific_decl) {
                 fprintf(f_debug, "%sspecific decl", comma);
-                comma = ", ";
-              }  /* if */
-              if (tip->specific_def) {
-                fprintf(f_debug, "%sspecific def", comma);
               }  /* if */
               fputc(')', f_debug);
             }  /* if */
@@ -7306,7 +7301,6 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->template_info               = NULL;
   tip->instantiation_required      = FALSE;
   tip->specific_decl               = FALSE;
-  tip->specific_def                = FALSE;
   tip->explicit_instantiation      = FALSE;
   tip->class_explicitly_instantiated
                                    = FALSE;

@@ -537,7 +537,7 @@ ec_compiler_generated_function_cannot_be_instantiated;;"compiler generated %n ca
 ec_inline_function_cannot_be_instantiated;;"inline %n cannot be instantiated"
 ec_pure_virtual_function_cannot_be_instantiated;;"pure virtual %n cannot be instantiated"
 ec_instantiation_requested_no_definition_supplied;;"%n cannot be instantiated -- no template definition was supplied"
-ec_instantiation_requested_and_specific_definition;;"%n cannot be instantiated -- a specific definition has been supplied"
+ec_instantiation_requested_and_specialized;;"%n cannot be instantiated -- it has been explicitly specialized"
 ec_no_constructor;;"class %t has no constructor"
 ec_template_param_only_used_in_default_args;;"%n1 must be used in a parameter without a default value in %n2"
 ec_no_match_for_type_of_overloaded_function;;"no instance of %n matches the specified type"

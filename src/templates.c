@@ -3654,7 +3654,6 @@ the function instantiation entry and set all the pointers.
   if (tssp != NULL) {
     if (rout_sym->defined) {
       /* User-defined, so no instantiation is required. */
-      tip->specific_def = TRUE;
       rout_sym->variant.routine.ptr->suppress_instantiation = TRUE;
     } else {
       /* Not defined by the user, so still a candidate for instantiation
@@ -7107,12 +7106,11 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         tip->specific_decl = TRUE;
         vp->is_specialization = TRUE;
+        vp->suppress_instantiation = TRUE;
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
 
-          vp->suppress_instantiation = TRUE;
-          tip->specific_def = TRUE;
           sym->variant.static_data_member.variable->
                            storage_class = (a_storage_class)sc_unspecified;
           /* Advance past "=". */
@@ -7140,10 +7138,9 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         tip->specific_decl = TRUE;
         rp->is_specialization = TRUE;
+        rp->suppress_instantiation = TRUE;
         if (is_definition) {
           /* This is a defining declaration of the function template. */
-          rp->suppress_instantiation = TRUE;
-          tip->specific_def = TRUE;
           func_info.is_definition = TRUE;
           if (func_info.function_type_from_typedef) {
             /* Just as it is an error when a normal function is defined for
@@ -7560,8 +7557,10 @@ template entities.
 */
 {
   a_boolean	result = TRUE;
-  a_boolean	specific_def;
+  a_boolean	specialized;
+  a_boolean	specialization_defined;
   a_boolean	template_def;
+
   if (tip->explicit_instantiation ||
       ((tip->instantiation_required || instantiation_mode == tim_all) &&
         (instantiation_mode != tim_none ||
@@ -7569,10 +7568,16 @@ template entities.
     /* For error checking purposes, find out if a specific definition
        exists and whether a body exists for the template definition. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      specific_def = tip->instance_sym->defined;
+      a_variable_ptr	vp;
+      vp = tip->instance_sym->variant.static_data_member.variable;
+      /* The suppress_instantiation flag is used instead of the
+         is_specialization flag because the former is set for both
+         old and new style specializations. */
+      specialized = vp->suppress_instantiation;
+      specialization_defined = tip->instance_sym->defined;
       template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && !specific_def && implicit_inclusion_ok &&
+      if (!template_def && !specialized && implicit_inclusion_ok &&
           implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
@@ -7584,12 +7589,18 @@ template entities.
     } else {
       a_template_symbol_supplement_ptr  tssp;
       a_symbol_ptr			template_sym;
-      specific_def = tip->specific_def;
+      a_routine_ptr	rp;
+      rp = tip->instance_sym->variant.routine.ptr;
+      /* The suppress_instantiation flag is used instead of the
+         is_specialization flag because the former is set for both
+         old and new style specializations. */
+      specialized = rp->suppress_instantiation;
+      specialization_defined = specialized && tip->instance_sym->defined;
       template_sym = tip->template_sym;
       tssp = template_supplement_for_symbol(template_sym);
       template_def = cache_for_template(tssp)->tokens.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && !specific_def && implicit_inclusion_ok &&
+      if (!template_def && !specialized && implicit_inclusion_ok &&
           implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
@@ -7599,7 +7610,7 @@ template entities.
       }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
-    if (!template_def && !specific_def) {
+    if (!template_def && !specialization_defined) {
       /* A template can be declared and referenced without ever being defined.
          If, however, an instantiation was explicitly requested an error is
          issued.  In any case, the instantiation cannot be done without
@@ -7613,13 +7624,14 @@ template entities.
   		    tip->instance_sym);
       }  /* if */
     } else {
-      /* There is a body or a specific definition. */
-      if (specific_def) {
-        /* A specific definition was supplied.  Simply skip the instantiation
-           unless an instantiation was explicitly requested. */
+      /* There is a body or a declared specialization. */
+      if (specialized) {
+        /* A declaration was declared (but not necessarily defined).
+           Simply skip the instantiation unless an instantiation was
+           explicitly requested. */
         result = FALSE;
         if (tip->explicit_instantiation) {
-          pos_sy_error(ec_instantiation_requested_and_specific_definition,
+          pos_sy_error(ec_instantiation_requested_and_specialized,
   	             &tip->explicit_instantiation_pos, tip->instance_sym);
         }  /* if */
       }  /* if */
@@ -8099,15 +8111,18 @@ instantiation of a given template instance.
 */
 {
   a_boolean	result = TRUE;
-  a_boolean	specific_def;
   a_boolean	template_def;
-  /* For error checking purposes, find out if a specific definition
+  a_boolean	specialized;
+
+  /* For error checking purposes, find out if a specialization declaration
      exists and whether a body exists for the template definition. */
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-    specific_def = tip->instance_sym->defined;
+    a_variable_ptr	vp;
+    vp = tip->instance_sym->variant.static_data_member.variable;
+    specialized = vp->suppress_instantiation;
     template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && !specific_def && implicit_template_inclusion_mode) {
+    if (!template_def && !specialized && implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -8118,12 +8133,14 @@ instantiation of a given template instance.
   } else {
     a_symbol_ptr		      template_sym;
     a_template_symbol_supplement_ptr  tssp;
+    a_routine_ptr		      rp;
+    rp = tip->instance_sym->variant.routine.ptr;
     template_sym = tip->template_sym;
     tssp = template_supplement_for_symbol(template_sym);
-    specific_def = tip->specific_def;
+    specialized = rp->suppress_instantiation;
     template_def = cache_for_template(tssp)->tokens.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && !specific_def && implicit_template_inclusion_mode) {
+    if (!template_def && !specialized && implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -8132,7 +8149,7 @@ instantiation of a given template instance.
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
-  result = template_def && !specific_def && !tip->already_instantiated;
+  result = template_def && !specialized && !tip->already_instantiated;
   return result;
 }  /* can_be_instantiated */
 
@@ -8240,7 +8257,6 @@ is set by update_instantiation_required_flag.
       fprintf(f_debug, " instantiation_required=%d\n",
               tip->instantiation_required);
       fprintf(f_debug, " can_instantiate=%d\n", can_instantiate);
-      fprintf(f_debug, " specific_def=%d\n", tip->specific_def);
     }  /* if */
 #endif /* DEBUG */
     if (is_static_data_member) {
@@ -8388,11 +8404,11 @@ instantiated.
     if (issue_errors) {
       sym_error(ec_not_instantiatable_entity, sym);
     }  /* if */
-  } else if (sym->variant.routine.instance_ptr->specific_def) {
-    /* A specific definition has been supplied. */
+  } else if (sym->variant.routine.ptr->suppress_instantiation) {
+    /* A specialization declaration has been supplied. */
     result = FALSE;
     if (issue_errors) {
-      sym_error(ec_instantiation_requested_and_specific_definition, sym);
+      sym_error(ec_instantiation_requested_and_specialized, sym);
     }  /* if */
   } else if (routine->is_inline) {
     /* An inline function is allowed in an explicit instantiation, but not
@@ -8468,10 +8484,16 @@ or the specific definition flag (if instantiate is FALSE).
       tip->explicit_instantiation_pos = *pos;
     } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       instantiation_required_flag = FALSE;
-      tip->specific_def = TRUE;
       tip->explicit_instantiation = FALSE;
       tip->explicit_do_not_instantiate = TRUE;
       tip->class_explicitly_instantiated = FALSE;
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr vp = sym->variant.static_data_member.variable;
+        vp->suppress_instantiation = TRUE;
+      } else {
+        a_routine_ptr rp = sym->variant.routine.ptr;
+        rp->suppress_instantiation = TRUE;
+      }  /* if */
     } else { /* pragma_kind == (a_pragma_kind)pk_can_instantiate */
       /* For the can_instantiate pragma set the instantiation required
          flag to its current value.  The purpose of this is to ensure

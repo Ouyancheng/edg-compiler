@@ -3825,7 +3825,6 @@ on for use in generating cross-reference output describing this declaration.
         /* The current declaration is a definition. */
         if (!old_decl_has_body) {
           /* Okay. */
-          sym->variant.routine.instance_ptr->specific_def = TRUE;
           /* Update the linkage information in the routine to reflect
              this declaration instead of the information inherited from
              the template. */
@@ -3841,8 +3840,8 @@ on for use in generating cross-reference output describing this declaration.
           routine_ptr->suppress_instantiation = TRUE;
         } else {
           /* There is already a definition.  This is some sort of error. */
-          if (sym->variant.routine.instance_ptr->specific_def) {
-            /* Already defined. */
+          if (sym->variant.routine.ptr->suppress_instantiation) {
+            /* Already defined, presumably by a specialization. */
             pos_sy_error(ec_already_defined, &locator->source_position, sym);
           } else {
             /* It must be that this function has a body as a result of a
@@ -4543,7 +4542,7 @@ is not a template declaration scope.
     a_template_instance_ptr  tip = tssp->variant.function.instantiations;
     for (; tip != NULL; tip = tip->next) {
       rp = tip->instance_sym->variant.routine.ptr;
-      if (tip->specific_def) {
+      if (rp->suppress_instantiation) {
 #if 0
         /* Must the inline setting of a specific definition of a function
            template be consistent with that of the template? */
@@ -4692,9 +4691,8 @@ the symbol and its linkage (which is always "none").
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;
       /* If this is a member of an instantiation of a class
-         template, set the specific_def flag in the instance entry. */
+         template, set the supress_instantiation field of the variable. */
       if (sym->variant.static_data_member.instance_ptr != NULL) {
-        sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
         var->suppress_instantiation = TRUE;
       }  /* if */
       srk_flags = SRK_DECLARATION | SRK_DEFINITION;
