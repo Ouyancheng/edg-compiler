@@ -9,11 +9,6 @@ array, and _vec_delete is called to deallocate and/or destruct an array.
 _vec_cctor remains as it was; it implements at feature that cfront 2.1
 gives a "sorry, not implemented" for.
 
-7/20/92  Properly close intermediate language file.
-
-Fixed a bug where when the version contains a C generating back end, the
-generated IL file (by -N or -o option) was not closed.
-
 7/20/92  Dynamic initialization of local static variables
 
 Fixed a bug where the dynamic init entry for a local static variable was
@@ -31,13 +26,6 @@ correctly handled.
 
 The type formatting in error.c was corrected to display "const" or
 "volatile" if a member function was so declared.
-
-7/15/92  Correct check for suppression of IL lowering.
-
-All checks for suppresion of IL lowering should not be conditioned
-by IL_SHOULD_BE_WRITTEN_TO_FILE.  In an optimized version which does
-not write the IL to a file, suppression of IL lowering had no effect
-as it was coded.
 
 7/11/92  Reread source lines for diagnostics.
 
