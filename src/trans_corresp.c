@@ -1860,8 +1860,10 @@ is in fact valid.
             specialized_vs_generic_class_template_conflict(tssp,
                                                            corresp_tssp)) ||
            /* If both templates are defined, they should both be exported or
-              both not be exported. */
-           (templ_sym->defined && corresp_sym->defined &&
+              both not be exported.  (This doesn't apply to class templates.)
+              */
+           (!is_class_template_symbol(templ_sym) &&
+            templ_sym->defined && corresp_sym->defined &&
             templ->is_exported != corresp_templ->is_exported))))) {
       match = FALSE;
       process_bad_trans_unit_corresp(templ);
