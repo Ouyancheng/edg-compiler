@@ -4568,7 +4568,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     /* Use a pointer and "->".  Don't do it when there's an implicit
        reference indirection on the object, because that will add a "&"
        that may mean the wrong thing if operator& is overloaded. */
-    if (is_variable_node(object_expr) &&
+    if (microsoft_mode && microsoft_version == 1000 &&
+        is_variable_node(object_expr) &&
         object_expr->variant.variable->is_this_parameter &&
         rout->special_kind != (a_special_function_kind)sfk_constructor &&
         rout->special_kind != (a_special_function_kind)sfk_destructor) {

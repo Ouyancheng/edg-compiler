@@ -1,5 +1,13 @@
 Version 2.42
 
+5/21/99  C++ generating back end: suppression of "this->" on function calls
+
+A change made previously to suppress "this->" on some member function
+calls (see Changes entry of 7/10/97), to get around a bug in MSVC++ 4.2,
+turns out to cause some other problems.  Since the bug has been fixed
+in MSVC++ 5.0 and beyond, this "optimization" is now done only for
+4.1 compatibility, i.e., when microsoft_version is 1000.
+
 5/21/99  IL lowering: zeroing of array on array new
 
 In the code generated for an array new with an initializer of "()" (to
@@ -7239,7 +7247,8 @@ microsoft_mode and microsoft_version are now recorded in il_header.
 "this->" on a member function call, unnecessary because it's implied,
 is now suppressed.  This works around a bug in MSVC++ 4.2. (7/21: do
 not do this for explicit calls of constructors, a Microsoft extension.
-9/9: Do not do this for explicit calls of destructors.)
+9/9: Do not do this for explicit calls of destructors. 5/21/99: this is
+done only when microsoft_version=1000, because it causes other problems.)
 
 7/8/97    C++-generating back end: representation of partial instantiations
 
