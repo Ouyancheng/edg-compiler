@@ -3640,6 +3640,38 @@ pointed to by cssp.
 }  /* add_to_conversion_list */
 
 
+static set_mixed_static_nonstatic_flag(a_symbol_ptr  overload_sym)
+/*
+overload_sym is an sk_overloaded_function symbol representing a set of
+member functions.  If its mixed_static_nonstatic flag has not been set yet,
+compare the first two entries in the list and set the flag if appropriate
+(i.e., if one is a static member function and the other is a nonstatic
+member function).  (Since this is called whenever a symbol is added to the
+overload set, and since new entries are added to the front of the list, only
+the first two need be checked.)
+*/
+{
+  a_symbol_ptr  sym;
+  a_type_ptr    tp1, tp2;
+
+  check_assertion_str2(overload_sym->kind ==
+                               (a_symbol_kind)sk_overloaded_function,
+                      "set_mixed_static_nonstatic_flag:",
+                      "sk_overloaded_function expected");
+  /* Set a flag in overload_sym if the instances of an overloaded function
+     are a mixture of static and nonstatic member functions. */
+  if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
+    sym = overload_sym->variant.overloaded_function.symbols;
+    tp1 = routine_symbol_type(fundamental_symbol_of(sym));
+    tp2 = routine_symbol_type(fundamental_symbol_of(sym->next));
+    if (routine_type_is_nonstatic_member_function(tp1) !=
+                routine_type_is_nonstatic_member_function(tp2)) {
+      overload_sym->variant.overloaded_function.mixed_static_nonstatic = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_mixed_static_nonstatic_flag */
+
+
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
@@ -3726,6 +3758,9 @@ special function kind (e.g., constructor, destructor), if any.
     set_source_corresp(&rtn->source_corresp, sym);
     set_class_membership(sym, &rtn->source_corresp, class_type);
     rtn->source_corresp.access = access;
+    if (overload_sym != NULL) {
+      set_mixed_static_nonstatic_flag(overload_sym);
+    }  /* if */
     /* Member functions should have the same name linkage as the class of
        which they are members.  (In cfront mode that may mean internal
        linkage -- if and when its linkage is promoted to C++, the linkage of
@@ -3929,26 +3964,6 @@ special function kind (e.g., constructor, destructor), if any.
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition);
-    /* Do checking associated with function overloading. */
-    if (overload_sym != NULL && !cssp->is_nonreal_class) {
-      a_symbol_ptr  other_sym = sym->next;
-
-      check_assertion(sym ==
-                        overload_sym->variant.overloaded_function.symbols);
-      check_assertion(other_sym != NULL &&
-                      fundamental_symbol_of(other_sym)->kind ==
-                                    (a_symbol_kind)sk_member_function);
-      /* Set a flag in overload_sym if the instances of an overloaded function
-         are a mixture of static and nonstatic member functions. */
-      if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
-        if (routine_type_is_nonstatic_member_function(member_type) !=
-            routine_type_is_nonstatic_member_function(
-                     routine_symbol_type(fundamental_symbol_of(other_sym)))) {
-          overload_sym->
-                   variant.overloaded_function.mixed_static_nonstatic = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
@@ -5942,13 +5957,14 @@ or implicit) controlling the declaration.
                                          /*ambiguous=*/FALSE);
         new_sym->variant.projection.access_adjustment_made = TRUE;
         new_sym->variant.projection.access = access;
-        if (!is_overloaded || other_sym == NULL) {
+        if (!is_overloaded && other_sym == NULL) {
           /* Just enter it, since no overloading is involved. */
           reenter_symbol(new_sym, depth_scope_stack,
                          /*suppress_error=*/TRUE);
           other_sym = new_sym;
         } else {
           other_sym = add_symbol_to_overload_list(new_sym, other_sym);
+          set_mixed_static_nonstatic_flag(other_sym);
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_member_function &&
             sym->variant.routine.ptr->special_kind ==
