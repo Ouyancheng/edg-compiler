@@ -1629,8 +1629,8 @@ funcs_not_identical:;
         case tk_template_param:
           /* Template parameter types are considered to be identical if
              their positions in the template parameter list are the same. */
-          identical = (type_1->variant.list_position ==
-                                           type_2->variant.list_position);
+          identical = (type_1->variant.template_param.list_position ==
+                                type_2->variant.template_param.list_position);
           break;
 #if CHECKING
         default:
@@ -1920,8 +1920,8 @@ initial test for exact pointer equality.
         case tk_template_param:
           /* Template parameter types are considered to be compatible if
              their positions in the template parameter list are the same. */
-          compat = (type_1->variant.list_position ==
-                                                type_2->variant.list_position);
+          compat = (type_1->variant.template_param.list_position ==
+                                type_2->variant.template_param.list_position);
           break;
 #if CHECKING
         default:

@@ -222,6 +222,22 @@ typedef struct a_source_correspondence {
 } a_source_correspondence;
 
 /*
+Numbering for scopes.  Each new scope is given a number.  These
+numbers are unique identifiers for each scope, not simply the nesting
+level of the scope.  Also, each struct or union has a unique scope
+number for its member fields, even though no true scope with that
+number is created.  In C++, a class/struct/union has a true scope
+associated with it.  These scope numbers are mostly of interest to the
+front end.
+*/
+typedef short a_scope_number;
+#define MAX_SCOPE_NUMBER SHRT_MAX
+#define NO_SCOPE_NUMBER (-1)
+			/* Scope number used for things without scope. */
+#define FILE_SCOPE_NUMBER 0
+			/* Scope number for the file scope. */
+
+/*
 Data structures related to constants:
 */
 enum a_constant_repr_kind_tag {
@@ -419,6 +435,30 @@ typedef struct a_dynamic_init {
   } variant;
 } a_dynamic_init;
 
+
+typedef enum a_template_param_constant_kind_tag {
+  tpck_param,		/* The template param constant represents a simple
+			   non-type template parameter, e.g., for I in the
+			   following:
+			     template <int I> class A; */
+  tpck_expression,
+			/* The template param constant represents an
+			   expression, e.g., for I+1 in the following:
+			     template <int I> class A {
+			       static char s[I+1];
+			     };
+			     template <int I> char A<I>::s[I+1] = { 0 }; */
+  tpck_member           /* The template param constant represents the member
+			   of a tk_template_param class, e.g., for T::k in the
+			   following:
+			     template <class T> class A {
+			       int a[T::k];
+			     };
+			   (where, during prototype instantiation, k is
+			   assumed to be a member of T and a constant). */
+};
+typedef a_byte a_template_param_constant_kind;
+
 #endif /* ifdef CIL */
 
 typedef struct a_constant {
@@ -605,13 +645,29 @@ typedef struct a_constant {
 			   with the storage allocation". */
     } init_repeat;
 #ifdef CIL
-    /* When kind = ck_template_param: */
-    unsigned long
+    /* When kind = ck_template_param (used only in C++): */
+    struct {
+      a_template_param_constant_kind
+		kind;	/* The kind of template param constant. */
+      union {
+	/* When template param constant kind == tpck_param: */
+        unsigned long
 		list_position;
 			/* Ordinal value indicating the position of the
 			   template parameter in its declaration list (1 is
-			   first param declared, 2 is second, etc.).  Used
-			   only in C++. */
+			   first param declared, 2 is second, etc.). */
+	/* When template param constant kind == tpck_expression: */
+	an_expr_node_ptr
+		expr;
+			/* Expression node representing a constant value
+			   in terms of a ck_template_param constant -- e.g.,
+			   if "I" is a template param constant (of kind
+			   tpck_param), "I+1" is also a template param
+			   constant (of kind tpck_expression). */
+	/* When template param constant kind == tpck_member, no variant
+           fields. */
+      } variant;
+    } template_param;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == ck_init_position: */
@@ -1375,6 +1431,29 @@ typedef struct a_class_type_supplement {
 #endif /* DO_IL_LOWERING */
 } a_class_type_supplement;
 
+
+typedef struct a_template_param_type_descr *a_template_param_type_descr_ptr;
+typedef struct a_template_param_type_descr {
+  /* Information about a template parameter type that may be inferred from
+     how it is used -- in particular, when a template parameter may used in a
+     way which requires that it be a class.  (C++ only.) */
+  a_type_ptr	class_type;
+			/* A dummy class type associated with a given template
+			   parameter.  This becomes useful if a template
+			   parameter is used in such a way as to indicate
+			   that it has members.  For example:
+			     template <class T> void f(T::X);
+			   Here we know T must represent a class type with a
+			   member type X.  Pointer is NULL if no class use
+			   has been encountered. */
+  a_scope_number
+		member_scope_number;
+			/* If class_type is non-NULL, the number of the
+			   declaration scope for members of class_type;
+			   otherwise NO_SCOPE_NUMBER. */
+} a_template_param_type_descr;
+
+
 #endif /* ifdef CIL */
 #ifdef FIL
 enum a_bound_kind_tag {
@@ -1653,11 +1732,17 @@ typedef struct a_type {
 			/* Type of the member pointed to. */
     } ptr_to_member;
     /* When kind = tk_template_param: */
-    unsigned long
+    struct {
+      unsigned long
 		list_position;
 			/* Ordinal value indicating the position of the
 			   template parameter in its declaration list (1 is
 			   first param declared, 2 is second, etc.). */
+      a_template_param_type_descr_ptr
+		extra_info;
+			/* Pointer to a descriptor containing additional
+			   information about this template parameter type. */
+    } template_param;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == tk_fcharacter: */
@@ -3436,22 +3521,6 @@ enum a_scope_kind_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_scope_kind;
-
-/*
-Numbering for scopes.  Each new scope is given a number.  These
-numbers are unique identifiers for each scope, not simply the nesting
-level of the scope.  Also, each struct or union has a unique scope
-number for its member fields, even though no true scope with that
-number is created.  In C++, a class/struct/union has a true scope
-associated with it.  These scope numbers are mostly of interest to the
-front end.
-*/
-typedef short a_scope_number;
-#define MAX_SCOPE_NUMBER SHRT_MAX
-#define NO_SCOPE_NUMBER (-1)
-			/* Scope number used for things without scope. */
-#define FILE_SCOPE_NUMBER 0
-			/* Scope number for the file scope. */
 
 typedef struct a_scope {
   /* Definition of a name scope.  There is one of these for the file

@@ -898,7 +898,7 @@ If it involves no template-parameter type, simply return "type".
            template argument.  Find the template argument that matches this
            template parameter and return it to the caller. */
         tap = templ_arg_list;
-        for (i = type->variant.list_position; i > 1; --i) {
+        for (i = type->variant.template_param.list_position; i > 1; --i) {
           tap = tap->next;
         }  /* for */
 #if CHECKING
@@ -1233,7 +1233,7 @@ be NULL if the caller does not need to know whether a conversion was performed.
          with all missing template args that should precede it in the linked
          list. */
       prev_tap = NULL;
-      for (i = templ_type->variant.list_position; i > 0; --i) {
+      for (i = templ_type->variant.template_param.list_position; i > 0; --i) {
         if (prev_tap == NULL) {
           /* This must be the first time through the loop. */
           tap = *templ_arg_list;
@@ -2772,7 +2772,8 @@ to represent the template parameters.
          only and will not appear in the IL passed on to the back end.  It
          is therefore not added to any scope types list. */
       template_param_type = alloc_type((a_type_kind)tk_template_param);
-      template_param_type->variant.list_position = template_param_list_pos;
+      template_param_type->variant.template_param.list_position =
+                                                     template_param_list_pos;
       set_type_size(template_param_type);
       set_source_corresp(&template_param_type->source_corresp, sym);
       /* The type symbol for the template parameter points for now to the
@@ -2834,7 +2835,8 @@ to represent the template parameters.
       sym->variant.constant =
                          fs_constant((a_constant_repr_kind)ck_template_param);
       sym->variant.constant->type = param_type_ptr;
-      sym->variant.constant->variant.list_position = template_param_list_pos;
+      sym->variant.constant->variant.template_param.variant.list_position =
+                                                      template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
       const_type_involves_template_param = 
 				is_or_contains_template_param(param_type_ptr);
@@ -2880,7 +2882,8 @@ to represent the template parameters.
         sym->variant.constant =
                          fs_constant((a_constant_repr_kind)ck_template_param);
         sym->variant.constant->type = error_type();
-        sym->variant.constant->variant.list_position = template_param_list_pos;
+        sym->variant.constant->variant.template_param.variant.list_position =
+                                                      template_param_list_pos;
       }  /* if */
     }  /* if */
     sym->is_template_param = TRUE;

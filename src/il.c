@@ -855,7 +855,7 @@ class_struct_union:
       break;
     case tk_template_param:
       fprintf(f_debug, "template-param#%lu ",
-              (unsigned long)tp->variant.list_position);
+              (unsigned long)tp->variant.template_param.list_position);
       db_name(&tp->source_corresp);
       break;
     default:
@@ -953,9 +953,25 @@ Dump the contents of the indicated constant, for debug purposes.
       (void)fputc('}', f_debug);
       break;
     case ck_template_param:
-      fprintf(f_debug, "<template-param#%lu ",
-              (unsigned long)cp->variant.list_position);
-      db_name(&cp->source_corresp);
+      fputs("<template-param", f_debug);
+      switch (cp->variant.template_param.kind) {
+        case tpck_param:
+          fprintf(f_debug, "#%lu ", (unsigned long)cp->variant.
+                                        template_param.variant.list_position);
+          db_name(&cp->source_corresp);
+          break;
+        case tpck_expression:
+          fprintf(f_debug, " **EXPR**");
+          break;
+        case tpck_member:
+          (void)fputc(' ', f_debug);
+          db_name(&cp->source_corresp);
+          break;
+#if CHECKING
+        default:
+          internal_error("db_constant: bad template param constant kind");
+#endif /* CHECKING */
+      }
       (void)fputc('>', f_debug);
       break;
     default:
@@ -1987,7 +2003,9 @@ fields to default values.
       cp->variant.init_repeat.count = 0;
       break;
     case ck_template_param:
-      cp->variant.list_position = 0;
+      cp->variant.template_param.kind =
+                                  (a_template_param_constant_kind)tpck_param;
+      cp->variant.template_param.variant.list_position = 0;
       break;
 #if CHECKING
     default:
@@ -2392,7 +2410,27 @@ Return TRUE if the two constants are identical.
         break;
       case ck_template_param:
         /* Note that the constant types have been compared above. */
-        eq = (cp1->variant.list_position == cp2->variant.list_position);
+        if (cp1->variant.template_param.kind ==
+                                      cp2->variant.template_param.kind) {
+          switch (cp1->variant.template_param.kind) {
+            case tpck_param:
+              eq = (cp1->variant.template_param.variant.list_position ==
+                            cp2->variant.template_param.variant.list_position);
+              break;
+            case tpck_expression:
+#if 0
+              /* Not supported yet. */
+#endif /* if 0 */
+            case tpck_member:
+#if 0
+              /* Not supported yet. */
+#endif /* if 0 */
+#if CHECKING
+            default:
+              internal_error("eq_constants: bad template param constant kind");
+#endif /* CHECKING */
+          }  /* switch */
+        }  /* if */
         break;
 #if CHECKING
       default:
@@ -3145,7 +3183,8 @@ to default values.
       pte->variant.ptr_to_member.type                    = FALSE;
       break;
     case tk_template_param:
-      pte->variant.list_position = 0;
+      pte->variant.template_param.list_position = 0;
+      pte->variant.template_param.extra_info    = NULL;
       break;
 #if CHECKING
     default:
