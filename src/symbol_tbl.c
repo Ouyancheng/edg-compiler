@@ -6584,9 +6584,7 @@ Lookup, in the current scope, the identifier indicated by *locator and
 return a pointer to the symbol found, or NULL if the symbol is not found.
 options contains bits indicating special restrictions, i.e., the symbol
 must a tag.  Projection symbols are only considered in the lookup if
-IDL_PROJ_SYMBOL_ALLOWED is specified in options.  Note that unlike the
-other lookup routines, when a projection symbol is found the projection
-symbol and not the fundamental symbol is returned.
+IDL_PROJ_SYMBOL_ALLOWED is specified in options.
 */
 {
   a_symbol_ptr			sym;
@@ -6658,6 +6656,10 @@ symbol and not the fundamental symbol is returned.
    }  /* if */
    locator->specific_symbol = sym;
   }  /* if */
+  /* If the symbol is a projection symbol, reduce it to the fundamental
+     symbol.  The specific_symbol in the locator stays pointing to the
+     projection symbol. */
+  if (sym != NULL) reduce_projection_symbol_to_fundamental_symbol(sym);
   return sym;
 #undef is_acceptable_symbol
 }  /* curr_scope_id_lookup */
@@ -8290,6 +8292,10 @@ nsk_other name space are considered.  This routine is used for the unary
                      (sym != NULL) ? "found" : "not found");
   }  /* if */
 #endif /* DEBUG */
+  /* If the symbol is a projection symbol, reduce it to the fundamental
+     symbol.  The specific_symbol in the locator stays pointing to the
+     projection symbol. */
+  if (sym != NULL) reduce_projection_symbol_to_fundamental_symbol(sym);
   db_exit();
   return sym;
 #undef is_acceptable_symbol
