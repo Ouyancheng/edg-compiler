@@ -314,8 +314,13 @@ it.  Reuse a freed entry if possible.
   }  /* if */
   *ppp = *orig_ppp;
   ppp->next = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  check_assertion_str2(ppp->source_sequence_entry == NULL,
+                       "alloc_copy_of_pending_pragma:",
+		       "copied pragma has source sequence entry");
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return ppp;
-}  /* alloc_pending_pragma_copy */
+}  /* alloc_copy_of_pending_pragma */
 
 
 a_pending_pragma_ptr make_copy_of_pragma_list(a_pending_pragma_ptr old_list)
@@ -1015,6 +1020,44 @@ current construct pragmas is simply cleared.
   }  /* if */
   *list_ptr = NULL;
 }  /* discard_curr_construct_pragmas */
+
+
+a_pending_pragma_ptr extract_curr_construct_pragmas(void)
+/*
+This routine gets the pointer to the list of current construct
+pragmas, goes through the list and clears any removes any source
+sequence entries that may exist, clears the current construct pragma
+entry on the scope stack, and returns the pragma list to the caller.
+This is used for saving the current construct pragma list so that
+the pragmas may be applied to each instance of a template.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+  a_pending_pragma_ptr  *pragma_list;
+  a_pending_pragma_ptr  list_head;
+
+  pragma_list = curr_list_of_curr_construct_pragmas();
+  /* Get the list head and clear the list pointer in the scope stack. */
+  ppp = *pragma_list;
+  list_head = ppp;
+  *pragma_list = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  while (ppp != NULL) {
+    /* If this source sequence entry was never bound to another IL entry,
+       remove it from the source sequence list. */
+    a_src_seq_sublist_ptr  sublist = NULL;
+    check_assertion_str2(ppp->source_sequence_entry != NULL &&
+                         ppp->source_sequence_entry->entity.kind ==
+                                             (a_byte_il_entry_kind)iek_none,
+                         "extract_curr_construct_pragmas:",
+                         "source sequence entry already in use");
+    remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
+    ppp->source_sequence_entry = NULL;
+    ppp = ppp->next;
+  }  /* while */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  return list_head;
+}  /* extract_curr_construct_pragmas */
 
 
 void process_pragmas_at_end_of_source(void)

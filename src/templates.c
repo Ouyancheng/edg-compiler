@@ -364,6 +364,8 @@ might not be able to if the template itself has not yet been defined.
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE);
       set_instantiation_required_for_template_class_members(class_type);
+      /* Process any pragmas that are to be bound to this instance. */
+      process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       pop_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
@@ -462,6 +464,8 @@ encountered.
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
                               /*is_local_class=*/FALSE);
+  /* Process any pragmas that are to be bound to this instance. */
+  process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
   pop_scope();
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
@@ -569,11 +573,19 @@ Instantiate the body of the template function associated with tip.
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
                    rout_sym, tip->template_sym, tip->arg_list);
+  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
+     the function type.  That will suppress any warnings about unused
+     parameters or variable arguments.  Note that this is done before calling
+     process_curr_construct_pragmas; otherwise the pragmas we're interested
+     in would have been disposed of. */
+  record_lint_argsused_and_varargs_state(rout_sym);
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tssp->token_cache);
   scan_function_body(rout_ptr, &tssp->variant.function.func_info,
                      (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                       SFB_IS_INSTANTIATION));
+  /* Process any pragmas that are to be bound to this instance. */
+  process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */
   pop_scope();
   --(tssp->pending_instantiations);
@@ -669,6 +681,9 @@ and the class instantiation will detect the runaway case.
        in the cache. */
     (void)get_token();
     pop_class_reactivation_scope();
+    /* Process any pragmas that are to be bound to this instance. */
+    process_curr_construct_pragmas(static_data_member_sym,
+                                   (a_statement_ptr)NULL);
     pop_scope();
 
   } else {
@@ -1637,6 +1652,10 @@ templ_sym).
                      tssp->declaration_scope, (a_type_ptr)NULL,
                      (a_routine_ptr)NULL, (a_symbol_ptr)NULL, templ_sym,
                      templ_arg_list);
+    /* Throw out any pragmas that are associated with this template.  The
+       pragmas are only processed when the function is actually
+       instantiated. */
+    discard_curr_construct_pragmas();
     /* Rescan the tokens of the function declaration. */
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
@@ -1686,6 +1705,10 @@ templ_sym).
       (void)push_scope((a_scope_kind)sck_template_instantiation,
                        tssp->declaration_scope, (a_type_ptr)NULL, rp,
                        sym, tip->template_sym, tip->arg_list);
+      /* Throw out any pragmas that are associated with this template.  The
+         pragmas are only processed when the function is actually
+         instantiated. */
+      discard_curr_construct_pragmas();
       delayed_scan_for_function_template_default_args
 			(templ_rout, rp, tssp);
       /* Pop the template instantiation scope. */
@@ -3566,17 +3589,18 @@ entry is pushed on the scope stack.
   /* Note that the template declaration scope must be popped before doing the
      prototype instantiation. */
   pop_scope();
-#if 0
+  /* Any pbk_next_construct pragmas that have not yet been processed will
+     be considered to bind to each of the instances generated from the
+     template.  Save the current construct pragma list in the template
+     symbol supplement. */
   if (sym != NULL) {
-    process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-  } else {
-    discard_curr_construct_pragmas();
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = template_supplement_for_symbol(sym);
+    check_assertion_str2(tssp != NULL, "template_declaration:",
+                         "tssp is NULL");
+    tssp->pragmas_bound_to_template =
+                        extract_curr_construct_pragmas();
   }  /* if */
-#else
-  /* A pragma can't bind to a template since there's no IL entry that
-     persists in the IL proper for it to point to.  At least for now. */
-  discard_curr_construct_pragmas();
-#endif /* if 0 */
   if (prototype_type != NULL) {
 #if CHECKING
     if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||

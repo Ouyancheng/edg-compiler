@@ -313,6 +313,8 @@ extern void cannot_bind_to_curr_construct(void);
 
 extern void discard_curr_construct_pragmas(void);
 
+extern a_pending_pragma_ptr extract_curr_construct_pragmas(void);
+
 extern
 a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind   kind,
                                               a_symbol_ptr    sym,
