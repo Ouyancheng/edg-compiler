@@ -695,7 +695,7 @@ do
   esac
   if [ $more_than_one_c_file -ne 0 ]
   then
-    echo $cfile: 1>$2
+    echo "$cfile:" 1>&2
   fi
   if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
     gen_c_file_name=$basefile$gen_c_suffix
