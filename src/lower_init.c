@@ -1126,7 +1126,6 @@ NULL pointer-to-data member in the IA-64 ABI.
 #if IA64_ABI
   if (is_or_was_ptr_to_data_member_type(desired_type)) {
     /* Make an integer -1 and convert it to the desired type. */
-    a_boolean did_not_fold;
     set_integer_constant(zero_constant, (a_host_large_integer)-1,
                          targ_ptr_to_data_member_int_kind);
   } else
@@ -1990,9 +1989,6 @@ IA-64 ABI; see comments below.
 
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- zero_storage is not used in that case. */
-#endif /* IA64_ABI */
 static an_expr_node_ptr make_placement_array_new_call(
                                           an_expr_node_ptr entity_node,
                                           a_type_ptr       entity_type,
@@ -4771,12 +4767,17 @@ static a_routine_ptr
 
 static a_routine_ptr helper_routine_to_zero_entity(
                                                a_type_ptr type,
-                                               a_boolean  have_complete_object)
+                                               a_boolean  have_complete_object,
+                                               a_boolean  need_array_count)
 /*
 Build a routine to zero-initialize an entity of the indicated type.
 This is needed in the IA-64 ABI because pointers to data members use
 -1 as the NULL value.  If have_complete_object is TRUE we have a
 complete object; if it is FALSE, we have a base class subobject.
+If need_array_count is TRUE, the generated routine has a second
+parameter of type size_t that indicates the number of elements
+of an array to be initialized, and the routine body has a loop
+to do the initializations.
 */
 {
   a_routine_ptr                 rp;
@@ -4787,7 +4788,7 @@ complete object; if it is FALSE, we have a base class subobject.
   an_insert_location            insert_location;
   a_generated_routine_context   context;
   a_variable_ptr                model_var, entity_var, count_var;
-  a_statement_ptr               loop_stmt, assign_stmt;
+  a_statement_ptr               loop_stmt, copy_stmt;
   an_expr_node_ptr              entity_expr, copy_expr;
   
   /* Build the routine entry.  It has two parameters: a pointer to an entity
@@ -4798,30 +4799,40 @@ complete object; if it is FALSE, we have a base class subobject.
   rp = make_rout_entry((char *)NULL, (a_storage_class)sc_static,
                        void_type(), pointer_type);
   rtsp = rp->type->variant.routine.extra_info;
-  rtsp->param_type_list->next = alloc_param_type(count_type);
+  if (need_array_count) {
+    rtsp->param_type_list->next = alloc_param_type(count_type);
+  }  /* if */
   /* Build the definition of the routine.  */
   scope = make_routine_definition(rp, /*make_return=*/TRUE, &il_region);
   push_generated_routine_context(scope, il_region, &context);
   /* Create the parameters. */
   scope->variant.routine.parameters = entity_var = 
                      make_lowered_param_variable(rtsp->param_type_list->type);
-  scope->variant.routine.parameters->next = count_var = 
+  if (need_array_count) {
+    scope->variant.routine.parameters->next = count_var = 
                make_lowered_param_variable(rtsp->param_type_list->next->type);
+  }  /* if */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* Build a model for the zero-initialized entity. */
   model_var = make_temporary_in_scope(type, scope, /*force_static=*/FALSE);
   model_var->init_kind = (an_init_kind)initk_zero;
   lower_initializer(model_var, &model_var->init_kind, &model_var->initializer,
                     &insert_location);
-  /* Build a loop to zero-initialize the entities. */
-  loop_stmt = alloc_statement((a_statement_kind)stmk_while);
-  loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_ipost_decr,
-                                       count_type,
-                                       var_lvalue_expr(count_var));
-  /* Build the body of the loop. */
-  entity_expr = make_operator_node((an_expr_operator_kind)eok_ipost_incr,
-                                   pointer_type,
-                                   var_lvalue_expr(entity_var));
+  if (need_array_count) {
+    /* Build a loop to zero-initialize the entities. */
+    loop_stmt = alloc_statement((a_statement_kind)stmk_while);
+    loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_ipost_decr,
+                                         count_type,
+                                         var_lvalue_expr(count_var));
+    /* The access to the entity increments it each time a store is done. */
+    entity_expr = make_operator_node((an_expr_operator_kind)eok_ipost_incr,
+                                     pointer_type,
+                                     var_lvalue_expr(entity_var));
+  } else {
+    entity_expr = var_rvalue_expr(entity_var);
+  }  /* if */
+  /* Build an expression to copy the model variable to the entity to
+     be initialized. */
   if (!have_complete_object) {
     /* Base class subobject.  Generate a memcpy to avoid copying more space
        than necessary. */
@@ -4847,9 +4858,16 @@ normal_copy:
                                      lowered_assignment_operator(type),
                                      var_rvalue_expr(model_var));
   }  /* if */
-  assign_stmt = alloc_expr_statement(copy_expr);
-  loop_stmt->variant.loop_statement = assign_stmt;
-  insert_statement(loop_stmt, &insert_location);
+  copy_stmt = alloc_expr_statement(copy_expr);
+  if (need_array_count) {
+    /* Loop case -- the copy statement is the body of the loop. */
+    loop_stmt->variant.loop_statement = copy_stmt;
+    insert_statement(loop_stmt, &insert_location);
+  } else {
+    /* Non-loop case -- the copy statement is just inserted in the body
+       of the function. */
+    insert_statement(copy_stmt, &insert_location);
+  }  /* if */
   /* Clean up. */
   pop_generated_routine_context(scope, il_region, &context);
   return rp;
@@ -4938,31 +4956,41 @@ from entity_type itself.  Insert the code for the call at *insert_location.
   } else if (contains_ptr_to_data_member(element_type)) {
     /* If the entity type contains pointers to data members they must
        be initialized to -1, not zero, for the IA-64 ABI. */
+    a_boolean array_case;
     if (num_elem_node == NULL) {
-      num_elem_node = node_for_host_large_integer(
+      array_case = (array_element_count != 1);
+      if (array_case) {
+        num_elem_node = node_for_host_large_integer(
                                      (a_host_large_integer)array_element_count,
                                      targ_size_t_int_kind);
-    } else if (array_element_count != 1) {
-      /* num_elem_node gives a number of elements.  Multiply it by
-         the value of array_element_count to get the actual number of
-         elements. */
-      num_elem_node= add_cast_if_necessary(num_elem_node,
+      }  /* if */
+    } else {
+      /* num_elem_node gives the number of elements in the array. */
+      array_case = TRUE;
+      if (array_element_count != 1) {
+        /* Multiply num_elem_node it by the value of array_element_count to
+           get the actual number of elements. */
+        num_elem_node = add_cast_if_necessary(
+                                           num_elem_node,
                                            integer_type(targ_size_t_int_kind));
-      num_elem_node->next = node_for_host_large_integer(
+        num_elem_node->next = node_for_host_large_integer(
                                      (a_host_large_integer)array_element_count,
                                      targ_size_t_int_kind);
-      num_elem_node = make_operator_node((an_expr_operator_kind)eok_imultiply,
-                                         num_elem_node->type,
-                                         num_elem_node);
+        num_elem_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_imultiply,
+                                          num_elem_node->type,
+                                          num_elem_node);
+      }  /* if */
     }  /* if */
     /* Call a helper routine to zero the entity.  Note that in this case
        the routine gets the count of array elements (or 1 for a non-array)
        rather than the size in bytes. */
     entity_node = add_cast_if_necessary(entity_node,
                                         make_pointer_type(element_type));
-    entity_node->next = num_elem_node;
+    if (array_case) entity_node->next = num_elem_node;
     (void)make_call_node(helper_routine_to_zero_entity(element_type,
-                                                       have_complete_object),
+                                                       have_complete_object,
+                                                       array_case),
                          entity_node, /*honor_virtual=*/FALSE,
                          insert_location);
 #endif /* IA64_ABI */
