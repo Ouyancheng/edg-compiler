@@ -5865,39 +5865,31 @@ point to the character after the universal character name.
 }  /* scan_universal_character */
 
 
-static a_token_kind accum_quoted_string(a_token_kind  ctoken,
-                                        unsigned long *num_chars,
-                                        a_boolean     *err)
+static a_boolean accum_quoted_string(unsigned long *num_chars,
+                                     a_boolean     is_header_name,
+                                     a_boolean     is_wide,
+                                     char          quoting_char)
 /*
-Scan a quoted construct, of kind indicated by ctoken.  The initial quote
-is at curr_char_loc, or the "L" before that for a wide literal.  Scan to
-the matching closing quote, and do not be confused by escaped characters
-and multibyte character sequences.  Return in *num_chars the actual number
-of characters (after escape processing) contained within the quotes.
-If the string is wide, *num_chars is set to the number of wide characters
-contained within the quotes.  Return *err TRUE if there was an error.
-The value of the function is ctoken usually, but tok_error if there was
-an error and fetch_pp_tokens is TRUE.  end_of_curr_token is set to point
-to the last character of the string.  This routine is used for character
-constants and string literals, in both the "wide" and normal forms, and
-for header names in #include and #line directives.
+Scan a quoted construct, of kind indicated by ctoken.  This routine is
+used for character constants and string literals, in both the "wide"
+and normal forms (is_wide indicates which), and for header names in
+#include and #line directives (is_header_name is TRUE for the #include
+case).  curr_char_loc is just past the initial quote.  Scan to the
+matching closing quote (indicated by quoting_char), and do not be
+confused by escaped characters and multibyte character sequences.
+Set *num_chars to the number of (possibly wide) characters contained
+in the string, after escape processing.  curr_char_loc and
+end_of_curr_token are set to point just before the closing quote of
+the string.  The return value is TRUE if the string was not terminated
+before the end of the line, FALSE if it was.  The caller is
+responsible for issuing error messages.
 */
 {
-  register char quoting_char, ch;
-  a_boolean     may_have_zero_characters = (ctoken == tok_string_literal);
-  a_boolean     is_header_name = (ctoken == tok_header_name);
-  a_boolean     is_wide = (*curr_char_loc == 'L');
+  register char ch;
+  unsigned long	nchars;
+  a_boolean     unterminated = FALSE;
 
-  *err = FALSE;
-  *num_chars = 0;
-  /* Advance past the "L" on a wide string. */
-  if (is_wide) curr_char_loc++;
-  quoting_char = *curr_char_loc;
-  /* For <...> header names, the closing quoting character is different
-     than the opening one. */
-  if (quoting_char == '<') quoting_char = '>';
-  /* Advance past the opening quoting character. */
-  curr_char_loc++;
+  nchars = 0;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -5915,13 +5907,7 @@ for header names in #include and #line directives.
         /* Token ends after the "\" -- this is an unclosed string.  This can
            happen because of macro definitions on the command line, e.g.,
            -DX="\ */
-        err_code_for_error_token = ec_unclosed_string;
-        if (fetch_pp_tokens) {
-          ctoken = tok_error;
-        } else {
-          error_at_line_pos(err_code_for_error_token, start_of_curr_token);
-        }  /* if */
-        *err = TRUE;
+        unterminated = TRUE;
         goto return_point;
       } else if ((ch == 'u' || ch == 'U') &&
                  universal_character_names_allowed) {
@@ -5936,10 +5922,10 @@ for header names in #include and #line directives.
                                        /*is_identifier=*/FALSE,
 				       /*is_identifier_start=*/FALSE,
                                        /*issue_diagnostics=*/FALSE);
-        (*num_chars)++;
+        nchars++;
       } else {
         curr_char_loc++;
-        (*num_chars)++;
+        nchars++;
         if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
           /* Octal escape, one to three digits.  Note that neither ANSI nor
              pcc allows 8 and 9 as octal digits in this case.  Note that
@@ -5958,18 +5944,10 @@ for header names in #include and #line directives.
         }  /* if */
       }  /* if */
     } else if (ch == LE_ESCAPE) {
-      /* Lexical escape, e.g., newline. */
-      /* Error, quoted string unclosed. */
-      /* Similar error for other strange cases of incomplete strings, which
-         can come up with preprocessing. */
-      /* Message is generic -- "Missing closing quote". */
-      err_code_for_error_token = ec_unclosed_string;
-      if (fetch_pp_tokens) {
-        ctoken = tok_error;
-      } else {
-        error_at_line_pos(err_code_for_error_token, start_of_curr_token);
-      }  /* if */
-      *err = TRUE;
+      /* Lexical escape, e.g., newline.  The string is unterminated at
+         end of line or in some other strange way that comes up with
+         preprocessing. */
+      unterminated = TRUE;
       goto return_point;
     } else {
       /* Normal character. */
@@ -5979,9 +5957,9 @@ for header names in #include and #line directives.
         int numch = mbc_length(curr_char_loc, (a_boolean *)NULL);
         curr_char_loc += numch;
         if (is_wide) {
-          (*num_chars)++;
+          nchars++;
         } else {
-          *num_chars += (unsigned long)numch;
+          nchars += (unsigned long)numch;
         }  /* if */
       } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
@@ -5990,45 +5968,59 @@ for header names in #include and #line directives.
         /* Advance to the next character without worrying about multibyte
            characters. */
         curr_char_loc++;
-        (*num_chars)++;
+        nchars++;
       }  /* if */
     }  /* if */
   }  /* while */
-  /* Skip the closing quote. */
-  curr_char_loc++;
-  if (*num_chars == 0 && !may_have_zero_characters) {
-    /* Error -- The string may not have zero characters. */
-    err_code_for_error_token = ec_zero_length_string;
-    if (fetch_pp_tokens) {
-      ctoken = tok_error;
-    } else {
-      error_at_line_pos(err_code_for_error_token, start_of_curr_token);
-    }  /* if */
-    *err = TRUE;
-  }  /* if */
 return_point:
-  end_of_curr_token = curr_char_loc - 1;
-  return ctoken;
+  end_of_curr_token = curr_char_loc;
+  *num_chars = nchars;
+  return unterminated;
 }  /* accum_quoted_string */
 
 
 static a_token_kind scan_char_constant(void)
 /*
 Scan a character constant token, return the token kind or tok_error.
-The token can be a normal or wide string constant.
+The token can be a normal or wide character constant.
 */
 {
-  a_token_kind  ctoken;
-  a_boolean     err;
-  unsigned long num_chars;
+  a_token_kind  ctoken = tok_char_constant;
+  unsigned long num_chars = 0;
+  a_boolean     is_wide = FALSE;
   an_error_code err_code;
   char          *err_pos;
 
-  ctoken = accum_quoted_string(tok_char_constant, &num_chars, &err);
+  if (*curr_char_loc == 'L') {
+    is_wide = TRUE;
+    curr_char_loc++;
+  }  /* if */
+  check_assertion(*curr_char_loc == '\'');
+  curr_char_loc++;
+  if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
+                          is_wide, '\'')) {
+    /* Error, character constant is unclosed. */
+    /* Similar error for other strange cases of incomplete strings, which
+       can come up with preprocessing. */
+    /* Message is generic -- "Missing closing quote". */
+    ctoken = tok_error;
+    err_code_for_error_token = ec_unclosed_string;
+  } else {
+    /* Advance past closing quote. */
+    check_assertion(*curr_char_loc == '\'');
+    curr_char_loc++;
+    /* Character constants may not be zero length. */
+    if (num_chars == 0) {
+      ctoken = tok_error;
+      err_code_for_error_token = ec_zero_length_string;
+    }  /* if */
+  }  /* if */
   if (!fetch_pp_tokens) {
     /* Convert the constant to internal form. */
-    if (err) {
+    if (ctoken == tok_error) {
+      ctoken = tok_char_constant;
       set_error_constant(&const_for_curr_token);
+      error_at_line_pos(err_code_for_error_token, start_of_curr_token);
     } else {
       conv_char_literal(num_chars, &err_code, &err_pos);
       /* Check for errors detected. */
@@ -6047,17 +6039,37 @@ Scan a string literal token, return the token kind or tok_error.
 The token can be a normal or wide string literal.
 */
 {
-  a_token_kind  ctoken;
-  a_boolean     err;
-  unsigned long num_chars;
+  a_token_kind  ctoken = tok_string_literal;
+  a_boolean     is_wide = FALSE;
+  unsigned long num_chars = 0;
   an_error_code err_code;
   char          *err_pos;
 
-  ctoken = accum_quoted_string(tok_string_literal, &num_chars, &err);
+  if (*curr_char_loc == 'L') {
+    is_wide = TRUE;
+    curr_char_loc++;
+  }  /* if */
+  check_assertion(*curr_char_loc == '"');
+  curr_char_loc++;
+  if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
+                          is_wide, '"')) {
+    /* Error, string is unclosed. */
+    /* Similar error for other strange cases of incomplete strings, which
+       can come up with preprocessing. */
+    /* Message is generic -- "Missing closing quote". */
+    ctoken = tok_error;
+    err_code_for_error_token = ec_unclosed_string;
+  } else {
+    /* Advance past closing quote. */
+    check_assertion(*curr_char_loc == '"');
+    curr_char_loc++;
+  }  /* if */
   if (!fetch_pp_tokens) {
     /* Convert the constant to internal form. */
-    if (err) {
+    if (ctoken == tok_error) {
+      ctoken = tok_string_literal;
       set_error_constant(&const_for_curr_token);
+      error_at_line_pos(err_code_for_error_token, start_of_curr_token);
     } else {
       conv_string_literal(num_chars, &err_code, &err_pos);
       /* Check for errors detected. */
@@ -6068,6 +6080,45 @@ The token can be a normal or wide string literal.
   }  /* if */
   return ctoken;
 }  /* scan_string_literal */
+
+
+static a_token_kind scan_header_name(void)
+/*
+Scan a header name token, return the token kind or tok_error.
+*/
+{
+  a_token_kind	ctoken = tok_header_name;
+  unsigned long	num_chars = 0;
+  char		quoting_char;
+
+  quoting_char = *curr_char_loc++;
+  /* Angle-bracket includes are closed by a different character than
+     opens them. */
+  if (quoting_char == '<') quoting_char = '>';
+  check_assertion(quoting_char == '"' || quoting_char == '>');
+  if (accum_quoted_string(&num_chars,
+                          /*is_header_name=*/TRUE,
+                          /*is_wide=*/FALSE,
+                          quoting_char)) {
+    /* Error, header name is unclosed. */
+    ctoken = tok_error;
+    err_code_for_error_token = ec_unclosed_string;
+  } else {
+    /* Advance past closing quote. */
+    check_assertion(*curr_char_loc == quoting_char);
+    curr_char_loc++;
+    /* Header names may not be zero length. */
+    if (num_chars == 0) {
+      ctoken = tok_error;
+      err_code_for_error_token = ec_zero_length_string;
+    }  /* if */
+  }  /* else */
+  if (!fetch_pp_tokens && ctoken == tok_error) {
+    error_at_line_pos(err_code_for_error_token, start_of_curr_token);
+    ctoken = tok_header_name;
+  }  /* if */
+  return ctoken;
+}  /* scan_header_name */
 
 #if ASM_SUPPORT_NEEDED
 
@@ -6668,8 +6719,6 @@ to speed in some cases.
   register a_token_kind ctoken;
   register char         ch;
   register a_symbol_ptr	assoc_symbol;
-  a_boolean             err;
-  unsigned long         num_chars;
   a_symbol_kind		id_kind;
   a_boolean		rescan, is_inert_macro = FALSE;
   a_boolean		continue_scan;
@@ -6943,7 +6992,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          If exp_system_header_name is TRUE, a header name of the form
          <filename>. */
       if (exp_system_header_name) {
-        ctoken = accum_quoted_string(tok_header_name, &num_chars, &err);
+        ctoken = scan_header_name();
         goto end_of_token_scan;
       } else if ((ch = *(curr_char_loc+1)) == '<') {
         if (*(curr_char_loc+2) == '=') {
@@ -7268,7 +7317,7 @@ end_id_scan:
         /* If in a preprocessing directive, and exp_header_name is
            TRUE, the string should be scanned as a header name (file
            name on a #include). */
-        ctoken = accum_quoted_string(tok_header_name, &num_chars, &err);
+        ctoken = scan_header_name();
         goto end_of_token_scan;
       } else {
         /* Scan as a string literal, not a header name.  We could still
@@ -12103,8 +12152,7 @@ host-target conversions are performed.
 */
 {
   a_name_linkage_kind  kind;
-  a_token_kind  ctoken;
-  a_boolean     err;
+  a_boolean     unterminated;
   unsigned long num_chars;
   an_error_code err_code;
   char          *err_pos;
@@ -12127,8 +12175,13 @@ host-target conversions are performed.
     curr_source_line[orig_len+5] = LE_END_OF_LINE;
     start_of_curr_token = curr_char_loc = curr_source_line;
     /* Tokenize the string. */
-    ctoken = accum_quoted_string(tok_string_literal, &num_chars, &err);
-    check_assertion(!err && ctoken == tok_string_literal);
+    curr_char_loc++;
+    num_chars = 0;
+    unterminated = accum_quoted_string(&num_chars,
+                                       /*is_header_name=*/FALSE,
+                                       /*is_wide=*/FALSE,
+                                       '"');
+    check_assertion(unterminated == FALSE);
     /* Convert it to internal form. */
     conv_string_literal(num_chars, &err_code, &err_pos);
     check_assertion(err_code == ec_no_error);
