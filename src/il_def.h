@@ -5889,7 +5889,7 @@ EXTERN struct il_header {
 		default_max_member_alignment;
 			/* If nonzero, the maximum alignment of any nonstatic
 			   data member of a class, struct, or union, unless a
-			   "#pragma pack" overrides it.  It's value is based
+			   "#pragma pack" overrides it.  Its value is based
 			   on command-line option "--pack_alignment".  (A zero
 			   value means that a member's alignment is based
 			   solely on its type.) */
