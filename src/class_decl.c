@@ -4525,7 +4525,8 @@ specified by decl_scope_level.
     if (access == (an_access_specifier)as_private ||
         access == (an_access_specifier)as_protected) {
       if (!access_error_already_issued) {
-        error(ec_anon_union_member_access);
+        pos_error(ec_anon_union_member_access,
+                  &assoc_object_type->source_corresp.decl_position);
         access_error_already_issued = TRUE;
       }  /* if */
     }  /* if */
@@ -4615,7 +4616,8 @@ specified by decl_scope_level.
                mf_sym = is_overloaded ? mf_sym->next : NULL) {
           if (!member_function_error_already_issued &&
               !mf_sym->variant.routine.ptr->compiler_generated) {
-            error(ec_anon_union_member_function);
+            pos_error(ec_anon_union_member_function,
+                      &assoc_object_type->source_corresp.decl_position);
             member_function_error_already_issued = TRUE;
           }  /* if */
           /* Class or namespace membership information has to be set even
