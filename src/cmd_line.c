@@ -654,6 +654,10 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  add_option_description(optk_embedded_cplusplus,
+                         "embedded_c++",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1701,6 +1705,9 @@ common_cfront_mode_settings:
         multibyte_chars_in_source_enabled = opt_value;
         break;
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+      case optk_embedded_cplusplus:
+        report_embedded_cplusplus_noncompliance = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1792,6 +1799,9 @@ common_cfront_mode_settings:
     }  /* if */
     if (option_kind_used[(int)optk_extern_inline]) {
       command_line_error(ec_cl_extern_inline_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_embedded_cplusplus]) {
+      command_line_error(ec_cl_embedded_cplusplus_option_only_in_cplusplus);
     }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {

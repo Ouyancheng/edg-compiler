@@ -10787,6 +10787,10 @@ assumed if the return type is omitted.
              pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
     unexpected_condition();
   }  /* if */
+  /* Templates are outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_templates_in_embedded_cplusplus);
   begin_rescan_of_pragma_tokens(ppp);
   begin_deferral_of_access_checks();
   start_pos = pos_curr_token;
@@ -10917,6 +10921,11 @@ brace) is returned in *final_token.  options is a bit set of option flags.
 */
 {
   db_enter(3, "template_directive_or_declaration");
+  check_assertion(curr_token == tok_template);
+  /* Templates are outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_templates_in_embedded_cplusplus);
   /* Caller should have initialized *final_token; it is changed to tok_rbrace
      if appropriate. */
   check_assertion(*final_token == tok_semicolon);

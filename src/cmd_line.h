@@ -151,6 +151,7 @@ typedef enum /*an_option_kind*/ {
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   optk_multibyte_chars,
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  optk_embedded_cplusplus,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -866,6 +867,14 @@ EXTERN a_boolean
 			   source code (in comments, string literals, and
 			   character constants). */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+EXTERN a_boolean
+		report_embedded_cplusplus_noncompliance /* = FALSE */;
+			/* TRUE to enforce the restricted version of C++
+			   called "Embedded C++" (no namespaces, templates,
+			   exceptions, RTTI, new-style casts, etc.).  The
+			   severity of the diagnostic issued is controlled
+			   by the discretionary-error mechanism. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

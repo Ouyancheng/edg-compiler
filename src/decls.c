@@ -6566,6 +6566,10 @@ caller.
 
   /* Save the source position of the declaration. */
   namespace_pos = pos_curr_token;
+  /* A namespace declaration is outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_namespaces_in_embedded_cplusplus);
   /* Bypass "namespace". */
   (void)get_token();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -6890,6 +6894,10 @@ A using-directive entry is created and activated for the current scope.
 
   db_enter(3, "using_directive");
   decl_start_pos = pos_curr_token;
+  /* A using-directive is outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_namespaces_in_embedded_cplusplus);
   /* Bypass "using" and "namespace". */
   (void)get_token();
   (void)get_token();
@@ -6983,6 +6991,10 @@ current scope.
   a_source_position        decl_pos;
 
   db_enter(3, "nonmember_using_declaration");
+  /* A using declaration is outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_using_decl_in_embedded_cplusplus);
   /* Bypass "using". */
   (void)get_token();
   add_stop_token(tok_semicolon);

@@ -3774,6 +3774,23 @@ two string fill-ins for the source file name and PCH file name.
 }  /* pch_message */
 
 
+void embedded_cplusplus_noncompliance_diagnostic(a_source_position  *error_pos,
+                                                 an_error_code      error_code)
+/*
+Issue a discretionary error for use of a feature that does not belong to the
+"Embedded C++" subset.  *error_pos is the source position with which the
+diagnostic is associated; error_code indicates the message to be issued.
+*/
+{
+  an_error_severity  severity;
+
+  /* Implementations may elect to hard-code a reduction in the severity of
+     of the diagnostics.  Otherwise, users can control it from the command
+     line (e.g., --diag_warning=ec_not_part_of_embedded_cplusplus). */
+  severity = es_discretionary_error;
+  pos_diagnostic(severity, error_code, error_pos);
+}  /* embedded_cplusplus_noncompliance_diagnostic */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void end_error(void)

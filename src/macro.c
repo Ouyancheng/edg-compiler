@@ -3897,6 +3897,12 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (report_embedded_cplusplus_noncompliance) {
+      /* Define a macro indicating this is an Embedded C++ application. */
+      (void)enter_predef_macro("1", "__embeddedcplusplus",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
 #if DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
     if (wchar_t_is_keyword) {
       /* Enter a predefined macro that can be used to determine that

@@ -3345,7 +3345,9 @@ or struct definition.  The syntax is
   a_boolean                     any_base_class_fixup_required;
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
   a_source_position             base_class_decl_pos;
+  a_source_position             base_specifier_start_pos;
   a_derivation_step_ptr         path;
+  a_boolean                     first_base_class = TRUE;
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -3379,6 +3381,7 @@ or struct definition.  The syntax is
     }  /* if */
     is_virtual = FALSE;
     access_already_specified = FALSE;
+    base_specifier_start_pos = pos_curr_token;
     /* Scan a single base specification, first looping through the specifying
        keywords virtual, public, private, and protected. */
     for (;;) {
@@ -3418,6 +3421,13 @@ or struct definition.  The syntax is
       a_boolean err = FALSE;
       base_class_decl_pos = pos_curr_token;
       base_class_type = NULL;
+      if (!first_base_class || is_virtual) {
+        /* Multiple inheritance and virtual inheritance are outside the
+           "Embedded C++" subset. */
+        feature_is_not_part_of_embedded_cplusplus_subset(
+                                &base_specifier_start_pos,
+                                ec_multiple_inheritance_in_embedded_cplusplus);
+      }  /* if */
       /* Look up the identifier for the base class.  Only identifiers
          that could be classes (including typedefs to classes and template
          parameters) are considered in the lookup. */
@@ -3769,6 +3779,7 @@ or struct definition.  The syntax is
         }  /* if */
       }  /* if */
 skip_base_class:
+      first_base_class = FALSE;
       /* Advance past the base class name to the comma or right brace. */
       (void)get_token();
     }  /* if */
@@ -7752,6 +7763,10 @@ or implicit) controlling the declaration.
   db_enter(3, "member_using_declaration");
   add_stop_token(tok_semicolon);
   if (curr_token == tok_using) {
+    /* A using-declaration is outside the "Embedded C++" subset. */
+    feature_is_not_part_of_embedded_cplusplus_subset(
+                                        &pos_curr_token,
+                                        ec_using_decl_in_embedded_cplusplus);
     /* This is a using declaration.  Bypass "using" and scan the
        identifier. */
     (void)get_token();

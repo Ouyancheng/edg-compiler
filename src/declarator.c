@@ -673,6 +673,10 @@ specification is handled later (see check_exception_specification).
     ignoring_exception_spec = TRUE;
   }  /* if */
   if (!ignoring_exception_spec) {
+    /* Exceptions are outside the "Embedded C++" subset. */
+    feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_exceptions_in_embedded_cplusplus);
     esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     esp->throw_position = pos_curr_token;

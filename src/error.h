@@ -425,6 +425,16 @@ extern void sym_add_diag_info(an_error_code   error_code,
 extern void pch_message(an_error_code error_code,
    		        char	      *fill_in_str);
 
+extern void embedded_cplusplus_noncompliance_diagnostic(
+                                              a_source_position  *error_pos,
+                                              an_error_code      error_code);
+
+/* Macro that determines whether to report a violation of the Embedded C++
+   subset. */
+#define feature_is_not_part_of_embedded_cplusplus_subset(pos, error_code) \
+  { if (report_embedded_cplusplus_noncompliance)                          \
+      embedded_cplusplus_noncompliance_diagnostic((pos), (error_code)); }
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void end_error(void);
 

@@ -3949,6 +3949,10 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     internal_error("scan_typeid_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* RTTI is outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                              &pos_curr_token,
+                                              ec_rtti_in_embedded_cplusplus);
   if (curr_expr_kind_is_const()) {
     /* typeid is not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &start_position);
@@ -4106,6 +4110,10 @@ Syntax:
     internal_error("scan_dynamic_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* New-style casts are outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                              &pos_curr_token,
+                                              ec_rtti_in_embedded_cplusplus);
   if (curr_expr_kind_is_const()) {
     /* dynamic_cast is not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &start_position);
@@ -6122,6 +6130,10 @@ Syntax:
     internal_error("scan_const_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* New-style casts are outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_new_cast_in_embedded_cplusplus);
   /* Advance past const_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
@@ -6262,6 +6274,10 @@ Syntax:
     internal_error("scan_static_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* New-style casts are outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_new_cast_in_embedded_cplusplus);
   /* Advance past static_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
@@ -6396,6 +6412,10 @@ Syntax:
     internal_error("scan_reinterpret_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* New-style casts are outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_new_cast_in_embedded_cplusplus);
   /* Advance past reinterpret_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
@@ -8821,6 +8841,11 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     /* "throw" not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
+  } else {
+    /* Exceptions are outside the "Embedded C++" subset. */
+    feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_exceptions_in_embedded_cplusplus);
   }  /* if */
 
 #if CHECKING

@@ -358,6 +358,10 @@ caution when modifying this routine.
         if (ppp != NULL) {
           /* This is the one. */
           tag_sym = type_info_sym;
+          /* RTTI is outside the "Embedded C++" subset. */
+          feature_is_not_part_of_embedded_cplusplus_subset(
+                                                &pos_curr_token,
+                                                ec_rtti_in_embedded_cplusplus);
           free_pending_pragma_list(ppp);
         } else {
 #if !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
@@ -2821,6 +2825,10 @@ Returns TRUE if there is an error in the specifiers.
             error(ec_mutable_not_allowed);
             err = TRUE;
           } else {
+            /* "mutable" is outside the "Embedded C++" subset. */
+            feature_is_not_part_of_embedded_cplusplus_subset(
+                                             &pos_curr_token,
+                                             ec_mutable_in_embedded_cplusplus);
             /* Aside from interactions with storage classes, errors cannot
                be issued on mutable until the declarator has been scanned.
                Just return a flag to the caller. */

@@ -921,6 +921,15 @@ ec_bad_multibyte_char;;"invalid multibyte character sequence"
 ec_bad_type_from_instantiation;;"template instantiation resulted in unexpected function type of %t1 (the meaning of a name may have changed since the template declaration -- the type of the template is %t2)"
 ec_ambiguous_guiding_decl;;"ambiguous guiding declaration -- more than one function template %no matches type %t"
 ec_non_integral_operation_in_templ_arg;;"non-integral operation not allowed in nontype template argument"
+ec_cl_embedded_cplusplus_option_only_in_cplusplus;;"option \"embedded_c++\" can be used only when compiling C++"
+ec_templates_in_embedded_cplusplus;;"Embedded C++ does not support templates"
+ec_exceptions_in_embedded_cplusplus;;"Embedded C++ does not support exception handling"
+ec_namespaces_in_embedded_cplusplus;;"Embedded C++ does not support namespaces"
+ec_rtti_in_embedded_cplusplus;;"Embedded C++ does not support run-time type information"
+ec_new_cast_in_embedded_cplusplus;;"Embedded C++ does not support the new cast syntax"
+ec_using_decl_in_embedded_cplusplus;;"Embedded C++ does not support using-declarations"
+ec_mutable_in_embedded_cplusplus;;"Embedded C++ does not support \"mutable\""
+ec_multiple_inheritance_in_embedded_cplusplus;;"Embedded C++ does not support multiple or virtual inheritance"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -2981,6 +2981,11 @@ where handler-seq is a sequence of one or more handlers of the form
   if (!exceptions_enabled) {
     /* Support for exceptions is suppressed for this compilation. */
     pos_error(ec_no_exception_support, &pos_curr_token);
+  } else {
+    /* Exceptions are outside the "Embedded C++" subset. */
+    feature_is_not_part_of_embedded_cplusplus_subset(
+                                          &pos_curr_token,
+                                          ec_exceptions_in_embedded_cplusplus);
   }  /* if */
   /* Bypass "try". */
   (void)get_token();
