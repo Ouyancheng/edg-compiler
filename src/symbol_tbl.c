@@ -4052,9 +4052,8 @@ ambiguity return *ambiguous set to TRUE.
     }  /* if */
     /* Ignore function templates. */
     if (is_function_symbol(fund_sym)) {
-      /* Look for a symbol for a function with just one parameter.  A default
-         argument is not allowed on the first argument and need not be checked
-         for; however, one may appear on the second argument. */
+      /* Look for a symbol for a function with just one parameter.  Default
+         arguments are not allowed and so are not checked for. */
       ptp = skip_typerefs(fund_sym->variant.routine.ptr->type)->
                                   variant.routine.extra_info->param_type_list;
       check_assertion(ptp != NULL);
@@ -4070,6 +4069,7 @@ ambiguity return *ambiguous set to TRUE.
           break;
         }  /* if */
       } else if (is_class_member) {
+        /* Special case for class member operator delete. */
         if (ptp->next->next == NULL &&
             skip_typerefs(ptp->next->type)->variant.integer.int_kind ==
                                                       targ_size_t_int_kind) {
