@@ -575,7 +575,7 @@ following information:
        complete object type. */
     result = complete_object_ptr;
   } else {
-    a_boolean	access_okay = TRUE;
+    a_boolean	access_okay = FALSE;
 #if ABI_COMPATIBILITY_VERSION >= 241
     /* Before doing the conversion, find the base class pointed to by the
        source pointer.  Make sure this points to an accessible base class.
