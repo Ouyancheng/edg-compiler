@@ -1045,29 +1045,6 @@ Process the default argument expressions for the indicated class.
                 rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (instantiations_permitted_in_class_src_seq_list) {
-          if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-            /* Set the source-sequence insert point so that instantiations
-               triggered by scanning default argument expressions will
-               appear inside the class definition, immediately before the
-               declaration in which the default argument appears.  This
-               assures that the instantiation will appear following the
-               declarations of class members on which it is dependent in one
-               way or another.  However, this will cause the C++-generating
-               back end to put out an explicit specialization inside a class
-               body, which is a violation of the standard. */
-            a_source_sequence_entry_ptr  ssep;
-            an_il_entry_kind             kind;
-
-            ssep = last_matching_source_sequence_entry(
-                                     il_entry_for_symbol(sym, &kind));
-            check_assertion(ssep != NULL);
-          }  /* if */
-        }  /* if */
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (is_real_template_instantiation &&
             sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
           /* This is a real template instantiation and the default argument
