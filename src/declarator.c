@@ -1803,10 +1803,7 @@ nonstatic data member of a class.
           break;
         case ck_template_param:
           switch_to_file_scope_region(&region_to_switch_back_to);
-          dim_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-          dim_expr->variant.constant =
-                   alloc_constant((a_constant_repr_kind)ck_template_param);
-          copy_constant(&constant, dim_expr->variant.constant);
+          dim_expr = alloc_node_for_constant(&constant);
           switch_back_to_original_region(region_to_switch_back_to);
           break;
         case ck_error:
