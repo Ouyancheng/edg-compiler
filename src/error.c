@@ -1172,6 +1172,12 @@ error code.
     case ec_overload_ignored:
       m = "\"overload\" ignored (anachronism)";
       break;
+    case ec_anon_union_member_access:
+      m = "invalid anonymous union -- nonpublic member not allowed";
+      break;
+    case ec_anon_union_member_function:
+      m = "invalid anonymous union -- member function not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -411,7 +411,9 @@ typedef enum /*an_error_code*/ {
   ec_member_already_initialized,
   ec_missing_base_class_or_member_name,
   ec_assignment_to_this,
-  ec_overload_ignored
+  ec_overload_ignored,
+  ec_anon_union_member_access,
+  ec_anon_union_member_function
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
