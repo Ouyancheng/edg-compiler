@@ -4981,7 +4981,7 @@ Scan a default case label definition.  The syntax is:
                       &label_position);
   }  else {
     /* We are not inside a switch statement. */
-    error(ec_default_label_must_be_in_switch);
+    pos_error(ec_default_label_must_be_in_switch, &label_position);
     set_reachable(curr_reachability);
   }  /* if */
   /* Check for and ignore the final colon. */
