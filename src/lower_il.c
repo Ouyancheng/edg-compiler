@@ -967,6 +967,7 @@ on return.
   *field_ptr = *old_field_ptr;
   field_ptr->source_corresp.name = field_name;
   field_ptr->source_corresp.parent.class_type = struct_type;
+  field_ptr->source_corresp.has_associated_pragma = FALSE;
   field_ptr->next = NULL;
   /* Add the field to the end of the struct field list. */
   if (*last_field == NULL) {
