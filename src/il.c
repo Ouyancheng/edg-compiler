@@ -3409,8 +3409,14 @@ put it on a list of constants).
          in mind that the only constants likely to be on this list
          are those that represent the address of a local variable, so the
          list is going to be fairly short. */
-      list_ptr = &scope_stack[depth_innermost_function_scope].
+      if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+        /* No function on the scope stack (we're probably in IL lowering).
+           There's no list of shareable constants. */
+        list_ptr = NULL;
+      } else {
+        list_ptr = &scope_stack[depth_innermost_function_scope].
                                                       shareable_constants_list;
+      }  /* if */
     } else {
       /* The constant can be shared at the file scope. */
       /* Look for a copy of the constant value in the
