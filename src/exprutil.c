@@ -2185,7 +2185,8 @@ object.  If there is an error, change "operand" to an error operand.
 See section 3.1.2.5 of the standard.
 */
 {
-  register a_boolean okay = TRUE;
+  a_boolean  okay = TRUE;
+  a_type_ptr underlying_type;
 
   if (is_error_operand(operand)) {
     /* If the operand has a type of error, an error message has already been
@@ -2195,8 +2196,9 @@ See section 3.1.2.5 of the standard.
     okay = FALSE;
   } else {
     /* Instantiate the underlying type if it is a template class. */
-    check_for_uninstantiated_template_class(operand->type);
-    if (!is_object_type(type_pointed_to(operand->type))) {
+    underlying_type = type_pointed_to(operand->type);
+    check_for_uninstantiated_template_class(underlying_type);
+    if (!is_object_type(underlying_type)) {
       error_in_operand(err_code, operand);
       okay = FALSE;
     }  /* if */
@@ -2785,7 +2787,7 @@ not being maintained.
   result->state = (an_operand_state)os_lvalue;
   copy_source_position(pos_curr_token, result->position);
   /* Instantiate the underlying type if it is a template class. */
-  check_for_uninstantiated_template_class(result->type);
+  check_for_uninstantiated_template_class(variable_type);
   /* Start a list of cross-reference entries related to the operand. */
   result->xref_entries_list = xep;
   /* If the variable has a reference type, add an implicit indirection. */
@@ -2886,7 +2888,7 @@ the operand is set to "pos_curr_token".
   make_expression_operand(node, node->type, result);
   if (C_dialect == C_dialect_cplusplus) {
     /* Instantiate the underlying type if it is a template class. */
-    check_for_uninstantiated_template_class(result->type);
+    check_for_uninstantiated_template_class(variable->type);
     /* In C++, replace a const variable by its value. */
     replace_const_variable_by_its_value(result);
     /* If the variable has a reference type, add an implicit indirection. */
