@@ -359,6 +359,11 @@ typedef struct a_member_decl_info {
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 			/* Always FALSE. */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  a_bit_field	return_type_def_err:1;
+			/* TRUE if an error has issued on defining a class or
+			   enum in a member function return type (used to
+			   avoid issuing multiple errors when there is more
+			   than one declarator). */
   a_source_sequence_entry_ptr
 		declarator_ssep;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -391,6 +396,7 @@ static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
   mdip->is_unnamed_field = FALSE;
   mdip->is_anonymous_union = FALSE;
   mdip->is_nonstd_anonymous_union = FALSE;
+  mdip->return_type_def_err = FALSE;
   mdip->declarator_ssep = NULL;
   mdip->member_sym = NULL;
 }  /* initialize_member_decl_info */
@@ -3082,7 +3088,7 @@ or struct definition.  The syntax is
       syntax_error(ec_exp_identifier);
     } else {
       /* Scan the base class name. */
-      a_boolean	err = FALSE;
+      a_boolean err = FALSE;
       base_class_decl_pos = pos_curr_token;
       base_class_type = NULL;
       /* Look up the identifier for the base class.  Only identifiers
@@ -3466,7 +3472,7 @@ of a C++ class, struct, or union or a C struct or union.
 
 
 void decl_friend_class(a_type_ptr          class_type,
-		       a_type_ptr          friend_class_type)
+                       a_type_ptr          friend_class_type)
 /*
 Do processing for declaring an entire class (friend_class_type) friend of
 the current class (class_type).
@@ -4233,6 +4239,210 @@ using *pos as the error position.
 }  /* check_for_conflicts_with_using_decls */
 
 
+static a_symbol_ptr special_function_symbol(
+                                        a_type_ptr               class_type,
+                                        a_special_function_kind  sfkind,
+                                        a_param_type_ptr         first_param,
+                                        a_boolean                *ambiguous)
+/*
+Find a member function (a constructor, destructor, or assignment operator,
+as indicated by sfkind) whose parent class is class_type.  first_param, which
+will be non-NULL for copy constructors and assignment operators, represents
+the first parameter of the member function in a derived class to which the
+the sought-for function corresponds.  If the lookup is successful, return a
+pointer to the symbol; otherwise, return NULL.  If there is more than one
+matching function, set *ambiguous to TRUE.
+*/
+{
+  a_symbol_ptr          sym;
+  a_boolean             class_bitwise_copy, pass_by_value;
+  a_type_qualifier_set  qualifiers;
+
+  if (first_param != NULL) {
+    /* A copy constructor or an assignment operator.  If the parameter is
+       of reference type, the qualifier underneath the reference is
+       significant. */
+    a_type_ptr  tp = first_param->type;
+    if (is_reference_type(tp)) {
+      /* Reference argument. */
+      qualifiers = get_type_qualifiers(type_pointed_to(tp));
+    } else {
+      qualifiers = TQ_NONE;
+    }  /* if */
+  }  /* if */
+  switch (sfkind) {
+    case sfk_constructor:
+      if (first_param == NULL) {
+        /* Default constructor. */
+        sym = find_default_constructor(class_type, ambiguous);
+      } else {
+        /* Copy constructor. */
+        sym = find_copy_constructor(class_type, qualifiers,
+                                    ambiguous, &class_bitwise_copy);
+      }  /* if */
+      break;
+    case sfk_destructor:
+      /* Destructor. */
+      sym = (symbol_supplement_for_class(class_type))->destructor;
+      break;
+    case sfk_operator:
+      /* Assignment operator. */
+      check_assertion(first_param != NULL);
+      sym = find_copy_assignment_operator(class_type, qualifiers,
+                                          ambiguous, &pass_by_value);
+      break;
+    default:
+      unexpected_condition_str2("special_function_symbol:",
+                                "bad special function kind");
+  }  /* switch */
+  return sym;
+}  /* special_function_symbol */
+
+
+static a_boolean merge_exception_specifications(a_func_info_block  *func_info,
+                                                a_symbol_ptr       sym)
+/*
+Look up the exception specification associated with the member function
+indicated by sym and record it in func_info, merging it with the exception
+specification already there, if any.  If sym can throw any exception, return
+TRUE.
+*/
+{
+  a_boolean                            throw_any;
+  an_exception_specification_ptr       old_esp, new_esp;
+  an_exception_specification_type_ptr  old_estp, estp;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+  /* Fetch the exception specification associated with the member function
+     indicated by sym. */
+  old_esp = sym->variant.routine.ptr->type->
+                  variant.routine.extra_info->exception_specification;
+  if (old_esp == NULL) {
+    /* The function can throw any exception. */
+    throw_any = TRUE;
+  } else {
+    throw_any = FALSE;
+    new_esp = func_info->exception_specification;
+    if (new_esp == NULL) {
+      /* No exception specification has been recorded in func_info yet, so
+         allocate the entry. */
+      new_esp = alloc_exception_specification();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      new_esp->throw_position = sym->decl_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      func_info->exception_specification = new_esp;
+    }  /* if */
+    /* Now traverse the types specified for the exception specification of the
+       function indicated by sym.  Make a copy of any that does not already
+       appear on the func_info list. */
+    old_estp = old_esp->exception_specification_type_list;
+    for (; old_estp != NULL; old_estp = old_estp->next) {
+      if (old_estp->redundant) {
+        /* Skip it. */
+      } else {
+        /* See if it's already on the list. */
+        estp = new_esp->exception_specification_type_list;
+        for (; estp != NULL; estp = estp->next) {
+          if (identical_types(estp->type, old_estp->type)) {
+            /* It's already on the list. */
+            break;
+          }  /* if */
+        }  /* for */
+        if (estp != NULL) {
+          /* Skip it. */
+        } else {
+          /* It hasn't been added to the list yet.  Allocate a new
+             exception-specification type entry and add it to the list
+             attached to the func_info block.  The order is unimportant, so
+             it can be placed on the front of the list. */
+          estp = alloc_exception_specification_type();
+          estp->type = old_estp->type;
+          estp->next = new_esp->exception_specification_type_list;
+          new_esp->exception_specification_type_list = estp;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return throw_any;
+}  /* merge_exception_specifications */
+
+
+static void form_exception_specification_for_generated_function(
+                                      a_special_function_kind  sfkind,
+                                      a_type_ptr               rout_type,
+                                      a_type_ptr               class_type,
+                                      a_func_info_block        *func_info)
+/*
+Synthesize an exception specification for an implicitly declared (i.e.,
+compiler-generated) member function -- a constructor, destructor, or
+assignment operator, as indicated by sfkind.  rout_type is the type of the
+function being generated, and class_type is its parent class.  The exception
+specification is still recorded in the func_info block at this point in the
+processing.  The synthesized exception specification is the union of all
+exception specifications for the routines that will be called when the
+definition of the compiler-generated member function is finally put out.  For
+instance, if a destructor is implicitly generated, it is assumed to throw all
+exceptions that any destructor it calls (for a base class or nonstatic data
+member) is able to throw.  This routine is only called in C++ mode and only
+when exception support is enabled.
+*/
+{
+  a_base_class_ptr  bcp;
+  a_field_ptr       fp;
+  a_type_ptr        tp;
+  a_symbol_ptr      sym;
+  a_boolean         throw_any = FALSE;
+  a_boolean         ambiguous;
+  a_param_type_ptr  first_param;
+
+  check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
+  first_param = rout_type->variant.routine.extra_info->param_type_list;
+  /* Go through the base classes looking for matching special functions, and
+     merge the exception specifications. */
+  bcp = base_classes_of(class_type);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      sym = special_function_symbol(bcp->type, sfkind, first_param,
+                                    &ambiguous);
+      if (ambiguous) {
+        /* If there's an ambiguity, assume anything might be thrown. */
+        throw_any = TRUE;
+      } if (sym != NULL) {
+        /* Form the union of exception specifications. */
+        throw_any = merge_exception_specifications(func_info, sym);
+      }  /* if */
+    }  /* if */
+    /* If any exception might be thrown, (i.e., the union is the universe),
+       stop looking. */
+    if (throw_any) break;
+  }  /* for */
+  if (!throw_any) {
+    fp = class_type->variant.class_struct_union.field_list;
+    for (; fp != NULL; fp = fp->next) {
+      tp = fp->type;
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      tp = skip_typedefs(tp);
+      if (is_immediate_class_type(tp)) {
+        sym = special_function_symbol(tp, sfkind, first_param, &ambiguous);
+        if (ambiguous) {
+          /* If there's an ambiguity, assume anything might be thrown. */
+          throw_any = TRUE;
+        } if (sym != NULL) {
+          /* Form the union of exception specifications. */
+          throw_any = merge_exception_specifications(func_info, sym);
+        }  /* if */
+      }  /* if */
+      /* If any exception might be thrown, stop looking. */
+      if (throw_any) break;
+    }  /* for */
+  }  /* if */
+  if (throw_any) {
+    /* Clear the exception_specification pointer, in case it had been set. */
+    func_info->exception_specification = NULL;
+  }  /* if */
+}  /* form_exception_specification_for_generated_function */
+
+
 a_boolean conflicts_with_previous_function_decl(a_symbol_ptr       using_sym,
                                                 a_symbol_ptr       sym,
                                                 a_source_position  *pos)
@@ -4288,26 +4498,21 @@ as the error position.
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
-static a_symbol_ptr decl_member_function(
-                             a_symbol_locator               *locator,
-                             a_type_ptr                     class_type,
-                             a_type_ptr                     member_type,
-                             a_func_info_block_ptr          func_info,
-                             a_class_def_state_ptr          class_state,
-                             a_boolean                      is_virtual,
-                             a_boolean                      compiler_generated,
-                             a_special_function_kind        spec_kind,
-                             a_decl_modifier		    decl_modifiers)
+static void decl_member_function(a_symbol_locator        *locator,
+                                 a_type_ptr              class_type,
+                                 a_type_ptr              member_type,
+                                 a_func_info_block_ptr   func_info,
+                                 a_class_def_state_ptr   class_state,
+                                 a_member_decl_info_ptr  decl_info,
+                                 a_boolean               compiler_generated,
+                                 a_decl_modifier         decl_modifiers)
 /*
 For a member function declaration:  create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
 routine entry to the routines list for the current class.  *locator give the
 source locator of the declaration.  class_type points to the type entry of the
 class of which the function is a member, and member_type points to the type
-entry of the function itself.  access is the access control governing the
-specification.  is_inline and is_virtual indicate whether the inline and
-virtual keywords were specified in the declaration.  spec_kind identifies the
-special function kind (e.g., constructor, destructor), if any.
+entry of the function itself.
 */
 {
   a_symbol_ptr                  sym, overload_sym;
@@ -4317,6 +4522,7 @@ special function kind (e.g., constructor, destructor), if any.
   a_type_ptr                    tp;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
+  a_boolean                     is_virtual;
 
   db_enter(3, "decl_member_function");
   /* If this is a user-defined conversion or an overloaded operator,
@@ -4347,6 +4553,7 @@ special function kind (e.g., constructor, destructor), if any.
     sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                              decl_scope_level, /*suppress_redecl_error=*/TRUE);
   }  /* if */
+  decl_info->member_sym = sym;
   /* Create the routine entry for the member function. */
   /* The routine is allocated in the current memory region, as indicated
      by curr_il_region_number -- i.e., in the memory region of the scope in
@@ -4429,7 +4636,6 @@ special function kind (e.g., constructor, destructor), if any.
        declaration. */
     process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   }  /* if */
-  add_exception_specification(func_info, rtn);
   if (overload_sym != NULL) {
     check_for_conflicts_with_using_decls(overload_sym,
                                          &locator->source_position);
@@ -4518,13 +4724,17 @@ special function kind (e.g., constructor, destructor), if any.
         pos_sy_warning(ec_conversion_function_not_usable,
                        &locator->source_position, sym);
       }  /* if */
-    } else {
-      rtn->special_kind = spec_kind;
+    } else if (decl_info->is_constructor) {
+      rtn->special_kind = (a_special_function_kind)sfk_constructor;
+    } else if (decl_info->is_destructor) {
+      rtn->special_kind = (a_special_function_kind)sfk_destructor;
     }  /* if */
     /* If "virtual" was specified in the declaration, mark the routine as
        virtual.  Even if it wasn't, its virtualness can be inherited.  In
        either case record the relationship between the current routine and
        its appearance in the base classes of the current class. */
+    is_virtual = ((decl_info->dso_flags & DSO_VIRTUAL) &&
+                  !decl_info->invalid_virtual_specifier);
     if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
                                    &locator->source_position)) {
       /* Classes with virtual functions require constructors. */
@@ -4534,7 +4744,7 @@ special function kind (e.g., constructor, destructor), if any.
       cssp->construction_by_bitwise_copy_allowed = FALSE;
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
-    if (spec_kind == (a_special_function_kind)sfk_constructor) {
+    if (rtn->special_kind == (a_special_function_kind)sfk_constructor) {
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (cssp->constructor == NULL) {
@@ -4565,10 +4775,18 @@ special function kind (e.g., constructor, destructor), if any.
           cssp->construction_by_bitwise_copy_allowed = FALSE;
         }  /* if */
       }  /* if */
-    } else if (spec_kind == (a_special_function_kind)sfk_destructor) {
+    } else if (rtn->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Set the pointer to the destructor symbol in the class symbol
          supplement. */
       cssp->destructor = sym;
+    }  /* if */
+    if (exceptions_enabled) {
+      if (compiler_generated) {
+        form_exception_specification_for_generated_function(
+                                               rtn->special_kind, member_type,
+                                               class_type, func_info);
+      }  /* if */
+      add_exception_specification(func_info, rtn);
     }  /* if */
     update_routine_decl_modifiers(rtn, decl_modifiers,
                                   &locator->source_position,
@@ -4580,7 +4798,6 @@ special function kind (e.g., constructor, destructor), if any.
 #endif /* DEBUG */
 
   db_exit();
-  return sym;
 }  /* decl_member_function */
 
 
@@ -4767,9 +4984,9 @@ function declarations.)
 }  /* decl_member_function_template */
 
 
-static void scan_pure_specifier(a_symbol_ptr  rout_sym,
-                                a_type_ptr    class_type,
-                                a_boolean     suppress_error)
+static void scan_pure_specifier(a_symbol_ptr            rout_sym,
+                                a_type_ptr              class_type,
+                                a_member_decl_info_ptr  decl_info)
 /*
 The current token is an "=", encountered just after the scanning of a
 member or friend function declarator.  A pure specifier is defined as "= 0",
@@ -4791,7 +5008,7 @@ and it is legal for virtual member functions only.
                                   variant.function.routine->is_virtual :
                   rout_sym->variant.routine.ptr->is_virtual;
   }  /* if */
-  if (!pure_specifier_allowed && !suppress_error) {
+  if (!pure_specifier_allowed && !decl_info->invalid_virtual_specifier) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
   }  /* if */
   /* Advance past the "=". */
@@ -6162,237 +6379,32 @@ class, struct, or union.
 }  /* decl_nonstatic_data_member */
 
 
-static a_symbol_ptr special_function_symbol(
-                                        a_type_ptr               class_type,
-                                        a_special_function_kind  sfkind,
-                                        a_param_type_ptr         first_param,
-                                        a_boolean                *ambiguous)
-/*
-Find a member function (a constructor, destructor, or assignment operator,
-as indicated by sfkind) whose parent class is class_type.  first_param, which
-will be non-NULL for copy constructors and assignment operators, represents
-the first parameter of the member function in a derived class to which the
-the sought-for function corresponds.  If the lookup is successful, return a
-pointer to the symbol; otherwise, return NULL.  If there is more than one
-matching function, set *ambiguous to TRUE.
-*/
-{
-  a_symbol_ptr          sym;
-  a_boolean             class_bitwise_copy, pass_by_value;
-  a_type_qualifier_set  qualifiers;
-
-  if (first_param != NULL) {
-    /* A copy constructor or an assignment operator.  If the parameter is
-       of reference type, the qualifier underneath the reference is
-       significant. */
-    a_type_ptr  tp = first_param->type;
-    if (is_reference_type(tp)) {
-      /* Reference argument. */
-      qualifiers = get_type_qualifiers(type_pointed_to(tp));
-    } else {
-      qualifiers = TQ_NONE;
-    }  /* if */
-  }  /* if */
-  switch (sfkind) {
-    case sfk_constructor:
-      if (first_param == NULL) {
-        /* Default constructor. */
-        sym = find_default_constructor(class_type, ambiguous);
-      } else {
-        /* Copy constructor. */
-        sym = find_copy_constructor(class_type, qualifiers,
-                                    ambiguous, &class_bitwise_copy);
-      }  /* if */
-      break;
-    case sfk_destructor:
-      /* Destructor. */
-      sym = (symbol_supplement_for_class(class_type))->destructor;
-      break;
-    case sfk_operator:
-      /* Assignment operator. */
-      check_assertion(first_param != NULL);
-      sym = find_copy_assignment_operator(class_type, qualifiers,
-                                          ambiguous, &pass_by_value);
-      break;
-    default:
-      unexpected_condition_str2("special_function_symbol:",
-                                "bad special function kind");
-  }  /* switch */
-  return sym;
-}  /* special_function_symbol */
-
-
-static a_boolean merge_exception_specifications(a_func_info_block  *func_info,
-                                                a_symbol_ptr       sym)
-/*
-Look up the exception specification associated with the member function
-indicated by sym and record it in func_info, merging it with the exception
-specification already there, if any.  If sym can throw any exception, return
-TRUE.
-*/
-{
-  a_boolean                            throw_any;
-  an_exception_specification_ptr       old_esp, new_esp;
-  an_exception_specification_type_ptr  old_estp, estp;
-
-  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
-  /* Fetch the exception specification associated with the member function
-     indicated by sym. */
-  old_esp = sym->variant.routine.ptr->type->
-                  variant.routine.extra_info->exception_specification;
-  if (old_esp == NULL) {
-    /* The function can throw any exception. */
-    throw_any = TRUE;
-  } else {
-    throw_any = FALSE;
-    new_esp = func_info->exception_specification;
-    if (new_esp == NULL) {
-      /* No exception specification has been recorded in func_info yet, so
-         allocate the entry. */
-      new_esp = alloc_exception_specification();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      new_esp->throw_position = sym->decl_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      func_info->exception_specification = new_esp;
-    }  /* if */
-    /* Now traverse the types specified for the exception specification of the
-       function indicated by sym.  Make a copy of any that does not already
-       appear on the func_info list. */
-    old_estp = old_esp->exception_specification_type_list;
-    for (; old_estp != NULL; old_estp = old_estp->next) {
-      if (old_estp->redundant) {
-        /* Skip it. */
-      } else {
-        /* See if it's already on the list. */
-        estp = new_esp->exception_specification_type_list;
-        for (; estp != NULL; estp = estp->next) {
-          if (identical_types(estp->type, old_estp->type)) {
-            /* It's already on the list. */
-            break;
-          }  /* if */
-        }  /* for */
-        if (estp != NULL) {
-          /* Skip it. */
-        } else {
-          /* It hasn't been added to the list yet.  Allocate a new
-             exception-specification type entry and add it to the list
-             attached to the func_info block.  The order is unimportant, so
-             it can be placed on the front of the list. */
-          estp = alloc_exception_specification_type();
-          estp->type = old_estp->type;
-          estp->next = new_esp->exception_specification_type_list;
-          new_esp->exception_specification_type_list = estp;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return throw_any;
-}  /* merge_exception_specifications */
-
-
-static void form_exception_specification_for_generated_function(
-                                      a_special_function_kind  sfkind,
-                                      a_type_ptr               rout_type,
-                                      a_type_ptr               class_type,
-                                      a_func_info_block        *func_info)
-/*
-Synthesize an exception specification for an implicitly declared (i.e.,
-compiler-generated) member function -- a constructor, destructor, or
-assignment operator, as indicated by sfkind.  rout_type is the type of the
-function being generated, and class_type is its parent class.  The exception
-specification is still recorded in the func_info block at this point in the
-processing.  The synthesized exception specification is the union of all
-exception specifications for the routines that will be called when the
-definition of the compiler-generated member function is finally put out.  For
-instance, if a destructor is implicitly generated, it is assumed to throw all
-exceptions that any destructor it calls (for a base class or nonstatic data
-member) is able to throw.  This routine is only called in C++ mode and only
-when exception support is enabled.
-*/
-{
-  a_base_class_ptr  bcp;
-  a_field_ptr       fp;
-  a_type_ptr        tp;
-  a_symbol_ptr      sym;
-  a_boolean         throw_any = FALSE;
-  a_boolean         ambiguous;
-  a_param_type_ptr  first_param;
-
-  check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
-  first_param = rout_type->variant.routine.extra_info->param_type_list;
-  /* Go through the base classes looking for matching special functions, and
-     merge the exception specifications. */
-  bcp = base_classes_of(class_type);
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct) {
-      sym = special_function_symbol(bcp->type, sfkind, first_param,
-                                    &ambiguous);
-      if (ambiguous) {
-        /* If there's an ambiguity, assume anything might be thrown. */
-        throw_any = TRUE;
-      } if (sym != NULL) {
-        /* Form the union of exception specifications. */
-        throw_any = merge_exception_specifications(func_info, sym);
-      }  /* if */
-    }  /* if */
-    /* If any exception might be thrown, (i.e., the union is the universe),
-       stop looking. */
-    if (throw_any) break;
-  }  /* for */
-  if (!throw_any) {
-    fp = class_type->variant.class_struct_union.field_list;
-    for (; fp != NULL; fp = fp->next) {
-      tp = fp->type;
-      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-      tp = skip_typedefs(tp);
-      if (is_immediate_class_type(tp)) {
-        sym = special_function_symbol(tp, sfkind, first_param, &ambiguous);
-        if (ambiguous) {
-          /* If there's an ambiguity, assume anything might be thrown. */
-          throw_any = TRUE;
-        } if (sym != NULL) {
-          /* Form the union of exception specifications. */
-          throw_any = merge_exception_specifications(func_info, sym);
-        }  /* if */
-      }  /* if */
-      /* If any exception might be thrown, stop looking. */
-      if (throw_any) break;
-    }  /* for */
-  }  /* if */
-  if (throw_any) {
-    /* Clear the exception_specification pointer, in case it had been set. */
-    func_info->exception_specification = NULL;
-  }  /* if */
-}  /* form_exception_specification_for_generated_function */
-
-
 static void generate_special_function(a_type_ptr               class_type,
                                       a_class_def_state_ptr    class_state,
-                                      a_param_type_ptr         ptp,
-                                      a_special_function_kind  sfkind)
-
+                                      a_member_decl_info_ptr   decl_info,
+                                      a_param_type_ptr         ptp)
 /*
 Create a routine entry for a compiler generated constructor, destructor, or
 assignment operator.  The created routine is a member function of the class
-specified by class_type.  If it has any parameter besides the implicit
-"this" parameter (i.e., for a copy constructor or assignment operator), a
-non-NULL param type pointer is passed in as ptp.  sfkind indicates whether
-a constructor, destructor, or assignment operator should be created.  No
-routine body is generated at this time.
+specified by class_type.  If it has any parameter besides the implicit "this"
+parameter (i.e., for a copy constructor or assignment operator), a non-NULL
+param type pointer is passed in as ptp.  *decl_info tracks information about
+the declaration, including whether a constructor, destructor, or assignment
+operator should be created.  No routine body is generated at this time.
 */
 {
   a_type_ptr                rout_type;
   a_routine_type_supplement *extra_info;
   a_symbol_locator          locator;
-  a_source_position         pos;
   a_func_info_block         func_info;
+  a_source_position         *class_decl_pos;
   a_type_qualifier_set      qualifiers = TQ_CONST;
 
   db_enter(3, "generate_special_function");
   /* Allocate and initialize the routine type entry for the function. */
   rout_type = alloc_type((a_type_kind)tk_routine);
   extra_info = rout_type->variant.routine.extra_info;
-  if (sfkind == (a_special_function_kind)sfk_destructor) {
+  if (decl_info->is_destructor) {
     /* Destructors are given a return type of void. */
     rout_type->variant.routine.return_type = void_type();
     extra_info->assoc_routine_is_dtor = TRUE;
@@ -6400,7 +6412,7 @@ routine body is generated at this time.
     /* Constructors and default assignment operators are given a return type
        of reference to class-type. */
     rout_type->variant.routine.return_type = make_reference_type(class_type);
-    if (sfkind == (a_special_function_kind)sfk_constructor) {
+    if (decl_info->is_constructor) {
       extra_info->assoc_routine_is_ctor = TRUE;
     }  /* if */
   }  /* if */
@@ -6421,31 +6433,28 @@ routine body is generated at this time.
      to be safe, in case the rules change on when the flag needs to be set. */
   set_routine_calling_method_flag(rout_type, &null_source_position);
   /* Create a locator for the symbol that will be created. */
-  pos = class_type->source_corresp.decl_position;
-  if (sfkind == (a_special_function_kind)sfk_operator) {
-    make_opname_locator((an_opname_kind)onk_assign, &locator, &pos);
-  } else {
-    make_locator_for_symbol((a_symbol_ptr)class_type->
-                                                  source_corresp.assoc_info,
-                            &locator);
-    if (sfkind == (a_special_function_kind)sfk_constructor) {
-      change_class_locator_into_constructor_locator(&locator, &pos);
+  class_decl_pos = &class_type->source_corresp.decl_position;
+  if (decl_info->is_constructor || decl_info->is_destructor) {
+    a_symbol_ptr tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+
+    make_locator_for_symbol(tag_sym, &locator);
+    if (decl_info->is_constructor) {
+      change_class_locator_into_constructor_locator(&locator, class_decl_pos);
     } else {
       tildize_locator(&locator);
     }  /* if */
+  } else {
+    /* Must be an assignment operator. */
+    make_opname_locator((an_opname_kind)onk_assign, &locator, class_decl_pos);
   }  /* if */
   clear_func_info(&func_info);
-  if (exceptions_enabled) {
-    func_info.throw_position = pos_curr_token;
-    form_exception_specification_for_generated_function(sfkind, rout_type,
-                                                       class_type, &func_info);
-  }  /* if */
   func_info.is_inline = TRUE;
+  if (exceptions_enabled) func_info.throw_position = *class_decl_pos;
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
-  (void)decl_member_function(&locator, class_type, rout_type, &func_info,
-                             class_state, /*is_virtual=*/FALSE,
-                             /*compiler_generated=*/TRUE, sfkind, DM_NONE);
+  decl_member_function(&locator, class_type, rout_type, &func_info,
+                       class_state, decl_info, /*compiler_generated=*/TRUE,
+                       DM_NONE);
   done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -6679,13 +6688,18 @@ The routine body is not generated until it is known to be needed.
   a_class_symbol_supplement_ptr cssp;
   a_boolean                     const_okay, dummy_flag;
   a_type_qualifier_set          qualifiers;
+  a_member_decl_info            decl_info;
+  a_source_position             *pos;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
+  pos = &class_type->source_corresp.decl_position;
   if (cssp->constructor_required && cssp->constructor == NULL) {
     /* A default constructor needs to be generated. */
-    generate_special_function(class_type, class_state, (a_param_type_ptr)NULL,
-                              (a_special_function_kind)sfk_constructor);
+    initialize_member_decl_info(&decl_info, pos);
+    decl_info.is_constructor = TRUE;
+    generate_special_function(class_type, class_state, &decl_info,
+                              (a_param_type_ptr)NULL);
   }  /* if */
   if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
     default_copy_constructor_check(class_type, &const_okay);
@@ -6697,12 +6711,15 @@ The routine body is not generated until it is known to be needed.
        a template parameter. */
     ptp->type_involves_template_param =
                                   is_or_contains_template_param(class_type);
-    generate_special_function(class_type, class_state, ptp,
-                              (a_special_function_kind)sfk_constructor);
+    initialize_member_decl_info(&decl_info, pos);
+    decl_info.is_constructor = TRUE;
+    generate_special_function(class_type, class_state, &decl_info, ptp);
   }  /* if */
   if (cssp->destructor_required && cssp->destructor == NULL) {
-    generate_special_function(class_type, class_state, (a_param_type_ptr)NULL,
-                              (a_special_function_kind)sfk_destructor);
+    initialize_member_decl_info(&decl_info, pos);
+    decl_info.is_destructor = TRUE;
+    generate_special_function(class_type, class_state, &decl_info,
+                              (a_param_type_ptr)NULL);
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
      class if one doesn't already exist. */
@@ -6726,8 +6743,8 @@ The routine body is not generated until it is known to be needed.
          contains a template parameter. */
       ptp->type_involves_template_param =
                                   is_or_contains_template_param(class_type);
-      generate_special_function(class_type, class_state, ptp,
-                                (a_special_function_kind)sfk_operator);
+      initialize_member_decl_info(&decl_info, pos);
+      generate_special_function(class_type, class_state, &decl_info, ptp);
     }  /* if */
   }  /* if */
   db_exit();
@@ -7630,27 +7647,19 @@ moreover, several fields of *decl_info may be updated by this routine.
 }  /* check_missing_declarator_in_member_declaration */
 
 
-static void check_complete_member_type(
-                                 a_type_ptr              *type,
-                                 a_symbol_locator        *locator,
-                                 a_class_def_state_ptr   class_state,
-                                 a_storage_class         storage_class,
-                                 a_source_position       *decl_start_pos,
-                                 a_boolean               *return_type_def_err,
-                                 a_decl_flag_set         dso_flags)
+static void check_completed_member_type(a_type_ptr              *type,
+                                        a_symbol_locator        *locator,
+                                        a_class_def_state_ptr   class_state,
+                                        a_member_decl_info_ptr  decl_info)
 /*
-This routine is called after declarator to perform some checks on the type
-produced by the combined processing of decl_specifiers and declarator. "type"
-is the complete type.  storage_class is the storage class that was specified.
-locator points to the symbol locator for the member.  *decl_start_pos indicates
-the source position of the start of the declaration.  *return_type_def_error
-is set once a definition-in-return-type error has been issued (so it won't
-be put out more than once).  dso_flags is the bit set of flags returned by
-decl_specifiers.  is_nonreal is TRUE when the class is a non-real
-instantiation.
+This routine is called after declarator to perform some checks on *type,
+which is the the type produced by the combined processing of decl_specifiers
+and declarator. locator points to the symbol locator for the member.
+*class_state tracks general information about the class, and *decl_info
+tracks information about the current declaration.
 */
 {
-  if (storage_class != (a_storage_class)sc_typedef) {
+  if (decl_info->storage_class != (a_storage_class)sc_typedef) {
     if (is_abstract_class_type(*type)) {
       /* Abstract class objects are prohibited (ARM 10.3). */
       pos_error(ec_abstract_class_object_not_allowed,
@@ -7674,12 +7683,12 @@ instantiation.
       *type = error_type();
     }  /* if */
   }  /* if */
-  if (dso_flags & DSO_DEFINES_SOMETHING) {
+  if (decl_info->dso_flags & DSO_DEFINES_SOMETHING) {
     /* A class or enum definition was scanned as part of this declaration.
        However, it is explicitly prohibited to define a type in a function
        return type.  This is taken to apply to pointer-to-function type
        declarations as well to the function declarations. */
-    if (*return_type_def_err) {
+    if (decl_info->return_type_def_err) {
       /* Error has already been issued. */
     } else {
       a_type_ptr  tp = *type;
@@ -7688,8 +7697,8 @@ instantiation.
           /* Function type in which the return type involves a
              definition. */
           pos_error(ec_type_def_not_allowed_in_func_type_decl,
-                    decl_start_pos);
-          *return_type_def_err = TRUE;
+                    &decl_info->decl_start_pos);
+          decl_info->return_type_def_err = TRUE;
           break;
         } else if (is_ptr_or_ref_type(tp)) {
           /* Get type pointed to and continue. */
@@ -7711,7 +7720,7 @@ instantiation.
        useful for function arg matching. */
     set_type_involves_template_param_flags(*type);
   }  /* if */
-}  /* check_complete_member_type */
+}  /* check_completed_member_type */
 
 
 static void check_typedef_function_type(a_type_ptr         *member_type,
@@ -7764,31 +7773,28 @@ the function is a nonstatic member of class_type.
 }  /* check_typedef_function_type */
 
 
-static a_boolean is_invalid_use_of_virtual(a_symbol_locator  *locator,
-                                           a_type_ptr        class_type,
-                                           a_boolean         is_friend,
-                                           a_boolean         is_constructor,
-                                           a_storage_class   storage_class,
-                                           a_source_position *err_pos)
+static void check_for_invalid_use_of_virtual(a_symbol_locator       *locator,
+                                             a_type_ptr             class_type,
+                                             a_member_decl_info_ptr decl_info)
 /*
 Issue an error and return TRUE if the virtual specifier is invalid for the
 current function declaration.  *locator identifies the function declared, and
-class_type is the class in which the declared appears.  is_friend is TRUE if
-this is a friend declaration, is_constructor is TRUE if it is a constructor
-declaration, and *storage_class is the storage class that was specified.
-*err_pos indicates the source position for diagnostics.
+class_type is the class in which the declared appears.  *decl_info tracks
+information about the current declaration and is updated if an error is found.
 */
 {
   an_error_code  error_code = ec_no_error;
 
-  if (is_friend) {
+  if (decl_info->invalid_virtual_specifier) {
+    /* An error has already been issued on a previous declarator. */
+  } else if (decl_info->dso_flags & DSO_FRIEND) {
     /* A friend function may not be declared virtual. */
     error_code = ec_bad_friend_decl;
-  } else if (is_constructor || is_union_type(class_type)) {
+  } else if (decl_info->is_constructor || is_union_type(class_type)) {
     /* Constructors may not be virtual functions (WP 12.1 [class.ctor]) and
        unions may not have them (WP 9.5 [class.union]). */
     error_code = ec_virtual_not_allowed;
-  } else if (storage_class == (a_storage_class)sc_static ||
+  } else if (decl_info->storage_class == (a_storage_class)sc_static ||
              (locator->is_operator_name &&
               (is_new_operator(locator->variant.opname) ||
                is_delete_operator(locator->variant.opname)))) {
@@ -7796,9 +7802,11 @@ declaration, and *storage_class is the storage class that was specified.
        applies to operators new and delete since they are always static. */
     error_code = ec_virtual_static_not_allowed;
   }  /* if */
-  if (error_code != ec_no_error) pos_error(error_code, err_pos);
-  return (error_code != ec_no_error);
-}  /* is_invalid_use_of_virtual */
+  if (error_code != ec_no_error) {
+    pos_error(error_code, &decl_info->decl_start_pos);
+    decl_info->invalid_virtual_specifier = TRUE;
+  }  /* if */
+}  /* check_for_invalid_use_of_virtual */
 
 
 static void check_field_type(a_symbol_locator        *locator,
@@ -7982,15 +7990,13 @@ following the member declaration.
   a_decl_flag_set      dsi_flags;
   a_decl_flag_set      dso_flags;
   a_type_qualifier_set qualifiers;
-  a_storage_class      member_storage_class;
   a_type_ptr           member_type;
   a_decl_modifier      decl_modifiers;
   a_boolean            no_decl_specifiers;
-  a_boolean            friend_specified, virtual_specified;
+  a_boolean            friend_specified;
   a_boolean            type_explicitly_specified, inline_specified;
   a_boolean            is_destructor, is_constructor;
   a_boolean            mutable_specified;
-  a_boolean            return_type_def_err = FALSE;
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
   a_boolean            first_declarator_diagnostics;
@@ -8039,7 +8045,6 @@ following the member declaration.
                        (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
   friend_specified = dso_flags & DSO_FRIEND;
   if (friend_specified) class_state->any_friend_decls = TRUE;
-  virtual_specified = (dso_flags & DSO_VIRTUAL) != 0;
   inline_specified = (dso_flags & DSO_INLINE) != 0;
   is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
   is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
@@ -8080,16 +8085,18 @@ following the member declaration.
     a_symbol_locator   locator;
     a_type_ptr         local_type;
     a_func_info_block  func_info;
-    a_source_sequence_entry_ptr
-                       declarator_ssep = NULL;
-    a_boolean          cfront_member_function_typedef = FALSE;
 
     first_declarator_diagnostics = decl_info.is_first_in_declarator_list;
     add_stop_token(tok_comma);
     add_stop_token(tok_colon);
     clear_func_info(&func_info);
+    /* Clear certain decl_info fields each time through the loop. */
+    decl_info.do_flags = DO_NO_OUTPUT_FLAGS;
+    decl_info.is_unnamed_field = FALSE;
+    decl_info.declarator_ssep = NULL;
+    decl_info.member_sym = NULL;
     if (!decl_info.is_first_in_declarator_list &&
-        (dso_flags & DSO_CONSTRUCTOR || dso_flags & DSO_DESTRUCTOR)) {
+        (dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR))) {
       /* This section of code is entered when there is a comma-list of
          constructors and/or destructors. */
       is_destructor = is_constructor = FALSE;
@@ -8133,8 +8140,7 @@ following the member declaration.
       goto next_declaration;
     } else {
       /* Named member -- we need to call declarator. */
-      a_decl_flag_set  declarator_input_flags;
-      a_decl_flag_set  declarator_output_flags;
+      a_decl_flag_set  di_flags = DI_REAL_DECLARATOR_ALLOWED;
 
       if (!C_mode()) {
         /* C++ mode */
@@ -8159,54 +8165,47 @@ following the member declaration.
           curr_routine_fixup = alloc_routine_fixup();
         }  /* if */
         add_stop_token(tok_lbrace);
+        /* Set the various flags for declarator processing (C++ only). */
+        di_flags |= DI_OPERATOR_NAME_ALLOWED;
+        if (!type_explicitly_specified && !friend_specified) {
+          di_flags |= DI_DESTRUCTOR_SPECIFIERS;
+        }  /* if */
+        if (is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
+        if (decl_info.storage_class == (a_storage_class)sc_typedef) {
+          di_flags |= DI_IS_TYPEDEF_DECLARATION;
+        } else if (decl_info.storage_class != (a_storage_class)sc_static) {
+          /* The storage class "static" was not specified and it is not a
+             typedef declaration.   Therefore, if this turns out to be a member
+             function declaration, it will be a nonstatic member function.
+             This is important because when the routine type is created,
+             function_declarator needs to know whether to add an implicit
+             this-param pointer to the type. */
+          di_flags |= DI_NONSTATIC_MEMBER;
+        }  /* if */
+        if (friend_specified) {
+          di_flags |= (DI_IS_FRIEND_DECL | DI_QUALIFIED_NAME_ALLOWED);
+        }  /* if */
       }  /* if */
-      /* Set the various flags for declarator processing. */
-      declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
-      if (!type_explicitly_specified && !friend_specified) {
-        declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
-      }  /* if */
-      if (is_constructor) declarator_input_flags |= DI_IS_CONSTRUCTOR;
-      if (decl_info.storage_class == (a_storage_class)sc_typedef) {
-        declarator_input_flags |= DI_IS_TYPEDEF_DECLARATION;
-      } else if (decl_info.storage_class != (a_storage_class)sc_static) {
-        /* The storage class "static" was not specified and it is not a
-           typedef declaration.   Therefore, if this turns out to be a member
-           function declaration, it will be a nonstatic member function.
-           This is important because when the routine type is created,
-           function_declarator needs to know whether to add an implicit
-           this-param pointer to the type. */
-        declarator_input_flags |= DI_NONSTATIC_MEMBER;
-      }  /* if */
-      if (friend_specified) {
-        declarator_input_flags |= DI_IS_FRIEND_DECL |
-                                  DI_QUALIFIED_NAME_ALLOWED;
-      }  /* if */
-      declarator_input_flags |= DI_OPERATOR_NAME_ALLOWED;
       /* Pass the class's type pointer to declarator if this might be a
          nonstatic member function, in which case its presence will cause an
          implicit "this" parameter type to be created. (Static member
          functions do not have an implicit "this" pointer. The class pointer
          will be ignored for data members.) */
-      declarator(declarator_input_flags, &declarator_output_flags, member_type,
+      declarator(di_flags, &decl_info.do_flags, member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
-                 &locator, &local_type, &declarator_ssep, &func_info);
+                 &locator, &local_type, &decl_info.declarator_ssep,
+                 &func_info);
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
-        /* Check whether this is a non-standard typedef declaration. */
-        cfront_member_function_typedef =
-            declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
-        check_complete_member_type(&local_type, &locator, class_state,
-                                   decl_info.storage_class, &decl_start_pos,
-                                   &return_type_def_err, dso_flags);
+        check_completed_member_type(&local_type, &locator, class_state,
+                                    &decl_info);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_colon);
     if (!C_mode() && is_function_type(local_type) &&
         decl_info.storage_class != (a_storage_class)sc_typedef) {
       /* Member or friend function. */
-      a_boolean                suppress_pure_specifier_error = FALSE;
-      a_boolean                function_def_present;
-      a_special_function_kind  spec_kind = (a_special_function_kind)sfk_none;
+      a_boolean  function_def_present;
 
       if (mutable_specified) {
         /* "mutable" is only allowed on nonstatic data member decls. */
@@ -8250,7 +8249,7 @@ following the member declaration.
            function type. */
         func_info.function_type_from_typedef = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        func_info.declarator_ssep = declarator_ssep;
+        func_info.declarator_ssep = decl_info.declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Such typedef function types are shared and so are unsuited to be
            the type of a defined function. */
@@ -8260,12 +8259,8 @@ following the member declaration.
                                      decl_info.storage_class !=
                                           (a_storage_class)sc_static));
       }  /* if */
-      if (virtual_specified &&
-          is_invalid_use_of_virtual(&locator, class_type, friend_specified,
-                                    is_constructor, decl_info.storage_class,
-                                    &decl_start_pos)) {
-        virtual_specified = FALSE;
-        suppress_pure_specifier_error = TRUE;
+      if (decl_info.dso_flags & DSO_VIRTUAL) {
+        check_for_invalid_use_of_virtual(&locator, class_type, &decl_info);
       }  /* if */
       if (friend_specified) {
         /* Process a friend function declaration. */
@@ -8286,7 +8281,7 @@ following the member declaration.
           pos_error(ec_static_not_allowed, &decl_start_pos);
           decl_info.storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if (is_constructor || virtual_specified) {
+        if (is_constructor || decl_info.dso_flags & DSO_VIRTUAL) {
           /* A class with a user-defined constructor or a virtual function
              cannot be an "aggregate" (8.5.1). */
           class_state->class_aggregate_ruled_out = TRUE;
@@ -8295,11 +8290,8 @@ following the member declaration.
              being an aggregate -- keep track. */
           class_state->any_nonpublic_members = TRUE;
         }  /* if */
-        if (is_destructor) {
-          spec_kind = (a_special_function_kind)sfk_destructor;
-        } else if (is_constructor) {
-          spec_kind = (a_special_function_kind)sfk_constructor;
-        }  /* if */
+        decl_info.is_constructor = is_constructor;
+        decl_info.is_destructor = is_destructor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* If decl-modifiers were declared for the class and/or for the
            member, check for consistency and use the union of the two. */
@@ -8308,11 +8300,10 @@ following the member declaration.
                                               &decl_start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Create a symbol for the member function. */
-        rout_sym = decl_member_function(&locator, class_type, local_type,
-                                        &func_info, class_state,
-                                        virtual_specified,
-                                        /*compiler_generated=*/FALSE,
-                                        spec_kind, decl_modifiers);
+        decl_member_function(&locator, class_type, local_type, &func_info,
+                             class_state, &decl_info,
+                             /*compiler_generated=*/FALSE, decl_modifiers);
+        rout_sym = decl_info.member_sym;
         if (class_state->is_nonreal_instantiation) {
           /* During the prototype instantiation, save the token sequence
              number associated with this declaration so that it can be used
@@ -8384,8 +8375,8 @@ following the member declaration.
         done_with_func_info(func_info);
       }  /* if */
       if (function_def_present) {
-        a_token_sequence_number	first_token_number;
-        a_token_sequence_number	last_token_number;
+        a_token_sequence_number  first_token_number;
+        a_token_sequence_number  last_token_number;
         if (!friend_specified) {
           /* The inline flag is set for friend functions in
              decl_friend_function, which also handles cases in which it
@@ -8432,8 +8423,7 @@ following the member declaration.
         if (curr_token == tok_assign) {
           /* Look for a pure specifier ("= 0"), which may appear on virtual
              functions. */
-          scan_pure_specifier(rout_sym, class_type,
-                              suppress_pure_specifier_error);
+          scan_pure_specifier(rout_sym, class_type, &decl_info);
         } else if (!friend_specified && class_state->is_local_class) {
           /* A member function declared in a local class definition (which is
              the current case) must be defined within the class definition
@@ -8444,14 +8434,14 @@ following the member declaration.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (friend_specified || virtual_specified || inline_specified) {
-      if (friend_specified) {
+    } else if (decl_info.dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
+      if (decl_info.dso_flags & DSO_FRIEND) {
         pos_error(ec_bad_friend_decl, &decl_start_pos);
       }  /* if */            
-      if (virtual_specified) {
+      if (decl_info.dso_flags & DSO_VIRTUAL) {
         pos_error(ec_virtual_not_allowed, &decl_start_pos);
       }  /* if */            
-      if (inline_specified) {
+      if (decl_info.dso_flags & DSO_INLINE) {
         pos_error(ec_inline_and_nonfunction, &decl_start_pos);
       }  /* if */            
       remove_stop_token(tok_comma);
@@ -8472,7 +8462,7 @@ following the member declaration.
       a_symbol_ptr        typedef_sym_ptr;
 
       check_assertion(C_dialect == C_dialect_cplusplus);
-      if (cfront_member_function_typedef) {
+      if (decl_info.do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
         /* This looked like a cfront-style member function typedef.  Be sure
            the type was a function type. */
         if (is_function_type(local_type)) {
@@ -8490,7 +8480,7 @@ following the member declaration.
       }  /* if */
       /* Typedef declaration. */
       decl_typedef(&locator, local_type, class_type, &typedef_sym_ptr,
-                   declarator_ssep);
+                   decl_info.declarator_ssep);
       /* Note: access will have been set in decl_typedef. */
       if (class_state->access != (an_access_specifier)as_public) {
         /* Strictly speaking, any nonpublic member prevents a class from being
@@ -8516,7 +8506,7 @@ following the member declaration.
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
       decl_nonstd_member_constant(&locator, class_type, local_type,
-                                  class_state->access, declarator_ssep);
+                                  class_state->access, decl_info.declarator_ssep);
       if (class_state->access != (an_access_specifier)as_public) {
         /* Strictly speaking, any nonpublic member prevents a class from
            being an aggregate -- keep track. */
@@ -8554,7 +8544,7 @@ following the member declaration.
                                               &decl_start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_static_data_member(&locator, class_type, local_type, class_state,
-                                declarator_ssep, decl_modifiers);
+                                decl_info.declarator_ssep, decl_modifiers);
         if (class_state->access != (an_access_specifier)as_public) {
           /* Strictly speaking, any nonpublic member prevents a class from
              being an aggregate -- keep track. */
@@ -8579,7 +8569,7 @@ following the member declaration.
                                    class_state, decl_info.is_unnamed_field,
                                    decl_info.is_anonymous_union,
                                    decl_info.is_nonstd_anonymous_union,
-                                   mutable_specified, declarator_ssep);
+                                   mutable_specified, decl_info.declarator_ssep);
         if (!class_state->class_aggregate_ruled_out) {
           if (class_state->access != (an_access_specifier)as_public) {
             if (decl_info.is_unnamed_field) {
@@ -8647,7 +8637,7 @@ completed (C++ only).
   a_boolean                        is_template_instantiation;
   a_stop_token_array               save_stop_token_array;
   a_template_symbol_supplement_ptr class_tssp;
-  a_token_sequence_number	   token_number_of_closing_brace;
+  a_token_sequence_number          token_number_of_closing_brace;
   a_class_def_state                class_state;
   a_boolean                        skip_semicolon_check;
 
@@ -8855,10 +8845,10 @@ completed (C++ only).
           /* Check for template declaration. */
           if (curr_token == tok_template) {
             /* A template declaration in a class may be a member template
-	       declaration or a friend declaration.  Explicit instantiations
-	       are not permitted in a class context.  The error for an
-	       explicit instantiation in a class will be issued by
-	       template_directive_or_declaration. */
+               declaration or a friend declaration.  Explicit instantiations
+               are not permitted in a class context.  The error for an
+               explicit instantiation in a class will be issued by
+               template_directive_or_declaration. */
             a_boolean  defines_something;
 
             template_directive_or_declaration(&defines_something,
@@ -9149,7 +9139,7 @@ next_declaration:
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
       if (cssp->is_prototype_instantiation) {
-        a_template_symbol_supplement_ptr	tssp = class_tssp;
+        a_template_symbol_supplement_ptr      tssp = class_tssp;
         tssp->variant.class_template.prototype_instantiation = tag_sym;
         tssp->variant.class_template.prototype_instantiation_complete = TRUE;
         if (tag_sym->is_class_member && tssp->cache_segment != NULL) {
