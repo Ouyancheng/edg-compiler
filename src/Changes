@@ -1,5 +1,12 @@
 Version 2.31
 
+11/13/95  Added global variable allow_nonstandard_anonymous_unions
+
+This variable, set to TRUE when microsoft mode is enabled and by default
+to new configuration flag DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS,
+allows better control over when the support for the microsoft extension is
+enabled.
+
 11/13/95  Spurious error using elaborated type specifiers in class template
 
 A spurious "invalid redeclaration of B" error was issued on the following
