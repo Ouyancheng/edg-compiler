@@ -1849,6 +1849,25 @@ multiple copies of the variables are *not* generated.
 #define INSTANTIATE_EXTERN_INLINE FALSE
 #endif /* ifndef INSTANTIATE_EXTERN_INLINE */
 
+/*
+This switch controls whether "extern inline" functions are rewritten as
+normal inline functions.  The transformation involves promoting local static
+variables to external, and rewriting references to the address of an
+extern inline function to use a global variable containing the address
+of the chosen copy.
+*/
+#ifndef LOWER_EXTERN_INLINE
+#if INSTANTIATE_EXTERN_INLINE
+#define LOWER_EXTERN_INLINE FALSE /* Do not change this. */
+#else /* !INSTANTIATE_EXTERN_INLINE */
+#define LOWER_EXTERN_INLINE TRUE /* You can change this. */
+#endif /* INSTANTIATE_EXTERN_INLINE */
+#endif /* ifndef LOWER_EXTERN_INLINE */
+
+#if LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE
+ #error -- extern inline functions cannot be instantiated when they are lowered
+#endif /* !LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
@@ -2056,25 +2075,6 @@ tree.
 #ifndef LOWER_LVALUE_RETURNING_OPERATIONS
 #define LOWER_LVALUE_RETURNING_OPERATIONS TRUE
 #endif /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
-
-/*
-This switch controls whether "extern inline" functions are rewritten as
-normal inline functions.  The transformation involves promoting local static
-variables to external, and rewriting references to the address of an
-extern inline function to use a global variable containing the address
-of the chosen copy.
-*/
-#ifndef LOWER_EXTERN_INLINE
-#if INSTANTIATE_EXTERN_INLINE
-#define LOWER_EXTERN_INLINE FALSE /* Do not change this. */
-#else /* !INSTANTIATE_EXTERN_INLINE */
-#define LOWER_EXTERN_INLINE TRUE /* You can change this. */
-#endif /* INSTANTIATE_EXTERN_INLINE */
-#endif /* ifndef LOWER_EXTERN_INLINE */
-
-#if LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE
- #error -- extern inline functions cannot be instantiated when they are lowered
-#endif /* !LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
