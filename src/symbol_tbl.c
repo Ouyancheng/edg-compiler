@@ -466,6 +466,7 @@ and indentation is the indentation desired.
           } else {
             fprintf(f_debug, "NULL\n");
           }  /* if */
+          fprintf(f_debug, "\n");
           col = 0;
         }  /* for */
         inst_sym = tssp->variant.class.instantiations;
@@ -3827,19 +3828,21 @@ C and C++.
       num_slow_id_lookups++;
 #endif /* DEBUG */
       /* Work out from the innermost scope on the stack, and look at each
-         scope.  If the scope is a class reactivation, look on the inactive
-         list for a symbol from that scope.  Otherwise, search part of the
-         active list to look for an active symbol.  We maintain a pointer
-         to the point in the active list up to which we've searched.  This
-         works because the symbols on the active list are in order according
-         to the scope they're in, from innermost scope to outermost. */
+         scope.  If the scope is a class reactivation or a template
+         instantiation, look on the inactive list for a symbol from that
+         scope.  Otherwise, search part of the active list to look for an
+         active symbol.  We maintain a pointer to the point in the active
+         list up to which we've searched.  This works because the symbols
+         on the active list are in order according to the scope they're in,
+         from innermost scope to outermost. */
       prev_active_sym = NULL;
       active_sym = active_symbol_list;
       /* Since there is a class or class reactivation on the stack, we know the
          stack has at least two entries (the file scope and the class or
          class reactivation). */
       for (;;) {
-        if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        if (ssep->kind == (a_scope_kind)sck_class_reactivation ||
+	    ssep->kind == (a_scope_kind)sck_template_instantiation) {
           /* Look on the inactive list for a symbol from this reactivated
              scope. */
           tag_symbol = NULL;
@@ -3871,15 +3874,18 @@ C and C++.
             sym = tag_symbol;
             goto end_lookup;
           }  /* if */
-          /* There is no inactive symbol that is in this class. */
-          /* Look for a symbol projected (inherited) into this class. */
-          look_for_projected_symbol = TRUE;
-          add_to_active_list = FALSE;
-          insert_sym = NULL;
+	  if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+            /* There is no inactive symbol that is in this class. */
+            /* Look for a symbol projected (inherited) into this class. */
+            look_for_projected_symbol = TRUE;
+            add_to_active_list = FALSE;
+            insert_sym = NULL;
+          }  /* if */
         } else {
-          /* Not a class reactivation, i.e., normal scope.  Search through
-             any symbols on the front of the active list that are from the
-             associated scope, and see if any one is the symbol desired. */
+          /* Not a class reactivation or a template instantiation,
+             i.e., normal scope.  Search through any symbols on the front
+             of the active list that are from the associated scope, and see
+             if any one is the symbol desired. */
           for (;active_sym != NULL && active_sym->decl_scope == ssep->number;
                prev_active_sym = active_sym, active_sym = active_sym->next) {
             if (is_acceptable_active_symbol(active_sym)) {
@@ -4262,6 +4268,23 @@ function).  Access control only exists in C++.
     (kind) == (a_scope_kind)sck_function)
 
 
+/*
+Return TRUE if the scope stack entry kind is for something that should
+affect the the current declarative level.  In C, the current declarative
+level is is the same as depth_scope_stack except when struct/union field
+scopes are active; when they are, it indicates the first non-struct-or-union
+scope.  In C++, struct/union/class scopes are real scopes; however,
+class reactivations and template instantiations are not real scopes.
+*/
+#define is_scope_kind_that_affects_declarative_level(kind)		\
+   ((C_dialect != C_dialect_cplusplus) ?				\
+       /* C -- struct/union classes are not real scopes. */		\
+        ((kind) != (a_scope_kind)sck_class_struct_union) :		\
+        /* C++ -- class reactivations are not real scopes. */		\
+        ((kind) != (a_scope_kind)sck_class_reactivation &&		\
+         (kind) != (a_scope_kind)sck_template_instantiation))
+
+
 a_scope_ptr push_scope(a_scope_kind   kind,
 		       a_scope_number scope_number_to_reuse,
                        a_type_ptr     assoc_type,
@@ -4373,18 +4396,16 @@ for the function scope case; it must be NULL in other cases.
      active; when they are, it indicates the first non-struct-or-union
      scope.  In C++, struct/union/class scopes are real scopes; however,
      class reactivations are not real scopes. */
-  if ((C_dialect != C_dialect_cplusplus) ?
-          /* C -- struct/union classes are not real scopes. */
-          (kind != (a_scope_kind)sck_class_struct_union) :
-          /* C++ -- class reactivations are not real scopes. */
-          (kind != (a_scope_kind)sck_class_reactivation)) {
+  if (is_scope_kind_that_affects_declarative_level(kind)) {
     decl_scope_level = depth_scope_stack;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
-    /* Check for class reactivations and classes with base classes.  When
-       these are found name lookup is more involved.  If the new scope is
-       neither, we can just use the state from the previous scope. */
+    /* Check for class reactivations, classes with base classes, and
+       template instantiations.  When these are found name lookup is more
+       involved.  If the new scope is neither, we can just use the state
+       from the previous scope. */
     if (kind == (a_scope_kind)sck_class_reactivation ||
+        kind == (a_scope_kind)sck_template_instantiation ||
         (kind == (a_scope_kind)sck_class_struct_union &&
          base_classes_of(assoc_type) != NULL)) {
       ssep->inactive_symbols_may_be_visible = TRUE;
@@ -4830,13 +4851,19 @@ End a name scope by popping an entry off the scope stack.
        remain accessible and the scope list, saved away in some other data
        structure, is a convenient way to get at them again.) */
     unlink_symbol_from_symbol_table(sym);
-    /* Put struct/union/class members on the inactive list of the proper symbol
+    /* Put struct/union/class members and template parameters on the
+       inactive list of the proper symbol
        header. */
-    if (kind == (a_scope_kind)sck_class_struct_union) {
+    if (kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_template_declaration) {
       sym->next = sym->header->inactive_symbols;
       sym->header->inactive_symbols = sym;
-      if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
-        sym->header->any_nested_types_on_inactive_list = TRUE;
+      /* Check for nested class/struct/unions on the inactive list.  If
+         there are any, set the flag in the symbol header. */
+      if (kind == (a_scope_kind)sck_class_struct_union) {
+        if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+          sym->header->any_nested_types_on_inactive_list = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -4990,11 +5017,7 @@ End a name scope by popping an entry off the scope stack.
        decl_scope_level >= DEPTH_OF_FILE_SCOPE;
        decl_scope_level--) {
     a_scope_kind skind = scope_stack[decl_scope_level].kind;
-    if ((C_dialect != C_dialect_cplusplus) ?
-            /* C -- struct/union scopes are not real scopes. */
-            (skind != (a_scope_kind)sck_class_struct_union) :
-            /* C++ -- class reactivations are not real scopes. */
-            (skind != (a_scope_kind)sck_class_reactivation)) break;
+    if (is_scope_kind_that_affects_declarative_level(skind)) break;
   }  /* for */
   db_exit();
 }  /* pop_scope */
