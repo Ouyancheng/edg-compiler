@@ -3701,6 +3701,15 @@ that make up the declaration and do a prototype instantiation.
          error down the line. */
       sym = coalesce_and_lookup_generalized_identifier
                                (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+      if (sym != NULL &&
+          sym->decl_scope == scope_stack[depth_scope_stack].number) {
+        /* The symbol found is from the current template declaration scope.
+           This means that the name of the class is the same as one of
+           its template parameters -- this is an error. */
+        pos_error(ec_class_template_same_name_as_templ_param,
+                  &locator_for_curr_id.source_position);
+        suppress_redecl_error = TRUE;
+      }  /* if */
       if (sym != NULL && !is_template_friend &&
           sym->decl_scope != scope_stack[effective_decl_level].number) {
         /* The symbol found by the lookup is not from the scope in which
@@ -3784,18 +3793,6 @@ that make up the declaration and do a prototype instantiation.
           (void)reconcile_template_param_lists(templ_params, sym,
                                                &locator.source_position);
         }  /* if */
-      } else if (sym->is_template_param) {
-        /* The class being declared has the same name as one of its
-           template parameters. */
-        if (is_definition) {
-          /* This is only an error on a class template definition, not
-             on a simple declaration in which the names are
-             never used again. */
-          pos_error(ec_class_template_same_name_as_templ_param,
-                    &locator.source_position);
-        }  /* if */
-        suppress_redecl_error = TRUE;
-        sym = NULL;
       } else if (locator.is_qualified_name) {
         /* A qualified name that does not refer to a class template
            symbol.  Issue an error and set the locator to an error locator. */
