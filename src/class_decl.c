@@ -665,13 +665,60 @@ for the class to which they belong.
 }  /* insert_in_virtual_function_override_list */
 
 
+static a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
+                                                 a_type_ptr       old_class,
+                                                 a_type_ptr       new_class)
+/*
+Find the base class under new_class that is the same as the base class
+indicated by base_class under old_class, and return a pointer to it.  The
+base class must be found.  If base_class is NULL, find the base class for
+old_class under new_class.
+*/
+{
+  a_base_class_ptr new_base_class, bcp;
+
+  for (bcp = new_class->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (base_class == NULL) {
+      if (bcp->type == old_class) {
+        /* Found old_class as a base class of new_class. */
+        new_base_class = bcp;
+        goto done;
+      }  /* if */
+    } else if (bcp->type == base_class->type) {
+      /* The types match.  See if the derivations match except that bcp
+         has one more step.  If there are some virtual steps involved,
+         the derivations can be different and still be equivalent (i.e.,
+         indicate the same base class). */
+      if ((bcp->derivation->base_class->type == old_class &&
+           congruent_paths(bcp->derivation->next, base_class->derivation)) ||
+          equivalent_paths(bcp->derivation, base_class->derivation)) {
+        new_base_class = bcp;
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  internal_error("corresponding_base_class: base class not found");
+#else
+  new_base_class = NULL;
+#endif /* CHECKING */
+done:;
+  return new_base_class;
+}  /* corresponding_base_class */
+
+
 static void copy_virtual_function_override_list(
                                  an_overriding_virtual_function_ptr list,
-                                 a_base_class_ptr                   base_class)
+                                 a_base_class_ptr                   base_class,
+                                 a_type_ptr                         old_class,
+                                 a_type_ptr                         new_class)
 /*
-Make a copy of each item on "list" (a linked list of overriding virtual
-function entries), and add each of the copies to the list belonging to
-base_class.
+Copy the list of overriding virtual functions given by "list" and add
+each of the copies to the list belonging to base_class.  The entries are
+being copied from a base class of old_class to a base class of new_class.
+base_class is the base class being created in new_class.
 */
 {
   an_overriding_virtual_function_ptr  ovfp, new_ovfp;
@@ -683,7 +730,11 @@ base_class.
     new_ovfp = alloc_overriding_virtual_function();
     new_ovfp->primary_function = ovfp->primary_function;
     new_ovfp->overriding_function = ovfp->overriding_function;
-    new_ovfp->base_class = base_class;
+    /* The base class of the overriding function must be translated into
+       the new class. */
+    new_ovfp->base_class = corresponding_base_class(ovfp->base_class,
+                                                    old_class,
+                                                    new_class);
 #if DEBUG
     if (debug_level >= 4) {
       fputs("copy for base class ", f_debug);
@@ -1385,7 +1436,9 @@ NULL, a pointer to step is returned.
 static void fixup_virtual_base_class(a_base_class_ptr               base_class,
                                      an_overriding_virtual_function *ovf_list,
                                      a_derivation_step_ptr          path,
-                                     an_access_specifier            new_access)
+                                     an_access_specifier            new_access,
+                                     a_type_ptr                     old_class,
+                                     a_type_ptr                     new_class)
 /*
 
 When a class is derived from a virtual base class by more than one
@@ -1433,7 +1486,9 @@ it is always NULL when the other instance of the base class is a direct
 base class.  path is the derivation path leading up to the other instance
 of the base class (e.g., ==>B==>V); it is always NULL when the other
 instance is a direct base class.  access is the accessibility of the
-other instance of the base class.
+other instance of the base class.  old_class is the class from which
+we are inheriting ovf_list.  new_class is the class of which base_class
+is a base class.
 */
 {
   a_derivation_step_ptr  dsp, prev_dsp;
@@ -1489,7 +1544,8 @@ other instance of the base class.
   }  /* if */
   /* Make a copy of each item on the override list base class and merge
      it into the list of base_class. */
-  copy_virtual_function_override_list(ovf_list, base_class);
+  copy_virtual_function_override_list(ovf_list, base_class,
+                                      old_class, new_class);
   if (recompute_path_and_access) {
     base_class->access = new_access;
     /* Reset the path of base_class.  It should just be the path passed in
@@ -1521,7 +1577,8 @@ other instance of the base class.
     }  /* if */
 #endif /* CHECKING */
     copy_virtual_function_override_list(
-                     other_bcp->overriding_virtual_functions, bcp);
+                     other_bcp->overriding_virtual_functions, bcp,
+                     old_class, new_class);
     other_bcp = other_bcp->next;
     if (recompute_path_and_access) {
 #if DEBUG
@@ -1579,13 +1636,16 @@ static a_base_class_ptr add_indirect_base_class(
                                     a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      add_list,
                                     a_base_class_ptr      *end_of_add_list,
-                                    a_derivation_step_ptr path)
+                                    a_derivation_step_ptr path,
+                                    a_type_ptr            old_class,
+                                    a_type_ptr            new_class)
 /*
 Create a new indirect base class based on base_class_to_copy and, typically,
 add it to the end of add_list.  "path" is the derivation path from the most
 derived class to the class that is directly derived from the new base class,
 and it is copied and extended to produce the new base class's derivation.
-In addition, check for ambiguity and duplicate paths.
+In addition, check for ambiguity and duplicate paths.  base_class_to_copy
+is a base class of old_class, and the copy will be a base class of new_class.
 */
 {
   a_base_class_ptr       new_bcp = NULL, bcp;
@@ -1599,7 +1659,8 @@ In addition, check for ambiguity and duplicate paths.
         is_virtual_duplicate = TRUE;
         fixup_virtual_base_class(
                          bcp, base_class_to_copy->overriding_virtual_functions,
-                         path, base_class_to_copy->access);
+                         path, base_class_to_copy->access,
+                         old_class, new_class);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1637,7 +1698,8 @@ In addition, check for ambiguity and duplicate paths.
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         (void)add_indirect_base_class(bcp, add_list, end_of_add_list,
-                                      new_bcp->derivation);
+                                      new_bcp->derivation,
+                                      old_class, new_class);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1797,7 +1859,8 @@ or struct definition.  The syntax is
                (and any base classes from which it is derived) in place. */
             fixup_virtual_base_class(bcp,
                                      (an_overriding_virtual_function_ptr)NULL,
-                                     (a_derivation_step_ptr)NULL, access);
+                                     (a_derivation_step_ptr)NULL, access,
+                                     base_class_type, type_ptr);
             goto skip_base_class;
           } else {
             /* At least one is non-virtual, so there is an ambiguity.  Mark
@@ -1867,7 +1930,8 @@ or struct definition.  The syntax is
             /* Add the direct base class and all *its* base classes to the
                base class list for the derived class. */
             new_bcp = add_indirect_base_class(bcp, ctsp->base_classes,
-                                              &end_of_base_classes_list, path);
+                                              &end_of_base_classes_list, path,
+                                              base_class_type, type_ptr);
             if (new_bcp == NULL) {
               /* add_indirect_base_class returns NULL only when the class to
                  be copied is a virtual base class and it's already on the
@@ -1894,7 +1958,8 @@ or struct definition.  The syntax is
           /* Copy the virtual function override entries from bcp to the
              corresponding copied base class new_bcp. */
           copy_virtual_function_override_list(
-                             bcp->overriding_virtual_functions, new_bcp);
+                             bcp->overriding_virtual_functions, new_bcp,
+                             base_class_type, type_ptr);
         }  /* for */
       }  /* if */
 skip_base_class:
