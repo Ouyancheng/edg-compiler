@@ -7641,7 +7641,6 @@ Return a pointer to the variable that is declared.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  mark_variable_value_set(sym);
   srk_flags = SRK_DECLARATION | SRK_DEFINITION;
   if (!missing_declarator && curr_token == tok_assign) {
     srk_flags |= SRK_INITIALIZATION;
@@ -7677,6 +7676,9 @@ Return a pointer to the variable that is declared.
     /* Reset the error position to the source position of the declarator. */
     error_position = locator.source_position;
   }  /* if */
+  /* Both in the error and normal case consider the variable set.  Don't
+     do this earlier so we can catch "if (int x = x);". */
+  mark_variable_value_set(sym);
   db_exit();
   /* Return a pointer to the variable. */
   return vp;
@@ -9734,10 +9736,6 @@ continue_with_declaration:
               var_ptr->storage_class = (a_storage_class)sc_unspecified;
             }  /* if */
           }  /* if */
-          /* All initialized variables are considered defined.  This flag
-             may have already been set based on storage class and scope
-             level. */
-          mark_variable_value_set(symbol_ptr);
         }  /* if */
         /* If the symbol is a parameter, the subroutine will generate the
            error.  This is done rather than flagging the error here because
@@ -9745,6 +9743,14 @@ continue_with_declaration:
         initializer(symbol_ptr, &locator.source_position, linkage,
                     has_parenthesized_initializer, is_old_style_param_decl,
                     &incomplete_type_error_reported, &decl_pos_block);
+        if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+            !is_old_style_param_decl) {
+           /* All initialized variables are considered defined.  This flag
+             may have already been set based on storage class and scope
+             level.  Be sure to check this after the initializer is scanned,
+             so that "int x = x;" can be caught. */
+          mark_variable_value_set(symbol_ptr);
+       }  /* if */
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
