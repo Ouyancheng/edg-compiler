@@ -8831,7 +8831,7 @@ selection operator, in which case it points to the type of the left operand.
            destructor type that has been found matches the type of the
            left operand. */
         check_assertion(dtor_type != NULL);
-        if (!identical_types(field_sel_type, dtor_type)) {
+        if (!identical_types(field_sel_type, skip_typerefs(dtor_type))) {
           pos_ty_error(ec_invalid_destructor_name, &tilde_position,
                        field_sel_type);
           err = TRUE;
