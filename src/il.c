@@ -7914,8 +7914,10 @@ with it.  Entries associated with scopes must also have no child entries.
       case olk_global_static:
         /* The file scope object lifetime is preserved if it has any "implicit
            children" -- i.e., any function scope object lifetimes that are not
-           useless; the latter point to the file scope as parent_lifetime. */
-        if (!any_function_scope_lifetime_entries) is_useless = TRUE;
+           useless; the latter point to the file scope as parent_lifetime.
+           Explicit children also make the lifetime useful. */
+        if (olp->child_lifetime == NULL &&
+            !any_function_scope_lifetime_entries) is_useless = TRUE;
         break;
       case olk_block:
         if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
