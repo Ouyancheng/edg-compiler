@@ -947,10 +947,10 @@ type is in fact valid.
     }  /* if */
     if (match && 
         (enumerator != NULL ||
-  #if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
          !same_str(type->variant.integer.uuid_string,
                    corresp_type->variant.integer.uuid_string) ||
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          type->variant.integer.int_kind !=
                                      corresp_type->variant.integer.int_kind)) {
       report_bad_trans_unit_corresp(type);
