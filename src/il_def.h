@@ -3079,7 +3079,7 @@ typedef struct an_exception_specification {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_exception_specification;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 enum a_calling_convention_tag {
 /* Microsoft-specific calling convention specifiers. */
   cc_default,		/* Default (unspecified) calling convention, which
@@ -3089,7 +3089,7 @@ enum a_calling_convention_tag {
   cc_stdcall,		/* __stdcall calling convention. */
   cc_last		/* Must be last. */
 };
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 /* Define as "a_byte" to explicitly control storage size. */
 /* This type exists even if the Microsoft keywords are not allowed,
    to permit routines that deal with types to have a predictable number of
