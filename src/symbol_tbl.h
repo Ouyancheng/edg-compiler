@@ -97,6 +97,9 @@ typedef struct a_symbol_locator {
 			   conversion name, of the form "operator <type-name>",
 			   e.g., "operator int".  Cannot be TRUE when
 			   is_operator_name is TRUE. */
+  unsigned int  is_destructor_name:1;
+			/* TRUE if the "identifier" is a C++ destructor
+			   name, of the form "~<name>". */
   unsigned int  is_semivisible_nested_type:1;
 			/* TRUE if specific_symbol points to a nested type
 			   that is not actually visible, except as a C++

@@ -2104,6 +2104,7 @@ front.  This is used in C++ for destructor names.
   ident_length++;
   position = locator->source_position;
   clear_locator(locator, &position);
+  locator->is_destructor_name = TRUE;
   (void)find_symbol(ident_buffer, ident_length, locator);
 }  /* tildize_locator */
 
@@ -6433,6 +6434,7 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_locator.is_global_qualified_name = FALSE;
   cleared_locator.is_operator_name = FALSE;
   cleared_locator.is_conversion_name = FALSE;
+  cleared_locator.is_destructor_name = FALSE;
   cleared_locator.is_semivisible_nested_type = FALSE;
   cleared_locator.access_control_error_reported = FALSE;
   cleared_locator.specific_symbol = NULL;
