@@ -1,5 +1,12 @@
 Version 2.29
 
+5/8/95   Setting the "referenced" flag on volatile variables
+
+The referenced flag in the variable entry is no longer automatically set
+on non-defining declarations of variables of volatile-qualified type:
+
+  extern volatile int x;       // Not marked as referenced
+
 5/6/95   New files il_alloc.c and il_alloc.h
 
 Routines relating to the allocation and initialization of IL entities
