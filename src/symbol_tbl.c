@@ -502,7 +502,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->inactive_symbols  = NULL;
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
-  ptr->any_nested_classes_on_inactive_list = FALSE;
+  ptr->any_nested_types_on_inactive_list = FALSE;
 
   db_exit();
 
@@ -3544,34 +3544,36 @@ it is added to the end of the scope entry symbol list for the class.
 }  /* find_projected_symbol */
 
 
-static a_symbol_ptr find_nested_class_symbol(a_symbol_locator *locator)
+static a_symbol_ptr find_nested_type_symbol(a_symbol_locator *locator)
 /*
-Find a "semivisible" nested class symbol -- i.e., one that is not found by
-the normal lookup procedure but is visible according to the "nested class
-anachronism" (ARM 18.3.5).  Such nested classes are visible in connection
-with a particular scope (block, function, or file) that is the containing
-nonclass scope (i.e., the declaration scope of the parent class).  Look for
-a qualifying symbol on the inactive list for the specified symbol locator.
-In the case of an ambiguity, return NULL.
+Find a "semivisible" symbol for a member type that is no longer in scope
+(nested class, typedef name, or enumeration).  Such symbols are not found
+by the normal lookup procedure but are visible according to the "nested
+class anachronism" (ARM 18.3.5) which, it turns out, applies in cfront to
+typedefs and enums as well.  They are visible as though they had been
+entered in the the file, function or block scope that is the containing
+nonclass scope (i.e., the declaration scope of the parent class).  Look
+for a qualifying symbol on the inactive list for the specified symbol
+locator.  In the case of an ambiguity, return NULL.
 */
 {
-  a_symbol_ptr            sym, nested_class_sym = NULL;
+  a_symbol_ptr            sym, nested_type_sym = NULL;
   a_type_ptr              tp;
   a_scope_stack_entry_ptr ssep;
-  a_scope_number          effective_scope, effective_scope_of_nested_class;
+  a_scope_number          effective_scope, effective_scope_of_nested_type;
 
-  db_enter(4, "find_nested_class_symbol");
-  if (locator->symbol_header->any_nested_classes_on_inactive_list) {
+  db_enter(4, "find_nested_type_symbol");
+  if (allow_anachronisms &&
+      locator->symbol_header->any_nested_types_on_inactive_list) {
     sym = inactive_symbol_list_from_locator(*locator);
-    effective_scope_of_nested_class = NO_SCOPE_NUMBER;
+    effective_scope_of_nested_type = NO_SCOPE_NUMBER;
     for (; sym != NULL; sym = sym->next) {
-      if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-          sym->kind == (a_symbol_kind)sk_union_tag) {
-        /* Found a class/struct/union symbol, but is it nested? */
+      if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+        /* Found an type symbol, but is it nested? */
         tp = sym->class_of_which_a_member;
         if (tp != NULL) {
-          /* It is a nested class.  Pop out to the outermost parent class to
-             get the nonclass scope number. */
+          /* It is a nested member type.  Pop out to the outermost parent
+             class to get the nonclass scope number. */
           while (tp->source_corresp.class_of_which_a_member != NULL) {
             tp = tp->source_corresp.class_of_which_a_member;
           }  /* while */
@@ -3579,7 +3581,7 @@ In the case of an ambiguity, return NULL.
              scope in which parent class is declared. */
           effective_scope =
                     ((a_symbol_ptr)tp->source_corresp.assoc_info)->decl_scope;
-          if (effective_scope == effective_scope_of_nested_class) {
+          if (effective_scope == effective_scope_of_nested_type) {
             /* We have an ambiguity.  We could issue a warning or error, but
                we choose to recognize the nested class anachronism only when
                it is "legally" used -- we don't want a message that says,
@@ -3588,18 +3590,18 @@ In the case of an ambiguity, return NULL.
                have been intending to do any such thing.  However, this may
                introduce some differences with Cfront (2.1), which is wedded
                to the nested class anachronism is surprising ways. */
-            nested_class_sym = NULL;
+            nested_type_sym = NULL;
             break;
           }  /* if */
           /* If the effective scope is still active on the scope stack sym is
              a match.  Look through the scope stack for scope number. */
           ssep = &scope_stack[depth_scope_stack];
           for (;;) {
-            if (nested_class_sym == NULL) {
+            if (nested_type_sym == NULL) {
               if (ssep->number == effective_scope) {
                 /* sym's effective scope is still active, so sym is a match. */
-                nested_class_sym = sym;
-                effective_scope_of_nested_class = effective_scope;
+                nested_type_sym = sym;
+                effective_scope_of_nested_type = effective_scope;
                 /* Break out of the inner loop, but keep looking at symbols
                    in case there's an ambiguity. */
                 break;
@@ -3614,10 +3616,10 @@ In the case of an ambiguity, return NULL.
                  is closer to the top of the scope stack. */
               if (ssep->number == effective_scope) {
                 /* sym's effective scope is still active and is higher. */
-                nested_class_sym = sym;
-                effective_scope_of_nested_class = effective_scope;
+                nested_type_sym = sym;
+                effective_scope_of_nested_type = effective_scope;
                 break;
-              } else if (ssep->number == effective_scope_of_nested_class) {
+              } else if (ssep->number == effective_scope_of_nested_type) {
                 /* Other symbol's effective scope is higher.  Break out of
                    the inner loop but keep looking at symbols. */
                 break;
@@ -3632,8 +3634,8 @@ In the case of an ambiguity, return NULL.
     }  /* for */
   }  /* if */
   db_exit();
-  return nested_class_sym;
-}  /* find_nested_class_symbol */
+  return nested_type_sym;
+}  /* find_nested_type_symbol */
 
 
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
@@ -3833,8 +3835,14 @@ C and C++.
          cfront 2.1 works, but it means that programs that are legal by the
          ARM do not fail to compile or otherwise behave differently because
          the anachronism was invoked. */
-      sym = find_nested_class_symbol(locator);
-      locator->is_semivisible_nested_class = (sym != NULL);
+      sym = find_nested_type_symbol(locator);
+      if (sym != NULL) {
+        if (is_acceptable_symbol(sym)) {
+          locator->is_semivisible_nested_type = TRUE;
+        } else {
+          sym = NULL;
+        }  /* if */
+      }  /* if */
     }  /* if */
 end_lookup:
     locator->specific_symbol = sym;
@@ -4715,9 +4723,8 @@ End a name scope by popping an entry off the scope stack.
     if (kind == (a_scope_kind)sck_class_struct_union) {
       sym->next = sym->header->inactive_symbols;
       sym->header->inactive_symbols = sym;
-      if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-          sym->kind == (a_symbol_kind)sk_union_tag) {
-        sym->header->any_nested_classes_on_inactive_list = TRUE;
+      if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+        sym->header->any_nested_types_on_inactive_list = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -5296,7 +5303,7 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_locator.is_global_qualified_name = FALSE;
   cleared_locator.is_operator_name = FALSE;
   cleared_locator.is_conversion_name = FALSE;
-  cleared_locator.is_semivisible_nested_class = FALSE;
+  cleared_locator.is_semivisible_nested_type = FALSE;
   cleared_locator.access_control_error_reported = FALSE;
   cleared_locator.specific_symbol = NULL;
   cleared_locator.variant.conversion_result_type = NULL;
