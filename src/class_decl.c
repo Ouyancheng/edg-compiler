@@ -5581,8 +5581,8 @@ one of its direct base classes.
         !class_type->variant.class_struct_union.any_virtual_base_classes &&
         !has_more_than_one_direct_base_class(class_type)) {
       /* class_type is just a wrapper around a single direct base class.
-         It introduces no new fields and has no implicit pointers, (so its
-         size will be identical to that of its direct base class) and it has
+         It introduces no new fields and has no implicit pointers (so its
+         size will be identical to that of its direct base class), and it has
          no user-defined destructor.  Therefore calling the base class
          destructor will have the same effect as calling the derived class
          destructor, and so the diagnostic would be pointless. */
