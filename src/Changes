@@ -1,5 +1,16 @@
 Version 3.5
 
+10/11/04 Microsoft compatibility: Default WinMain calling convention
+
+In Microsoft mode, the default calling convention is normally "__cdecl".
+However, the global entry point functions "WinMain" and "wWinMain" are
+treated by Microsoft compilers as having "__stdcall" calling convention
+by default.  The front end now emulates this behavior.
+
+  void WinMain();              // "Default calling convention" is "__stdcall".
+  void __stdcall WinMain() {}  // Previously a redeclaration error; now
+                               // accepted.
+
 10/11/04 Embedded C: specifying the largest possible _Accum values
 
 Formerly, to specify the saturated value for a non-saturating _Accum type

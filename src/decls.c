@@ -5189,6 +5189,40 @@ detected, issue a diagnostic at the given position.
 }  /* record_asm_name_for_routine */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean acceptable_winmain_redecl_type(a_routine_ptr  rp,
+                                                a_type_ptr     new_type)
+/*
+The routine rp is being redeclared with the given new type, which was found
+to have a calling convention incompatible with that rp->type.  Return TRUE 
+if this is a routine called "WinMain" or "wWinMain" in global scope, and if
+the calling conventions would be compatible if the default calling convention
+were "__stdcall".
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (!rp->source_corresp.is_class_member &&
+      rp->source_corresp.parent.namespace_ptr == NULL &&
+      rp->source_corresp.name != NULL) {
+    char  *name = rp->source_corresp.name;
+    if (name[0] == 'w') {
+      /* Both "WinMain" and "wWinMain" need to be recognized.  Skip any leading
+         lowercase "w". */
+      ++name;
+    }  /* if */
+    if (strcmp(name, "WinMain") == 0) {
+      a_calling_convention  saved_default_cc = default_calling_convention;
+      default_calling_convention = (a_calling_convention)cc_stdcall;
+      result = calling_conventions_are_compatible(rp->type, new_type);
+      default_calling_convention = saved_default_cc;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* acceptable_winmain_redecl_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_incompatible_routine_redecl(
                                        a_symbol_ptr   linked_sym,
@@ -5709,7 +5743,8 @@ declaration.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
                    !calling_conventions_are_compatible(routine_ptr->type,
-                                                       type_ptr)) {
+                                                       type_ptr) &&
+                   !acceptable_winmain_redecl_type(routine_ptr, type_ptr)) {
           /* Error -- calling conventions are not compatible. */
           routines_compat = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11118,7 +11153,6 @@ the "pos" parameter determines which positions should be reported in any
 diagnostics.
 */
 {
-  /* Not a class or namespace member named "main". */
   a_routine_type_supplement_ptr  rtsp;
   a_type_ptr                     return_type;
 
