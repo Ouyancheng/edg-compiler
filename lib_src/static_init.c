@@ -95,7 +95,7 @@ extern "C" void on_exit(void (*)(), char *);
 void __call_ctors()
 /*
 Call functions to perform static construction of objects.  This routine
-first determines whether the execuable as been processed using the
+first determines whether the executable as been processed using the
 "patch" or "munch" utility and then uses the appropriate method to
 call the static initializer functions.
 */
