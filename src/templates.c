@@ -8909,15 +8909,15 @@ whether the nontype parameter is unnamed.
   tp = skip_typerefs(*param_type_ptr);
   if (is_void_type(tp)) {
     /* A parameter type of void is not allowed. */
-    error(ec_void_template_parameter);
+    pos_error(ec_void_template_parameter, &param_pos);
   } else if (is_class_struct_union_type(tp)) {
     /* A template parameter cannot have class type. */
-    error(ec_template_parameter_has_class_type);
+    pos_error(ec_template_parameter_has_class_type, &param_pos);
   } else if (tp->kind == (a_type_kind)tk_float) {
     if (!floating_point_template_parameters_allowed) {
       /* A floating point parameter type of void is no longer allowed
          as of 3/94. */
-      error(ec_float_template_parameter);
+      pos_error(ec_float_template_parameter, &param_pos);
     }  /* if */
   }  /* if */
 }  /* scan_a_template_parameter_declaration */
