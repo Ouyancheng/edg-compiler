@@ -1,5 +1,31 @@
 Version 3.6
 
+1/6/05  GNU C/C++ compatibility: __alignof__ and field access
+
+When TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES is set to TRUE, a built-in type may
+have one "normal" or "intrinsic" alignment used when laying out complete object
+of that type, and another "field" alignment used when laying out a field of
+that same type.  (See Changes entry of 10/7/02.)
+Previously, the __alignof__ operator always produced the "intrinsic" alignment
+value of the type of its argument.  Now, in GNU modes with gnu_version >= 30300
+the field alignment is produced if the argument to the __alignof__ operator is
+an expression whose top-level component is a field access operator ("." or
+"->").  For example (assuming a normal Linux configuration, where "double" is
+aligned on 4-byte boundaries when laying out fields, and on 8-byte boundaries
+otherwise):
+
+  struct X { int n; double a; } x;
+  double b;
+  int m1 = __alignof__(x.a);  // m1 == 4
+  int m2 = __alignof__(b);    // m2 == 8
+
+Note that due to current limitations of our internal representation, a field
+access is still considered to be "top-level" in some cases where GNU compilers
+would not agree:
+
+  int m3 = __alignof__(*&x.a);  // m3 == 4 in EDG GNU mode, but m3 == 8 with
+                                // actual GNU compilers.
+
 1/6/05   __genericfx pseudo-macro for generic fixed-point functions
 
 A new pseudo-macro __genericfx (similar to the existing __generic)

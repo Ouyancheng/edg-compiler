@@ -36,6 +36,10 @@ expr.c -- Expression scanning routines.
 /* widen_string_literal is used by scan_microsoft_lprefix_operator. */
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+/* Needed for access to "field_alignment_for". */
+#include "layout.h"
+#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 #if GNU_EXTENSIONS_ALLOWED
 /* Needed for GNU statement expression, ({...}). */
 #include "statements.h"
