@@ -5311,6 +5311,14 @@ is not a template declaration scope.
       }  /* if */
     }  /* for */
   }  /* if */
+  if (arg_dependent_lookup_enabled && sym->is_invisible) {
+    a_scope_stack_entry_ptr ssep = &scope_stack[orig_decl_level];
+
+    check_assertion(!sym->is_class_member && idlb.is_friend_decl);
+    check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
+    add_friend_function_to_lookup_list_for_class(sym, ssep->il_scope->
+                                                        variant.assoc_type);
+  }  /* if */
   /* Restore the scope stack. */
   if (idlb.namespace_reactivated)  {
     if (idlb.is_friend_decl) {
