@@ -4221,7 +4221,7 @@ been completed.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MAINTAIN_NEEDED_FLAGS
 
-static a_boolean routine_needed_even_if_unreferenced(a_routine_ptr rout)
+a_boolean routine_needed_even_if_unreferenced(a_routine_ptr rout)
 /*
 Return TRUE if the indicated routine is needed even if it is unreferenced,
 e.g., because it's externally defined.
