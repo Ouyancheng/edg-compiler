@@ -2985,9 +2985,10 @@ Return TRUE if one is found.
 
 
 static a_boolean diagnostic_already_issued_for_prototype(
-				an_error_code		error_code,
-				an_error_severity	severity,
-				a_source_position	*error_pos)
+				an_error_code			error_code,
+				an_error_severity		severity,
+				a_source_position		*error_pos,
+                                a_diagnostic_category_kind	diag_kind)
 /*
 This routine is used to prevent duplication of diagnostics in
 templates.  When a diagnostic is issued during a prototype instantiation
@@ -2998,17 +2999,32 @@ suppressed.
 Return TRUE if the diagnostic should be suppressed.
 */
 {
-  a_boolean	suppress_diagnostic = FALSE;
+  a_boolean		suppress_diagnostic = FALSE;
+  static a_boolean	saved_suppress_diagnostic;
 
-  if (depth_scope_stack == NO_SCOPE_DEPTH) {
-    /* The scope stack is empty, don't check further (probably a
-       command-line error. */
-  } else if (is_template_dependent_context()) {
-    record_prototype_diagnostic(error_code, severity, error_pos);
-  } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-    if (find_prototype_diagnostic(error_code, severity, error_pos)) {
-      suppress_diagnostic = TRUE;
+  if (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
+      diag_kind == (a_diagnostic_category_kind)dck_primary ||
+      diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
+    /* A standalone message or the start of a list. */
+    if (depth_scope_stack == NO_SCOPE_DEPTH) {
+      /* The scope stack is empty, don't check further (probably a
+         command-line error. */
+    } else if (is_template_dependent_context()) {
+      record_prototype_diagnostic(error_code, severity, error_pos);
+    } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      if (find_prototype_diagnostic(error_code, severity, error_pos)) {
+        suppress_diagnostic = TRUE;
+      }  /* if */
     }  /* if */
+    /* Save the result of this check and reuse it for any subordinate
+       messages (list elements, etc.) that may follow. */
+    saved_suppress_diagnostic = suppress_diagnostic;
+  } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
+             diag_kind == (a_diagnostic_category_kind)dck_end_list ||
+             diag_kind == (a_diagnostic_category_kind)dck_end_context) {
+    /* Reuse the saved result from the primary diagnostic or the start of the
+       list. */
+    suppress_diagnostic = saved_suppress_diagnostic;
   }  /* if */
   return suppress_diagnostic;
 }  /* diagnostic_already_issued_for_prototype */
@@ -3036,7 +3052,7 @@ and doing any required expansions, the diagnostic is written.
 
   if (check_severity(error_code, &error_pos, &severity, diag_kind) &&
       !diagnostic_already_issued_for_prototype(error_code, severity,
-                                               error_pos)) {
+                                               error_pos, diag_kind)) {
 #if !STANDALONE_UTILITY_PROGRAM
     if (curr_command_line_macro_def != NULL) {
       /* An error occurred while scanning a command-line macro definition.
