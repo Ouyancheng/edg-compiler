@@ -767,13 +767,13 @@ a try block with a catch that matches the type of the object thrown.
   ehsep = __curr_eh_stack_entry;
   while (ehsep != destination_ehsep) {
     an_eh_stack_entry_kind	kind = ehsep->kind;
-    if (kind == (an_eh_stack_entry_kind)ehsek_function) {
 #if DEBUG
-       if (__debug_level >= 2) {
-         fprintf(__f_debug, "Processing EH stack entry at %p\n",
-                 (void *)ehsep);
-       }  /* if */
+     if (__debug_level >= 2) {
+       fprintf(__f_debug, "Processing EH stack entry at %p, kind=%d\n",
+               (void *)ehsep, kind);
+     }  /* if */
 #endif /* DEBUG */
+    if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       cleanup(ehsep, region, NULL_REGION_NUMBER);
       region = ehsep->variant.function.saved_region_number;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
@@ -799,10 +799,6 @@ a try block with a catch that matches the type of the object thrown.
     ehsep = ehsep->next;
   }  /* while */
 
-   /* Set the current stack entry to point to the appropriate location
-      after all actions have taken place. */
-   __curr_eh_stack_entry = destination_ehsep;
-
   if (destination_ehsep == NULL) {
     /* If no handler was found call the terminate function. */
    __call_terminate();
@@ -826,6 +822,13 @@ a try block with a catch that matches the type of the object thrown.
               destination_ehsep->variant.try_block.region_number);
       
     }  /* if */
+  }  /* if */
+
+ /* Set the current stack entry to point to the appropriate location
+    after all actions have taken place. */
+  __curr_eh_stack_entry = destination_ehsep;
+
+  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     __catch_clause_number = destination_catch_value;
     __caught_object_address = object_ptr;
    /* Update the pointer in the try block to point to the throw stack entry
