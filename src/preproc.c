@@ -866,15 +866,15 @@ or the specific definition flag (if instantiate is FALSE).
   db_enter(3, "update_instantiation_flags");
   if (is_function_symbol(sym)) {
     if (can_be_instantiated(sym, /*issue_errors=*/TRUE)) {
-      a_function_instantiation_entry_ptr	fiep;
-      fiep = sym->variant.routine.instance_ptr;
+      a_template_instance_ptr	tip;
+      tip = sym->variant.routine.instance_ptr;
       if (instantiate) {
-	fiep->explicit_instantiation = TRUE;
-        update_instantiation_required_flag(fiep, TRUE);
+	tip->explicit_instantiation = TRUE;
+        update_instantiation_required_flag(tip, TRUE);
       } else {
-        fiep->specific_def = TRUE;
-        fiep->instantiation_required = FALSE;
-	fiep->explicit_instantiation = FALSE;
+        tip->specific_def = TRUE;
+        tip->instantiation_required = FALSE;
+	tip->explicit_instantiation = FALSE;
       }  /* if */
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -1057,7 +1057,7 @@ assumed if the return type is omitted.
 	sym = new_sym;
 	update_instantiation_flags(sym, instantiate);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
-		 sym->variant.variable.template_info != NULL) {
+                 sym->variant.variable.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation required flag. */
 #if 0
 	/* Stil need the code that goes here. */

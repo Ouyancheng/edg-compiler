@@ -3434,6 +3434,18 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
     rtn->compiler_generated = compiler_generated;
+    if (is_func_template) {
+      /* This symbol represents a member function of a prototype instantiation
+         of a class template.  As such it is a quasi function template itself.
+         Set it up to look like that. */
+      a_template_instance_ptr           tip;
+      a_template_symbol_supplement_ptr  tssp;
+
+      sym->variant.routine.instance_ptr = tip = alloc_template_instance();
+      tip->instance_sym = tip->template_sym = sym;
+      tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
+      tssp->variant.function.routine = rtn;
+    }  /* if */
     cssp = symbol_supplement_for_class(class_type);
     /* Do processing for special member functions, including assignment
        operators, constructors and destructors. */
@@ -3680,10 +3692,6 @@ table.
   /* Enter a new symbol in the symbol table. */
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
-  if (is_nonreal_class) {
-    sym->variant.variable.template_info =
-        alloc_template_symbol_supplement((a_symbol_kind)sk_static_data_member);
-  }  /* if */
   sym->class_of_which_a_member = class_type;
   /* Create the variable entry for the static data member. */
   /* The storage class of static data members is sc_static until they are
@@ -3704,14 +3712,28 @@ table.
      data members will also be changed. */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
-  if (!is_nonreal_class && corresp_prototype_tag_sym != NULL) {
-    /* We must be in the midst of a template class instantiation.  We need
-       to bind this static data member to the static data member template
-       that was created for it in the prototype instantiation.  This will
-       enable the compiler to generate a definition if a defining template
-       is declared. */
-    find_static_data_member_template(sym, corresp_prototype_tag_sym);
-  } /* if */
+  /* Special processing for static data members of template classes. */
+  if (corresp_prototype_tag_sym != NULL || is_nonreal_class) {
+    /* A nonnull instance_ptr marks this static data member as a member of
+       a (real or nonreal) instantiation of a class template. */
+    a_template_instance_ptr  tip;
+
+    sym->variant.variable.instance_ptr = tip = alloc_template_instance();
+    tip->instance_sym = sym;
+    if (is_nonreal_class) {
+      /* A member of a prototype instantiation. */
+      tip->template_sym = sym;
+      tip->template_info = alloc_template_symbol_supplement(
+                                     (a_symbol_kind)sk_static_data_member);
+    } else {
+      /* We must be in the midst of a template class instantiation.  We need
+         to bind this static data member to the static data member template
+         that was created for it in the prototype instantiation.  This will
+         enable the compiler to generate a definition if a defining template
+         is declared. */
+      find_static_data_member_template(sym, corresp_prototype_tag_sym);
+    }  /* if */
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
@@ -4900,8 +4922,8 @@ with implicitly called constructors, destructors, assignment operators,
 and conversion functions.
 */
 {
-  a_routine_ptr                       rp = sym->variant.routine.ptr;
-  a_function_instantiation_entry_ptr  fiep;
+  a_routine_ptr            rp = sym->variant.routine.ptr;
+  a_template_instance_ptr  tip;
 
 #if CHECKING
   if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
@@ -4934,9 +4956,9 @@ and conversion functions.
   }  /* if */
   /* If the function is an instance of a function template, mark it
      as requiring an instantiation. */
-  fiep = sym->variant.routine.instance_ptr;
-  if (fiep != NULL) {
-    update_instantiation_required_flag(fiep, TRUE);
+  tip = sym->variant.routine.instance_ptr;
+  if (tip != NULL) {
+    update_instantiation_required_flag(tip, TRUE);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 

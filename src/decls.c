@@ -8134,9 +8134,9 @@ of local variables (and types, etc.) of functions and in blocks.
       goto return_point;
     } else if (curr_token == tok_template) {
       symbol_ptr = template_declaration(&defines_something);
-      if (symbol_ptr != NULL &&
-          symbol_ptr->kind == (a_symbol_kind)sk_function_template &&
-          defines_something) {
+      if (symbol_ptr != NULL && defines_something &&
+          (symbol_ptr->kind == (a_symbol_kind)sk_function_template ||
+           symbol_ptr->kind == (a_symbol_kind)sk_member_function)) {
         /* No trailing semicolon expected. */
       } else {
         /* Check for final semicolon. */

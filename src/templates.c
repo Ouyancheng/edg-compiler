@@ -245,9 +245,9 @@ encountered.
 }  /* instantiate_class_template */
 
 
-void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
+void instantiate_template_function(a_template_instance_ptr  tip)
 /*
-Instantiate the body of the template function associated with fiep.
+Instantiate the body of the template function associated with tip.
 */
 {
   a_symbol_ptr                      rout_sym;
@@ -260,7 +260,7 @@ Instantiate the body of the template function associated with fiep.
   a_param_type_ptr                  ptp;
 
   db_enter(3, "instantiate_template_function");
-  rout_sym = fiep->routine_sym;
+  rout_sym = tip->instance_sym;
   rout_ptr = rout_sym->variant.routine.ptr;
   if (rout_ptr->assoc_scope != NULL_region_number) {
     /* Already instantiated. */
@@ -283,12 +283,16 @@ Instantiate the body of the template function associated with fiep.
   }  /* if */
   rout_type = rout_ptr->type;
   rtsp = rout_type->variant.routine.extra_info;
-  tssp = fiep->template_sym->variant.template_info;
+  if (rout_sym->kind == (a_symbol_kind)sk_member_function) {
+    tssp = tip->template_sym->variant.routine.instance_ptr->template_info;
+  } else {
+    tssp = tip->template_sym->variant.template_info;
+  }  /* if */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   /* Push the template instantiation scope. */
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
-                   rout_sym, fiep->template_sym, fiep->arg_list);
+                   rout_sym, tip->template_sym, tip->arg_list);
   rescan_reusable_cache(&tssp->token_cache);
   if (rout_sym->class_of_which_a_member != NULL) {
     push_class_reactivation_scope(rout_sym->class_of_which_a_member);
@@ -386,7 +390,7 @@ Instantiate the body of the template function associated with fiep.
 }  /* instantiate_template_function */
 
 
-void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
+void define_template_static_data_member(a_template_instance_ptr  tip)
 /*
 */
 {
@@ -394,10 +398,10 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
   a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "define_template_static_data_member");
-  tssp = sdmdp->template_sym->variant.variable.template_info;
-  static_data_member_sym = sdmdp->static_data_member_sym;
+  tssp = tip->template_sym->variant.variable.instance_ptr->template_info;
+  static_data_member_sym = tip->instance_sym;
 #if CHECKING
-  if (!sdmdp->template_sym->defined || tssp->parameters == NULL) {
+  if (!tip->template_sym->defined || tssp->parameters == NULL) {
     internal_error("define_template_static_data_member: undef'd template");
   } else if (static_data_member_sym->defined) {
     internal_error("define_template_static_data_member: sym already def'd");
@@ -406,7 +410,7 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
   static_data_member_sym->defined = TRUE;
   if (tssp->token_cache.first_token != NULL) {
     a_boolean  incomplete_type_error_reported;
-    a_type_ptr tp = sdmdp->template_sym->class_of_which_a_member;
+    a_type_ptr tp = tip->template_sym->class_of_which_a_member;
     while (tp->source_corresp.class_of_which_a_member != NULL) {
       tp = tp->source_corresp.class_of_which_a_member;
     }  /* while */
@@ -420,7 +424,7 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
     (void)push_scope((a_scope_kind)sck_template_instantiation,
                      tssp->declaration_scope, (a_type_ptr)NULL,
                      (a_routine_ptr)NULL, static_data_member_sym,
-                     sdmdp->template_sym, sdmdp->arg_list);
+                     tip->template_sym, tip->arg_list);
     push_class_reactivation_scope(static_data_member_sym->
                                                   class_of_which_a_member);
     
@@ -1293,7 +1297,11 @@ Do some simple consistency checking on a function template argument list.
   a_template_param_ptr  tpp;
   a_template_arg_ptr    tap;
 
-  tpp = templ_sym->variant.template_info->parameters;
+  if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
+    tpp = templ_sym->variant.routine.instance_ptr->template_info->parameters;
+  } else {
+    tpp = templ_sym->variant.template_info->parameters;
+  }  /* if */
   for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
     if (!tap->is_type) {
       internal_error("check_template_arg_list: not a type arg");
@@ -1326,11 +1334,11 @@ the template argument list and the template parameter list (reached through
 templ_sym).
 */
 {
-  a_symbol_ptr                        sym;
-  a_template_symbol_supplement_ptr    tssp;
-  a_memory_region_number              region_to_switch_back_to;
-  a_function_instantiation_entry_ptr  fiep;
-  a_routine_ptr                       templ_rout, rp;
+  a_symbol_ptr                      sym;
+  a_template_symbol_supplement_ptr  tssp;
+  a_memory_region_number            region_to_switch_back_to;
+  a_template_instance_ptr           tip;
+  a_routine_ptr                     templ_rout, rp;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -1341,7 +1349,15 @@ templ_sym).
      list under the function template symbol and, optionally, in the overload
      list if it is also explicitly declared by the user. */
   sym = make_template_function_symbol(templ_sym, source_pos);
-  tssp = templ_sym->variant.template_info;
+  if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
+#if 0
+    tssp = templ_sym->variant.routine.instance_ptr->template_info;
+#else
+    unexpected_condition();
+#endif /* if 0 */
+  } else {
+    tssp = templ_sym->variant.template_info;
+  }  /* if */
   templ_rout = tssp->variant.function.routine;
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
@@ -1368,21 +1384,21 @@ templ_sym).
   add_to_routines_list(rp, /*at_file_scope=*/TRUE);
   /* Create the associated function instantiation entry and link it
      onto the front of the instantiation list for the template. */
-  fiep = alloc_function_instantiation_entry();
-  fiep->template_sym = templ_sym;
-  fiep->arg_list = templ_arg_list;
-  fiep->next = tssp->variant.function.instantiations;
-  tssp->variant.function.instantiations = fiep;
+  tip = alloc_template_instance();
+  tip->template_sym = templ_sym;
+  tip->arg_list = templ_arg_list;
+  tip->next = tssp->variant.function.instantiations;
+  tssp->variant.function.instantiations = tip;
   /* Make the function instantiation entry and its associated symbol
      point at each other. */
-  fiep->routine_sym = sym;
-  sym->variant.routine.instance_ptr = fiep;
+  tip->instance_sym = sym;
+  sym->variant.routine.instance_ptr = tip;
   /* Normally, function instantiation entries are not marked for actual
      instantiation (that is, for generation of the function body) until there
      is an invocation of the function.  This is partly under user control,
      however: if instantiation_mode is tim_all, mark it immediately. */
   if (instantiation_mode == tim_all) {
-    update_instantiation_required_flag(fiep, /*value=*/TRUE);
+    update_instantiation_required_flag(tip, /*value=*/TRUE);
   }  /* if */
 
   db_exit();
@@ -1403,12 +1419,12 @@ be found or a template arg list can be created, return TRUE; otherwise,
 return FALSE.
 */
 {
-  a_boolean                           match = FALSE;
-  a_symbol_ptr                        sym = NULL;
-  a_type_ptr                          rout_type, templ_rout_type;
-  a_template_symbol_supplement_ptr    tssp;
-  a_function_instantiation_entry_ptr  fiep;
-  a_param_type_ptr                    ptp, other_ptp;
+  a_boolean                         match = FALSE;
+  a_symbol_ptr                      sym = NULL;
+  a_type_ptr                        rout_type, templ_rout_type;
+  a_template_symbol_supplement_ptr  tssp;
+  a_template_instance_ptr           tip;
+  a_param_type_ptr                  ptp, other_ptp;
 
   db_enter(3, "is_match_for_function_template");
 #if CHECKING
@@ -1420,6 +1436,11 @@ return FALSE.
   *instance_sym = NULL;
   /* sym is the symbol for a template function to be returned.  Returning NULL
      means no template function could be found or created. */
+  if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
+    tssp = templ_sym->variant.routine.instance_ptr->template_info;
+  } else {
+    tssp = templ_sym->variant.template_info;
+  }  /* if */
   tssp = templ_sym->variant.template_info;
   templ_rout_type = tssp->variant.function.routine->type;
   /* First be sure the number of parameters in the template function is
@@ -1440,16 +1461,16 @@ return FALSE.
   }  /* if */
   /* Make a pass over the entries representing instantiations of the function
      template to see if any of them match the current type signature. */
-  for (fiep = tssp->variant.function.instantiations;
-       fiep != NULL;
-       fiep = fiep->next) {
-    if (fiep->specific_decl) {
+  for (tip = tssp->variant.function.instantiations;
+       tip != NULL;
+       tip = tip->next) {
+    if (tip->specific_decl) {
       /* A function that matches this template but has a user declaration.
          If it is the function we seek it will already have been found
          directly -- ignore such cases in this search. */
       goto get_next_sym;
     }  /* if */
-    sym = fiep->routine_sym;
+    sym = tip->instance_sym;
     rout_type = sym->variant.routine.ptr->type;
     /* Return type must match exactly. */
     if (!identical_types(curr_type->variant.routine.return_type,
@@ -1567,11 +1588,11 @@ for it.  Check for such a case, and when it occurs create and initialize
 the function instantiation entry and set all the pointers.
 */
 {
-  a_symbol_ptr                       sym;
-  a_template_symbol_supplement_ptr   tssp;
-  a_function_instantiation_entry_ptr fiep;
-  a_type_ptr                         tp;
-  a_template_arg_ptr                 templ_arg_list;
+  a_symbol_ptr                      sym;
+  a_template_symbol_supplement_ptr  tssp;
+  a_template_instance_ptr           tip;
+  a_type_ptr                        tp;
+  a_template_arg_ptr                templ_arg_list;
 
   db_enter(3, "record_predeclared_template_function");
   if (rout_sym->variant.routine.instance_ptr != NULL) {
@@ -1588,32 +1609,35 @@ the function instantiation entry and set all the pointers.
       if (sym != NULL) {
         internal_error("record_predeclared_template_function: sym found");
       }  /* if */
+      if (templ_sym->kind != (a_symbol_kind)sk_function_template) {
+        internal_error("record_predeclared_template_function: bad sym kind");
+      }  /* if */
 #endif /* CHECKING */
       /* Create the associated function instantiation entry and link it
          onto the front of the instantiation list for the template. */
-      fiep = alloc_function_instantiation_entry();
-      fiep->template_sym = templ_sym;
-      fiep->arg_list = templ_arg_list;
+      tip = alloc_template_instance();
+      tip->template_sym = templ_sym;
+      tip->arg_list = templ_arg_list;
       /* Mark this function as a "specialization". */
-      fiep->specific_decl = TRUE;
+      tip->specific_decl = TRUE;
       if (rout_sym->defined) {
         /* User-defined, so no instantiation is required. */
-        fiep->specific_def = TRUE;
+        tip->specific_def = TRUE;
       }  /* if */
       tssp = templ_sym->variant.template_info;
-      fiep->next = tssp->variant.function.instantiations;
-      tssp->variant.function.instantiations = fiep;
+      tip->next = tssp->variant.function.instantiations;
+      tssp->variant.function.instantiations = tip;
       /* Make the function instantiation entry and its associated symbol
          point at each other. */
-      fiep->routine_sym = rout_sym;
-      rout_sym->variant.routine.instance_ptr = fiep;
+      tip->instance_sym = rout_sym;
+      rout_sym->variant.routine.instance_ptr = tip;
       /* Normally, function instantiation entries are not marked for actual
          instantiation (that is, for generation of the function body) until
          there is an invocation of the function.  This is partly under user
          control, however: if instantiation_mode is tim_all, mark it
          immediately. */
       if (instantiation_mode == tim_all) {
-        update_instantiation_required_flag(fiep, /*value=*/TRUE);
+        update_instantiation_required_flag(tip, /*value=*/TRUE);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1634,11 +1658,11 @@ to rout_sym (if the name is overloaded, use the source position to decide),
 and create a function instantiation entry to bind the two symbols together.
 */
 {
-  a_symbol_ptr                       sym, template_sym;
-  a_template_symbol_supplement_ptr   tssp;
-  a_function_instantiation_entry_ptr fiep;
-  a_type_ptr                         tp;
-  a_scope_number                     corresp_prototype_decl_scope;
+  a_symbol_ptr                      sym;
+  a_template_symbol_supplement_ptr  tssp;
+  a_template_instance_ptr           tip;
+  a_type_ptr                        tp;
+  a_scope_number                    corresp_prototype_decl_scope;
 
   db_enter(3, "find_member_function_template");
   /* Find a function symbol on the inactive list that is in the scope of the
@@ -1692,12 +1716,11 @@ and create a function instantiation entry to bind the two symbols together.
     internal_error("find_member_function_template: no corresponding template");
   }  /* if */
 #endif /* CHECKING */
-  template_sym = get_member_function_template_symbol(sym);
   /* sym is the template symbol for which member function rout_sym is an
      instantiation.  Create the function instantiation entry and set the
      pointers to bind them together. */
-  fiep = alloc_function_instantiation_entry();
-  fiep->template_sym = template_sym;
+  tip = alloc_template_instance();
+  tip->template_sym = sym;
   /* Get the template arg list for the class and use it.  Note that if
      this is a nested class we have to climb the parent chain to find the
      template class in which the template arg list is recorded. */
@@ -1705,17 +1728,17 @@ and create a function instantiation entry to bind the two symbols together.
   while (tp->source_corresp.class_of_which_a_member != NULL) {
     tp = tp->source_corresp.class_of_which_a_member;
   }  /* if */
-  fiep->arg_list =
+  tip->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
-  tssp = template_sym->variant.template_info;
+  tssp = sym->variant.routine.instance_ptr->template_info;
   /* Link the new entry to the start of the instantiation list of the
      function template. */
-  fiep->next = tssp->variant.function.instantiations;
-  tssp->variant.function.instantiations = fiep;
+  tip->next = tssp->variant.function.instantiations;
+  tssp->variant.function.instantiations = tip;
   /* Make the function instantiation entry and its associated symbol
      point at each other. */
-  fiep->routine_sym = rout_sym;
-  rout_sym->variant.routine.instance_ptr = fiep;
+  tip->instance_sym = rout_sym;
+  rout_sym->variant.routine.instance_ptr = tip;
   /* Normally, function instantiation entries are not marked for actual
      instantiation (that is, for generation of the function body) until there
      is an invocation of the function.  This is partly under user control,
@@ -1725,7 +1748,7 @@ and create a function instantiation entry to bind the two symbols together.
      have to be put out for it. */
   if (instantiation_mode == tim_all ||
       rout_sym->variant.routine.ptr->is_virtual) {
-    update_instantiation_required_flag(fiep, /*value=*/TRUE);
+    update_instantiation_required_flag(tip, /*value=*/TRUE);
   }  /* if */
   db_exit();
 }  /* find_member_function_template */
@@ -1738,12 +1761,12 @@ static_data_member_sym is a symbol representing a static data member of a
 real instantiation of a class template.  corresp_prototype_tag_sym identifies
 the nonreal prototype instantiation of the same class template.  Find the
 sk_static_data_member symbol from the prototype instantiation (it serves as
-the template for the real static data member), and then create and fill out a
-static-data-member-definition entry and add it to the list of such entries
-attached to the static-data-member-template.
+the template for the real static data member), and record it in the
+template instance entry already associated with static_data_member_sym.
+Also, add the instance to the definitions list for the template.
 */
 {
-  a_static_data_member_def_ptr      sdmdp;
+  a_template_instance_ptr           tip;
   a_scope_number                    corresp_prototype_decl_scope;
   a_type_ptr                        tp, member_type;
   a_symbol_ptr                      sym;
@@ -1787,7 +1810,7 @@ attached to the static-data-member-template.
          sym = sym->next) {
       if (sym->decl_scope == corresp_prototype_decl_scope &&
           sym->kind == (a_symbol_kind)sk_static_data_member &&
-          sym->variant.variable.template_info != NULL) {
+          sym->variant.variable.instance_ptr != NULL) {
         break;
       }  /* if */
     }  /* for */
@@ -1798,12 +1821,11 @@ attached to the static-data-member-template.
                "find_static_data_member_template: no corresponding template");
   }  /* if */
 #endif /* CHECKING */
-
   /* sym is the template symbol with which static_data_member_sym is
      associated.  Create a static data member def entry and set the pointers
      to bind them all together. */
-  sdmdp = alloc_static_data_member_def();
-  sdmdp->template_sym = sym;
+  tip = static_data_member_sym->variant.variable.instance_ptr;
+  tip->template_sym = sym;
   /* Get the template arg list for the class and use it.  Note that if
      this is a nested class we have to climb the parent chain to find the
      template class in which the template arg list is recorded. */
@@ -1811,25 +1833,23 @@ attached to the static-data-member-template.
   while (tp->source_corresp.class_of_which_a_member != NULL) {
     tp = tp->source_corresp.class_of_which_a_member;
   }  /* if */
-  sdmdp->arg_list =
+  tip->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
-  tssp = sym->variant.variable.template_info;
   /* Link the new entry to the start of the definition list of the static
      data member template. */
-  sdmdp->next = tssp->variant.static_data_member.definitions;
-  tssp->variant.static_data_member.definitions = sdmdp;
-  /* The static data member definition entry points to its associated
-     symbol, but the latter does not need a back pointer. */
-  sdmdp->static_data_member_sym = static_data_member_sym;
+  tssp = sym->variant.variable.instance_ptr->template_info;
+  tip->next = tssp->variant.static_data_member.definitions;
+  tssp->variant.static_data_member.definitions = tip;
   /* The static data member is eligible for a compiler-generated definition
-     only if a template definition appears in the source.  That may have
-     already occurred, or it may happen later. */
-  if (sym->defined) {
-    /* A template definition has appeared.  Enter the definition entry onto
-       the instantiations_required list.  The definition will be generated
-       as part of instantiation_wrapup. */
-    add_to_instantiations_required_list(
-                              (a_function_instantiation_entry_ptr)NULL, sdmdp);
+     only if a template definition appears in the source.  However, it still
+     needs to appear on the instantiation-required list (because instantiation
+     is required required somewhere in the program even if not in the
+     current translation unit). */
+  if (instantiation_mode != tim_none) {
+    /* Enter the template instance entry onto the instantiations_required
+       list.  If appropriate, the definition will be generated as part of
+       instantiation_wrapup. */
+    add_to_instantiations_required_list(tip);
   }  /* if */
   db_exit();
 }  /* find_static_data_member_template */
@@ -1849,36 +1869,40 @@ case *new_list is not disposed of but rather used in the resulting data
 structure.
 */
 {
-  a_symbol_ptr                        sym;
-  a_template_symbol_supplement_ptr    tssp;
-  a_function_instantiation_entry_ptr  fiep, prev_fiep;
+  a_symbol_ptr                      sym;
+  a_template_symbol_supplement_ptr  tssp;
+  a_template_instance_ptr           tip, prev_tip;
 
   db_enter(3, "find_template_function");
   /* Make a pass over the entries representing instantiations of the function
      template. */
-  tssp = templ_sym->variant.template_info ;
-  fiep = tssp->variant.function.instantiations;
-  prev_fiep = NULL;
-  for (; fiep != NULL; fiep = fiep->next) {
-    if (equiv_template_arg_lists(fiep->arg_list, *new_list,
+  if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
+    tssp = templ_sym->variant.routine.instance_ptr->template_info;
+  } else {
+    tssp = templ_sym->variant.template_info;
+  }  /* if */
+  tip = tssp->variant.function.instantiations;
+  prev_tip = NULL;
+  for (; tip != NULL; tip = tip->next) {
+    if (equiv_template_arg_lists(tip->arg_list, *new_list,
                                  /*is_func_template=*/TRUE)) {
       /* We've found a match.  Remove the found function instantiation entry
          from its current position in the instantiation list and add it to
          the front. */
-      if (prev_fiep != NULL) {
-        prev_fiep->next = fiep->next;
-        fiep->next = tssp->variant.function.instantiations;
-        tssp->variant.function.instantiations = fiep;
+      if (prev_tip != NULL) {
+        prev_tip->next = tip->next;
+        tip->next = tssp->variant.function.instantiations;
+        tssp->variant.function.instantiations = tip;
       }
-      sym = fiep->routine_sym;
+      sym = tip->instance_sym;
 #if DEBUG
       if (debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
       break;
     }  /* if */
-    prev_fiep = fiep;
+    prev_tip = tip;
   }  /* for */
-  if (fiep == NULL) {
+  if (tip == NULL) {
     /* No match was found, so create a new template function.  That means
        create a symbol entry, a routine entry, a routine type entry, and a
        function instantiation entry, and linking all these appropriately.
@@ -2579,23 +2603,19 @@ entry is pushed on the scope stack.
         err = TRUE;
 #endif /* if 0 */
       } else {
-        a_static_data_member_def_ptr  sdmdp;
-
+        /* This is a template definition of a static data member of a
+           class template. */
+#if CHECKING
+        if (sym->variant.variable.instance_ptr->template_sym != sym) {
+          internal_error("template_declaration: bad instance for static mem");
+        }  /* if */
+#endif /* CHECKING */
         sym->defined = TRUE;
-        tssp = sym->variant.variable.template_info;
+        tssp = sym->variant.variable.instance_ptr->template_info;
         /* Update the param list ptr, which should be non-null when the
            symbol is defined. */
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
-        /* If there have already been instantiations of the parent template
-           class, update the instantiations_required list for each instance
-           of the static data member. */
-        for (sdmdp = tssp->variant.static_data_member.definitions;
-             sdmdp != NULL;
-             sdmdp = sdmdp->next) {
-          add_to_instantiations_required_list(
-                              (a_function_instantiation_entry_ptr)NULL, sdmdp);
-        }  /* for */
       }  /* if */
       /* Scan the initializer expression, if any, and cache its tokens. */
       if (curr_token == tok_assign) {
@@ -2635,7 +2655,11 @@ entry is pushed on the scope stack.
                                        defines_something);
         discard_token_cache(&local_token_cache);
       } else {
-        tssp = sym->variant.template_info;
+        if (sym->kind == (a_symbol_kind)sk_member_function) {
+          tssp = sym->variant.routine.instance_ptr->template_info;
+        } else {
+          tssp = sym->variant.template_info;
+        }  /* if */
         tssp->variant.function.func_info = func_info;
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;

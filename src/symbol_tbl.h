@@ -640,126 +640,82 @@ typedef struct a_template_param {
 } a_template_param;
 
 
-typedef struct a_function_instantiation_entry
-                                    *a_function_instantiation_entry_ptr;
-typedef struct a_function_instantiation_entry {
-  /* Information describing an instantiation of a function template
-     or member function of a template class.  Pointed to by the symbol entry
-     for a function template and the symbol entry for the template function
-     or member function. */
-  a_function_instantiation_entry_ptr
+typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
+
+typedef struct a_template_instance *a_template_instance_ptr;
+typedef struct a_template_instance {
+  /* Information describing an instance of a function template or an
+     instance of a member function or static data member of a template class.
+     The kind of instance may be derived from instance_sym->kind. */
+  a_template_instance_ptr
                 next;
-                        /* Pointer to the next instance of a given
-                           function template. */
-  a_symbol_ptr  routine_sym;
-                        /* Pointer to the symbol entry that describes this
-                           template function instance. */
+                        /* Pointer to the next instance of a given template. */
+  a_template_instance_ptr
+                next_in_instantiation_list;
+                        /* Pointer to the next instance in a list of
+			   entries for which full instantiation is required. */
+  a_symbol_ptr  instance_sym;
+                        /* Pointer to the sk_routine, sk_member_function, or
+			   sk_static_data_member symbol entry that describes
+			   this template instance.  Note that the instance
+			   may not be a "real" instance when it is a member
+			   of a prototype instantiation of a class template. */
   a_symbol_ptr  template_sym;
-                        /* For a function template this points back to the
-                           template function symbol.  For member functions
-                           of template classes this points to the member
-                           function symbol of the template class. */
+			/* For nonmember functions, a pointer to the
+			   sk_function_template of which it is an instance.
+			   For member functions, a pointer to the
+			   sk_member_function entry of the class template's
+			   prototype instantiation.  For static data members,
+			   a pointer to the sk_static_data_member symbol of
+			   the prototype instantiation.  (Note that
+                           template_sym == instance_sym when instance_sym is
+			   a member of prototype instantiation; when this is
+			   the case template_info is non-NULL.) */
   a_template_arg_ptr
                 arg_list;
-                        /* Points to the template argument list -- the
+                        /* Pointer to the template argument list -- the
                            arguments that correspond to the template
-                           parameter list (e.g., template <class T>).
-                           This is present for both template functions and
-                           member functions of template classes.  For member
-                           functions this points to the same argument list as
-                           the argument list in the class type supplement. */
+                           parameter list (e.g., template <class T>). */
+  a_template_symbol_supplement_ptr
+		template_info;
+			/* Pointer to associated template information when
+			   instance_sym points to a member of a prototype
+			   instantiation of a class template (in which case
+			   instance_sym == template_sym and the instance is
+			   not a "real" instance but a kind of template for a
+			   member function or a static data member).  Otherwise
+			   (i.e., usually) NULL. */
   unsigned int  instantiation_required:1;
-			/* TRUE if the routine body associated with this
-			   instantiation needs to be generated.  This flag is
-			   FALSE if an explicit definition has been provided
-			   by the user (i.e., if specific_def is set). */
+			/* TRUE if a routine body or static data member
+			   definition needs to be generated for this instance.
+			   This flag is FALSE if an explicit definition has
+			   been provided by the user (i.e., if specific_def
+			   is set). */
   unsigned int  specific_decl:1;
-			/* TRUE if this instance of the template function
-			   has been explicitly declared.  When this flag is
-			   set, routine_sym has been added to the overload
-			   list for this name. */
+			/* For instances of nonmember function templates,
+			   TRUE if this instance has been explicitly declared
+			   (in which case, instance_sym has been added to the
+			   overload list for this name).  Always TRUE (and
+			   therefore meaningless) for member functions and
+			   static data members of template classes. */
   unsigned int  specific_def:1;
-			/* TRUE if this instance of the template function
-			   has been explicitly defined.  When this flag is
-			   set, no implicitly instantiation will be done.
-			   The specific_decl flag will always be TRUE when
-			   this flag is set. */
+			/* For instances of nonmember function templates and
+			   member functions of template classes, TRUE if this
+			   instance has been explicitly defined (in which case
+			   no implicitly instantiation will be done). The
+			   specific_decl flag will always be TRUE when this
+			   flag is set.  For static data members its value is
+			   identical to the defined flag in instance_sym. */
   unsigned int	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using a pragma directive. */
-} a_function_instantiation_entry;
-
-
-typedef struct a_static_data_member_def *a_static_data_member_def_ptr;
-typedef struct a_static_data_member_def {
-  /* Information describing a definition of a static data member of template
-     class; the definition is based on a static data member template (which
-     may or may not specify an initializer expression). */
-  a_static_data_member_def_ptr
-                next;
-                        /* Pointer to the next definition of a static data
-                           member based on a given static data member
-			   template. */
-  a_symbol_ptr  static_data_member_sym;
-                        /* Pointer to the symbol for a static data member of a
-			   template class; this is what is to be defined. */
-  a_symbol_ptr  template_sym;
-                        /* Pointer to the sk_static_data_member symbol that
-			   identifies the template on the basis of which the
-			   static data member is to be defined. */
-  a_template_arg_ptr
-                arg_list;
-                        /* Points to the template argument list associated with
-			   the static data member to be defined. */
-} a_static_data_member_def;
-
-
-typedef struct a_template_definition *a_template_definition_ptr;
-typedef struct a_template_definition {
-  /* Entry identifying either a function in need of instantiation or a static
-     data member in need of definition.  A list of these entries is referenced
-     to process template functions and static data members for which compiler-
-     generated definitions may be required (see instantiation_wrapup). */
-  a_template_definition_ptr
-		next;
-			/* Pointer to the next entry on a global list of
-			   functions and static data members for which
-			   definition is required.  New entries are added to
-			   the end of the list. */
-  a_byte_boolean
-		is_function_instantiation;
-			/* TRUE when this entry points to a function
-			   instantiation entry; FALSE when it points to a
-			   static data member definition entry. */
-  union {
-    /* When is_function_instantiation is TRUE: */
-    a_function_instantiation_entry_ptr
-                function_instance;
-			/* Pointer to an entry identifying a template
-			   function that may require instantiation.  (The
-			   instantiation-required flag in the entry, which
-			   can be changed after the entry has been added to
-			   the list, must be checked to determine if the
-			   function actually needs to be instantiated.) */
-    /* When is_function_instantiation is FALSE: */
-    a_static_data_member_def_ptr
-		static_data_member_def;
-			/* Pointer to an entry identifying a static data
-			   member that may require a compiler-generated
-			   definition. (The defined flag in the static data
-			   member symbol, which can be set after the entry
-			   has been added to the list, must be checked to
-			   determine if the object still needs a
-			   definition.) */
-  } variant;
-} a_template_definition;
+} a_template_instance;
 
 
 /* Used to track the number of pending instantiations of a given class. */
 typedef short a_pending_instantiation_count;
 
 
-typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
 typedef struct a_template_symbol_supplement {
   /* Additional information about a C++ class or function template
      supplementing the information residing in the class's symbol entry. */
@@ -815,7 +771,7 @@ typedef struct a_template_symbol_supplement {
     } class_template;
     /* When symbol kind = sk_function_template: */
     struct {
-      a_function_instantiation_entry_ptr
+      a_template_instance_ptr
                 instantiations;
                         /* Pointer to a list of entries describing template
                            functions that have been instantiated from this
@@ -833,7 +789,7 @@ typedef struct a_template_symbol_supplement {
     } function;
     /* When symbol kind = sk_static_data_member: */
     struct {
-      a_static_data_member_def_ptr
+      a_template_instance_ptr
 		definitions;
 			/* Pointer to a list of entries specifying definitions
 			   for static data members of instantiated template
@@ -966,11 +922,13 @@ typedef struct a_symbol {
       a_variable_ptr
 		ptr;
 			/* Pointer to the variable entry. */
-      a_template_symbol_supplement_ptr
-                template_info;
-			/* For sk_static_data_member symbols only, pointer
-			   to an entry providing additional info about a C++
-			   static data member template. */
+      a_template_instance_ptr
+                instance_ptr;
+			/* For a sk_static_data_member symbol that represents
+			   a member of a (real or prototype) instantiation of
+			   a class template, a pointer to an entry providing
+			   additional information about whether and how to
+                           define the static data member.  NULL otherwise. */
     } variable;
     /* When kind == sk_field: */
     struct {
@@ -988,7 +946,7 @@ typedef struct a_symbol {
       a_routine_ptr 
                 ptr;
 			/* The routine. */
-      a_function_instantiation_entry_ptr
+      a_template_instance_ptr
                 instance_ptr;
                         /* Present for template functions and member functions
                            of template classes.  Points to information about
@@ -1369,14 +1327,19 @@ typedef struct a_scope_stack_entry {
 			   defined. */
   a_symbol_ptr  template_sym;
                         /* When kind == sck_template_instantiation, contains
-                           a pointer to the symbol for the class template,
-			   function template, or static data member template
-			   symbol; it is used to access the template parameter
-			   list. */
+                           a pointer to the symbol for a symbol providing
+			   information about the template on which the
+			   instantiation is based.  When a template class is
+			   being instantiated it points to an sk_class_template				  symbol; for a nonmember function it points to an
+			   sk_function_template symbol; for member functions
+			   and static data members of an instance of a class
+			   template, it points to an sk_member_function or
+			   sk_static_data_member symbol that is a member of
+			   a prototype instantiation of the template class. */
   a_template_arg_ptr
                 template_arg_list;
                         /* When kind == sck_template_instantiation, contains
-                           a pointer to template argument list. */
+                           a pointer to a template argument list. */
   a_source_position
 		source_position;
 			/* The source position when the scope was pushed
@@ -1736,23 +1699,17 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
                                 a_source_position       *source_position);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
-extern a_boolean
-       current_class_symbol_if_class_template(a_symbol_ptr *sym);
-extern void update_instantiation_required_flag
-                                  (a_function_instantiation_entry_ptr fiep,
-                                   a_boolean                          value);
+extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
+extern void update_instantiation_required_flag(a_template_instance_ptr tip,
+                                               a_boolean               value);
 extern void instantiation_wrapup(void);
 
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
-extern a_function_instantiation_entry_ptr
-                                     alloc_function_instantiation_entry(void);
-extern a_static_data_member_def_ptr alloc_static_data_member_def(void);
-extern void add_to_instantiations_required_list(
-                                    a_function_instantiation_entry_ptr fiep,
-                                    a_static_data_member_def_ptr       sdmdp);
+extern a_template_instance_ptr alloc_template_instance(void);
+extern void add_to_instantiations_required_list(a_template_instance_ptr  tip);
 extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);

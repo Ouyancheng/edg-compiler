@@ -56,9 +56,7 @@ static unsigned long
 		num_template_symbol_supplements_allocated,
                 num_template_params_allocated,
                 num_param_ids_allocated,
-                num_function_instantiation_entries_allocated,
-                num_static_data_member_defs_allocated,
-                num_template_definitions_allocated,
+                num_template_instances_allocated,
                 num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
@@ -114,13 +112,13 @@ static sizeof_t size_ident_buffer = 0;
 			/* Incremental allocation for ident_buffer.  Should
 			   be bigger than most identifiers. */
 
-static a_template_definition_ptr instantiations_required;
+static a_template_instance_ptr instantiations_required;
 			/* Points to the first entry on a list of template
-			   definition entries for which either function
+			   instance entries for which either function
 			   instantiations or compiler-generated static data
 			   member definitions are required.  Entries are
 			   added to the end of the list.  */
-static a_template_definition_ptr instantiations_required_tail;
+static a_template_instance_ptr instantiations_required_tail;
 			/* Points to the end of the instantiations_required
 			   list; needed because entries added to this list
 			   must be added at the end. */
@@ -709,8 +707,9 @@ and indentation is the indentation desired.
             mft_sym = mft_sym->next;
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
-          a_routine_ptr  routine = tssp->variant.function.routine;
-          a_function_instantiation_entry_ptr fiep;
+          a_routine_ptr            routine = tssp->variant.function.routine;
+          a_template_instance_ptr  tip;
+
           fprintf(f_debug, "%*sroutine type: ", indentation, "");
           if (routine != NULL) {
             db_type(tssp->variant.function.routine->type);
@@ -718,30 +717,30 @@ and indentation is the indentation desired.
             fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
           fprintf(f_debug, "\n");
-          fiep = tssp->variant.function.instantiations;
-          while (fiep != NULL) {
+          tip = tssp->variant.function.instantiations;
+          while (tip != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
-            if (fiep->instantiation_required || fiep->specific_decl ||
-                fiep->specific_def) {
+            if (tip->instantiation_required || tip->specific_decl ||
+                tip->specific_def) {
               char* comma = "";
               fputs(" (", f_debug);
-              if (fiep->instantiation_required) {
+              if (tip->instantiation_required) {
                 fputs("instantiation req'd", f_debug);
                 comma = ", ";
               }  /* if */
-              if (fiep->specific_decl) {
+              if (tip->specific_decl) {
                 fprintf(f_debug, "%sspecific decl", comma);
                 comma = ", ";
               }  /* if */
-              if (fiep->specific_def) {
+              if (tip->specific_def) {
                 fprintf(f_debug, "%sspecific def", comma);
               }  /* if */
               fputc(')', f_debug);
             }  /* if */
             fputs(":\n", f_debug);
             fprintf(f_debug, "%*s", indentation + 2, "");
-            db_symbol(fiep->routine_sym, "", indentation + 4);
-            fiep = fiep->next;
+            db_symbol(tip->instance_sym, "", indentation + 4);
+            tip = tip->next;
           }  /* while */
         }  /* if */
         col = 0;
@@ -1133,6 +1132,7 @@ and return a pointer to it.
       tssp->variant.class_template.pending_instantiations = 0;
       break;
     case sk_function_template:
+    case sk_member_function:
       tssp->variant.function.instantiations = NULL;
       tssp->variant.function.routine = NULL;
       break;
@@ -1218,7 +1218,7 @@ state.
     case sk_variable:
     case sk_static_data_member:
       sym_ptr->variant.variable.ptr = NULL;
-      sym_ptr->variant.variable.template_info = NULL;
+      sym_ptr->variant.variable.instance_ptr = NULL;
       break;
     case sk_field:
       sym_ptr->variant.field.ptr = NULL;
@@ -2169,8 +2169,8 @@ initialize a function instantiation entry and a function template symbol
 and attach them to rout_sym, and return the function template symbol.
 */
 {
-  a_symbol_ptr                        template_sym;
-  a_function_instantiation_entry_ptr  fiep;
+  a_symbol_ptr             template_sym;
+  a_template_instance_ptr  tip;
 
 #if CHECKING
   if (!(symbol_supplement_for_class(rout_sym->class_of_which_a_member))->
@@ -2178,9 +2178,9 @@ and attach them to rout_sym, and return the function template symbol.
     internal_error("make_member_function_template_symbol: real class member");
   }  /* if */
 #endif /* CHECKING */
-  fiep = rout_sym->variant.routine.instance_ptr;
-  if (fiep != NULL) {
-    template_sym = fiep->template_sym;
+  tip = rout_sym->variant.routine.instance_ptr;
+  if (tip != NULL) {
+    template_sym = tip->template_sym;
   } else {
     /* Note that the function template symbol is not entered in the symbol
        table, since it need only be accessed only through the corresponding
@@ -2192,12 +2192,12 @@ and attach them to rout_sym, and return the function template symbol.
                                             rout_sym->variant.routine.ptr;
     /* Create the associated function instantiation entry, but do not link it
        onto the instantiation list for the template. */
-    fiep = alloc_function_instantiation_entry();
-    fiep->template_sym = template_sym;
+    tip = alloc_template_instance();
+    tip->template_sym = template_sym;
     /* Make the function instantiation entry and its associated symbol
        point at each other. */
-    fiep->routine_sym = rout_sym;
-    rout_sym->variant.routine.instance_ptr = fiep;
+    tip->instance_sym = rout_sym;
+    rout_sym->variant.routine.instance_ptr = tip;
   }  /* if */
   return template_sym;
 }  /* get_member_function_template_symbol */
@@ -5309,8 +5309,11 @@ of the template.
         case sk_function_template:
           tssp = template_sym->variant.template_info;
           break;
+        case sk_member_function:
+          tssp = template_sym->variant.routine.instance_ptr->template_info;
+          break;
         case sk_static_data_member:
-          tssp = template_sym->variant.variable.template_info;
+          tssp = template_sym->variant.variable.instance_ptr->template_info;
           break;
 #if CHECKING
         default:
@@ -5804,14 +5807,15 @@ NULL.
       break;
     case sk_function_template:
       {
-      a_function_instantiation_entry_ptr fiep;
-      fiep = sym->variant.template_info->variant.function.instantiations;
-      for (; fiep != NULL; fiep = fiep->next) {
-        if (fiep->specific_decl) {
+      a_template_instance_ptr  tip;
+
+      tip = sym->variant.template_info->variant.function.instantiations;
+      for (; tip != NULL; tip = tip->next) {
+        if (tip->specific_decl) {
           /* A user declaration was provided, so the associated symbol should
              be on the overload list -- ignore it here. */
         } else {
-          end_of_scope_symbol_check(fiep->routine_sym, curr_routine);
+          end_of_scope_symbol_check(tip->instance_sym, curr_routine);
         }  /* if */
       }  /* for */
       }
@@ -6058,8 +6062,12 @@ End a name scope by popping an entry off the scope stack.
       case sk_function_template:
         tssp = ssep->template_sym->variant.template_info;
         break;
+      case sk_member_function:
+        tssp = ssep->template_sym->variant.routine.instance_ptr->template_info;
+        break;
       case sk_static_data_member:
-        tssp = ssep->template_sym->variant.variable.template_info;
+        tssp = ssep->template_sym->
+                         variant.variable.instance_ptr->template_info;
         break;
 #if CHECKING
       default:
@@ -6678,135 +6686,96 @@ and return a pointer to it.
 }  /* alloc_template_param */
 
 
-a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)
+a_template_instance_ptr alloc_template_instance(void)
 /*
 Allocate a new function instantiation entry and return a pointer to it.
 */
 {
-  register a_function_instantiation_entry_ptr ptr;
+  register a_template_instance_ptr  tip;
 
-  db_enter(5, "alloc_function_instantiation_entry");
-  ptr = (a_function_instantiation_entry_ptr)
-            alloc_fe(sizeof(a_function_instantiation_entry));
+  db_enter(5, "alloc_template_instance");
+  tip = (a_template_instance_ptr)alloc_fe(sizeof(a_template_instance));
 #if DEBUG
-  num_function_instantiation_entries_allocated++;
+  num_template_instances_allocated++;
 #endif /* DEBUG */
-  ptr->next    = NULL;
-  ptr->routine_sym = NULL;
-  ptr->template_sym = NULL;
-  ptr->arg_list = NULL;	
-  ptr->instantiation_required = FALSE;
-  ptr->specific_decl = FALSE;
-  ptr->specific_def = FALSE;
-  ptr->explicit_instantiation = FALSE;
+  tip->next                       = NULL;
+  tip->next_in_instantiation_list = NULL;
+  tip->instance_sym               = NULL;
+  tip->template_sym               = NULL;
+  tip->arg_list                   = NULL;	
+  tip->template_info              = NULL;
+  tip->instantiation_required     = FALSE;
+  tip->specific_decl              = FALSE;
+  tip->specific_def               = FALSE;
+  tip->explicit_instantiation     = FALSE;
 
   db_exit();
-  return ptr;
-}  /* alloc_function_instantiation_entry */
+  return tip;
+}  /* alloc_template_instance */
 
 
-a_static_data_member_def_ptr alloc_static_data_member_def(void)
+void add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
-Allocate a new static data member definition entry and return a pointer to it.
+Add a template instance entry to the end of the instantiatiations_required
+list.
 */
 {
-  a_static_data_member_def_ptr  ptr;
-
-  db_enter(5, "alloc_static_data_member_def");
-  ptr = (a_static_data_member_def_ptr)
-                                alloc_fe(sizeof(a_static_data_member_def));
-#if DEBUG
-  num_static_data_member_defs_allocated++;
-#endif /* DEBUG */
-  ptr->next = NULL;
-  ptr->static_data_member_sym = NULL;
-  ptr->template_sym = NULL;
-  ptr->arg_list = NULL;
-
-  db_exit();
-  return ptr;
-}  /* alloc_static_data_member_def */
-
-
-void add_to_instantiations_required_list(
-                                    a_function_instantiation_entry_ptr fiep,
-                                    a_static_data_member_def_ptr       sdmdp)
-/*
-Allocate a template-definition entry, initializing it with the pointer passed
-in (a pointer either to a function instantiation entry or to a static data
-member definition entry), and add it to the instantiatiations_required list.
-*/
-{
-  a_template_definition_ptr  tdp;
-
   db_enter(5, "add_to_instantiations_required_list");
-  tdp = (a_template_definition_ptr)alloc_fe(sizeof(a_template_definition));
-#if DEBUG
-  num_template_definitions_allocated++;
-#endif /* DEBUG */
 #if CHECKING
-  if ((fiep == NULL) == (sdmdp == NULL)) {
-    internal_error("add_to_instantiation_required_list: bad ptr combination");
+  if (tip->next_in_instantiation_list != NULL) {
+    internal_error("add_to_instantiations_required_list: already on list?");
   }  /* if */
-#endif /* CHECKING */
-  if (fiep != NULL) {
-    tdp->is_function_instantiation = TRUE;
-    tdp->variant.function_instance = fiep;
-  } else {
-    tdp->is_function_instantiation = FALSE;
-    tdp->variant.static_data_member_def = sdmdp;
-  }  /* if */
+#endif /* if */
   /* The entry must be added to the end of the list.  This is because new
      entries may be placed on the list even after processing on the list
      begins (see instantiation_wrapup). */
   if (instantiations_required == NULL) {
-    instantiations_required = tdp;
+    instantiations_required = tip;
   } else {
-    instantiations_required_tail->next = tdp;
+    instantiations_required_tail->next_in_instantiation_list = tip;
   }  /* if */
-  instantiations_required_tail = tdp;
-  tdp->next = NULL;
+  instantiations_required_tail = tip;
   db_exit();
 }  /* add_to_instantiations_required_list */
 
 
-void update_instantiation_required_flag
-                           (a_function_instantiation_entry_ptr fiep,
-                            a_boolean                          value)
+void update_instantiation_required_flag(a_template_instance_ptr tip,
+                                        a_boolean               value)
 /*
-Updates the instantiation required flag in a function instantiation
-entry.  If the flag is set to TRUE the instantiation entry is added
-to a list of instantiation entries for which instantiation is required.
-If the flag is set to FALSE the entry is simply updated but not removed
-from the list.
+Updates the instantiation required flag in a template instance entry.  If the
+flag is set to TRUE the instance entry is added to a list of entries for which
+instantiation is required.  If the flag is set to FALSE the entry is simply
+updated but not removed from the list.
 */
 {
-  /* See if a body has already been found for this function.  If so,
-     don't set the instantiation flag to TRUE because we shouldn't
-     generate an instantiation for something that has a specific
-     definition.   If the instantiation required flag is already set
-     then we could be here because of a recursive reference of this
-     function -- so don't reset the flag if it is already set. */
-  if (fiep->instantiation_required != TRUE &&
-      fiep->routine_sym->variant.routine.ptr->assoc_scope !=
-      NULL_region_number) {
+  a_symbol_ptr  instance_sym = tip->instance_sym;
+
+  /* If this is a function instance, see if a body has already been found for
+     the function.  If so, don't set the instantiation flag to TRUE because we
+     shouldn't generate an instantiation for something that has a specific
+     definition.   If the instantiation required flag is already set then we
+     could be here because of a recursive reference of this function -- so
+     don't reset the flag if it is already set. */
+  if (tip->instantiation_required != TRUE &&
+      (instance_sym->kind == (a_symbol_kind)sk_member_function ||
+       instance_sym->kind == (a_symbol_kind)sk_routine) &&
+      instance_sym->variant.routine.ptr->assoc_scope != NULL_region_number) {
     value = FALSE;
 #if CHECKING
-    if (fiep->instantiation_required) {
+    if (tip->instantiation_required) {
       internal_error
         ("update_instantiation_required_flag: flag set for routine with body");
     }  /* if */
 #endif  /* CHECKING */
   }  /* if */
   /* Nothing needs to be done if the flag already has the new value. */
-  if (fiep->instantiation_required != value) {
-    fiep->instantiation_required = value;
+  if (tip->instantiation_required != value) {
+    tip->instantiation_required = value;
     if (value) {
       /* It is permitted that an entry appear on the list more than once.
          (This can happen if the flag was originally set to TRUE, then was
          cleared, and is being reset again.) */
-      add_to_instantiations_required_list(fiep,
-                                          (a_static_data_member_def_ptr)NULL);
+      add_to_instantiations_required_list(tip);
     }  /* if */
   }  /* if */
 }  /* update_instantiation_required_flag */
@@ -6819,17 +6788,36 @@ This currently consists of going through a list of functions for
 which instantiations are required.
 */
 {
-  a_template_definition_ptr           tdp;
-  a_function_instantiation_entry_ptr  fiep;
-  a_static_data_member_def_ptr        sdmdp;
-  a_boolean			      none_mode;
+  a_template_instance_ptr           tip;
+  a_boolean	                    none_mode;
+  a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "instantiation_wrapup");
   none_mode = instantiation_mode == tim_none;
-  for (tdp = instantiations_required; tdp != NULL; tdp = tdp->next) {
-    if (tdp->is_function_instantiation) {
+  for (tip = instantiations_required;
+       tip != NULL;
+       tip = tip->next_in_instantiation_list) {
+    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      /* Static data member definition. */
+      if (tip->instance_sym->defined) {
+        /* Already defined.  No further action required. */
+      } else if (!tip->template_sym->defined) {
+        /* No template definition was provided. */
+#if 0
+        if (tip->explicit_instantiation) {
+          /* Error? */
+        }  /* if */
+#endif /* if 0 */
+      } else {
+        define_template_static_data_member(tip);
+#if 0
+        /* Note that there are recursion possibilities that we need to
+           guard against -- e.g., template <int I> A<I>::s = A<I+1>::s;
+           Also indirect recursion. */
+#endif /* if 0 */
+      }  /* if */
+    } else {
       /* Function instantiation. */
-      fiep = tdp->variant.function_instance;
       /* An instantiation will be done if an explicit instantiation has
 	 been requested (i.e., via a pragma) or if an instantiation is
 	 required because the function has been referenced and we are not
@@ -6838,51 +6826,49 @@ which instantiations are required.
          instantiation required flag FALSE if, for instance, a reference
 	 that forced instantiation was followed by a specific definition
 	 that made it unnecessary. */
-      if (fiep->explicit_instantiation ||
-	  (fiep->instantiation_required && !none_mode)) {
-        if (fiep->template_sym->variant.template_info->
-                                           token_cache.first_token == NULL) {
+      if (tip->explicit_instantiation ||
+	  (tip->instantiation_required && !none_mode)) {
+        if (tip->instance_sym->class_of_which_a_member == NULL) {
+          /* This is an instance of a nonmember function -- template_sym
+             points to an sk_function_template symbol. */
+          tssp = tip->template_sym->variant.template_info;
+        } else {
+          /* It is an instance of a member functoin -- template_sym points to
+             an sk_member_function from the prototype instantiation, and the
+             template supplement pointer is to be found in the latter's
+             instance entry. */
+          tssp = tip->template_sym->
+                              variant.routine.instance_ptr->template_info;
+        }  /* if */
+        if (tssp->token_cache.first_token == NULL) {
           /* A function template can be declared and referenced without ever
              being defined.  If an instantiation was explicitly requested,
 	     an error is issued. */
-	  if (fiep->explicit_instantiation) {
+	  if (tip->explicit_instantiation) {
 	    sym_error(ec_instantiation_requested_no_definition_supplied,
-		      fiep->routine_sym);
+		      tip->instance_sym);
           }  /* if */
         } else {
           /* There is a body. */
 #if DEBUG
           if (debug_level >= 4) {
-            db_symbol(fiep->routine_sym, "Instantiating:", 2);
+            db_symbol(tip->instance_sym, "Instantiating:", 2);
           }  /* if */
 #endif /* DEBUG */
-	  if (fiep->explicit_instantiation && fiep->specific_def) {
+	  if (tip->explicit_instantiation && tip->specific_def) {
 	    sym_error(ec_instantiation_requested_and_specific_definition,
-		      fiep->routine_sym);
+		      tip->instance_sym);
 	  } else {
-            instantiate_template_function(fiep);
+            instantiate_template_function(tip);
 	  }  /* if */
           /* Usually template functions are instantiated "on demand" and the
              referenced flag will already have been set.  But if the
              instantiation mode says to instantiate whether or not there is
              a reference, we should set the referenced flag anyway, so that
              the back-end will be sure to generate the function. */ 
-          fiep->routine_sym->variant.routine.ptr->
-					source_corresp.referenced = TRUE;
+          tip->instance_sym->variant.routine.ptr->
+                                        source_corresp.referenced = TRUE;
         }  /* if */
-      }  /* if */
-    } else {
-      /* Static data member definition. */
-      sdmdp = tdp->variant.static_data_member_def;
-      if (sdmdp->static_data_member_sym->defined) {
-        /* Already defined.  No further action required. */
-      } else {
-        define_template_static_data_member(sdmdp);
-#if 0
-        /* Note that there are recursion possibilities that we need to
-           guard against -- e.g., template <int I> A<I>::s = A<I+1>::s;
-           Also indirect recursion. */
-#endif /* if 0 */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -6925,13 +6911,8 @@ for space tracking purposes.
   write_one("template param", num_template_params_allocated,
             a_template_param);
   write_one("param ids", num_param_ids_allocated, a_param_id);
-  write_one("func instantiation entry",
-            num_function_instantiation_entries_allocated,
-            a_function_instantiation_entry);
-  write_one("static data member defs", num_static_data_member_defs_allocated,
-            a_static_data_member_def);
-  write_one("template definition", num_template_definitions_allocated,
-            a_template_definition);
+  write_one("template instance", num_template_instances_allocated,
+            a_template_instance);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
             a_conversion_list_entry);
   write_one("projection symbol descr", num_projection_descrs_allocated,
@@ -7072,9 +7053,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_template_symbol_supplements_allocated    = 0;
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
-  num_function_instantiation_entries_allocated = 0;
-  num_static_data_member_defs_allocated        = 0;
-  num_template_definitions_allocated           = 0;
+  num_template_instances_allocated             = 0;
   num_conversion_list_entries_allocated        = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_extern_type_fixups_allocated             = 0;
