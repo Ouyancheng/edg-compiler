@@ -1304,7 +1304,7 @@ ec_invalid_selective_overrider_declaration;;"declaration must correspond to a pu
 ec_integer_overflow_class_internal;;"integer overflow in internal computation due to size or complexity of %t"
 ec_integer_overflow_internal;;"integer overflow in internal computation"
 ec_invalid_type_for_w64;;"__w64 can only be specified on int, long, and pointer types"
-ec_ilp64_will_narrow;;"potentially narrowing conversion when compiled in an environment where int, long, and pointer types are 64 bits wide"
+ec_ilp64_will_narrow;;"potentially narrowing conversion when compiled in an environment where int, long, or pointer types are 64 bits wide"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
