@@ -1,6 +1,15 @@
 Version 2.39
 
-4/10/98   Improvement in built-in <stdarg.h> support
+4/11/98   C++-generating back end: extern "C" definition storage class
+
+In some cases involving extern "C" and const-typed variable definitions,
+the C++-generating back end did not put out "extern" and as a consequence
+the variable had the wrong linkage.  Now fixed.
+
+  extern "C" const int x = 1;
+  extern "C" { extern const int z = 1; };
+
+4/11/98   Improvement in built-in <stdarg.h> support
 
 In the support for built-in <stdarg.h>, it is now possible to specify
 a second guard macro to be defined when <stdarg.h> is included,

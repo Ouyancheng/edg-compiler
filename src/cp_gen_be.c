@@ -6384,6 +6384,12 @@ declaration following this one is such a continuation.
          is no longer a definition. */
       if (is_definition) {
         write_tok_str("{ ");
+        /* We still need the storage class, for cases like
+             extern "C" { const int x = 1; } 
+           which has to produce
+             extern "C" { extern const int x = 1; } 
+        */
+        gen_storage_class(storage_class);
         need_extern_C_closing_brace = TRUE;
       }  /* if */
     } else if (is_condition && storage_class == (a_storage_class)sc_auto) {
