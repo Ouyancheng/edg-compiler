@@ -155,7 +155,7 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
     if (vp->is_parameter || vp->is_handler_param) {
       /* Since parameters are by definition initialized (by the actual
          argument), any subsequent modification is a change to the initial
-         value.  Knowning this can be useful for inlining. */
+         value.  Knowing this can be useful for inlining. */
       vp->param_value_has_been_changed = TRUE;
     }  /* if */
   } else {
