@@ -1059,7 +1059,8 @@ resolve ambiguities caused by a using-directive.  For example:
 
 
 static void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr,
-                                        a_scope_ptr   sp)
+                                             a_scope_ptr   sp,
+                                             a_boolean     for_using_directive)
 /*
 Check whether any declarations are hidden by the declaration associated
 with sym_ptr, and if appropriate enter hidden_name_table entries in the
@@ -1094,19 +1095,13 @@ indicated scope.
          file scope or a namespace scope.  If so, the hidden name may be
          rendered visible by qualification.  Conversely, a few situations may
          "unhide" such a name. */
-      check_name_unhiding(sym_ptr, sp);
+      if (!for_using_directive) {
+        /* Names can be "unhidden" for injected class names and for block
+           extern declarations.  Neither of these applies when the hiding
+           symbol is the result of a using-directive. */
+        check_name_unhiding(sym_ptr, sp);
+      }  /* if */
       check_name_hiding_of_qualifiable_name(sym_ptr, sp);
-    }  /* if */
-  }  /* if */
-  if (sp->kind == (a_scope_kind)sck_file ||
-      sp->kind == (a_scope_kind)sck_namespace) {
-    a_scope_stack_entry_ptr  ssep =
-                                &scope_stack[depth_innermost_namespace_scope];
-    check_assertion(ssep->il_scope == sp);
-    if (ssep->using_directives_apply) {
-      /* If a using-directive appeared in the current scope, it may render
-         sym_ptr ambiguous unless sym_ptr is displayed with a qualifier. */
-      resolve_using_directive_ambiguity(sym_ptr, sp);
     }  /* if */
   }  /* if */
 }  /* check_for_defeatable_name_hiding */
@@ -1156,58 +1151,50 @@ name table.
       check_assertion(
                  strncmp(param_sym->header->identifier, "<unnamed>", 9) == 0);
     } else {
-      check_for_defeatable_name_hiding(param_sym, sp);
+      check_for_defeatable_name_hiding(param_sym, sp,
+                                       /*for_using_directive=*/FALSE);
     }  /* if */
   }  /* for */
 }  /* check_name_hiding_by_template_parameters */
 
 
-static void check_symbols_for_defeatable_name_hiding(a_symbol_ptr sym_list,
-                                                     a_scope_ptr  sp)
+static a_boolean symbol_is_candidate_for_hiding(a_symbol_ptr sym)
 /*
-Create hidden name table entries in the scope pointed to by sp as appropriate
-for the symbols in sym_list.  This routine is called only from
-check_name_hiding_for_scope, for symbols in that scope and for symbols from
-namespaces named in using-directives.  (In the latter case,
-depth_of_initial_lookup_scope must be set to reflect the scope depth at which
-the using-directive applies before calling this function so that only those
-symbols actually hidden as a result of the using-directive will be placed on
-the hidden name list.)
+Returns TRUE if the specified symbol is capable of hiding symbols in the same
+or surrounding scopes.
 */
 {
-  a_symbol_ptr sym;
+  a_boolean is_candidate = FALSE;
 
-  /* Traverse the symbols in sym_list. */
-  for (sym = sym_list; sym != NULL; sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_extern_routine ||
-        sym->kind == (a_symbol_kind)sk_extern_variable) {
-      /* Ignore extern symbols. */
-    } else if (sym->is_error) {
-      /* Ignore error symbols. */
-    } else if (sym->kind == (a_symbol_kind)sk_macro) {
-      /* Ignore macros. */
-    } else if (!sym->decl_position.seq) {
-      /* Ignore compiler-generated symbols for predeclared entities. */
-    } else if (is_unnamed_tag_symbol(sym)) {
-      /* No name hiding by unnamed symbols. */
-    } else if (sym->is_invisible) {
-      /* A friend declaration doesn't affect lookup until it's actually
-         declared in the scope to which it belongs -- so if it's invisible,
-         it can't hide other declarations. */
-    } else if (is_template_class_symbol(sym)) {
-      /* The template itself belongs to the same scope -- one check for a
-         given name is sufficient. */
-    } else if (sym->kind == (a_symbol_kind)sk_projection) {
-      /* Ignore inherited names -- they are handled separately. */
-    } else {
-      /* Only the overload symbol should be on the scope list. */
-      check_assertion(!sym->overload_set_member);
-      /* Falling through to here means the symbol should be checked to see
-         if this declaration hides another declaration. */
-      check_for_defeatable_name_hiding(sym, sp);
-    }  /* if */
-  }  /* for */
-}  /* check_symbols_for_defeatable_name_hiding */
+  if (sym->kind == (a_symbol_kind)sk_extern_routine ||
+      sym->kind == (a_symbol_kind)sk_extern_variable) {
+    /* Ignore extern symbols. */
+  } else if (sym->is_error) {
+    /* Ignore error symbols. */
+  } else if (sym->kind == (a_symbol_kind)sk_macro) {
+    /* Ignore macros. */
+  } else if (!sym->decl_position.seq) {
+    /* Ignore compiler-generated symbols for predeclared entities. */
+  } else if (is_unnamed_tag_symbol(sym)) {
+    /* No name hiding by unnamed symbols. */
+  } else if (sym->is_invisible) {
+    /* A friend declaration doesn't affect lookup until it's actually
+       declared in the scope to which it belongs -- so if it's invisible,
+       it can't hide other declarations. */
+  } else if (is_template_class_symbol(sym)) {
+    /* The template itself belongs to the same scope -- one check for a
+       given name is sufficient. */
+  } else if (sym->kind == (a_symbol_kind)sk_projection) {
+    /* Ignore inherited names -- they are handled separately. */
+  } else {
+    /* Only the overload symbol should be on the scope list. */
+    check_assertion(!sym->overload_set_member);
+    /* Falling through to here means the symbol should be checked to see
+       if this declaration hides another declaration. */
+    is_candidate = TRUE;
+  }  /* if */
+  return is_candidate;
+}  /* symbol_is_candidate_for_hiding */
                        
 void check_name_hiding_for_scope(a_scope_ptr  sp)
 /*
@@ -1224,6 +1211,7 @@ scopes and for the file scope.
   a_namespace_ptr               nsp;
   a_type_ptr                    tp;
   a_symbol_ptr                  sym_list;
+  a_symbol_ptr                  sym;
   an_active_using_directive_ptr audp;
   a_scope_depth                 saved_depth_of_initial_lookup_scope;
 
@@ -1263,10 +1251,28 @@ scopes and for the file scope.
       saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
       for (audp = scope_stack[depth_scope_stack].active_using_directives;
            audp != NULL; audp = audp->next) {
+        /* First, process the symbols in the namespace named in the
+           using-directive to allow them to hide symbols in scopes surrounding
+           the scope at which the using-directive applies. */
         depth_of_initial_lookup_scope =
                             audp->scope_depth_at_which_using_directive_applies;
-        check_symbols_for_defeatable_name_hiding(
-                       audp->namespace_supplement->pointers_block.symbols, sp);
+        for (sym = audp->namespace_supplement->pointers_block.symbols;
+             sym != NULL; sym = sym->next_in_scope) {
+          if (symbol_is_candidate_for_hiding(sym)) {
+            check_for_defeatable_name_hiding(sym, sp,
+                                             /*for_using_directive=*/TRUE);
+          }  /* if */
+        }  /* for */
+        /* Next, process the symbols in the namespace at which the
+           using-directive applies to flag them for ambiguity with symbols
+           from the namespace in the using-directive. */
+        ssep = &scope_stack[depth_of_initial_lookup_scope];
+        for (sym = assoc_pointers_block_of(ssep)->symbols; sym != NULL;
+             sym = sym->next_in_scope) {
+          if (symbol_is_candidate_for_hiding(sym)) {
+            resolve_using_directive_ambiguity(sym, sp);
+          }  /* if */
+        }  /* for */
       }  /* for */
       depth_of_initial_lookup_scope = saved_depth_of_initial_lookup_scope;
     }  /* if */
@@ -1321,7 +1327,13 @@ scopes and for the file scope.
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
-    check_symbols_for_defeatable_name_hiding(sym_list, sp);
+    /* Traverse the symbols declared in the current scope. */
+    for (sym = sym_list; sym != NULL; sym = sym->next_in_scope) {
+      if (symbol_is_candidate_for_hiding(sym)) {
+        check_for_defeatable_name_hiding(sym, sp,
+                                         /*for_using_directive=*/FALSE);
+      }  /* if */
+    }  /* for */
   }  /* if */
   db_exit();
 }  /* check_name_hiding_for_scope */
