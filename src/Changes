@@ -46,7 +46,7 @@ declaration just has to appear within the function body.  For example:
 3/13/99  Microsoft compatibility: spurious error on inheritance kind for
          deep single inheritance
 
-In microsoft compatibility mode a spurious error was issued on when an
+In Microsoft compatibility mode a spurious error was issued on when an
 inheritance kind of __single_inheritance was specified for a class with
 single inheritance more than one level deep.  Now fixed.
 
