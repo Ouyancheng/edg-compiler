@@ -659,6 +659,52 @@ function parameter and return types.
 }  /* promote_float_to_double */
 
 
+static a_boolean ptr_to_member_in_derived_type(a_type_ptr  derived_type,
+                                               a_type_ptr  bottom_derived_type)
+/*
+Examine the derived type list headed by derived_type (bottom_derived_type
+is its last member) and return TRUE if any of the types in the sequence is
+a pointer-to-member type.
+*/
+{
+  a_boolean    ptr_to_member_type_found;
+
+  if (is_ptr_to_member_type(bottom_derived_type)) {
+    ptr_to_member_type_found = TRUE;
+  } else {
+    ptr_to_member_type_found = FALSE;
+    while (derived_type != bottom_derived_type) {
+      derived_type = skip_typerefs(derived_type);
+      switch (derived_type->kind) {
+        case tk_ptr_to_member:
+          ptr_to_member_type_found = TRUE;
+          goto done;
+        case tk_array:
+          derived_type = derived_type->variant.array.element_type;
+          break;
+        case tk_pointer:
+          derived_type = derived_type->variant.pointer.type;
+          break;
+        case tk_routine:
+          derived_type = derived_type->variant.routine.return_type;
+          break;
+        case tk_typeref:
+          derived_type = derived_type->variant.typeref.type;
+          break;
+        case tk_error:
+          goto done;
+#if CHECKING
+        default:
+          internal_error("ptr_to_member_in_derived_type_list: bad type kind");
+#endif /* CHECKING */
+      }  /* switch */
+    }  /* while */
+  }  /* if */
+done:
+  return ptr_to_member_type_found;
+}  /* ptr_to_member_in_derived_type_list */
+
+
 static void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
                                      a_type_ptr *bottom_derived_type)
@@ -699,6 +745,11 @@ type is legal.
       /* The bottom derived type is an error, and nothing can be attached
          to it.  Therefore, the new type is thrown away. */
     } else {
+      if (ptr_to_member_in_derived_type(*derived_type, *bottom_derived_type)) {
+        /* Since ptr-to-member types are always allocated in the file scope
+           memory region, be sure the type it points to is there, too. */
+        new_type_ptr = make_file_scope_type(new_type_ptr);
+      }  /* if */
       if (tkind == (a_type_kind)tk_array) {
         /* Array.  See if the element type is proper.  3.1.2.5: the 
            elements must have an object type.  If the element type is
@@ -3823,7 +3874,12 @@ Only the first form is accepted in C.
       /* A class qualifier is present.  This is a pointer-to-member
          declarator if the current token is a "*". */
       if (curr_token == tok_star && !is_file_scope_qualifier) {
-        /* It is a pointer-to-member declarator.  Construct the type entry. */
+        /* It is a pointer-to-member declarator.  Construct the type entry.
+           Since ptr-to-member types are always allocated in the file scope
+           memory region, be sure the type it points to is there, too. */
+        if (complete_type != NULL) {
+          complete_type = make_file_scope_type(complete_type);
+        }  /* if */
         complete_type = ptr_to_member_type(complete_type, class_type);
       } else {
         /* The class qualifier is not followed by a "*", so back up to the
