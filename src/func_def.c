@@ -213,6 +213,7 @@ non-NULL, also append the characters in the comment, through but not including
   char                     *curr_char, *next_char;
   sizeof_t                 len;
   char                     ch;
+  a_boolean                ends_with_newline = FALSE;
 
   if (prev_seq_number != curr_seq_number) {
     /* We've advanced to a new source line.  Update prev_stop_char to point to
@@ -260,8 +261,7 @@ non-NULL, also append the characters in the comment, through but not including
           leave_insertion(slmp, next_char);
         } else if (ch == LE_NEWLINE) {
           /* Newline character. */
-          len = 1;
-          add_to_asm_func_buffer("\n", len);
+          ends_with_newline = TRUE;
           next_char = curr_char + LE_ESCAPE_LEN;
         } else {
           unexpected_condition_str(
@@ -290,6 +290,11 @@ non-NULL, also append the characters in the comment, through but not including
       add_to_asm_func_buffer(prev_stop_char, len);
     }  /* if */
     curr_char = prev_stop_char = next_char;
+    if (ends_with_newline) {
+      ends_with_newline = FALSE;
+      len = 1;
+      add_to_asm_func_buffer("\n", len);
+    }  /* if */
   }  /* while */
   if (curr_char > prev_stop_char) {
     /* Copy the characters from prev_stop_char through (but not including)
@@ -302,7 +307,7 @@ non-NULL, also append the characters in the comment, through but not including
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
   if (after_comment_stop_char != NULL) {
     /* Append text of commentary, too. */
-    a_boolean ends_with_newline = FALSE;
+    ends_with_newline = FALSE;
     check_assertion(after_comment_stop_char > prev_stop_char);
     len = after_comment_stop_char - prev_stop_char;
     if (len >= LE_ESCAPE_LEN &&

@@ -1,5 +1,12 @@
 Version 2.39
 
+3/9/98    Trailing spaces on line in asm function
+
+Trailing spaces on the end of a line inside an asm function were
+mistakenly added to the beginning of the following line of the function
+in the IL string for the function body.  Now they are kept on the
+original line.
+
 3/8/98    Instantiation required flag on pure virtual functions
 
 Some recent changes in setting the instantiation required flag on
