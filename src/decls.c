@@ -8887,7 +8887,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           pos_warning(ec_missing_type_specifier, &decl_pos);
         }  /* if */
         sym = NULL;
-        if (curr_token != tok_rparen) {
+        if (is_abstract_or_real_declarator_start()) {
           declarator(DI_REAL_DECLARATOR_ALLOWED |
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
                      &do_flags, type_ptr,
