@@ -9,7 +9,7 @@ qualification when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  Formerly,
 const was removed on the interface when a definition is present
 (because the added allocation code will assign to "this" within the
 constructor body), but const was retained in any corresponding
-declarations.  This was incorrect C code, but some compilers and
+declarations.  This was not incorrect C code, but some compilers and
 back ends did not like it, and it wasn't an intentional difference,
 so we've made the type the same for the declaration and definition
 cases.
