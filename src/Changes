@@ -48,7 +48,11 @@ This is now fixed (the attributes are retained).
 On examples with very large numbers of #line directives, the performance
 has been significantly improved.  The improvement involves an optimization
 in the processing used to convert a sequence number into a source file and
-line number.
+line number.  IL CHANGE: A new IL entry (a_seq_number_lookup_entry) has
+been added.  An ordered table of these entries is constructed so that
+a binary search can be used to find the file associated with a given
+sequence number.  As part of this change, the interface to source_file_for_seq
+has changed (the nesting_depth parameter has been removed).
 
 11/7/03  GNU compatibility: Designated initializer syntax
 
