@@ -6030,6 +6030,58 @@ whether the construction was done.
 }  /* add_conditional_flag */
 
 
+void initial_processing_on_destructible_initialization(
+                                           a_dynamic_init_ptr dip,
+                                           an_insert_location *insert_location)
+/*
+Do initial processing on a dynamic initialization entry that indicates
+destruction.  That includes allocating the destructible entity description
+entry and generating code to initialize any conditional flag.  Any generated
+code is inserted at *insert_location, and *insert_location is updated.
+*/
+{
+  /* Allocate a destructible entity description entry pointed to by
+     the dynamic init entry. */
+  check_assertion_str(dip->destructible_entity_descr == NULL,
+  "initial_processing_on_destr...: destructible entity descr already present");
+  dip->destructible_entity_descr = alloc_destructible_entity_descr();
+  if (dip->inside_conditional_expression
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
+      || (exceptions_enabled &&
+          (dip->is_freeing_of_storage_on_exception
+#if DO_UNORDERED_EH_PROCESSING
+           || dip->unordered
+#endif /* DO_UNORDERED_EH_PROCESSING */
+                                                  ))
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+                                                    ) {
+    /* This destruction requires a conditional flag that indicates that
+       the construction was done; add one and initialize it to zero.
+       This normally comes up for conditionally-executed parts of
+       expressions, but it's also used for the cleanup for a new-allocation,
+       which frees the storage if an exception is thrown before the storage
+       is initialized. */
+#if DO_UNORDERED_EH_PROCESSING
+    /* A conditional flag is used for the unordered case if we can't
+       predict the order in which certain initializations will be
+       done (because the C language leaves evaluation order weakly
+       defined; a real back end could figure out the actual evaluation
+       order and would not need the flags for this case). */
+#endif /* DO_UNORDERED_EH_PROCESSING */
+    add_conditional_flag(dip);
+    init_conditional_flag_var(dip->destructible_entity_descr->
+                                                          conditional_flag_var,
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
+                              dip->destructible_entity_descr->
+                                                       conditional_flag_handle,
+#else /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
+                              (a_handle_number)0,
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+                              insert_location);
+  }  /* if */
+}  /* initial_processing_on_destructible_initialization */
+
+
 void begin_object_lifetime(an_object_lifetime_ptr lifetime,
                            an_insert_location     *insert_location)
 /*
@@ -6045,45 +6097,7 @@ and *insert_location is updated.
   for (dip = lifetime->destructions;
        dip != NULL;
        dip = dip->next_in_destruction_list) {
-    /* Allocate a destructible entity description entry pointed to by
-       the dynamic init entry. */
-    check_assertion_str(dip->destructible_entity_descr == NULL,
-           "begin_object_lifetime: destructible entity descr already present");
-    dip->destructible_entity_descr = alloc_destructible_entity_descr();
-    if (dip->inside_conditional_expression
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
-        || (exceptions_enabled &&
-            (dip->is_freeing_of_storage_on_exception
-#if DO_UNORDERED_EH_PROCESSING
-             || dip->unordered
-#endif /* DO_UNORDERED_EH_PROCESSING */
-                                                    ))
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
-                                                      ) {
-      /* This destruction requires a conditional flag that indicates that
-         the construction was done; add one and initialize it to zero.
-         This normally comes up for conditionally-executed parts of
-         expressions, but it's also used for the cleanup for a new-allocation,
-         which frees the storage if an exception is thrown before the storage
-         is initialized. */
-#if DO_UNORDERED_EH_PROCESSING
-      /* A conditional flag is used for the unordered case if we can't
-         predict the order in which certain initializations will be
-         done (because the C language leaves evaluation order weakly
-         defined; a real back end could figure out the actual evaluation
-         order and would not need the flags for this case). */
-#endif /* DO_UNORDERED_EH_PROCESSING */
-      add_conditional_flag(dip);
-      init_conditional_flag_var(dip->destructible_entity_descr->
-                                                          conditional_flag_var,
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
-                                dip->destructible_entity_descr->
-                                                       conditional_flag_handle,
-#else /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
-                                (a_handle_number)0,
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
-                                insert_location);
-    }  /* if */
+    initial_processing_on_destructible_initialization(dip, insert_location);
   }  /* for */
   /* Visit all children of this lifetime and process the expr-temporary
      lifetimes.  Other children will be processed when the associated
