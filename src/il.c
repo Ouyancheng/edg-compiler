@@ -6026,7 +6026,7 @@ an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
 Make a copy of an expression tree and return a pointer to it.
 */
 {
-  an_expr_node_ptr            expr_copy, expr_copy2;
+  an_expr_node_ptr            expr_copy;
   a_new_delete_supplement_ptr ndsp, copy_ndsp;
 
   /* Copy the top node. */
@@ -6080,10 +6080,11 @@ Make a copy of an expression tree and return a pointer to it.
       /* For an object lifetime, create a new object lifetime for the copy. */
       push_object_lifetime(iek_none, (char *)NULL,
                            expr->variant.object_lifetime.ptr->kind);
-      expr_copy->variant.object_lifetime.expr = expr_copy2 =
+      expr_copy->variant.object_lifetime.expr =
                             copy_expr_tree(expr->variant.object_lifetime.expr);
+      expr_copy->variant.object_lifetime.ptr = NULL;
       bind_object_lifetime(curr_object_lifetime, iek_expr_node,
-                           (char *)expr_copy2);
+                           (char *)expr_copy);
       pop_object_lifetime();
       break;
     default:
