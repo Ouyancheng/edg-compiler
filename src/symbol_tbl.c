@@ -307,6 +307,8 @@ Note that this is a very minimal implementation.  Needs to be beefed up.
       case ck_integer:
         s = str_for_integer_constant(cp);
         break;
+      case ck_template_param:
+        if ((s = cp->source_corresp.name) != NULL) break;
       default:
         s = "<const ???>";
         break;
@@ -662,18 +664,25 @@ and indentation is the indentation desired.
         for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
           fprintf(f_debug, "%*s", indentation + 2, "");
           db_symbol(tplep->param_symbol, "", indentation + 4);
-          fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
-          if (tplep->variant.param_type != NULL) {
-            db_type(tplep->variant.param_type);
-          } else {
-            fprintf(f_debug, "NULL");
-          }  /* if */
-          fprintf(f_debug, "\n");
-          fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
-          if (tplep->variant.param_constant != NULL) {
-            db_constant(tplep->variant.param_constant);
-          } else {
-            fprintf(f_debug, "NULL");
+          switch (tplep->param_symbol->kind) {
+            case sk_type:
+              fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
+              if (tplep->variant.param_type != NULL) {
+                db_type(tplep->variant.param_type);
+              } else {
+                fprintf(f_debug, "NULL");
+              }  /* if */
+              break;
+            case sk_constant:
+              fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
+              if (tplep->variant.param_constant != NULL) {
+                db_constant(tplep->variant.param_constant);
+              } else {
+                fprintf(f_debug, "NULL");
+              }  /* if */
+              break;
+            default:
+              fprintf(f_debug, "<BAD TEMPLATE PARAM SYMBOL KIND>");
           }  /* if */
           fprintf(f_debug, "\n");
           col = 0;
