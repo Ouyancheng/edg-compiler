@@ -4651,7 +4651,8 @@ Generate C for a statement.
            by an stmk_init.  Just process the stmk_init in that case. */
         if (init_stmt->kind == (a_statement_kind)stmk_block) {
           a_statement_ptr stmt = init_stmt->variant.block.statements;
-          if (stmt->kind == (a_statement_kind)stmk_decl &&
+          if (stmt != NULL &&
+              stmt->kind == (a_statement_kind)stmk_decl &&
               stmt->next != NULL &&
               stmt->next->kind == (a_statement_kind)stmk_init &&
               stmt->next->next == NULL) {
