@@ -7640,26 +7640,18 @@ operator_or_conversion_name:
         {
         a_boolean     local_err = FALSE;
 
-        if (next_token() == tok_lt ||
-            (basic_type == bt_typedef && num_specifiers == 1)) {
+        if (next_token() == tok_lt) {
           /* This appears to be a template declaration inside another
              declaration.  Go ahead and scan the template declaration. */
           if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
             /* Error will be issued in template_declaration. */
             local_err = TRUE;
-          } else if (basic_type != bt_typedef) {
+          } else {
             error(ec_template_not_allowed);
             local_err = TRUE;
           }  /* if */
           (void)template_declaration(&defines_something);
-          if (basic_type == bt_typedef) {
-#if CHECKING
-            internal_error(
-                   "decl_specifiers: typedef of template not yet implemented");
-#endif /* CHECKING */
-          } else {
-            defines_something = TRUE;
-          }  /* if */
+          defines_something = TRUE;
         } else {
           local_err = TRUE;
           error(ec_template_not_allowed);
