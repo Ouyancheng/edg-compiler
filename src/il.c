@@ -346,7 +346,6 @@ Dump an indirect base class entry, for debug purposes.
   fprintf(f_debug, "    %s", bcp->type->source_corresp.name);
   if (bcp->is_virtual) fputs(", is_virtual", f_debug);
   if (bcp->ambiguous) fputs(", ambiguous", f_debug);
-  if (bcp->inaccessible) fputs (", inaccessible", f_debug);
   if (bcp->any_virtual_steps_in_derivation) fputs (", virtual steps", f_debug);
   fputs(", path = ", f_debug);
   dsp = bcp->derivation;
@@ -519,7 +518,8 @@ class_struct_union:
             for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
           }  /* if */
           if (rp != NULL) {
-            fputs("  member functions:\n", f_debug);
+            fprintf(f_debug, "  member functions (%d virtual):\n",
+                             ctsp->virtual_function_count);
             for (; rp != NULL; rp = rp->next) db_member_function(rp);
           }  /* if */
           if (aap != NULL) {
@@ -2104,7 +2104,6 @@ to it.
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
   bcp->any_virtual_steps_in_derivation = FALSE;
-  bcp->inaccessible                    = FALSE;
   bcp->access                          = (an_access_specifier)as_public;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
@@ -2176,6 +2175,8 @@ a pointer to it.
   ctsp->base_classes                           = NULL;
   ctsp->size_without_virtual_base_classes      = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
+  ctsp->virtual_function_count                 = 0;
+  ctsp->virtual_function_info_offset           = 0;
   ctsp->access_adjustments                     = NULL;
   ctsp->befriending_classes                    = NULL;
   ctsp->assoc_scope                            = NULL;

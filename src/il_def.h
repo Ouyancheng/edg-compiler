@@ -613,6 +613,13 @@ enum a_float_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_float_kind;
 
+/* Numbering for virtual functions.  Each virtual member function in a given
+   class is assigned a unique number.  Although no specific implementation
+   of virtual function calls is predetermined by the front end, this number
+   can be used to define a virtual function table index value. */
+typedef unsigned short a_virtual_function_number;
+#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS USHRT_MAX
+
 /* Entry used on parameter type lists for functions.  Note that these
    can be shared between multiple routine definitions. */
 typedef struct a_param_type *a_param_type_ptr;
@@ -882,10 +889,6 @@ typedef struct a_base_class {
 			/* TRUE if any derivation step mentioned in the
 			   derivation list for this base class is a virtual
 			   base class. */
-  unsigned int	inaccessible:1;
-			/* TRUE if no member of the base class is accessible
-			   in the current class (unless it is a direct base
-			   class). */
   an_access_specifier
                 access; /* The kind of derivation (public, protected, or
                            private) from this base class to the class directly
@@ -946,6 +949,17 @@ typedef struct a_class_type_supplement {
                         /* The alignment required for this class, when the
                            virtual base classes from which it derives are
                            omitted. */
+  a_virtual_function_number
+		virtual_function_count;
+			/* The number of virtual member functions declared in
+			   in the current class. */
+  a_targ_size_t	virtual_function_info_offset;
+			/* The offset within the class object to a field
+			   containing information about the virtual functions
+			   declared for this class.  (Typically this would
+			   be the offset to a pointer to a virtual function
+			   table.)  If virtual_function_count is zero this
+			   field is undefined. */
   an_access_adjustment_ptr
                 access_adjustments;
                         /* A list of entries adjusting access control on
@@ -1498,13 +1512,6 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 /*
 Data structures related to routines:
 */
-/* Numbering for virtual functions.  Each virtual member function in a given
-   class is assigned a unique number.  Although no specific implementation
-   of virtual function calls is predetermined by the front end, this number
-   can be used as a virtual function table index value. */
-typedef unsigned short a_virtual_function_number;
-#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS USHRT_MAX
-
 typedef struct a_routine {
   /* Description of a routine.  Note that this is pointed to from a scope
      block, and the local variables (etc.) are declared there. */
