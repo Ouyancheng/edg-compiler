@@ -6297,6 +6297,13 @@ block.
       /* Bypass the identifier. */
       (void)get_token();
     }  /* if */
+    if (!err && ns_sym != NULL) {
+      /* Do processing required for any pragmas bound to the current
+         declaration. */
+      process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+    } else {
+      discard_curr_construct_pragmas();
+    }  /* if */
     remove_stop_token(tok_semicolon);
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   } else {
@@ -6319,6 +6326,9 @@ block.
         ns_sym->variant.namespace_info.extra_info =
                                        alloc_namespace_symbol_supplement();
         add_to_namespaces_list(nsp);
+        /* Do processing required for any pragmas bound to the current
+           declaration. */
+        process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
         /* Push a scope for the scanning the namespace body. */
         (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
         nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
@@ -6346,6 +6356,9 @@ block.
         }  /* if */
         srk_flags |= SRK_DEFINITION;
       } else {
+        /* Do processing required for any pragmas bound to the current
+           declaration. */
+        process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
         /* An extension of the original definition of this namespace -- push
            a scope for the scanning the namespace body. */
         nsp = ns_sym->variant.namespace_info.ptr;
@@ -6369,9 +6382,12 @@ block.
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       remove_stop_token(tok_rbrace);
+      if (curr_token == tok_rbrace) cannot_bind_to_curr_construct();
       (void)required_token(tok_rbrace, ec_exp_rbrace);
       /* Pop the namespace or namespace-extension scope. */
       pop_scope();
+    } else {
+      discard_curr_construct_pragmas();
     }  /* if */
   }  /* if */
 }  /* namespace_declaration */
@@ -6447,6 +6463,7 @@ current scope.
   add_stop_token(tok_semicolon);
   if (!is_qualified_name_start()) {
     syntax_error(ec_exp_identifier);
+    err = TRUE;
   } else {
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
                                                      ilm_normal, &err);
@@ -6455,29 +6472,42 @@ current scope.
     } else if (sym == NULL) {
       str_error(ec_undefined_identifier,
                 locator_for_curr_id.symbol_header->identifier);
+      err = TRUE;
     } else if (!locator_for_curr_id.is_qualified_name) {
       /* An unqualified name is not allowed here. */
       error(ec_namespace_qualified_name_required);
+      err = TRUE;
     } else if (locator_for_curr_id.is_class_member) {
       /* A class-qualified name is not allowed here. */
       error(ec_class_qualified_name_not_allowed);
+      err = TRUE;
     } else if (locator_for_curr_id.is_template_id) {
       /* A template-id (that is, template-name<template-args>) is not allowed
          here. */
       error(ec_template_id_not_allowed);
-    } else if ((nsp = qualifier_namespace_ptr(locator_for_curr_id)) != NULL &&
-               ssep->il_scope != NULL &&
-               ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
-               ssep->il_scope->variant.assoc_namespace ==
-                                                skip_namespace_aliases(nsp)) {
+      err = TRUE;
+    } else if (sym->kind == (a_symbol_kind)sk_namespace) {
+      pos_error(ec_namespace_name_not_allowed,
+                &locator_for_curr_id.source_position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Ignore pragma declarations. */
+    discard_curr_construct_pragmas();
+  } else {
+    /* Pragmas cannot bind to a using declaration. */
+    cannot_bind_to_curr_construct();
+    if ((nsp = qualifier_namespace_ptr(locator_for_curr_id)) != NULL &&
+        ssep->il_scope != NULL &&
+        ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
+        ssep->il_scope->variant.assoc_namespace ==
+                                             skip_namespace_aliases(nsp)) {
       /* Attempting a using-declaration with a namespace qualifier that is
          the same as the current namespace:
            namespace N { int i; using N::i; }
          Issue a warning and ignore the using-declaration. */
       warning(ec_useless_using_declaration);
-    } else if (sym->kind == (a_symbol_kind)sk_namespace) {
-      pos_error(ec_namespace_name_not_allowed,
-                &locator_for_curr_id.source_position);
     } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL) {
       /* Attempting a using declaration at file scope with name already
          declared in the file scope -- e.g.,
