@@ -1167,10 +1167,7 @@ type is to optimize base class casts and virtual function calls.
 {
   a_type_ptr complete_object_type = NULL;
 
-  if (constant->kind == (a_constant_repr_kind)ck_address &&
-      constant->variant.address.kind == (an_address_base_kind)abk_variable &&
-      constant->variant.address.offset == 0 &&
-      !constant->implicit_cast) {
+  if (con_is_exact_addr_of_variable(constant)) {
     /* Unmodified address of a variable.  The variable is the complete
        object and its type is the complete object type. */
     complete_object_type = constant->variant.address.variant.variable->type;
