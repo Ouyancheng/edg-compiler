@@ -1892,6 +1892,17 @@ if the deduction succeeds, FALSE if it fails.
     /* The parameter has a reference type. */
     /* Drop the reference type. */
     param_type = type_pointed_to(param_type);
+    if (arg_operand != NULL &&
+        is_sym_for_member_operand(arg_operand) &&
+        is_a_function_designator(arg_operand)) {
+      /* Convert a member name to a pointer-to-member.  This comes up with
+         the extension that allows A::x to be used for a pointer to member
+         function, without the standard preceding "&", and is necessary
+         when the parameter has type "reference to const pointer to
+         member". */
+      arg_type = type_after_function_to_pointer_transformation(arg_type,
+                                                               arg_operand);
+    }  /* if */
     /* Check and adjust the top-level type qualifiers. */
     check_template_arg_type_qualifiers(&arg_type, &param_type);
   } else {

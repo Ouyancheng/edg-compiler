@@ -1,5 +1,22 @@
 Version 2.44
 
+1/12/00  Nonstandard pointer-to-member constant passed to reference
+         parameter of template function
+
+A pointer-to-member constant without the required preceding "&"
+was not accepted as the argument for a parameter of a template function
+of type "reference to constant pointer to member".  Now fixed.
+
+  template <class C, class TRT, class TP1>
+  void f(TRT (C::* const & p)(TP1));
+  struct A {
+    int g(char *);
+  };
+  int main() {
+    f(A::g);   // &A::g is standard and worked okay.
+    return 0;
+  }
+
 1/12/00  Preprocessing: token pasting and inert macro identifiers
 
 The preprocessor incorrectly handled cases where two identifiers
