@@ -1,5 +1,12 @@
 Version 2.44
 
+12/13/99 On Windows, when using a PCH file, open with read access only
+
+The routine used on Windows to open a precompiled header file has
+been changed to open the file for read access only.  It has been
+reported that the previous behavior of opening the file for both read
+and write access created performance problems when using ClearCase.
+
 12/10/99 AT&T #assert processing with pcc mode or Microsoft mode
 
 The AT&T preprocessing extension that allows testing of values set

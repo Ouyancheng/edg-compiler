@@ -2209,7 +2209,7 @@ a precompiled header file.  This file will already have been opened using
 fopen, so this open must be done in shared mode.
 */
 {
-  f_mapped_input = CreateFile(file_name, GENERIC_READ | GENERIC_WRITE,
+  f_mapped_input = CreateFile(file_name, GENERIC_READ,
                               FILE_SHARE_READ, /*lpsa=*/NULL,
                               OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
   check_assertion_str(f_mapped_input != INVALID_HANDLE_VALUE,
