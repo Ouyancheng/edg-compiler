@@ -2565,17 +2565,16 @@ begins at next_offset and has alignment next_alignment.
   padding = (next_offset - rounded_after_field);
   if (padding > 0) {
     /* Some padding is required. */  
+    disable_line_wrapping();
+    write_tok_str("char __dummy");
+    write_unsigned_num((a_host_large_unsigned)after_field);
+    enable_line_wrapping();
     if (padding > 1) {
-      write_tok_str("char __dummy");
-      write_unsigned_num((a_host_large_unsigned)after_field);
       write_tok_ch('[');
       write_unsigned_num((a_host_large_unsigned)padding);
-      write_tok_str("];");
-    } else {
-      write_tok_str("char __dummy");
-      write_unsigned_num((a_host_large_unsigned)after_field);
-      write_tok_ch(';');
+      write_tok_ch(']');
     }  /* if */
+    write_tok_ch(';');
   }  /* if */
 }  /* dump_field_padding */
 
