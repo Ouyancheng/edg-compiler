@@ -1,5 +1,13 @@
 Version 2.29
 
+3/15/95  Inlining: string literals as arguments
+
+String literal arguments to an inline function now force the use of a
+temporary for the inlined parameter.  Formerly, they were treated as
+constants, and no temporary was used, but this caused problems because
+using the string more than once in generated C code may produce multiple
+copies of the string (each with a different address).
+
 3/15/95  Param-type lists are no longer shared
 
 With a change in how composite routine types are formed, it is now a rule
