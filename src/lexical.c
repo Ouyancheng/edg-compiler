@@ -7726,7 +7726,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
        okay TRUE so that we don't try to build a new error locator later. */
     *err = is_error_locator(locator_for_curr_id);
     if (!*err) {
-      if (check_for_generalized_identifier_errors(options, &error_position)) {
+      if (check_for_generalized_identifier_errors(options, &error_position) ||
+          check_for_template_declarator_errors(options, &error_position)) {
         *err = TRUE;
         okay = FALSE;
       }  /* if */
