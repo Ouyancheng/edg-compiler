@@ -2648,6 +2648,56 @@ can be NULL if the caller does not need this flag returned.
 }  /* qualification_conversion_possible */
 
 
+a_boolean cast_removes_qualifiers(a_type_ptr	source_type,
+				  a_type_ptr	dest_type,
+				  a_boolean	is_const_cast)
+/*
+Return TRUE if a cast from source_type to dest_type is a cast to
+the same type but with fewer qualifiers.  When is_const_cast is
+TRUE, return TRUE if source_type and dest_type refer to the same
+type (i.e., no conversion is necessary).  source_type and dest_type
+are expected to both be pointers, both be references, or both be
+pointers-to-member, otherwise we return FALSE.
+*/
+{
+  a_boolean	qualifiers_added;
+  a_boolean	result = FALSE;
+  a_boolean	check_further = TRUE;
+
+  if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+    dest_type = type_pointed_to(dest_type);
+    source_type = type_pointed_to(source_type);
+  } else if (is_ptr_to_member_type(dest_type) &&
+             is_ptr_to_member_type(source_type)) {
+    dest_type = pm_member_type(dest_type);
+    source_type = pm_member_type(source_type);
+  } else if (is_reference_type(dest_type) && is_reference_type(source_type)) {
+    dest_type = type_pointed_to(dest_type);
+    source_type = type_pointed_to(source_type);
+  } else {
+    check_further = FALSE;
+  }  /* if */
+  if (check_further) {
+    /* We want to see if source_type is the same as dest_type but with
+       additional qualifiers.  We test this by seeing if a qualification
+       conversion in the opposite direction is possible.  In other words,
+       if a qualification conversion from T1 to T2 is possible, then T2
+       must be a more qualified version of T1. */
+    if (qualification_conversion_possible(dest_type, source_type,
+        &qualifiers_added)) {
+      /* When qualfication_conversion_possible returns TRUE, qualifiers may
+         have been added, or the two types could have been the same.
+         If the types are the same, qualifiers_added will be FALSE.  This
+         case should only cause result to be TRUE when is_const_cast is
+         TRUE." */
+      result = qualifiers_added || is_const_cast;
+   }  /* if */
+  }  /* if */
+  return result;
+}  /* cast_removes_qualifiers */
+				  
+
+
 a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
