@@ -3692,7 +3692,7 @@ typedef struct a_routine {
 			   attempt to inline the routine discovers something
 			   it cannot handle.  Also turned off temporarily
 			   if inlining of this routine is temporarily
-			   suppressed, e.g., because it's currenly being
+			   suppressed, e.g., because it's currently being
 			   inlined. */
   unsigned int	need_out_of_line_copy:1;
 			/* TRUE if an out-of-line copy of this inline routine
@@ -3889,7 +3889,7 @@ enum an_expr_node_kind_tag {
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
-			   starg.h macro va_start). */
+			   stdarg.h macro va_start). */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
 			/* Used to represent a partially-lowered exception
