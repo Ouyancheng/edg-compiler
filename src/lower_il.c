@@ -4176,18 +4176,31 @@ not lowered at this time (see lower_destructor_code).
 }  /* lower_destructor_routine_type */
 
 
-void add_indirection_to_cctor_param_type(a_param_type_ptr ptp)
+static a_type_ptr type_of_cctor_param_after_adding_indirection(
+                                                          a_param_type_ptr ptp)
 /*
 ptp points to a parameter type entry for a parameter passed via a copy
-constructor.  Change it to add an indirection to the type.
+constructor.  Return the type of the parameter after the appropriate
+indirection is added.
 */
 {
   /* If the original type was qualified on the definition of
      the function (and the qualifiers were removed because they
      only mean something inside the function), put the
      qualifiers back on the type under the pointer. */
-  ptp->type = make_pointer_type(make_qualified_type(ptp->type,
-                                                    ptp->qualifiers));
+  a_type_ptr type = make_pointer_type(make_qualified_type(ptp->type,
+                                                          ptp->qualifiers));
+  return type;
+}  /* type_of_cctor_param_after_adding_indirection */
+
+
+void add_indirection_to_cctor_param_type(a_param_type_ptr ptp)
+/*
+ptp points to a parameter type entry for a parameter passed via a copy
+constructor.  Change it to add an indirection to the type.
+*/
+{
+  ptp->type = type_of_cctor_param_after_adding_indirection(ptp);
   ptp->qualifiers = TQ_NONE;
 }  /* add_indirection_to_cctor_param_type */
 
@@ -4840,6 +4853,18 @@ to skip the input parameter).
     lower_expr(expr, /*is_lvalue=*/FALSE);
     if (param != NULL) {
       /* Prototyped parameter. */
+      if (param->passed_via_copy_constructor &&
+          param->qualifiers != TQ_NONE) {
+        /* Argument passed via a copy constructor to a cv-qualified parameter.
+           The argument is a pointer, but it doesn't have the right qualifiers.
+           "void f(const A)" becomes "void f(A)" because of a C++ language
+           rule (in most modes); that will be lowered to "void f(const A*)",
+           but the lowering hasn't been done yet.  The argument has type
+           "A*", and needs to be cast to "const A*". */
+        an_expr_node_ptr expr_copy = copy_node(expr);
+        change_to_cast(expr, expr_copy, 
+                       type_of_cctor_param_after_adding_indirection(param));
+      }  /* if */
       if (make_all_functions_unprototyped) {
         /* Do default argument promotions on any arguments that need it,
            because they were generated for a call to a prototyped function, but
