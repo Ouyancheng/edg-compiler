@@ -700,11 +700,12 @@ Clear an initialization position description entry to default values.
 }  /* clear_init_pos_descr */
 
 
-static an_init_pos_descr_ptr alloc_init_pos_descr(void)
+static an_init_pos_descr_ptr alloc_init_pos_descr_copy(
+                                             an_init_pos_descr_ptr source_ipdp)
 /*
-Allocate an initialization position description entry, set its fields
-to default values, and return a pointer to it.  Note that such entries are
-sometimes allocated on the stack.
+Allocate an initialization position description entry that is a copy of
+source_ipdp, and return a pointer to it.  The modifiers pointed to are
+copied as well.
 */
 {
   an_init_pos_descr_ptr ipdp;
@@ -720,9 +721,13 @@ sometimes allocated on the stack.
     num_init_pos_descrs_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  clear_init_pos_descr(ipdp);
+  /* Make a copy of the source entry. */
+  *ipdp = *source_ipdp;
+  if (ipdp->modifiers != NULL) {
+    ipdp->modifiers = copy_init_pos_modifier_list(source_ipdp->modifiers);
+  }  /* if */
   return ipdp;
-}  /* alloc_init_pos_descr */
+}  /* alloc_init_pos_descr_copy */
 
 
 void free_init_pos_descr(an_init_pos_descr_ptr ipdp)
@@ -731,6 +736,9 @@ Free an initialization position description entry by putting it on
 the available list.
 */
 {
+  /* Free any attached modifiers. */
+  free_init_pos_modifier_list(ipdp->modifiers);
+  /* Put the entry on the available list. */
   ipdp->next = avail_init_pos_descrs;
   avail_init_pos_descrs = ipdp;
 }  /* free_init_pos_descr_list */
@@ -1557,7 +1565,7 @@ Pop macro corresponding to push_generated_routine_context.
 #define pop_generated_routine_context(scope, region_number)           \
 { pop_context();                                                      \
   pop_object_lifetime();                                              \
-  eliminate_all_object_lifetimes(scope);                              \
+  clean_up_all_object_lifetimes(scope);                               \
   curr_object_lifetime = saved_curr_object_lifetime;                  \
   depth_innermost_function_scope = saved_depth_innermost_function_scope; \
   done_with_memory_region(region_number);                             \
@@ -2270,11 +2278,13 @@ may be many different such routines generated (all unnamed).
 }  /* file_scope_term_insert_location */
 
 
-static void add_conditional_flag(a_cleanup_action_ptr cap,
-                                 an_insert_location   *insert_location)
+static void add_conditional_flag(a_cleanup_action_ptr  cap,
+                                 an_init_pos_descr_ptr ipdp,
+                                 an_insert_location    *insert_location)
 /*
-cap points to a cak_destruction cleanup action being generated.  Add
-a conditional flag to the cleanup.  This is needed, for example,
+Add a conditional flag to an initialization.  The entity being initialized
+is described by ipdp.  cap points to a cak_destruction cleanup action
+being generated.  This is needed, for example,
 inside a conditional operand of a "?", "&&", or "||" operation, to make
 the corresponding destruction dependent on whether the construction was
 done.  We add a temporary variable and insert an assignment to set the
@@ -2288,7 +2298,9 @@ cleanup).
   a_variable_ptr temp;
 
   check_assertion(cap->kind == cak_destruction);
+  check_assertion(ipdp != NULL);
   temp = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
+  ipdp->conditional_flag_var = temp;
   cap->variant.object.conditional_flag_var = temp;
   /* Make and insert an assignment statement to set the temporary to 1. */
   (void)insert_var_assignment_statement(temp,
@@ -2768,26 +2780,30 @@ be kept, FALSE if it should be deleted.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
-  /* If this dynamic init is part of an object lifetime, it may be that it
-     is the first encountered since a label, and it is therefore in a
-     different lifetime section than what we've been thinking of as the
-     current object lifetime.  Update the current lifetime accordingly.
-     This comes up because there is no explicit indication in the IL tree
-     that an olk_block_after_label lifetime has begun. */
   lifetime = dip->lifetime;
   if (lifetime != NULL) {
+    /* Put a copy of the initialization position description into the
+       dynamic init entry for use at destruction time. */
+    dip->init_pos_descr = alloc_init_pos_descr_copy(ipdp);
+    /* If this dynamic init is part of an object lifetime, it may be that it
+       is the first encountered since a label, and it is therefore in a
+       different lifetime section than what we've been thinking of as the
+       current object lifetime.  Update the current lifetime accordingly.
+       This comes up because there is no explicit indication in the IL tree
+       that an olk_block_after_label lifetime has begun. */
 #if CHECKING
     /* Check that the new lifetime is a successor-after-label of the
        lifetime we've been considering the current one, if it's different
        than the current one. */
-    an_object_lifetime_ptr olp;
-    for (olp = lifetime;
-         olp != curr_object_lifetime;
-         olp = olp->parent_lifetime) {
-      check_assertion_str(olp->kind ==
+    { an_object_lifetime_ptr olp;
+      for (olp = lifetime;
+           olp != curr_object_lifetime;
+           olp = olp->parent_lifetime) {
+        check_assertion_str(olp->kind ==
                                 (an_object_lifetime_kind)olk_block_after_label,
-                          "lower_dynamic_init: unexpected object lifetime");
-    }  /* for */
+                            "lower_dynamic_init: unexpected object lifetime");
+      }  /* for */
+    }
 #endif /* CHECKING */
     curr_object_lifetime = lifetime;
   }  /* if */
@@ -3036,12 +3052,12 @@ do_assignment:;
            to do the destruction.  init_conditional_flag_var is called
            later to initialize the temporary to zero at the beginning
            of the current scope. */
-        add_conditional_flag(cap, eff_insert_location);
+        add_conditional_flag(cap, dip->init_pos_descr, eff_insert_location);
       } else if (is_expr_temporary && dip->unordered) {
         /* Also add the conditional flag when there are unordered
            enk_temp_init operations. */
         cap->variant.object.conditional_flag_added_for_unsequenced_case = TRUE;
-        add_conditional_flag(cap, eff_insert_location);
+        add_conditional_flag(cap, dip->init_pos_descr, eff_insert_location);
       }  /* if */
       /* Put the new entry on the front of the existing cleanup list for
          the current context. */
