@@ -146,12 +146,6 @@ namespace __cxxabiv1 {
     void __cxa_bad_cast();
     void __cxa_bad_typeid();
 
-    /* RTTI support. */
-    void *__dynamic_cast(const void              *__src_ptr,
-                         const __class_type_info *__src_type,
-                         const __class_type_info *__dst_type,
-                         ptrdiff_t                __src2dst);
-
     /* Demangling interface. */
     char *__cxa_demangle(const char* __mangled_name,
                          char        *__buf,
