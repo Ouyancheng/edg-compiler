@@ -1,5 +1,14 @@
 Version 2.37
 
+9/29/97   Instantiation problem when using implicit inclusion
+
+In some cases, a file could be implicitly included just so that the
+"can be instantiated" flag could be set properly.  This kind of an
+implicit inclusion was done after any needed instantiations were
+generated.  If such an implicit inclusion resulted in additional
+instantiations, an error could result from the fact that those
+additional instantiations would not be done.  This has been fixed.
+
 9/29/97   Microsoft compatibility: incorrect diagnostic on branch past
           nonconstant initialization of automatic aggregate variable
 

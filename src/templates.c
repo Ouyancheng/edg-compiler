@@ -11334,7 +11334,6 @@ entities from the info file list that can be instantiated.
 {
   a_template_instance_ptr	tip;
   a_template_instantiation_mode	saved_instantiation_mode;
-  a_boolean			can_instantiate;
 
   db_enter(3, "automatic_instantiation");
   /* Set the instantiation mode to tim_none.  This is done to ensure that
@@ -11349,9 +11348,6 @@ entities from the info file list that can be instantiated.
   any_instantiations_required = instantiations_required != NULL;
   for (tip = instantiations_required;
        tip != NULL; tip = tip->next_in_instantiation_list) {
-    /* Call can_be_instantiated.  This is done to force any implicit
-       inclusions that may be needed. */
-    can_instantiate = can_be_instantiated(tip);
     /* Skip entries that do were not included in the instantiation
        information file. */
     if (!any_instantiations_assigned_to_this_translation_unit ||
@@ -11360,13 +11356,13 @@ entities from the info file list that can be instantiated.
     if (is_static_or_inline_template_function(tip)) continue;
     /* Skip entries that have already been instantiated. */
     if (tip->already_instantiated) continue;
+    if (can_be_instantiated(tip)) {
 #if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Automatic instantiation processing for:\n");
-      db_symbol(tip->instance_sym, "", 0);
-    }  /* if */
+      if (debug_level >= 4) {
+        fprintf(f_debug, "Automatic instantiation processing for:\n");
+        db_symbol(tip->instance_sym, "", 0);
+      }  /* if */
 #endif /* DEBUG */
-    if (can_instantiate) {
       if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
         define_template_static_data_member(tip);
       } else {
@@ -11567,8 +11563,14 @@ specific definition that made it unnecessary.
     for (tip = instantiations_required;
          tip != NULL;
          tip = tip->next_in_instantiation_list) {
+      a_boolean	can_instantiate = FALSE;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+      /* Call can_be_instantiated.  This is done to force any implicit
+         inclusions that may be needed. */
+      can_instantiate = can_be_instantiated(tip);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
       if ((instantiation_mode == tim_all || tip->instantiation_required) &&
-          !tip->already_instantiated) {
+          !tip->already_instantiated && can_instantiate) {
         if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
           if (tip->instance_sym->kind ==
                                         (a_symbol_kind)sk_static_data_member) {
