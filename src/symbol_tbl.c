@@ -553,6 +553,9 @@ and indentation is the indentation desired.
         if (cssp->is_nonreal_class) {
           put_string("nonreal");
         }  /* if */
+        if (cssp->is_prototype_instantiation) {
+          put_string("prototype instantiation");
+        }  /* if */
         if (cssp->is_specific_template_def) {
           put_string("specific template def");
         }  /* if */
@@ -1397,6 +1400,7 @@ state.
         cssp->has_operator_new = FALSE;
         cssp->has_operator_delete = FALSE;
         cssp->is_nonreal_class = FALSE;
+        cssp->is_prototype_instantiation = FALSE;
         cssp->is_specific_template_def = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->force_external_linkage = FALSE;

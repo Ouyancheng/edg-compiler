@@ -5609,6 +5609,7 @@ Scan the body of a class definition, including the base classes list.
        constants of template parameters rather than real types and constants).
        Note that for nested classes the flag is set later. */
     is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
+    cssp->is_prototype_instantiation = TRUE;
   }  /* if */
   /* A copy constructor need not be generated if construction by bitwise
      copy is equivalent.  When a class is being defined, set the flag to
@@ -5651,16 +5652,19 @@ Scan the body of a class definition, including the base classes list.
     if (!is_template_instantiation &&
         scope_stack[decl_scope_level].kind ==
                                 (a_scope_kind)sck_class_struct_union) {
+      a_class_symbol_supplement_ptr tag_cssp;
       class_type->source_corresp.class_of_which_a_member =
             tag_sym->class_of_which_a_member =
                               scope_stack[decl_scope_level].assoc_type;
       class_type->source_corresp.access =
                               scope_stack[decl_scope_level].current_access;
-      if (symbol_supplement_for_class(tag_sym->class_of_which_a_member)->
-                                                          is_nonreal_class) {
-        /* A class nested within a nonreal class is itself nonreal. */
-        is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
-      }  /* if */
+      tag_cssp = symbol_supplement_for_class(tag_sym->class_of_which_a_member);
+      /* A class nested within a nonreal class is itself nonreal and a
+         class nested within a prototype instantiation is itself a prototype
+         instantiation. */
+      is_nonreal_instantiation = tag_cssp->is_nonreal_class;
+      cssp->is_nonreal_class = is_nonreal_instantiation;
+      cssp->is_prototype_instantiation = tag_cssp->is_prototype_instantiation;
     }  /* if */
     /* Advance past the left brace. */
     (void)get_token();

@@ -574,6 +574,11 @@ typedef struct a_class_symbol_supplement {
 			      template <class T> void f(vec<T,3> *vp) { ... }
                            In addition, classes that are nested within
 			   nonreal classes are marked as nonreal. */
+  unsigned int  is_prototype_instantiation:1;
+			/* TRUE when this class is a nonreal class that
+		 	   is the prototype instantiation.  Also TRUE for
+			   classes nested within the prototype
+			   instantiation. */
   unsigned int	is_specific_template_def:1;
 			/* TRUE if the class is a specific definition of
 			   a template class instance.  FALSE if the
@@ -2050,14 +2055,10 @@ which is_class_struct_union_type is TRUE.
   /* } */
 
 /* Return TRUE if the symbol represents the prototype instantiation of a
-   class template.  A prototype instantiation is a template class symbol
-   with a non-NULL scope. */
+   class template. */
 #define is_prototype_instantiation_symbol(sym)				\
   (is_template_class_symbol((sym)) &&					\
-   (sym)->variant.class_struct_union.extra_info->is_nonreal_class &&	\
-   (sym)->variant.class_struct_union.type->variant.			\
-    		       class_struct_union.extra_info->assoc_scope != NULL)
-
+   (sym)->variant.class_struct_union.extra_info->is_prototype_instantiation)
 
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */
