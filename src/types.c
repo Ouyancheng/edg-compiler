@@ -1652,20 +1652,15 @@ do the initial test for exact pointer equality.
           }  /* if */
           break;
         case tk_array:
-          /* For arrays, if both have sizes the sizes must be the same.
-             In C++, the sizes must be the same whether or not the arrays
-             have sizes.  The element types must be compatible. */
+          /* For arrays, if both have sizes the sizes must be the same.  The
+             element types must be compatible. */
           if (f_types_are_compatible(type_1->variant.array.element_type,
                                      type_2->variant.array.element_type,
                                      allow_error_type)) {
-            if (type_1->variant.array.number_of_elements ==
+            if (type_1->variant.array.number_of_elements == 0 ||
+                type_2->variant.array.number_of_elements == 0 ||
+                type_1->variant.array.number_of_elements ==
                 type_2->variant.array.number_of_elements) {
-              compat = TRUE;
-            } else if (C_dialect != C_dialect_cplusplus &&
-                       (type_1->variant.array.number_of_elements == 0 ||
-                        type_2->variant.array.number_of_elements == 0)) {
-              /* C mode: incomplete arrays are compatible with any other
-                 size. */
               compat = TRUE;
             }  /* if */
           }  /* if */
