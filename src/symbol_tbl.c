@@ -8136,8 +8136,6 @@ secondary status.
 {
   char                          *il_entry_ptr;
   an_il_entry_kind              kind;
-  a_source_correspondence       *scp;
-  a_source_sequence_entry_ptr   ssep;
   a_src_seq_secondary_decl_ptr  sssdp;
   a_boolean                     force_alloc_in_filescope;
   a_memory_region_number        region_to_switch_back_to;
@@ -8205,7 +8203,7 @@ created for this entity; otherwise, it is NULL.
   a_boolean                is_definition = srk_flags & SRK_DEFINITION;
   a_boolean                is_tentative_def = srk_flags & SRK_TENTATIVE_DEF;
   a_boolean                is_primary_decl = FALSE;
-  a_source_correspondence  *scptr;
+  a_source_correspondence  *scptr = NULL;
 
   if (is_definition) {
     if (sym_ptr->defined) {
@@ -8251,8 +8249,7 @@ created for this entity; otherwise, it is NULL.
       /* If this is a primary declaration (or a tentative definition that
          is the first definition of the variable), erase the previous
          source sequence entry bound to this entity (if any). */
-      sym_ptr->variant.variable.ptr->
-                        source_corresp.source_sequence_entry = NULL;
+      if (scptr != NULL) scptr->source_sequence_entry = NULL;
     }  /* if */
     sym_update_source_sequence_list(sym_ptr, source_position,
                                     is_primary_decl, ssep);
