@@ -7924,19 +7924,24 @@ id_scan:
 	       processing a pragma that is explicitly designated as requiring
 	       keyword recognition. */
             if (!fetch_pp_tokens &&
-                (!in_preprocessing_directive || in_pp_if_expression ||
+                (!in_preprocessing_directive ||
                  assoc_symbol->variant.keyword.is_preprocessing_op_or_punc ||
-                 (caching_pragma_tokens && recognize_keywords_in_pragma))) {
+                 (caching_pragma_tokens && recognize_keywords_in_pragma) ||
+                 (in_pp_if_expression &&
+                  ((a_token_kind)assoc_symbol->variant.keyword.token
+                                                                == tok_false ||
+                   (a_token_kind)assoc_symbol->variant.keyword.token
+                                                              == tok_true)))) {
               ctoken = (a_token_kind)assoc_symbol->variant.keyword.token;
-              if (ctoken == tok_false || ctoken == tok_true) {
-                /* A C++ boolean constant. */
-		scan_boolean_constant(ctoken);
-              } else if (ctoken == tok_unimplemented) {
-                /* Check for a keyword that is not yet implemented.  If one is
-                   found, issue a diagnostic and treat the keyword as an
-		   identifier. */
+              /* Check for a keyword that is not yet implemented.  If one is
+                 found, issue a diagnostic and treat the keyword as an
+		 identifier. */
+              if (ctoken == tok_unimplemented) {
                 unimplemented_keyword_diagnostic(assoc_symbol);
                 ctoken = tok_identifier;
+	      } else if (ctoken == tok_false || ctoken == tok_true) {
+                /* A C++ boolean constant. */
+		scan_boolean_constant(ctoken);
               } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
                 if (microsoft_mode){
