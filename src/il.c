@@ -9475,16 +9475,16 @@ sequence list.
   }  /* if */
 }  /* add_end_of_construct_source_sequence_entry */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 void add_source_sequence_entry_for_partial_instantiation(
-                                                char                   *ptr,
-                                                a_byte_il_entry_kind   kind)
+                                                    char               *ptr,
+                                                    an_il_entry_kind   kind)
 /*
 Add a source sequence secondary declaration entry to represent the
 partial instantiation of the entity specified by the indicated entity.
 */
 {
-  a_boolean                     new_specialization_syntax;
   a_src_seq_secondary_decl_ptr  sssdp;
   a_symbol_ptr                  sym;
 
@@ -9497,7 +9497,7 @@ partial instantiation of the entity specified by the indicated entity.
     /* Allocate and initialized the source sequence entry. */
     sssdp = alloc_src_seq_secondary_decl();
     sssdp->entity.ptr = ptr;
-    sssdp->entity.kind = kind;
+    sssdp->entity.kind = (a_byte_il_entry_kind)kind;
     switch (kind) {
       case iek_routine:
         sssdp->declared_type = ((a_routine_ptr)ptr)->type;
@@ -9535,6 +9535,7 @@ partial instantiation of the entity specified by the indicated entity.
   }  /* if */
 }  /* add_source_sequence_entry_for_partial_instantiation */
 
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 void remove_from_source_sequence_list(a_source_sequence_entry_ptr  ssep,
                                       a_src_seq_sublist_ptr        *sublist)

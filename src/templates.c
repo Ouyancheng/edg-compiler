@@ -537,7 +537,7 @@ itself recursively to process classes nested within this class.
            specialization. */
         add_source_sequence_entry_for_partial_instantiation(
                                            (char *)rout,
-                                           (a_byte_il_entry_kind)iek_routine);
+                                           (an_il_entry_kind)iek_routine);
       }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -572,7 +572,7 @@ itself recursively to process classes nested within this class.
          specialization. */
       add_source_sequence_entry_for_partial_instantiation(
                                            (char *)var,
-                                           (a_byte_il_entry_kind)iek_variable);
+                                           (an_il_entry_kind)iek_variable);
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2715,7 +2715,7 @@ included in the search.
                                               *new_list);
       add_source_sequence_entry_for_partial_instantiation(
                                            (char *)class_type,
-                                           (a_byte_il_entry_kind)iek_type);
+                                           (an_il_entry_kind)iek_type);
       pop_template_instantiation_scope();
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4501,7 +4501,7 @@ type based on the template argument list and the template parameter list
        instantiation -- it will take the form of an explicit specialization. */
     add_source_sequence_entry_for_partial_instantiation(
                                            (char *)rp,
-                                           (a_byte_il_entry_kind)iek_routine);
+                                           (an_il_entry_kind)iek_routine);
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

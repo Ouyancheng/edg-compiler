@@ -839,9 +839,11 @@ extern void add_end_of_construct_source_sequence_entry(
                                                 char                   *ptr,
                                                 a_byte_il_entry_kind   kind);
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern void add_source_sequence_entry_for_partial_instantiation(
-                                                char                   *ptr,
-                                                a_byte_il_entry_kind   kind);
+                                                    char               *ptr,
+                                                    an_il_entry_kind   kind);
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 extern void remove_from_source_sequence_list(
                                       a_source_sequence_entry_ptr ssep_ptr,
