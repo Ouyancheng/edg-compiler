@@ -1777,15 +1777,17 @@ a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                             a_symbol_ptr  *insert_sym,
 					    a_boolean	  suppress_error)
 /*
-A tag symbol and a nontype symbol may coexist on the symbol list for a
-scope.  old_sym is a symbol that is already on the list.  new_sym is
+old_sym is a symbol that is already in the symbol table.  new_sym is
 a newly created symbol that is about to be added or a symbol for which
-a projection symbol will be created and added.  The tag symbol should
-follow the other in the list, so if the new symbol is a tag symbol, it
-must be inserted after the old.  insert_sym points provides the location
-at which the new symbol should be entered.  This is used to make sure that
-a nontype symbol will be found instead of a type symbol when both exist.
-*insert_sym is only set if insert_sym is not NULL.
+a projection symbol will be created and added.  Return TRUE if the
+old and new symbols can coexist in the same scope.  For example, in C++
+a tag symbol and a nontype symbol may coexist on the symbol list for a
+scope.  The tag symbol should follow the other in the list, so if the
+new symbol is a tag symbol, it must be inserted after the old.
+insert_sym points provides the location at which the new symbol
+should be entered.  This is used to make sure that a nontype symbol
+will be found instead of a type symbol when both exist.  *insert_sym
+is set only if insert_sym is not NULL.
 
 In pcc mode and in cfront compatibility mode local variables of a
 function are allowed to hide function parameters.  A warning is
