@@ -1791,7 +1791,7 @@ caller may have to set it directly.
 
   /* Allocate the identifier string.  It is allocated in the intermediate
      language memory region because it must be passed to the back end. */
-  hdr_ptr->identifier = alloc_il((sizeof_t)(length + 1));
+  hdr_ptr->identifier = alloc_primary_file_scope_il((sizeof_t)(length + 1));
 #if DEBUG
   symbol_name_string_space += length+1;
 #endif /* DEBUG */
@@ -4464,7 +4464,8 @@ is none, create a new one.
     /* Conversion symbols have the name "operator <type-name>". */
     name = format_type_string(type, &name_length);
     sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + name_length;
-    sym_hdr->identifier = alloc_il(sym_hdr->identifier_length + 1);
+    sym_hdr->identifier =
+                   alloc_primary_file_scope_il(sym_hdr->identifier_length + 1);
     (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
     (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), name);
 #if DEBUG
@@ -5577,7 +5578,8 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     blank_needed = (is_id_char[opstr[1]-CHAR_MIN] != FALSE);
     opname_length = OPERATOR_LEN + strlen(opstr) + blank_needed;
     hdr_ptr->identifier_length = opname_length;
-    hdr_ptr->identifier = str = alloc_il((sizeof_t)(opname_length + 1));
+    hdr_ptr->identifier = str =
+                    alloc_primary_file_scope_il((sizeof_t)(opname_length + 1));
     (void)memcpy(str, "operator", OPERATOR_LEN);
     if (blank_needed) str[OPERATOR_LEN] = ' ';
     (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
