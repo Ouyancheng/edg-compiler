@@ -6128,7 +6128,7 @@ block.
     } else {
       /* Look up the namespace specifier. */
       sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
-                                                       ilm_normal, &err);
+                                                       ilm_namespace, &err);
       if (!err) {
         if (sym != NULL &&
             locator_for_curr_id.specific_symbol->kind ==
@@ -6284,7 +6284,7 @@ A using-directive entry is created and activated for the current scope.
   } else {
     /* Scan the namespace name. */
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
-                                                     ilm_normal, &err);
+                                                     ilm_namespace, &err);
     if (err) {
       /* A diagnostic has already been issued. */
     } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
