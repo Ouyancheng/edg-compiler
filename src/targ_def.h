@@ -3529,7 +3529,7 @@ orphan pointers and/or translation unit copy addresses).
 #endif /* (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0 */
 
 /*
-Named address space (an Embedded C extensions described in ISO/IEC TR 18037)
+Named address spaces (an Embedded C extensions described in ISO/IEC TR 18037)
 are identified using small integers of the following signed type (the value
 -1 is used to indicate "no address space; not even the generic one which has
 id zero").  Defined unconditionally because it is used in some function
@@ -3539,7 +3539,7 @@ typedef int a_named_address_space_id;
 
 /*
 Number of bits needed to represent named address space ids.  This value
-must be at least 2 if INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES us TRUE, and
+must be at least 2 if INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES is TRUE, and
 at least 1 otherwise.  If the value is not configured explicitly, these
 minimum values are used by default.
 */
