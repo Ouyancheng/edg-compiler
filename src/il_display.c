@@ -1849,7 +1849,7 @@ Display the indicated expression node.
       break;
     case enk_operation:
       (void)printf("enk_operation\n");
-      disp_name("kind");
+      disp_name("operation.kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
       if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
@@ -1905,7 +1905,9 @@ do_variable:
       break;
     case enk_throw:
       (void)printf("enk_throw\n");
-      disp_throw_supplement(ptr->variant.throw_info);
+      if (ptr->variant.throw_info != NULL) {
+        disp_throw_supplement(ptr->variant.throw_info);
+      }  /* if */
       break;
     case enk_object_lifetime:
       (void)printf("enk_object_lifetime\n");
@@ -1920,11 +1922,11 @@ do_variable:
     case enk_lowered_eh_construct:
       (void)printf("enk_lowered_eh_construct\n");
       disp_name("lowered_eh.kind");
-      switch (node->variant.lowered_eh.kind) {
+      switch (ptr->variant.lowered_eh.kind) {
         case leck_caught_object_address:
           (void)printf("leck_caught_object_address\n");
           disp_ptr("caught_object_handler",
-                   (char *)node->variant.lowered_eh.variant.
+                   (char *)ptr->variant.lowered_eh.variant.
                                                          caught_object_handler,
                    iek_handler);
           break;
@@ -1935,33 +1937,34 @@ do_variable:
           (void)printf("leck_cleanup_state\n");
 #if GENERATE_EH_TABLES
           disp_long("cleanup_region_number",
-                 (long)node->variant.lowered_eh.variant.cleanup_region_number);
+                  (long)ptr->variant.lowered_eh.variant.cleanup_region_number);
 #else /* !GENERATE_EH_TABLES */
-          disp_ptr("cleanup_ptr", (char *)node->variant.cleanup_ptr,
+          disp_ptr("cleanup_ptr",
+                   (char *)ptr->variant.lowered_eh.variant.cleanup_ptr,
                    iek_dynamic_init);
 #endif /* GENERATE_EH_TABLES */
           break;
         case leck_function_prologue:
           (void)printf("leck_function_prologue\n");
           disp_eh_prologue_supplement(
-                               node->variant.lowered_eh.variant.prologue_info);
+                                ptr->variant.lowered_eh.variant.prologue_info);
           break;
         case leck_function_epilogue:
           (void)printf("leck_function_epilogue\n");
           disp_ptr("epilogue_routine",
-                   (char *)node->variant.lowered_eh.variant.epilogue_routine,
+                   (char *)ptr->variant.lowered_eh.variant.epilogue_routine,
                    iek_routine);
           break;
         case leck_catch_epilogue:
           (void)printf("leck_catch_epilogue\n");
           disp_ptr("epilogue_handler",
-                   (char *)node->variant.lowered_eh.variant.epilogue_handler,
+                   (char *)ptr->variant.lowered_eh.variant.epilogue_handler,
                    iek_handler);
           break;
         case leck_try_epilogue:
           (void)printf("leck_try_epilogue\n");
           disp_ptr("epilogue_try_block",
-                   (char *)node->variant.lowered_eh.variant.epilogue_try_block,
+                   (char *)ptr->variant.lowered_eh.variant.epilogue_try_block,
                    iek_try_supplement);
           break;
         default:

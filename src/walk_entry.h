@@ -664,6 +664,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                 unexpected_condition_str(
                       "walk_entry_and_subtree: bad lowered eh construct kind");
             }  /* switch */
+            break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
 #ifdef FFE
