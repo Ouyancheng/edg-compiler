@@ -5849,7 +5849,7 @@ functions could still apply).
         if (operand_1_is_class) {
           /* Instantiate the type if it is a template class.  This ensures that
              member operator functions that could apply are declared. */
-          complete_class_type_is_needed(operand_1->type);
+          instantiate_template_class(operand_1->type);
           member_functions_symbol = opname_member_function_symbol(kind,
                                                skip_typerefs(operand_1->type));
           if (member_functions_symbol != NULL) {
@@ -5889,6 +5889,11 @@ functions could still apply).
         /* Find any non-member function for the operator. */
         if (!must_be_member_function) {
           a_symbol_list_entry_ptr symbol_list, slep;
+          /* If the second operand has a template class type, try to
+             instantiate it to expose any friend functions it declares. */
+          if (!unary_operator && is_class_struct_union_type(operand_2->type)) {
+            instantiate_template_class(operand_2->type);
+          }  /* if */
           /* Get the list of applicable symbols and loop through it.
              If the operand types are classes that are members of namespaces
              those namespaces are searched for the operator function (WP
@@ -6209,7 +6214,7 @@ because of an error.  This routine is used only in C++ mode.
   class_type = skip_typerefs(dest_type);
   /* If the class is a template class, instantiate it so that its
      constructors are visible. */
-  complete_class_type_is_needed(class_type);
+  instantiate_template_class(class_type);
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;
@@ -6292,7 +6297,7 @@ because of an error.  This routine is used only in C++ mode.
            type is a base class, but the source class is still
            incomplete, and one can't make an rvalue of an
            incomplete type. */
-        /* complete_class_type_is_needed need not be called here, because
+        /* instantiate_template_class need not be called here, because
            find_base_class_of has that effect. */
         !is_incomplete_type(source_type)) {
       /* Yes, this is a bitwise copy from a derived class to a base class. */

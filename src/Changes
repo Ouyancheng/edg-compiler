@@ -1,5 +1,13 @@
 Version 2.36
 
+5/14/97   Second operand of operators instantiated to expose friend functions
+
+If the second operand of an overloadable operator has a template class
+type, the class is now instantiated to expose any friend operator
+functions the class declares that might apply.  (Such instantiation
+was previously done only on the first operand, to expose member functions
+that might apply.)
+
 5/14/97   IL CHANGE: Source position of case labels and default labels in IL
 
 In the IL representation of switch statements, the constants used for
