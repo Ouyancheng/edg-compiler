@@ -369,14 +369,14 @@ extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  an_expr_node_ptr   *arg_expr_list);
 
 a_boolean conversion_from_class_possible(
-                               an_operand               *source_operand,
-                               a_type_ptr               dest_type,
-                               a_builtin_type_kind_set  builtin_types_allowed,
-                               a_boolean                need_lvalue_result,
-                               a_boolean                is_reference_binding,
-                               a_conv_descr             *conversion,
-                               a_boolean                *ambiguous,
-                               a_candidate_function_ptr *ambiguity_list);
+                            an_operand               *source_operand,
+                            a_type_ptr               dest_type,
+                            a_builtin_type_kind_set  builtin_types_allowed,
+                            a_boolean                need_lvalue_result,
+                            a_boolean                consider_convs_to_derived,
+                            a_conv_descr             *conversion,
+                            a_boolean                *ambiguous,
+                            a_candidate_function_ptr *ambiguity_list);
 
 extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
@@ -400,15 +400,15 @@ extern void bind_member_function_operand_to_selector(
                                       an_operand *bound_function_selector);
 
 extern a_boolean user_defined_conversion_possible(
-                                           an_operand   *source_operand,
-                                           a_type_ptr   dest_type,
-                                           a_boolean    is_initialization,
-                                           a_boolean    is_explicit_cast,
-                                           a_boolean    need_lvalue_result,
-                                           a_boolean    is_reference_binding,
-                                           a_conv_descr *conversion,
-                                           a_conv_descr *ctor_arg_conversion,
-                                           a_boolean    *failed);
+                                        an_operand   *source_operand,
+                                        a_type_ptr   dest_type,
+                                        a_boolean    is_initialization,
+                                        a_boolean    is_explicit_cast,
+                                        a_boolean    need_lvalue_result,
+                                        a_boolean    consider_convs_to_derived,
+                                        a_conv_descr *conversion,
+                                        a_conv_descr *ctor_arg_conversion,
+                                        a_boolean    *failed);
 
 extern void user_convert_operand(an_operand   *operand,
                                  a_type_ptr   dest_type,
