@@ -7103,7 +7103,8 @@ Returns TRUE if there is an error in the specifiers.
                     curr_token != tok_auto)) {
           /* For parameters, the only allowed storage class specifiers are
              "register" and (in C++ only) "auto". */
-          if (curr_token == tok_typedef) {
+          if (curr_token == tok_typedef &&
+              (input_flags & DSI_IS_OLD_STYLE_PARAM_DECL)) {
             /* Error will be handled by caller. */
             *storage_class = (a_storage_class)sc_typedef;
           } else {
@@ -9681,10 +9682,11 @@ of local variables (and types, etc.) of functions and in blocks.
   /* Within a non-block linkage specification no storage class is allowed
      (inferred from ARM 7.4). */
   if (!extern_implied) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+  dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
   if (is_old_style_param_decl) {
     dsi_flags |= DSI_IS_PARAMETER;
+    dsi_flags |= DSI_IS_OLD_STYLE_PARAM_DECL;
   } else {
-    dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
     if (function_definition_allowed) {
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
       /* "inline" is allowed only on function declarations at file scope. */
@@ -9844,7 +9846,9 @@ continue_with_declaration:
        a type specifier keyword.  Issue a missing-semicolon error, since
        the type specifier can be taken as introducing a new declaration. */
     set_err_pos_to_curr_token();
-    if (!declares_something) error(ec_exp_identifier);
+    if (!declares_something || is_old_style_param_decl) {
+      error(ec_exp_identifier);
+    }  /* if */
     error(ec_exp_semicolon);
     goto return_point;
   } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
