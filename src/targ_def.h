@@ -366,7 +366,10 @@ the target integers.
    the host), and (for space reasons) preferably exactly half.
    Typically, this is a 16-bit value.  The bit size and
    maximum values indicate the range of values to be used, which may
-   be smaller than the range actually available. */
+   be smaller than the range actually available.  That is, one could
+   use a type that is larger than half of a_host_large_integer but
+   restrict the values to be used to just half of a_host_large_integer
+   if no suitable smaller type is available. */
 typedef unsigned short an_int_value_part;
 #define MAX_UINT_VALUE_PART 0xffff
 #define SIGN_BIT_INT_VALUE_PART 0x8000
