@@ -77,7 +77,7 @@ typedef struct a_debug_request {
 /*
 The list of debug requests.
 */
-a_debug_request_ptr
+static a_debug_request_ptr
 		debug_requests = NULL;
 
 /*
