@@ -1940,7 +1940,8 @@ new expression and should therefore not be treated as a declaration.
               /* Redeclaration. */
               *declares_something = FALSE;
             } else {
-              if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
+              if (tag_sym->decl_scope !=
+                                       scope_stack[depth_scope_stack].number &&
                   ((!tag_sym->is_class_member &&
                     tag_sym->parent.namespace_ptr == NULL) ||
                    !namespace_is_enclosed_by_curr_scope(tag_sym))) {
@@ -2022,7 +2023,8 @@ new expression and should therefore not be treated as a declaration.
             set_to_named_error_locator(locator);
             err = TRUE;
           } else if (tag_sym->is_class_member &&
-                     tag_sym->decl_scope == scope_stack[depth_scope_stack].number) {
+                     tag_sym->decl_scope ==
+                                       scope_stack[depth_scope_stack].number) {
             /* This is a vacuous declaration of a nested class of a
                class template such as:
 	         template <class T> struct A {
