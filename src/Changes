@@ -1,5 +1,14 @@
 Version 2.35
 
+1/17/97 Microsoft compatibility: C++ variable declared as a zero-length array
+
+In Microsoft C++ compatibility mode a file-scope variable declared as a
+zero-length array without an explicit storage class is treated as though
+"extern" were present.  This means no error is issued on the following
+(because it is not regard as a definition):
+
+  char s[];           // No longer an error in Microsoft C++ mode.
+
 1/17/97 Microsoft compatibility: last field in class a zero-length array
 
 The cases in which the last field in a class may be a zero-length array in

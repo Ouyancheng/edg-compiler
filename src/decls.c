@@ -8077,6 +8077,16 @@ continue_with_declaration:
                    An "extern" storage class is implied (ARM 7.4, comment on
                    p. 118). */
                 local_storage_class = (a_storage_class)sc_extern;
+              } else if (microsoft_mode) {
+                if (is_incomplete_type(local_type_ptr) &&
+                    is_array_type(local_type_ptr)) {
+                  /* In Microsoft C++ mode, a variable at file scope that
+                     is a zero-length array is treated as though it were
+                     declared "extern" (unless it has an initializer, which
+                     is checked later).  That is, it is not treated as a
+                     definition. */
+                  local_storage_class = (a_storage_class)sc_extern;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
