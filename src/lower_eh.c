@@ -385,6 +385,8 @@ match the runtime's definition.
 			/* TRUE if the base class is public. */
 #define BCS_AMBIGUOUS		0x08
 			/* TRUE if the base class is ambiguous. */
+#define BCS_DIRECT		0x10
+			/* TRUE if the base class is a direct base class. */
 #endif /* ABI_CHANGES_FOR_RTTI */
 
 
@@ -466,8 +468,9 @@ allocated in the file scope memory region.
   for (bcp = type->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
-    /* Include information only on direct or virtual base classes. */
-    if (bcp->direct || bcp->is_virtual) {
+    /* Include information only on direct, virtual, and ambiguous base
+       classes. */
+    if (bcp->direct || bcp->is_virtual || bcp->ambiguous) {
       /* The base class specification consists of three fields:
            1)  A pointer to the typeinfo variable for the base class.
            2)  The offset of the base class in the derived class.
@@ -498,6 +501,7 @@ allocated in the file scope memory region.
         if (bcdp->access == (an_access_specifier)as_public) {
           flags_value |= BCS_PUBLIC;
         }  /* if */
+        flags_value |= BCS_DIRECT;
       }  /* if */
       if (bcp->ambiguous) {
         flags_value |= BCS_AMBIGUOUS;
