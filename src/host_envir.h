@@ -848,12 +848,14 @@ extern DOES_NOT_RETURN normal_termination(void);
 /* Identify the source file being compiled. */
 extern void identify_source_file(void);
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#ifndef COMPILING_MK_ERRINFO
 /* Terminate the compilation. */
 extern DOES_NOT_RETURN term_compilation(an_error_severity severity);
 /* Write a compilation signoff message if appropriate. */
 extern void write_signoff(void);
 /* Terminate the compilation without a signoff message. */
 extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
+#endif /* !defined(COMPILING_MK_ERRINFO) */
 
 /* Set up signal handlers. */
 extern void set_signal_handlers(void);
