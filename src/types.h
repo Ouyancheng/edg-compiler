@@ -895,10 +895,6 @@ extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
       (f_get_upc_block_size((tp), /*top_level=*/FALSE)) :               \
       UPC_BLOCK_SIZE_NONE)
 
-#define is_generic_shared_pointer_type(tp)                              \
-  (is_shared_void_star_type(tp) &&                                      \
-   get_underlying_upc_block_size(type_pointed_to(tp)) == 1)
-
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef TYPES_H */

@@ -4274,6 +4274,22 @@ FALSE.
 
 #if UPC_EXTENSIONS_ALLOWED
 
+static a_boolean f_get_underlying_upc_block_size(a_type_ptr  type)
+/*
+Return the UPC block size of the given type if applicable, or 
+UPC_BLOCK_SIZE_NONE otherwise.  For arguments without side effect,
+the corresponding macro get_underlying_upc_block_size is usually
+preferable.
+*/
+{
+  return get_underlying_upc_block_size(type);
+}  /* f_get_underlying_upc_block_size */
+
+#define is_generic_shared_pointer_type(tp)                              \
+  (is_shared_void_star_type(tp) &&                                      \
+   get_underlying_upc_block_size(type_pointed_to(tp)) == 1)
+
+
 static a_boolean check_implicit_upc_pointer_conversion(a_type_ptr  src,
                                                        a_type_ptr  dst)
 /*
@@ -5526,10 +5542,10 @@ well as C++ mode.
     }  /* if */
   } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)
 #if UPC_EXTENSIONS_ALLOWED
-    /* Casting an integer to a ptr-to-shared is not allowed. */
-    && upc_mode && !is_ptr_to_shared_type(dest_type)
+             /* Casting an integer to a ptr-to-shared is not allowed. */
+             && !(upc_mode && is_ptr_to_shared_type(dest_type))
 #endif /* UPC_EXTENSIONS_ALLOWED */
-                                                                      ) {
+                                                               ) {
     /* Integral or enum --> pointer. */
     okay = TRUE;
     if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
