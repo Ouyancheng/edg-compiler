@@ -408,6 +408,24 @@ routine recursively for each nested class.
              there is no reason to preserve the tokens for friend functions
              during prototype instantiation. */
           discard_token_cache(&rfp->function_body_token_cache);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          if (!is_friend && rfp->func_info.param_id_list != NULL) {
+            /* Be sure any source sequence entries created while scanning
+               the declaration of this function have been removed. */
+            a_param_id_ptr         pid = rfp->func_info.param_id_list;
+            a_src_seq_sublist_ptr  sublist = NULL;
+
+            for (; pid != NULL; pid = pid->next) {
+              if (pid->source_sequence_entry != NULL) {
+                check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
+                                                  (an_il_entry_kind)iek_none);
+                remove_from_source_sequence_list(pid->source_sequence_entry,
+                                                 &sublist);
+                pid->source_sequence_entry = NULL;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         } else if (is_nonreal_template_instantiation) {
           /* Prototype instantiation -- copy the cache for member functions. */
           tssp = sym->variant.routine.instance_ptr->template_info;
