@@ -961,7 +961,8 @@ should be used to satisfy the lookup.
   decl_variable(locator, (a_storage_class)sc_extern, var_type,
                 (a_source_sequence_entry_ptr)NULL,
                 (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
-                (an_attribute_ptr)NULL, (char *)NULL, &sym, &linkage,
+                (an_attribute_ptr)NULL, (char *)NULL,
+                (a_source_position_ptr)NULL, &sym, &linkage,
                 &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL); 
   /* Set the referenced flag on the variable entry.  The implicit declaration
      is also an immediate reference. */

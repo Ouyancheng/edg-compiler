@@ -67,14 +67,14 @@ specifier.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static char *scan_asm_name(void)
+static char *scan_asm_name(a_source_position_ptr asm_name_pos)
 /*
 Scan a construct of the form
     asm ( "string" )
 and return the contents of the string literal.  This is a GNU C extension
 that provides the name to be used for an entity in generated assembler
 code.  If the construct is not present, or if it is present but there is 
-an error, return NULL.
+an error, return NULL.  asm_name_pos is the position of the asm name.
 */
 {
   char *result = NULL;
@@ -102,6 +102,7 @@ an error, return NULL.
              asm argument as a character pointer, without a length, gives
              compatibility with GCC. */
           result = const_for_curr_token.variant.string.value;
+          *asm_name_pos = pos_curr_token;
         }  /* if */
         /* Consume the string constant. */
         (void)get_token();
@@ -4069,6 +4070,7 @@ void decl_variable(a_symbol_locator             *locator,
                    a_decl_modifiers_block_ptr   decl_modifiers,
                    an_attribute_ptr             attributes,
                    char                         *asm_name,
+                   a_source_position_ptr	asm_name_pos,
                    a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
                    a_type_ptr                   *old_type,
@@ -4079,6 +4081,7 @@ Enter the declaration of an identifier for a variable.  *locator gives the
 symbol locator (and thus its name and its declaration position).  type_ptr,
 storage_class, decl_modifiers, attributes, and asm_name give the type, storage
 class, declaration modifier flags, attributes, and assembly symbol name.
+When an asm_name is specified, asm_name_pos is its position.
 Create and enter a symbol entry, and return a pointer to it in *symbol_ptr.
 Also allocate any associated IL construct, and attach it to the symbol.  If
 the identifier has linkage and there is an existing symbol or IL entry, it
@@ -4492,7 +4495,7 @@ declaration.
     if (is_register) {
       /* If the variable has been declared with the register keyword, then
          the assembly name indicates a particular register. */
-      a_named_register anr = name_to_register(asm_name);
+      a_named_register anr = name_to_register(asm_name, asm_name_pos);
       if (anr != (a_named_register)anr_invalid) {
         variable_ptr->asm_name_or_reg.reg = anr;
         variable_ptr->asm_name_is_valid = FALSE;
@@ -10311,6 +10314,7 @@ diagnostics.
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_gnu_declarator_attributes(char*             *asm_name,
+                                           a_source_position *asm_name_pos,
                                            an_attribute_ptr  *attributes,
                                            a_boolean         *new_attributes,
                                            a_storage_class   declared_storage,
@@ -10327,8 +10331,8 @@ The attributes are appended to the list pointed to by *attributes
   if (gnu_mode) {
     /* Look for an asm() symbol name tag.  It is ignored on typedefs (with
        a warning). */
-    a_source_position  asm_start_pos = pos_curr_token;
-    asm_sym_name = scan_asm_name();
+    a_source_position	asm_start_pos = pos_curr_token;
+    asm_sym_name = scan_asm_name(asm_name_pos);
     if (asm_sym_name != NULL &&
         declared_storage == (a_storage_class)sc_typedef) {
       pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
@@ -10438,6 +10442,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   char                         *asm_name = NULL;
+  a_source_position	       asm_name_pos;
   an_attribute_ptr             specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             *last_specifier_attribute;
@@ -10808,7 +10813,8 @@ continue_with_declaration:
                      is_function_type(local_type_ptr));
 #if GNU_EXTENSIONS_ALLOWED
       has_postfix_attributes = (do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
-      scan_gnu_declarator_attributes(&asm_name, &declarator_attributes,
+      scan_gnu_declarator_attributes(&asm_name, &asm_name_pos,
+                                     &declarator_attributes,
                                      &has_postfix_attributes,
                                      declared_storage_class, is_function);
       /* Combine the specifier and declarator attributes (they are separated
@@ -11134,7 +11140,7 @@ continue_with_declaration:
           }  /* if */
           /* GNU C doesn't allow "void f() asm("bar") {}". */
           if (asm_name != NULL) {
-            pos_error(ec_asm_name_in_rout_defn, &locator.source_position);
+            pos_error(ec_asm_name_in_rout_defn, &asm_name_pos);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do processing required for a function definition, including
@@ -11514,8 +11520,8 @@ continue_with_declaration:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
-                      attributes, asm_name, &symbol_ptr, &linkage,
-                      &old_type, &ext_sym, &decl_pos_block);
+                      attributes, asm_name, &asm_name_pos, &symbol_ptr,
+                      &linkage, &old_type, &ext_sym, &decl_pos_block);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */

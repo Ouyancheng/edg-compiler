@@ -109,7 +109,8 @@ static struct name_to_reg *regmap;
 static size_t regmap_size;
 
 
-a_named_register name_to_register(char  *name)
+a_named_register name_to_register(char			*name,
+				  a_source_position_ptr	name_pos)
 /*
 Given the user-specified name of a register as a string, return
 its code number, or anr_invalid if there is no such register.
@@ -141,7 +142,7 @@ In the latter case, issues an error.
     }  /* if */
   }  /* while */
   if (result == (a_named_register)anr_invalid) {
-    str_error(ec_bad_reg_name, name);
+    pos_st_error(ec_bad_reg_name, name_pos, name);
   }  /* if */
   return result;
 }  /* name_to_register */
@@ -656,7 +657,7 @@ The syntax is
         warning(ec_cc_clobber_ignored);
         reg = (a_named_register)anr_invalid;
       } else {
-        reg = name_to_register(name);
+        reg = name_to_register(name, &pos_curr_token);
       }  /* if */
       if (reg != (a_named_register)anr_invalid) {
         /* Add this register to our list. */

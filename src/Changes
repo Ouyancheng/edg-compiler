@@ -1,5 +1,12 @@
 Version 3.1
 
+12/27/02 GNU mode: improved error position on invalid asm registers
+
+The error position of an invalid register name in an asm register
+name specification has been improved.
+
+  register unsigned int x asm("29") ;
+
 12/26/02 Spurious correspondence error on class template instances
 
 When using multiple translation units, spurious correspondence errors
