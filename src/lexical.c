@@ -2726,8 +2726,9 @@ at the next level down.
       base_pp_if_stack_depth = curr_ise->base_pp_if_stack_depth;
     }  /* if */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (list_makefile_dependencies && prev_ise->is_include_file &&
-        !prev_ise->nested_inclusion && !C_mode() && 
+    if (list_makefile_dependencies && do_preprocessing_only &&
+	prev_ise->is_include_file &&
+        !prev_ise->nested_inclusion && !C_mode() &&
         implicit_template_inclusion_mode) {
       /* When generating makefile dependency information in C++ mode, and
          if implicit inclusion is enabled, look for a source file related
