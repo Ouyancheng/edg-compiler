@@ -361,6 +361,7 @@ extern void issue_warning_from_argument_summary(
 extern void selector_match_with_this_param(
                                 an_operand          *bound_function_selector,
                                 a_boolean           selector_is_object_pointer,
+                                a_boolean           conversion_function_case,
                                 a_type_ptr          routine_type,
                                 an_argument_summary *arg_summary);
 
