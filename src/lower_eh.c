@@ -1671,7 +1671,7 @@ Fetch the next region number of the indicated destruction.
                                unsigned_value_of_integer_constant(con, &ovflo);
   check_assertion(!ovflo);
   return next_region_number;
-}  /* set_next_region_number */
+}  /* get_next_region_number */
 
 
 static a_constant_ptr add_raw_region_table_entry(a_constant_ptr con_list,
@@ -1865,7 +1865,7 @@ required for unordered destructions.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
-  a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
+  a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
   /* If this entry is part of an unordered set, all the region table entries
      for the entities in the unordered set are treated as a block.  That is,
@@ -1907,19 +1907,20 @@ void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
 /*
 Add an entry to the region table (which describes destructible objects)
 for the initialization described by dip.  The entry will point to
-curr_cleanup_region_number as its next region.  The initialization
-must have an attached destructible entity description, and the
-conditional_flag_var field of that entry must be filled in if
-appropriate (if a conditional flag variable is indicated, a region
-table entry will be created for it as well).  Also insert (at
-*insert_location) initialization code for the proper entry in
-the object address table.  The region table variable is created if
+curr_cleanup_region_number/curr_context->destructions as its next
+region.  The initialization must have an attached destructible entity
+description, and the conditional_flag_var field of that entry must be
+filled in if appropriate (if a conditional flag variable is indicated,
+a region table entry will be created for it as well).  Also insert (at
+*insert_location) initialization code for the proper entry in the
+object address table.  The region table variable is created if
 necessary.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
 	
   check_assertion(dedp != NULL);
+  dedp->next_in_region_table = curr_context->destructions;
   dedp->region_number_to_set_when_starting_destruction =
                                                     curr_cleanup_region_number;
   dedp->region_table_entry =
@@ -1977,13 +1978,13 @@ void clone_region_table_entry_list(a_dynamic_init_ptr dip,
 /*
 Clone the region table entry associated with the initialization pointed to
 by dip, and all preceding initializations (following the
-next_in_destruction_list pointer), stopping before the entry stop_before.
+next_in_region_table pointer), stopping before the entry stop_before.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_cleanup_region_number         next_region_number, region_number;
   a_constant_ptr                  orig_region_table_entry;
-  a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
+  a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
   if (next_dip != stop_before) {
     /* This is not the last entry on the list, so do a recursive call to

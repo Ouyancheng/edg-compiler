@@ -6211,7 +6211,9 @@ will cover them while we destroy them.
      temporaries get moved to the front of the cloned list.  In the
      loop here, we split the region table entries into two lists
      (one for temporaries, one for nontemporaries), and then rejoin
-     them with the temporaries first. */
+     them with the temporaries first.  Note that the lists we're
+     working with here are those linked on the next_in_region_table
+     field, which indicates the next region table entry. */
   check_assertion_str2(curr_object_lifetime != NULL &&
                        curr_object_lifetime->destructions ==
                                                     curr_context->destructions,
@@ -6219,16 +6221,20 @@ will cover them while we destroy them.
                        "bad current object lifetime");
   for (dip = curr_context->destructions;
        dip != NULL;
-       dip = dip->next_in_destruction_list) {
+       dip = dip->destructible_entity_descr->next_in_region_table) {
     if (dip->is_expr_temp_init || dip->is_freeing_of_storage_on_exception) {
       /* An initialization for a temporary. */
       if (first_temp == NULL) first_temp = dip;
-      if (last_temp != NULL) last_temp->next_in_destruction_list = dip;
+      if (last_temp != NULL) {
+        last_temp->destructible_entity_descr->next_in_region_table = dip;
+      }  /* if */
       last_temp = dip;
     } else {
       /* An initialization for a nontemporary. */
       if (first_nontemp == NULL) first_nontemp = dip;
-      if (last_nontemp != NULL) last_nontemp->next_in_destruction_list = dip;
+      if (last_nontemp != NULL) {
+        last_nontemp->destructible_entity_descr->next_in_region_table = dip;
+      }  /* if */
       last_nontemp = dip;
     }  /* if */
   }  /* for */
@@ -6239,16 +6245,18 @@ will cover them while we destroy them.
        don't need to clone the temporaries, put them back on the list so that
        all entries can be found and detached at the end of lowering. */
     a_dynamic_init_ptr first_nontemp_after_temps =
-                                           last_temp->next_in_destruction_list;
-    last_temp->next_in_destruction_list = first_nontemp;
-    if (last_nontemp != NULL) last_nontemp->next_in_destruction_list = NULL;
+                    last_temp->destructible_entity_descr->next_in_region_table;
+    last_temp->destructible_entity_descr->next_in_region_table = first_nontemp;
+    if (last_nontemp != NULL) {
+      last_nontemp->destructible_entity_descr->next_in_region_table = NULL;
+    }  /* if */
     curr_object_lifetime->destructions = first_temp;
     if (first_nontemp_after_temps != first_nontemp) {
       /* Some region table entries must be cloned. */
       if (need_regions_for_temps) {
         /* We need to clone the entries for the temporaries too, except
            for the first temporary. */
-        dip = first_temp->next_in_destruction_list;
+        dip = first_temp->destructible_entity_descr->next_in_region_table;
       } else {
         /* We need to clone just the nontemporaries. */
         dip = first_nontemp;

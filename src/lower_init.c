@@ -800,6 +800,7 @@ and return a pointer to it.
   dedp->region_number = null_eh_region_number;
   dedp->region_number_to_set_when_starting_destruction = null_eh_region_number;
   dedp->region_table_entry = NULL;
+  dedp->next_in_region_table = NULL;
   return dedp;
 }  /* alloc_destructible_entity_descr_copy */
 
@@ -1954,7 +1955,7 @@ and not for constructor_init entries in destructors.
          require destruction.  We don't need to do this on the last
          destruction in an unordered set because the whole set comes out
          of the region table at that point. */
-      a_dynamic_init_ptr next_dip = dip->next_in_destruction_list;
+      a_dynamic_init_ptr next_dip = dedp->next_in_region_table;
       if (next_dip != NULL && next_dip->unordered) {
         reset_conditional_flag_var(dedp-> conditional_flag_var,
                                    insert_location);
@@ -2997,10 +2998,6 @@ do_assignment:;
         set_conditional_flag_var(dedp->conditional_flag_var,
                                  eff_insert_location);
       }  /* if */
-      /* Record this dynamic initialization as the last encountered in the
-         current context (and therefore the place to start to generate
-         cleanup code if we exit the lifetime after this point). */
-      curr_context->destructions = dip;
       if (exceptions_enabled) {
         /* Make a region table entry for the entity (and for its conditional
            flag, if it has one). */
@@ -3010,6 +3007,10 @@ do_assignment:;
            initialization now. */
         set_eh_curr_region(cleanup_region_number(dip), insert_location);
       }  /* if */
+      /* Record this dynamic initialization as the last encountered in the
+         current context (and therefore the place to start to generate
+         cleanup code if we exit the lifetime after this point). */
+      curr_context->destructions = dip;
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
@@ -3522,6 +3523,7 @@ The subtree of the node has not yet been lowered.
         set_conditional_flag_var(dyn_init_to_free_storage->
                                destructible_entity_descr->conditional_flag_var,
                                    &insert_location);
+        curr_context->destructions = dyn_init_to_free_storage;
       }  /* if */
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
@@ -4628,8 +4630,8 @@ early so that the next region number is available when each entry
 is processed.
 */
 {
-  a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
   a_cleanup_region_number         region_number, next_region_number;
 
   /* Each destruction gets a region number one higher than the region
@@ -4664,7 +4666,7 @@ is inserted at *insert_location.
 {
   a_destructible_entity_descr_ptr
                           dedp = dip->destructible_entity_descr;
-  a_dynamic_init_ptr      next_dip = dip->next_in_destruction_list;
+  a_dynamic_init_ptr      next_dip = dedp->next_in_region_table;
 #if CHECKING
   a_cleanup_region_number old_region_number = cleanup_region_number(dip);
 #endif /* CHECKING */
@@ -4685,6 +4687,7 @@ is inserted at *insert_location.
   check_assertion_str(old_region_number == cleanup_region_number(dip),
                       "make_dtor_init_region_table_entries: wrong region num");
 #endif /* CHECKING */
+  curr_context->destructions = dip;
 }  /* make_dtor_init_region_table_entries */
 
 

@@ -192,6 +192,21 @@ typedef struct a_destructible_entity_descr {
 			/* When exceptions are enabled, this points to the
 			   aggregate constant that defines the region table
 			   entry for the destruction of this entity. */
+  a_dynamic_init_ptr
+		next_in_region_table;
+			/* When exceptions are enabled, this points to the
+			   initialization that follows this one in destruction
+			   order.  Usually, this is the same as the
+			   next_in_destruction_list pointer in the dynamic
+			   initialization itself, but in the presence of
+			   unordered initializations the IL, lowering traversal
+			   order (reflected by this pointer) might be
+			   slightly different than the front end order
+			   (reflected by the dynamic init
+			   next_in_destruction_list pointer).  Also different
+			   when region table entries are cloned because of
+			   long lifetime temporaries. */
+			   
 } a_destructible_entity_descr;
 
 EXTERN a_destructible_entity_descr_ptr
