@@ -3416,18 +3416,6 @@ supplement for an instantiation that matches inst.
               sym_entry;
   a_class_type_supplement_ptr
               ctsp = class_type->variant.class_struct_union.extra_info;
-  a_trans_unit_corresp
-              temp_corresp;
-  a_boolean
-              temp_corresp_used;
-  a_trans_unit_corresp_ptr
-              saved_corresp = trans_unit_corresp_of(class_type);
-
-  temp_corresp.canonical = (char*)class_type;
-  temp_corresp.primary = NULL;
-#if CHECKING
-  temp_corresp.count = 2;
-#endif /* CHECKING */
   if (is_type_symbol(inst)) {
     tssp = primary_template_of((a_symbol_ptr)tssp->il_template_entry
                                                  ->source_corresp.assoc_info)
@@ -3443,20 +3431,6 @@ supplement for an instantiation that matches inst.
        specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
        option allows differing length for the argument lists.  Do not confuse
        a prototype instantiation with a similar nonreal instantiation. */
-
-    /* Checking the equivalence of a template argument list sometimes
-       requires a recursive check of the correspondence of class_type.
-       To correctly handle those situations, we temporarily assume that
-       class_type and corresp_type do in fact correspond. */
-
-    if (trans_unit_corresp_of(corresp_type) != NULL) {
-      temp_corresp_used = FALSE;
-      trans_unit_corresp_of(class_type) = trans_unit_corresp_of(corresp_type);
-    } else {
-      trans_unit_corresp_of(class_type) = &temp_corresp;
-      trans_unit_corresp_of(corresp_type) = &temp_corresp;
-      temp_corresp_used = TRUE;
-    }  /* if */
     if (class_type->variant.class_struct_union.is_nonreal_class ==
                   corresp_type->variant.class_struct_union.is_nonreal_class &&
         class_type->variant.class_struct_union.is_prototype_instantiation ==
@@ -3476,18 +3450,10 @@ supplement for an instantiation that matches inst.
                                  ctsp->partial_spec_template_arg_list,
                                  corresp_ctsp->partial_spec_template_arg_list,
                                  ETA_IS_NONREAL_MEMBER)) {
-        if (temp_corresp_used) {
-          trans_unit_corresp_of(corresp_type) = NULL;
-        }  /* if */
         break;
       }  /* if */
     }  /* if */
-    if (temp_corresp_used) {
-      trans_unit_corresp_of(corresp_type) = NULL;
-    }  /* if */
   }  /* for */
-  /* Restore the original correspondence. */
-  trans_unit_corresp_of(class_type) = saved_corresp;
   return sym_entry;
 }  /* find_class_template_instantiation */
 
