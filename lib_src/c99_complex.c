@@ -10,10 +10,10 @@
 
 /*
 
-c99_cmplx.c -- Runtime support for lowered complex operations in C99.
-               This implementation is for demonstration and testing
-               purposes only.  It is neither particularly efficient, nor
-               particularly precise (numerically speaking).
+c99_cmplex.c -- Runtime support for lowered complex operations in C99.
+                This implementation is for demonstration and testing
+                purposes only.  It is neither particularly efficient, nor
+                particularly precise (numerically speaking).
 
 */
 
