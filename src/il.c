@@ -5857,7 +5857,9 @@ of the front end.
   def_source_corresp.referenced = TRUE;
   def_source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   def_source_corresp.is_local_to_function = FALSE;
+#if DO_IL_LOWERING
   def_source_corresp.name_has_been_mangled = FALSE;
+#endif /* DO_IL_LOWERING */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
