@@ -567,6 +567,46 @@ This is used to skip over a non-autonomous declaration or definition.
 }  /* skip_type_and_delay_definition */
 
 
+static void skip_embedded_declarations(
+                                      a_source_sequence_entry_ptr stop_on_decl)
+/*
+Skip over the source sequence entries for any type declarations or
+implicit function declarations that appear within a statement or
+certain contexts in declarations.  If stop_on_decl is non-NULL, it
+points to the source sequence entry for a declaration that should end
+the scan here.  Encountering a non-declaration also ends the scan.
+*/
+{
+  a_type_ptr                   type;
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_boolean                    is_definition;
+  a_routine_ptr                rout;
+
+  for (; curr_source_sequence_entry != NULL;) {
+    if (curr_source_sequence_entry == stop_on_decl) {
+      /* This source sequence entry is part of whatever follows, so
+         leave it alone. */
+      break;
+    } else if (curr_src_seq_entry_is_type_decl(&type, &sec_decl,
+                                               &is_definition)) {
+      if (is_autonomous_decl(type, sec_decl)) break;
+      /* A non-autonomous type declaration (e.g., a type declared in
+         a cast in an expression).  Skip it and mark it for later
+         processing. */
+      skip_type_and_delay_definition(type, is_definition);
+    } else if (il_header.source_language == sl_C &&
+               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl)) {
+      /* An implicit declaration of a function in C.  Ignore the
+         source sequence entry. */
+      adv_curr_source_sequence_entry();
+    } else {
+      /* Something else; stop looping. */
+      break;
+    }  /* if */
+  }  /* for */
+}  /* skip_embedded_declarations */
+
+
 static void end_output_line(void)
 /*
 End the current line of output.
@@ -1984,9 +2024,6 @@ is the one associated with the definition of the enum.
   set_integer_value(&next_enum_value.variant.integer_value, 0L);
   for (;;) {
     /* The source sequence entry for the enum constant should be next. */
-#if 0
-    /* There might be types declared inside the enum. */
-#endif /* 0 */
     check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);
     set_output_position(&enum_con->source_corresp.decl_position);
@@ -2004,6 +2041,11 @@ is the one associated with the definition of the enum.
     /* Not the end of the list, so output a separator and keep looping. */
     write_tok_str(", ");
     incr_integer_value(&next_enum_value.variant.integer_value);
+    /* Skip any type declarations in the expression following an
+       enumerator, as in
+         enum E { e1, e2 = sizeof(struct A *) };
+    */
+    skip_embedded_declarations(enum_con->source_corresp.source_sequence_entry);
   }  /* for */
   /* The current source sequence entry should now be the end-of-construct
      marker for the enum. */
@@ -3047,46 +3089,6 @@ Generate code for a block statement ("{ ... }").
 }  /* gen_block_statement */
 
 
-static void skip_declarations_in_statement(
-                                      a_source_sequence_entry_ptr stop_on_decl)
-/*
-Skip over the source sequence entries for any type declarations or
-implicit function declarations that appear within a statement.
-If stop_on_decl is non-NULL, it points to the source sequence entry for
-a declaration that begins the next statement, and therefore shouldn't
-be processed here.
-*/
-{
-  a_type_ptr                   type;
-  a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition;
-  a_routine_ptr                rout;
-
-  for (; curr_source_sequence_entry != NULL;) {
-    if (curr_source_sequence_entry == stop_on_decl) {
-      /* This source sequence entry is part of the next statement, so
-         leave it alone. */
-      break;
-    } else if (curr_src_seq_entry_is_type_decl(&type, &sec_decl,
-                                               &is_definition)) {
-      /* A non-autonomous type declaration (e.g., a type declared in
-         a cast in an expression).  Skip it and mark it for later
-         processing.  Note that any declaration that appears within
-         a statement must be non-autonomous. */
-      skip_type_and_delay_definition(type, is_definition);
-    } else if (il_header.source_language == sl_C &&
-               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl)) {
-      /* An implicit declaration of a function in C.  Ignore the
-         source sequence entry. */
-      adv_curr_source_sequence_entry();
-    } else {
-      /* Something else; stop looping. */
-      break;
-    }  /* if */
-  }  /* for */
-}  /* skip_declarations_in_statement */
-
-
 static void gen_statement(a_statement_ptr statement)
 /*
 Generate code for the indicated statement.
@@ -3256,7 +3258,7 @@ Generate code for the indicated statement.
      because (a) they don't have such declarations and (b) the scan
      would run off the end of the scope/function. */
   if (kind != (a_statement_kind)stmk_block) {
-    skip_declarations_in_statement(stop_on_decl);
+    skip_embedded_declarations(stop_on_decl);
   }  /* if */
 done:;
   write_space();
