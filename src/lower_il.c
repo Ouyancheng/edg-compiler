@@ -3783,6 +3783,7 @@ Do IL lowering of the indicated variable and everything under it.
     }  /* if */
     switch (variable->init_kind) {
       case initk_none:
+      case initk_zero:
         break;
       case initk_static:
         lower_constant(variable->initializer.constant);
