@@ -341,6 +341,7 @@ necessary to make it directly accessible in memory.
   sizeof_t                  total_bytes;
   a_block_remap_entry_ptr   remap_entry;
   a_boolean                 first_block;
+  a_boolean                 any_blocks_at_different_addresses;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
   db_enter(2, "read_memory_region");
@@ -643,6 +644,7 @@ necessary to make it directly accessible in memory.
   fread_with_check((char *)&old_region_scope_entry, sizeof(a_scope_ptr));
   fread_with_check((char *)&total_bytes, sizeof(total_bytes));
   block_remap_list = NULL;
+  any_blocks_at_different_addresses = FALSE;
   if (reading_file_scope_il) fs_block_remap_list = NULL;
   /* Loop for each block of the memory region. */
   first_block = TRUE;
@@ -694,6 +696,11 @@ necessary to make it directly accessible in memory.
       first_block = FALSE;
     }  /* if */
     /* Allocate the space for the block. */
+#if 0
+    /* To do allocation at a specific address: */
+    new_start_of_block = alloc_region_block(region_number, block_used,
+                                            old_block_header.start_of_block);
+#endif /* 0 */
     new_start_of_block = alloc_in_region(region_number, block_used);
     /* Free any extra space allocated at the end of the block. */
     trim_memory_region(region_number);
@@ -712,6 +719,11 @@ necessary to make it directly accessible in memory.
     remap_entry->old_start_addr = old_block_header.start_of_block;
     remap_entry->old_after_end_addr = old_block_header.next_avail_in_block;
     remap_entry->new_start_addr = new_start_of_block;
+    /* Keep track of whether any blocks have moved.  If so, the IL will
+       have to be walked to remap pointers. */
+    if (remap_entry->old_start_addr != remap_entry->new_start_addr) {
+      any_blocks_at_different_addresses = TRUE;
+    }  /* if */
   } while (total_bytes > 0);
 #if DEBUG
   if (debug_level >= 2) {
@@ -735,32 +747,35 @@ necessary to make it directly accessible in memory.
                      num_same, num_different);
   }  /* if */
 #endif /* DEBUG */
-  /* Change the address of the primary scope entry to a "new" address. */
-  il_header.region_scope_entry[region_number] = (a_scope_ptr)
+  if (any_blocks_at_different_addresses) {
+    /* Some block addresses have changed.  Pointers must be adjusted. */
+    /* Change the address of the primary scope entry to a "new" address. */
+    il_header.region_scope_entry[region_number] = (a_scope_ptr)
                              ptr_remap_function((char *)old_region_scope_entry,
                                                 iek_scope);
-  /* Walk the IL tree for the region and update all pointers,
-     changing their old addresses to new addresses. */
-  if (reading_file_scope_il) {
-    /* The memory region is the file scope region. */
-    /* Remap the "last" pointers in the orphaned file scope IL entry table.
-       The "first" pointers are left alone for now; they will be remapped
-       by the call of walk_orphaned_file_scope_il_entries at the end
-       of the file-scope IL walk. */
-    walk_remap_func = ptr_remap_function;
-    remap_last_ptr_of_orphaned_file_scope_entry_array();
-    /* Walk the file scope IL tree. */
-    walk_file_scope_il((an_entry_process_function_ptr)NULL,
-                       (a_string_entry_process_function_ptr)NULL,
-                       ptr_remap_function);
-    /* Save the remap list for this region as the file-scope remap list. */
-    fs_block_remap_list = block_remap_list;
-  } else {
-    /* The memory region is a function scope. */
-    walk_routine_scope_il(region_number,
-                          (an_entry_process_function_ptr)NULL,
-                          (a_string_entry_process_function_ptr)NULL,
-                          ptr_remap_function);
+    /* Walk the IL tree for the region and update all pointers,
+       changing their old addresses to new addresses. */
+    if (reading_file_scope_il) {
+      /* The memory region is the file scope region. */
+      /* Remap the "last" pointers in the orphaned file scope IL entry table.
+         The "first" pointers are left alone for now; they will be remapped
+         by the call of walk_orphaned_file_scope_il_entries at the end
+         of the file-scope IL walk. */
+      walk_remap_func = ptr_remap_function;
+      remap_last_ptr_of_orphaned_file_scope_entry_array();
+      /* Walk the file scope IL tree. */
+      walk_file_scope_il((an_entry_process_function_ptr)NULL,
+                         (a_string_entry_process_function_ptr)NULL,
+                         ptr_remap_function);
+      /* Save the remap list for this region as the file-scope remap list. */
+      fs_block_remap_list = block_remap_list;
+    } else {
+      /* The memory region is a function scope. */
+      walk_routine_scope_il(region_number,
+                            (an_entry_process_function_ptr)NULL,
+                            (a_string_entry_process_function_ptr)NULL,
+                            ptr_remap_function);
+    }  /* if */
   }  /* if */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
