@@ -5770,8 +5770,8 @@ Scan the body of a class definition, including the base classes list.
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct. */
-            coalesce_and_lookup_qualified_name(GID_DTOR_RECOGNIZED,
-                                               ilm_normal, &err);
+            (void)coalesce_and_lookup_qualified_name(GID_DTOR_RECOGNIZED,
+                                                     ilm_normal, &err);
             access_adjustment_decl(access, class_type);
             /* Advance to the semicolon and past it. */
             (void)get_token();

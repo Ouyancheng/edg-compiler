@@ -5336,7 +5336,7 @@ needs to be done using the template parameter as the class type.
      decl_scope of the symbol still be an active scope. */
   sym->decl_scope = FILE_SCOPE_NUMBER;
   /* Create the type for the class. */
-  type = alloc_type(tk_class);
+  type = alloc_type((a_type_kind)tk_class);
   set_source_corresp(&(type->source_corresp), sym);
   tptdp->class_type = type;
   /* Set the scope number. */
@@ -5368,7 +5368,7 @@ class_type that is a ck_template_param.
   db_enter(4, "add_member_to_proxy_or_nonreal_class");
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
-  kind = is_type ? sk_type : sk_constant;
+  kind = (a_symbol_kind)(is_type ? sk_type : sk_constant);
   sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
   /* Get the scope number from the symbol supplement.  The scope depth
      will be the scope depth of the class plus one. */
@@ -5379,18 +5379,21 @@ class_type that is a ck_template_param.
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   /* Create the type or constant. */
   if (is_type) {
-    a_type_ptr	type = alloc_type(tk_template_param);
-    type->variant.template_param.kind = tptk_member;
+    a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
+    type->variant.template_param.kind =
+                                    (a_template_param_type_kind)tptk_member;
     sym->variant.type = type;
     set_source_corresp_with_scope_depth(&type->source_corresp, sym, depth);
     type->source_corresp.class_of_which_a_member = class_type;
   } else {
     /* Create a ck_template_param constant.  We don't know the type of the
        constant so we allocate a tk_template_param to use as the type. */
-    a_constant_ptr  constant = fs_constant(ck_template_param);
+    a_constant_ptr  constant;
+    constant = fs_constant((a_constant_repr_kind)ck_template_param);
     sym->variant.constant = constant;
-    constant->type = alloc_type(tk_template_param);
-    constant->type->variant.template_param.kind = tptk_type_of_member_constant;
+    constant->type = alloc_type((a_type_kind)tk_template_param);
+    constant->type->variant.template_param.kind = 
+                   (a_template_param_type_kind)tptk_type_of_member_constant;
     set_source_corresp_with_scope_depth(&constant->source_corresp, sym, depth);
     constant->source_corresp.class_of_which_a_member = class_type;
   }  /* if */
