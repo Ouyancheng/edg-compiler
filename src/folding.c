@@ -2066,6 +2066,39 @@ Do the negate operation on all types of float and imaginary values.
 #endif /* DEBUG */
 }  /* do_fnegate */
 
+#if FIXED_POINT_ALLOWED
+
+static void do_fxnegate(a_constant        *constant,
+                        a_constant        *result,
+                        an_error_code     *err_code,
+                        an_error_severity *err_severity)
+/*
+Do the negate operation on all types of fixed-point values.
+*/
+{
+  a_boolean err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(result, (a_constant_repr_kind)ck_fixed_point);
+  fxp_negate(&constant->variant.fixed_point_value,
+             fxp_descr_for_constant(constant),
+             &result->variant.fixed_point_value,
+             fxp_descr_for_constant(result),
+             &err);
+  if (err) {
+    *err_code = ec_bad_fixed_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_unary_operation("fx-", constant, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxnegate */
+
+#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 static void do_xnegate(a_constant        *constant,
@@ -2223,12 +2256,6 @@ the reason is that the constant is a template parameter constant).
        not fold unary operations involving these constants. */
     *did_not_fold = TRUE;  
 #endif /* UPC_EXTENSIONS_ALLOWED */ 
-#if FIXED_POINT_ALLOWED
-  } else if (constant->kind == (a_constant_repr_kind)ck_fixed_point) {
-    /* Unary operators applied to fixed-point constants are not currently
-       folded. */
-    *did_not_fold = TRUE;
-#endif /* FIXED_POINT_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -2246,6 +2273,11 @@ the reason is that the constant is a template parameter constant).
         case eok_inegate:
           do_inegate(constant, result, &err_code, &err_severity);
           break;
+#if FIXED_POINT_ALLOWED
+        case eok_fxnegate:
+          do_fxnegate(constant, result, &err_code, &err_severity);
+          break;
+#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xnegate:
           do_xnegate(constant, result, &err_code, &err_severity,
@@ -2903,44 +2935,6 @@ Do the logical "or" (||) operation on integers, floats, and pointers.
 #endif /* DEBUG */
 }  /* do_lor */
 
-#if FIXED_POINT_ALLOWED
-
-static void do_fxadd(a_constant        *constant_1,
-		     a_constant        *constant_2,
-		     a_constant        *result,
-		     an_error_code     *err_code,
-		     an_error_severity *err_severity)
-/*
-Do the addition operation on all types of fixed-point values.
-*/
-{
-  a_boolean    err;
-
-  *err_code = ec_no_error;
-  *err_severity = es_warning;
-
-  check_assertion(constant_1->kind == constant_2->kind);
-  set_constant_kind(result, constant_1->kind);
-  /* FIXME -- how should the result type be determined? */
-  result->type = constant_1->type;
-  fxp_add(&constant_1->variant.fixed_point_value,
-          fxp_descr_for_constant(constant_1),
-          &constant_2->variant.fixed_point_value,
-          fxp_descr_for_constant(constant_2),
-          &result->variant.fixed_point_value,
-          fxp_descr_for_constant(result),
-          &err);
-  if (err) {
-    *err_code = ec_bad_fixed_operation_result;
-    *err_severity = es_error;
-  }  /* if */
-
-#if DEBUG
-  db_binary_operation("fx+", constant_1, constant_2, result, *err_code);
-#endif /* DEBUG */
-}  /* do_fxadd */
-
-#endif /* FIXED_POINT_ALLOWED */
 
 static void do_fadd(a_constant        *constant_1,
 		    a_constant        *constant_2,
@@ -3163,6 +3157,200 @@ relational operator "op", and return a 0 or 1 integer in "result".
 #endif /* DEBUG */
 }  /* do_fcompare */
 
+#if FIXED_POINT_ALLOWED
+
+static void do_fxadd(a_constant        *constant_1,
+                     a_constant        *constant_2,
+                     a_constant        *result,
+                     an_error_code     *err_code,
+                     an_error_severity *err_severity)
+/*
+Do the addition operation on all types of fixed-point values.
+*/
+{
+  a_boolean err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  check_assertion(constant_1->kind == constant_2->kind &&
+                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(result, constant_1->kind);
+  fxp_add(&constant_1->variant.fixed_point_value,
+          fxp_descr_for_constant(constant_1),
+          &constant_2->variant.fixed_point_value,
+          fxp_descr_for_constant(constant_2),
+          &result->variant.fixed_point_value,
+          fxp_descr_for_constant(result),
+          &err);
+  if (err) {
+    *err_code = ec_bad_fixed_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("fx+", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxadd */
+
+
+static void do_fxsubtract(a_constant        *constant_1,
+                          a_constant        *constant_2,
+                          a_constant        *result,
+                          an_error_code     *err_code,
+                          an_error_severity *err_severity)
+/*
+Do the subtraction operation on all types of fixed-point values.
+*/
+{
+  a_boolean err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  check_assertion(constant_1->kind == constant_2->kind &&
+                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(result, constant_1->kind);
+  fxp_subtract(&constant_1->variant.fixed_point_value,
+               fxp_descr_for_constant(constant_1),
+               &constant_2->variant.fixed_point_value,
+               fxp_descr_for_constant(constant_2),
+               &result->variant.fixed_point_value,
+               fxp_descr_for_constant(result),
+               &err);
+  if (err) {
+    *err_code = ec_bad_fixed_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("fx-", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxsubtract */
+
+
+static void do_fxmultiply(a_constant        *constant_1,
+                          a_constant        *constant_2,
+                          a_constant        *result,
+                          an_error_code     *err_code,
+                          an_error_severity *err_severity)
+/*
+Do the multiplication operation on all types of fixed-point values.
+*/
+{
+  a_boolean err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  check_assertion(constant_1->kind == constant_2->kind &&
+                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(result, constant_1->kind);
+  fxp_multiply(&constant_1->variant.fixed_point_value,
+               fxp_descr_for_constant(constant_1),
+               &constant_2->variant.fixed_point_value,
+               fxp_descr_for_constant(constant_2),
+               &result->variant.fixed_point_value,
+               fxp_descr_for_constant(result),
+               &err);
+  if (err) {
+    *err_code = ec_bad_fixed_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("fx*", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxmultiply */
+
+
+static void do_fxdivide(a_constant        *constant_1,
+                        a_constant        *constant_2,
+                        a_constant        *result,
+                        an_error_code     *err_code,
+                        an_error_severity *err_severity)
+/*
+Do the division operation on all types of fixed-point values.
+*/
+{
+  a_boolean err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  check_assertion(constant_1->kind == constant_2->kind &&
+                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
+  /* Check for division by zero to give a specific error message. */
+  if (fxp_value_is_zero(&constant_2->variant.fixed_point_value)) {
+    *err_code = ec_divide_by_zero;
+    *err_severity = es_error;
+  } else {
+    set_constant_kind(result, constant_1->kind);
+    fxp_divide(&constant_1->variant.fixed_point_value,
+               fxp_descr_for_constant(constant_1),
+               &constant_2->variant.fixed_point_value,
+               fxp_descr_for_constant(constant_2),
+               &result->variant.fixed_point_value,
+               fxp_descr_for_constant(result),
+               &err);
+    if (err) {
+      *err_code = ec_bad_fixed_operation_result;
+      *err_severity = es_error;
+    }  /* if */
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("fx/", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxdivide */
+
+
+static void do_fxcompare(a_constant            *constant_1,
+                         an_expr_operator_kind op,
+                         a_constant            *constant_2,
+                         a_constant            *result)
+/*
+Compare fixed-point constants constant_1 and constant_2 according to the
+relational operator "op", and return a 0 or 1 integer in "result".
+*/
+{
+  int cmp;
+  int result_value;
+
+  /* Develop a strcmp-like relation value in cmp:
+       constant_1 > constant_2   1
+       constant_1 = constant_2   0
+       constant_1 < constant_2  -1
+  */
+  check_assertion(constant_1->kind == constant_2->kind &&
+                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
+  cmp = fxp_compare(&constant_1->variant.fixed_point_value,
+                    fxp_descr_for_constant(constant_1),
+                    &constant_2->variant.fixed_point_value,
+                    fxp_descr_for_constant(constant_2));
+  /* Now determine the result value for this particular operator. */
+  switch (op) {
+    case eok_fxeq:  result_value = (cmp == 0); break;
+    case eok_fxne:  result_value = (cmp != 0); break;
+    case eok_fxgt:  result_value = (cmp >  0); break;
+    case eok_fxlt:  result_value = (cmp <  0); break;
+    case eok_fxge:  result_value = (cmp >= 0); break;
+    case eok_fxle:  result_value = (cmp <= 0); break;
+#if CHECKING
+    default:        internal_error("do_fxcompare: bad operator");
+#endif /* CHECKING */
+  }  /* switch */
+  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+  set_integer_value(&result->variant.integer_value,
+                    (a_host_large_integer)result_value);
+
+#if DEBUG
+  db_binary_operation(db_operator_names[op],
+                      constant_1, constant_2, result, ec_no_error);
+#endif /* DEBUG */
+}  /* do_fxcompare */
+
+#endif /* FIXED_POINT_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void do_fgnu_min_max(a_constant            *constant_1,
@@ -4261,11 +4449,12 @@ as the position for any diagnostics issued.
                                  did_not_fold, template_constant, err_pos);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
-  } else if (op != eok_fxadd &&
-             (constant_1->kind == (a_constant_repr_kind)ck_fixed_point ||
-              constant_2->kind == (a_constant_repr_kind)ck_fixed_point)) {
-    /* Binary operators applied to fixed-point constants are not currently
-       folded. */
+  } else if ((constant_1->kind == (a_constant_repr_kind)ck_fixed_point ||
+              constant_2->kind == (a_constant_repr_kind)ck_fixed_point) &&
+             (constant_1->kind != (a_constant_repr_kind)ck_fixed_point ||
+              constant_2->kind != (a_constant_repr_kind)ck_fixed_point)) {
+    /* Binary operators applied to fixed-point constants are not folded
+       if the other operand is not also fixed-point. */
     *did_not_fold = TRUE;
 #endif /* FIXED_POINT_ALLOWED */
   } else {
@@ -4413,7 +4602,28 @@ as the position for any diagnostics issued.
 
 #if FIXED_POINT_ALLOWED
         case eok_fxadd:
-          do_fxadd(constant_1, constant_2, result, &err_code, &err_severity);
+          do_fxadd(constant_1, constant_2, result,
+                   &err_code, &err_severity);
+          break;
+        case eok_fxsubtract:
+          do_fxsubtract(constant_1, constant_2, result,
+                        &err_code, &err_severity);
+          break;
+        case eok_fxmultiply:
+          do_fxmultiply(constant_1, constant_2, result,
+                        &err_code, &err_severity);
+          break;
+        case eok_fxdivide:
+          do_fxdivide(constant_1, constant_2, result,
+                      &err_code, &err_severity);
+          break;
+        case eok_fxeq:
+        case eok_fxne:
+        case eok_fxgt:
+        case eok_fxlt:
+        case eok_fxge:
+        case eok_fxle:
+          do_fxcompare(constant_1, op, constant_2, result);
           break;
 #endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
