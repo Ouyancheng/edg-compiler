@@ -5739,7 +5739,7 @@ block with state information for the processing.
             prev_field = type->variant.class_struct_union.field_list;
             while (prev_field->next != ipdp->curr_field) {
               prev_field = prev_field->next;
-            }  /* if */
+            }  /* while */
           }  /* if */
         } else {
           /* The struct or union contains no initializable fields, e.g.,
