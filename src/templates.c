@@ -3260,8 +3260,11 @@ static void cache_function_template_body(a_token_cache  *p_token_cache,
                                          a_boolean      is_constructor,
                                          a_boolean      *defines_something)
 /*
-Scan a function body and cache the tokens so that they can be rescanned
-for the instantiation.
+Scan a function template body and cache the tokens (in *p_token_cache) so
+that they can be rescanned for the instantiation.  is_constructor is
+TRUE if the function is a constructor.  The current source position is
+immediately after the function declarator.  *defines_something is set
+to TRUE if either a ctor-initializer or a function body appears.
 */
 {
   a_token_set_array  stop_tokens;
@@ -3273,6 +3276,7 @@ for the instantiation.
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
     if (curr_token == tok_colon) {
+      /* This is a ctor-initializer list on a constructor.  Cache it. */
       incr_token_set_array_element(stop_tokens, tok_lbrace);
       incr_token_set_array_element(stop_tokens, tok_semicolon);
       cache_token_stream(p_token_cache, stop_tokens);
@@ -3280,6 +3284,7 @@ for the instantiation.
       decr_token_set_array_element(stop_tokens, tok_semicolon);
     }  /* if */
     if (curr_token == tok_lbrace) {
+      /* This is a compound statement that is the body of the function. */
       /* Cache the "{" and advance past it. */
       cache_curr_token(p_token_cache);
       (void)get_token();
