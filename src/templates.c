@@ -152,6 +152,121 @@ static a_symbol_list_entry_ptr
 		deferred_instantiations_tail;
 			/* The end of the deferred_instantiations list. */
 
+/*
+Structure used to pass information about the current template declaration
+between the routines used to implement the processing of template
+declarations.
+*/
+typedef struct a_decl_state *a_decl_state_ptr;
+typedef struct a_decl_state {
+  a_boolean	is_template_friend;
+			/* TRUE if this is a friend declaration. */
+  a_boolean	is_member_decl;
+			/* TRUE if this declaration appeared in a class
+			   scope. */
+  a_boolean	is_full_specialization;
+			/* TRUE if the declaration is a full specialization
+			   of a template entity.  A full specialization
+			   is a real function or class (i.e., not a template).
+			   A full specialization is one in which all of
+			   the template parameter clauses contain empty
+			   parameter lists (i.e., "template <>"). */
+  a_boolean	defines_something;
+			/* TRUE if the declaration is a definition. */
+  a_boolean	in_prototype_instantiation;
+			/* TRUE if the declaration is being processed as
+			   part of the prototype instantiation of an
+			   enclosing class template. */
+  a_boolean	decl_scope_err;
+			/* TRUE if the template declaration is invalid in the
+			   current scope. */
+  a_boolean	no_advance_past_final_token;
+			/* TRUE if the right brace or semicolon terminating
+			   the template declaration is left as the current
+			   token. */
+  an_access_specifier
+		access;
+			/* When the declaration appears in a class scope,
+			   contains the current access. */
+  a_template_nesting_depth
+		nesting_depth;
+			/* Nesting depth of this template declaration (i.e.,
+			   the number of enclosing template scopes.  The
+			   outermost template declaration has a nesting
+			   depth of 1. */
+  a_template_decl_info_ptr
+		decl_info;
+			/* Points to the template declaration information
+			   associated with the innermost template declaration
+			   scope.  Contains NULL for full specializations. */
+  a_scope_depth	effective_decl_level;
+			/* The scope depth of the scope containing the
+			   template declaration.  This is initially set
+			   to the scope that contains the template
+			   declaration and may be adjusted later for
+			   friend declarations. */
+  unsigned long	number_of_template_decl_scopes;
+			/* The number of template declaration scopes pushed
+			   while processing this template declaration. */
+  unsigned long	number_of_template_param_clauses;
+			/* The number of template parameter clauses (including
+			   ones with empty parameter lists in specialization
+			   declarations) in the current template
+                           declaration. */
+  a_scope_ptr	enclosing_scope;
+			/* Points to the scope entry for the scope that
+			   contains the template declaration. */
+  a_type_ptr	class_declared_in;
+			/* When the template definition appears in a class
+			   scope, this points to the class type of the
+			   enclosing class, otherwise contains NULL. */
+  a_source_position
+		start_pos;
+			/* Source position of the first token of the
+			   template declaration. */
+  a_token_cache	param_list_cache;
+			/* Token cache containing the template parameter
+			   list(s). */
+  a_token_cache	decl_token_cache;
+			/* Token cache containing the template declaration
+			   (the portion that follows the template parameter
+			   list(s)). */
+  a_boolean	decl_token_cache_used;
+			/* TRUE if the declaration token cache was saved as
+			   part of the template that was declared. */
+  a_pending_pragma_ptr
+		pragmas_bound_to_template;
+			/* A list of next-construct pragmas that appeared
+			   before this template declaration. */
+} a_decl_state;
+
+
+static void init_templ_decl_state(a_decl_state_ptr	tdsp)
+/*
+Initialize a template declaration state block.
+*/
+{
+  tdsp->is_template_friend = FALSE;
+  tdsp->is_member_decl = FALSE;
+  tdsp->is_full_specialization = FALSE;
+  tdsp->defines_something = FALSE;
+  tdsp->in_prototype_instantiation = FALSE;
+  tdsp->decl_scope_err = FALSE;
+  tdsp->no_advance_past_final_token = FALSE;
+  tdsp->access = as_public;
+  tdsp->nesting_depth = 0;
+  tdsp->decl_info = NULL;
+  tdsp->number_of_template_decl_scopes = 0;
+  tdsp->number_of_template_param_clauses = 0;
+  tdsp->enclosing_scope = NULL;
+  tdsp->class_declared_in = FALSE;
+  tdsp->start_pos = null_source_position;
+  tdsp->pragmas_bound_to_template = NULL;
+  clear_token_cache(&tdsp->param_list_cache, /*reusable=*/TRUE);
+  clear_token_cache(&tdsp->decl_token_cache, /*reusable=*/TRUE);
+  tdsp->decl_token_cache_used = FALSE;
+}  /* init_templ_decl_state */
+
 
 #if RECORD_TEMPLATES_IN_IL
 /*
@@ -429,19 +544,18 @@ the "text" field of *template_ptr to point to it.
 }  /* make_template_string */
 
 
-static a_template_ptr make_il_template_entry(void)
+static a_template_ptr make_il_template_entry(a_source_position *start_pos)
 /*  
-Allocate an IL template entry.  The source position of the current token
-(which should be tok_template) serves as the decl_position of the template
-declaration as a whole.
+Allocate an IL template entry.  The source position specified by start_pos
+(which should be the first tok_template keyword of the declaration) serves
+as the decl_position of the template declaration as a whole.
 */
 {
   a_template_ptr  tp;
 
   db_enter(3, "make_il_template_entry");
-  check_assertion(curr_token == tok_template);
   tp = alloc_template();
-  tp->source_corresp.decl_position = pos_curr_token;
+  tp->source_corresp.decl_position = *start_pos;
   add_to_templates_list(tp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* There's not yet a name or symbol for the template declaration, so call
@@ -775,7 +889,7 @@ might not be able to if the template itself has not yet been defined.
             };
       */                
       sym_error(ec_runaway_recursive_instantiation, instance_sym);
-      /* Set the flag that indicates that this instancei s being specialized.
+      /* Set the flag that indicates that this instance s being specialized.
          This will suppress subsequent attempts to instantiate this class. */
       cssp->is_specific_template_def = TRUE;
     } else {
@@ -2935,7 +3049,7 @@ It is FALSE if the instantiation scope was pushed by the caller.
 static void scan_template_declaration(a_boolean         is_initial_decl,
                                       a_boolean         is_member_decl,
                                       a_type_ptr	parent_class,
-				      a_boolean         invalid_decl_scope_err,
+				      a_boolean         decl_scope_err,
                                       a_decl_flag_set   *dso_flags,
                                       a_decl_flag_set   *do_flags,
                                       a_symbol_locator  *locator,
@@ -2972,7 +3086,7 @@ of a function template.
     add_stop_token(tok_lbrace);
     add_stop_token(tok_colon);
     add_stop_token(tok_semicolon);
-    if (!invalid_decl_scope_err) {
+    if (!decl_scope_err) {
       /* This should only be done when we know that this is a valid template
          declaration scope. */
       begin_deferral_of_access_checks();
@@ -3012,7 +3126,7 @@ of a function template.
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
                &declarator_ssep, func_info);
-    if (invalid_decl_scope_err) {
+    if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
          is not equipped to handle it, create an error locator based on the
          previously reported error. */
@@ -3033,7 +3147,7 @@ of a function template.
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_colon);
     remove_stop_token(tok_semicolon);
-    if (!invalid_decl_scope_err) {
+    if (!decl_scope_err) {
       /* We can't reliably check accesses in template declarations.  We need to
          wait until we have an instance. */
       discard_deferred_access_checks();
@@ -3182,7 +3296,7 @@ type based on the template argument list and the template parameter list
       clear_func_info(&func_info);
       scan_template_declaration(/*is_initial_decl=*/FALSE,
                                 is_member_decl, parent_class,
-  			        /*invalid_decl_scope_err=*/FALSE,
+  			        /*decl_scope_err=*/FALSE,
                                 &dso_flags, &do_flags, &locator,
                                 &rout_type, &func_info, &storage_class,
                                 &decl_modifiers);
@@ -4149,38 +4263,54 @@ are compared.  Return TRUE if the parameter lists are compatible.
 Otherwise, return FALSE.
 */
 {
-  a_symbol_ptr			class_sym;
   a_type_ptr    		type;
   a_boolean			any_mismatches = FALSE;
   a_template_decl_info_ptr	decl_info;
+  a_boolean			first_time = TRUE;
 
-  /* If this declaration is for a member function template, skip out to the
+  /* If this declaration is for a member template, skip out to the
      next enclosing template parameter list because this routine is
-     only used for comparing the class template parameter lists. */
-  if (member_sym->kind == (a_symbol_kind)sk_function_template) {
+     only used for comparing the class template parameter lists of the
+     enclosing classes. */
+  if (member_sym->kind == (a_symbol_kind)sk_function_template ||
+      member_sym->kind == (a_symbol_kind)sk_class_template) {
     start_decl_info = start_decl_info->enclosing_template_decl;
   }  /* if */
   type = member_sym->parent.class_type;
   for (decl_info = start_decl_info;
-       decl_info != NULL; decl_info = decl_info->enclosing_template_decl) {
+       decl_info != NULL || first_time;
+       decl_info = decl_info->enclosing_template_decl) {
+    a_symbol_ptr	class_sym;
+    first_time = FALSE;
     /* Find the nearest enclosing class template (class with a template
        argument list. */
-    while (type->source_corresp.is_class_member &&
+    while (type != NULL && type->source_corresp.is_class_member &&
            type->variant.class_struct_union.extra_info->
                                                   template_arg_list == NULL) {
       type = type->source_corresp.parent.class_type;
     }  /* while */
-    /* Get the symbol associated with the type.  This symbol is the
-       template class symbol. */
-    class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-    /* Get a pointer to the symbol for the class template. */
-    class_sym =
+    if (type == NULL) {
+      /* The enclosing class is not a class template.  Okay as long as
+         there is also no template declaration information. */
+      class_sym = NULL;
+    } else {
+      /* Get the symbol associated with the type.  This symbol is the
+         template class symbol. */
+      class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+      /* Get a pointer to the symbol for the class template. */
+      class_sym =
              class_sym->variant.class_struct_union.extra_info->class_template;
+    }  /* if */
     /* Make sure that the template nesting depth of this parameter list
        matches that of the original declaration.  There is no sense checking
        each of the parameters if the lists are at different levels. */
-    if (!check_template_param_nesting_depths(decl_info->parameters,
-                                             class_sym)) {
+    if (class_sym == NULL && decl_info == NULL) {
+      /* Neither a class template symbol or any declaration information.
+         This is okay, the enclosing class is a normal class. */
+      break;
+    } else if (decl_info == NULL || class_sym == NULL ||
+               !check_template_param_nesting_depths(decl_info->parameters,
+                                                    class_sym)) {
       pos_sy_error(ec_template_depth_mismatch, error_pos, member_sym);
       any_mismatches = TRUE;
       break;
@@ -4372,17 +4502,11 @@ error was diagnosed.
 }  /* same_name_as_template_param */
 
 
-static void class_template_declaration
-                        (a_template_decl_info_ptr template_decl_info,
-                         an_access_specifier   access,
-                         a_scope_depth         effective_decl_level,
-                         a_boolean             *invalid_decl_scope_err,
-                         unsigned long	       number_of_template_decl_scopes,
-		         a_type_ptr            class_declared_in,    
+static void class_template_declaration(
+                         a_decl_state_ptr      decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
 		         a_boolean             *resolution,
-   		         a_type_ptr            *new_type,
-		         a_boolean             *defines_something)
+   		         a_type_ptr            *new_type)
 
 /*
 The beginning of a template declaration or definition has been scanned,
@@ -4413,12 +4537,10 @@ instantiation.
   a_template_param_ptr              tpp;
   a_boolean			    err;
   a_token_set_array                 stop_tokens;
-  a_boolean                         is_template_friend = FALSE;
-  a_boolean                         in_prototype_instantiation;
   a_source_position                 friend_pos;
   a_boolean			    is_nested_class_definition = FALSE;
   a_template_param_ptr		    templ_params =
-                                                template_decl_info->parameters;
+                                             decl_state->decl_info->parameters;
   a_token_cache_ptr		    definition_token_cache = NULL;
   a_token_kind			    next_tok;
 
@@ -4428,10 +4550,8 @@ instantiation.
     error(ec_bad_storage_class_on_template_decl);
     (void)get_token();
   }  /* if */
-  in_prototype_instantiation =
-                   scope_stack[depth_scope_stack].in_prototype_instantiation;
   if (curr_token == tok_friend) {
-    is_template_friend = TRUE;
+    check_assertion(decl_state->is_template_friend);
     friend_pos = pos_curr_token;
     (void)get_token();
   }  /* if */
@@ -4463,7 +4583,8 @@ instantiation.
        is a qualified name, do a normal lookup.  For unqualified
        references that are not in friend declarations, just look
        in the current scope. */
-    if (is_template_friend || locator_for_curr_id.is_qualified_name) {
+    if (decl_state->is_template_friend ||
+        locator_for_curr_id.is_qualified_name) {
       sym = coalesce_and_lookup_generalized_identifier
                              (GID_CLASS_TEMPLATE_REQUIRED, ilm_linkage, &err);
     } else {
@@ -4472,7 +4593,7 @@ instantiation.
          level for this declaration because decl_scope_level currently
          points to the template declaration scope. */
       a_scope_depth	saved_decl_scope_level = decl_scope_level;
-      decl_scope_level = effective_decl_level;
+      decl_scope_level = decl_state->effective_decl_level;
       sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
       decl_scope_level = saved_decl_scope_level;
     }  /* if */
@@ -4494,27 +4615,28 @@ instantiation.
      token now. */
   if (curr_token == tok_identifier) (void)get_token();
   /* Make sure this declaration is valid in this scope. */
-  if (is_template_friend) {
-    if (class_declared_in != NULL) {
+  if (decl_state->is_template_friend) {
+    if (decl_state->class_declared_in != NULL) {
       /* A friend declaration in a class scope -- okay (provided it is not
          a definition). */
-      if (is_template_friend && is_definition) {
+      if (decl_state->is_template_friend && is_definition) {
         /* Classes cannot be defined in friend declarations. */
         pos_error(ec_template_friend_definition_not_allowed,
                      &locator.source_position);
-        *invalid_decl_scope_err = TRUE;
+        decl_state->decl_scope_err = TRUE;
       }  /* if */
       /* Adjust the effective declaration level.  Friend declarations
          are added to the nearest enclosing namespace scope. */
-      effective_decl_level = depth_innermost_namespace_scope;
+      decl_state->effective_decl_level = depth_innermost_namespace_scope;
     } else {
       /* A friend declaration in a nonclass scope. */
       pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
-      *invalid_decl_scope_err = TRUE;
+      decl_state->decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
-  if (!locator.is_qualified_name && !*invalid_decl_scope_err &&
-      !is_template_friend && number_of_template_decl_scopes > 1) {
+  if (!locator.is_qualified_name && !decl_state->decl_scope_err &&
+      !decl_state->is_template_friend &&
+      decl_state->number_of_template_param_clauses > 1) {
     /* This is a declaration of class template that is not a friend, but
        it has multiple template parameter lists.  This is an error
        except for member declarations done outside of the class.  We
@@ -4522,9 +4644,9 @@ instantiation.
        name. */
     pos_error(ec_multiple_template_decls_not_allowed,
               &locator.source_position);
-    *invalid_decl_scope_err = TRUE;
+    decl_state->decl_scope_err = TRUE;
   }  /* if */
-  if (*invalid_decl_scope_err) {
+  if (decl_state->decl_scope_err) {
     /* An error has already been issued on a template declaration that
        is not at file scope. */
     set_to_named_error_locator(locator);
@@ -4533,27 +4655,32 @@ instantiation.
   /* Determine whether this is a definition of a class nested within
      a class template. */
   if (sym != NULL) {
+    /* A definition of a class nested within a template can only appear in
+       a template declaration when it is defined later outside of the class. */
     tssp = template_supplement_for_symbol(sym);
     is_nested_class_definition = is_class_struct_union_symbol(sym) &&
-                                 sym->is_class_member && tssp != NULL;
+                                 sym->is_class_member &&
+                                 !decl_state->is_member_decl && tssp != NULL;
   }  /* if */
   /* See if the class being declared has the same name as one of its
      template parameters. */
-  if (same_name_as_template_param(template_decl_info, &locator)) {
+  if (same_name_as_template_param(decl_state->decl_info, &locator)) {
     sym = NULL;
     suppress_redecl_error = TRUE;
   }  /* if */
   if (!locator.is_qualified_name && sym != NULL) {
-    /* Unless this is a friend declaration, an unquaified name must refer
+    /* Unless this is a friend declaration, an unqualified name must refer
        to a name from the current scope. */
-    check_assertion(sym->is_error || is_template_friend || sym->decl_scope ==
-                                     scope_stack[effective_decl_level].number);
+    check_assertion(sym->is_error || decl_state->is_template_friend ||
+                    sym->decl_scope ==
+                         scope_stack[decl_state->effective_decl_level].number);
   } else if (locator.is_qualified_name && sym != NULL) {
 #if 0
     /* Class qualified name checks need to be added here for member
        templates. */
 #endif /* 0 */
-    a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
+    a_scope_stack_entry_ptr	ssep =
+                                &scope_stack[decl_state->effective_decl_level];
     a_namespace_ptr		nsp;
     a_namespace_ptr		curr_nsp;
     a_boolean			err = FALSE;
@@ -4569,12 +4696,12 @@ instantiation.
     } else if (!is_definition) {
       /* A declaration using a qualified name.  This is only allowed if it
          is a friend declaration. */
-      if (!is_template_friend) {
+      if (!decl_state->is_template_friend) {
         pos_sy_error(ec_bad_scope_for_redeclaration,
                      &locator.source_position, sym);
         err = TRUE;
       }  /* if */
-    } else if (class_declared_in != NULL) {
+    } else if (decl_state->class_declared_in != NULL) {
       /* A definition using a qualified name in a class scope.  This is
          not allowed. */
       pos_error(ec_qualifier_in_member_declaration, &locator.source_position);
@@ -4617,7 +4744,8 @@ instantiation.
       } else if (!sym->defined) {
         /* Not previously defined. */
         *resolution = is_definition;
-        if (!is_definition && sym->is_class_member && !is_template_friend) {
+        if (!is_definition && sym->is_class_member &&
+            !decl_state->is_template_friend) {
           /* Redeclaration of a class member is not allowed. */
           pos_sy_error(ec_bad_scope_for_redeclaration,
 	                 &locator.source_position, sym);
@@ -4630,15 +4758,25 @@ instantiation.
       if ((is_definition || is_redecl) && sym != NULL) {
         /* Either a definition or a redeclaration.  Make sure the template
            parameters are compatible with the previous declaration. */
-        if (sym->kind != (a_symbol_kind)sk_class_template) {
-          if (!member_template_param_list_matches_class(template_decl_info,
+        if (sym->is_class_member &&
+           (decl_state->class_declared_in == NULL ||
+            decl_state->is_template_friend)) {
+          /* If this is a class member defined outside of its class or a friend
+             function declaration in a class.  Make sure that the template
+             parameters match those of the original class definition. */
+          if (!member_template_param_list_matches_class(decl_state->decl_info,
                                                         sym,
                                                         &error_position)) {
             err = TRUE;
           } /* if */
-        } else {
-          (void)reconcile_template_param_lists(templ_params, sym,
-                                               &locator.source_position);
+        }  /* if */
+        if (!err && sym->kind == (a_symbol_kind)sk_class_template) {
+          /* If this is a class template, make sure the template parameters
+             match a previous declaration of the class. */
+          if (!reconcile_template_param_lists(templ_params, sym,
+                                              &locator.source_position)) {
+            err = TRUE;
+          }  /* if */
         } /* if */
       }  /* if */
     } else if (locator.is_qualified_name) {
@@ -4677,9 +4815,11 @@ instantiation.
   check_template_param_default_args(templ_params);
   if (sym == NULL) {
     /* Enter the symbol at the scope indicated by effective_decl_level. */
-    a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
+    a_scope_stack_entry_ptr	ssep =
+                                &scope_stack[decl_state->effective_decl_level];
     sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-                       effective_decl_level, suppress_redecl_error);
+                       decl_state->effective_decl_level,
+                       suppress_redecl_error);
     tssp = sym->variant.template_info;
     if (ssep->kind == (a_scope_kind)sck_namespace ||
         ssep->kind == (a_scope_kind)sck_namespace_extension) {
@@ -4687,8 +4827,8 @@ instantiation.
                                ssep->il_scope->variant.assoc_namespace);
     } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
       set_class_membership(sym, (a_source_correspondence *)NULL,
-                           class_declared_in);
-      tssp->variant.class_template.access = access; 
+                           decl_state->class_declared_in);
+      tssp->variant.class_template.access = decl_state->access; 
     }  /* if */
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
@@ -4704,7 +4844,7 @@ instantiation.
                               (a_name_linkage_kind)nlk_cplusplus_external;
     }  /* if */
     is_redecl = FALSE;
-  }	/* if */
+  }  /* if */
   if (is_definition || !is_redecl) {
     /* Either this is the first declaration of the template class or a
 	defining redeclaration. */
@@ -4714,17 +4854,19 @@ instantiation.
        type entries for instantiations are created. */
     tssp->variant.class_template.type_kind = type_kind;
   }	/* if */
-  if (is_template_friend && !in_prototype_instantiation) {
+  if (decl_state->is_template_friend &&
+      !decl_state->in_prototype_instantiation) {
     /* This is a template friend declaration, add the current class to
        the list of friend classes associated with this template. */
-    add_befriending_class_to_class_template(tssp, class_declared_in);
+    add_befriending_class_to_class_template(tssp,
+                                            decl_state->class_declared_in);
   }  /* if */
-  if (!in_prototype_instantiation && sym->is_class_member &&
+  if (!decl_state->in_prototype_instantiation && sym->is_class_member &&
       sym->kind == (a_symbol_kind)sk_class_template) {
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
-    if (class_declared_in != NULL) {
+    if (decl_state->class_declared_in != NULL) {
       /* Only do this for the original declaration inside the class. */
       find_class_template_member(sym, sym->parent.class_type);
     }  /* if */
@@ -4737,7 +4879,7 @@ instantiation.
        template supplement later. */
     clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
     definition_token_cache = &local_token_cache;
-    *defines_something = TRUE;
+    decl_state->defines_something = TRUE;
     if (sym != NULL) {
       mark_defined(sym, &locator.source_position);
       /* Create the symbol for the prototype instantiation (but don't do
@@ -4823,7 +4965,8 @@ instantiation.
       discard_token_cache(definition_token_cache);
       definition_token_cache = NULL;
     } else {
-      if (in_prototype_instantiation && class_declared_in != NULL &&
+      if (decl_state->in_prototype_instantiation &&
+          decl_state->class_declared_in != NULL &&
           sym->kind == (a_symbol_kind)sk_class_template) {
         /* This is a member template class definition.  Create a template
            cache segment entry so that the body of this template can
@@ -4834,7 +4977,7 @@ instantiation.
       }  /* if */
     }  /* if */
   } else {
-    if (!in_prototype_instantiation) {
+    if (!decl_state->in_prototype_instantiation) {
       mark_declared(sym, &locator.source_position);
     }  /* if */
     /* This is not a class template definition, so we have no need to
@@ -4846,7 +4989,7 @@ instantiation.
          on the definition of the template.  This information is saved
          for the definition and also for the initial declaration. */
      set_template_cache_info(&tssp->cache, definition_token_cache,
-                              template_decl_info);
+                              decl_state->decl_info);
     }  /* if */
   }  /* if */
   *p_sym_ptr = sym;
@@ -4913,14 +5056,21 @@ to TRUE if either a ctor-initializer or a function body appears.
 }  /* cache_function_template_body */
 
 
-static void cache_template_param_list(a_token_cache  *p_token_cache)
+static void cache_template_param_list(a_decl_state_ptr	decl_state)
 /*
 Cache the tokens from "template" to the ">" that terminates the template
-parameter list.  They will be used later to build the string representing
+parameter list.  This is necessary because we need to inspect the
+template declaration that follows the template parameter lists to see
+if it is a friend declaration.  It is also used to determine in advance
+whether we are dealing with a full specialization of a template
+entity.  The cache may also be used later to build the string representing
 the template declaration if the template needs to appear in the IL.
+
 */
 {
-  a_token_set_array  stop_tokens;
+  a_token_set_array	stop_tokens;
+  a_boolean		is_full_specialization = TRUE;
+  a_token_cache_ptr	p_token_cache = &decl_state->param_list_cache;
 
   db_enter(3, "cache_template_param_list");
   clear_token_cache(p_token_cache, /*reusable=*/TRUE);
@@ -4928,6 +5078,9 @@ the template declaration if the template needs to appear in the IL.
     /* Cache the current token and advance past it. */
     cache_curr_token(p_token_cache);
     (void)get_token();
+    /* One ore more template parameters are present in one of the template
+       parameter lists, so this is not a full specialization. */
+    if (next_token() != tok_gt) is_full_specialization = FALSE;
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
     /* Cache all tokens up to the ">" that matches the current "<". */
@@ -4945,38 +5098,43 @@ the template declaration if the template needs to appear in the IL.
      assure that we don't scan past the end of the cache in the actual
      scan. */
   terminate_token_cache(p_token_cache);
+  decl_state->is_full_specialization = is_full_specialization;
   db_exit();
 }  /* cache_template_param_list */
 
 
-static void cache_template_declaration(a_token_cache  *decl_token_cache,
-                                       a_token_cache  *param_list_token_cache)
+static void cache_template_declaration(a_decl_state_ptr decl_state,
+                                       a_boolean	skip_params)
 /*
-Scan one or more template parameter lists and the declaration that
+Scan one or more template parameter clauses and the declaration that
 follows, and cache the tokens so that they can be rescanned for the
 instantiation.  The declarations for functions must be saved
 so that they may be rescanned with the appropriate values substituted
 for the template parameters.  In addition, there are a number of lookahead
 operations that must be done to determine the type of entity being processed.
+is_full_specialization specifies whether the template parameter clauses
+that are cached indicate that this declaration is a full specialization of
+a template entity.  A full specialization is one in which all of the template
+clauses contain empty template parameter lists.  skip_params is TRUE
+when this routine is called a second time in certain error conditions
+to rescan just the template declaration and not the template parameter list.
 */
 {
   a_token_set_array  stop_tokens;
 
   db_enter(3, "cache_template_declaration");
-  if (param_list_token_cache != NULL) {
+  if (!skip_params) {
     /* Cache the tokens of the template parameter list(s).  This step is
-       skipped if the parameter list cache pointer is NULL.  This is the
-       case if the declaration is being rescanned because of some kind
-       of a syntax error that caused the original declaration that was
-       scanned to be incorrect. */
-    cache_template_param_list(param_list_token_cache);
+       skipped if skip_params is TRUE.  This is the case if the declaration
+       is being rescanned because of some kind of a syntax error that caused
+       the original declaration that was scanned to be incorrect. */
+    cache_template_param_list(decl_state);
   }  /* if */
-  clear_token_cache(decl_token_cache, /*reusable=*/TRUE);
   if (curr_token != tok_end_of_source) {
     /* In an error case, we could be at the end of the source file.  Don't
        try to cache the end-of-source token. */
     /* Cache the current token and advance past it. */
-    cache_curr_token(decl_token_cache);
+    cache_curr_token(&decl_state->decl_token_cache);
     (void)get_token();
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
@@ -4990,25 +5148,25 @@ operations that must be done to determine the type of entity being processed.
     incr_token_set_array_element(stop_tokens, tok_lbrace);
     incr_token_set_array_element(stop_tokens, tok_colon);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
-    cache_token_stream(decl_token_cache, stop_tokens);
+    cache_token_stream(&decl_state->decl_token_cache, stop_tokens);
   }  /* if */
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
      scan. */
-  terminate_token_cache(decl_token_cache);
+  terminate_token_cache(&decl_state->decl_token_cache);
   /* Rescan a copy of the cached tokens from this cache.  This is done so that
      when the original template declaration is scanned the last token of
      the cache is followed by the token that followed it in the original
      source program with no intervening tok_end_of_source.  This also
      allows the reusable token cache to be discarded if it turns out that
      this is not a function declaration. */
-  rescan_copy_of_cache(decl_token_cache);
-  if (param_list_token_cache != NULL) {
+  rescan_copy_of_cache(&decl_state->decl_token_cache);
+  if (!skip_params) {
     /* Also rescan the tokens from the template parameter list(s).  This
        is done after the rescan of the template declaration because the
        rescanning is a stack-based processed (i.e., the last tokens added
        the the rescan list are fetched first. */
-    rescan_copy_of_cache(param_list_token_cache);
+    rescan_copy_of_cache(&decl_state->param_list_cache);
   }  /* if */
   db_exit();
 }  /* cache_template_declaration */
@@ -5141,9 +5299,7 @@ Scan the declaration of a single template nontype parameter.
 
 
 static
-a_template_param_ptr scan_template_param_list(
-                                 a_template_decl_info_ptr template_decl_info,
-                                 a_template_nesting_depth nesting_depth)
+a_template_param_ptr scan_template_param_list(a_decl_state_ptr decl_state)
 /*
 Scan a comma-separated list of template parameters.  The opening "<" will
 already have been scanned, and an empty list will have already been
@@ -5162,12 +5318,6 @@ to represent the template parameters.
   a_template_param_list_pos	template_param_list_pos = 0;
 
   db_enter(3, "scan_template_param_list");
-  /* Check for an bypass the "<". */
-  if (curr_token != tok_lt) {
-    error(ec_exp_lt);
-  } else {
-    (void)get_token();
-  }  /* if */
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   add_stop_token(tok_gt);
@@ -5224,7 +5374,7 @@ to represent the template parameters.
          is therefore not added to any scope types list. */
       template_param_type = alloc_type((a_type_kind)tk_template_param);
       template_param_type->variant.template_param.coordinates.depth =
-                                                     nesting_depth;
+                                                     decl_state->nesting_depth;
       template_param_type->variant.template_param.coordinates.position =
                                                      template_param_list_pos;
       set_type_size(template_param_type);
@@ -5328,7 +5478,7 @@ to represent the template parameters.
          parameters. */
       template_param->variant.constant.type_involves_template_param = TRUE;
       set_template_cache_info(&template_param->cache, &param_cache,
-                              template_decl_info);
+                              decl_state->decl_info);
       parameter_cache_used = TRUE;
     }  /* if */
     if (has_default_arg) {
@@ -5340,7 +5490,7 @@ to represent the template parameters.
            default is saved as a token cache. */
         template_param->def_arg_involves_template_param = TRUE;
         set_template_cache_info(&template_param->default_arg.cache,
-                                &def_arg_cache, template_decl_info);
+                                &def_arg_cache, decl_state->decl_info);
         def_arg_cache_used = TRUE;
       } else {
         /* The default does not use template parameters.  Simply save the
@@ -5691,11 +5841,10 @@ its source correspondence entry, if any, has been put out.)
 
 
 static a_symbol_ptr template_static_data_member_declaration
-                    (a_symbol_locator                 *locator,
+                    (a_decl_state_ptr                 decl_state,
+                     a_symbol_locator                 *locator,
 		     a_decl_flag_set                  do_flags,
 		     a_type_ptr                       type,
-		     a_template_decl_info_ptr	      template_decl_info,
-                     a_token_cache_ptr                decl_token_cache,
 		     a_template_symbol_supplement_ptr *p_tssp)
 /*
 Scan a template static data member declaration.  locator identifies
@@ -5764,7 +5913,7 @@ returned to the caller.
     tssp = sym->variant.static_data_member.instance_ptr->template_info;
     /* Make sure the parameter list matches the class declaration. */
     if (!member_template_param_list_matches_class
-                                (template_decl_info, sym, &error_position)) {
+                              (decl_state->decl_info, sym, &error_position)) {
       err = TRUE;
     } /* if */
   }  /* if */
@@ -5788,7 +5937,8 @@ returned to the caller.
        currently be the token after the parenthesis.  In this case,
        the parenthesis is moved from the decl_token_cache to the
        initializer cache. */
-    adjust_overlapping_token_caches(decl_token_cache, p_token_cache,
+    adjust_overlapping_token_caches(&decl_state->decl_token_cache,
+                                    p_token_cache,
                                     has_parenthesized_initializer);
     if (err) {
       discard_token_cache(p_token_cache);
@@ -5799,7 +5949,7 @@ returned to the caller.
     /* Save the information needed to create an instantiation based
        on the definition of the template. */
     set_template_cache_info(&tssp->cache, p_token_cache,
-                            template_decl_info);
+                            decl_state->decl_info);
   }  /* if */
   *p_tssp = tssp;
   db_exit();
@@ -5890,37 +6040,25 @@ been instantiated, update the befriending information for the instances.
 
 
 static void complete_function_template_decl(
+                     a_decl_state_ptr		      decl_state,
                      a_symbol_ptr                     sym,
                      a_func_info_block                *func_info,
-                     a_template_decl_info_ptr         template_decl_info,
-                     a_token_cache                    *decl_token_cache,
-                     a_boolean                        *decl_token_cache_used,
-                     a_boolean                        is_template_friend,
-                     a_type_ptr                       class_declared_in,
                      a_template_symbol_supplement_ptr *p_tssp,
-                     a_boolean                        *defines_something,
                      a_source_position		      *decl_pos)
 /*
 Complete the processing for a function template declaration.  sym is a symbol
 indicating the template.  func_info points to the block of information for
 the current function declaration.  template_decl_info points to the template
 declaration information (parameter list, declaration scope, etc.)  for this
-template declaration.  decl_token_cache points to the token cache that
-contains the token comprising the function declarator.  decl_token_cache_used
-is set to TRUE if the pointer to this token cache is recorded in the template
-symbol supplement for this template.  is_template_friend is TRUE if this is a
-friend declaration.  class_declared_in indicates the class body in which the
-current declaration appeared.  p_tssp points to the location in which the
+template declaration.  p_tssp points to the location in which the
 template symbol supplement for this template should be returned to the
-caller.  defines_something is set to TRUE if this is a function definition
-and not just a declaration.
+caller.
 */
 {
   a_boolean                        err = sym == NULL || sym->is_error;
   a_template_symbol_supplement_ptr tssp = NULL;
   a_template_param_ptr             template_param_list =
-                                               template_decl_info->parameters;
-  a_boolean                        in_prototype_instantiation;
+                                           decl_state->decl_info->parameters;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -5931,11 +6069,9 @@ and not just a declaration.
     sym = NULL;
   }  /* if */
   if (sym != NULL) tssp = template_supplement_for_symbol(sym);
-  in_prototype_instantiation = scope_stack[depth_scope_stack].
-                                                    in_prototype_instantiation;
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template &&
-      sym->is_class_member && !is_template_friend) {
-    if (in_prototype_instantiation) {
+      sym->is_class_member && !decl_state->is_template_friend) {
+    if (decl_state->in_prototype_instantiation) {
       /* Save the token sequence number associated with this declaration.
          This is done here for function templates that are class members.
          This information is used later to match a template declaration in
@@ -5946,9 +6082,9 @@ and not just a declaration.
       /* Find the associated template from the prototype instantiation.  This
          can be changed later if a specialization is seen before any
          instantiations are done. */
-      if (class_declared_in != NULL) {
+      if (decl_state->class_declared_in != NULL) {
         /* Only do this for the original declaration inside the class. */
-        find_function_template_member(sym, class_declared_in);
+        find_function_template_member(sym, decl_state->class_declared_in);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5956,8 +6092,9 @@ and not just a declaration.
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
   if (!err && sym->is_class_member &&
-      (class_declared_in == NULL || is_template_friend)) {
-    if (!member_template_param_list_matches_class(template_decl_info,
+      (decl_state->class_declared_in == NULL ||
+       decl_state->is_template_friend)) {
+    if (!member_template_param_list_matches_class(decl_state->decl_info,
                                                   sym, decl_pos)) {
       err = TRUE;
     } /* if */
@@ -5966,7 +6103,7 @@ and not just a declaration.
     a_token_cache  local_token_cache;
     clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
     cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-                                 defines_something, sym);
+                                 &decl_state->defines_something, sym);
     discard_token_cache(&local_token_cache);
   } else {
     a_def_arg_expr_fixup_ptr    daefp;
@@ -5978,10 +6115,10 @@ and not just a declaration.
     first_token_number = curr_token_sequence_number;
     cache_function_template_body(&local_token_cache,
                                  is_constructor_symbol(sym),
-                                 defines_something, sym);
+                                 &decl_state->defines_something, sym);
     last_token_number = curr_token_sequence_number;
-    if (in_prototype_instantiation) {
-      if (sym->is_class_member && class_declared_in != NULL &&
+    if (decl_state->in_prototype_instantiation) {
+      if (sym->is_class_member && decl_state->class_declared_in != NULL &&
           sym->kind == (a_symbol_kind)sk_function_template) {
         /* This is a member template function definition.  Create a template
            cache segment entry so that the body of this template can
@@ -5991,7 +6128,8 @@ and not just a declaration.
         tssp->cache_segment->last_token_number = last_token_number;
       }  /* if */
     }  /* if */
-    if (!is_template_friend || !in_prototype_instantiation) {
+    if (!decl_state->is_template_friend ||
+        !decl_state->in_prototype_instantiation) {
       /* This processing is skipped for template friends during the prototype
          instantiation. */
       if (tssp->variant.function.decl_cache.tokens.first_token == NULL) {
@@ -6002,11 +6140,11 @@ and not just a declaration.
            so that partial instantiations of the function can be done in
            the context of the original declaration. */
         set_template_cache_info(&tssp->variant.function.decl_cache,
-                                decl_token_cache,
-                                template_decl_info);
-        *decl_token_cache_used = TRUE;
+                                &decl_state->decl_token_cache,
+                                decl_state->decl_info);
+        decl_state->decl_token_cache_used = TRUE;
       }  /* if */
-      if (*defines_something || 
+      if (decl_state->defines_something || 
           tssp->cache.decl_info == NULL) {
         /* This is either the defining declaration or the initial declaration
            (or both). */
@@ -6024,13 +6162,13 @@ and not just a declaration.
            is done again if the function is defined later. */
         set_template_cache_info(&tssp->cache,
                                 &local_token_cache,
-                                template_decl_info);
+                                decl_state->decl_info);
       } /* if */
       daefp = curr_default_args;
       /* Update the template declaration information to refer to
          the declaration information of the function template. */
       while (daefp != NULL) {
-        daefp->cache.decl_info = template_decl_info;
+        daefp->cache.decl_info = decl_state->decl_info;
         daefp = daefp->next;
       }  /* while */
       /* Link the default argument list from the template supplement
@@ -6046,10 +6184,11 @@ and not just a declaration.
         daefp->next = tssp->variant.function.def_arg_expr_list;
         tssp->variant.function.def_arg_expr_list = curr_default_args;
       } /* if */
-      if (is_template_friend) {
+      if (decl_state->is_template_friend) {
         /* This is a template friend declaration, add the current class to
            the list of friend classes associated with this template. */
-        add_befriending_class_to_function_template(tssp, class_declared_in);
+        add_befriending_class_to_function_template(
+                                          tssp, decl_state->class_declared_in);
       }        /* if */
     } /* if */
   } /* if */
@@ -6071,24 +6210,19 @@ and not just a declaration.
 }  /* complete_function_template_decl */
 
 
-static a_symbol_ptr function_template_declaration
-                              (a_symbol_locator          *locator,
-                               a_scope_depth             effective_decl_level,
-                               a_boolean		 is_member_decl,
-                               a_boolean		 is_template_friend,
-                               a_func_info_block         *func_info,
-                               a_storage_class           storage_class,
-                               a_decl_modifier           decl_modifiers,
-                               a_type_ptr                type,
-                               a_template_decl_info_ptr  template_decl_info)
+static a_symbol_ptr function_template_declaration(
+                               a_decl_state_ptr		decl_state,
+                               a_symbol_locator         *locator,
+                               a_func_info_block        *func_info,
+                               a_storage_class          storage_class,
+                               a_decl_modifier          decl_modifiers,
+                               a_type_ptr               type)
 /*
 Scan a function template declaration or the declaration of a member function
 of a class template.  locator identifies the function template being
 declared.  func_info points to the block of information for the current
 function declaration.  storage_class, decl_modifiers, and type indicate
-information returned from decl_specifiers and declarator.  template_decl_info
-points to the template declaration information (parameter list, declaration
-scope, etc.)  for this template declaration.  
+information returned from decl_specifiers and declarator.
 */
 {
   a_symbol_ptr  sym = NULL;
@@ -6097,7 +6231,8 @@ scope, etc.)  for this template declaration.
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_template_param_flags(type);
-  if (curr_token == tok_lbrace && is_member_decl && is_template_friend) {
+  if (curr_token == tok_lbrace && decl_state->is_member_decl &&
+      decl_state->is_template_friend) {
     /* A function template defined inside a class or class template is
        implicitly "inline".  Note that the only member declarations
        processed by this routine are friend declarations. */
@@ -6105,8 +6240,8 @@ scope, etc.)  for this template declaration.
   }  /* if */
   /* Process a function template declaration. */
   decl_function_template(locator, type, func_info, &sym, storage_class,
-                         decl_modifiers, template_decl_info->parameters,
-                         effective_decl_level);
+                         decl_modifiers, decl_state->decl_info->parameters,
+                         decl_state->effective_decl_level);
   db_exit();
   return sym;
 }  /* function_template_declaration */
@@ -6152,7 +6287,7 @@ the declaration token cache.
 }  /* is_class_template_decl */
 
 
-static a_boolean is_template_friend_decl(a_token_cache *token_cache)
+static a_boolean is_template_friend_decl(a_decl_state_ptr decl_state)
 /*
 Scan the tokens of a template declaration and determine whether
 the token "friend" is used in the declaration.
@@ -6160,7 +6295,7 @@ the token "friend" is used in the declaration.
 {
   a_boolean	result = FALSE;
  
-  rescan_reusable_cache(token_cache);
+  rescan_reusable_cache(&decl_state->decl_token_cache);
   /* Go through the tokens of the cache.  We have to scan all the way to
      the end even if the friend token is found so that the token stream
      will be at the right place when we return. */
@@ -6237,8 +6372,95 @@ instantiation, then you don't know what X is.
 }  /* prescan_nonclass_template_declaration */
 
 
-void template_declaration(a_boolean		*defines_something,
-                          a_boolean		no_advance_past_final_token)
+static void scan_template_param_clauses(a_decl_state_ptr	decl_state)
+/*
+Scan one or more template parameter lists of the form:
+
+	template < param-list    >
+                             opt
+
+The parameter list can be empty for a specialization declaration.  Once
+a non-empty parameter list has been specified, all subsequent parameter
+lists must by non-empty.
+*/
+{
+  a_template_decl_info_ptr	    prev_template_decl_info = NULL;
+  a_template_decl_info_ptr	    template_decl_info;
+  a_boolean			    param_list_seen = FALSE;
+
+  /* Loop until there are no more template parameter clauses.  Note that
+     this routine is not called for explicit instantiations, in which
+     the template keyword is not followed by a parameter clause. */
+  while (curr_token == tok_template) {
+    decl_state->nesting_depth++;
+    decl_state->number_of_template_param_clauses++;
+    /* Bypass "template".  The next token should be "<".  This is done
+       before the scope is pushed so that any pragma associated with the
+       tok_template token will be processed in the current scope. */
+    (void)get_token();
+    /* Create a template declaration information entry for this declaration.
+       A pointer to this entry will be stored in the template cache entries
+       that contain tokens from this declaration. */
+    template_decl_info = alloc_template_decl_info();
+    decl_state->decl_info = template_decl_info;
+    template_decl_info->enclosing_scope = decl_state->enclosing_scope;
+    /* If there are multiple template parameter clauses in a single
+       declaration, create a link to the template parameter list
+       declaration that preceded the current one. */
+    template_decl_info->enclosing_template_decl = prev_template_decl_info;
+    prev_template_decl_info = template_decl_info;
+    if (curr_token == tok_lt) {
+      /* Bypass the "<". */
+      (void)get_token();
+      if (curr_token != tok_gt) {
+        push_template_declaration_scope(template_decl_info);
+        decl_state->number_of_template_decl_scopes++;
+        template_decl_info->parameters = scan_template_param_list(decl_state);
+        template_decl_info->declaration_scope =
+                                         scope_stack[decl_scope_level].number;
+        /* Record that a template parameter list has been seen.  A
+           subsequent missing parameter list is an error. */
+        param_list_seen = TRUE;
+      } else {
+        /* A specialization declaration.  If a previous "template < >" clause
+           contained a template parameter list, all subsequent parameter
+           lists must be non-empty. */
+        if (param_list_seen) {
+          error(ec_specialization_follows_param_list);
+          decl_state->decl_scope_err = TRUE;
+        }  /* if */
+        /* Bypass the ">". */
+        (void)get_token();
+      }  /* if */
+    } else {
+      error(ec_missing_template_param_list);
+    }  /* if */
+  }  /* while */
+  decl_state->decl_info = template_decl_info;
+  if (curr_token_sequence_number !=
+            decl_state->decl_token_cache.first_token->token_sequence_number &&
+      curr_token != tok_end_of_source) {
+    /* We aren't where we expected to be after scanning the template parameter
+       lists.  This should be the result of an error.  Recache the template
+       declaration at this point. */
+    check_assertion(total_errors != 0);
+    discard_token_cache(&decl_state->decl_token_cache);
+    clear_token_cache(&decl_state->decl_token_cache, /*reusable=*/TRUE);
+    cache_template_declaration(decl_state, /*skip_params=*/TRUE);
+  }  /* if */
+  if (decl_state->is_member_decl && !decl_state->is_template_friend &&
+      decl_state->number_of_template_param_clauses > 1) {
+    /* A declaration with more than one template parameter clause is only
+       valid in a namespace scope definition of a member template or in
+       a friend declaration. */
+    error(ec_multiple_template_decls_not_allowed);
+    decl_state->decl_scope_err = TRUE;
+  }  /* if */
+}  /* scan_template_param_clauses */
+
+
+static
+void template_declaration(a_decl_state_ptr	decl_state)
 /*
 Scan a C++ template declaration.  Syntax:
 
@@ -6255,179 +6477,41 @@ Scan a C++ template declaration.  Syntax:
 
     class identifier
 
-Template declarations will declare either a class template or a function
-template; in the latter case the template argument list may include only
-type-arguments. During the scan of the template declaration a special scope
-entry is pushed on the scope stack.  If no_advance_past_final_token is TRUE,
-the right brace or semicolon terminating the template declaration is left
-as the current token; otherwise, it is consumed.
+When this routine is called, the template parameter clauses will already
+have been scanned and the current token will be the first token of the
+declaration that follows the template parameter list.  In addition, the
+declaration will be been prescanned to determine whether it is a friend
+declaration.  Template declaration scopes will have been pushed for
+any non-empty template parameter lists that were scanned.
 */
 {
-  a_template_param_ptr              template_param_list = NULL;
   a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_boolean                         tag_resolution = FALSE;
   a_type_ptr                        prototype_type = NULL;
-  a_def_arg_expr_fixup_ptr	    saved_curr_default_args;
-  a_token_cache 		    decl_token_cache;
-  a_boolean		            decl_token_cache_used = FALSE;
-  a_pending_pragma_ptr		    pragmas_bound_to_template;
-  a_token_cache                     template_param_list_cache;
 #if RECORD_TEMPLATES_IN_IL
   a_template_ptr                    il_template_entry = NULL;
   a_token_cache                     *p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
-  a_source_position                 start_pos;
-  a_boolean                         is_member_decl;
-  a_type_ptr                        class_declared_in = NULL;
-  a_boolean                         invalid_decl_scope_err = FALSE;
   a_boolean                         is_class_template = FALSE;
-  a_boolean                         is_template_friend = FALSE;
   a_template_cache_segment_ptr	    cache_segments;
-  a_scope_ptr			    enclosing_scope;
-  a_template_decl_info_ptr	    template_decl_info;
-  a_template_decl_info_ptr	    prev_template_decl_info = NULL;
-  a_scope_depth			    effective_decl_level;
-  an_access_specifier		    access = (an_access_specifier)as_public;
-  unsigned long			    number_of_template_decl_scopes = 0;
-  a_template_nesting_depth	    nesting_depth;
 
   db_enter(3, "template_declaration");
-#if CHECKING
-  if (curr_token != tok_template) {
-    internal_error("template_declaration: expected tok_template");
-  }  /* if */
-#endif /* CHECKING */
-  /* Note that select_curr_construct_pragmas is called in the caller.
-     extract_curr_construct_pragmas is called to save the list of
-     pragmas associated with this template declaration.  This pragma
-     list will later be associated with the template and applied to
-     each instance generated from the template. */
-  pragmas_bound_to_template = extract_curr_construct_pragmas();
-  saved_curr_default_args = curr_default_args;
-  curr_default_args = NULL;
-  *defines_something = FALSE;
-  start_pos = pos_curr_token;
-  { a_scope_depth		depth = decl_scope_level;
-    a_scope_stack_entry_ptr	ssep;
-    /* Skip out to a scope that is not a template declaration scope. */
-    while (scope_stack[depth].kind == (a_scope_kind)sck_template_declaration) {
-      depth--;
-    }  /* while */
-    ssep = &scope_stack[depth];
-    effective_decl_level = depth;
-    enclosing_scope = ssep->il_scope;
-    is_member_decl = ssep->kind == (a_scope_kind)sck_class_struct_union;
-    if (is_member_decl) {
-      /* If this template declaration is within a class definition,
-         save a pointer to the class in which the definition appears. */
-      class_declared_in = ssep->assoc_type;
-      access = ssep->current_access;
-    }  /* if */
-    if (is_member_decl) {
-      invalid_decl_scope_err = ssep->inside_local_class;
-    } else if (ssep->kind == (a_scope_kind)sck_file) {
-      /* File scope is okay. */
-    } else if (ssep->kind == (a_scope_kind)sck_namespace ||
-               ssep->kind == (a_scope_kind)sck_namespace_extension) {
-      /* Namespace scopes are okay. */
-    } else {
-      /* Any other scope is not allowed. */
-      invalid_decl_scope_err = TRUE;
-    }  /* if */
-    if (invalid_decl_scope_err) {
-      pos_error(ec_bad_template_declaration_scope, &start_pos);
-    }  /* if */
-  }
 #if RECORD_TEMPLATES_IN_IL
-  /* Create an IL template entry for this declaration, and build the first
-     cache upon which its string representation will be based. */
-  il_template_entry = make_il_template_entry();
-  /* If there are any pk_immediate pragmas associated with the current
-     token, process them now, before the current token is cached, instead
-     of in get_token, as is usually done. */
-  process_curr_token_pragmas();
-  /* Cache "template" through ">". */
+  if (!decl_state->in_prototype_instantiation) {
+    /* Create an IL template entry for this declaration. */
+    il_template_entry = make_il_template_entry(&decl_state->start_pos);
+  }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-  /* Cache the tokens for this declaration.  If this turns out to be
-     a function the cache will be saved to generates new routine types
-     for this function.  If it is not a function the cache will be
-     discarded.  The tokens are cached and a temporary copy of the
-     cache is made.  The tokens are scanned in a nonreusable manner
-     from the temporary cache.  The last cached token is followed
-     immediately by the token that followed it in the original source
-     program (i.e., the temporary cache does not contain a terminating
-     tok_end_of_source).  The cache is also needed for several different
-     kinds of prescans that are done to determine the kind of declaration
-     being processed. */
-  cache_template_declaration(&decl_token_cache, &template_param_list_cache);
-  /* Determine whether this is a friend declaration.  For declarations
-     inside a class this is determine by inspecting the tokens that
-     make up the template declaration. */
-  is_template_friend = is_member_decl &&
-                       is_template_friend_decl(&decl_token_cache);
-  /* Determine the nesting depth of this template declaration.  Templates
-     not enclosed within other templates are given a depth of "1".  The
-     depth is incremented for each successive template declaration. */
-  nesting_depth = is_template_friend ? 1 : template_nesting_depth();
-  for (; curr_token == tok_template; nesting_depth++) {
-    /* Bypass "template".  The next token should be "<".  This is done
-       before the scope is pushed so that any pragma associated with the
-       tok_template token will be processed in the current scope. */
-    (void)get_token();
-    /* Create a template declaration information entry for this declaration.
-       A pointer to this entry will be stored in the template cache entries
-       that contain tokens from this declaration. */
-    template_decl_info = alloc_template_decl_info();
-    template_decl_info->enclosing_scope = enclosing_scope;
-    /* If there are multiple template parameter lists in a single
-       declaration, create a link to the template parameter list
-       declaration that preceded the current one. */
-    template_decl_info->enclosing_template_decl = prev_template_decl_info;
-    prev_template_decl_info = template_decl_info;
-    if (curr_token == tok_lt) {
-      push_template_declaration_scope(template_decl_info);
-      number_of_template_decl_scopes++;
-      template_param_list = scan_template_param_list(template_decl_info,
-                                                     nesting_depth);
-      template_decl_info->declaration_scope =
-                                         scope_stack[decl_scope_level].number;
-      template_decl_info->parameters = template_param_list;
-    } else {
-      error(ec_missing_template_param_list);
-    }  /* if */
-  }  /* for */
-  if (curr_token_sequence_number !=
-                         decl_token_cache.first_token->token_sequence_number &&
-      curr_token != tok_end_of_source) {
-    /* We aren't where we expected to be after scanning the template parameter
-       lists.  This should be the result of an error.  Recache the template
-       declaration at this point. */
-    check_assertion(total_errors != 0);
-    discard_token_cache(&decl_token_cache);
-    cache_template_declaration(&decl_token_cache, (a_token_cache_ptr)NULL);
-  }  /* if */
-  if (is_member_decl && !is_template_friend &&
-      number_of_template_decl_scopes > 1) {
-    /* A declaration with more than one template declaration scope is only
-       valid in a namespace scope definition of a member template or in
-       a friend declaration. */
-    error(ec_multiple_template_decls_not_allowed);
-    invalid_decl_scope_err = TRUE;
-  }  /* if */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
-  if (is_class_template_decl(&decl_token_cache)) {
-    class_template_declaration(template_decl_info, access,
-	                       effective_decl_level, &invalid_decl_scope_err,
-                               number_of_template_decl_scopes,
-			       class_declared_in, &sym,
-			       &tag_resolution, &prototype_type,
-			       defines_something);
+  if (is_class_template_decl(&decl_state->decl_token_cache)) {
+    class_template_declaration(decl_state, &sym,
+			       &tag_resolution, &prototype_type);
     is_class_template = TRUE;
     tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
 #if RECORD_TEMPLATES_IN_IL
-    if (*defines_something && sym != NULL) {
+    if (decl_state->defines_something && sym != NULL) {
       /* Save a pointer to the token cache for class template body. */
       p_template_body_cache = &tssp->cache.tokens;
     }  /* if */
@@ -6440,25 +6524,22 @@ as the current token; otherwise, it is consumed.
        parent class should be processed.  This must be done before 
        is_decl_start is called, as is_decl_start will cause the initial
        identifier (typically the return type) to be coalesced. */
-    prescan_nonclass_template_declaration(&decl_token_cache);
+    prescan_nonclass_template_declaration(&decl_state->decl_token_cache);
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/TRUE) &&
         !is_declarator_start()) {
       /* Template parameters are declared, but the declaration is missing. */
       pos_error(ec_exp_declaration, &pos_curr_token);
-    } else if (is_member_decl && !is_template_friend) {
+    } else if (decl_state->is_member_decl && !decl_state->is_template_friend) {
       /* A member template declaration. */
       a_source_position	decl_start_pos;
       decl_start_pos = pos_curr_token;
-      sym = class_member_template_declaration(class_declared_in);
-      complete_function_template_decl(sym, (a_func_info_block *)NULL,
-                                      template_decl_info, &decl_token_cache,
-                                      &decl_token_cache_used,
-                                      /*is_template_friend=*/FALSE,
-                                      class_declared_in, &tssp,
-                                      defines_something, &decl_start_pos);
+      sym = class_member_template_declaration(decl_state->class_declared_in);
+      complete_function_template_decl(decl_state, sym,
+                                      (a_func_info_block *)NULL,
+                                      &tssp, &decl_start_pos);
 #if RECORD_TEMPLATES_IN_IL
-      if (*defines_something) {
+      if (decl_state->defines_something) {
         /* Save a pointer to the token cache for function body.  tssp may
            be NULL in error cases. */
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
@@ -6475,50 +6556,44 @@ as the current token; otherwise, it is consumed.
 
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
-      scan_template_declaration(/*is_initial_decl=*/TRUE, is_member_decl,
-                                class_declared_in, invalid_decl_scope_err,
+      scan_template_declaration(/*is_initial_decl=*/TRUE,
+                                decl_state->is_member_decl,
+                                decl_state->class_declared_in,
+                                decl_state->decl_scope_err,
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers);
-      if (!locator.is_qualified_name && !invalid_decl_scope_err &&
-          !is_template_friend && number_of_template_decl_scopes > 1) {
+      if (!locator.is_qualified_name && !decl_state->decl_scope_err &&
+          !decl_state->is_template_friend &&
+          decl_state->number_of_template_param_clauses > 1) {
         /* This is a declaration of class template that is not a friend, but
-           it has multiple template parameter lists.  This is an error
+           it has multiple template parameter clauses.  This is an error
            except for member declarations done outside of the class.  We
            know this is not one of those, the identifier is not a qualified
            name. */
         error(ec_multiple_template_decls_not_allowed);
-        invalid_decl_scope_err = TRUE;
+        decl_state->decl_scope_err = TRUE;
       }  /* if */
-      if (invalid_decl_scope_err) {
+      if (decl_state->decl_scope_err) {
         set_to_named_error_locator(locator);
       }  /* if */
       if (!is_function_type(type) && 
           (locator.specific_symbol != NULL ||
            (is_error_locator(locator) && curr_token == tok_assign))) {
-        sym = template_static_data_member_declaration(&locator, do_flags, type,
-                                                      template_decl_info,
-                                                      &decl_token_cache,
-                                                      &tssp);
+        sym = template_static_data_member_declaration(
+                                 decl_state, &locator, do_flags, type, &tssp);
 #if RECORD_TEMPLATES_IN_IL
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases. */
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
 #endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
-        sym = function_template_declaration(&locator, effective_decl_level,
-                                            is_member_decl,
-                                            is_template_friend,
+        sym = function_template_declaration(decl_state, &locator,
                                             &func_info, storage_class,
-                                            decl_modifiers, type,
-                                            template_decl_info);
-        complete_function_template_decl(sym, &func_info,
-                                        template_decl_info, &decl_token_cache,
-                                        &decl_token_cache_used,
-                                        is_template_friend, class_declared_in,
-                                        &tssp, defines_something,
-                                        &locator.source_position);
+                                            decl_modifiers, type);
+        complete_function_template_decl(decl_state, sym, &func_info,
+                                        &tssp, &locator.source_position);
 #if RECORD_TEMPLATES_IN_IL
-        if (*defines_something) {
+        if (decl_state->defines_something) {
           /* Save a pointer to the token cache for function body.  tssp may
              be NULL in error cases. */
           if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
@@ -6536,10 +6611,10 @@ as the current token; otherwise, it is consumed.
     }  /* if */
   }  /* if */
   /* Check and/or advance past the terminating token of the declaration. */
-  if (*defines_something && !is_class_template) {
+  if (decl_state->defines_something && !is_class_template) {
     /* It's a definition but not a class template definition, so it must be
        a function template definition. */
-    if (no_advance_past_final_token) {
+    if (decl_state->no_advance_past_final_token) {
       /* Leave it to the caller to advance past the closing right brace. */
     } else if (curr_token == tok_rbrace) {
       (void)get_token();
@@ -6547,7 +6622,7 @@ as the current token; otherwise, it is consumed.
   } else {
     /* All template declarations except function template definitions should
        terminate with a semicolon. */
-    if (no_advance_past_final_token) {
+    if (decl_state->no_advance_past_final_token) {
       (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
     } else {
       (void)required_token(tok_semicolon, ec_exp_semicolon);
@@ -6555,8 +6630,8 @@ as the current token; otherwise, it is consumed.
   }  /* if */
   /* Pop all of the template declaration scopes that were pushed earlier.
      Note that this must be done before doing the prototype instantiation. */
-  for (; number_of_template_decl_scopes != 0;
-         number_of_template_decl_scopes--) {
+  for (; decl_state->number_of_template_decl_scopes != 0;
+         decl_state->number_of_template_decl_scopes--) {
     pop_scope();
   }  /* for */
   /* Any pbk_next_construct pragmas will be considered to bind to each of
@@ -6568,14 +6643,15 @@ as the current token; otherwise, it is consumed.
       if (tssp != NULL) {
         /* A null pointer could be returned if the symbol has an invalid
            kind because of an earlier error. */
-        tssp->pragmas_bound_to_template = pragmas_bound_to_template;
+        tssp->pragmas_bound_to_template =
+                                        decl_state->pragmas_bound_to_template;
         saved_pragmas = TRUE;
       }  /* if */
     }  /* if */
     if (!saved_pragmas) {
       /* An error occurred earlier so we can't attach the pragmas to the
          template, so they need to be discarded. */
-      free_pending_pragma_list(pragmas_bound_to_template);
+      free_pending_pragma_list(decl_state->pragmas_bound_to_template);
     }  /* if */
   }
   {
@@ -6584,7 +6660,7 @@ as the current token; otherwise, it is consumed.
        prototype instantiation has actually been done. */
     a_type_ptr	saved_prototype_type = prototype_type;
     prototype_type = NULL;
-    if (!invalid_decl_scope_err && saved_prototype_type != NULL) {
+    if (!decl_state->decl_scope_err && saved_prototype_type != NULL) {
 #if CHECKING
       if (sym == NULL || tssp == NULL ||
           tssp->variant.class_template.instantiations == NULL ||
@@ -6623,12 +6699,15 @@ as the current token; otherwise, it is consumed.
     }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if RECORD_TEMPLATES_IN_IL
-    complete_il_template_entry(il_template_entry, sym, &decl_token_cache,
-                               &template_param_list_cache,
-                               p_template_body_cache);
-    /* The cache for the template parameter list is no longer needed. */
+    if (!decl_state->in_prototype_instantiation) {
+      complete_il_template_entry(il_template_entry, sym,
+                                 &decl_state->decl_token_cache,
+                                 &decl_state->param_list_cache,
+                                 p_template_body_cache);
+    }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-    discard_token_cache(&template_param_list_cache);
+    /* The cache for the template parameter list is no longer needed. */
+    discard_token_cache(&decl_state->param_list_cache);
     /* When member function bodies are not extract above, they are done now
        that the template string for the class has been created.  Nested class
        bodies are always extracted at this point. */
@@ -6638,17 +6717,144 @@ as the current token; otherwise, it is consumed.
     } /* if */
   }
   /* If the declaration token cache is not needed, discard it. */
-  if (!decl_token_cache_used) {
-    discard_token_cache(&decl_token_cache);
+  if (!decl_state->decl_token_cache_used) {
+    discard_token_cache(&decl_state->decl_token_cache);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
   }  /* if */
 #endif /* DEBUG */
-  curr_default_args = saved_curr_default_args;
   db_exit();
 }  /* template_declaration */
+
+
+static void decl_level_of_template(a_decl_state_ptr decl_state)
+/*
+Determine the effective declaration scope for a template declaration
+in this context.  is_template_friend (in decl_state) is TRUE if this is
+a friend declaration and is used only for error checking.  The actual scope to
+be used for a friend declaration will be determined later because it
+differs between function and nonfunction declarations.
+*/
+{
+  a_scope_depth			depth = decl_scope_level;
+  a_scope_stack_entry_ptr	ssep;
+  a_boolean			err = FALSE;
+
+  ssep = &scope_stack[depth];
+  decl_state->enclosing_scope = ssep->il_scope;
+  decl_state->is_member_decl =
+                           ssep->kind == (a_scope_kind)sck_class_struct_union;
+  if (decl_state->is_member_decl) {
+    /* If this template declaration is within a class definition,
+       save a pointer to the class in which the definition appears. */
+    decl_state->class_declared_in = ssep->assoc_type;
+    decl_state->access = ssep->current_access;
+  }  /* if */
+  if (decl_state->is_member_decl) {
+    /* A member template cannot be declared in a local class. */
+    if (ssep->inside_local_class && !decl_state->is_template_friend) {
+      err = TRUE;
+    }  /* if */
+  } else if (ssep->kind == (a_scope_kind)sck_file) {
+    /* File scope is okay. */
+  } else if (ssep->kind == (a_scope_kind)sck_namespace ||
+             ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    /* Namespace scopes are okay. */
+  } else {
+    /* Any other scope is not allowed. */
+    err = TRUE;
+  }  /* if */
+  if (err) depth = NO_SCOPE_DEPTH;
+  decl_state->effective_decl_level = depth;
+  /* Determine whether this is a friend declaration.  For declarations
+     inside a class this is determine by inspecting the tokens that
+     make up the template declaration. */
+  decl_state->is_template_friend = decl_state->is_member_decl &&
+                                           is_template_friend_decl(decl_state);
+  /* Determine the nesting depth of this template declaration.  Templates
+     not enclosed within other templates are given a depth of "1".  The
+     depth is incremented for each successive template declaration. */
+  decl_state->nesting_depth =
+                decl_state->is_template_friend ? 1 : template_nesting_depth();
+}  /* decl_level_of_template */
+
+
+static void template_or_specialization_declaration(
+                          a_boolean		*defines_something,
+                          a_boolean		no_advance_past_final_token)
+/*
+Scan a template declaration of a template specialization declaration.
+
+This routine determines whether the entity being scanned is a "full
+specialization".  A full specialization is a declaration that declares
+a real function or class and not a template.  In a full specialization
+all of the template parameter clauses contain empty template parameter
+lists (e.g., "template <>").  Declarations that are not full specializations
+are either the specialization of a template or a template declaration.
+*/
+{
+  a_decl_state			decl_state;
+  a_def_arg_expr_fixup_ptr	saved_curr_default_args;
+
+  check_assertion_str2(curr_token == tok_template,
+                       "template__or_specialization_declaration:",
+                       "expected tok_template");
+  init_templ_decl_state(&decl_state);
+  /* Note that select_curr_construct_pragmas is called in the caller.
+     extract_curr_construct_pragmas is called to save the list of
+     pragmas associated with this template declaration.  This pragma
+     list will later be associated with the template and applied to
+     each instance generated from the template. */
+  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
+  saved_curr_default_args = curr_default_args;
+  curr_default_args = NULL;
+  decl_state.start_pos = pos_curr_token;
+  decl_state.in_prototype_instantiation =
+                    scope_stack[depth_scope_stack].in_prototype_instantiation;
+  decl_state.no_advance_past_final_token = no_advance_past_final_token;
+  /* If there are any pk_immediate pragmas associated with the current
+     token, process them now, before the current token is cached, instead
+     of in get_token, as is usually done. */
+  process_curr_token_pragmas();
+  /* Cache the tokens for this declaration.  If this turns out to be
+     a function the cache will be saved to generates new routine types
+     for this function.  If it is not a function the cache will be
+     discarded.  The tokens are cached and a temporary copy of the
+     cache is made.  The tokens are scanned in a nonreusable manner
+     from the temporary cache.  The last cached token is followed
+     immediately by the token that followed it in the original source
+     program (i.e., the temporary cache does not contain a terminating
+     tok_end_of_source).  The cache is also needed for several different
+     kinds of prescans that are done to determine the kind of declaration
+     being processed. */
+  cache_template_declaration(&decl_state, /*skip_params=*/FALSE);
+  decl_level_of_template(&decl_state);
+  if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
+    pos_error(ec_bad_template_declaration_scope, &decl_state.start_pos);
+    decl_state.decl_scope_err = TRUE;
+  }  /* if */
+  /* Scan one or more template parameter lists.  Each template parameter
+     list looks like "template < param-list >".  The param-list is
+     optional (but once a parameter list has been specified, all subsequent
+     param-lists must be present). */
+  scan_template_param_clauses(&decl_state);
+  if (decl_state.is_full_specialization) {
+    unexpected_condition_str("new specialization syntax not implemented");
+#if 0
+#else
+    /* A reminder to make sure that defines_something is set properly
+       for specializations. */
+    check_assertion(decl_state.defines_something);
+#endif
+  } else {
+    /* The entity being declared is a template. */
+    template_declaration(&decl_state);
+  }  /* if */
+  curr_default_args = saved_curr_default_args;
+  *defines_something = decl_state.defines_something;
+}  /* template_or_specialization_declaration */
 
 
 static a_can_instantiate_entry_ptr alloc_can_instantiate_entry(void)
@@ -8338,7 +8544,8 @@ otherwise, it is consumed.
     /* This could also be a specialization using the new specialization
        syntax. */
 #endif /* 0 */
-    template_declaration(defines_something, no_advance_past_final_token);
+    template_or_specialization_declaration(defines_something,
+                                           no_advance_past_final_token);
   } else {
     /* There is no template parameter list, this must be an explicit
        instantiation. */
