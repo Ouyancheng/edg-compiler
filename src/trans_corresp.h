@@ -29,7 +29,6 @@ EXTERN a_boolean
 			/* TRUE if the correspondence checking code has been
 			   completed for the current translation unit. */
 
-extern char* f_canonical_il_entry_of(char *il_entry);
 
 /* Return TRUE if the indicated entry has a correspondence set (it
    has a correspondence pointer, the pointer is set, and it doesn't
