@@ -1,5 +1,18 @@
 Version 3.4
 
+8/7/03   GNU IA-64 ABI: Empty base subobject conflict criterion
+
+The Changes entry of 7/14/03 said:
+  When emulating GNU IA-64 ABI bugs the front end used to ignore base classes
+  of nonprimary virtual bases when looking for empty base subobject conflicts.
+  However, it appears GNU compilers only do so for base classes of direct
+  virtual bases. 
+Unfortunately, this turned out not to be correct.  Instead it appears that GNU
+compilers ignore bases of virtual bases that are neither primary bases in the
+current object being laid out (as we originally emulated) nor primary bases in
+an intermediate base class type.  This does not exclude bases of indirect
+virtual bases.  The front end has been updated to emulate this new criterion.
+
 8/6/03   GNU IA-64 ABI: Virtual base cannot overlap with nonvirtual empty base
 
 Early GNU implementations of the IA-64 ABI do not allocate a virtual base

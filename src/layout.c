@@ -1643,6 +1643,31 @@ done:
 }  /* subobject_conflict */
 
 
+static a_boolean is_primary_virtual_base(a_base_class_ptr  bcp)
+/*
+Return TRUE if and only if bcp has a single derivation path and is a primary
+virtual base of the class of which it is a direct derivation.
+*/
+{
+  a_boolean                    result = FALSE;
+  a_base_class_derivation_ptr  dp = bcp->derivation;
+
+  check_assertion(bcp->is_virtual);
+  if (dp->next == NULL) {
+    a_derivation_step_ptr  sp = dp->path;
+    while (sp->next != NULL && sp->next->next != NULL) {
+      sp = sp->next;
+    }  /* while */
+    if (sp->next != NULL) {
+      if (sp->base_class->primary_base_class == bcp) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_primary_virtual_base */
+
+
 static a_boolean base_subobject_conflict(a_base_class_ptr bcp,
                                          a_targ_size_t    offset)
 /*
@@ -1668,9 +1693,9 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
        this base.  (This code is structured to reduce the number of calls
        to corresp_base_class, because those can be expensive.) */
     if (emulate_gnu_abi_bugs && offset != 0 && bcp->is_virtual &&
-        bcp->direct && !is_empty_class_type(bcp->type)) {
-      /* Some GNU C++ compilers do not consider bases of nonprimary direct
-         virtual bases. */
+        !is_empty_class_type(bcp->type) && !is_primary_virtual_base(bcp)) {
+      /* Some GNU C++ compilers do not consider bases of nonprimary virtual
+         bases. */
     } else if (bcp->primary_base_class != NULL &&
                base_subobject_conflict(bcp->primary_base_class, offset)) {
       /* The primary base is always at offset zero. */
