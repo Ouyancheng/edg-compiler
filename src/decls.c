@@ -4771,7 +4771,9 @@ declaration.
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
+#if !INSTANTIATE_EXTERN_INLINE
   a_storage_class          declared_storage_class = storage_class;
+#endif /* !INSTANTIATE_EXTERN_INLINE */
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
