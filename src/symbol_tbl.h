@@ -92,19 +92,26 @@ typedef int an_id_lookup_options_set;
 				   at the first namespace scope and suppresses
 				   some of the special lookups (such as
 				   the using directive lookup). */
-#define IDL_MUST_BE_SYNTH_NAMESPACE_PROJ 0x80
-				/* Must be a synthesized namespace projection
-				   symbol.  These are usually ignored by
-				   lookups.  Used only by curr_scope_id_lookup
-                                 */
-#define IDL_PROJ_SYMBOL_ALLOWED 0x100
+#define IDL_PROJ_SYMBOL_ALLOWED 0x80
 				/* Causes curr_scope_id_lookup to consider
 				   projection symbols (but not synthesized
 				   namespace projections). */
-#define IDL_SKIP_CLASS_SCOPES 0x200
+#define IDL_SKIP_CLASS_SCOPES 0x100
 				/* Causes class and class reactivation scopes
 				   to be ignored. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
+
+/*
+Returns TRUE if the specified set of lookup options represents a lookup
+whose result can be saved as a synthesized projection symbol and
+reused later.
+*/
+#define is_reusable_using_directive_lookup(option)			\
+  ((options & ~(IDL_MUST_BE_TAG |					\
+                IDL_MUST_BE_CLASS_OR_NAMESPACE |			\
+                IDL_TENTATIVE_TYPE_LOOKUP |				\
+                IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
+
 
 /*
 A symbol-reference kind is a bit vector whose values are defined in
@@ -1265,6 +1272,11 @@ typedef struct a_scope_pointers_block {
 			   declared in this scope (linked by the field
 			   next_in_scope); NULL if there are no such
 			   declarations. */
+  a_symbol_ptr	synth_namespace_projection_symbols;
+			/* Pointer to the head of a list of synthesized
+			   projection symbols created in this scope.
+			   These are linked by the next_in_scope field in
+                           the symbol. */
   a_symbol_ptr	last_symbol;
 			/* End of the symbol list pointed to by symbols. */
   a_constant_ptr
@@ -1535,6 +1547,22 @@ typedef struct a_symbol {
 			   as a result of a lookup that found one or more
 			   symbols that are visible as a result of
 			   using directives. */
+  unsigned int	qualified_lookup:1;
+			/* TRUE for synthesized namespace projection symbols
+			   that were generated as a result of a namespace
+			   qualified lookup. */
+  unsigned int	must_be_class_or_namespace_lookup:1;
+			/* TRUE for synthesized namespace projection symbols
+			   that were generated as a result of an
+			   IDL_MUST_BE_CLASS_OR_NAMESPACE lookup. */
+  unsigned int	must_be_tag_lookup:1;
+			/* TRUE for synthesized namespace projection symbols
+			   that were generated as a result of an
+			   IDL_MUST_BE_TAG lookup. */
+  unsigned int	do_not_reuse:1;
+			/* TRUE for synthesized namespace symbols generated
+			   as a result of a special lookup that cannot be
+			   reused by a subsequent lookup. */
   unsigned int
 		ambiguous:1;
 			/* TRUE if the symbol name is ambiguous in
@@ -1771,8 +1799,9 @@ typedef struct a_symbol_header {
 			/* A list of symbols that are currently inactive
 			   but can be reached with some sort of qualification,
 			   i.e., members of structs/unions/classes. */
-  a_symbol_ptr	extern_symbols;
-			/* sk_extern_variable and/or sk_extern_routine symbols
+  a_symbol_ptr	other_symbols;
+			/* sk_extern_variable, sk_extern_routine and
+                           synthesized namespace projection symbols
 			   associated with this name. */
   unsigned int  any_nested_types_on_inactive_list:1;
 			/* TRUE if a symbol for a nested type has been
@@ -2430,13 +2459,11 @@ extern a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator);
 extern
 a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
                                               a_symbol_locator *locator,
-                                              a_boolean        synthesized,
                                               a_scope_depth    scope_depth);
 
 extern
 a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr    fund_sym,
                                                a_symbol_locator *location,
-                                               a_boolean       synthesized,
                                                a_scope_depth   scope_depth,
                                                a_boolean       suppress_error);
 

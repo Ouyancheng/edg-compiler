@@ -6148,8 +6148,7 @@ current scope.
         if (overload_sym == NULL) {
           /* No overloading. */
           new_sym = enter_namespace_projection_symbol
-                                         (sym, &locator, /*synthesized=*/FALSE,
-                                          depth_scope_stack,
+                                         (sym, &locator, depth_scope_stack,
                                           /*suppress_error=*/FALSE);
           /* If is_list is TRUE, there will be overloading on the next
              iteration of this loop. */
@@ -6157,7 +6156,6 @@ current scope.
         } else {
           /* Add a new symbol to the overload set. */
           new_sym = make_namespace_projection_symbol(sym, &locator,
-                                                     /*synthesized=*/FALSE,
                                                      depth_scope_stack);
           new_sym = add_symbol_to_overload_list(new_sym, overload_sym);
           overload_sym = new_sym;

@@ -1219,7 +1219,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->next              = NULL;
   ptr->symbol            = NULL;
   ptr->inactive_symbols  = NULL;
-  ptr->extern_symbols    = NULL;
+  ptr->other_symbols     = NULL;
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
   ptr->any_nested_types_on_inactive_list = FALSE;
@@ -1463,6 +1463,8 @@ Initialize the fields in a scope-pointers-block substructure.
 */
 {
   spbp->symbols                      = NULL;
+  spbp->synth_namespace_projection_symbols
+                                     = NULL;
   spbp->last_symbol                  = NULL;
   spbp->last_constant                = NULL;
   spbp->last_type                    = NULL;
@@ -2425,8 +2427,9 @@ symbol must be added to the inactive list.
            flag in the assoc_pointers_block needs to be tested because it
            is possible for namespace extension scopes to be pushed while the
            initial namespace definition is still in progress. */
-        add_sym_to_inactive_list = scope_stack[scope_depth].
-                            assoc_pointers_block->add_symbols_to_inactive_list;
+        a_scope_pointers_block_ptr	spbp;
+        spbp = assoc_pointers_block_of(&scope_stack[scope_depth]);
+        add_sym_to_inactive_list = spbp->add_symbols_to_inactive_list;
       }  /* if */
       if (add_sym_to_inactive_list) {
         /* Symbols entered into namespace extension scopes are added
@@ -2509,8 +2512,6 @@ symbol must be added to the inactive list.
           /* If this is a symbol from another scope (which can only occur
              when adding to a namespace extension scope) skip this symbol. */
           if (old_sym_ptr->decl_scope != scope_number) continue;
-          /* Ignore synthesized namespace projection symbols. */
-          if (old_sym_ptr->synthesized_namespace_projection) continue;
           if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
                                                          sym_name_space_kind) {
             /* Two declarations in the same name space in the same scope:
@@ -2673,7 +2674,6 @@ changed if there is no error.
 
 static void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
                                             a_symbol_ptr     fund_sym,
-                                            a_boolean        synthesized,
                                             a_scope_depth    scope_depth)
 /*
 Initialize the fields of the symbol proj_sym to point to be a
@@ -2687,13 +2687,11 @@ synthesized is TRUE if this is a synthesized namespace projection symbol.
   fund_sym = fundamental_symbol_of(fund_sym);
   proj_sym->variant.namespace_projection.fundamental_symbol = fund_sym;
   proj_sym->decl_scope = scope_stack[scope_depth].number;
-  proj_sym->synthesized_namespace_projection = synthesized;
 }  /* set_namespace_projection_symbol */
 
 
 a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
                                               a_symbol_locator *locator,
-                                              a_boolean        synthesized,
                                               a_scope_depth    scope_depth)
 /*
 Create a synthesized namespace projection symbol and set it to point
@@ -2705,18 +2703,17 @@ projection symbol.
 
   sym = alloc_symbol((a_symbol_kind)sk_namespace_projection,
                      fund_sym->header, &locator->source_position);
-  set_namespace_projection_symbol(sym, fund_sym, synthesized, scope_depth);
+  set_namespace_projection_symbol(sym, fund_sym, scope_depth);
   return sym;
 }  /* make_namespace_projection_symbol */
 
 
 a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr     fund_sym,
                                                a_symbol_locator *location,
-                                               a_boolean        synthesized,
                                                a_scope_depth    scope_depth,
                                                a_boolean        suppress_error)
 /*
-Create a synthesized namespace projection symbol, set it to point to fund_sym,
+Create a namespace projection symbol, set it to point to fund_sym,
 and enter it in the symbol table.  synthesized is TRUE if this is a
 synthesized namespace projection symbol.  This routine is like enter_symbol,
 but it is only used to create namespace projection symbols.  enter_symbol
@@ -2727,8 +2724,7 @@ is called.
 {
   a_symbol_ptr	sym_ptr;
 
-  sym_ptr = make_namespace_projection_symbol(fund_sym, location, synthesized,
-                                             scope_depth);
+  sym_ptr = make_namespace_projection_symbol(fund_sym, location, scope_depth);
   sym_ptr->is_error = location->is_error;
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
@@ -2741,6 +2737,97 @@ is called.
   link_symbol_into_symbol_table(sym_ptr, scope_depth, suppress_error);
   return sym_ptr;
 }  /* enter_namespace_projection_symbol */
+
+
+static
+a_scope_pointers_block_ptr pointers_block_for_namespace(a_namespace_ptr nsp)
+/*
+Return a pointer to the scope pointers block for nsp.  If nsp is NULL, return
+the scope pointers block for the global scope.
+*/
+{
+  a_scope_pointers_block_ptr	result;
+
+  if (nsp == NULL) {
+    result = assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
+  } else {
+    result = &namespace_supplement_for_namespace(nsp)->pointers_block;
+  }  /* if */
+  return result;
+}  /* pointers_block_for_namespace */
+
+
+a_symbol_ptr enter_synthesized_projection_symbol(
+                               a_symbol_ptr		fund_sym,
+                               a_symbol_locator		*location,
+                               a_boolean		qualified_lookup,
+                               a_namespace_ptr		qualifier_namespace,
+                               an_id_lookup_options_set	options)
+/*
+Create a synthesized namespace projection symbol, set it to point to fund_sym,
+add it to the "other" symbols list of the symbol header, and the
+synthesized namespace projections symbols list of the scope it is being
+added to.
+
+qualified_lookup is TRUE if the symbol being created is the result of
+a namespace or file scope qualified lookup.  For qualified lookups
+qualifier_namespace points to the namespace in which the lookup is
+being done, or is NULL for a file scope lookup.  options specifies
+the options being used for the lookup.
+*/
+{
+  a_symbol_ptr			sym_ptr;
+  a_symbol_header_ptr		sym_hdr;
+  a_scope_pointers_block_ptr	pointers_block;
+  a_boolean			can_be_reused;
+
+  sym_ptr = make_namespace_projection_symbol(fund_sym, location,
+                                             depth_scope_stack);
+  sym_ptr->is_error = location->is_error;
+  /* Set the locator to point to the symbol entered. */
+  location->specific_symbol = sym_ptr;
+  location->is_qualified_name = FALSE;
+  /* Synthesized projection symbols are not entered into the symbol table.
+     They are put on the "other" symbols list and are added to a separate
+     list in the scope stack. */
+  sym_hdr = sym_ptr->header;
+  /* For a qualified lookup, add the symbol to the scope in which the
+     name is being looked up.  For unqualified lookups, add it to the
+     current scope. */
+  if (qualified_lookup) {
+    pointers_block = pointers_block_for_namespace(qualifier_namespace);
+  } else {
+    pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
+  }  /* if */
+  sym_ptr->next_in_scope = pointers_block->synth_namespace_projection_symbols;
+  pointers_block->synth_namespace_projection_symbols = sym_ptr;
+  /* See if the specified lookup options represent a reusable lookup. */
+  can_be_reused = is_reusable_using_directive_lookup(options);
+  if (can_be_reused) {
+    /* Only reusable symbols are entered on the "other" symbols list. */
+    sym_ptr->next = sym_hdr->other_symbols;
+    sym_hdr->other_symbols = sym_ptr;
+  }  /* if */
+  /* Set the flags that describe the kind of that created this symbol. */
+  sym_ptr->synthesized_namespace_projection = TRUE;
+  sym_ptr->do_not_reuse = !can_be_reused;
+  sym_ptr->qualified_lookup = qualified_lookup;
+  if (qualified_lookup && qualifier_namespace != NULL) {
+    set_namespace_membership(sym_ptr, (a_source_correspondence*)NULL,
+                             qualifier_namespace);
+    /* Set the decl_scope of the symbol to the scope number associated
+       with the qualifiers namespace. */
+    if (qualifier_namespace == NULL) {
+      sym_ptr->decl_scope = scope_stack[DEPTH_OF_FILE_SCOPE].number;
+    } else {
+      sym_ptr->decl_scope = qualifier_namespace->variant.assoc_scope->number;
+    }  /* if */
+  }  /* if */
+  sym_ptr->must_be_class_or_namespace_lookup =
+                              (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
+  sym_ptr->must_be_tag_lookup = (options & IDL_MUST_BE_TAG) != 0;
+  return sym_ptr;
+}  /* enter_synthesized_projection_symbol */
 
 
 a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
@@ -2787,8 +2874,8 @@ a_symbol_ptr  enter_extern_symbol(a_symbol_kind    sym_kind,
                                   a_symbol_locator *locator)
 /*
 Enter an sk_extern_variable or sk_extern_routine symbol into the symbol
-table.  Note that these symbols have their own list -- they are not
-actually put onto the active list, and they are not found during normal
+table.  Note that these symbols are put on the "other" symbols list -- they
+are not actually put onto the active list, and they are not found during normal
 symbol lookup.
 */
 {
@@ -2802,8 +2889,8 @@ symbol lookup.
     sym->is_error = TRUE;
   } else {
     /* Just add the entry to the front of the list. */
-    sym->next = header->extern_symbols;
-    header->extern_symbols = sym;
+    sym->next = header->other_symbols;
+    header->other_symbols = sym;
   }  /* if */
   /* Set namespace membership, if required. */
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
@@ -2981,33 +3068,55 @@ the overloaded function symbol.
       set_namespace_membership(overload_sym,  (a_source_correspondence *)NULL,
                                other_sym->parent.namespace_ptr);
     }  /* if */
-    /* Put overload_sym into the symbol list in place of other_sym.
-       This will normally use the active symbol list, but may use the
-       inactive list for namespace extensions. */
-    /* Find the symbol preceding other_sym on its list. */
-    if (pointers_block->add_symbols_to_inactive_list) {
-      prev_sym_ptr = hdr_ptr->inactive_symbols;
-      if (prev_sym_ptr == other_sym) hdr_ptr->inactive_symbols = overload_sym;
-    } else {
-      prev_sym_ptr = hdr_ptr->symbol;
-      if (prev_sym_ptr == other_sym) hdr_ptr->symbol = overload_sym;
+    /* Synthesized projection symbols marked "do not reuse" are not on
+       any of the symbol header lists, so don't try to fine them. */
+    if (!other_sym->do_not_reuse) {
+      /* Put overload_sym into the symbol list in place of other_sym.
+         This will normally use the active symbol list, but may use the
+         inactive list for namespace extensions.  If other_sym is a
+         synthesized namespace projection symbol, it will be on the
+         "other" symbols list. */
+      /* Find the symbol preceding other_sym on its list. */
+      if (other_sym->synthesized_namespace_projection) {
+        prev_sym_ptr = hdr_ptr->other_symbols;
+        if (prev_sym_ptr == other_sym) hdr_ptr->other_symbols = overload_sym;
+      } else if (pointers_block->add_symbols_to_inactive_list) {
+        prev_sym_ptr = hdr_ptr->inactive_symbols;
+        if (prev_sym_ptr == other_sym) {
+          hdr_ptr->inactive_symbols = overload_sym;
+        }  /* if */
+      } else {
+        prev_sym_ptr = hdr_ptr->symbol;
+        if (prev_sym_ptr == other_sym) hdr_ptr->symbol = overload_sym;
+      }  /* if */
+      if (prev_sym_ptr == other_sym) {
+        /* The entry is the first on the header list.  This case is handled
+           above. */
+      } else {
+        while (prev_sym_ptr->next != other_sym) {
+          prev_sym_ptr = prev_sym_ptr->next;
+        }  /* while */
+        prev_sym_ptr->next = overload_sym;
+      }  /* if */
+      overload_sym->next = other_sym->next;
+      other_sym->next = NULL;
     }  /* if */
-    if (prev_sym_ptr == other_sym) {
-      /* The entry is the first on the header list.  This case is handled
-         above. */
-    } else {
-      while (prev_sym_ptr->next != other_sym) {
-        prev_sym_ptr = prev_sym_ptr->next;
-      }  /* while */
-      prev_sym_ptr->next = overload_sym;
-    }  /* if */
-    overload_sym->next = other_sym->next;
-    other_sym->next = NULL;
     /* Also put overload_sym into the scope list in place of other_sym. */
-    prev_sym_ptr = pointers_block->symbols;
+    if (other_sym->synthesized_namespace_projection) {
+      prev_sym_ptr = pointers_block->synth_namespace_projection_symbols;
+      if (prev_sym_ptr == other_sym) {
+        /* The entry is the first on the scope's symbol list. */
+        pointers_block->synth_namespace_projection_symbols = overload_sym;
+      }  /* if */
+    } else {
+      prev_sym_ptr = pointers_block->symbols;
+      if (prev_sym_ptr == other_sym) {
+        /* The entry is the first on the scope's symbol list. */
+        pointers_block->symbols = overload_sym;
+      }  /* if */
+    }  /* if */
     if (prev_sym_ptr == other_sym) {
-       /* The entry is the first on the scope's symbol list. */
-       pointers_block->symbols = overload_sym;
+        /* The entry is the first on the list.  This case is handled above. */
     } else {
        while (prev_sym_ptr->next_in_scope != other_sym) {
          prev_sym_ptr = prev_sym_ptr->next_in_scope;
@@ -3623,7 +3732,7 @@ the latter will be NULL for variables.
       nsp = scope_stack[depth_innermost_namespace_scope].
                                            il_scope->variant.assoc_namespace;
     }  /* if */
-    for (sym = hdr_ptr->extern_symbols; sym != NULL; sym = sym->next) {
+    for (sym = hdr_ptr->other_symbols; sym != NULL; sym = sym->next) {
       if (sym->parent.namespace_ptr != nsp) {
         /* Namespace does not match. */
       } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
@@ -6418,6 +6527,56 @@ locator.  In the case of an ambiguity, return NULL.
 }  /* find_nested_type_symbol */
 
 
+static
+a_symbol_ptr find_synthesized_projection_symbol(
+                              a_symbol_header_ptr	sym_hdr,
+                              an_id_lookup_options_set	options,
+                              a_boolean			qualified_lookup,
+			      a_namespace_ptr		qualifier_namespace)
+/*
+Look for a synthesized projection symbol from a previous lookup that
+can be reused to capture the results of this lookup.  sym_hdr points
+to the symbol header representing the symbol to be found.
+qualified_lookup is TRUE if the symbol being found is the result of
+a namespace or file scope qualified lookup.  For qualified lookups
+qualifier_namespace points to the namespace in which the lookup is
+being done, or is NULL for a file scope lookup.  options specifies
+the options being used for the lookup.
+*/
+{
+  a_symbol_ptr		sym = NULL;
+  if (is_reusable_using_directive_lookup(options)) {
+    /* Only search if the lookup options represent a lookup whose results
+       may be reused. */
+    a_boolean		must_be_class_or_namespace
+                             = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
+    a_boolean		must_be_tag   = (options & IDL_MUST_BE_TAG) != 0;
+    a_scope_number	scope_number = scope_stack[depth_scope_stack].number;
+    /* Loop through the list of other symbols.  Look for symbols marked
+       as synthesized namespace projection symbols. */
+    for (sym = sym_hdr->other_symbols; sym != NULL; sym = sym->next) {
+      /* Look for symbols whose lookup characteristics match the current
+         lookup. */
+      if (sym->synthesized_namespace_projection &&
+          sym->qualified_lookup == qualified_lookup &&
+          sym->parent.namespace_ptr == qualifier_namespace &&
+          sym->must_be_class_or_namespace_lookup ==
+                                                 must_be_class_or_namespace &&
+          sym->must_be_tag_lookup == must_be_tag) {
+        /* If this is not a qualified lookup, the decl_scope of the symbol
+           must match the current scope. */
+        if (qualified_lookup) {
+          break;
+        } else {
+          if (sym->decl_scope == scope_number) break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return sym;
+}  /* find_synthesized_projection_symbol */
+
+
 a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                   an_id_lookup_options_set options)
 /*
@@ -6433,8 +6592,6 @@ symbol and not the fundamental symbol is returned.
   a_symbol_ptr			sym;
   a_scope_number		scope_number;
   a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG);
-  a_boolean			must_be_synth_ns_proj =
-                             (options & IDL_MUST_BE_SYNTH_NAMESPACE_PROJ) != 0;
   a_boolean			projection_allowed =
                                            (options & IDL_PROJ_SYMBOL_ALLOWED);
   a_scope_stack_entry_ptr	ssep;
@@ -6442,11 +6599,9 @@ symbol and not the fundamental symbol is returned.
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                             \
    ((!must_be_tag || is_tag_symbol(fund_sym)) &&			\
-    (projection_allowed || sym->kind != (a_symbol_kind)sk_projection) && \
-    (must_be_synth_ns_proj == sym->synthesized_namespace_projection))
+    (projection_allowed || sym->kind != (a_symbol_kind)sk_projection))
 
   check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
-                                    IDL_MUST_BE_SYNTH_NAMESPACE_PROJ |
                                     IDL_PROJ_SYMBOL_ALLOWED)) == 0,
                        "curr_scope_id_lookup:", "invalid_option");
   sym = locator->specific_symbol;
@@ -6954,15 +7109,23 @@ symbol(s) in curr_sym.
 
 
 static
-a_symbol_ptr merge_function_into_lookup_set(a_symbol_ptr     curr_sym,
-                                            a_symbol_ptr     new_sym,
-                                            a_symbol_locator *locator)
+a_symbol_ptr merge_function_into_lookup_set(
+                               a_symbol_ptr		curr_sym,
+                               a_symbol_ptr		new_sym,
+                               a_symbol_locator		*locator,
+                               a_boolean		qualified_lookup,
+                               a_namespace_ptr		qualifier_namespace,
+                               an_id_lookup_options_set	options)
 /*
 curr_sym is a pointer to a the current lookup set, and may be NULL,
 a pointer to a single namespace projection symbol, or an
 sk_overloaded_function symbol that points to a number of namespace
 projection symbols.  Add the function(s) pointed to by new_sym
 creating a new overload set.
+qualified_lookup is TRUE if for a namespace or file scope qualified
+lookup.  For qualified lookups qualifier_namespace points to the
+namespace in which the lookup is being done, or is NULL for a file
+scope lookup.  options specifies the options being used for the lookup.
 */
 {
   /* The set is currently empty.  If the initial member is a single
@@ -6973,15 +7136,14 @@ creating a new overload set.
     /* The new symbol is a simple function.  Make a namespace
        projection that points to it. */
     if (curr_sym == NULL) {
-      curr_sym = enter_namespace_projection_symbol(new_sym, locator,
-                                                  /*synthesized=*/TRUE,
-                                                  depth_scope_stack,
-                                                  /*suppress_error=*/TRUE);
+      curr_sym = enter_synthesized_projection_symbol(new_sym, locator,
+                                                     qualified_lookup,
+                                                     qualifier_namespace,
+                                                     options);
     } else {
       /* If new_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, new_sym)) {
         new_sym = make_namespace_projection_symbol(new_sym, locator,
-                                                   /*synthesized=*/TRUE,
                                                    depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_sym, curr_sym);
       }  /* if */
@@ -6995,10 +7157,10 @@ creating a new overload set.
       /* If the current symbol is NULL, take the first member of the
          overload set and create a projection symbol to it.  Later
          we will add the remaining members and create a new overload set. */
-      curr_sym = enter_namespace_projection_symbol(rout_sym, locator,
-                                                   /*synthesized=*/TRUE,
-                                                   depth_scope_stack,
-                                                   /*suppress_error=*/TRUE);
+      curr_sym = enter_synthesized_projection_symbol(rout_sym, locator,
+                                                     qualified_lookup,
+                                                     qualifier_namespace,
+                                                     options);
       rout_sym = rout_sym->next;
     }  /* if */
     for (; rout_sym != NULL; rout_sym = rout_sym->next) {
@@ -7006,7 +7168,6 @@ creating a new overload set.
       if (!already_in_lookup_set(curr_sym, rout_sym)) {
         new_rout_sym = make_namespace_projection_symbol(rout_sym,
                                                         locator,
-                                                        /*synthesized=*/TRUE,
                                                         depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_rout_sym, curr_sym);
       }  /* if */
@@ -7017,10 +7178,14 @@ creating a new overload set.
 
 
 static
-a_symbol_ptr add_symbol_to_lookup_set(a_symbol_ptr     curr_sym,
-                                      a_symbol_ptr     new_sym,
-                                      a_symbol_locator *locator,
-                                      a_boolean        *any_errors)
+a_symbol_ptr add_symbol_to_lookup_set(
+                               a_symbol_ptr		curr_sym,
+                               a_symbol_ptr		new_sym,
+                               a_symbol_locator		*locator,
+                               a_boolean		qualified_lookup,
+                               a_namespace_ptr		qualifier_namespace,
+                               an_id_lookup_options_set	options,
+                               a_boolean		*any_errors)
 /*
 Reconcile the results of a lookup in which more than one symbol is found
 in scopes that are considered equivalent.  This occurs when using
@@ -7034,6 +7199,10 @@ symbol that points to two sk_namespace_projection symbols.  Continue
 adding new sk_namespace_projections as long as all of the symbols
 found are functions.  If, at any point, there are both functions and
 nonfunctions, or more than one nonfunction, set the any_errors flag.
+qualified_lookup is TRUE for a namespace or file scope qualified
+lookup.  For qualified lookups qualifier_namespace points to the
+namespace in which the lookup is being done, or is NULL for a file
+scope lookup.  options specifies the options being used for the lookup.
 */
 {
   a_symbol_ptr	fund_curr_sym;
@@ -7042,12 +7211,14 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
   if (curr_sym == NULL) {
     if (is_function_symbol(new_sym)) {
       curr_sym = merge_function_into_lookup_set((a_symbol_ptr)NULL,
-                                                new_sym, locator);
+                                                new_sym, locator,
+                                                qualified_lookup,
+                                                qualifier_namespace, options);
     } else {
-      curr_sym = enter_namespace_projection_symbol(new_sym, locator,
-                                                   /*synthesized=*/TRUE,
-                                                   depth_scope_stack,
-                                                   /*suppress_error=*/TRUE);
+      curr_sym = enter_synthesized_projection_symbol(new_sym, locator,
+                                                     qualified_lookup,
+                                                     qualifier_namespace,
+                                                     options);
     }  /* if */
   } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
              namespace_projection_fundamental_symbol(curr_sym) == NULL) {
@@ -7059,8 +7230,7 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
        the result of a constrained lookup (e.g., a tag lookup) which
        may not be applicable now.  Set the existing symbol to point to
        the new symbol. */
-    set_namespace_projection_symbol(curr_sym, new_sym, /*synthesized=*/TRUE,
-                                    depth_scope_stack);
+    set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
   } else if (already_in_lookup_set(curr_sym, new_sym)) {
     /* The symbol is already present -- nothing more to do. */
   } else {
@@ -7087,7 +7257,6 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
                                  "add_symbol_to_lookup_set:",
                                  "expected a namespace projection symbol");
             set_namespace_projection_symbol(curr_sym, new_sym,
-                                            /*synthesized=*/TRUE,
                                             depth_scope_stack);
           } else {
             /* The current symbol is a nontag and the new one is a tag.
@@ -7097,12 +7266,11 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
       }  /* if */
     } else {
       /* Both symbols are functions. */
-      curr_sym = merge_function_into_lookup_set(curr_sym, new_sym, locator);
+      curr_sym = merge_function_into_lookup_set(curr_sym, new_sym, locator,
+                                                qualified_lookup,
+                                                qualifier_namespace, options);
     }  /* if */
   }  /* if */
-  /* This will be set earlier for sk_namespace_projection symbols, but
-     may not be set yet for sk_overloaded_function symbols. */
-  curr_sym->synthesized_namespace_projection = TRUE;
   if (err) {
     *any_errors = TRUE;
     curr_sym->ambiguous = TRUE;
@@ -7131,17 +7299,14 @@ nonfunctions, or more than one nonfunction, set the any_errors flag.
   ((!must_be_class_or_namespace ||					\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
    (!must_be_tag   ||						        \
-    is_tag_or_tag_proxy_symbol(fund_sym)) &&				\
-   !((sym)->synthesized_namespace_projection))
+    is_tag_or_tag_proxy_symbol(fund_sym)))
 
 
 static a_symbol_ptr do_using_directive_lookup
-                           (a_scope_stack_entry_ptr ssep,
-                            a_symbol_ptr            sym_from_scope,
-                            a_boolean               must_be_class_or_namespace,
-                            a_boolean               must_be_tag,
-                            a_symbol_ptr	    inactive_symbol_list,
-                            a_symbol_locator        *locator)
+                              (a_scope_stack_entry_ptr	ssep,
+                               a_symbol_ptr		sym_from_scope,
+                               a_symbol_locator		*locator,
+                               an_id_lookup_options_set	options)
 /*
 Look for a symbol, as described by locator and inactive_symbol_list,
 that is in a namespace whose scope_depth_at_which_using_directive_applies
@@ -7160,12 +7325,14 @@ of the lookup is returned to the caller.
   a_symbol_ptr		synth_sym = NULL;
   a_symbol_ptr		new_sym;
   a_symbol_ptr		sym = sym_from_scope;
+  a_boolean		must_be_class_or_namespace
+                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
+  a_boolean		must_be_tag   = (options & IDL_MUST_BE_TAG);
 
   db_enter(4, "do_using_directive_lookup");
   /* Look through the inactive symbols for any symbols associated with
      one of the marked namespaces. */
-  new_sym = inactive_symbol_list;
-  for (new_sym = inactive_symbol_list;
+  for (new_sym = locator->symbol_header->inactive_symbols;
        new_sym != NULL; new_sym = new_sym->next) {
     a_namespace_ptr		nsp;
     a_symbol_ptr		ns_sym;
@@ -7190,8 +7357,10 @@ of the lookup is returned to the caller.
       if (synth_sym == NULL) {
         /* Look for a previous synthesized namespace projection symbol
            for this scope. */
-        synth_sym = curr_scope_id_lookup(locator,
-                                         IDL_MUST_BE_SYNTH_NAMESPACE_PROJ);
+        synth_sym = find_synthesized_projection_symbol
+                                            (locator->symbol_header, options,
+                                             /*qualified_lookup=*/FALSE,
+                                             (a_namespace_ptr)NULL);
         if (synth_sym != NULL &&
             synth_sym->kind == (a_symbol_kind)sk_namespace_projection &&
             !is_function_symbol(fundamental_symbol_of(synth_sym))) {
@@ -7207,13 +7376,20 @@ of the lookup is returned to the caller.
           /* The lookup from this scope did find a symbol.  Put it in
              the lookup set. */
           synth_sym = add_symbol_to_lookup_set(synth_sym, sym,
-                                               locator, &any_errors);
+                                               locator,
+                                               /*qualified_lookup=*/FALSE,
+                                               (a_namespace_ptr)NULL, options,
+                                               &any_errors);
         }  /* if */
         sym = synth_sym;
       }  /* if */
       /* Merge the information about this symbol, with that
          of any previous symbol that was found. */
-      sym = add_symbol_to_lookup_set(sym, new_sym, locator, &any_errors);
+      sym = add_symbol_to_lookup_set(sym, new_sym,
+                                     locator,
+                                     /*qualified_lookup=*/FALSE,
+                                     (a_namespace_ptr)NULL, options,
+                                     &any_errors);
       /* Set synth_sym in case it was not set earlier.  This
          suppresses subsequent attempts to look up synth_sym. */
       synth_sym = sym;
@@ -7432,10 +7608,7 @@ C and C++.
           /* If this is a namespace scope, also look for any symbols that
              are visible because of using directives. */
           if (kind == (a_scope_kind)sck_namespace_extension) {
-            sym = do_using_directive_lookup(ssep, sym,
-                                            must_be_class_or_namespace,
-                                            must_be_tag,
-                                            inactive_symbol_list, locator);
+            sym = do_using_directive_lookup(ssep, sym, locator, options);
           }  /* if */
           if (sym != NULL) goto end_lookup;
 	  if (kind == (a_scope_kind)sck_class_reactivation) {
@@ -7485,10 +7658,7 @@ C and C++.
              any symbols that are visible because of using directives. */
           if (kind == (a_scope_kind)sck_file ||
               kind == (a_scope_kind)sck_namespace) {
-            sym = do_using_directive_lookup(ssep, sym,
-                                            must_be_class_or_namespace,
-                                            must_be_tag,
-                                            inactive_symbol_list, locator);
+            sym = do_using_directive_lookup(ssep, sym, locator, options);
           }  /* if */
           if (sym != NULL) goto end_lookup;
           if (kind == (a_scope_kind)sck_class_struct_union) {
@@ -7848,7 +8018,6 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->is_class_member &&					      \
-   !(sym)->synthesized_namespace_projection &&                        \
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(sym)) &&	     		      \
@@ -8012,7 +8181,6 @@ namespace.  This routine is used only in C++ mode.
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(sym)->is_class_member) &&                                       \
-   !(sym)->synthesized_namespace_projection &&			      \
    (sym)->parent.namespace_ptr == ns_ptr &&                           \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&      \
@@ -8098,7 +8266,6 @@ nsk_other name space are considered.  This routine is used for the unary
    class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
-   !(sym)->synthesized_namespace_projection &&                        \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&      \
    (!must_be_tag || is_tag_symbol(fund_sym)))
@@ -11293,24 +11460,28 @@ are handled in symbol_tbl_init.)
 
   /* Static variables in symbol_tbl.c: */
   /* Clear a symbol that can be used to make initialization more efficient. */
-  cleared_symbol.header                           = NULL;
-  cleared_symbol.next                             = NULL;
-  cleared_symbol.next_in_scope                    = NULL;
-  cleared_symbol.decl_scope                       = NO_SCOPE_NUMBER;
-  cleared_symbol.decl_seq                         = 0;
-  cleared_symbol.decl_position                    = null_source_position;
-  cleared_symbol.parent.class_type                = NULL;
-  cleared_symbol.referenced                       = FALSE;
-  cleared_symbol.defined                          = FALSE;
-  cleared_symbol.explicit_linkage_specifier       = FALSE;
-  cleared_symbol.reentered_from_prototype_scope   = FALSE;
-  cleared_symbol.is_class_member                  = FALSE;
-  cleared_symbol.is_error                         = FALSE;
-  cleared_symbol.is_template_param                = FALSE;
-  cleared_symbol.template_param_not_visible       = FALSE;
-  cleared_symbol.force_external_linkage           = FALSE;
-  cleared_symbol.synthesized_namespace_projection = FALSE;
-  cleared_symbol.ambiguous                        = FALSE;
+  cleared_symbol.header                            = NULL;
+  cleared_symbol.next                              = NULL;
+  cleared_symbol.next_in_scope                     = NULL;
+  cleared_symbol.decl_scope                        = NO_SCOPE_NUMBER;
+  cleared_symbol.decl_seq                          = 0;
+  cleared_symbol.decl_position                     = null_source_position;
+  cleared_symbol.parent.class_type                 = NULL;
+  cleared_symbol.referenced                        = FALSE;
+  cleared_symbol.defined                           = FALSE;
+  cleared_symbol.explicit_linkage_specifier        = FALSE;
+  cleared_symbol.reentered_from_prototype_scope    = FALSE;
+  cleared_symbol.is_class_member                   = FALSE;
+  cleared_symbol.is_error                          = FALSE;
+  cleared_symbol.is_template_param                 = FALSE;
+  cleared_symbol.template_param_not_visible        = FALSE;
+  cleared_symbol.force_external_linkage            = FALSE;
+  cleared_symbol.synthesized_namespace_projection  = FALSE;
+  cleared_symbol.qualified_lookup                  = FALSE;
+  cleared_symbol.must_be_class_or_namespace_lookup = FALSE;
+  cleared_symbol.must_be_tag_lookup                = FALSE;
+  cleared_symbol.do_not_reuse                      = FALSE;
+  cleared_symbol.ambiguous                         = FALSE;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
