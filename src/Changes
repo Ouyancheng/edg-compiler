@@ -16,6 +16,15 @@ member function of a nonlocal class is referenced but not defined:
 4/29/97   Microsoft compatibility: template argument list following
           constructor name
 
+The Microsoft compiler permits a template argument list to appear following
+a constructor name in a constructor definition that appears outside of the
+class.  This is now accepted in Microsoft mode.
+
+  template <class T> struct A {
+    A();
+  };
+  template <class T> A<T>::A<T>(){}
+
 4/28/97   Spurious error on extra comma in initializer
 
 An error is no longer issued for the extra comma in the following:
