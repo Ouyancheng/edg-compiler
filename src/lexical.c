@@ -9995,10 +9995,19 @@ are handled in lexical_init.)
   if (allow_dollar_in_id_chars) {
     is_id_char['$' - CHAR_MIN] = TRUE;
   }  /* if */
-  /* Some German character sets use "]" for "U umlaut", so isalpha is TRUE
-     for that character (a setlocale call has been done already).  Take
-     it back. */
+  /* Some character sets use some C special characters as letters, e.g.,
+     the position that is ASCII "]" is "U umlaut" in German.  Take those
+     characters back.  Note that a setlocale call has been done already. */
+  is_id_char['@' - CHAR_MIN] = FALSE;
+  is_id_char['[' - CHAR_MIN] = FALSE;
+  is_id_char['\\'- CHAR_MIN] = FALSE;
   is_id_char[']' - CHAR_MIN] = FALSE;
+  is_id_char['^' - CHAR_MIN] = FALSE;
+  is_id_char['`' - CHAR_MIN] = FALSE;
+  is_id_char['{' - CHAR_MIN] = FALSE;
+  is_id_char['|' - CHAR_MIN] = FALSE;
+  is_id_char['}' - CHAR_MIN] = FALSE;
+  is_id_char['~' - CHAR_MIN] = FALSE;
   /* Also initialize pp_lexical_category, used to determine whether or
      not extra token-separating blanks are required between tokens resulting
      from macro expansion.  See gen_pp_output_for_curr_line. */
