@@ -192,7 +192,7 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
 
 static a_hidden_name_ptr make_new_hidden_name(a_scope_ptr  sp)
 /*
-Allocate a new hidden name entry and link is in the list for the given scope.
+Allocate a new hidden name entry and link it in the list for the given scope.
 */
 {
   a_hidden_name_ptr       hnp;
