@@ -4443,6 +4443,92 @@ bcdp.
   }  /* if */
   return sym_access;
 }  /* access_to_end_of_path */
+
+
+/*
+Function pointer types for routines to be passed into
+have_particular_member_access_privilege.
+*/
+typedef a_boolean a_befriending_list_test_function(
+                                     a_class_list_entry_ptr befriending_list,
+                                     a_type_ptr             class_type);
+typedef a_befriending_list_test_function *a_befriending_list_test_function_ptr;
+typedef a_boolean a_member_access_from_class_scope_test_function(
+                                            a_type_ptr              class_type,
+                                            a_scope_stack_entry_ptr ssep);
+typedef a_member_access_from_class_scope_test_function
+                           *a_member_access_from_class_scope_test_function_ptr;
+
+
+static a_boolean have_particular_member_access_privilege(
+      a_type_ptr                                         class_type,
+      a_befriending_list_test_function_ptr               befriending_list_test,
+      a_member_access_from_class_scope_test_function_ptr class_scope_test)
+/*
+Return TRUE if we currently have member access privilege to the class
+indicated by class_type in the particular way tested for by the
+functions befriending_list_test and class_scope_test.
+*/
+{
+  a_boolean               have_member_privilege = FALSE;
+  a_scope_stack_entry_ptr ssep;
+  a_routine_ptr           scope_routine;
+  a_scope_depth           scope_depth, scope_depth_to_skip = NO_SCOPE_DEPTH;
+
+  /* Consider each scope on the scope stack that affects access control.
+     They are linked together on a list. */
+  for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
+       scope_depth != NO_SCOPE_DEPTH;
+       scope_depth = ssep->next_scope_that_affects_access_control) {
+    a_scope_kind kind;
+    ssep = &scope_stack[scope_depth];
+    kind = ssep->kind;
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_function_access) {
+      /* A function.  See if class_type is on its befriending list. */
+      scope_routine = ssep->il_scope->variant.routine.ptr;
+      if (befriending_list_test(scope_routine->befriending_classes,
+                                class_type)) {
+        /* We are inside a function that is a friend of class_type. */
+        have_member_privilege = TRUE;
+        break;
+      }  /* if */
+      if (kind != (a_scope_kind)sck_function_access) {
+        /* The ARM says "Member functions of a nested class have no special
+           access to members of an enclosing class".  It's not clear that's
+           right or precise enough, but in strict mode, we'll do exactly that.
+           For a member function in a nested class, set up to skip all
+           the reactivations for the classes within which it is nested. */
+        if (strict_ansi_mode &&
+            (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
+            (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
+          scope_depth_to_skip = scope_depth - 2;
+        }  /* if */
+      }  /* if */
+    } else {
+      check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
+                          kind == (a_scope_kind)sck_class_reactivation,
+                   "have_particular_member_access_privilege: bad stack entry");
+      /* A class or class reactivation.  Check for access granted by being
+         a member of the class. */
+      if (scope_depth == scope_depth_to_skip) {
+        /* This is a reactivation that should be skipped (see comment above).
+           If the entry below this one is also a reactivation, keep skipping.
+           Otherwise, stop skipping. */
+        if ((ssep-1)->kind == (a_scope_kind)sck_class_reactivation) {
+          scope_depth_to_skip--;
+        } else {
+          scope_depth_to_skip = NO_SCOPE_DEPTH;
+        }  /* if */
+      } else if (class_scope_test(class_type, ssep)) {
+        /* We are inside a class that gives us member access. */
+        have_member_privilege = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return have_member_privilege;
+}  /* have_particular_member_access_privilege */
   
 
 static a_boolean on_befriending_list(a_class_list_entry_ptr befriending_list,
@@ -4496,64 +4582,10 @@ Return TRUE if we currently have member access privilege to the class
 indicated by class_type.
 */
 {
-  a_boolean               have_member_privilege = FALSE;
-  a_scope_stack_entry_ptr ssep;
-  a_routine_ptr           scope_routine;
-  a_scope_depth           scope_depth, scope_depth_to_skip = NO_SCOPE_DEPTH;
-
-  /* This routine looks a lot like have_protected_member_access_privilege. */
-  /* Consider each scope on the scope stack that affects access control.
-     They are linked together on a list. */
-  for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
-       scope_depth != NO_SCOPE_DEPTH;
-       scope_depth = ssep->next_scope_that_affects_access_control) {
-    a_scope_kind kind;
-    ssep = &scope_stack[scope_depth];
-    kind = ssep->kind;
-    if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_function_access) {
-      /* A function.  See if class_type is on its befriending list. */
-      scope_routine = ssep->il_scope->variant.routine.ptr;
-      if (on_befriending_list(scope_routine->befriending_classes,
-                              class_type)) {
-        /* We are inside a function that is a friend of class_type. */
-        have_member_privilege = TRUE;
-        break;
-      }  /* if */
-      if (kind != (a_scope_kind)sck_function_access) {
-        /* The ARM says "Member functions of a nested class have no special
-           access to members of an enclosing class".  It's not clear that's
-           right or precise enough, but in strict mode, we'll do exactly that.
-           For a member function in a nested class, set up to skip all
-           the reactivations for the classes within which it is nested. */
-        if (strict_ansi_mode &&
-            (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
-            (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
-          scope_depth_to_skip = scope_depth - 2;
-        }  /* if */
-      }  /* if */
-    } else {
-      check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
-                          kind == (a_scope_kind)sck_class_reactivation,
-                          "have_member_access_privilege: bad stack entry");
-      /* A class or class reactivation.  Check for access granted by being
-         a member of the class. */
-      if (scope_depth == scope_depth_to_skip) {
-        /* This is a reactivation that should be skipped (see comment above).
-           If the entry below this one is also a reactivation, keep skipping.
-           Otherwise, stop skipping. */
-        if ((ssep-1)->kind == (a_scope_kind)sck_class_reactivation) {
-          scope_depth_to_skip--;
-        } else {
-          scope_depth_to_skip = NO_SCOPE_DEPTH;
-        }  /* if */
-      } else if (have_member_access_from_class_scope(class_type, ssep)) {
-        /* We are inside a class that gives us member access. */
-        have_member_privilege = TRUE;
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
+  a_boolean have_member_privilege = have_particular_member_access_privilege(
+                                          class_type,
+                                          on_befriending_list,
+                                          have_member_access_from_class_scope);
   return have_member_privilege;
 }  /* have_member_access_privilege */
 
@@ -4656,66 +4688,12 @@ in the presence of protected derivations.  See p. 214 of "The C++
 Programming Language", 2nd Edition.
 */
 {
-  a_boolean               have_protected_access = FALSE;
-  a_scope_stack_entry_ptr ssep;
-  a_routine_ptr           scope_routine;
-  a_scope_depth           scope_depth, scope_depth_to_skip = NO_SCOPE_DEPTH;
-
-  /* This routine looks a lot like have_member_access_privilege. */
-  /* Consider each scope on the scope stack that affects access control.
-     They are linked together on a list. */
-  for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
-       scope_depth != NO_SCOPE_DEPTH;
-       scope_depth = ssep->next_scope_that_affects_access_control) {
-    a_scope_kind kind;
-    ssep = &scope_stack[scope_depth];
-    kind = ssep->kind;
-    if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_function_access) {
-      /* A function.  See if class_type is on its befriending list. */
-      scope_routine = ssep->il_scope->variant.routine.ptr;
-      if (have_protected_access_from_befriending_list(
-                                            scope_routine->befriending_classes,
-                                            class_type)) {
-        /* We are inside a function that is a friend of class_type. */
-        have_protected_access = TRUE;
-        break;
-      }  /* if */
-      if (kind != (a_scope_kind)sck_function_access) {
-        /* The ARM says "Member functions of a nested class have no special
-           access to members of an enclosing class".  It's not clear that's
-           right or precise enough, but in strict mode, we'll do exactly that.
-           For a member function in a nested class, set up to skip all
-           the reactivations for the classes within which it is nested. */
-        if (strict_ansi_mode &&
-            (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
-            (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
-          scope_depth_to_skip = scope_depth - 2;
-        }  /* if */
-      }  /* if */
-    } else {
-      check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
-                          kind == (a_scope_kind)sck_class_reactivation,
-                    "have_protected_member_access_privilege: bad stack entry");
-      /* A class or class reactivation.  Check for access granted by being
-         a member of the class. */
-      if (scope_depth == scope_depth_to_skip) {
-        /* This is a reactivation that should be skipped (see comment above).
-           If the entry below this one is also a reactivation, keep skipping.
-           Otherwise, stop skipping. */
-        if ((ssep-1)->kind == (a_scope_kind)sck_class_reactivation) {
-          scope_depth_to_skip--;
-        } else {
-          scope_depth_to_skip = NO_SCOPE_DEPTH;
-        }  /* if */
-      } else if (have_protected_access_from_class_scope(class_type, ssep)) {
-        /* We are inside a class that gives us member access. */
-        have_protected_access = TRUE;
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  return have_protected_access;
+  a_boolean have_member_privilege =
+                 have_particular_member_access_privilege(
+                                   class_type,
+                                   have_protected_access_from_befriending_list,
+                                   have_protected_access_from_class_scope);
+  return have_member_privilege;
 }  /* have_protected_member_access_privilege */
 
 
