@@ -6049,6 +6049,26 @@ point to.  dest_type must not be a reference type.  Only used in C++.
 }  /* convert_operand_into_temp */
 
 
+static a_boolean is_field_selection_lvalue_operand(an_operand *operand)
+/*
+Return TRUE if the operand is a field selection lvalue.  This is used for a
+limited loophole allowed in cfront compatibility mode.
+*/
+{
+  a_boolean is_field_selection = FALSE;
+
+  if (is_expression_operand(operand) && is_an_lvalue(operand)) {
+    an_expr_node_ptr node = operand->variant.expression;
+    if (is_operation_node(node)) {
+      if (node->variant.operation.kind == (an_expr_operator_kind)eok_field) {
+        is_field_selection = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_field_selection;
+}  /* is_field_selection_lvalue_operand */
+
+
 void prep_initializer_operand(an_operand        *source_operand,
                               a_type_ptr        dest_type,
                               a_user_conv_descr *user_conversion,
@@ -6129,7 +6149,28 @@ user-defined conversion part (if any) of any required conversion.
     if (dropping_qualifiers) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
-      type_is_correct_or_derived = FALSE;
+      /* cfront makes a field selected from a const structure compatible
+         with a non-const reference to the underlying type:
+           struct A {};
+           struct B {
+             A a;
+             B() {}
+           };
+           const B bb;
+           A &r = bb.a;  // okay according to cfront, no warning
+           const B *pb;
+           A &rr = pb->a;  // okay according to cfront, warning
+      */
+      if (cfront_2_1_mode &&
+          !ref_to_const && is_const_qualified_type(base_source_type) &&
+          is_field_selection_lvalue_operand(source_operand)) {
+        /* Okay.  Note that a temporary will not be used in these cases. */
+        pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
+        dropping_qualifiers = FALSE;
+      } else {
+        /* Qualifiers are being dropped. */
+        type_is_correct_or_derived = FALSE;
+      }  /* if */
     }  /* if */
     if (type_is_correct_or_derived && ref_to_const &&
         is_bit_field_operand(source_operand)) {

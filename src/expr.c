@@ -1823,9 +1823,9 @@ The result is placed in *result.
     make_error_operand(result);
   } else {
     field = field_sym->variant.field.ptr;
-    if (cfront_2_1_mode && !is_array_type(field->type)) {
-      /* cfront 2.1 doesn't use the qualifiers on the class type.  Strangely,
-         it does on array fields. */
+    if (cfront_2_1_mode && is_array_type(field->type)) {
+      /* cfront 2.1 fouls up the qualifiers on arrays.  Duplicate the
+         behavior.  (This comes up in the NIH libraries.) */
       result_type = field->type;
     } else {
       /* The result type is set to the type of the field with the union of the
