@@ -747,15 +747,15 @@ Macro that is TRUE if the operand is a function designator.
 
 /*
 Helper macro for is_const_variable (defined below) to handle the case of
-const floating-point variables which are allowed in GNU C++ constant-
-expressions.
+const scalar variables which are allowed in GNU C++ constant-expressions
+(specifically, floating-point and pointer constants).
 */
 #if GNU_EXTENSIONS_ALLOWED
-#define or_is_gpp_const_floating_variable(var) ||                       \
-  (gpp_mode && is_floating_type((var)->type) &&                         \
+#define or_is_gpp_const_scalar_variable(var) ||                       \
+  (gpp_mode && is_scalar_type((var)->type) &&                         \
    is_const_qualified_type((var)->type))
 #else /* !GNU_EXTENSIONS_ALLOWED */
-#define or_is_gpp_const_floating_variable(var)  /*nothing*/
+#define or_is_gpp_const_scalar_variable(var)  /*nothing*/
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
@@ -769,7 +769,7 @@ is done in var_constant_value.
   ((is_integral_or_enum_type((var)->type) &&                            \
     is_const_qualified_type((var)->type)) ||                            \
    is_template_param_type((var)->type)                                  \
-   or_is_gpp_const_floating_variable(var))
+   or_is_gpp_const_scalar_variable(var))
 
 
 extern a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list);
