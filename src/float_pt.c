@@ -952,7 +952,7 @@ value.
 */
 {
   int	part;
-  int	bits;
+  int	bits = 0;
 
   for (part = MANTISSA_PARTS - 1; part >= 0; part--) {
     an_fp_value_part	part_val;
