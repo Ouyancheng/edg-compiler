@@ -10226,14 +10226,13 @@ TRUE if the declaration following this one is such a continuation.
            a bug in the Sun C++ 5.0 compiler regarding "inline" on
            constructor definitions. */
         !(decl_within_class && is_definition)) {
-#if GNU_EXTENSIONS_ALLOWED
-      if (gcc_is_generated_code_target) {
+      if (gcc_is_generated_code_target && il_header.source_language == sl_C) {
         if (rout->suppress_inline_body) {
+          /* GNU C will never spill an "extern __inline__" function. */
           write_tok_str("extern ");
         }  /* if */
         write_tok_str("__inline__ ");
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
