@@ -419,6 +419,12 @@ Initialize target machine characteristics.
 #endif /* DO_IL_LOWERING */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Map __int32 and __int64 to the appropriate integer kinds.  In other
+     words, find the first integer kinds, signed and unsigned, that hold
+     exactly 32 and 64 bits, respectively.  Leave the variables set to
+     ik_none if a match can't be found.  Note -- only if a corresponding
+     integer kind is found will the keywords for tok_int32 and tok_int64
+     be entered into the symbol table. */
   targ_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/TRUE);
   if (targ_int32_int_kind != (an_integer_kind)ik_none) {
     targ_unsigned_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/FALSE);
