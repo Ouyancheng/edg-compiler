@@ -3290,7 +3290,7 @@ been exhausted.
 
 void push_next_preinclude_file(void)
 /*
-If there were preinclude files specified, push next preinclude file onto
+If there were preinclude files specified, push the next preinclude file onto
 the input stack.  next_preinclude_file is initially set to the list of
 macro-only include files.  When we reach the end of the macro-only preinclude
 list, we process the normal (non-macro-only) preincludes.
