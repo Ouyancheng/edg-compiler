@@ -1744,7 +1744,7 @@ Display the indicated variable.
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (ptr->section != NULL {
+  if (ptr->section != NULL) {
     disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2385,10 +2385,10 @@ Display the indicated routine.
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (ptr->section != NULL {
+  if (ptr->section != NULL) {
     disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
   }  /* if */
-  if (ptr->aliased_routine != NULL {
+  if (ptr->aliased_routine != NULL) {
     disp_string_ptr("aliased_routine", ptr->aliased_routine,
                     iek_other_text, (sizeof_t)0);
   }  /* if */
