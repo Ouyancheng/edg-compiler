@@ -21135,7 +21135,7 @@ access errors that were detected.  options is a bit set of option flags.
     diagnostic(severity, ec_explicit_instantiation_not_in_namespace_scope);
     discard = severity == es_error;
   }  /* if */
-   if (discard) {
+  if (discard) {
     flush_tokens();
   } else {
     /* The instantiation mode is set to "none" while the pragma processing is
