@@ -778,12 +778,29 @@ Write the indicated memory region to the file f_il_output.
          headers as well as the block contents.  Note that we write out only
          to next_avail_in_block, not to after_end_of_block, since that's
          the only part with data in it, and it's correctly aligned. */
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, "write_memory_region: computing total_bytes\n");
+      }  /* if */
+#endif /* DEBUG */
       total_bytes = 0;
       for (hdr = mem_region_table[region_number];
            hdr != NULL;
            hdr = hdr->next) {
-        total_bytes += hdr->next_avail_in_block - hdr->start_of_block +
-                       sizeof(a_mem_block_header);
+        sizeof_t block_used = hdr->next_avail_in_block - hdr->start_of_block;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "total_bytes += %lu + %lu\n",
+                           (unsigned long)sizeof(a_mem_block_header),
+                           (unsigned long)block_used);
+        }  /* if */
+#endif /* DEBUG */
+        total_bytes += sizeof(a_mem_block_header) + block_used;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "total_bytes = %lu\n", total_bytes);
+        }  /* if */
+#endif /* DEBUG */
       }  /* for */
       hdr = mem_region_table[region_number];
       /* Write the original address of the first block, the original address
@@ -795,10 +812,17 @@ Write the indicated memory region to the file f_il_output.
       (void)fwrite((char *)&total_bytes, sizeof(total_bytes), 1, f_il_output);
       /* Write the blocks. */
       for (; hdr != NULL; hdr = hdr->next) {
+        sizeof_t block_used = hdr->next_avail_in_block - hdr->start_of_block;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "writing %lu + %lu\n",
+                           (unsigned long)sizeof(a_mem_block_header),
+                           (unsigned long)block_used);
+        }  /* if */
+#endif /* DEBUG */
         if ((fwrite((char *)hdr, sizeof(a_mem_block_header),
                     1, f_il_output) != 1) ||
-            (fwrite(hdr->start_of_block,
-                    size_t_arg(hdr->next_avail_in_block - hdr->start_of_block),
+            (fwrite(hdr->start_of_block, size_t_arg(block_used),
                     1, f_il_output) != 1)) {
           /* Error on write.  This check supplements the check done when the
              file is closed. */

@@ -645,13 +645,35 @@ necessary to make it directly accessible in memory.
     sizeof_t           block_size, block_used;
     char               *new_start_of_block;
 
+#if DEBUG
+    if (debug_level >= 3) {
+      fprintf(f_debug, "read_memory_region: at top of block read loop\n");
+      fprintf(f_debug, "total_bytes = %lu\n", (unsigned long)total_bytes);
+    }  /* if */
+#endif /* DEBUG */
     /* Read a block.  Start by reading the header. */
     fread_with_check((char *)&old_block_header, sizeof(old_block_header));
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "start_of_block = %lx\n",
+                       (unsigned long)old_block_header.start_of_block);
+      fprintf(f_debug, "next_avail_in_block = %lx\n",
+                       (unsigned long)old_block_header.next_avail_in_block);
+      fprintf(f_debug, "after_end_of_block = %lx\n",
+                       (unsigned long)old_block_header.after_end_of_block);
+    }  /* if */
+#endif /* DEBUG */
     total_bytes -= sizeof(old_block_header);
     block_size = old_block_header.after_end_of_block -
                  old_block_header.start_of_block;
     block_used = old_block_header.next_avail_in_block -
                  old_block_header.start_of_block;
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "block_used = %lu\n", (unsigned long)block_used);
+      fprintf(f_debug, "block_size = %lu\n", (unsigned long)block_size);
+    }  /* if */
+#endif /* DEBUG */
 #if CHECKING
     /* Do some sanity checking. */
     if (block_used > total_bytes || block_used > block_size) {
@@ -685,6 +707,9 @@ necessary to make it directly accessible in memory.
     remap_entry->new_start_addr = new_start_of_block;
   } while (total_bytes > 0);
 #if DEBUG
+  if (debug_level >= 2) {
+    fprintf(f_debug, "at end of block read loop\n");
+  }  /* if */
   if (debug_level >= 2) {
     /* See how many of the blocks ended up at their original addresses. */
     unsigned long           num_same = 0, num_different = 0;
