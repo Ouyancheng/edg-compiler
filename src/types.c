@@ -7189,9 +7189,14 @@ has been used in an exception handling or RTTI construct.
         !is_immediate_enum_type(type_ptr) &&
         /* Do not put types from prototype instantiations on the list. */
         !is_template_dependent_type(type_ptr)) {
+      an_il_header *p_il_header = &il_header;
       check_assertion(type_ptr->next == NULL);
-      type_ptr->next = il_header.nontag_types_used_in_exception_or_rtti;
-      il_header.nontag_types_used_in_exception_or_rtti = type_ptr;
+      if (!is_primary_translation_unit && !in_secondary_trans_unit(type_ptr)) {
+        /* Force a primary-IL type into the primary IL list. */
+        p_il_header = &translation_units->il_header;
+      }  /* if */
+      type_ptr->next = p_il_header->nontag_types_used_in_exception_or_rtti;
+      p_il_header->nontag_types_used_in_exception_or_rtti = type_ptr;
     }  /* if */
     set_force_external_linkage_flag(type_ptr);
   }  /* if */

@@ -1593,17 +1593,41 @@ to the secondary translation unit.
     }  /* if */
   }  /* for */
   if (pointers_block != NULL) pointers_block->last_pragma = prev_pragma;
+  if (scope->kind == (a_scope_kind)sck_file) {
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  if (scope->kind == (a_scope_kind)sck_file &&
-      *any_removed_function_bodies) {
-    /* Remove scope orphaned list entries for eliminated functions. */
+    if (*any_removed_function_bodies) {
+      /* Remove scope orphaned list entries for eliminated functions. */
 #if MAINTAIN_NEEDED_FLAGS
-    if (okay_to_eliminate_unneeded_il_entries) {
-      eliminate_unneeded_scope_orphaned_list_entries();
-    }  /* if */
+      if (okay_to_eliminate_unneeded_il_entries) {
+        eliminate_unneeded_scope_orphaned_list_entries();
+      }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  }  /* if */
+    }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+    /* Remove entries from the il_header nontag_types_used_in_exception_or_rtti
+       list that shouldn't be copied. */
+    prev_type = NULL;
+    for (type = il_header.nontag_types_used_in_exception_or_rtti;
+         type != NULL;
+         type = type->next) {
+      keep_on_list = TRUE;
+      check_assertion(in_secondary_trans_unit(type));
+      if (!entry_should_be_copied(type)) {
+        check_assertion(!entry_should_overwrite_primary_entry(type));
+        keep_on_list = FALSE;
+      }  /* if */
+      if (keep_on_list) {
+        prev_type = type;
+      } else {
+        /* Remove this entry from the list. */
+        if (prev_type == NULL) {
+          il_header.nontag_types_used_in_exception_or_rtti = type->next;
+        } else {
+          prev_type->next = type->next;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (check_member_merges && any_members_to_process) {
     /* There are some members of this scope that need processing, so we have
        to keep the scope's associated entity on the list to be able to
@@ -2419,6 +2443,17 @@ into the primary translation unit il_header.
                     il_header.main_routine == primary_main);
     il_header.main_routine = primary_main;
   }  /* if */
+  /* Add copied types from the nontag_types_used_in_exception_or_rtti list
+     to the front of the primary IL list. */
+  { a_type_ptr last_eh_type;
+    last_eh_type = tup->il_header.nontag_types_used_in_exception_or_rtti;
+    if (last_eh_type != NULL) {
+      while (last_eh_type->next != NULL) last_eh_type = last_eh_type->next;
+      last_eh_type->next = il_header.nontag_types_used_in_exception_or_rtti;
+      il_header.nontag_types_used_in_exception_or_rtti =
+                         tup->il_header.nontag_types_used_in_exception_or_rtti;
+    }  /* if */
+  }
 }  /* merge_il_headers */
 
 
