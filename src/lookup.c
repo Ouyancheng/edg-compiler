@@ -3976,6 +3976,9 @@ produce a list of associated classes and namespaces from which
 candidate functions should be considered.  locator is the symbol
 locator associated with the name that is being looked up.
 
+normal_sym, if not NULL, is included in the symbol list that is returned
+and must be the first entry on the list.
+
 This routine builds a list of symbol list entries.  Each entry points to
 a sk_routine, sk_overloaded_function, or sk_namespace_projection symbol.
 The same function may be pointed to directly and/or indirectly by
@@ -4046,6 +4049,9 @@ is set to NULL.
   free_list_of_namespace_list_entries(namespace_list);
   free_list_of_type_list_entries(class_list);
   *type_list = NULL;
+  /* Make sure that normal_sym is pointed to by the first entry on the
+     returned list. */
+  check_assertion(normal_sym == NULL || symbol_list->symbol == normal_sym);
   return symbol_list;
 }  /* argument_dependent_lookup */
 
