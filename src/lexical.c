@@ -4425,7 +4425,8 @@ tokens should be rescanned.
         mark_referenced(class_symbol, &pos_curr_token);
         /* Do ambiguity and access control checking on the class symbol. */
         check_ambiguity_and_verify_access(&locator_for_curr_id);
-        *class_type = class_symbol->variant.class_struct_union.type;
+        *class_type = skip_typerefs(class_symbol->
+                                        variant.class_struct_union.type);
       }  /* if */
       /* Cache the identifier, if required. */
       if (cache != NULL) {
