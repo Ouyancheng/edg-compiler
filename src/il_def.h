@@ -1862,12 +1862,20 @@ typedef struct a_routine_type_supplement {
 			   affected).  (Intended for front-end use only.) */
   unsigned int /* a_name_linkage_kind */
 		routine_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
-			/* If assoc_routine is non-NULL, the name linkage
-			   with which the routine was declared; otherwise, the
-			   name linkage, if any, to be assumed for any routine
-			   declared or called through this type (useful if
-			   name linkage distinctions imply calling convention
-			   differences). */
+			/* The default name linkage at the point the function
+			   type was declared.  The front end makes this
+			   information available to the back end in case, for
+			   example, different linkages imply different calling
+			   conventions.  (Note: this value does not necessarily
+			   correspond to the name linkage with which an
+			   associated function was declared -- e.g.,
+			     extern "C" typedef void FT();
+			     FT f;
+			     static FT g;
+			   The name linkage associated with the routine type
+			   to which FT points is nlk_external, but those for
+			   functions f and g are nlk_cplusplus_external and
+			   nlk_internal, respectively.) */
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
