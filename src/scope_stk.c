@@ -36,6 +36,7 @@ scope_stk.c - Management of the scope stack and related routines.
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#include "templates.h"
 
 /*
 Variables and constants related to the scope_stack:
@@ -4328,6 +4329,7 @@ been completed.
   a_namespace_ptr              nsp;
   a_variable_ptr               vp;
   a_routine_ptr                rp;
+  a_boolean                    any_exports = any_exported_templates();
 
   if (scope->kind == (a_scope_kind)sck_file) {
     /* Top-level call. */
@@ -4375,6 +4377,14 @@ been completed.
        definitions. */
     is_needed = (vp->source_corresp.needed ||
                  variable_needed_even_if_unreferenced(vp));
+    if (any_exports &&
+        vp->storage_class == (a_storage_class)sc_static &&
+        !vp->source_corresp.is_local_to_function) {
+      /* In translation units with exported templates, all statics have
+         to be considered potentially referenced from a template. */
+      vp->source_corresp.static_used_by_instantiation = TRUE;
+      is_needed = TRUE;
+    }  /* if */
     if (is_needed) {
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
     }  /* if */
@@ -4388,10 +4398,18 @@ been completed.
        subtree.  The subtree is not visited until this phase, because it
        can change.  Note that the subtree here is the function type,
        not the body, which is handled elsewhere. */
+    a_boolean saved_defined = rp->defined;
+    if (any_exports &&
+        rp->storage_class == (a_storage_class)sc_static &&
+        !rp->source_corresp.is_local_to_function) {
+      /* In translation units with exported templates, all statics have
+         to be considered potentially referenced from a template. */
+      rp->source_corresp.static_used_by_instantiation = TRUE;
+      mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+    }  /* if */
     /* If the "defined" flag is TRUE, the body will already have been
        walked to mark its constituents as needed; we clear the flag to
        keep it from being walked again. */
-    a_boolean saved_defined = rp->defined;
     rp->defined = FALSE;
     remark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
     /* Restore the "defined" flag. */

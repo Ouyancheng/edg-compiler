@@ -947,8 +947,7 @@ do any necessary processing, e.g., externalizing it if it is static.
       if (routine->assoc_scope == NULL_region_number) {
         routine->storage_class = (a_storage_class)sc_extern;
       } else {
-        /* A static inline function becomes external, but not exactly
-           extern inline (it isn't instantiated). */
+        /* A static inline function becomes extern inline. */
         check_assertion(routine->is_inline);
         routine->storage_class = (a_storage_class)sc_unspecified;
 #if INSTANTIATE_EXTERN_INLINE
@@ -2460,24 +2459,19 @@ static void ensure_routine_is_on_inline_list(a_routine_ptr routine)
 /*
 The indicated routine has been copied or merged from the secondary
 translation unit IL to the primary IL.  routine points to the copy in the
-secondary translation unit except for members of local class scopes.
-Update the "instantiation" lists for extern inline functions, if appropriate.
+secondary translation unit.  Update the "instantiation" lists for extern
+inline functions, if appropriate.
 */
 {
   /* This routine runs while switched to the primary translation unit. */
-  check_assertion(is_primary_translation_unit);
+  check_assertion(is_primary_translation_unit &&
+                  in_secondary_trans_unit(routine));
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
-    a_routine_ptr primary_routine;
-    if (in_secondary_trans_unit(routine)) {
-      primary_routine = (a_routine_ptr)transitive_copy_address_of(routine);
-    } else {
-      check_assertion(routine->source_corresp.is_local_to_function);
-      primary_routine = routine;
-    }  /* if */
+    a_routine_ptr primary_routine =
+                            (a_routine_ptr)transitive_copy_address_of(routine);
     if (primary_routine->is_inline &&
-        primary_routine->storage_class == (a_storage_class)sc_unspecified &&
-        !primary_routine->source_corresp.static_used_by_instantiation) {
+        primary_routine->storage_class == (a_storage_class)sc_unspecified) {
       if (primary_routine->on_inline_function_list) {
         /* There is already a list entry for the routine in the primary IL. */
 #if DEBUG

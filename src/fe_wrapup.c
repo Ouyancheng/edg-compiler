@@ -185,21 +185,23 @@ mark external entities and the things they reference as "needed".
   set_needed_flags_at_end_of_file_scope(curr_translation_unit->primary_scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if DO_IL_LOWERING
-  /* Any statics referenced from instantiation slices in
-     one-instantiation-per-object mode must be made external so that
-     they can be referenced from the instantiation object files.
-     Likewise for statics referenced from exported templates. */
-  /* Note: this needs to be done after the call of
-     set_needed_flags_at_end_of_file_scope, so that statics referenced
-     from instantiations are marked before we have to decide whether
-     they need to be externalized. */
+  if (is_primary_translation_unit && il_lowering_needed()) {
+    /* Any statics referenced from instantiation slices in
+       one-instantiation-per-object mode must be made external so that
+       they can be referenced from the instantiation object files.
+       Likewise for statics referenced from exported templates. */
+    /* Note: this needs to be done after the call of
+       set_needed_flags_at_end_of_file_scope, so that statics referenced
+       from instantiations are marked before we have to decide whether
+       they need to be externalized. */
 #if MAINTAIN_NEEDED_FLAGS
-  end_of_file_scope_needed_flags_phase = TRUE;
+    end_of_file_scope_needed_flags_phase = TRUE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  make_statics_referenced_from_instantiations_external();
+    make_statics_referenced_from_instantiations_external();
 #if MAINTAIN_NEEDED_FLAGS
-  end_of_file_scope_needed_flags_phase = FALSE;
+    end_of_file_scope_needed_flags_phase = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
 #endif /* DO_IL_LOWERING */
 }  /* file_scope_il_wrapup_needed_flag_processing */
 

@@ -12736,37 +12736,30 @@ files can reference it.
 }  /* externalize_source_correspondence */
 
 
-static void make_scope_statics_referenced_from_instantiations_external(
-                                                             a_scope_ptr scope)
+void make_statics_referenced_from_instantiations_external(void)
 /*
-Make external any static variables in the indicated scope that are
-referenced from instantiations of exported templates, or from any
-instantiations when generating instantiations in separate object files.
+When generating instantiations in separate object files, make any
+static variables or functions referenced from instantiations external.
+This also comes up for statics referenced from exported templates.
+This must be called after IL lowering for the file scope, and after
+the needed-flag walk for the file scope.  Not done in secondary
+translation units (their statics are picked up after copying).
 */
 {
   a_routine_ptr  rout;
   a_variable_ptr var;
-  a_boolean      any_exports = any_exported_templates();
+  a_scope_ptr    scope = il_header.primary_scope;
 
+  check_assertion(is_primary_translation_unit);
   /* This processing is done in a separate routine, rather than in
      lower_variable and lower_routine, because entities created by IL
      lowering, e.g., typeinfo variables and virtual function tables,
      (a) are created with the IL lowering flag set, and therefore do not
      get lowered further, and (b) have storage classes that get changed
      as lowering proceeds. */
-  /* Also note that this process must be done in secondary translation
-     units for the entities in those translation units because we need
-     to use the proper module id in the externalized name. */
   for (rout = scope->routines;
        rout != NULL;
        rout = rout->next) {
-    if (any_exports && is_primary_translation_unit &&
-        rout->storage_class == (a_storage_class)sc_static) {
-      /* When exported templates are present, any static is potentially
-         referenced (directly or indirectly) from an instantiation and
-         should be externalized. */
-      rout->source_corresp.static_used_by_instantiation = TRUE;
-    }  /* if */
     if (rout->source_corresp.static_used_by_instantiation
 #if LOWER_EXTERN_INLINE
         /* Lowered extern inline routines can be duplicated in each
@@ -12797,13 +12790,6 @@ instantiations when generating instantiations in separate object files.
 #if !USE_INIT_SECTION_IN_GENERATED_C
     char *var_name = var->source_corresp.name;
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
-    if (any_exports && is_primary_translation_unit &&
-        var->storage_class == (a_storage_class)sc_static) {
-      /* When exported templates are present, any static is potentially
-         referenced (directly or indirectly) from an instantiation and
-         should be externalized. */
-      var->source_corresp.static_used_by_instantiation = TRUE;
-    }  /* if */
 #if !USE_INIT_SECTION_IN_GENERATED_C
     if (var_name != NULL && var_name[0] == '_' &&
         strcmp(var_name, "__link") == 0) {
@@ -12829,49 +12815,6 @@ instantiations when generating instantiations in separate object files.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (!is_primary_translation_unit) {
-    /* The IL is not lowered yet.  Visit class and namespace members. */
-    a_type_ptr      type;
-    a_namespace_ptr nsp;
-
-    for (type = scope->types;
-         type != NULL;
-         type = type->next) {
-      if (is_immediate_class_type(type)) {
-        a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-        if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-          make_scope_statics_referenced_from_instantiations_external(
-                                                            ctsp->assoc_scope);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    for (nsp = scope->namespaces;
-         nsp != NULL;
-         nsp = nsp->next) {
-      if (!nsp->is_namespace_alias) {
-        make_scope_statics_referenced_from_instantiations_external(
-                                                     nsp->variant.assoc_scope);
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* make_scope_statics_referenced_from_instantiations_external */
-
-
-void make_statics_referenced_from_instantiations_external(void)
-/*
-When generating instantiations in separate object files, make any
-static variables or functions referenced from instantiations external.
-This also comes up for statics referenced from exported templates.
-This must be called after IL lowering for the file scope, and after
-the needed-flag walk for the file scope.  Also run in secondary translation
-units before copying, which means before IL lowering.
-*/
-{
-  if (il_lowering_needed()) {
-    make_scope_statics_referenced_from_instantiations_external(
-                                                      il_header.primary_scope);
-  }  /* if */
 }  /* make_statics_referenced_from_instantiations_external */
 
 
