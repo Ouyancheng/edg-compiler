@@ -217,14 +217,15 @@ Access the il_walk_flag in an IL entry.
 
 /*
 Macro that tests whether or not a given entry has been visited yet.
-If the entry had not been visited, the il_walk_flag is set to indicate
-that it now has been.
 */
 #define visited_yet(entry_ptr)                                        \
-  ((il_walk_flag_of(entry_ptr) == il_walk_flag_value_set_by_lowering) || \
-   /* Set the flag to indicate the entry has been visited. */         \
-   (il_walk_flag_of(entry_ptr) = il_walk_flag_value_set_by_lowering,  \
-    FALSE))
+  (il_walk_flag_of(entry_ptr) == il_walk_flag_value_set_by_lowering)
+
+/*
+Set the flag to indicate that an entry has been visited.
+*/
+#define mark_as_visited(entry_ptr)                                    \
+  (il_walk_flag_of(entry_ptr) = il_walk_flag_value_set_by_lowering)
 
 
 /*
@@ -4405,6 +4406,7 @@ Do IL lowering of the indicated constant and everything under it.
   a_constant_ptr addressed_con;
 
   if (!visited_yet(constant)) {
+    mark_as_visited(constant);
     lower_source_correspondence(&constant->source_corresp);
     if (constant->type != NULL) lower_os_type(constant->type);
     switch (constant->kind) {
@@ -5571,6 +5573,7 @@ Do IL lowering of the indicated type and everything under it.
 		btlmp;
 
   if (!visited_yet(type)) {
+    mark_as_visited(type);
     lower_source_correspondence(&type->source_corresp);
     /* Lower the based types list (it points to types based on the present
        type, e.g., pointer-to the present type). */
@@ -7345,6 +7348,7 @@ Do IL lowering of the indicated variable and everything under it.
 */
 {
   if (!visited_yet(variable)) {
+    mark_as_visited(variable);
     lower_source_correspondence(&variable->source_corresp);
     lower_os_type(variable->type);
     if (variable->address_taken &&
@@ -7392,6 +7396,7 @@ Do IL lowering of the indicated field and everything under it.
 */
 {
   if (!visited_yet(field)) {
+    mark_as_visited(field);
     lower_source_correspondence(&field->source_corresp);
     lower_os_type(field->type);
   }  /* if */
@@ -7489,6 +7494,7 @@ Do IL lowering of the indicated routine and everything under it.
 */
 {
   if (!visited_yet(routine)) {
+    mark_as_visited(routine);
     lower_source_correspondence(&routine->source_corresp);
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
@@ -7527,6 +7533,7 @@ Do IL lowering of the indicated label and everything under it.
 */
 {
   if (!visited_yet(label)) {
+    mark_as_visited(label);
     lower_source_correspondence(&label->source_corresp);
     /* label->variant.exec_stmt need not be processed since it will be
        found in the normal code traversal. */
@@ -7555,6 +7562,7 @@ Do IL lowering of the indicated asm entry and everything under it.
 */
 {
   if (!visited_yet(asm_entry)) {
+    mark_as_visited(asm_entry);
     lower_source_correspondence(&asm_entry->source_corresp);
     lower_constant(asm_entry->asm_string);
   }  /* if */
@@ -11674,6 +11682,12 @@ not reachable from the normal file-scope IL tree.
          pointer. */
       list_entry_ptr = entry_ptr;
       do {
+        /* Stop the inner loop on an entry that has already been visited.
+           Without this optimization, there would be quadratic behavior in
+           cases where the orphaned_file_scope_il_entries list and the
+           "next" pointer list have long shared segments, which is quite
+           likely. */
+        if (visited_yet((a_type_ptr)list_entry_ptr)) break;
         next_entry_ptr = NULL;
         /* Only a few entry kinds are actually used in lowering. */
         switch (kind) {
