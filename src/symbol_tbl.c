@@ -2960,8 +2960,7 @@ is set to an error locator.
      must precede access control (ARM, 10.1.1). */
   if (sym->kind == (a_symbol_kind)sk_projection &&
       sym->variant.projection.ambiguous) {
-    pos_st_error(ec_ambiguous_name, &locator->source_position,
-                 sym->header->identifier);
+    pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
     set_to_error_locator(*locator);
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible. */
@@ -2995,8 +2994,8 @@ a projection symbol pointing to that sk_overloaded_function symbol.
        checking must precede access control (ARM, 10.1.1). */
     if (overloaded_symbol->kind == (a_symbol_kind)sk_projection &&
         overloaded_symbol->variant.projection.ambiguous) {
-      pos_st_error(ec_ambiguous_name, &locator->source_position,
-                   overloaded_symbol->header->identifier);
+      pos_sy_error(ec_ambiguous_name, &locator->source_position,
+                   overloaded_symbol);
       set_to_error_locator(*locator);
     } else {
       /* See if we have access to the symbol. */
