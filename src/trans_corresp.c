@@ -3541,6 +3541,26 @@ Initialize things related to correspondence checking that must be initialized
 for each compilation.
 */
 {
+  /* Static variables declared in trans_corresp.c.
+     We depend on NULL being represented as zero bits here. */
+  memzero((char *)canonical_int_types, sizeof(canonical_int_types));
+  memzero((char *)canonical_signed_int_types,
+          sizeof(canonical_signed_int_types));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  memzero((char *)canonical_microsoft_sized_int_types,
+          sizeof(canonical_microsoft_sized_int_types));
+  memzero((char *)canonical_microsoft_sized_signed_int_types,
+          sizeof(canonical_microsoft_sized_signed_int_types));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  memzero((char *)canonical_float_types, sizeof(canonical_float_types));
+#if C99_IL_EXTENSIONS_SUPPORTED
+  memzero((char *)canonical_complex_types, sizeof(canonical_complex_types));
+  memzero((char *)canonical_imaginary_types,
+          sizeof(canonical_imaginary_types));
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  canonical_il_void_type = NULL;
+  canonical_il_wchar_t_type = NULL;
+  canonical_il_bool_type = NULL;
 }  /* corresp_init */
 
 
