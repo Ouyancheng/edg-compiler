@@ -1,5 +1,26 @@
 Version 2.21
 
+11/23/93 Improved error diagnosis for invalid class template member function
+
+A more descriptive error message is now issued when an attempt is made to
+define a member function declared in a base class.
+
+template <class T> struct B {
+	void f();
+};
+template <class T> struct D : public B<int> {};
+template <class T> void D<T>::f(){}  // Error
+
+
+11/23/93 Nondefining declaration of a member function of a class template
+
+An error is now diagnosed for the following incorrect usage:
+
+  template <class T> struct A {
+    void f();
+  };
+  template <class T> void A<T>::f();  // Error
+
 11/22/93 Use of a bit-vector for symbol reference information
 
 The enum a_symbol_reference_kind has been replaced with a bit vector of
