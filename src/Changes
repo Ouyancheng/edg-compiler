@@ -1,5 +1,18 @@
 Version 3.1
 
+6/17/02  Sun and Microsoft compatibility: Declaration of a variable visible
+         through a using-declaration.
+
+In Sun and Microsoft modes, the front end now accepts the redeclaration of a
+variable visible through a using-declaration, even when that variable has
+C++ linkage (this is a generalization of the Changes entry of 6/28/00).
+
+  namespace N {
+    extern int x;
+  }
+  using N::x;
+  int x = 3;  // OK in Sun and Microsoft modes; defines N::x.
+
 6/17/02  Null (zero) characters in source lines
 
 The front end can now be configured to allow null (zero) characters

@@ -1750,10 +1750,12 @@ called by id_linkage.
          with an unqualified declarator if that member was made visible via
          a using-declaration.  E.g.,
            namespace N { void f(); }  using N::f; void f() {} // Fine: N::f
-         We emulate this only if the entity has C name linkage.  */
+         We emulate this only if the entity has C name linkage or if it is
+         a variable.  */
       a_symbol_ptr  fund_other_decl = fundamental_symbol_of(other_decl);
       if (source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
-                                          (a_name_linkage_kind)nlk_external) {
+                                          (a_name_linkage_kind)nlk_external ||
+          fund_other_decl->kind == (a_symbol_kind)sk_variable) {
         kind = fund_other_decl->kind;
       }  /* if */
     }  /* if */
@@ -1846,8 +1848,9 @@ called by id_linkage.
         if (other_decl->kind == (a_symbol_kind)sk_namespace_projection &&
             !locator->is_template_id &&
             !((sun_mode || microsoft_mode) &&
-              source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
-                                         (a_name_linkage_kind)nlk_external)) {
+              (source_corresp_entry_for_symbol(fund_other_decl)->name_linkage
+                                      == (a_name_linkage_kind)nlk_external ||
+               fund_other_decl->kind == (a_symbol_kind)sk_variable))) {
           /* Ignore namespace projection symbols that may have gotten into
              this overload set by a using declaration -- e.g.,
                namespace N { void f(int); }
@@ -2138,6 +2141,11 @@ specified id-linkage block.
        this declaration is linked. */
     find_linked_symbol(idlbp);
     prior_decl = idlbp->linked_symbol;
+    if ((sun_mode || microsoft_mode) && prior_decl != NULL) {
+      /* In Sun and Microsoft modes, linked symbol could validly be a
+         namespace projection. */
+      prior_decl = fundamental_symbol_of(prior_decl);
+    }  /* if */
     if (prior_decl == NULL) {
       /* Special case for block extern declarations. */
       prior_decl = idlbp->prior_decl_in_enclosing_scope;
@@ -4022,8 +4030,11 @@ declaration.
     /* There is a previous identifier of this name in the same scope,
        to which this declaration is linked. */
     redeclaration = TRUE;
-  }  /* if */
-  if (redeclaration) {
+    if (sun_mode || microsoft_mode) {
+      /* In Sun and Microsoft modes, the linked symbol may be a namespace
+         projection (i.e., a using-declaration). */
+      linked_symbol = fundamental_symbol_of(linked_symbol);
+    }  /* if */
     if (linked_symbol->kind == (a_symbol_kind)sk_variable) {
       /* If necessary, check that throw-specifications match. */
       if (!C_mode() &&
@@ -4284,8 +4295,25 @@ declaration.
            variables, since it is only by means of a prior extern declaration
            or (in C mode only) a prior tentative definition that we can be
            defining a variable that has already been declared. */
-        a_scope_depth  depth = depth_innermost_namespace_scope;
+        a_scope_depth  depth, reactivation_to_undo = FALSE;
 
+        if ((sun_mode || microsoft_mode) && redeclaration &&
+            depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+            idlb.linked_symbol != NULL &&
+            idlb.linked_symbol->kind ==
+                                     (a_symbol_kind)sk_namespace_projection) {
+          /* In Sun and Microsoft modes it is possible to redeclare a variable
+             outside its namespace when that variable is visible through a
+             namespace declaration.  In that case, we must push that namespace
+             scope so that the associated variable can be found by
+             remove_from_variables_list and add_to_variables_list. */
+          a_namespace_ptr  nsp = linked_symbol->parent.namespace_ptr;
+          if (nsp != NULL) {
+            reactivation_to_undo = TRUE;
+            f_push_namespace_extension_scope(nsp, TRUE);
+          }  /* if */
+        }  /* if */
+        depth = depth_innermost_namespace_scope;
         if (variable_ptr->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
           depth = DEPTH_OF_FILE_SCOPE;
@@ -4293,6 +4321,9 @@ declaration.
         check_assertion(in_file_scope(variable_ptr));
         remove_from_variables_list(variable_ptr, depth);
         add_to_variables_list(variable_ptr, depth);
+        if (reactivation_to_undo) {
+          pop_namespace_extension_scope();
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
