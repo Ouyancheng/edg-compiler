@@ -1059,7 +1059,7 @@ Display a_param_type entry.
                  (a_boolean)ptr->type_involves_template_param);
   }  /* if */
   if (ptr->default_arg_expr) {
-    disp_ptr("default_arg_expr", ptr->default_arg_expr, iek_expr_node);
+    disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
   }  /* if */
 #endif /* ifdef CFE */
 }  /* disp_param_type */
