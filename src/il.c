@@ -15771,7 +15771,7 @@ keep_in_il because, for example, they appear on orphan lists.
         }  /* if */
 #endif /* DEBUG */
         if (!il_entry_prefix_of(na).keep_in_il) {
-          /* Remove it from the variables list by linking around it. */
+          /* Remove it from the namespaces list by linking around it. */
           if (prev_na == NULL) {
             solhp->orphaned_namespaces = na->next;
           } else {
