@@ -873,10 +873,10 @@ file.
 {
   db_enter(4, "write_mem_alloc_history");
   pch_write_value(size_of_mem_alloc_history);
-  pch_write_value(num_of_mem_alloc_history_entries);
+  pch_write_value(mem_alloc_history_entries_used);
   fwrite_with_check(mem_alloc_history,
                     sizeof(a_mem_alloc_history) *
-                                            num_of_mem_alloc_history_entries,
+                                            mem_alloc_history_entries_used,
                     f_pch_output);
   db_exit();
 }  /* write_mem_alloc_history */
@@ -914,7 +914,7 @@ restore the memory regions.
                    f_pch_input);
   /* Make sure the entries for the current compilation match the initial
      entries read from the file. */
-  for (n = 0; n < num_of_mem_alloc_history_entries; ++n) {
+  for (n = 0; n < mem_alloc_history_entries_used; ++n) {
     if (!equivalent_mem_alloc_history(mem_alloc_history[n],
                                      new_alloc_hist[n])) {
       successful = FALSE;
@@ -926,12 +926,7 @@ restore the memory regions.
        with those done in the original compilation.  Perform the
        remaining allocations needed to read in the memory regions. */
     for (; n < new_num_entries; ++n) {
-#if USE_MMAP_FOR_MEMORY_REGIONS
       (void)alloc_new_mem_block(new_alloc_hist[n].size);
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-      (void)malloc_with_check(new_alloc_hist[n].size,
-                              new_alloc_hist[n].is_mem_block);
-#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
       if (!equivalent_mem_alloc_history(mem_alloc_history[n],
                                        new_alloc_hist[n])) {
         successful = FALSE;
@@ -1238,6 +1233,23 @@ current point.
 }  /* write_precompiled_header_file */
 
 
+#if DEBUG
+static void db_cannot_generate_reason(char *str)
+/*
+Display a debugging message explaining why a precompiled header file
+can't be generated.
+*/
+{
+  if (debug_level >= 2) {
+    fprintf(f_debug, "Cannot generate precompiled header: %s\n", str);
+  }  /* if */
+}  /* db_cannot_generate_reason */
+#else /* !DEBUG */
+#define db_cannot_generate_reason(str) /* Nothing */
+#endif /* !DEBUG */
+
+
+
 void generate_precompiled_header(void)
 /*
 Processing has reached the "header stop" point.  Check for conditions that
@@ -1252,14 +1264,19 @@ write out the precompiled header file.
   if (cannot_create_pch_file) {
     /* Some condition was encountered that makes creation of a precompiled
        header impossible. */
+    db_cannot_generate_reason("cannot_create_pch_file is set");
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* Don't save the header files if we are not currently at file scope. */
+    db_cannot_generate_reason("not at file scope");
   } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
     /* Nor if we are in the midst of a macro definition or a #if construct. */
+    db_cannot_generate_reason("in a macro or #if");
   } else if (total_errors > 0) {
     /* Nor if there have been errors. */
+    db_cannot_generate_reason("there have been errors");
   } else if (def_external_linkage.is_explicit) {
     /* Nor if we are in the middle of a linkage specifier block. */
+    db_cannot_generate_reason("in a linkage block");
   } else {
     /* The state justifies creating a precompiled header. */
     check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
@@ -1269,6 +1286,7 @@ write out the precompiled header file.
     if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
       /* There haven't been enough declarations to justify writing out and
          restoring the header information. */
+      db_cannot_generate_reason("too few declarations");
     } else {
       /* Okay -- go ahead and do it. */
       write_precompiled_header_file();
@@ -1307,6 +1325,7 @@ and the memory freed (if appropriate).
       done_with_memory_region(n);
     }  /* if */
   }  /* for */
+  free_unused_pch_memory();
   db_exit();
 }  /* header_stop_no_longer_pending */
 
@@ -1698,7 +1717,6 @@ from the PCH file.  It updates the IL header (which is not restored
 from the PCH file) to reflect the information loaded from the file.
 */
 {
-  a_source_file_ptr	sfp;
   a_source_file_ptr	orig_sfp;
 
   db_enter(0, "pch_fixup_part_1");
@@ -1791,23 +1809,23 @@ may be used.
     using_a_pch_file = TRUE;
     read_saved_variables();
     read_memory_regions();
-  }  /* if */
-  /* Save the sequence number as of this point. */
-  saved_curr_seq_number = curr_seq_number;
-  /* Update the IL header to reflect the information in the PCH file. */
-  pch_fixup_part_1();
+    /* Save the sequence number as of this point. */
+    saved_curr_seq_number = curr_seq_number;
+    /* Update the IL header to reflect the information in the PCH file. */
+    pch_fixup_part_1();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* We are building an IL file.  Any memory regions (other than the
-     front end and file scope) that were read from the PCH file must
-     be written to the IL file that is being created. */
-  for (n = FILE_SCOPE_REGION_NUMBER + 1;
-       n <= highest_used_region_number; ++n) {
-    done_with_memory_region(n);
-  }  /* for */
+    /* We are building an IL file.  Any memory regions (other than the
+       front end and file scope) that were read from the PCH file must
+       be written to the IL file that is being created. */
+    for (n = FILE_SCOPE_REGION_NUMBER + 1;
+         n <= highest_used_region_number; ++n) {
+      done_with_memory_region(n);
+    }  /* for */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  /* Clear the primary source file pointer, otherwise, push_input_stack
-     will try to use the old source file as the parent. */
-  il_header.primary_source_file = NULL;
+    /* Clear the primary source file pointer, otherwise, push_input_stack
+       will try to use the old source file as the parent. */
+    il_header.primary_source_file = NULL;
+  }  /* if */
 }  /* restore_precompiled_header_information */
 
 
@@ -1856,6 +1874,9 @@ be used as part of the applicability check in subsequent compilations.
           header_stop_position_pending = TRUE;
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (!using_a_pch_file && !header_stop_position_pending) {
+      free_unused_pch_memory();
     }  /* if */
   }  /* if */
   db_exit();

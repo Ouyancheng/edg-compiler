@@ -156,6 +156,12 @@ extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 /* Initialize memory management. */
 extern void mem_manage_init(void);
 
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+extern void preallocate_pch_memory(void);
+extern void free_unused_pch_memory(void);
+#else /* USE_MMAP_FOR_MEMORY_REGIONS */
+#define free_unused_pch_memory() /* Nothing */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
 Structure used to record the memory allocations that have been done.
@@ -172,12 +178,9 @@ typedef struct a_mem_alloc_history {
 } a_mem_alloc_history;
 
 
-EXTERN a_mem_alloc_history_ptr
-		mem_alloc_history /* = NULL*/;
-			/* Pointer to an array of memory allocation history
-			   entries. */
-
 typedef long	a_mem_alloc_history_number;
+			/* Type of an index into the
+			    mem_alloc_history array. */
 
 EXTERN a_mem_alloc_history_number
 		num_of_mem_alloc_history_entries /* = 0*/;
@@ -188,6 +191,30 @@ EXTERN a_mem_alloc_history_number
 		size_of_mem_alloc_history /* = 0 */;
 			/* Number of array elements in the memory allocation
 			   history array. */
+
+#if USE_MMAP_FOR_MEMORY_REGIONS
+EXTERN a_mem_alloc_history_ptr
+		mem_alloc_history /* = NULL*/;
+			/* Pointer to an array of memory allocation history
+			   entries. */
+
+#else /* USE_MMAP_FOR_MEMORY_REGIONS */
+#define SIZE_OF_MEM_ALLOC_HISTORY 500
+			/* Number of entries in the fixed size memory
+			   allocation history array. */
+
+EXTERN a_mem_alloc_history
+		mem_alloc_history[SIZE_OF_MEM_ALLOC_HISTORY];
+			/* Array of memory allocation history entries used
+			   to store the preallocated memory blocks used
+			   for PCH processing. */
+
+EXTERN a_mem_alloc_history_number
+		mem_alloc_history_entries_used /* = 0*/;
+			/* The number of entries in the mem_alloc_history
+			   array for which the associated memory is
+			   actually in use by the compilation. */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
 TRUE if a new PCH may be created containing the information currently

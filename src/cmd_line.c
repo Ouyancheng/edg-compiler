@@ -45,9 +45,6 @@ that map to the same option kind.
 */
 typedef struct an_option_description *an_option_description_ptr;
 typedef struct an_option_description {
-  an_option_description_ptr
-		next;
-			/* Pointer to the next entry in the linked list. */
   an_option_kind
 		kind;
 			/* Code that indicates the action to be taken
@@ -55,19 +52,21 @@ typedef struct an_option_description {
   char		*keyword;
 			/* The keyword option used to specify this option.
 			   May be NULL if a keyword option may not be used. */
-  sizeof_t	keyword_length;
-			/* Length of the keyword (not including the null
-			   terminator). */
   char		letter;
 			/* A single character that may be used to specify
 			   this option.  May be the null character if
 			   a single character option may not be used. */
-  a_boolean	value;
+  a_byte_boolean
+	       	value;
 			/* TRUE if the option is used to enable the
 			   option, FALSE if it should disable it. */
-  a_boolean	arg_required;
+  a_byte_boolean
+	       	arg_required;
 			/* TRUE if this option requires that an argument be
 			   specified. */
+  sizeof_t	keyword_length;
+			/* Length of the keyword (not including the null
+			   terminator). */
   a_pch_event_kind
 		pch_event_kind;
 			/* Indicates how a given command line is to be
@@ -75,9 +74,20 @@ typedef struct an_option_description {
 			   prefix matching. */
 } an_option_description;
 
-static an_option_description_ptr
-		option_descriptions;
+#define SIZE_OF_OPTION_DESCRIPTIONS ((int)optk_last + (int)optk_last/3)
+ 			/* The number of entries in the option descriptions
+			   array.  This is larger than the number of options
+			   because some options have entries to both enable
+			   and disable the option.  Also, it is possible
+			   to have synonyms for options. */
+
+static an_option_description
+		option_descriptions[SIZE_OF_OPTION_DESCRIPTIONS];
 			/* Pointer to a linked list of option descriptions. */
+
+static int	option_descriptions_used = 0;
+			/* The number of entries that are used in the option
+			   description array. */
 
 static a_byte_boolean
 		option_kind_used[(int)optk_last+1];
@@ -107,31 +117,42 @@ be compared with a similar argument for precompiled header prefix
 matching.
 */
 {
+  int				option_description_number;
   an_option_description_ptr	odp;
-
 #if CHECKING
-  /* Make sure the option keyword and/or letter are not already in use. */
-  for (odp = option_descriptions; odp != NULL; odp = odp->next) {
-    if ((keyword != NULL && strcmp(keyword, odp->keyword) == 0) ||
-        (letter != '\0' && letter == odp->letter)) {
-      unexpected_condition_str2("add_option_description:",
-                                "duplicate option keyword or letter");
-    }  /* if */
-  }  /* for */
+  {
+    int	n;
+    /* Make sure the option keyword and/or letter are not already in use. */
+    for (n = 0; n < option_descriptions_used; ++n) {
+      odp = &option_descriptions[n];
+      if ((keyword != NULL && strcmp(keyword, odp->keyword) == 0) ||
+          (letter != '\0' && letter == odp->letter)) {
+        unexpected_condition_str2("add_option_description:",
+                                  "duplicate option keyword or letter");
+      }  /* if */
+    }  /* for */
+  }
 #endif /* CHECKING */
   /* alloc_general is called (rather than alloc_fe) because the general
      mem_manage.c routines are not yet initialized. */
-  odp = (an_option_description_ptr)alloc_general
-                                              (sizeof(an_option_description));
-  odp->next = option_descriptions;
-  option_descriptions = odp;
-  odp->kind = kind;
-  odp->keyword = keyword;
-  odp->keyword_length = keyword == NULL ? 0 : strlen(keyword);
-  odp->letter = letter;
-  odp->value = value;
-  odp->arg_required = arg_required;
-  odp->pch_event_kind = pch_event_kind;
+  option_description_number = option_descriptions_used++;
+  if (option_description_number == SIZE_OF_OPTION_DESCRIPTIONS) {
+    /* There are more entries than fit in the array. */
+#if DEBUG
+    fprintf(f_debug, "Too many options descriptions.  Current limit is %0d\n",
+            SIZE_OF_OPTION_DESCRIPTIONS);
+#endif /* DEBUG */
+    unexpected_condition();
+  } else {
+    odp = &option_descriptions[option_description_number];
+    odp->kind = kind;
+    odp->keyword = keyword;
+    odp->keyword_length = keyword == NULL ? 0 : strlen(keyword);
+    odp->letter = letter;
+    odp->value = value;
+    odp->arg_required = arg_required;
+    odp->pch_event_kind = pch_event_kind;
+  }  /* if */
 }  /* add_option_description */
 
 
@@ -327,6 +348,11 @@ Initialize the option information table.
   add_option_description(optk_pch_messages, "no_pch_messages",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+  add_option_description(optk_pch_mem, "pch_mem",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 }  /* initialize_option_descriptions */
 
 
@@ -343,8 +369,10 @@ to is the option letter.
 {
   an_option_description_ptr	odp;
   a_boolean			match = FALSE;
+  int				n;
 
-  for (odp = option_descriptions; odp != NULL; odp = odp->next) {
+  for (n = 0; n < option_descriptions_used; ++n) {
+    odp = &option_descriptions[n];
     if (is_keyword_option) {
       match = odp->keyword != NULL &&
               keyword_length == odp->keyword_length &&
@@ -354,6 +382,7 @@ to is the option letter.
     }  /* if */
     if (match) break;
   }  /* for */
+  if (!match) odp = NULL;
   /* Record the fact that this option kind has been used. */
   if (odp != NULL) option_kind_used[(int)odp->kind] = TRUE;
   return odp;
@@ -667,6 +696,7 @@ Process the arguments on the command line that invoked the compiler.
   a_boolean			bad_name;
   char				*instantiation_mode_string = NULL;
   a_directory_name_entry_ptr	include_path_boundary = NULL;
+  a_boolean			non_pch_option_used = FALSE;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -701,12 +731,42 @@ Process the arguments on the command line that invoked the compiler.
   while ((odp = get_option(argc, argv)) != NULL) {
     an_option_kind	kind = odp->kind;
     a_boolean		opt_value = odp->value;
+    a_boolean		is_pch_option;
     /* Record information about this option for precompiled header
        processing. */
     if (odp->pch_event_kind != pchek_none) {
       add_command_line_pch_event(odp->pch_event_kind, kind, opt_value,
                                  optarg);
     }  /* if */
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+    /* See if this is a PCH option. */
+    switch (kind) {
+      case optk_create_pch:
+      case optk_use_pch:
+      case optk_pch:
+      case optk_pch_messages:
+      case optk_pch_mem:
+        is_pch_option = TRUE;
+        break;
+      default:
+        is_pch_option = FALSE;
+        break;
+    }  /* switch */
+    /* When using preallocated memory for PCH processing, the PCH options
+       must be first on the command line. */
+    if (non_pch_option_used && is_pch_option) {
+      /* The PCH options must precede all other options. */
+      command_line_error(ec_cl_pch_must_be_first);
+    }  /* if */
+    if (!non_pch_option_used && !is_pch_option) {
+      /* When we have processed all of the PCH options, do the preallocation
+         of the PCH memory. */
+      if (precompiled_header_processing_required) {
+        preallocate_pch_memory();
+      }  /* if */
+      non_pch_option_used = TRUE;
+    }  /* if */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
     switch (kind) {
       case optk_strict_ansi_error:
       case optk_strict_ansi_warning:
@@ -1055,11 +1115,33 @@ Process the arguments on the command line that invoked the compiler.
         /* Enable or suppress PCH messages. */
         suppress_pch_messages = !opt_value;
         break;
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+      case optk_pch_mem:
+        /* Specify the size of the preallocated memory to be used for
+           PCH processing.  The value specified on the command line is
+           size in 1k (1024) units to be allocated. */
+        pch_mem_size = scan_optarg_number(optarg) * 1024;
+        if (pch_mem_size <= 0 ||
+            pch_mem_size > (SIZE_OF_MEM_ALLOC_HISTORY *
+                                                 HOST_ALLOCATION_INCREMENT)) {
+          str_command_line_error(ec_cl_invalid_pch_size, optarg);
+        }  /* if */
+        break;
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
     }  /* switch */
   }  /* while */
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+    if (!non_pch_option_used) {
+      /* If all of the command line options are PCH options, then the PCH
+         memory may not have been allocated yet. */
+      if (precompiled_header_processing_required) {
+        preallocate_pch_memory();
+      }  /* if */
+    }  /* if */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   /* Check for the use of C++ options when the dialect being compiled
      is not C++. */
   if (C_dialect != C_dialect_cplusplus) {
@@ -1188,6 +1270,9 @@ Process the arguments on the command line that invoked the compiler.
        one file. */
     if (ofile_name != NULL || f_raw_listing != NULL || f_xref_info != NULL) {
       command_line_error(ec_cl_output_file_incompatible_with_multiple_inputs);
+    }  /* if */
+    if (precompiled_header_processing_required) {
+      command_line_error(ec_cl_pch_incompatible_with_multiple_inputs);
     }  /* if */
   }  /* if */
 #else /* !COMPILE_MULTIPLE_SOURCE_FILES */

@@ -95,6 +95,9 @@ typedef enum /*an_option_kind*/ {
   optk_use_pch,
   optk_pch,
   optk_pch_messages,
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+  optk_pch_mem,
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -403,6 +406,9 @@ EXTERN a_boolean
 			/* TRUE if messages regarding the creation and
 			   use of precompiled header files should be
 			   suppressed. */
+
+EXTERN sizeof_t	pch_mem_size;
+			/* Size of the preallocated PCH memory area. */
 
 
 /* Process the command line arguments. */

@@ -68,26 +68,12 @@ static a_mem_block_header_ptr
 			   are actually freed with free. */
 
 static a_boolean
-		okay_to_free_mem_blocks = TRUE;
+		okay_to_free_mem_blocks = !USE_MMAP_FOR_MEMORY_REGIONS;
 			/* TRUE if it is okay to free (using free())
 			   memory region blocks that are no longer needed.
 			   This is set FALSE if other memory (for example,
 			   mmap memory) is being used for memory region
 			   blocks. */
-
-#if 0
-static a_boolean
-		use_initialization_memory = TRUE;
-			/* TRUE if we are currently executing initialization
-			   code.  Specifically, this is code that is executed
-			   prior to determining whether to reload the
-			   compiler state from a precompiled header file. */
-#endif /* 0 */
-
-static a_boolean
-		record_malloc_history;
-			/* TRUE if we need to record a list of malloc
-			   calls that are made for PCH processing. */
 
 
 /*
@@ -163,6 +149,7 @@ Add an entry to the memory allocation history array.
 {
   a_mem_alloc_history_ptr	mahp;
   db_enter(5, "add_mem_alloc_history_entry");
+#if USE_MMAP_FOR_MEMORY_REGIONS
   if (num_of_mem_alloc_history_entries == size_of_mem_alloc_history) {
     /* There is no more space in the array, allocate a larger array. */
     a_mem_alloc_history_number	old_size;
@@ -175,6 +162,13 @@ Add an entry to the memory allocation history array.
 	                   (sizeof_t)(old_size * sizeof(a_mem_alloc_history)),
 		           (sizeof_t)(new_size * sizeof(a_mem_alloc_history)));
   }  /* if */
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  if (num_of_mem_alloc_history_entries == SIZE_OF_MEM_ALLOC_HISTORY) {
+    /* This condition should be handled by the caller. */
+    unexpected_condition_str2("add_mem_alloc_history_entry:",
+			      "too many memory history entries");
+  }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   mahp = &mem_alloc_history[num_of_mem_alloc_history_entries++];
   mahp->addr = addr;
   mahp->size = size;
@@ -211,9 +205,6 @@ allocation and generates a catastrophic error.
                      (unsigned long)total_mem_allocated);
   }  /* if */
 #endif /* DEBUG */
-  if (record_malloc_history) {
-    add_mem_alloc_history_entry((a_void_ptr)ptr, size);
-  }  /* if */
   db_exit();
   return (ptr);
 }  /* malloc_with_check */
@@ -233,12 +224,6 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
 {
   char *ptr;
 
-#if 0
-#else /* !0 */
-  /* History tracking of reallocated blocks is not yet implemented. */
-  check_assertion_str(!record_malloc_history,
-                      "realloc history not implemented");
-#endif /* 0 */
   /* Don't count on realloc allowing a first parameter of NULL to imply
      malloc-like behavior.  The SVID doesn't define realloc that way. */
   if (old_ptr == NULL) {
@@ -264,6 +249,52 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
   }  /* if */
   return (ptr);
 }  /* realloc_with_check */
+
+
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+void preallocate_pch_memory(void)
+/*
+Preallocate the memory to be used for PCH memory region storage when
+memory mapping is not available.  The command line processing routine
+is responsible for making sure that pch_mem_size is not large enough
+to cause the memory allocation history table to overflow.
+*/
+{
+  sizeof_t			size_allocated = 0;
+
+  /* If no value was provided on the command line, use the default value. */
+  if (pch_mem_size == 0) pch_mem_size = DEFAULT_PREALLOCATED_PCH_MEM_SIZE;
+  while (size_allocated < pch_mem_size) {
+    a_void_ptr	ptr;
+    ptr = (a_void_ptr)malloc(HOST_ALLOCATION_INCREMENT);
+    if (ptr == NULL) {
+      catastrophe(ec_out_of_memory_during_pch_allocation);
+    }  /* if */
+    size_allocated += HOST_ALLOCATION_INCREMENT;
+    add_mem_alloc_history_entry(ptr, HOST_ALLOCATION_INCREMENT);
+  }  /* while */
+}  /* preallocate_pch_memory */
+
+
+void free_unused_pch_memory(void)
+/*
+We have completed any PCH processing that is required.  Release any
+preallocated memory that has not been used.
+*/
+{
+  a_mem_alloc_history_number	n;
+
+  /* Free any unused preallocated blocks. */
+  for (n = mem_alloc_history_entries_used;
+       n < num_of_mem_alloc_history_entries; ++n) {
+    (void)free(mem_alloc_history[n].addr);
+  }  /* for */
+  /* Set the number of entries in existence to the number used so far.
+     This will cause any new memory blocks to malloc new memory instead
+     of trying to use the preallocated memory. */
+  num_of_mem_alloc_history_entries = mem_alloc_history_entries_used;
+}  /* free_unused_pch_memory */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
@@ -306,12 +337,60 @@ PCH was created.
   mmap_size_allocated += size;
   /* Record this allocation in the memory allocation history array. */
   add_mem_alloc_history_entry(addr, size);
+  /* The number of entries actually used is always the same as the
+     number of entries that exist in mmap mode. */
+  mem_alloc_history_entries_used = num_of_mem_alloc_history_entries;
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "Allocated %lu bytes of mapped memory at %p\n",
             (unsigned long)size, addr);
   }  /* if */
 #endif /* DEBUG */
+  return addr;
+}  /* alloc_new_mem_block */
+
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+
+a_void_ptr alloc_new_mem_block(sizeof_t size)
+/*
+Allocate a block of memory to be used for memory region storage.  This
+version uses a fixed block of memory allocated at the beginning of
+the compilation.  This is done to maximize the probability that
+the memory addresses used in one compilation will match the addresses
+used in a subsequent compilation, which is necessary when using
+precompiled headers.  When the preallocated memory is exhausted,
+additional memory is obtained using malloc and any use of
+precompiled headers is suppressed.
+*/
+{
+  a_void_ptr		addr;
+  static a_boolean	additional_allocation_needed = FALSE;
+  a_boolean		not_enough_memory;
+
+  not_enough_memory = mem_alloc_history_entries_used ==
+                                          num_of_mem_alloc_history_entries;
+  if (!additional_allocation_needed &&
+      (not_enough_memory || size != HOST_ALLOCATION_INCREMENT)) {
+    a_mem_alloc_history_number	n;
+    /* We have either exhausted the preallocated memory, or a block size
+       has been requested that we can't satisfy. */
+    additional_allocation_needed = TRUE;
+    suppress_creation_of_pch();
+    /* Free any unused preallocated blocks. */
+    for (n = mem_alloc_history_entries_used;
+         n < num_of_mem_alloc_history_entries; ++n) {
+      (void)free(mem_alloc_history[n].addr);
+    }  /* for */
+  }  /* if */
+  if (additional_allocation_needed) {
+    /* On this call, or a previous call, we needed to use memory other
+       than that was preallocated.  All subsequent allocations should
+       just be done by malloc. */
+    addr = (a_void_ptr)malloc_with_check(size);
+  } else {
+    /* Get the next entry from the preallocated list. */
+    addr = mem_alloc_history[mem_alloc_history_entries_used++].addr;
+  }  /* if */
   return addr;
 }  /* alloc_new_mem_block */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
@@ -379,11 +458,11 @@ Return a pointer to the block header.
      ever be used). */
   do_host_alignment(alloc_size);
 #if USE_MMAP_FOR_MEMORY_REGIONS
+  /* When using mmap, make sure the size is a multiple of the host
+     page size. */
   alloc_size = do_page_alignment(alloc_size);
-  alloc_addr = alloc_new_mem_block(alloc_size);
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  alloc_addr = malloc_with_check(alloc_size);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  alloc_addr = alloc_new_mem_block(alloc_size);
   /* Fill in the block header. */
   hdr = (a_mem_block_header_ptr)alloc_addr;
   /* malloc_size non-zero indicates that this block came directly from
@@ -908,7 +987,6 @@ of the front end.
 #endif /* DEBUG */
   /* If we are not allocating the memory regions in special memory
      mapped area, then we need to record all malloc calls. */
-  record_malloc_history = !USE_MMAP_FOR_MEMORY_REGIONS;
 #if USE_MMAP_FOR_MEMORY_REGIONS
   mmap_initialized = FALSE;
   mmap_size_allocated = 0;
