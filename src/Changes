@@ -1,5 +1,22 @@
 Version 2.46
 
+1/10/02  Abort on ambiguous conversion template reference
+
+An abort could occur on an explicit call of an ambiguous conversion template
+when the class in which the lookup is done is different from the class
+in which the conversion function is declared, and the two classes have
+different template parameter lists.  This has been fixed.
+
+  struct Z { } ; 
+  template < class T > struct A { 
+    template < class S > operator S () { return S () ; } 
+  }; 
+  template <class T1, class T2> struct B : public A<T1>, public A<T2> { } ; 
+  int main() {
+    B<int, char> b;
+    b.operator Z ();
+  }
+
 1/6/02   Removal of unneeded entities, default arguments in pointers to
          functions
 

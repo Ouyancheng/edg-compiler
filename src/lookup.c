@@ -2067,16 +2067,15 @@ that do normal id lookup processing.
 
 static a_symbol_ptr find_conversion_template_instance(
 			a_symbol_locator		*locator,
-                        a_type_ptr			class_type,
 			a_symbol_list_entry_ptr		conversion_templates)
 /*
-locator is a symbol locator for a conversion function.  conversion_templates
-is a list of conversion templates for the class in which the lookup
-is being done.  class_type is the type in which the lookup is being done.
-Go through the conversion template list and find any templates that
-can supply an appropriate conversion function.  Return the symbol for
-the matching function.  If more than one match is found, create an
-ambiguous symbol and return a pointer.  If no match is found, return NULL.
+locator is a symbol locator for a conversion function.
+conversion_templates is a list of conversion templates for the class
+in which the lookup is being done.  Go through the conversion template
+list and find any templates that can supply an appropriate conversion
+function.  Return the symbol for the matching function.  If more than
+one match is found, create an ambiguous symbol and return a pointer.
+If no match is found, return NULL.
 */
 {
   a_symbol_list_entry_ptr	slep;
@@ -2152,7 +2151,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
                              result_sym->header,
                              &locator->source_position);
       set_class_membership(new_sym, (a_source_correspondence*)NULL,
-                           class_type);
+                           result_sym->parent.class_type);
       new_sym->ambiguous = TRUE;
       new_sym->variant.routine.ptr = result_sym->variant.routine.ptr;
       new_sym->variant.routine.instance_ptr =
@@ -2217,7 +2216,7 @@ the ck_template_param constant.
     /* A normal (nondependent) context.  Try to find a matching
        template conversion instance. */
     result_sym = find_conversion_template_instance(
-                          locator, class_type, cssp->conversion_template_list);
+                          locator, cssp->conversion_template_list);
   }  /* if */
   return result_sym;
 }  /* look_up_conversion_template_instance */
