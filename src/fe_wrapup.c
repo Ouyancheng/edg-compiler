@@ -88,7 +88,7 @@ Do any processing that is required at the end of a translation unit
                                    curr_stop_token_stack_entry->stop_tokens);
 #endif /* CHECKING */
 
-  if (is_primary_translation_unit) {
+  if (is_primary_translation_unit && !do_preprocessing_only) {
     /* Do any template instantiation that may be required.  This is called
        first because it may generate additional function bodies and class
        definitions that need to be processed by the operations that follow. */
@@ -101,7 +101,8 @@ Do any processing that is required at the end of a translation unit
   /* If this is a secondary translation unit, establish any IL
      correspondences.  (If there were errors, the IL may be too
      damaged for reasonable results.) */
-  if (!is_primary_translation_unit && total_errors == 0) {
+  if (!is_primary_translation_unit && !do_preprocessing_only &&
+      total_errors == 0) {
     set_trans_unit_correspondences();
   }  /* if */
 

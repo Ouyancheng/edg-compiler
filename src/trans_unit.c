@@ -280,8 +280,8 @@ treated as separate translation units of a single compilation.
     }  /* if */
     fe_init_part_2();
     translation_unit();
-    translation_unit_wrapup();
   }  /* if */
+  translation_unit_wrapup();
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
   /* Process any secondary translation units specified on the command line. */
   proc_secondary_translation_units();

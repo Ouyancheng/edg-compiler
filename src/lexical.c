@@ -12408,6 +12408,7 @@ Initialize variables that are specific to a given translation unit.
   /* The following variable is declared in decls.h, but initialized here
      since it is related to tokenization. */
   next_token_is_top_level_decl_start = FALSE;
+  include_file_history_list = NULL;
 }  /* lexical_trans_unit_init */
 
 
@@ -12435,7 +12436,6 @@ of the front end.
   avail_stop_token_stack_entries = NULL;
   avail_pending_pragmas = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
-  include_file_history_list = NULL;
 #if TOKENS_TO_STRING_NEEDED
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);
