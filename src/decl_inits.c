@@ -2518,8 +2518,10 @@ are created by a new expression (in which case sym is NULL).  In both cases
           }  /* if */
         }  /* if */
       } else {
-        /* Uninitialized const new-object. */
-        error(ec_missing_initializer_on_unnamed_const);
+        /* Uninitialized const new-object.  Issue a warning.  (One can infer
+           from the ARM that an error is required, but it's not explicit.
+           Until the language definition is improved, we'll let it by.) */
+        warning(ec_missing_initializer_on_unnamed_const);
       }  /* if */
     } else if (is_class_struct_union_type(type) &&
                (vp == NULL ||
@@ -2565,8 +2567,10 @@ are created by a new expression (in which case sym is NULL).  In both cases
                             ec_var_with_uninitialized_field,
                             &sym->decl_position, sym);
         } else {
-          /* New object -- there's no name to display. */
-          error(ec_unnamed_object_with_uninitialized_field);
+          /* New object -- there's no name to display.  Again, just issue
+             a warning (until the language definition is clearer about this
+             kind of case). */
+          warning(ec_unnamed_object_with_uninitialized_field);
         }  /* if */
       }  /* if */
     }  /* if */
