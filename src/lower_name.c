@@ -1049,7 +1049,6 @@ the type, for the IA-64 ABI.
 }  /* add_prefix_for_local_type */
 
 #endif /* IA64_ABI */
-#if !IA64_ABI
 
 /*
 Information about a spot where space was reserved by
@@ -1126,7 +1125,6 @@ information returned from that call.
   mctl->num_leftover_spaces -= length_length;
 }  /* fill_in_length */
 
-#endif /* !IA64_ABI */
 
 static void mangled_encoding_for_type_qualifiers(
                                            a_type_qualifier_set     qualifiers,
@@ -5934,32 +5932,20 @@ a virtual function table.  The name describes the base class given by bcp.
 */
 {
   a_derivation_step_ptr dsp;
-#if !IA64_ABI
   a_length_reservation  length_reservation;
-#endif /* !IA64_ABI */
 
-  /* The form of the name is (for the Cfront-like ABI) like
+  /* The form of the name is like
        4abcd
      or
        8abcd__ef  (this for base class "abcd" in "ef")
      For virtual base classes, or nonvirtual base classes within virtual
      base classes, the first step is directly to the virtual base class.
-
-     For the IA-64 ABI, the name is like
-       4abcd__2ef
-     (This is not part of the ABI spec, because the names of the tables
-     pointed to by the VTT are not prescribed.)
   */
   dsp = cast_derivation_path_of(bcp);
-#if !IA64_ABI
-  /* Put out the name length. */
+  /* Put out the name length and the name. */
   reserve_space_for_length(&length_reservation, mctl);
-#endif /* !IA64_ABI */
-  /* Put out the sequence of base class names for the derivation. */
   mangled_derivation_name(dsp, mctl);
-#if !IA64_ABI
   fill_in_length(&length_reservation, mctl);
-#endif /* !IA64_ABI */
   if (bcp->ambiguous) {
     /* Ambiguous base classes get a suffix to differentiate the different
        like-named base classes. */
@@ -6074,9 +6060,6 @@ be copied elsewhere.
     /* There is a complete class type, so the name looks like
        __vtbl__<mangled-base-class-name>__<mangled-base-class-name>
                                         __<mangled-complete-class-name>
-       Or, in the IA-64 ABI,
-       _ZTV<mangled-base-class-name>__<mangled-base-class-name>
-                                    __<mangled-complete-class-name>
     */
     /* Add the second base class name. */
     mangled_vtbl_base_class_name(ctor_bcp, &mctl);
