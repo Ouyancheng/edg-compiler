@@ -11579,7 +11579,8 @@ with the outermost enclosing class, for later promotion out of the class
     a_type_ptr last_class_type;
     a_type_ptr routine_class = NULL;
 
-    if (routine->source_corresp.is_class_member) {
+    if (routine->source_corresp.is_class_member &&
+        !routine->defined_outside_of_parent) {
       routine_class = routine->source_corresp.parent.class_type;
       /* Promoting out of a member function.  Get the promoted_local_types
          list. */
