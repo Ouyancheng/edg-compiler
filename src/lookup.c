@@ -2643,12 +2643,13 @@ that do normal id lookup processing.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (ref_sym != NULL && def_sym != NULL) {
+  if (ref_sym != NULL && def_sym != NULL && ref_sym != def_sym) {
     /* Both symbols are present.  Merge the results. */
     sym = merge_instantiation_lookup_symbols(ref_sym, def_sym, locator,
                                              lookup_state);
   } else if (ref_sym != NULL) {
-    /* Only ref_sym is non-NULL. Return that value. */
+    /* Only ref_sym is non-NULL (or both symbols are the same). Return that
+       value. */
     sym = ref_sym;
   } else if (def_sym != NULL) {
     /* Only def_sym is non-NULL. Return that value. */

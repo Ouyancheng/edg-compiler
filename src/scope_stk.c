@@ -5605,16 +5605,21 @@ the class symbol supplement points to the partial specialization).
   /* Get the template declaration information associated with the class. */
   tssp = template_supplement_for_symbol(template_sym);
   decl_info = cache_for_template(tssp)->decl_info;
-  if (is_microsoft_specialization_scope && !sun_mode) {
+  if (is_microsoft_specialization_scope) {
     /* When pushing a Microsoft specialization scope, don't do the full
-       instantiation scope processing.  This is done because the enclosing
-       scopes should be visible for these cases (Microsoft specialization
-       scopes are pushed for class scopes for explicitly specialized classes,
-       and for class reactivation scopes for all template classes).  In
-       Sun mode do the normal processing.  This has the effect of making
-       the class's template parameters visible while possibly hiding
-       a set of template parameters that really should have been used
-       (as in the case of a definition of a member of a class template). */
+       instantiation scope processing.  This is done because the
+       enclosing scopes should be visible for these cases (Microsoft
+       specialization scopes are pushed for class scopes for
+       explicitly specialized classes, and for class reactivation
+       scopes for all template classes).  This has the effect of
+       making the class's template parameters visible while possibly
+       hiding a set of template parameters that really should have
+       been used (as in the case of a definition of a member of a
+       class template).  The Microsoft compiler actually has two sets
+       of parameters visible (the incorrect ones and then the correct
+       ones).  The Sun compiler has only the wrong ones visible, but
+       we don't emulate that exactly (we do the same as in Microsoft
+       mode). */
     if (class_type->source_corresp.is_class_member) {
       /* Reactivate the parent class. */
       a_type_ptr	parent_class;
