@@ -780,11 +780,16 @@ is actually the first token to not be included in the cache.
 }  /* copy_tokens_from_cache */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- because "inside_microsoft_mode" is only used
+                    in Microsoft mode. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static
 a_boolean cache_token_stream_until_matching_token(
 				a_token_cache		*cache,
                                 a_boolean		coalesce_ids,
-				a_token_sequence_number last_tsn_in_cache)
+				a_token_sequence_number last_tsn_in_cache,
+				a_boolean		inside_microsoft_asm)
 /*
 Given curr_token of '(', '[', or '{', copy tokens into the token cache
 specified by cache up to but not including the corresponding closing token,
@@ -800,6 +805,9 @@ be coalesced.  This should be done when the stop token set includes
 tokens that can appear in an expression, which means that the
 caching process must be able to determine whether a "<" starts
 a template argument list or is just a less-than sign.
+
+inside_microsoft_asm is TRUE when this routine is called recursively to
+scan the tokens in a Microsoft __asm block.
 */
 {
   a_token_kind  closing_token;
@@ -833,6 +841,12 @@ a template argument list or is just a less-than sign.
 		   brace_count != 0)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean	is_asm_block;
+    if (inside_microsoft_asm && curr_token == tok_semicolon) {
+      /* Discard asm comments. */
+      while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+        (void)get_token();
+      }  /* while */
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Never scan past a zero level right brace.  This prevents
        caching past the end of a class or function in the event of
@@ -862,8 +876,9 @@ a template argument list or is just a less-than sign.
       if (curr_token == tok_lbrace) {
         /* Call this routine recursively to scan the brace enclosed asm
            block. */
-        error = cache_token_stream_until_matching_token(cache, coalesce_ids,
-                                                        last_tsn_in_cache);
+        error = cache_token_stream_until_matching_token(
+                                        cache, coalesce_ids, last_tsn_in_cache,
+                                        /*inside_microsoft_asm=*/TRUE);
         if (error) {
           /* Switch out of pp-token mode. */
           in_asm_block_or_function = FALSE;
@@ -875,6 +890,14 @@ a template argument list or is just a less-than sign.
            newline or a right brace. */
         while (curr_token != tok_newline && curr_token != tok_rbrace &&
                curr_token != tok_end_of_source) {
+          if (curr_token == tok_semicolon) {
+            /* Discard asm comments. */
+            while (curr_token != tok_newline &&
+                   curr_token != tok_end_of_source) {
+              (void)get_token();
+            }  /* while */
+            continue;
+          }  /* if */
           if (!coalesce_ids) cache_curr_token(cache);
           get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
         }  /* while */
@@ -1001,8 +1024,8 @@ be copies to the new cache.
      ')', ']', or '}' is reached. */
   while (stop_tokens[(int)curr_token] == 0) {
     a_boolean	error;
+    a_boolean	is_asm_block = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean	is_asm_block;
     a_boolean	one_line_asm;
     /* Check for the start of a Microsoft-style asm block.  This can
        take one of two forms:
@@ -1024,8 +1047,9 @@ be copies to the new cache.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace) {
-      error = cache_token_stream_until_matching_token(cache, coalesce_ids,
-                                                      last_tsn_in_cache);
+      error = cache_token_stream_until_matching_token(
+                                        cache, coalesce_ids, last_tsn_in_cache,
+                                        is_asm_block);
       if (error) break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_asm_block) {
@@ -1033,6 +1057,14 @@ be copies to the new cache.
          newline or a right brace. */
       while (curr_token != tok_newline && curr_token != tok_rbrace &&
              curr_token != tok_end_of_source) {
+        if (curr_token == tok_semicolon) {
+          /* Discard asm comments. */
+          while (curr_token != tok_newline &&
+                 curr_token != tok_end_of_source) {
+            (void)get_token();
+          }  /* while */
+          continue;
+        }  /* if */
         if (!coalesce_ids) cache_curr_token(cache);
         get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
       }  /* while */

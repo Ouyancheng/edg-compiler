@@ -1,5 +1,11 @@
 Version 2.38
 
+12/4/97   Comments in Microsoft asm statements
+
+Comments in Microsoft asm statements are now discarded.  Previously,
+delimiters, such as braces, in Microsoft asm statements could cause
+parsing problems.
+
 12/4/97   C++-generating back end: vacuous destructor calls
 
 The "destructor name" part of a vacuous destructor call should not be

@@ -107,9 +107,9 @@ the opening brace; when it is FALSE the current token is the first token
 of the asm instruction.
 */
 {
-  unsigned int     nbrace = 1;
-  char             *body;
-  a_token_cache	   asm_cache;
+  unsigned int		nbrace = 1;
+  char			*body;
+  a_token_cache		asm_cache;
 
   db_enter(3, "scan_asm_block");
   clear_token_cache(&asm_cache, /*reusable=*/FALSE);
@@ -131,6 +131,12 @@ of the asm instruction.
        to terminate this loop -- if is_asm_block is TRUE, stop when
        a zero-level right brace is reached; otherwise, stop when tok_newline
        or tok_rbrace is reached. */
+    if (curr_token == tok_semicolon) {
+      /* Discard asm comments. */
+      while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+        (void)get_token();
+      }  /* while */
+    }  /* if */
     if (is_asm_block) {
       /* Keep track of braces. */
       if (curr_token == tok_rbrace && --nbrace == 0) {
