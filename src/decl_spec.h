@@ -113,7 +113,6 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 			/* If this bit is set "asm" is recognized as a decl-
 			   specifier.  Used only when ASM_FUNCTION_ALLOWED is
 			   TRUE. */
-			/*lint -esym(755,DSI_ASM_ALLOWED)*/
 #define DSI_IS_LINKAGE_SPEC_DECL ((a_decl_flag_set)0x4000)
 			/* If this bit is set the declaration belongs to
 			   a non-brace-enclosed linkage specification. */

@@ -1670,8 +1670,8 @@ Display the difference in CPU time and elapsed time between two timers.
 
 /*
 Change to the specified directory, make sure the operation succeeded.
+Not used in some configurations.
 */
-/*lint -esym(750,chdir_with_check)*/ /* <-- not used in some configurations. */
 #define chdir_with_check(dir_name) \
 { if (chdir(dir_name) != 0) { \
     str_catastrophe(ec_cannot_chdir, (dir_name)); \
@@ -2002,8 +2002,6 @@ Routines used by lower_init.c and c_gen_be.c to generate module IDs
 used to create unique external names.
 */
 
-/*lint -esym(759,change_non_id_characters)*/
-/*lint -esym(765,change_non_id_characters)*/
 void change_non_id_characters(char *str)
 /*
 Change any non-identifier characters in the indicated string to underscores.

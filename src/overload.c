@@ -8741,8 +8741,6 @@ initializer has previously been found to be acceptable, and
 }  /* prep_initializer_operand */
 
 
-/*lint -esym(759,prep_arg_passed_via_copy_constructor)*/
-/*lint -esym(765,prep_arg_passed_via_copy_constructor)*/
 void prep_arg_passed_via_copy_constructor(an_operand    *source_operand,
                                           a_type_ptr    param_type,
                                           a_conv_descr  *conversion,

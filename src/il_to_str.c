@@ -508,8 +508,6 @@ way described by octl.
 
 #ifdef CFE
 
-/*lint -esym(759,form_type_qualifier)*/
-/*lint -esym(765,form_type_qualifier)*/
 void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_boolean                             need_trailing_space,
@@ -1585,8 +1583,6 @@ the way described by octl.
 }  /* form_pm_derived_casts */
 
 
-/*lint -esym(759,form_pm_constant)*/
-/*lint -esym(765,form_pm_constant)*/
 void form_pm_constant(a_constant_ptr                        constant,
                       a_boolean                             minimal_casts,
                       a_boolean                             need_parens,
@@ -2716,8 +2712,6 @@ confusion.  Do the output in the way described by octl.
 }  /* form_constant */
 
 
-/*lint -esym(759,form_lvalue_address_constant)*/
-/*lint -esym(765,form_lvalue_address_constant)*/
 void form_lvalue_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             need_parens,

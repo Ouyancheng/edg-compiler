@@ -10720,8 +10720,6 @@ corresponds to *entity.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-/*lint -esym(759,type_from_src_seq_declaration)*/
-/*lint -esym(765,type_from_src_seq_declaration)*/
 a_type_ptr type_from_src_seq_declaration(a_source_sequence_entry_ptr ssep)
 /*
 ssep points to a source sequence entry.  If it points to a normal declaration

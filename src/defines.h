@@ -331,6 +331,33 @@ switches before this point.
 /* Options for FlexeLint. */
 /*lint -esym(767,fread_with_check)*/
 /*lint -esym(756,a*_dummy_typedef)*/
+/* Entities used only in certain configurations: */
+/*lint -esym(755,DSI_ASM_ALLOWED)*/
+/*lint -esym(750,chdir_with_check)*/
+/*lint -esym(759,change_non_id_characters)*/
+/*lint -esym(765,change_non_id_characters)*/
+/*lint -esym(759,type_from_src_seq_declaration)*/
+/*lint -esym(765,type_from_src_seq_declaration)*/
+/*lint -esym(759,form_type_qualifier)*/
+/*lint -esym(765,form_type_qualifier)*/
+/*lint -esym(759,form_pm_constant)*/
+/*lint -esym(765,form_pm_constant)*/
+/*lint -esym(759,form_lvalue_address_constant)*/
+/*lint -esym(765,form_lvalue_address_constant)*/
+/*lint -esym(759,alloc_new_mem_block)*/
+/*lint -esym(765,alloc_new_mem_block)*/
+/*lint -esym(759,alloc_mem_block)*/
+/*lint -esym(765,alloc_mem_block)*/
+/*lint -esym(759,init_memory_region_without_initial_allocation)*/
+/*lint -esym(765,init_memory_region_without_initial_allocation)*/
+/*lint -esym(759,trim_memory_region)*/
+/*lint -esym(765,trim_memory_region)*/
+/*lint -esym(759,prep_arg_passed_via_copy_constructor)*/
+/*lint -esym(765,prep_arg_passed_via_copy_constructor)*/
+/*lint -esym(759,make_predeclared_function_symbol)*/
+/*lint -esym(765,make_predeclared_function_symbol)*/
+/*lint -esym(759,check_target_configuration)*/
+/*lint -esym(765,check_target_configuration)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *
