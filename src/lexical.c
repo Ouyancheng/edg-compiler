@@ -10417,6 +10417,8 @@ list.
   char			*end;
   a_file_suffix_ptr	list_fsp = NULL;
 
+  /* Skip over an initial ":" in the string. */
+  if (*ptr == ':') ptr++;
   while (*ptr) {
     /* Skip of any spaces. */
     while (*ptr == ' ') ptr++;
