@@ -4205,7 +4205,7 @@ a diagnostic is put out in some cases.
     call_node = error_node();
     goto done;
   } /* if */
-  if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
+  if (rp != NULL) {
     /* We know which routine is being called. */
     if (curr_expr_is_potentially_evaluated()) {
       /* It is being called. */
