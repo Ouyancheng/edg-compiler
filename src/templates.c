@@ -2009,7 +2009,7 @@ Display the contents of list of template cache segment entries.
 
 static
 a_template_cache_segment_ptr map_token_numbers_to_cache_pointers(
-			a_template_symbol_supplement_ptr	tssp,
+			a_template_cache_ptr			tcp,
 			a_template_cache_segment_ptr		cache_segments)
 /*
 The cache segment entries currently contain the starting and ending token
@@ -2042,7 +2042,7 @@ list passed in.  The pointer to the start of the list is returned.
   }
 #endif /* CHECKING */
 
-  for (ctp = tssp->cache.tokens.first_token;
+  for (ctp = tcp->tokens.first_token;
        ctp != NULL; prev_ctp = next_prev_ctp, ctp = ctp->next) {
     /* Stop searching if there are no more entries to be processed. */
     if (curr_tcsp == NULL && start_found_list == NULL) break;
@@ -2141,6 +2141,9 @@ tokens during the token string creation process.
 
 static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
 /*
+tcsp points to a template cache entry for a member function or member class.
+Remove the body from the cache.  If it was not already followed by a
+semicolon, add a semicolon to the cache.
 */
 {
   a_boolean		insert_semicolon = FALSE;
@@ -2209,16 +2212,61 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
 }  /* replace_body_with_semicolon */
 
 
-static void extract_member_bodies(
-			   a_template_symbol_supplement_ptr tssp,
-                           a_template_cache_segment_ptr	    cache_segments)
+static void remove_default_arg(a_template_cache_segment_ptr tcsp,
+			       a_token_cache		    *enclosing_cache)
+/*
+Remove a default argument from a token cache.  Replace it with a
+special "removed default argument" token.
+*/
+{
+  a_cached_token_ptr	before_first_token = tcsp->before_first_token;
+  a_cached_token_ptr	first_token = before_first_token->next;
+  a_cached_token_ptr	last_token = tcsp->last_token;
+  a_cached_token_ptr	replacement_token;
+
+  /* Make a new cached token entry for a dummy "removed default argument"
+     token.  The default argument will be replaced with this token.
+     Give it the same token sequence number as the first token of the
+     default argument. */
+  replacement_token = build_cached_token(tok_removed_default_arg,
+                                         tcsp->first_token_number,
+                                         &first_token->source_position);
+  /* Link the replacement token into the cache in the place of
+     the default argument. */
+  replacement_token->next = last_token->next;
+  before_first_token->next = replacement_token;
+  /* Unlink the rest of the cache from the last token of the default
+     argument. */
+  last_token->next = NULL;
+  /* Flag the replacement token as representing an extracted body.  This
+     is somewhat redundant as in this particular case the token kind
+     already indicates that. */
+  check_assertion(replacement_token->extra_info_kind ==
+                                           (a_token_extra_info_kind)teik_none);
+  replacement_token->extra_info_kind =
+                                  (a_token_extra_info_kind)teik_extracted_body;
+  replacement_token->variant.extracted_template.symbol = NULL;
+  replacement_token->variant.extracted_template.semicolon_inserted = FALSE;
+  replacement_token->variant.extracted_template.next_in_token_string = NULL;
+  /* Remove the tokens from the enclosing cache. */
+  free_tokens_from_reusable_cache(first_token, enclosing_cache);
+}  /* remove_default_arg */
+
+
+static a_template_cache_segment_ptr extract_member_bodies(
+		a_template_cache_ptr			tcp,
+		a_template_cache_segment_ptr		cache_segments,
+		a_boolean				keep_default_args)
 /*
 Go through the member functions and nested classes of the class template
-associated with tssp, and remove the tokens from the token cache.
+associated with tcp, and remove the tokens from the token cache.  If
+keep_default_args is TRUE, any default argument entries are retained
+and a list of the unprocessed entries is returned to the caller.
 */
 {
   a_template_cache_segment_ptr		tcsp;
   a_template_cache_segment_ptr		next_tcsp;
+  a_template_cache_segment_ptr		new_list = NULL;
 
   db_enter(4, "extract_member_bodies");
   if (cache_segments != NULL && cache_segments->before_first_token == NULL) {
@@ -2227,7 +2275,7 @@ associated with tssp, and remove the tokens from the token cache.
        this operation must only be done the first time it is called because
        the list is only in the right order for the mapping to be done at
        the time of the first call. */
-    cache_segments = map_token_numbers_to_cache_pointers(tssp, cache_segments);
+    cache_segments = map_token_numbers_to_cache_pointers(tcp, cache_segments);
   }  /* if */
   for (tcsp = cache_segments; tcsp != NULL; tcsp = next_tcsp) {
     next_tcsp = tcsp->next;
@@ -2238,6 +2286,18 @@ associated with tssp, and remove the tokens from the token cache.
     if (tcsp->is_friend) {
       /* Friend function bodies are not actually removed from the cache. */
       create_extracted_body_entry_for_friend(tcsp);
+    } else if (tcsp->is_default_arg) {
+      if (keep_default_args) {
+        /* Add this entry to a new list of entries that still need to
+           be processed. */
+        tcsp->next = new_list;
+        new_list = tcsp;
+        continue;
+      } else {
+        /* A default argument.  Remove the default argument and replace it
+           with a "removed default argument" token. */
+        remove_default_arg(tcsp, &tcp->tokens);
+      }  /* if */
     } else {
       switch (tcsp->symbol->kind) {
         case sk_member_function:
@@ -2247,22 +2307,13 @@ associated with tssp, and remove the tokens from the token cache.
              member functions and member templates.  Just free the
              tokens that were removed from
              the original cache. */
-          { a_token_cache_ptr	class_cache = &tssp->cache.tokens;
-            a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-            a_cached_token_ptr	ctp;
+          { a_cached_token_ptr	first_token = tcsp->before_first_token->next;
             replace_body_with_semicolon(tcsp);
-            ctp = first_token;
-            while (ctp != NULL) {
-              a_cached_token_ptr	next_ctp = ctp->next;
-              free_cached_token_from_reusable_cache(
-                                class_cache, ctp, /*keep_pragma_tokens=*/TRUE);
-              ctp = next_ctp;
-            }  /* while */
+            free_tokens_from_reusable_cache(first_token, &tcp->tokens);
           }
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
-          tssp = tcsp->template_info;
           /* Only extract the body of the nested class if it is a
              "standalone" nested class (i.e., one that is not anonymous
              and is not followed by a declarator). */
@@ -2274,7 +2325,7 @@ associated with tssp, and remove the tokens from the token cache.
                cache to the cache for the nested class.  The tokens have
                actually already been unliked from the first cache, but
                information such as token counts must be adjusted. */
-            move_cached_tokens(first_token, &tssp->cache.tokens,
+            move_cached_tokens(first_token, &tcp->tokens,
                                &tcsp->template_info->cache.tokens);
           }  /* if */
           break;
@@ -2286,6 +2337,7 @@ associated with tssp, and remove the tokens from the token cache.
     free_template_cache_segment(tcsp);
   }  /* for */
   db_exit();
+  return new_list;
 }  /* extract_member_bodies */
 
 
@@ -2570,6 +2622,9 @@ supplement already associated with ft_symbol.
     slep->symbol = ft_symbol;
     slep->next = orig_tssp->subordinate_templates;
     orig_tssp->subordinate_templates = slep;
+    /* Copy the default argument information from the prototype template. */
+    tssp->variant.function.def_arg_expr_list =
+                                orig_tssp->variant.function.def_arg_expr_list;
     { a_routine_ptr	rp = tssp->variant.function.routine;
       a_routine_ptr	orig_rp = orig_tssp->variant.function.routine;;
       /* Copy the information that determines whether this function is inline
@@ -8709,27 +8764,35 @@ the tokens should be scanned and discarded.
   a_scope_stack_entry_ptr	ssep;
   a_token_cache_ptr		decl_cache;
 
-  /* The current scope stack entry is expected to be a function prototype
-     scope.  The enclosing scope is expected to be either the template
-     declaration scope for the current function template or the instantiation
-     scope for the partial instantiation of a template function declaration.
-     In the latter case, the tokens that are cached are simply discarded. */
-  ssep = scope_stack_entry_for(depth_scope_stack-1);
-  if (ssep->kind == (a_scope_kind)sck_template_declaration) {
-    /* Get a pointer to the declaration token cache for the function
-       template. */
-    decl_cache = &ssep->tmpl_decl_state->decl_token_cache;
-  } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-    a_symbol_ptr			template_sym = ssep->template_sym;
-    a_template_symbol_supplement_ptr	tssp;
-    /* Get a pointer to the decl_cache associated with the function template
-       whose declaration is being instantiated. */
-    check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
-    tssp = template_supplement_for_symbol(template_sym);
-    decl_cache = &tssp->variant.function.decl_cache.tokens;
+  if (curr_token == tok_removed_default_arg) {
+    /* If we are scanning a removed default argument, just bypass the token. */
+    (void)get_token();
+  } else {
+    /* The current scope stack entry is expected to be a function prototype
+       scope.  The enclosing scope is expected to be either the template
+       declaration scope for the current function template or the instantiation
+      scope for the partial instantiation of a template function declaration.
+       In the latter case, the tokens that are cached are simply discarded. */
+    ssep = scope_stack_entry_for(depth_scope_stack-1);
+    if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+      /* Get a pointer to the declaration token cache for the function
+         template. */
+      decl_cache = &ssep->tmpl_decl_state->decl_token_cache;
+    } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      a_symbol_ptr			template_sym = ssep->template_sym;
+      a_template_symbol_supplement_ptr	tssp;
+      /* Get a pointer to the decl_cache associated with the function template
+         whose declaration is being instantiated. */
+      check_assertion(template_sym->kind ==
+                                          (a_symbol_kind)sk_function_template);
+      tssp = template_supplement_for_symbol(template_sym);
+      decl_cache = &tssp->variant.function.decl_cache.tokens;
+    }  /* if */
+    list = &curr_default_args;
+    prescan_default_function_arg_expr(ptp, list, decl_cache,
+                                      /*is_function_template=*/TRUE,
+				      /*is_friend_decl=*/FALSE);
   }  /* if */
-  list = &curr_default_args;
-  prescan_default_function_arg_expr(ptp, list, decl_cache);
   /* Indicate that this default argument is a template default argument
      whose expression has not yet been evaluated. */
   if (ptp != NULL) ptp->has_unevaluated_template_default = TRUE;
@@ -8960,6 +9023,8 @@ to represent the template parameters.
         (void)get_token();
         /* Cache the tokens that make up the default argument expression. */
         prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+                                 /*is_function_template=*/FALSE,
+				 /*is_friend_decl=*/FALSE,
                                  &decl_state->param_list_cache);
         if (microsoft_mode) {
           /* The Microsoft compiler doesn't check default arguments until
@@ -9019,7 +9084,9 @@ to represent the template parameters.
         (void)get_token();
         /* Cache the tokens that make up the default argument expression. */
         prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
-                                 &decl_state->param_list_cache);
+                                 /*is_function_template=*/FALSE,
+				 /*is_friend_decl=*/FALSE,
+				 &decl_state->param_list_cache);
         if (const_type_involves_template_param) {
 	  /* The type of the constant parameter involves a template parameter
 	     type so we can't scan the expression now.  When the type of the
@@ -9768,6 +9835,129 @@ been instantiated, update the befriending information for the instances.
 }  /* add_befriending_class_to_function_template */
 
 
+static a_def_arg_expr_fixup_ptr get_friend_def_arg_info_from_prototype(
+			a_symbol_ptr			proto_sym)
+/*
+Get the default argument information for this friend declaration from
+information that was saved earlier about the corresponding declaration
+in the prototype instantiation of the enclosing class template.
+*/
+{
+  a_templ_friend_def_arg_ptr		tfdap;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = template_supplement_for_symbol(proto_sym);
+  /* Find the default argument entry that corresponds to the current
+     token sequence number. */
+  for (tfdap = tssp->variant.class_template.friend_def_arg_info;
+       tfdap != NULL; tfdap = tfdap->next) {
+    if (tfdap->token_number == curr_token_sequence_number) break;
+  }  /* for */
+  return tfdap != NULL ? tfdap->default_args : NULL;
+}  /* get_friend_def_arg_info_from_prototype */
+
+
+static void set_friend_def_arg_info_for_prototype(
+			a_symbol_ptr			proto_sym,
+			a_def_arg_expr_fixup_ptr	default_args)	
+/*
+Save the default argument information for this friend declaration in
+the template information for the enclosing class template.  proto_sym
+is the symbol for the enclosing class template.
+*/
+{
+  a_templ_friend_def_arg_ptr		tfdap;
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				template_sym;
+
+  template_sym = template_for_instance(proto_sym);
+  tssp = template_sym->variant.template_info;
+  tfdap = alloc_templ_friend_def_arg();
+  tfdap->default_args = default_args;
+  tfdap->token_number = curr_token_sequence_number;
+  /* Add this entry to the front of a list of default argument entries
+     associated with enclosing class template. */
+  tfdap->next = tssp->variant.class_template.friend_def_arg_info;
+  tssp->variant.class_template.friend_def_arg_info = tfdap;
+}  /* set_friend_def_arg_info_for_prototype */
+
+
+static void process_templ_friend_def_args(
+			a_tmpl_decl_state_ptr		decl_state,
+			a_def_arg_expr_fixup_ptr	*default_args)	
+/*
+When a function template is declared as a friend of a class template,
+the default argument information is saved during the prototype
+instantiation and reused during the real instantiations.  This is done
+so that the default argument does not need to be skipped-over during a
+real instantiation when some of the template parameters may already
+have real types.
+*/
+{
+  a_type_ptr			encl_class;
+  a_symbol_ptr			encl_class_sym;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_symbol_ptr			proto_sym;
+  encl_class = decl_state->class_declared_in;
+  encl_class_sym = (a_symbol_ptr)encl_class->source_corresp.assoc_info;
+  if (ssep->in_prototype_instantiation) {
+    if (*default_args != NULL) {
+      proto_sym = encl_class_sym;
+      set_friend_def_arg_info_for_prototype(proto_sym, *default_args);
+    }  /* if */
+  } else {
+    proto_sym = corresp_prototype_for_class_symbol(encl_class_sym);
+    if (proto_sym == NULL) {
+      /* Not a template-based class. */
+    } else {
+      /* Free the existing original set of default arguments. */
+      free_def_arg_expr_fixup(*default_args);
+      *default_args = get_friend_def_arg_info_from_prototype(proto_sym);
+    }  /* if */
+  }  /* if */
+}  /* process_templ_friend_def_args */
+
+
+static void update_function_template_default_args(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_template_symbol_supplement_ptr	tssp)
+/*
+sym is a function template that is currently being declared.  Update
+the default_arg_expr_list based on the setting of curr_default_args.
+If this is a friend template declared in a class template, get the
+default argument information that was saved during the prototype
+instantiation.
+*/
+{
+  a_def_arg_expr_fixup_ptr    daefp;
+
+  /* Update the template declaration information to refer to
+     the declaration information of the function template. */
+  daefp = curr_default_args;
+  for (daefp = curr_default_args; daefp != NULL; daefp = daefp->next) {
+    daefp->cache.decl_info = decl_state->decl_info;
+  }  /* for */
+  if (decl_state->is_template_friend &&
+      decl_state->class_declared_in != NULL) {
+    /* Special processing is needed for friends of class templates. */
+    process_templ_friend_def_args(decl_state, &curr_default_args);
+  }  /* if */
+  /* Link the default argument list from the template supplement
+     onto the end of the list of current default arguments.  The
+     list in the supplement must be for arguments that follow the
+     new list (otherwise it would be an error).  Find the end
+     of the current list and link the existing list to the end. */
+  daefp = curr_default_args;
+  if (daefp != NULL) {
+    while (daefp->next != NULL) {
+      daefp = daefp->next;
+    }  /* if */
+    daefp->next = tssp->variant.function.def_arg_expr_list;
+    tssp->variant.function.def_arg_expr_list = curr_default_args;
+  } /* if */
+}  /* update_function_template_default_args */
+
+
 static void complete_function_template_decl(
                      a_tmpl_decl_state_ptr	      decl_state,
                      a_symbol_ptr                     sym,
@@ -9835,7 +10025,6 @@ caller.
                                  /*is_ctor=*/TRUE, decl_pos);
     discard_token_cache(&local_token_cache);
   } else {
-    a_def_arg_expr_fixup_ptr    daefp;
     a_token_cache               local_token_cache;
     a_token_sequence_number     first_token_number;
     a_token_sequence_number     last_token_number;
@@ -9897,26 +10086,10 @@ caller.
                               &local_token_cache,
                               decl_state->decl_info);
     } /* if */
-    daefp = curr_default_args;
-    /* Update the template declaration information to refer to
-       the declaration information of the function template. */
-    while (daefp != NULL) {
-      daefp->cache.decl_info = decl_state->decl_info;
-      daefp = daefp->next;
-    }  /* while */
-    /* Link the default argument list from the template supplement
-       onto the end of the list of current default arguments.  The
-       list in the supplement must be for arguments that follow the
-       new list (otherwise it would be an error).  Find the end
-       of the current list and link the existing list to the end. */
-    daefp = curr_default_args;
-    if (daefp != NULL) {
-      while (daefp->next != NULL) {
-        daefp = daefp->next;
-      }  /* if */
-      daefp->next = tssp->variant.function.def_arg_expr_list;
-      tssp->variant.function.def_arg_expr_list = curr_default_args;
-    } /* if */
+    /* Update the default argument information for this template from
+       either curr_default_args or from the corresponding declaration
+       from the prototype instantiation of the enclosing class. */
+    update_function_template_default_args(decl_state, tssp);
     if (decl_state->is_template_friend &&
        !decl_state->in_prototype_instantiation) {
       /* This is a template friend declaration, add the current class to
@@ -10261,7 +10434,8 @@ any non-empty template parameter lists that were scanned.
 #if RECORD_TEMPLATES_IN_IL
   a_token_cache                     *p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
-  a_template_cache_segment_ptr	    cache_segments;
+  a_template_cache_segment_ptr	    class_templ_cache_segments = NULL;
+  a_template_cache_segment_ptr	    function_templ_cache_segments = NULL;
   a_boolean			    prototype_okay = FALSE;
   a_boolean			    is_class_template = FALSE;
   a_cached_token_ptr		    ctp;
@@ -10414,6 +10588,20 @@ any non-empty template parameter lists that were scanned.
       done_with_func_info(func_info);
     }  /* if */
   }  /* if */
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template &&
+      !sym->is_class_member) {
+    /* For function templates that are not class members, remove any
+       default arguments that may have been specified.  At this point,
+       just fetch the list of cache segments from the scope stack entry. */
+    if (decl_state->decl_token_cache_used) {
+      /* The default arguments only need to be removed from the function
+         template declaration stored in the decl_cache.  If this is not
+         the initial declaration, this process need not be done. */
+      a_scope_stack_entry_ptr	ssep;
+      ssep = &scope_stack[depth_scope_stack];
+      function_templ_cache_segments = ssep->first_template_cache_segment;
+    }  /* if */
+  }  /* if */
   /* Pop all of the template declaration scopes that were pushed earlier.
      Note that this must be done before doing the prototype instantiation. */
   for (; decl_state->number_of_template_decl_scopes != 0;
@@ -10454,7 +10642,8 @@ any non-empty template parameter lists that were scanned.
         /* Do a "prototype instantiation" of the class template -- i.e., parse
            the declarative information looking for gross syntax errors. */
         prototype_okay = TRUE;
-        instantiate_class_template(sym, prototype_type, &cache_segments);
+        instantiate_class_template(sym, prototype_type,
+                                   &class_templ_cache_segments);
         if (tag_resolution) {
           /* This is the resolution of a previously incomplete template
              declaration.  If there are any incomplete instantiations that were
@@ -10465,22 +10654,35 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     }  /* if */
   }  /* if */
-  {
-    /* Extract the bodies of any member functions, nested classes, or
-       member templates that were defined within this class template. */
-    if (prototype_okay) {
-      extract_member_bodies(tssp, cache_segments);
-    } /* if */
+  /* Extract the bodies of any member functions, nested classes, or
+     member templates that were defined within this class template. */
+  if (prototype_okay) {
+    class_templ_cache_segments = extract_member_bodies(
+                                                &tssp->cache,
+                                                class_templ_cache_segments,
+                                                /*keep_default_args=*/TRUE);
+  } /* if */
 #if RECORD_TEMPLATES_IN_IL
-    complete_il_template_entry(decl_state, sym, p_template_body_cache);
-    /* If this is a template definition or the initial declaration, update
-       the template symbol supplement to point to the IL entry . */
-    if (tssp != NULL &&
-        (decl_state->defines_something || tssp->il_template_entry == NULL)) {
-      tssp->il_template_entry = decl_state->il_template_entry;
-    }  /* if */
+  complete_il_template_entry(decl_state, sym, p_template_body_cache);
+  /* If this is a template definition or the initial declaration, update
+     the template symbol supplement to point to the IL entry . */
+  if (tssp != NULL &&
+      (decl_state->defines_something || tssp->il_template_entry == NULL)) {
+    tssp->il_template_entry = decl_state->il_template_entry;
+  }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-  }
+  if (class_templ_cache_segments != NULL) {
+    /* Remove any default arguments that may remain in the cache. */
+    (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
+                                /*keep_default_args=*/FALSE);
+  } /* if */
+  if (function_templ_cache_segments != NULL) {
+    /* For function templates that are not class members, remove any
+       default arguments that may have been specified. */
+    (void)extract_member_bodies(&tssp->variant.function.decl_cache,
+                                function_templ_cache_segments,
+                                /*keep_default_args=*/FALSE);
+  }  /* if */
   if (invalid_decl) {
     /* The declaration was invalid -- flush to the end of the declaration
        if necessary. */

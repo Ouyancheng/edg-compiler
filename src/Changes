@@ -1,5 +1,17 @@
 Version 2.42
 
+8/3/99   Spurious error in template function default argument
+
+Even though default arguments were not being instantiated unless they
+were used, certain errors would be diagnosed in the process of skipping
+over a default argument during instantiation of a template function.
+For example, an error would be issued on the following example complaining
+that "T" is not a class or namespace name when instantiating "f(int)".
+This has been fixed.
+
+  template <class T> int f(T t = T::x);
+  int n = f(2);
+
 8/2/99   Host FLT_MAX with form ((float)3.40282347e+38)
 
 One some systems, FLT_MAX is defined with a cast to float.  The code

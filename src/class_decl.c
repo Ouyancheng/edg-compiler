@@ -715,11 +715,13 @@ scanned is a constructor.
 
 
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
+					      a_boolean		is_friend,
 					      a_token_cache_ptr decl_cache)
 /*
 Scan a default argument expression and link the default argument
 entry onto a list in the current routine fixup entry.  "ptp" can be NULL if
-the tokens should be scanned and discarded.
+the tokens should be scanned and discarded.  is_friend is TRUE if the
+declaration being scanned is a friend function declaration.
 */
 {
   a_def_arg_expr_fixup_ptr  *list;
@@ -741,7 +743,9 @@ the tokens should be scanned and discarded.
     cache_rest_of_declaration(decl_cache, /*stop_on_colon=*/FALSE,
                               /*stop_on_lbrace=*/TRUE);
   }  /* if */
-  prescan_default_function_arg_expr(ptp, list, decl_cache);
+  prescan_default_function_arg_expr(ptp, list, decl_cache,
+                                    /*is_function_template=*/FALSE,
+				    is_friend);
 }  /* prescan_member_function_default_arg_expr */
 
 

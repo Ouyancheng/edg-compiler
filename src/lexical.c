@@ -1458,6 +1458,22 @@ bodies of class templates.
 }  /* free_cached_token_from_reusable_cache */
 
 
+void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
+				     a_token_cache	*cache)
+/*
+Free a list of cached tokens from the reusable cache specified by
+cache.
+*/
+{
+  while (ctp != NULL) {
+    a_cached_token_ptr	next_ctp = ctp->next;
+    free_cached_token_from_reusable_cache(cache, ctp,
+                                         /*keep_pragma_tokens=*/TRUE);
+    ctp = next_ctp;
+  }  /* while */
+}  /* free_tokens_from_reusable_cache */
+
+
 /*ARGSUSED*/ /* <-- "okay_if_not_found" is only used by checking code. */
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,

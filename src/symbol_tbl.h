@@ -1347,7 +1347,36 @@ typedef struct a_template_cache_segment {
   a_byte_boolean
 		is_friend;
 			/* TRUE if this entry represents a friend function. */
+  a_byte_boolean
+		is_default_arg;
+			/* TRUE if this entry represents a default argument
+			   expression. */
 } a_template_cache_segment;
+
+
+/*
+Structure that contains the default argument information associated with
+a friend template declared in a class template.
+*/
+typedef struct a_templ_friend_def_arg *a_templ_friend_def_arg_ptr;
+typedef struct a_templ_friend_def_arg {
+  a_templ_friend_def_arg_ptr
+		next;
+			/* Pointer to the next entry on the list, or NULL
+			   for the last entry. */
+  a_def_arg_expr_fixup_ptr
+		default_args;
+			/* Pointer to a list of default argument expression
+			   fixup entries that represent the default arguments
+			   for the friend template function. */
+  a_token_sequence_number
+		token_number;
+			/* Then token sequence number of end of the friend
+			   function declaration.  This is used to associate
+			   a declaration in a real instantiation with the
+			   corresponding declaration in the prototype
+			   instantiation. */
+} a_templ_friend_def_arg;
 
 
 /* Used to track the number of pending instantiations of a given class. */
@@ -1479,6 +1508,10 @@ typedef struct a_template_symbol_supplement {
 			/* For partial specialization, points back to the
 			   primary template of which this is a partial
 			   specialization. */
+      a_templ_friend_def_arg_ptr
+		friend_def_arg_info;
+			/* Information about default arguments of friend
+			   templates declared in this class template. */
       a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
@@ -1533,7 +1566,9 @@ typedef struct a_template_symbol_supplement {
 		def_arg_expr_list;
 			/* List of entries describing default argument
 			   expressions associated with parameters for
-			   this template declaration. */
+			   this template declaration.  For a subordinate
+			   template this points to the default argument
+			   list of the prototype template. */
       a_template_cache
 		decl_cache;
 			/* A cache of the tokens that comprise the function
@@ -2428,6 +2463,8 @@ a_template_cache_segment_ptr alloc_template_cache_segment(
 extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
+
+extern a_templ_friend_def_arg_ptr alloc_templ_friend_def_arg(void);
 
 extern
 void clear_template_cache(a_template_cache_ptr	tcp,

@@ -1056,24 +1056,28 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_boolean         disallow_default_args,
                                 a_boolean         disallow_exception_spec,
                                 a_boolean         is_typedef_decl,
+				a_boolean	  is_friend_decl,
                                 a_decl_pos_block  *decl_pos_block)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
-appropriate function type.  The initial opening parenthesis has already
-been checked and passed over (which is unusual; that's necessary
-because of the syntactic strangeness of abstract declarators).  If func_info
-is NULL, then the function declarator is not a top type or this is an
-abstract declarator (and therefore certain forms are disallowed);
-otherwise, extra information about the function declarator is returned
-in *func_info.  For member functions, member_function_parent_type is a
-pointer to the class (or struct or union) type of which it is a member;
-otherwise it is NULL.  When it is non-NULL, is_nonstatic_member_function
-will distinguish static from nonstatic member functions when the current
-scope is that of a class definition.  is_constructor or is_destructor is
-TRUE if previous processing had determined that this is a constructor or
-destructor declaration, respectively.  If disallow_default_args is TRUE
-issue an error if a default argument expression is encountered.
+appropriate function type.  The initial opening parenthesis has
+already been checked and passed over (which is unusual; that's
+necessary because of the syntactic strangeness of abstract
+declarators).  If func_info is NULL, then the function declarator is
+not a top type or this is an abstract declarator (and therefore
+certain forms are disallowed); otherwise, extra information about the
+function declarator is returned in *func_info.  For member functions,
+member_function_parent_type is a pointer to the class (or struct or
+union) type of which it is a member; otherwise it is NULL.  When it is
+non-NULL, is_nonstatic_member_function will distinguish static from
+nonstatic member functions when the current scope is that of a class
+definition.  is_constructor or is_destructor is TRUE if previous
+processing had determined that this is a constructor or destructor
+declaration, respectively.  If disallow_default_args is TRUE issue an
+error if a default argument expression is encountered.  is_friend_decl
+is TRUE if this is the function declarator in a friend function
+declaration.
 */
 {
   a_param_type_ptr        ptp;
@@ -1523,6 +1527,7 @@ issue an error if a default argument expression is encountered.
               /* Scan the default arguments for a member or friend
                  function. */
               prescan_member_function_default_arg_expr(ptp_for_scan,
+						       is_friend_decl,
                                                        &decl_token_cache);
             } else {
               /* Scan the default arguments for a function template. */
@@ -3812,6 +3817,7 @@ function_lparen:
                           *is_constructor, *is_destructor,
                           disallow_default_args, disallow_exception_spec,
                           (input_flags & DI_IS_TYPEDEF_DECLARATION) != 0,
+                          (input_flags & DI_IS_FRIEND_DECL) != 0,
                           decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {

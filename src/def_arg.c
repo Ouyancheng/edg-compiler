@@ -93,20 +93,32 @@ available-list.
 }  /* free_def_arg_expr_fixup */
 
 
-void prescan_default_arg_expr(a_token_cache_ptr	token_cache,
-			      a_boolean		is_template_param,
-                              a_token_cache_ptr src_cache)
+void prescan_default_arg_expr(a_token_cache_ptr		token_cache,
+			      a_boolean			is_template_param,
+			      a_boolean			is_function_template,
+			      a_boolean			is_friend_decl,
+                              a_token_cache_ptr		src_cache)
 /*
 Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.  src_cache points to a token
 cache containing the tokens that will be copied to token_cache.
+is_template_param is TRUE if the expression is the default for a nontype
+template parameter.  is_function_template is TRUE if the expression is the
+default for a function template function parameter.  is_friend_decl is
+TRUE if the expression is the default for a friend declaration; it must
+be FALSE when either is_function_template or is_template_param are FALSE.
 */
 {
-  a_token_set_array  stop_tokens;
+  a_token_set_array		stop_tokens;
+  a_token_sequence_number	first_tsn;
+  a_token_sequence_number	last_tsn;
+  a_scope_stack_entry_ptr	ssep;
 
   db_enter(3, "prescan_default_arg_expr");
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
+  /* Save the token sequence number of the first token to be cached. */
+  first_tsn = curr_token_sequence_number;
   /* In the normal case we will scan an expression and encounter a comma
      or right parenthesis.  If both of these are omitted, terminate the token
      stream when some likely delimiter is reached. */
@@ -123,6 +135,30 @@ cache containing the tokens that will be copied to token_cache.
   clear_token_cache(token_cache, /*reusable=*/TRUE);
   cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
                                           src_cache);
+  /* Save the token sequence number of the last token of the default
+     argument.  The cache actually contains the token after the last one
+     of the default argument, but that token should not be used as the
+     last token of the cache segment. */
+  last_tsn = curr_token_sequence_number - 1;
+  ssep = &scope_stack[depth_scope_stack];
+  if (!is_template_param &&
+      ((ssep->in_prototype_instantiation && !is_friend_decl) ||
+       (is_function_template &&
+        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH))) {
+    /* This is a function default argument within a prototype instantiation
+       or in a template declaration.  Save the token numbers associated with
+       this default argument so that it can be removed from the cache later. */
+    if (token_cache->first_token != NULL) {
+      /* Only create a template cache segments if there are actually tokens in
+         the cache.  In certain error cases, there might not be. */
+      a_template_cache_segment_ptr	tcsp;
+      tcsp = alloc_template_cache_segment(
+                   (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
+      tcsp->first_token_number = first_tsn;
+      tcsp->last_token_number = last_tsn;
+      tcsp->is_default_arg = TRUE;
+    }  /* if */
+  }  /* if */
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
   terminate_token_cache(token_cache);
@@ -130,9 +166,12 @@ cache containing the tokens that will be copied to token_cache.
 }  /* prescan_default_arg_expr */
 
 
-void prescan_default_function_arg_expr(a_param_type_ptr 	ptp,
-			               a_def_arg_expr_fixup_ptr	*list,
-                                       a_token_cache_ptr	src_cache)
+void prescan_default_function_arg_expr(
+			a_param_type_ptr		ptp,
+		        a_def_arg_expr_fixup_ptr	*list,
+                        a_token_cache_ptr		src_cache,
+			a_boolean			is_function_template,
+			a_boolean			is_friend_decl)
 /*
 Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.  Link the default argument
@@ -148,7 +187,7 @@ argument expression but discard the token cache.
   db_enter(3, "prescan_default_function_arg_expr");
   /* Scan the default argument expression. */
   prescan_default_arg_expr(&token_cache, /*is_template_param=*/FALSE,
-                           src_cache);
+                           is_function_template, is_friend_decl, src_cache);
   if (list == NULL || ptp == NULL) {
     /* Either no list pointer, or no param type pointer was passed by
        the caller.  This indicates that the argument information should

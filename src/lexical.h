@@ -207,6 +207,8 @@ typedef enum /*a_token_kind*/ {
   tok_unimplemented,
   /* Error token. */
   tok_error,
+  /* Placeholder for a removed default argument. */
+  tok_removed_default_arg,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -250,6 +252,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "const_cast", "dynamic_cast", "explicit", "mutable", "namespace",
    "reinterpret_cast", "static_cast", "typeid", "using",
    "bool", "false", "true", "typename", "overload", "unimplemented", "error",
+   "removed default arg",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -605,6 +608,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_overload */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */
+   (an_opname_kind)onk_none,          /* tok_removed_default_arg */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
@@ -1443,6 +1447,9 @@ extern void rescan_cached_tokens(a_token_cache *cache);
 extern void rescan_reusable_cache(a_token_cache *cache);
 /* Rescan a copy of a token cache. */
 extern void rescan_copy_of_cache(a_token_cache *cache);
+
+extern void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
+					    a_token_cache	*cache);
 
 extern
 void split_token_cache(a_token_cache	       *cache1,

@@ -88,6 +88,7 @@ static unsigned long
 		num_substituted_type_list_entries_allocated,
 		num_template_cache_segments_allocated,
 		num_template_decl_info_allocated,
+		num_templ_friend_def_args_allocated,
 		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_vla_fixups_allocated,
@@ -1775,6 +1776,7 @@ to the symbol supplement associated with sym.
 {
   a_template_cache_segment_ptr  tcsp;
   a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			depth_to_use;
 
   if (avail_template_cache_segments != NULL) {
     /* Reuse an existing entry. */
@@ -1796,10 +1798,18 @@ to the symbol supplement associated with sym.
   tcsp->before_first_token = NULL;
   tcsp->last_token = NULL;
   tcsp->is_friend = FALSE;
+  tcsp->is_default_arg = FALSE;
   /* Add the new entry to the list of template cache segments associated
-     with the current instantiation. */
-  ssep = &scope_stack[depth_innermost_instantiation_scope];
-  check_assertion_str2(ssep->in_prototype_instantiation,
+     with the current instantiation.  If there is no current instantiation,
+     use the current template declaration scope. */
+  depth_to_use = depth_innermost_instantiation_scope;
+  if (depth_to_use == NO_SCOPE_DEPTH) {
+    depth_to_use = depth_template_declaration_scope;
+    check_assertion(depth_to_use != NO_SCOPE_DEPTH);
+  }  /* if */
+  ssep = &scope_stack[depth_to_use];
+  check_assertion_str2(ssep->in_prototype_instantiation ||
+                       ssep->kind == (a_scope_kind)sck_template_declaration,
                        "alloc_template_cache_segment:",
                        "not in prototype instantiation");
   if (ssep->first_template_cache_segment == NULL) {
@@ -1844,6 +1854,26 @@ fields, and return a pointer to it.
 
   return tdip;
 }  /* alloc_template_decl_info */
+
+
+a_templ_friend_def_arg_ptr alloc_templ_friend_def_arg(void)
+/*
+Allocate a new template friend default argument entry, initialize its
+fields, and return a pointer to it.
+*/
+{
+  a_templ_friend_def_arg_ptr  tfdap;
+
+  /* Allocate a template friend default argument entry. */
+  tfdap = (a_templ_friend_def_arg_ptr)alloc_fe(sizeof(a_templ_friend_def_arg));
+  tfdap->next = NULL;
+  tfdap->default_args = NULL;
+  tfdap->token_number = NO_TOKEN_SEQUENCE_NUMBER;
+#if DEBUG
+  num_templ_friend_def_args_allocated++;
+#endif /* DEBUG */
+  return tfdap;
+}  /* alloc_templ_friend_def_arg */
 
 
 static a_namespace_symbol_supplement_ptr
@@ -1939,6 +1969,7 @@ and return a pointer to it.
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.partial_specializations = NULL;
       tssp->variant.class_template.primary_template_sym = NULL;
+      tssp->variant.class_template.friend_def_arg_info = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.access =
                                          (an_access_specifier)as_inaccessible;
@@ -9369,6 +9400,8 @@ for space tracking purposes.
                      a_template_cache_segment);
   db_space_used("template decl info", num_template_decl_info_allocated,
                 a_template_decl_info);
+  db_space_used("templ friend def arg", num_templ_friend_def_args_allocated,
+                a_templ_friend_def_arg);
   db_space_used("namespace list entry", num_namespace_list_entries_allocated,
                 a_namespace_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
@@ -9696,6 +9729,7 @@ of the front end.
   num_substituted_type_list_entries_allocated  = 0;
   num_template_cache_segments_allocated        = 0;
   num_template_decl_info_allocated             = 0;
+  num_templ_friend_def_args_allocated          = 0;
   num_namespace_list_entries_allocated         = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_vla_fixups_allocated                     = 0;
