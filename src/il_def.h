@@ -1796,10 +1796,11 @@ typedef struct a_routine {
 			   was done in this function.  C++ member functions
 			   only. */
   a_routine_ptr	assoc_new_or_delete_routine;
-			/* When assignment_to_this_done is TRUE and the
-			   function is a constructor or destructor, this points
+			/* For a constructor or destructor, this points
 			   to the operator new() or operator delete() routine
-			   to be used for the associated class. */
+			   to be used for the associated class.  It may have
+			   to be called from within the wrapper code because
+			   assignment to "this" is allowed. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   a_class_list_entry_ptr
                 befriending_classes;
