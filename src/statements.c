@@ -1029,6 +1029,11 @@ Scan a C++ try-block statement.  Its form is:
     internal_error("try_block_statement: expected try");
   }  /* if */
 #endif /* CHECKING */
+  if (exceptions_disabled) {
+    /* Support for exceptions is suppressed for this compilation. */
+    pos_error(ec_no_exception_support, &pos_curr_token);
+  }  /* if */
+  /* Bypass "try". */
   (void)get_token();
   /* Scan the compound statement, and save a pointer to it in the try-block
      statement. */

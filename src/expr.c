@@ -6598,7 +6598,12 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   /* Save the source position of the operator. */
   start_position = pos_curr_token;
 
-  if (curr_expr_kind_is_const()) {
+  if (exceptions_disabled) {
+    /* Support for exceptions is suppressed for this compilation.  Note that
+       semantic errors will not be issued on this throw expression. */
+    pos_error(ec_no_exception_support, &pos_curr_token);
+    err = TRUE;
+  } else if (curr_expr_kind_is_const()) {
     /* "throw" not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;

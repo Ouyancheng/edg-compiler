@@ -1520,10 +1520,6 @@ need not be addressed here.
   return prototyped;
 }  /* is_prototyped_parameter_list_start */
 
-#if 0
-#else
-#define exceptions_disallowed FALSE
-#endif /* if 0 */
 
 void add_throw_specification(a_func_info_block_ptr  func_info,
                              a_routine_ptr          rp)
@@ -1539,9 +1535,9 @@ one and the one previously declared.
   a_symbol_ptr                    rout_sym;
 
   db_enter(4, "add_throw_specification");
-  check_assertion(new_tsp != NULL || exceptions_disallowed);
+  check_assertion(new_tsp != NULL || exceptions_disabled);
   rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-  if (exceptions_disallowed) {
+  if (exceptions_disabled) {
     /* If exception processing is suppressed for the current compilation,
        the constructs will have been scanned (after an error is issued) but
        the IL needed be updated. */
@@ -1664,6 +1660,23 @@ one and the one previously declared.
 }  /* add_throw_specification */
 
 
+void set_to_throw_anything(a_func_info_block_ptr  func_info,
+                           a_source_position      *pos)
+/*
+Set the func_info block to point to a throw_specification entry that
+specifies that "any exception may be thrown from the current function".
+*/
+{
+  a_throw_specification_ptr  tsp;
+
+  if (!exceptions_disabled) {
+    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
+    tsp->decl_position = *pos;
+    func_info->throw_specification = tsp;
+  }  /* if */
+}  /* set_to_throw_anything */
+
+
 static void scan_throw_specification(a_func_info_block_ptr  func_info)
 /*
 Scan a throw specification, which may be empty or take either of two forms:
@@ -1689,17 +1702,13 @@ specification is handled later (see add_throw_specification).
   db_enter(4, "scan_throw_specification");
   /* Update the source position for the "throw".  Even if there is no
      "throw" this is where it would appear in the source. */
-  if (!exceptions_disallowed) func_info->throw_position = pos_curr_token;
+  if (!exceptions_disabled) func_info->throw_position = pos_curr_token;
   if (curr_token != tok_throw) {
-    if (!exceptions_disallowed) {
-      /* No explicit throw specification, meaning anything may be thrown. */
-      tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
-      tsp->decl_position = pos_curr_token;
-      func_info->throw_specification = tsp;
-    }  /* if */
+    /* No explicit throw specification, meaning anything may be thrown. */
+    set_to_throw_anything(func_info, &pos_curr_token);
     goto done;
   }  /* if */
-  if (exceptions_disallowed) {
+  if (exceptions_disabled) {
     /* Exceptions are suppressed for this compilation. */
     pos_error(ec_no_exception_support, &pos_curr_token);
   }  /* if */
@@ -3923,9 +3932,9 @@ skip_overloading:;
          list of the file scope. */
       routine_ptr = make_routine(type_ptr, storage_class,
                                  /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
-      /* Bind the throw specification to the routine entry. */
-      routine_ptr->throw_specification = func_info->throw_specification;
       if (C_dialect == C_dialect_cplusplus) {
+        /* Bind the throw specification to the routine entry. */
+        add_throw_specification(func_info, routine_ptr);
         if (locator->is_operator_name) {
           routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
           routine_ptr->opname_kind = locator->variant.opname;
@@ -8539,7 +8548,9 @@ Process a handler declaration:
                                /*suppress_redecl_error=*/FALSE);
           }  /* if */
         }  /* if */
-        if (!is_error_type(type_ptr)) {
+        if (exceptions_disabled) {
+          /* Don't bother with the semantic checks on the handler type. */
+        } else if (!is_error_type(type_ptr)) {
           /* Force instantiation of template class. */
           check_for_uninstantiated_template_class(type_ptr);
           if (is_incomplete_type(type_ptr)) {
@@ -8583,7 +8594,9 @@ Process a handler declaration:
          to do error checking and locate the end of the list, where the new
          handler will be added. */
       for (;;) {
-        if (masked) {
+        if (exceptions_disabled) {
+          /* Don't bother with semantic checks. */
+        } else if (masked) {
           /* One "masking" diagnostic has already been issued -- there's no
              point in putting out another. */
         } else if (type_ptr == error_type()) {
