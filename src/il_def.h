@@ -1795,6 +1795,11 @@ typedef struct a_routine {
 			/* TRUE if an assignment to "this" (an anachronism)
 			   was done in this function.  C++ member functions
 			   only. */
+  a_routine_ptr	assoc_new_or_delete_routine;
+			/* When assignment_to_this_done is TRUE and the
+			   function is a constructor or destructor, this points
+			   to the operator new() or operator delete() routine
+			   to be used for the associated class. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   a_class_list_entry_ptr
                 befriending_classes;

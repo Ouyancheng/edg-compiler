@@ -1603,6 +1603,8 @@ Display the indicated routine.
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->asignment_to_this) {
     disp_boolean("assignment_to_this", (a_boolean)ptr->assignment_to_this);
+    disp_ptr("assoc_new_or_delete_routine",
+             (char *)ptr->assoc_new_or_delete_routine, iek_routine);
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   disp_class_list("befriending_classes", ptr->befriending_classes);

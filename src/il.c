@@ -3864,6 +3864,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->compiler_generated      = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done = FALSE;
+  rp->assoc_new_or_delete_routine = NULL;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;

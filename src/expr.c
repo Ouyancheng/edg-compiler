@@ -5306,6 +5306,10 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
   a_boolean        is_this = FALSE;
   a_variable_ptr   this_var, operand_var;
   an_expr_node_ptr operand_expr;
+  a_routine_ptr    curr_rout;
+  an_opname_kind   opkind;
+  a_symbol_ptr     new_delete_symbol;
+  a_type_ptr       rout_class;
 
   if (is_an_rvalue(operand) && is_expression_operand(operand)) {
     operand_expr = operand->variant.expression;
@@ -5322,7 +5326,37 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
           pos_warning(ec_assignment_to_this, &operand->position);
           make_lvalue_variable_operand(this_var, operand,
                                        operand->xref_entries_list);
-          current_routine_entry()->assignment_to_this_done = TRUE;
+          curr_rout = current_routine_entry();
+          if (!curr_rout->assignment_to_this_done) {
+            curr_rout->assignment_to_this_done = TRUE;
+            if (curr_rout->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+                curr_rout->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+              /* For constructors and destructors, indicate the new or delete
+                 routine to be called for the class, since it may have to be
+                 called within the constructor or destructor wrapper code. */
+              if (curr_rout->special_kind ==
+                                    (a_special_function_kind)sfk_constructor) {
+                opkind = (an_opname_kind)onk_new;
+              } else {
+                opkind = (an_opname_kind)onk_delete;
+              }  /* if */
+              rout_class = curr_rout->source_corresp.class_of_which_a_member;
+              /* Use the class "new" or "delete" if there is one, and otherwise
+                 the global operator new or delete symbol. */
+              new_delete_symbol = opname_member_function_symbol(opkind,
+                                                                rout_class);
+              if (new_delete_symbol == NULL) {
+                new_delete_symbol = global_operator_new_or_delete_symbol(
+                                                    opkind,
+                                                    &error_position,
+                                                    /*make_default_new=*/TRUE);
+              }  /* if */
+              curr_rout->assoc_new_or_delete_routine =
+                                            new_delete_symbol->variant.routine;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
