@@ -383,6 +383,12 @@ EXTERN unsigned long
 			   deferred when pending_class_definitions is
 			   nonzero. */
 
+EXTERN a_boolean
+		primary_il_may_reference_other_trans_units;
+			/* TRUE if a template instantiated in the primary
+			   translation unit may contain references to entities
+			   in other translation units. */
+
 /* tp is a class type.  If it is incomplete, see if it is a template class in
    need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \

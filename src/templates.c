@@ -14915,6 +14915,13 @@ data member specified by tip.
                                      exported_template_file->translation_unit);
       trans_unit_stack_pushed = TRUE;
     }  /* if */
+    if (curr_translation_unit_stack_entry->next != NULL &&
+        curr_translation_unit == translation_units) {
+      /* If we are in the primary translation unit, and if there are multiple
+         translation units on the stack, set a flag that indicates that the
+         primary IL may contain references to other translation units. */
+      primary_il_may_reference_other_trans_units = TRUE;
+    }  /* if */
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
@@ -17902,6 +17909,7 @@ Initializations for template.
   avail_partial_order_candidates = NULL;
   deferred_instantiations_in_process = FALSE;
   num_total_pending_instantiations = 0;
+  primary_il_may_reference_other_trans_units = FALSE;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
