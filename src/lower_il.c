@@ -2082,17 +2082,13 @@ static an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr)
 Return a copy of the expression tree pointed to by expr.  If the expression
 has side effects, the original expression will be changed so that its value is
 stored in a temporary, and the copy will reference the temporary.
+expr should be an rvalue (although make_lvalue_reusable_copy calls this
+routine after it has discarded the troublesome lvalue cases).
 */
 {
   an_expr_node_ptr expr_copy, temp_node;
   a_variable_ptr   temp;
 
-  /* Note that no special case is required for bit-field lvalues or
-     register lvalues.  One would think they could cause a problem, since
-     the "value" of such a node -- its address -- cannot really be rendered
-     and therefore cannot really be stored in a temporary.  Fortunately,
-     such lvalues have no side effects, so they never require the temporary
-     treatment. */
   if (!node_has_side_effects(expr)) {
     /* Node has no side effects, so a straight copy will work. */
     /* Temps cannot be cloned from IL lowering -- the wrong temp-allocation
@@ -2114,6 +2110,61 @@ stored in a temporary, and the copy will reference the temporary.
   }  /* if */
   return expr_copy;
 }  /* make_reusable_copy */
+
+
+static an_expr_node_ptr make_lvalue_reusable_copy(an_expr_node_ptr expr)
+/*
+Return a copy of the expression tree pointed to by expr.  If the expression
+has side effects, the original expression will be changed so that its value is
+stored in a temporary, and the copy will reference the temporary.
+expr should be an lvalue.
+*/
+{
+  a_boolean             special_case = FALSE;
+  an_expr_node_ptr      expr_copy, operand1, operand2, operand3;
+  an_expr_node_ptr      operand1_copy, operand2_copy, operand3_copy;
+  an_expr_operator_kind op;
+
+#if 0
+  /* Something may be required for register lvalues. */
+#endif /* 0 */
+  if (is_operation_node(expr)) {
+    op = expr->variant.operation.kind;
+    operand1 = expr->variant.operation.operands;
+    if (op == (an_expr_operator_kind)eok_bit_field) {
+      /* For a bit-field reference, make a reusable copy of the struct
+         address, then add the bit field selection to that. */
+      special_case = TRUE;
+      operand2 = operand1->next;
+      operand1_copy = make_lvalue_reusable_copy(operand1);
+      expr_copy = field_lvalue_selection_expr(operand1_copy,
+                                              operand2->variant.field);
+    } else if (op == (an_expr_operator_kind)eok_question) {
+      /* For a "?" operator, make reusable copies of all three operands,
+         and a new "?" that uses the reusable copies. */
+      special_case = TRUE;
+      operand2 = operand1->next;
+      operand3 = operand2->next;
+      operand3_copy = make_lvalue_reusable_copy(operand3);
+      operand2_copy = make_lvalue_reusable_copy(operand2);
+      operand2_copy->next = operand3_copy;
+      operand1_copy = make_reusable_copy(operand1);
+      operand1_copy->next = operand2_copy;
+      expr_copy = make_operator_node((an_expr_operator_kind)eok_question,
+                                     expr->type, operand1_copy);
+    } else if (op == (an_expr_operator_kind)eok_comma) {
+      /* For a "," operator, make a reusable copy of the second operand. */
+      special_case = TRUE;
+      operand2 = operand1->next;
+      expr_copy = make_lvalue_reusable_copy(operand2);
+    }  /* if */
+  }  /* if */
+  if (!special_case) {
+    /* For other cases, use the rvalue copy. */
+    expr_copy = make_reusable_copy(expr);
+  }  /* if */
+  return expr_copy;
+}  /* make_lvalue_reusable_copy */
 
 
 static void overwrite_node(an_expr_node_ptr node,
@@ -9549,6 +9600,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
              question mark itself is. */
           if (is_lvalue) is_lvalue_mask = 0x6;
           is_conditional_operator = TRUE;
+        } else if (op == (an_expr_operator_kind)eok_comma) {
+          /* Comma's second operand is an lvalue if the comma itself is. */
+          if (is_lvalue) is_lvalue_mask = 0x2;
         } else if (op == (an_expr_operator_kind)eok_land ||
                    op == (an_expr_operator_kind)eok_lor) {
           /* "&&" and "||". */
@@ -9609,7 +9663,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           new_assign_node->type = type_pointed_to(expr->type);
           /* Attach a copy of the lvalue address to it, for the second
              operand of the comma operator. */
-          new_assign_node->next = make_reusable_copy(operand_node);
+          new_assign_node->next = make_lvalue_reusable_copy(operand_node);
           /* Change the original node to a comma node. */
           set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                             expr->type, new_assign_node);
