@@ -227,7 +227,10 @@ enum a_constant_repr_kind_tag {
 #endif /* ifdef CIL */
   ck_aggregate,         /* For list of constants in initialization. */
   ck_init_repeat,       /* Used to specify a repeated initialization constant
-                           in an array.  Only used in C++. */
+                           in an array. */
+#ifdef CIL
+			/* Only used in C++. */
+#endif /* ifdef CIL */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
                            in an aggregate. */
@@ -2457,8 +2460,7 @@ typedef struct a_statement {
                            Note that the "expression to test" in each of the
                            three cases is always standardized to an integer/
                            logical expression.
-                             The switch expression for stmk_switch.
-			     The address to be initialized for stmk_init. */
+                             The switch expression for stmk_switch. */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* Also:
