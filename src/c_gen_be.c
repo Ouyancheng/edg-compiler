@@ -1624,7 +1624,7 @@ is TRUE, this is for the heading of a function being declared with a body.
         char          arg_name[50];
         start_comment();
         for (arg_ctr = 1;; arg_ctr++) {
-          (void)sprintf(arg_name, "p%ul", arg_ctr);
+          (void)sprintf(arg_name, "p%lu", arg_ctr);
           simple_type_reference(arg_name, param_type->type);
           param_type = param_type->next;
           if (param_type == NULL) break;

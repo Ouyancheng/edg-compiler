@@ -477,7 +477,7 @@ and indentation is the indentation desired.
     col += strlen(str) + 6;
   }  /* if */
 
-  (void)sprintf(buffer, "(%ul/%ul)", sym->decl_position.seq,
+  (void)sprintf(buffer, "(%lu/%u)", sym->decl_position.seq,
 		sym->decl_position.column);
   put_separator("", strlen(buffer));
   fputs(buffer, f_debug);
@@ -556,7 +556,7 @@ and indentation is the indentation desired.
         if (C_dialect == C_dialect_cplusplus) {
           put_access(sym->variant.field.ptr->source_corresp.access);
         }  /* if */
-        (void)sprintf(buffer, "offset = %ul",
+        (void)sprintf(buffer, "offset = %lu",
                       (unsigned long)sym->variant.field.ptr->bit_offset);
         put_string(buffer);
 		 type = sym->variant.field.ptr->type;
