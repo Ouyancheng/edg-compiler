@@ -1,12 +1,12 @@
 Version 2.43
 
-10/28/99  Extra source positions for "else" token
+10/28/99 Extra source positions for "else" token
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source position associated
 with the "else" keyword in an if-statement is recorded in a_statement
 (variant field variant.if_stmt.else_position).
 
-10/28/99  Microsoft compatibility: (int)0 is not a null pointer constant
+10/28/99 Microsoft compatibility: (int)0 is not a null pointer constant
 
 In Microsoft C++ bugs mode, (int)0 is no longer considered a null
 pointer constant.  This duplicates a bug in MSVC++ 6.0 on the following:
@@ -18,7 +18,7 @@ pointer constant.  This duplicates a bug in MSVC++ 6.0 on the following:
     return 0;                      
   }
 
-10/28/99  Microsoft compatibility: qualifiers in template arguments
+10/28/99 Microsoft compatibility: qualifiers in template arguments
 
 In version 2.39, we duplicated a Microsoft bug that ignored qualifiers
 when comparing template argument lists.  This bug has been fixed
@@ -26,13 +26,13 @@ in Visual C++ version 6.0.  Our support for this bug is now dependent
 on the Microsoft version value that is used (i.e., it is only supported
 for Microsoft versions of 1100 and earlier).
 
-10/28/99  offsetof based on __INTADDR__ when size_t smaller than pointer
+10/28/99 offsetof based on __INTADDR__ when size_t smaller than pointer
 
 An implementation of offsetof that uses __INTADDR__ on a system where
 the size of size_t is smaller than a pointer no longer gets a warning
 on the implicit cast of the pointer operand to size_t.
 
-10/28/99  Microsoft compatibility: ambiguous class reference allowed
+10/28/99 Microsoft compatibility: ambiguous class reference allowed
 
 If a lookup of a name before a "::" finds both a typedef to a class and
 a class name made visible by a using-directive, the Microsoft compiler
@@ -48,7 +48,7 @@ bugs mode.
   using namespace std;
   int i = ios::i;  // uses std::ios
 
-10/28/99  Microsoft compatibility: error in vacuous destructor call
+10/28/99 Microsoft compatibility: error in vacuous destructor call
 
 A bug was introduced in 2.42 that caused the following example to be
 rejected in Microsoft bugs mode.  This has been fixed.
