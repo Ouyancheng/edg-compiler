@@ -1812,13 +1812,13 @@ do
     # The first compilation should generate a PCH file, the second should
     # use the generated file.  The output of the first compilation is
     # discarded.
-    eval $command >/dev/null 2>&1
-    eval $command $command_output
+    $command >/dev/null 2>&1
+    $command $command_output
     status=$?
     rm -f *.pch
   else
     # Normal mode, just run the front end.
-    eval $command $command_output
+    $command $command_output
     status=$?
   fi
   if [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
