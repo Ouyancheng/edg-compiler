@@ -1,5 +1,27 @@
 Version 2.39
 
+4/23/98   Fixed apparent inconsistency in variable-used-before-set warning
+
+For purposes of used-before-set diagnostics, a variable is no longer
+considered to have a value through being default-initialized by a
+implicitly declared trivial default constructor.  For example:
+
+  struct A { int i; };
+  struct B : public A { int j; };
+  int f() {
+    A a;
+    B b;
+    return a.i + b.j;    // Warning now on use of b.j as well as of a.i
+  }
+
+Here, a used-before-set warning had been issued on the reference to a.i but
+not on the reference to b.j.  There was a technical justification for this
+behavior: A is a POD and so is not default-initialized, whereas B (since
+it has a base class) is not a POD and therefore is default initialized --
+albeit by a implicitly generated trivial default constructor, which by
+definition doesn't actually do anything.  This too subtle distinction
+is no longer insisted on.
+
 4/23/98   using-directive state not maintained properly in certain cases
 
 Under certain circumstances, the using-directive state is not maintained

@@ -9081,7 +9081,29 @@ continue_with_declaration:
         if (def_initializer(symbol_ptr, &locator.source_position)) {
           /* Default initialization was successful. */
           if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
-            mark_variable_value_set(symbol_ptr);
+            /* Unless this variable has non-static storage duration and
+               is default-initialized by a trivial default constructor (which
+               is a no-op), mark it as having a value. */
+            if (has_static_storage_duration(var_ptr->storage_class)) {
+              /* Objects with static storage duration are zero-initialized,
+                 so they always have some value. */
+              mark_variable_value_set(symbol_ptr);
+            } else {
+              a_type_ptr  tp = skip_typerefs(var_ptr->type);
+              if (is_array_type(tp)) {
+                tp = skip_typerefs(underlying_array_element_type(tp));
+              }  /* if */
+              if (is_immediate_class_type(tp) &&
+                  symbol_supplement_for_class(tp)->
+                                trivial_default_constructor != NULL) {
+                /* Must have been initialized by a trivial default constructor.
+                   Since such constructors would do nothing even if they were
+                   actually called, don't regard them as setting the value of
+                   the variable. */
+              } else {
+                mark_variable_value_set(symbol_ptr);
+              }  /* if */
+            }  /* if */
           }  /* if */
         } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
           /* No default initialization, so do some additional checking. */
