@@ -324,7 +324,8 @@ typedef enum /*an_error_code*/ {
   ec_id_must_be_class_name,
   ec_bad_friend_decl,
   ec_value_returned_in_constructor,
-  ec_bad_destructor_decl
+  ec_bad_destructor_decl,
+  ec_id_has_same_name_as_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -906,6 +906,10 @@ error code.
     case ec_bad_destructor_decl:
       m = "invalid destructor declaration";
       break;
+    case ec_id_has_same_name_as_class:
+      m =
+        "within a class, the class name may only be declared as a constructor";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
