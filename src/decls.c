@@ -4366,7 +4366,13 @@ is not a template declaration scope.
   }  /* if */
   if (sym != NULL) {
     /* Must be a member template. */
-    if (!namespace_is_enclosed_by_scope(sym,
+    if (is_friend_decl &&
+        (!func_info->is_definition ||
+         scope_stack[effective_decl_level].in_prototype_instantiation)) {
+      /* Don't check the scope if this is a friend declaration unless it
+         is a definition during a real instantiation. */
+    } else if (!namespace_is_enclosed_by_scope(
+                                        sym,
                                         &scope_stack[effective_decl_level])) {
       /* This member template is being defined in a scope that does not
          enclose the scope in which the parent class was defined. */
