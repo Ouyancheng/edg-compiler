@@ -8478,12 +8478,14 @@ in il_init.)
     internal_error(
                "il_init: incorrect initialization of name_linkage_kind_names");
   }  /* if */
+#if DECL_MODIFIERS_IN_USE
   /* Variable in il_def.h: */
   /* Check that the table of decl modifier names is correctly initialized. */
   if (decl_modifier_names[(int)dmt_last] == NULL ||
       strcmp(decl_modifier_names[(int)dmt_last], "last") != 0) {
     internal_error("il_init: incorrect initialization of decl_modifier_names");
   }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
   /* Variable in il_def.h: */
   /* Check that the table of pragma ids is correctly initialized.  This guards
      against someone changing the enumeration a_pragma_kind and forgetting to
