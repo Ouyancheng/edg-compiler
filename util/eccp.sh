@@ -477,6 +477,8 @@ do
 	 --short_lifetime_temps | \
          --wchar_t_keyword | \
          --no_wchar_t_keyword | \
+         --operator_keywords | \
+         --no_operator_keywords | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
