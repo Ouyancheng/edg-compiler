@@ -4430,7 +4430,7 @@ Only the first form is accepted in C.
                ptr-to-member declaration -- e.g.,
                       t* pm = &A::f(int);      // Nonstd ptr-to-member decl
                and
-                      void A::*pm(int) = &A::f(int);
+                      void (A::*pm)(int) = &A::f(int);
                have the very same meaning for cfront.  Although this is not
                part of the language defined in the ARM, it is support for
                cfront compatibility. */
