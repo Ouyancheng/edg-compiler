@@ -91,6 +91,9 @@ the current expression, headed by curr_expr_ref_entries.
 #endif /* DEBUG */
   }  /* if */
   rep->kind = SRK_REFERENCE;
+  if (expr_stack->is_default_arg_expression) {
+    rep->kind |= SRK_DEFAULT_ARG_EXPR;
+  }  /* if */
   rep->already_recorded = FALSE;
   rep->symbol = sym_ptr;
   copy_source_position(*pos, rep->position);

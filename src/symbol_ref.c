@@ -1445,7 +1445,10 @@ projection symbol.
         sym_ptr->variant.routine.ptr->is_virtual) {
       /* Do not set IL referenced flag. */
     } else {
-      if (sym_kind == (a_symbol_kind)sk_static_data_member) {
+      if (sym_kind == (a_symbol_kind)sk_static_data_member &&
+          /* Don't instantiate things in default arguments.  They get
+             instantiated if the default argument is actually used. */
+          !(kind & SRK_DEFAULT_ARG_EXPR)) {
         /* If we are marking a template static data member as referenced, also
            set its instantiation required flag. */
         set_instance_required(sym_ptr, TRUE, /*defer_inline=*/FALSE);

@@ -121,6 +121,8 @@ address of a const and taking the address of a nonconst object).
 			/* A reference in a prototype instantiation, in
 			   a context where we can't tell what kind of use
 			   was made. */
+#define SRK_DEFAULT_ARG_EXPR 0x4000
+			/* A reference in a default argument expression. */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR | \
    SRK_PROTO_INST_REF)

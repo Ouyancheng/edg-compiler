@@ -6354,17 +6354,18 @@ than a constructor reference.
 }  /* is_copy_constructor */
 
 
-static void instantiate_routine(a_routine_ptr routine)
+static void instantiate_il_entity(a_source_correspondence *scp)
 /*
-Call set_instance_required on the indicated routine.  That will cause it
-to be instantiated if it is a template function (or, in some configurations,
-an inline function).
+Call set_instance_required on the IL entity with the indicated source
+correspondence.  That will cause it to be instantiated if it is a template
+function or static data member (or, in some configurations, an inline
+function).
 */
 {
-  a_symbol_ptr sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
+  a_symbol_ptr sym = (a_symbol_ptr)(scp->assoc_info);
 
   if (sym != NULL) set_instance_required(sym, TRUE, /*defer_inline=*/FALSE);
-}  /* instantiate_routine */
+}  /* instantiate_il_entity */
 
 
 static void do_instantiations_for_copied_default_arg_expr(
@@ -6378,12 +6379,21 @@ scan.
 */
 {
   if (expr->kind == (an_expr_node_kind)enk_routine_address) {
-    instantiate_routine(expr->variant.routine);
+    instantiate_il_entity(&expr->variant.routine->source_corresp);
+  } else if (expr->kind == (an_expr_node_kind)enk_variable ||
+             expr->kind == (an_expr_node_kind)enk_variable_address) {
+    instantiate_il_entity(&expr->variant.variable->source_corresp);
   } else if (expr->kind == (an_expr_node_kind)enk_constant) {
     a_constant_ptr con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_routine) {
-      instantiate_routine(con->variant.address.variant.routine);
+    if (con->kind == (a_constant_repr_kind)ck_address) {
+      if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
+        instantiate_il_entity(
+                        &con->variant.address.variant.routine->source_corresp);
+      } else if (con->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+        instantiate_il_entity(
+                       &con->variant.address.variant.variable->source_corresp);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* do_instantiations_for_copied_default_arg_expr */
@@ -6452,7 +6462,7 @@ expression node.  options is a set of options for the copy.
         /* Instantiate referenced routines in a default argument expression. */
         /* Watch out for prototype instantiations. */
         if (dip->variant.constructor.ptr != NULL) {
-          instantiate_routine(dip->variant.constructor.ptr);
+          instantiate_il_entity(&dip->variant.constructor.ptr->source_corresp);
         }  /* if */
       }  /* if */
       new_dip->variant.constructor.args =
