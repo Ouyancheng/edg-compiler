@@ -202,9 +202,6 @@ static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
 static a_constant_hash_value hash_constant(a_constant *cp);
 
 #if DEBUG
-/* Forward declaration needed because of mutual recursion. */
-void db_type(a_type *tp);
-
 
 void db_template_arg_list(a_template_arg_ptr tap)
 /*
@@ -1062,7 +1059,7 @@ class_struct_union:
       } else {
         if (tp->variant.template_param.kind ==
                    (a_template_param_type_kind)tptk_param) {
-          fprintf(f_debug, "#(%0lu,%0lu) ",
+          fprintf(f_debug, "#(%lu,%lu) ",
                   (unsigned long)tp->variant.
                               template_param.extra_info->coordinates.depth,
                   (unsigned long)tp->variant.
@@ -1106,7 +1103,7 @@ Dump the contents of the indicated constant, for debug purposes.
   if (cp->kind == (a_constant_repr_kind)ck_template_param) {
     if (cp->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_param) {
-      fprintf(f_debug, "template-param#(%0lu,%0lu) ",
+      fprintf(f_debug, "template-param#(%lu,%lu) ",
        (unsigned long)cp->variant.template_param.variant.coordinates.depth,
        (unsigned long)cp->variant.template_param.variant.coordinates.position);
     }  /* if */
@@ -1687,7 +1684,7 @@ dumping other structures to which the node belongs.
         fprintf(f_debug, " (condition)");
         break;
       default:;
-   }  /* switch */
+    }  /* switch */
   }  /* if */
 }  /* db_expr_summary */
 
@@ -2130,11 +2127,11 @@ Display the sequence number information associated with a source file.
     db_indent(indent);
     fprintf(f_debug, "Source file seq. info for: %s\n", sfp->file_name);
     db_indent(indent);
-    fprintf(f_debug, "First_seq: %0lu, last_seq: %0lu\n",
+    fprintf(f_debug, "First_seq: %lu, last_seq: %lu\n",
             (unsigned long)sfp->first_seq_number,
             (unsigned long)sfp->last_seq_number);
     db_indent(indent);
-    fprintf(f_debug, "First_line_number: %0lu\n",
+    fprintf(f_debug, "First_line_number: %lu\n",
             (unsigned long)sfp->first_line_number);
     if (sfp->first_child_file != NULL) {
       db_source_file_seq_info(sfp->first_child_file, indent+2);
@@ -5049,7 +5046,7 @@ class_type.
 }  /* related_ptr_to_member_type */
 
 
-a_type_ptr make_pointer_type(a_type_ptr type_pointed_to)
+a_type_ptr make_pointer_type(a_type_ptr underlying_type)
 /*
 Allocate a pointer type record and initialize it.  Attempt to find and reuse
 an existing entry if possible.
@@ -5060,18 +5057,18 @@ an existing entry if possible.
   /* See if a pointer type for the type pointed to has already been allocated.
      If one was allocated, a pointer to it is stored in the based_types list
      for the base type, and the pointer type can be reused. */
-  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer,
+  ptr = get_based_type(underlying_type, (a_based_type_kind)btk_pointer,
                        (a_type_qualifier_set)TQ_NONE,
                        /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
-    ptr->variant.pointer.type = type_pointed_to;
+    ptr->variant.pointer.type = underlying_type;
     set_type_size(ptr);
     /* Remember the existence of this pointer type by putting a pointer
        to it in the based_types list. */
-    add_based_type_list_member(type_pointed_to, (a_based_type_kind)btk_pointer,
+    add_based_type_list_member(underlying_type, (a_based_type_kind)btk_pointer,
                                ptr);
   }  /* if */
 
@@ -5080,7 +5077,7 @@ an existing entry if possible.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-a_type_ptr make_based_pointer_type(a_type_ptr     type_pointed_to,
+a_type_ptr make_based_pointer_type(a_type_ptr     underlying_type,
 				   a_variable_ptr variable)
 /*
 Allocate a pointer type for a based pointer, and initialize it.
@@ -5090,7 +5087,7 @@ Allocate a pointer type for a based pointer, and initialize it.
 
   /* No allocated entry, need to allocate one. */
   ptr = alloc_type((a_type_kind)tk_pointer);
-  ptr->variant.pointer.type = type_pointed_to;
+  ptr->variant.pointer.type = underlying_type;
   ptr->variant.pointer.base_variable = variable;
   set_type_size(ptr);
   return ptr;
@@ -5098,7 +5095,7 @@ Allocate a pointer type for a based pointer, and initialize it.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-a_type_ptr make_reference_type(a_type_ptr type_pointed_to)
+a_type_ptr make_reference_type(a_type_ptr underlying_type)
 /*
 Allocate a reference type record and initialize it.  Attempt to find and reuse
 an existing entry if possible.
@@ -5110,19 +5107,19 @@ an existing entry if possible.
      allocated.  If one was allocated, a pointer to it is stored in the
      based_types list for the base type, and the reference type can be
      reused. */
-  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference,
+  ptr = get_based_type(underlying_type, (a_based_type_kind)btk_reference,
                        (a_type_qualifier_set)TQ_NONE,
                        /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
-    ptr->variant.pointer.type = type_pointed_to;
+    ptr->variant.pointer.type = underlying_type;
     ptr->variant.pointer.is_reference = TRUE;
     set_type_size(ptr);
     /* Remember the existence of this reference type by putting a pointer
        to it in the based_types list. */
-    add_based_type_list_member(type_pointed_to,
+    add_based_type_list_member(underlying_type,
                                (a_based_type_kind)btk_reference, ptr);
   }  /* if */
 
@@ -5517,7 +5514,7 @@ Copy the type entry "from" to "to".
       tp = skip_typerefs(to->variant.routine.return_type);
       dtf_kind = (a_dependent_type_fixup_kind)dtfk_routine_calling_method;
     } else {
-      tp = skip_typerefs(underlying_array_element_type(to));
+      tp = f_skip_typerefs(underlying_array_element_type(to));
       dtf_kind = (a_dependent_type_fixup_kind)dtfk_array_type_size;
     }  /* if */
     if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
@@ -7603,7 +7600,7 @@ selections for anonymous unions.
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      field_node;
-  a_type_ptr            selection_type;
+  a_type_ptr            selection_type, underlying_type;
   a_type_qualifier_set  qualifiers;
 
   /* Make the expression node for the field. */
@@ -7616,7 +7613,8 @@ selections for anonymous unions.
                                (an_expr_operator_kind)eok_field;
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer. */
-  qualifiers = get_type_qualifiers(type_pointed_to(node->type));
+  underlying_type = type_pointed_to(node->type);
+  qualifiers = get_type_qualifiers(underlying_type);
   selection_type = make_field_selection_type(field, qualifiers);
   selection_type = make_pointer_type(selection_type);
   /* Make the field selection node. */
@@ -8601,6 +8599,7 @@ lifetimes, since those are never bound.
                                (((a_scope_ptr)entity_ptr)->kind ==
                                          (a_scope_kind)sck_condition),
                                str, "bad scope kind for olk_block");
+          break;
         case iek_local_static_variable_init:
         case iek_block:
           /* Okay. */
@@ -11659,13 +11658,13 @@ it needs to be marked as autonomous.
      declarations that are marked as having been declared in a function
      prototype. */
   for (; ssep != NULL; ssep = ssep->next) {
-     if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma
+    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma
 #if RECORD_MACROS_IN_IL
-         || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
+        || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
 #endif /* RECORD_MACROS_IN_IL */
                                                                    ) {
-       /* Ignore entries representing macros and pragmas. */
-       continue;
+      /* Ignore entries representing macros and pragmas. */
+      continue;
     }  /* if */
     if (ss_entry_kind(ssep) != (an_il_entry_kind)iek_src_seq_secondary_decl) {
       /* First entry that is not a secondary-decl entry -- we must be past the
@@ -12173,9 +12172,12 @@ eliminated, if appropriate.
                  translation unit. */
             } else
 #endif /* DO_IL_LOWERING */
-            /* Virtual function may be needed for defining the virtual
-               function table. */
-            okay_to_clear_flag = FALSE;
+            /* Do not insert code here. */
+            {
+              /* Virtual function may be needed for defining the virtual
+                 function table. */
+              okay_to_clear_flag = FALSE;
+            }  /* if */
           }  /* if */
           if (okay_to_clear_flag) {
             tip = sym->variant.routine.instance_ptr;
