@@ -1436,7 +1436,6 @@ called by id_linkage.
   a_boolean     is_namespace_member_def = FALSE;
   a_symbol_locator  *locator = idlbp->locator;
   a_boolean     is_guiding_decl = FALSE;
-  a_boolean     is_block_extern_decl = FALSE;
 
   db_enter(4, "find_linked_symbol");
   if (locator->specific_symbol != NULL &&
@@ -1745,7 +1744,6 @@ specified id-linkage block.
 */
 {
   a_boolean          is_object, is_function;
-  a_boolean          at_file_or_namespace_scope;
   a_symbol_ptr       prior_decl;
   a_storage_class    local_storage_class = idlbp->storage_class;
   a_boolean	     is_template_instance = FALSE;
@@ -4874,7 +4872,6 @@ is not a template declaration scope.
   a_routine_ptr                     rout_ptr, rp;
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
-  a_template_param_ptr		    templ_param_list;
   a_boolean                         set_invisible = FALSE;
 #if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
