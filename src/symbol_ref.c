@@ -182,6 +182,9 @@ this case and add it to the list for the current scope.
   a_scope_stack_entry_ptr  ssep;
   char                     *entity;
   an_il_entry_kind         kind;
+  a_boolean                create_hidden_name_entry = FALSE;
+  a_symbol_ptr             sym;
+  a_template_instance_ptr  tip;
 
   if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     switch (hidden_sym->kind) {
@@ -198,101 +201,124 @@ this case and add it to the list for the current scope.
         break;
       case sk_overloaded_function:
         /* Enter members of an overload set separately. */
-        for (hidden_sym = hidden_sym->variant.overloaded_function.symbols;
-             hidden_sym != NULL;
-             hidden_sym = hidden_sym->next) {
-          record_defeatable_name_hiding(hidden_sym, tag_hidden_by_nontag,
+        for (sym = hidden_sym->variant.overloaded_function.symbols;
+             sym != NULL;
+             sym = sym->next) {
+          record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
                                         global_hidden_by_nonglobal, sp);
         }  /* for */
         break;
       case sk_class_template:
+        for (sym = hidden_sym->variant.template_info->
+                                variant.class_template.instantiations;
+             sym != NULL;
+             sym = sym->next) {
+          if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+            record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
+                                          global_hidden_by_nonglobal, sp);
+          }  /* if */
+        }  /* for */
+        break;
       case sk_function_template:
-        /* Template support is not yet provided. */
+        for (tip = hidden_sym->variant.template_info->
+                                variant.function.instantiations;
+             tip != NULL;
+             tip = tip->next) {
+          if (!tip->specific_decl) {
+            record_defeatable_name_hiding(tip->instance_sym,
+                                          tag_hidden_by_nontag,
+                                          global_hidden_by_nonglobal, sp);
+          }  /* if */
+        }  /* for */
         break;
       case sk_routine:
       case sk_member_function:
       case sk_static_data_member:
+#if 0
         if ((hidden_sym->kind == (a_symbol_kind)sk_static_data_member &&
              hidden_sym->variant.static_data_member.instance_ptr != NULL) ||
             hidden_sym->variant.routine.instance_ptr != NULL) {
           /* Template support is not yet provided. */
           break;
         }  /* if */
+#endif /* if 0 */
       default:
         /* The normal case.  First find the entity associated with the
            symbol. */
-        entity = il_entry_for_symbol(hidden_sym, &kind);
-        if (entity != NULL) {
-          if (sp == NULL) {
-            /* Get pointer to current scope entry. */
-            ssep = &scope_stack[decl_scope_level];
-            /* Create the IL scope if necessary (for block scopes). */
-            sp = ensure_il_scope_exists(ssep);
-            check_assertion_str(sp != NULL,
-                               "record_defeatable_name_hiding: NULL IL scope");
-          }  /* if */
-          /* If there is already a hidden name entry for this entity in this
-             scope, reuse it. */
-          for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
-            if (hnp->entity.ptr == entity) break;
-          }  /* for */
+        create_hidden_name_entry = TRUE;
+    }  /* switch */
+    if (create_hidden_name_entry) {
+      entity = il_entry_for_symbol(hidden_sym, &kind);
+      if (entity != NULL) {
+        if (sp == NULL) {
+          /* Get pointer to current scope entry. */
+          ssep = &scope_stack[decl_scope_level];
+          /* Create the IL scope if necessary (for block scopes). */
+          sp = ensure_il_scope_exists(ssep);
+          check_assertion_str(sp != NULL,
+                             "record_defeatable_name_hiding: NULL IL scope");
+        }  /* if */
+        /* If there is already a hidden name entry for this entity in this
+           scope, reuse it. */
+        for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
+          if (hnp->entity.ptr == entity) break;
+        }  /* for */
 #if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-            if (hnp == NULL ||
-                ((tag_hidden_by_nontag &&
-                  !hnp->elaborated_type_specifier_needed) ||
-                 (global_hidden_by_nonglobal &&
-                  !hnp->global_qualification_needed))) {
-              fprintf(f_debug, "%s hidden name entry for ",
-                      hnp == NULL ? "Adding" : "Mpdifying");
-              if (kind == (an_il_entry_kind)iek_type) {
-                db_type_name((a_type_ptr)entity);
-              } else {
-                a_source_correspondence  *scp;
-                if ((scp = source_corresp_for_il_entry(entity,
-                                                       kind)) != NULL) {
-                  db_name(scp);
-                  if (kind == (an_il_entry_kind)iek_routine) {
-                    db_function_param_list(((a_routine_ptr)entity)->type);
-                  }  /* if */
-                } else {
-                  fprintf(f_debug, "???");
+        if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+          if (hnp == NULL ||
+              ((tag_hidden_by_nontag &&
+                !hnp->elaborated_type_specifier_needed) ||
+               (global_hidden_by_nonglobal &&
+                !hnp->global_qualification_needed))) {
+            fprintf(f_debug, "%s hidden name entry for ",
+                    hnp == NULL ? "Adding" : "Mpdifying");
+            if (kind == (an_il_entry_kind)iek_type) {
+              db_type_name((a_type_ptr)entity);
+            } else {
+              a_source_correspondence  *scp;
+              if ((scp = source_corresp_for_il_entry(entity, kind)) != NULL) {
+                db_name(scp);
+                if (kind == (an_il_entry_kind)iek_routine) {
+                  db_function_param_list(((a_routine_ptr)entity)->type);
                 }  /* if */
+              } else {
+                fprintf(f_debug, "\?\?\?");
               }  /* if */
-              fprintf(f_debug, " in ");
-              db_scope(sp);
-              if (global_hidden_by_nonglobal) fprintf(f_debug, ", use \"::\"");
-              if (tag_hidden_by_nontag) fprintf(f_debug, ", use class-key");
-              fprintf(f_debug, "\n");
             }  /* if */
-          }  /* if */
-#endif /* DEBUG */
-          if (hnp == NULL) {
-            /* No existing entry.  Allocate a new one. */
-            hnp = alloc_hidden_name();
-            hnp->entity.ptr = entity;
-            hnp->entity.kind = (a_byte_il_entry_kind)kind;
-            /* Add it to the start of the hiden_names list for the current
-               scope. */
-            hnp->next = sp->hidden_names;
-            sp->hidden_names = hnp;
-          }  /* if */
-          /* Set the appropriate flag. */
-          if (tag_hidden_by_nontag) {
-            check_assertion(kind == (an_il_entry_kind)iek_type);
-            hnp->elaborated_type_specifier_needed = TRUE;
-          }  /* if */
-          if (global_hidden_by_nonglobal) {
-            check_assertion(in_file_scope(entity));
-            hnp->global_qualification_needed = TRUE;
+            fprintf(f_debug, " in ");
+            db_scope(sp);
+            if (global_hidden_by_nonglobal) fprintf(f_debug, ", use \"::\"");
+            if (tag_hidden_by_nontag) fprintf(f_debug, ", use class-key");
+            fprintf(f_debug, "\n");
           }  /* if */
         }  /* if */
-    }  /* switch */
+#endif /* DEBUG */
+        if (hnp == NULL) {
+          /* No existing entry.  Allocate a new one. */
+          hnp = alloc_hidden_name();
+          hnp->entity.ptr = entity;
+          hnp->entity.kind = (a_byte_il_entry_kind)kind;
+          /* Add it to the start of the hiden_names list for the current
+             scope. */
+          hnp->next = sp->hidden_names;
+          sp->hidden_names = hnp;
+        }  /* if */
+        /* Set the appropriate flag. */
+        if (tag_hidden_by_nontag) {
+          check_assertion(kind == (an_il_entry_kind)iek_type);
+          hnp->elaborated_type_specifier_needed = TRUE;
+        }  /* if */
+        if (global_hidden_by_nonglobal) {
+          check_assertion(in_file_scope(entity));
+          hnp->global_qualification_needed = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* record_defeatable_name_hiding */
 
 
-static void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr)
+void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr)
 /*
 Determine whether "defeatable hidden-name information" should be put out for
 sym_ptr and/or other entities of the same name.  The generation of such
@@ -307,23 +333,66 @@ hiding.
   a_scope_ptr       sp;
   a_namespace_ptr   nsp;
   a_boolean         tag_hidden_by_nontag, global_hidden_by_nonglobal;
+  a_routine_ptr     rp;
+  a_boolean         suppress_check = FALSE;
 
-  if (depth_scope_stack == depth_innermost_namespace_scope &&
-      sym_ptr->is_class_member) {
+  if (sym_ptr->is_error) {
+    /* Ignore error symbols. */
+    suppress_check = TRUE;
+  } else if (decl_scope_level == depth_innermost_namespace_scope &&
+             sym_ptr->is_class_member) {
     /* Ignore member definitions outside the class definition. */
+    suppress_check = TRUE;
   } else if (sym_ptr->kind == (a_symbol_kind)sk_parameter) {
     /* Ignore parameter symbols.  The only parameters that are interesting
        are the ones that have been turned into variables. */
+    suppress_check = TRUE;
   } else if (is_unnamed_tag_symbol(sym_ptr)) {
     /* No name hiding for unnamed entities. */
-  } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
+    suppress_check = TRUE;
+  } else if (
+#if 0
+             depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
+#endif /* if 0 */
              depth_template_declaration_scope != NO_SCOPE_DEPTH ||
-             (sym_ptr->is_class_member &&
-              is_template_class_type(sym_ptr->parent.class_type))) {
+             scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* We don't deal with templates yet. */
-  } else if (sym_ptr->is_error) {
-    /* Ignore error symbols. */
+    suppress_check = TRUE;
   } else {
+    /* Screen out user-defined conversion functions and overloaded operator
+       functions (except for new and delete). */
+    switch (sym_ptr->kind) {
+      case sk_routine:
+      case sk_member_function:
+        rp = sym_ptr->variant.routine.ptr;
+        break;
+      case sk_function_template:
+        rp = sym_ptr->variant.template_info->variant.function.routine;
+        break;
+      default:
+        rp = NULL;
+    }  /* switch */
+    if (rp != NULL) {
+      if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
+        /* Ignore conversion functions -- they can only be declared as
+           member functions. */
+        suppress_check = TRUE;
+      } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+                 !is_new_operator(rp->opname_kind) &&
+                 !is_delete_operator(rp->opname_kind)) {
+        /* Ignore most operator functions. */
+        suppress_check = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!suppress_check) {
+#if 0
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+      db_symbol(sym_ptr, "Hidden name check: ", 2);
+    }  /* if */
+#endif /* DEBUG */
+#endif /* if 0 */
     clear_locator(&locator, &sym_ptr->decl_position);
     locator.symbol_header = sym_ptr->header;
     if (!is_tag_symbol(sym_ptr)) {
@@ -340,11 +409,21 @@ hiding.
       if (old_sym_ptr != NULL) {
         /* old_sym_ptr is a tag with the same name as sym_ptr and in the
            same or a containing scope. */
-        tag_hidden_by_nontag = TRUE;
-        global_hidden_by_nonglobal = FALSE;
-        record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
-                                      global_hidden_by_nonglobal,
-                                      (a_scope_ptr)NULL);
+        if (sym_ptr->kind == (a_symbol_kind)sk_type &&
+            typeref_is_typedef(sym_ptr->variant.type) &&
+            skip_typerefs(sym_ptr->variant.type) ==
+                            old_sym_ptr->variant.class_struct_union.type) {
+          /* sym_ptr is a typedef that refers the type represented by
+             old_sym_ptr -- something like "typedef struct S { ... } S;"
+             There's no need to generate hidden-name info for this common
+             construct. */
+        } else {
+          tag_hidden_by_nontag = TRUE;
+          global_hidden_by_nonglobal = FALSE;
+          record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
+                                        global_hidden_by_nonglobal,
+                                        (a_scope_ptr)NULL);
+        }  /* if */
       }  /* if */
     } else {
       /* This is a tag declaration, which is hidden by any non-tag
@@ -353,7 +432,14 @@ hiding.
            class x;                 // class x is hidden at file scope
          Again, hiding can be defeated by using "class x" instead of "x". */
       old_sym_ptr = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-      if (old_sym_ptr != sym_ptr && old_sym_ptr != NULL) {
+      if (old_sym_ptr == NULL) {
+        /* Nothing to do. */
+      } else if (is_class_template_symbol(old_sym_ptr) &&
+                 is_template_class_symbol(sym_ptr) &&
+                 sym_ptr->decl_scope == old_sym_ptr->decl_scope) {
+        /* The other symbol is a class template symbol and sym_ptr is a
+           template instance. */
+      } else if (old_sym_ptr != sym_ptr) {
         tag_hidden_by_nontag = TRUE;
         global_hidden_by_nonglobal = FALSE;
         record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
@@ -361,7 +447,8 @@ hiding.
                                       (a_scope_ptr)NULL);
       }  /* if */
     }  /* if */
-    if (depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+    if (scope_depth_of_symbol(sym_ptr, &is_local_to_function) ==
+                                                 DEPTH_OF_FILE_SCOPE) {
       /* This is a declaration at file scope.  Examine every declaration
          of this name that has already appeared in a namespace or nonlocal
          class scope -- the current declaration will be hidden in such a
@@ -372,8 +459,12 @@ hiding.
            old_sym_ptr != NULL;
            old_sym_ptr = old_sym_ptr->next) {
         if (old_sym_ptr->is_class_member) {
-          sp = old_sym_ptr->parent.class_type->
-                      variant.class_struct_union.extra_info->assoc_scope;
+          a_type_ptr  tp = old_sym_ptr->parent.class_type;
+          if (symbol_supplement_for_class(tp)->is_nonreal_class) {
+            /* Ignore nonreal classes. */
+            continue;
+          }  /* if */
+          sp = tp->variant.class_struct_union.extra_info->assoc_scope;
           if (sp == NULL) {
             /* This can happen if a name is a member of class that is
                a template parameter -- e.g.,
@@ -381,9 +472,9 @@ hiding.
                In such a case, a class type for T is created to serve as the
                parent for S but it is undefined.  A similar case occurs with
                friend declarations within a class template:
-                 template <class T> class A {
-                   friend void T::f();
-                 };
+               template <class T> class A {
+                 friend void T::f();
+               };
             */
             continue;
           }  /* if */
@@ -399,8 +490,7 @@ hiding.
         record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                       global_hidden_by_nonglobal, sp);
       }  /* for */
-    } else if (scope_depth_of_symbol(sym_ptr, &is_local_to_function) !=
-                                                 DEPTH_OF_FILE_SCOPE) {
+    } else {
       /* Not a file scope declaration, and the symbol does not itself belong
          to the file scope, either (e.g., not a friend declaration). */
       clear_specific_symbol(locator);
