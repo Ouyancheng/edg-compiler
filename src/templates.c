@@ -4514,6 +4514,8 @@ prototype instantiation is considered as a potential match.
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (any_prototype_allowed || specific_prototype_allowed != NULL) {
     if (prototype_sym != NULL &&
+        /* Ignore subordinate templates that are not specialized. */
+        (tssp->prototype_template == NULL || tssp->is_specific_definition) &&
         (any_prototype_allowed ||
          specific_prototype_allowed == prototype_sym)) {
       /* Old list is the template argument list from the prototype
@@ -11344,18 +11346,11 @@ declaration of a partial specialization declared outside of its class.
        template information to reflect this. */
     record_specialization(sym, tssp, &locator.source_position);
   }  /* if */
-  if (tssp->variant.class_template.prototype_instantiation == NULL &&
-      (tssp->prototype_template == NULL || is_partial_specialization ||
-       tssp->is_specific_definition || is_definition)) {
+  if (tssp->variant.class_template.prototype_instantiation == NULL) {
     /* Create the symbol for the prototype instantiation (but don't do
-       the instantiation yet).  The prototype instantiation type is
-       not created for subordinate templates unless they are have been
-       specialized.  The "is_definition" test is there for error cases.
-       Subordinate templates should have had their bodies removed already,
-       but may still appear to be defined if the actual definition is
-       improperly formed.  Prototype types are needed for partial
-       specializations, because the template argument list of the
-       prototype instantiation must be recorded. */
+       the instantiation yet).  A prototype instantiation type is created
+       for subordinate templates even though an actual prototype instantiation
+       is never done. */
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           is_partial_specialization);
   }  /* if */
@@ -13200,8 +13195,11 @@ set, and its source sequence entry, if any, has been put out.)
                                                  proto_tssp->il_template_entry;
           }  /* if */
           if (prototype_instantiations_in_il) {
-            proto_sym = proto_tssp->
-                               variant.class_template.prototype_instantiation;
+            /* Note that in the case of a member class template, the IL
+               template entry points to the prototype instantiation
+               of the possibly subordinate template, not the prototype
+               template. */
+            proto_sym = tssp->variant.class_template.prototype_instantiation;
             il_template_entry->prototype_instantiation.type =
                                                   type_symbol_type(proto_sym);
           } else {
