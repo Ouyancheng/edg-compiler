@@ -217,6 +217,14 @@ secondary status.
           /* Change the parameter values accordingly. */
           kind = iek_src_seq_secondary_decl;
           il_entry_ptr = (char *)sssdp;
+          if (sym->kind == (a_symbol_kind)sk_static_data_member &&
+              sym->variant.static_data_member.variable->init_kind !=
+                                                   (an_init_kind)initk_none) {
+            /* This is a static data member that has an initializer and for
+               which this declaration is not a definition -- it must be
+               a "member constant" declaration (9.5.2). */
+            sssdp->member_constant_decl = TRUE;
+          }  /* if */
         }  /* if */
         f_update_source_sequence_list(il_entry_ptr, kind, old_ssep);
       }  /* if */
