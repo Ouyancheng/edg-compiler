@@ -14,14 +14,14 @@ il_to_str.c -- Produce an external string-form representation for various
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "il_to_str.h"
-#include "il.h"
-#include "const_ints.h"
-#include "float_pt.h"
-#include "types.h"
-#include "target.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 
 void clear_il_to_str_output_control_block(

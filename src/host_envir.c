@@ -18,11 +18,14 @@ MS-DOS, or VAX/VMS.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#include "mem_manage.h"
-#include "il.h"
-#include "error.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /*
 Argument strings for fopen.

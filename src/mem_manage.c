@@ -13,8 +13,15 @@ mem_manage.c -- Memory management routines.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 #if __ANSIC__
 #include <stdlib.h>
 #else /* !__ANSIC__ */
@@ -26,10 +33,6 @@ extern char *realloc(char *ptr, unsigned size);
 #include <malloc.h>
 #endif /* __BSD__ || __VMS__ */
 #endif /* __ANSIC__ */
-#include "il.h"
-#include "mem_manage.h"
-#include "error.h"
-#include "host_envir.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"

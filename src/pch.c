@@ -13,15 +13,21 @@ pch.c -- Precompiled header processing.
 
 */
 
-#include "basics.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "pch.h"
 #include "decls.h"
 #include "statements.h"
 #include "symbol_ref.h"
 #include "macro.h"
-#include "mem_manage.h"
-#include "mem_tables.h"
-#include "version.h"
 
 #define PCH_ID_STRING_LENGTH 128
 			/* Maximum length of the PCH id string. */
