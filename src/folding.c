@@ -1116,7 +1116,7 @@ Return TRUE if the given constant is a null pointer constant.
   a_type_ptr ptr_type;
 
   if (constant->kind == (a_constant_repr_kind)ck_integer) {
-    if (constant->variant.integer_value == 0L) {
+    if (cmplit_integer_constant(constant, 0L) == 0) {
       if (constant->implicit_cast) {
         /* Must be cast to (void *) to be a null pointer constant.
            Qualifiers are not allowed on the pointer or the void type
@@ -2338,7 +2338,7 @@ and *result is set to an integer 0 or 1 for the result.
      case. */
   if (op == (an_expr_operator_kind)eok_pmne) result_value = !result_value;
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = result_value;
+  set_integer_constant(&result->variant.integer_value, result_value);
 #if DEBUG
   if (debug_level  >= 5) {
     db_binary_operation(db_operator_names[op],
