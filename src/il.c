@@ -10022,6 +10022,10 @@ of the front end.
 #endif /* DO_IL_LOWERING */
   curr_object_lifetime = NULL;
   type_of_type_info = NULL;
+  /* remove_unneeded_entities is the value, settable from the command line,
+     to which okay_to_eliminate_unneeded_il_entries should be initialized
+     with each new translation unit. */
+  okay_to_eliminate_unneeded_il_entries = remove_unneeded_entities;
 
   /* Static variables in il.c: */
   /* Depending on NULL represented as zero bits here. */
