@@ -6227,6 +6227,7 @@ or implicit) controlling the declaration.
           other_sym = new_sym;
         } else {
           other_sym = add_symbol_to_overload_list(new_sym, other_sym,
+                                                  /*use_namespace=*/FALSE,
                                                   (a_namespace_ptr)NULL);
           set_mixed_static_nonstatic_flag(other_sym);
         }  /* if */

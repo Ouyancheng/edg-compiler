@@ -1867,6 +1867,7 @@ a_symbol_ptr enter_synthesized_projection_symbol(
 
 extern a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr    new_sym,
                                                 a_symbol_ptr    other_sym,
+                                                a_boolean	use_namespace,
                                                 a_namespace_ptr ns_ptr);
 
 extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,

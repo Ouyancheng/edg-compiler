@@ -2592,6 +2592,7 @@ so that there is a symbol against which a reference can be recorded.
 
 a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr    new_sym,
                                          a_symbol_ptr    other_sym,
+                                         a_boolean       use_namespace,
                                          a_namespace_ptr ns_ptr)
 /*
 new_sym is a newly created function (or function template) symbol that
@@ -2605,8 +2606,10 @@ If other_sym is not already an sk_overloaded_function symbol, it
 may need to be removed from the symbol header and scope stack lists
 and replaced with the newly created overloaded function symbol.
 Normally, the scope list is found by looking through the scope stack
-for the decl_scope of other_sym.  However, if ns_ptr is non-NULL,
-the pointers block associated with that scope is used instead.
+for the decl_scope of other_sym.  However, if use_namespace
+is TRUE, the pointers block associated with the namespace pointed to
+by ns_ptr is used instead.  If ns_ptr is NULL, the pointers block for
+the file scope is used.
 */
 {
   a_symbol_ptr        overload_sym, prev_sym_ptr;
@@ -2621,7 +2624,7 @@ the pointers block associated with that scope is used instead.
   } else {
     /* The existing symbol is not an sk_overloaded_function symbol
        (i.e., it's a simple function symbol of some kind). */
-    if (ns_ptr == NULL) {
+    if (!use_namespace) {
       /* Find the scope stack entry associated with this declaration. */
       ssep = &scope_stack[decl_scope_level];
       /* If the scope stack entry for the overloaded function is not that of
@@ -2743,6 +2746,8 @@ a locator for the new symbol.  Return a pointer to the new symbol.
 */
 {
   a_symbol_ptr        sym_ptr;
+  a_boolean	      use_namespace;
+  a_namespace_ptr     ns_ptr = NULL;
 
   sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
                          &location->source_position);
@@ -2750,12 +2755,12 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
+  use_namespace = !other_sym->is_class_member;
+  if (use_namespace) ns_ptr = other_sym->parent.namespace_ptr;
   /* Add the symbol to the overloaded function list. */
   *overload_sym = 
-          add_symbol_to_overload_list(sym_ptr, other_sym,
-                                      (other_sym->is_class_member ?
-                                            (a_namespace_ptr)NULL :
-                                            other_sym->parent.namespace_ptr));
+          add_symbol_to_overload_list(sym_ptr, other_sym, use_namespace,
+                                      ns_ptr);
   /* Return a pointer to the newly created symbol as well. */
   return sym_ptr;
 }  /* enter_overloaded_symbol */

@@ -768,6 +768,7 @@ scope lookup.  options specifies the options being used for the lookup.
         new_sym = make_namespace_projection_symbol(new_sym, locator,
                                                    depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_sym, curr_sym,
+                                               qualified_lookup,
                                                qualifier_namespace);
       }  /* if */
     }  /* if */
@@ -793,6 +794,7 @@ scope lookup.  options specifies the options being used for the lookup.
                                                         locator,
                                                         depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_rout_sym, curr_sym,
+                                               qualified_lookup,
                                                qualifier_namespace);
       }  /* if */
     }  /* for */

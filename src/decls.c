@@ -3754,6 +3754,7 @@ on for use in generating cross-reference output describing this declaration.
       }  /* if */
       if (!linked_redecl_error) {
         if (!sym->variant.routine.instance_ptr->specific_decl) {
+          a_boolean	use_namespace;
           check_assertion(homonym_symbol != NULL);
           check_assertion(sym->parent.namespace_ptr ==
                              homonym_symbol->parent.namespace_ptr);
@@ -3761,8 +3762,10 @@ on for use in generating cross-reference output describing this declaration.
               list, but it needs to be added to the overload list as well,
               to assure that it will be found by the ordinary overload
               resolution algorithm. */
+          use_namespace = sym->parent.namespace_ptr != NULL;
           overload_symbol = 
                     add_symbol_to_overload_list(sym, homonym_symbol,
+                                                use_namespace,
                                                 sym->parent.namespace_ptr);
           sym->variant.routine.instance_ptr->specific_decl = TRUE;
         }  /* if */
@@ -6423,6 +6426,7 @@ current scope.
           new_sym = make_namespace_projection_symbol(sym, &locator,
                                                      depth_scope_stack);
           new_sym = add_symbol_to_overload_list(new_sym, overload_sym,
+                                                /*use_namespace=*/FALSE,
                                                 (a_namespace_ptr)NULL);
           overload_sym = new_sym;
         }  /* if */
