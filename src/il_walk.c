@@ -31,6 +31,10 @@ il_walk.c -- Routines to walk the intermediate language tree.
 
 #if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 
+#if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
+
 #if !ORPHAN_PROCESSING_NEEDED
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
@@ -471,39 +475,53 @@ definition of the routine is needed, and not just the declaration.
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
                           "set_routine_definition_needed: memory region gone");
       scope = il_header.region_scope_entry[rout->assoc_scope];
-      /* Set curr_il_region_number for the duration of the sweeps here.
-         This is necessary in case some a_per_instantiation_needed_flags_entry
-         entries need to be allocated; we need to know what memory region
-         to put them in. */
-      curr_il_region_number = rout->assoc_scope;
-      /* Set the innermost function scope.  This is needed for finding the
-         variable associated with anonymous union types. */
-      saved_innermost_function_scope = innermost_function_scope;
-      innermost_function_scope = scope;
-      /* walk_tree_and_set_needed is not used here so that this routine can
-         be callable from outside of the needed flag walk. */
-      mark_as_needed((char *)scope, iek_scope);
-      innermost_function_scope = saved_innermost_function_scope;
-      curr_il_region_number = saved_curr_il_region_number;
-#if ONE_INSTANTIATION_PER_OBJECT
-      if (needed_flag_bit_number == 0)
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if DO_IL_LOWERING
+      /* Don't sweep functions in the primary IL until they have been
+         lowered.  This comes up when lowering is delayed, e.g., to
+         wait until references to secondary-translation-unit IL have
+         been rewritten.  finish_function_body_processing calls
+         remark_routine_definition_needed later to ensure that the
+         sweep gets done. */
+      if (il_entry_prefix_of(scope).il_lowering_flag ||
+          !il_lowering_needed() ||
+          in_secondary_trans_unit(scope))
+#endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
       {
-        /* Do the keep_definition_in_il processing now so we can free the
-           memory region as soon as possible. */
-        set_routine_keep_definition_in_il(rout);
-        /* Decide on disposing of the memory region. */
-        if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
-            innermost_function_scope == scope) {
-          /* This function's scope is still on the scope stack, so do nothing
-             now.  check_for_done_with_memory_region will be called when the
-             scope is popped off the stack.  The innermost_function_scope
-             test is needed for generated routines in IL lowering, since
-             they're not on the scope stack. */
-        } else {
-          /* We may be able to dispose of the memory region now. */
-          check_for_done_with_memory_region(rout->assoc_scope);
+        /* Set curr_il_region_number for the duration of the sweeps here.
+           This is necessary in case some
+           a_per_instantiation_needed_flags_entry entries need to be
+           allocated; we need to know what memory region to put them in. */
+        curr_il_region_number = rout->assoc_scope;
+        /* Set the innermost function scope.  This is needed for finding the
+           variable associated with anonymous union types. */
+        saved_innermost_function_scope = innermost_function_scope;
+        innermost_function_scope = scope;
+        /* walk_tree_and_set_needed is not used here so that this routine can
+           be callable from outside of the needed flag walk. */
+        mark_as_needed((char *)scope, iek_scope);
+        innermost_function_scope = saved_innermost_function_scope;
+        curr_il_region_number = saved_curr_il_region_number;
+#if ONE_INSTANTIATION_PER_OBJECT
+        if (needed_flag_bit_number == 0)
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+        /* Do not insert code here. */
+        {
+          /* Do the keep_definition_in_il processing now so we can free the
+             memory region as soon as possible. */
+          set_routine_keep_definition_in_il(rout);
+          /* Decide on disposing of the memory region. */
+          if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
+              innermost_function_scope == scope) {
+            /* This function's scope is still on the scope stack, so do nothing
+               now.  check_for_done_with_memory_region will be called when the
+               scope is popped off the stack.  The innermost_function_scope
+               test is needed for generated routines in IL lowering, since
+               they're not on the scope stack. */
+          } else {
+            /* We may be able to dispose of the memory region now. */
+            check_for_done_with_memory_region(rout->assoc_scope);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

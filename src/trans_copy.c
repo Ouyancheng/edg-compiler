@@ -1920,8 +1920,7 @@ functions of local classes, where it points to the primary IL copy.
     /* The routine body was moved. */
     a_scope_ptr scope= il_header.region_scope_entry[primary_rout->assoc_scope];
     check_assertion_str(scope != NULL, "wrap_up_moved_function: body missing");
-    finish_function_body_processing(scope, /*after_copy=*/TRUE,
-                                    /*discard_function_body=*/FALSE);
+    finish_function_body_processing(scope, /*discard_function_body=*/FALSE);
   }  /* if */
 }  /* wrap_up_moved_function */
 
@@ -2100,6 +2099,185 @@ secondary translation unit IL and therefore will not be copied.
 #endif /* DEBUG */
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
+
+
+static a_boolean mark_secondary_termination_test(char             *ptr,
+                                                 an_il_entry_kind kind)
+/*
+Called during the IL walk for
+mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed.
+If ptr points to a secondary translation unit entry, mark that entry
+as needed and prune the walk.
+*/
+{
+  a_boolean prune;
+
+  if (in_secondary_trans_unit(ptr)) {
+    mark_as_needed(ptr, kind);
+    prune = TRUE;
+  } else if (il_entry_prefix_of(ptr).il_walk_flag ==
+                                                  flag_value_meaning_visited) {
+    /* This entry has already been visited on this walk. */
+    prune = TRUE;
+  } else {
+    il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
+    prune = FALSE;
+  }  /* if */
+  return prune;
+}  /* mark_secondary_termination_test */
+
+
+void mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed(void)
+/*
+Walk through the primary translation unit IL tree, looking for pointers
+to entities in secondary translation unit IL.  Mark such secondary IL
+entities as needed, so that they will be copied to the primary IL later.
+(This is done before the copying of secondary translation unit IL to the
+primary IL.)
+*/
+{
+  a_memory_region_number n;
+
+  db_enter(1,
+          "mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed");
+  if (primary_il_may_reference_other_trans_units) {
+    walk_file_scope_il((an_entry_process_function_ptr)NULL,
+                       (a_string_entry_process_function_ptr)NULL,
+                       (a_remap_function_ptr)NULL,
+                       mark_secondary_termination_test,
+                       /*clear_fe_pointers=*/FALSE);
+    /* Loop through the memory regions looking for functions in the
+       primary IL, and process them too. */
+    for (n = FILE_SCOPE_REGION_NUMBER + 1;
+         n <= highest_used_region_number;
+         ++n) {
+      if (mem_region_table[n] == NULL) {
+        /* This memory has already been freed. */
+      } else {
+        a_scope_ptr sp = il_header.region_scope_entry[n];
+        a_boolean   from_secondary_trans_unit =
+                       (trans_unit_for_scope[sp->number] != translation_units);
+        if (!from_secondary_trans_unit &&
+            sp->kind != (a_scope_kind)sck_file) {
+          walk_routine_scope_il(n,
+                                (an_entry_process_function_ptr)NULL,
+                                (a_string_entry_process_function_ptr)NULL,
+                                (a_remap_function_ptr)NULL,
+                                mark_secondary_termination_test,
+                                /*clear_fe_pointers=*/FALSE);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  db_exit();
+}  /* mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed */
+
+
+/*ARGSUSED*/ /* <-- "kind" is not used. */
+static char *remap_secondary_pointer(char             *old_ptr,
+                                     an_il_entry_kind kind)
+/*
+Called as part of the IL walk for 
+rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary to
+do the pointer remapping.  Remaps pointers to entities in secondary
+translation units to pointers to the corresponding entities in the
+primary IL.  The correspondences must exist.
+*/
+{
+  char *new_ptr = old_ptr;
+
+  if (old_ptr == NULL) {
+    /* Leave a NULL pointer alone. */
+  } else if (in_secondary_trans_unit(old_ptr)) {
+    new_ptr = canonical_il_entry_of(old_ptr);
+    check_assertion_str(!in_secondary_trans_unit(new_ptr),
+                 "remap_secondary_pointer: missing primary IL correspondence");
+  }  /* if */
+  return new_ptr;
+}  /* remap_secondary_pointer */
+
+
+/*ARGSUSED*/ /* <-- "kind" is not used. */
+static a_boolean rewrite_secondary_termination_test(char             *ptr,
+                                                    an_il_entry_kind kind)
+/*
+Called during the IL walk for
+rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary to
+do the termination test.
+*/
+{
+  a_boolean prune;
+
+  /* There shouldn't be any secondary translation unit pointers left at
+     this point -- the remap routine eliminates them. */
+  check_assertion_str(!in_secondary_trans_unit(ptr),
+         "rewrite_secondary_termination_test: remaining secondary IL pointer");
+  if (il_entry_prefix_of(ptr).il_walk_flag == flag_value_meaning_visited) {
+    /* This entry has already been visited on this walk. */
+    prune = TRUE;
+  } else {
+    il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
+    prune = FALSE;
+  }  /* if */
+  return prune;
+}  /* rewrite_secondary_termination_test */
+
+
+void rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary(void)
+/*
+Walk through the primary translation unit IL tree, looking for pointers
+to entities in secondary translation unit IL.  Rewrite such pointers
+as pointers to the corresponding primary IL entities.  This is done after
+the copying of secondary translation unit IL to the primary IL, and
+before lowering and needed flag marking of the primary IL.
+*/
+{
+  a_memory_region_number n;
+
+  db_enter(1,
+           "rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary");
+  if (primary_il_may_reference_other_trans_units) {
+    walk_file_scope_il((an_entry_process_function_ptr)NULL,
+                       (a_string_entry_process_function_ptr)NULL,
+                       remap_secondary_pointer,
+                       rewrite_secondary_termination_test,
+                       /*clear_fe_pointers=*/FALSE);
+    /* Loop through the memory regions looking for functions in the
+       primary IL, and process them too. */
+    for (n = FILE_SCOPE_REGION_NUMBER + 1;
+         n <= highest_used_region_number;
+         ++n) {
+      if (mem_region_table[n] == NULL) {
+        /* This memory has already been freed. */
+      } else {
+        a_scope_ptr sp = il_header.region_scope_entry[n];
+        a_boolean   from_secondary_trans_unit =
+                       (trans_unit_for_scope[sp->number] != translation_units);
+        if (!from_secondary_trans_unit &&
+            sp->kind != (a_scope_kind)sck_file &&
+            /* Ignore functions copied from a secondary translation unit. */
+            !sp->variant.routine.ptr->source_corresp.
+                                            copied_from_secondary_trans_unit) {
+          walk_routine_scope_il(n,
+                                (an_entry_process_function_ptr)NULL,
+                                (a_string_entry_process_function_ptr)NULL,
+                                remap_secondary_pointer,
+                                rewrite_secondary_termination_test,
+                                /*clear_fe_pointers=*/FALSE);
+#if DO_IL_LOWERING
+          if (any_lowering_needed() &&
+              !il_entry_prefix_of(sp).il_lowering_flag) {
+            /* Do any required lowering etc. */
+            finish_function_body_processing(sp,
+                                            /*discard_function_body=*/FALSE);
+          }  /* if */
+#endif /* DO_IL_LOWERING */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  db_exit();
+}  /* rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary */
 
 
 /******************************************************************************

@@ -143,6 +143,12 @@ it needs to be executed after all templates have been instantiated.
                /*is_namespace_wrapup=*/TRUE);
   wrapup_namespace_scopes(il_scope);
 
+  if (is_primary_translation_unit) {
+    /* Sweep the primary translation unit IL tree and look for any
+       pointers to entities in secondary translation units that it uses,
+       and mark those entities as needed. */
+    mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed();
+  }  /* if */
 }  /* file_scope_il_wrapup_part_1 */
 
 
@@ -168,6 +174,10 @@ secondary translation units will have already been copied over.
   }  /* if */
 
   if (is_primary_translation_unit) {
+    /* Sweep the primary translation unit IL tree and look for any
+       pointers to entities in secondary translation units that it uses,
+       and rewrite the pointers as the corresponding primary IL entities. */
+    rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);

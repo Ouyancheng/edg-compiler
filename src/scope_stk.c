@@ -4413,21 +4413,28 @@ discarded right after they have been generated.
 
 
 void finish_function_body_processing(a_scope_ptr scope,
-                                     a_boolean   after_copy,
                                      a_boolean   will_discard_function_body)
 /*
 Do final processing on the body of the function with the indicated scope.
 This includes IL lowering if appropriate.  This routine is called
-immediately after the body is scanned (after_copy == FALSE) and also
-after the body is copied over to the primary IL for functions in a
-secondary translation unit (after_copy == TRUE).  That is, for
-functions in a secondary translation unit it is called twice.
+immediately after the body is scanned, and also after the body is copied
+over to the primary IL for functions in a secondary translation unit.
+That is, for functions in a secondary translation unit it is called twice.
 If will_discard_function_body is TRUE, the function body will be
 thrown away by the caller.
 */
 {
   a_routine_ptr routine = scope->variant.routine.ptr;
+  a_boolean     lowering_done = FALSE;
 
+  db_enter(1, "finish_function_body_processing");
+#if DEBUG
+  if (debug_level >= 1) {
+    fprintf(f_debug, "Finishing function body processing for ");
+    db_name(&routine->source_corresp);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Do not do lowering and related processing of functions in secondary
      translation units until they are copied to the primary IL.
      When this routine is called after copying for functions from
@@ -4438,6 +4445,7 @@ thrown away by the caller.
         !scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* Do IL lowering (change the C++ IL into C IL). */
       lower_il_memory_region(routine->assoc_scope);
+      lowering_done = TRUE;
     }  /* if */
     if (il_lowering_needed()) {
       /* If we're not supposed to pass object lifetime information to the
@@ -4466,18 +4474,14 @@ thrown away by the caller.
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   { a_boolean is_needed = FALSE;
-    if (!after_copy) {
-      /* Walk subtrees of local types and variables that have already been
-         marked as needed.  If they are not marked as needed yet, this
-         allows the subtrees to be swept in the future because they
-         can no longer change.*/
-      walk_subtrees_of_local_entities(scope);
-    } else {
-      /* For a function copied from a secondary translation unit,
-         the defined flag is already set.  Sweep the definition if
-         necessary.  This must be done before the call of mark_as_needed
-         below, because that can write out the body and free the
-         memory. */
+    /* Walk subtrees of local types and variables that have already been
+       marked as needed.  If they are not marked as needed yet, this
+       allows the subtrees to be swept in the future because they
+       can no longer change.*/
+    walk_subtrees_of_local_entities(scope);
+    if (routine->defined && lowering_done) {
+      /* If the definition_needed flag is set already, sweep the body
+         now that lowering has been done. */
       remark_routine_definition_needed(routine);
     }  /* if */
     /* If the function is globally visible and presumably needed by code
@@ -4498,25 +4502,7 @@ thrown away by the caller.
     }  /* if */
   }
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  if (!will_discard_function_body) {
-    /* The definition of the function is complete, so set the defined flag.
-       Note: this allows sweeping the routine definition, and (except for
-       inline functions) writing out of the body of the function, so it's
-       done late.  Note that the body of a function in a secondary
-       translation unit is swept twice -- first when unlowered, as
-       part of the secondary translation unit (after_copy == FALSE),
-       and again after lowering as part of the primary translation
-       unit (after_copy == TRUE).  The first sweep is required to allow
-       retention of referenced file-scope entities (e.g., types)
-       during the elimination of unneeded entities in the secondary
-       translation unit, before copying of IL from the secondary
-       to the primary.  The second sweep is required to get the needed
-       flags right in the final IL in the primary translation unit.
-       It is done by the call of remark_routine_definition_needed above. */
-    if (!after_copy) {
-      set_routine_defined(routine);
-    }  /* if */
-  }  /* if */
+  db_exit();
 }  /* finish_function_body_processing */
 
 
@@ -4813,10 +4799,40 @@ End a name scope by popping an entry off the scope stack.
     check_assertion(kind == (a_scope_kind)sck_function);
     /* See whether this is a function whose body should be discarded. */
     discard_function_body = function_body_should_be_discarded(curr_routine);
-    /* Do final processing on the function body.  That includes
-       IL lowering if appropriate. */
-    finish_function_body_processing(il_scope, /*after_copy=*/FALSE,
-                                    discard_function_body);
+#if DO_IL_LOWERING
+    if (is_primary_translation_unit &&
+        primary_il_may_reference_other_trans_units &&
+        !discard_function_body && il_lowering_needed()) {
+      /* Don't lower template instantiations in the primary translation unit
+         if there are exported templates, because we want to eliminate
+         references to entities in the secondary translation unit IL first.
+         The lowering will be done later -- see
+         rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary. */
+    } else
+#endif /* DO_IL_LOWERING */
+    {
+      /* Do final processing on the function body.  That includes
+         IL lowering if appropriate. */
+      finish_function_body_processing(il_scope, discard_function_body);
+    }  /* if */
+    if (!discard_function_body) {
+      /* The definition of the function is complete, so set the defined flag.
+         Note: this allows sweeping the routine definition, and (except for
+         inline functions) writing out of the body of the function, so it's
+         done late.  Note that the body of a function in a secondary
+         translation unit is swept twice -- first when unlowered, as
+         part of the secondary translation unit, and again after
+         lowering as part of the primary translation unit.  The first
+         sweep is required to allow retention of referenced file-scope
+         entities (e.g., types) during the elimination of unneeded
+         entities in the secondary translation unit, before copying of
+         IL from the secondary to the primary.  The second sweep is
+         required to get the needed flags right in the final IL in
+         the primary translation unit.  It is done by the call of
+         remark_routine_definition_needed in
+         finish_function_body_processing. */
+      set_routine_defined(curr_routine);
+    }  /* if */
   }  /* if */
 
   /* The IL scope, if any, is no longer on the stack.  This must occur
