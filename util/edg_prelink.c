@@ -67,6 +67,8 @@ typedef struct a_pl_symbol {
   a_byte_boolean
 		referenced;
   a_byte_boolean
+		referenced_in_other_file;
+  a_byte_boolean
 		defined;
   a_byte_boolean
 		tentative_definition;
@@ -166,6 +168,13 @@ static a_pl_symbol_ptr		pl_symbol_table_head = NULL;
    be manipulated.  The actual size is based on the longest filename
    specified on the command line. */
 static char			*pl_filename_buffer;
+
+/* Determines whether assignment information should be displayed. */
+static a_boolean		verbose = TRUE;
+
+/* TRUE if info files should be updated but compilations not done. */
+static a_boolean		suppress_compilation = FALSE;
+
 
 #if DEBUG
 static int pl_debug_level = 0;
@@ -317,6 +326,7 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->instantiation_file = NULL;
   psp->possible_instantiation_sites = NULL;
   psp->referenced = FALSE;
+  psp->referenced_in_other_file = FALSE;
   psp->defined = FALSE;
   psp->tentative_definition = FALSE;
   psp->multiple_definition = FALSE;
@@ -713,12 +723,7 @@ table.
   while (psp != NULL) {
     a_pl_symbol_ptr	sym;
     a_boolean		is_special_symbol = FALSE;
-    if (!input_file->is_archive &&
-        psp->name[0] == '_' && psp->name[1] == '_') {
-      /* If the object file is not coming from an archive then process
-         special symbols used to pass information from the compiler to
-         the prelinker.  Files from archives are ignored because the
-         prelinker cannot use the archive files to generate instantiations. */
+    if (psp->name[0] == '_' && psp->name[1] == '_') {
       if (strncmp(psp->name, PL_INSTANCE_REQUIRED_PREFIX,
                   PL_INSTANCE_REQUIRED_PREFIX_LEN) == 0) {
         is_special_symbol = TRUE;
@@ -739,26 +744,36 @@ table.
 	   instantiated in the file.  This will cause the function to be
            instantiated which will in turn cause a vtable to be generated.
 	   This will ultimately result in all of the virtual functions for the
-	   class to be instantiated. */
+	   class to be instantiated.  The input file is not considered to
+           be an instantiation site if it is an archive. */
         is_special_symbol = TRUE;
         sym = pl_find_symbol(&psp->name[PL_FIRST_VIRTUAL_FUNCTION_PREFIX_LEN],
                              psp, /*add=*/TRUE);
         sym->referenced = TRUE;
-        sym->can_be_instantiated = TRUE;
-	sym->is_template = TRUE;
-        add_possible_instantiation_site(sym, input_file);
-      } else if (strncmp(psp->name, PL_CAN_BE_INSTANTIATED_PREFIX,
+        sym->is_template = TRUE;
+        if (!input_file->is_archive) {
+          sym->can_be_instantiated = TRUE;
+          add_possible_instantiation_site(sym, input_file);
+        }  /* if */
+      } else if (!input_file->is_archive &&
+                 strncmp(psp->name, PL_CAN_BE_INSTANTIATED_PREFIX,
                   PL_CAN_BE_INSTANTIATED_PREFIX_LEN) == 0) {
+        /* The "can_be_instantiated" prefix indicates that the name is
+           a template and the template can be instantiated in this file.
+           Don't consider this to be a possible instantiation site if
+           the input file is an archive. */
         is_special_symbol = TRUE;
         sym = pl_find_symbol(&psp->name[PL_CAN_BE_INSTANTIATED_PREFIX_LEN],
                              psp, /*add=*/TRUE);
-        sym->can_be_instantiated = TRUE;
         sym->is_template = TRUE;
+        if (!input_file->is_archive) {
+          sym->can_be_instantiated = TRUE;
 #if !AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION
-        /* Add the current input file to the list of files that could
-	   instantiate the symbol. */
-        add_possible_instantiation_site(sym, input_file);
+          /* Add the current input file to the list of files that could
+             instantiate the symbol. */
+          add_possible_instantiation_site(sym, input_file);
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION */
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!is_special_symbol) {
@@ -911,7 +926,9 @@ Read the existing instantiation assignment information from the
         /* Read the instantiation list. */
         while (pl_read_input_line(ii_file)) {
           a_pl_symbol_ptr	sym;
-          sym = pl_find_symbol(pl_input_line, (a_pl_symbol_ptr)NULL,
+          /* Skip the first character which contains the referenced
+             flag from the previous prelink. */
+          sym = pl_find_symbol(&pl_input_line[1], (a_pl_symbol_ptr)NULL,
 			       /*add=*/TRUE);
           if (sym->instantiation_file != NULL) {
             /* The symbol is in the instantiation list of more than one file.
@@ -919,6 +936,7 @@ Read the existing instantiation assignment information from the
 	    pl_error("bad instantiation information file -- instantiation assigned to more than one file");
           }  /* if */
           sym->instantiation_file = pifp;
+          sym->referenced_in_other_file = pl_input_line[0] == '1';
           /* Add this to the front of the list of instantiation entries
              associated with this file. */
           sym->next_in_info_file = pifp->info_list;
@@ -975,6 +993,21 @@ static a_boolean pl_determine_actions(void)
         if (!remove_from_info_file) {
           /* Mark this symbol has having been instantiated. */
           psp->instantiated = TRUE;
+#if 0
+          if (psp->referenced_in_other_file && !psp->referenced) {
+            /* The symbol was referenced by another file and now is not.
+               Recompile the file because it may not be needed at all. */
+#if 0
+	    /* Should we provide an option that is not quite so pedantic
+               about immediately removing unneeded references. */
+#endif /* 0 */
+            pifp->info_file_updated = TRUE;
+            pifp->recompile = TRUE;
+	    if (verbose) {
+              fprintf(stdout, "%s may no longer be needed in %s -- recompile to verify\n", psp->name, pifp->filename);
+            }  /* if */
+          }  /* if */
+#endif /* 0 */
         } else {
           /* Either the symbol is undefined or it is now defined in a
              different file.  In either case it should be removed from the
@@ -991,12 +1024,10 @@ static a_boolean pl_determine_actions(void)
           pifp->info_file_updated = TRUE;
           pifp->recompile = recompile_file;
           done = FALSE;
-#if DEBUG
-          if (pl_debug_level >= 0) {
-            fprintf(stderr, "%s no longer needed in %s\n", psp->name,
+          if (verbose) {
+            fprintf(stdout, "%s no longer needed in %s\n", psp->name,
                     pifp->filename);
           }  /* if */
-#endif /* DEBUG */
         }  /* if */
         /* Don't update the previous pointer if the current item was
            actually removed from the list. */
@@ -1030,12 +1061,10 @@ static a_boolean pl_determine_actions(void)
           pifp->info_file_updated = TRUE;
           pifp->recompile = TRUE;
           done = FALSE;
-#if DEBUG
-          if (pl_debug_level >= 0) {
-            fprintf(stderr, "%s assigned to file %s\n", sym->name,
+          if (verbose) {
+            fprintf(stdout, "%s assigned to file %s\n", sym->name,
                     pifp->filename);
           }  /* if */
-#endif /* DEBUG */
         }  /* if */
         psp = psp->next;
       }  /* while */
@@ -1105,7 +1134,7 @@ has changed then write the updated list of instantiations to the file.
       /* Write the instantiation list to the file. */
       psp = pifp->info_list;
       while (psp != NULL) {
-        fprintf(ii_file, "%s\n", psp->name);
+        fprintf(ii_file, "%1d%s\n", psp->referenced, psp->name);
         psp = psp->next_in_info_file;
       }  /* while */
       fclose(ii_file);
@@ -1258,13 +1287,36 @@ int main(int argc, char *argv[])
   int		longest_filename = 0;
   int		return_status = 0;
   a_boolean	done = FALSE;
+  extern char	*optarg;
+  extern int	optind;
+  int		optchar;
 
+#define OPTION_LIST "nvd:"
+  while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
+    switch (optchar) {
+      case 'n':
+        suppress_compilation = TRUE;
+        break;
+      case 'v':
+        verbose = TRUE;
+        break;
+      case 'd':
+#if DEBUG
+        pl_debug_level = atoi(optarg);
+        break;        
+#endif /* DEBUG */
+      default:
+        fprintf(stderr, "Unrecognized option: %c\n", optchar);
+        pl_error("command line error");
+        break;
+    }  /* switch */
+  }  /* while */
   /* Add to the symbol table any names that the linker predefines. */
   pl_add_predefined_names();
   /* The command line must include at least two arguments. */
-  if (argc <= 2) pl_error("at least two filename must be specified");
+  if (argc < optind + 2) pl_error("at least two filename must be specified");
   /* Determine the length of the command line. */
-  for (arg = 1; arg < argc; arg++) {
+  for (arg = optind; arg < argc; arg++) {
     int	arg_size = strlen(argv[arg]);
     cmd_line_size += arg_size + 1;
     if (arg_size > longest_filename) longest_filename = arg_size;
@@ -1278,7 +1330,7 @@ int main(int argc, char *argv[])
      of suffixes, etc. */
   pl_filename_buffer = (char *)pl_malloc_with_check(longest_filename + 32);
   strcpy(command, nm_command);
-  for (arg = 1; arg < argc; arg++) {
+  for (arg = optind; arg < argc; arg++) {
     filename = argv[arg];
     strcat(command, " ");
     strcat(command, filename);
