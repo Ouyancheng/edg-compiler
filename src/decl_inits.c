@@ -3007,22 +3007,13 @@ returned set to TRUE.
       if (scan_initializer_list(&vp_type, vp, static_lifetime, &init_con,
                                 &init_dip, source_pos, decl_pos_block)) {
         /* The scan was successful. */
-        if (!var_err) {
-          /* Copy the type back into the variable.  It might have been changed
-             if vp is an incomplete array. */
-          if (vp != NULL && !same_entities(vp_type, vp->type)) {
-            if (is_array_type(vp->type) && is_incomplete_type(vp->type)) {
-              /* An array variable with unspecified bound is dimensioned
-                 according to its initializer. */
-              put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                          vp_type);
-            } else {
-              /* In all other cases, the initializer should have matched the
-                 type of the variable.  Since that is not case, the initializer
-                 must be in error. */
-              check_assertion(is_error_type(vp_type));
-            }  /* if */
-          }  /* if */
+        if (!var_err && vp != NULL &&
+            is_incomplete_type(vp->type) && is_array_type(vp->type)) {
+          /* An array variable with unspecified bound is dimensioned
+             according to its initializer: Copy the type back into the
+             variable. */
+          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                      vp_type);
         }  /* if */
       } else {
         /* Errors were encountered (and reported) during the scan. */
