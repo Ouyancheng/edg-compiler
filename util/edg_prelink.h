@@ -92,7 +92,7 @@ Declarations for EDG template prelink utility.
 static char		default_nm_command[] = "/bin/nm -og";
 static char		gnu_nm_command[] = "nm -og --no-cplus";
 static char		solaris_nm_command[] = "nm -pxR";
-static char		SGI_nm_command[] = "/bin/nm -Bopg";
+static char		SGI_nm_command[] = "/bin/nm -Bop";
 static char		CLIX_nm_command[] = "/bin/nm -pxre";
 static char		alternate_nm_command[] = "/bin/nm -pxr";
 static char		nm_command_suffix[] = "";
