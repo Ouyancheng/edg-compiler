@@ -2359,7 +2359,7 @@ at the next level down.
              no "name as written" so a NULL pointer is passed in. */
           push_input_stack(f_source, (char *)NULL, display_name,
                            full_file_name, /*is_include_file=*/FALSE,
-                           sfp->included_by_system_include);
+                           (a_boolean)sfp->included_by_system_include);
         }  /* if */
       }  /* if */
     }  /* if */
