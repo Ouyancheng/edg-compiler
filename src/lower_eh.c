@@ -1836,7 +1836,7 @@ Do IL lowering for an stmk_try_block statement.
                                     &insert_location);
   /* Change the original stmk_try_block statement into an if statement
      that looks like
-       if (setjmp(try_frame.variant.try_block.setjmp_buffer) != 0) ...
+       if (setjmp(try_frame.variant.try_block.setjmp_buffer) == 0) ...
   */
   /* Make try_frame.variant.try_block.setjmp_buffer.  Note the cast from
      pointer-to-array to pointer-to-element. */
@@ -1859,7 +1859,7 @@ Do IL lowering for an stmk_try_block statement.
                                        try_frame_setjmp_buffer);
   /* Generate the comparison against zero. */
   setjmp_call->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                     setjmp_call->type, setjmp_call);
   /* Rewrite the stmk_try_block as an "if". */
   set_statement_kind(copy_of_orig_stmt, (a_statement_kind)stmk_if);
