@@ -2317,6 +2317,24 @@ typedef struct a_based_type_list_member {
 } a_based_type_list_member;
 
 
+/*
+A bit vector whose values represent the presence of one or type qualifiers
+(const, volatile, along with others that an implementation might choose to
+support, such as restrict).
+*/
+typedef unsigned int a_type_qualification;
+/*
+Definitions of the bits comprising bit vectors of type a_type_qualifier.
+*/
+#define TQ_NONE 0x0
+			/* No type qualifiers. */
+#define TQ_CONST 0x1
+			/* This bit is set to represent const. */
+#define TQ_VOLATILE 0x2
+			/* This bit is set to represent volatile. */
+#define NUM_BITS_FOR_TYPE_QUALIFIER 2
+
+
 typedef struct a_type {
   /* Description of a type. */
   /* The source_corresp field must be first. */
@@ -2582,14 +2600,11 @@ typedef struct a_type {
 			   to something, this points to a copy of the original
 			   type.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
-      unsigned int
-                is_const:1;
-                        /* TRUE if type is const-qualified. */
-      unsigned int
-                is_volatile:1;
-                        /* TRUE if type is volatile-qualified (i.e.,
-                           if the thing pointed to can change due to outside
-                           influences). */
+      a_type_qualification
+		qualifier:NUM_BITS_FOR_TYPE_QUALIFIER;
+			/* Bit vector with bits set to indicate the presence
+			   of one or more type qualifiers (const, volatile,
+			   or other(s) as defined by the implementation). */
       unsigned int
 		is_placeholder_for_file_scope_type:1;
 			/* TRUE if the typeref appears on a class types list
