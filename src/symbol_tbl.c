@@ -29,6 +29,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "symbol_ref.h"
 #include "templates.h"
 #include "il_to_str.h"
+#include "pch.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -8543,15 +8544,17 @@ for space tracking purposes.
 }  /* show_symbol_space_used */
 #endif /* DEBUG */
 
+#if 0
+#else
+/* This is a temporary stub. */
+void register_pch_saved_variables(a_pch_saved_variable array[]) { };
+#endif /* if 0 */
 
-void sym_tbl_init(void)
+void symbol_tbl_one_time_init(void)
 /*
-Initialize static variables related to the symbol table.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
-(The name of this routine is sym_tbl_init rather than symbol_tbl_init
-to avoid an 8-character external name clash with symbol_table.)
+Do one-time initialization of variables related to the symbol table.
+(Variables that need to be reinitialized with each new translation unit
+are handled in symbol_tbl_init.)
 */
 {
   a_name_space_kind tag_name_space;
@@ -8597,28 +8600,17 @@ to avoid an 8-character external name clash with symbol_table.)
   if (name_space_for_symbol_kind[(int)sk_undefined] !=
       name_space_for_symbol_kind[(int)sk_routine]) {
     internal_error(
-   "symbol_table_init: name space for undefined and routine must be the same");
+  "symbol_table_one_time_init: different name spaces for undefined & routine");
+  }  /* if */
+  /* Check that the table of symbol kind names is correctly initialized.
+     This guards against someone changing the enumeration and forgetting to
+     update symbol_kind_names. */
+  if (symbol_kind_names[(int)sk_last] == NULL ||
+      strcmp(symbol_kind_names[(int)sk_last], "last") != 0) {
+    internal_error
+              ("sym_tbl_init: incorrect initialization of symbol_kind_names");
   }  /* if */
 #endif /* CHECKING */
-  /* Clear the symbol table.  Note that this assumes that NULL is a zero
-     bit pattern. */
-  memzero((char *)symbol_table, sizeof(symbol_table));
-  /* Clear the operator name symbol table.  Note that this assumes that
-     NULL is a zero bit pattern. */
-  memzero((char *)opname_symbol_table, sizeof(opname_symbol_table));
-  /* scope_stack is not per-file and should not be reset. */
-  depth_scope_stack = NO_SCOPE_DEPTH;
-  decl_scope_level = NO_SCOPE_DEPTH;
-  depth_innermost_function_scope = NO_SCOPE_DEPTH;
-  depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
-  depth_template_declaration_scope = NO_SCOPE_DEPTH;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
-  source_sequence_entries_disallowed = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  inside_local_class = FALSE;
-  next_scope_number = FILE_SCOPE_NUMBER;
-
   /* Clear a locator that can be used to make initialization more efficient. */
   cleared_locator.symbol_header                   = NULL;
   cleared_locator.source_position                 = null_source_position;
@@ -8638,6 +8630,7 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.variant.conversion_result_type  = NULL;
 
+  /* Static variables in symbol_tbl.c: */
   /* Clear a symbol that can be used to make initialization more efficient. */
   cleared_symbol.header                         = NULL;
   cleared_symbol.next                           = NULL;
@@ -8654,8 +8647,93 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_symbol.is_template_param              = FALSE;
   cleared_symbol.template_param_not_visible     = FALSE;
   cleared_symbol.force_external_linkage         = FALSE;
+  /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(conversion_header_list),
+      pch_saved_var_array_elem(decl_seq_counter),
+      pch_saved_var_array_elem(opname_symbol_table),
+      pch_saved_var_array_elem(scope_stack),
+      pch_saved_var_array_elem(size_scope_stack),
+      pch_saved_var_array_elem(symbol_table),
+      pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
+      pch_saved_var_array_elem(avail_access_error_descrs),
+      pch_saved_var_array_elem(avail_dependent_type_fixups),
+      pch_saved_var_array_elem(avail_param_ids),
+      pch_saved_var_array_elem(error_symbol_header),
+      pch_saved_var_array_elem(ident_buffer),
+      pch_saved_var_array_elem(size_ident_buffer),
+      pch_saved_var_array_elem(unnamed_class_symbol_header),
+      pch_saved_var_array_elem(unnamed_field_symbol_header),
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+      pch_saved_var_array_elem(last_ctor_or_dtor_sym),
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+      { (a_void_ptr)NULL, (sizeof_t)0 }
+    };
+    register_pch_saved_variables(saved_vars);
+#if DEBUG
+    if (db_active) {
+      static a_pch_saved_variable db_saved_vars[] = {
+        pch_saved_var_array_elem(db_symbol_buffer_pointer),
+        pch_saved_var_array_elem(num_access_error_descrs_allocated),
+        pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
+        pch_saved_var_array_elem(num_classes_on_scope_stack),
+        pch_saved_var_array_elem(num_compares_for_symbols),
+        pch_saved_var_array_elem(num_conversion_headers_allocated),
+        pch_saved_var_array_elem(num_dependent_type_fixups_allocated),
+        pch_saved_var_array_elem(num_extern_symbol_descrs_allocated),
+        pch_saved_var_array_elem(num_extern_type_fixups_allocated),
+        pch_saved_var_array_elem(num_fast_id_lookups),
+        pch_saved_var_array_elem(num_param_ids_allocated),
+        pch_saved_var_array_elem(num_projection_descrs_allocated),
+        pch_saved_var_array_elem(num_searches_for_symbols),
+        pch_saved_var_array_elem(num_slow_id_lookups),
+        pch_saved_var_array_elem(num_symbol_headers_allocated),
+        pch_saved_var_array_elem(num_symbol_headers_in_hash_table),
+        pch_saved_var_array_elem(num_symbol_list_entries_allocated),
+        pch_saved_var_array_elem(num_symbols_allocated),
+        pch_saved_var_array_elem(num_template_instances_allocated),
+        pch_saved_var_array_elem(num_template_params_allocated),
+        pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
+        pch_saved_var_array_elem(num_used_symbol_buckets),
+        pch_saved_var_array_elem(symbol_name_string_space),
+        { (a_void_ptr)NULL, (sizeof_t)0 }
+      };
+      register_pch_saved_variables(db_saved_vars);
+    }  /* if */
+#endif /* if DEBUG */
+  }  /* if */
+}  /* symbol_tbl_one_time_init */
 
-  /* Static variables in symbol_tbl.c: */
+void symbol_tbl_init(void)
+/*
+Initialize static variables related to the symbol table.  This is done as a
+subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  /* Variables in symbol_tbl.h: */
+  /* Clear the symbol table.  Note that this assumes that NULL is a zero
+     bit pattern. */
+  memzero((char *)symbol_table, sizeof(symbol_table));
+  /* Clear the operator name symbol table.  Note that this assumes that
+     NULL is a zero bit pattern. */
+  memzero((char *)opname_symbol_table, sizeof(opname_symbol_table));
+  /* scope_stack is not per-file and should not be reset. */
+  depth_scope_stack = NO_SCOPE_DEPTH;
+  decl_scope_level = NO_SCOPE_DEPTH;
+  depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
+  depth_template_declaration_scope = NO_SCOPE_DEPTH;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
+  source_sequence_entries_disallowed = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  inside_local_class = FALSE;
+  next_scope_number = FILE_SCOPE_NUMBER;
+
   /* size_scope_stack is not per-file and should not be reset. */
   /* ident_buffer and size_ident_buffer are not per-file and should not
      be reset. */
@@ -8697,18 +8775,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_slow_id_lookups                          = 0;
   num_access_error_descrs_allocated            = 0;
 #endif /* DEBUG */
-#if CHECKING
-  /* Check that the table of symbol kind names is correctly initialized.
-     This guards against someone changing the enumeration and forgetting to
-     update symbol_kind_names. */
-
-  if (symbol_kind_names[(int)sk_last] == NULL ||
-      strcmp(symbol_kind_names[(int)sk_last], "last") != 0) {
-    internal_error
-              ("sym_tbl_init: incorrect initialization of symbol_kind_names");
-  }  /* if */
-#endif /* CHECKING */
-}  /* sym_tbl_init */
+}  /* symbol_tbl_init */
 
 
 /******************************************************************************
