@@ -3119,6 +3119,12 @@ this one is such a continuation.
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.is_template_class &&
+        !type->variant.class_struct_union.is_specialized) {
+      /* A generated instance.  Use the "template<>" prefix if appropriate. */
+      is_specialization = !old_specializations_for_generated_instances;
+    }  /* if */
     if (is_specialization) {
       /* For a specialization, put out "template<>" at the beginning. */
       gen_template_specialization_header(&type->source_corresp,
@@ -5988,6 +5994,10 @@ declaration following this one is such a continuation.
   if (!suppress_specifiers) {
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
   }  /* if */
+  if (var->is_template_static_data_member && !var->is_specialized) {
+    /* A generated instance.  Use the "template<>" prefix if appropriate. */
+    is_specialization = !old_specializations_for_generated_instances;
+  }  /* if */
   if (is_specialization) {
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&var->source_corresp,
@@ -6327,6 +6337,10 @@ TRUE if the declaration following this one is such a continuation.
     read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = il_header.region_scope_entry[scope_region_number];
+  }  /* if */
+  if (rout->is_template_function && !rout->is_specialized) {
+    /* A generated instance.  Use the "template<>" prefix if appropriate. */
+    is_specialization = !old_specializations_for_generated_instances;
   }  /* if */
   if (is_specialization) {
     /* For a specialization, put out "template<>" at the beginning. */

@@ -1361,6 +1361,16 @@ MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 #define SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE FALSE
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 
+/*
+Flag that is TRUE if, when the C++/C-generating back end (cp_gen_be)
+is run, "specializations" for generated template instances should use
+the old syntax instead of the modern "template <>" prefix form.  This is
+the initial value of old_specializations_for_generated_instances.
+*/
+#ifndef DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES
+#define DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES FALSE
+#endif /* DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES */
+
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 /*

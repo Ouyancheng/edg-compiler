@@ -791,6 +791,18 @@ EXTERN a_boolean
 			   impl_conv_between_c_and_cpp_function_ptrs_allowed,
 			   defined in cmd_line.h.) */
 
+EXTERN a_boolean
+		old_specializations_for_generated_instances
+#if VAR_INITIALIZERS
+                         = DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* If TRUE, specializations for generated template
+			   instances in generated code (C++-generating back
+			   end) should use the old syntax instead of the
+			   modern "template <>" prefix form. */
+
+
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
    To enforce this convention, they are undefined at this time.  (This is
