@@ -41,19 +41,6 @@ typedef int	a_scope_depth;
 EXTERN a_memory_region_number
 		curr_il_region_number;
 
-EXTERN a_boolean
-		curr_initial_il_walk_flag_setting,
-		curr_fs_initial_il_walk_flag_setting;
-			/* Value to be used as the initial value for
-			   il_walk_flag when entries are created.  The
-			   second variable is the value for entities created
-			   explicitly in the file scope memory region.  The
-			   first variable is for entities created in a
-			   function scope memory region or in a local variable
-			   outside of any memory region.  In the front end
-			   proper (i.e., not in IL lowering and not in IL
-			   walk/write) the two variables will have the same
-			   value. */
 
 #if ORPHAN_PROCESSING_NEEDED
 /*
@@ -148,6 +135,16 @@ EXTERN an_orphaned_il_entry_list
 			/* Array of orphaned IL entry lists containing
 			   individual orphaned file scope IL entries. */
 #endif /* ORPHAN_PROCESSING_NEEDED */
+
+#if DO_IL_LOWERING
+/*
+If IL lowering is to be done, IL entry prefixes have a flag that indicates
+whether or not IL lowering has visited them yet.  This is the initial
+value for that flag when it is cleared.
+*/
+EXTERN a_boolean
+		initial_value_for_il_lowering_flag;
+#endif /* DO_IL_LOWERING */
 
 /*
 Macro that generates a unique unsigned long identifier from an IL pointer.
@@ -503,23 +500,8 @@ extern void db_initializer(a_variable_ptr  var_ptr,
 
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
+
 #if ORPHAN_PROCESSING_NEEDED
-
-/* Amount of space to allocate for the next-orphaned-entry pointer that
-   precedes each file-scope entry in the IL.  The size is the smallest
-   multiple of HOST_ALIGNMENT_REQUIRED that is at least as large as
-   the size of a "char *".  This preserves the necessary alignment
-   for the entry itself. */
-#define SPACE_FOR_FS_ORPHAN_POINTER                                   \
- ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
-  HOST_ALIGNMENT_REQUIRED)
-/*
-Macro to allow reference to the next-orphaned-entry pointer that precedes
-the file-scope IL entry at ptr.
-*/
-#define fs_orphan_pointer_of(ptr)                                     \
-  (*(char **)((char *)(ptr) - SPACE_FOR_FS_ORPHAN_POINTER))
-
 extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                              an_il_entry_kind entry_kind);
 
