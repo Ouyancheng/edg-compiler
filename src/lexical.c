@@ -634,7 +634,8 @@ references.
     /* This test can only be done when not fetching preprocessing
        tokens.  It is not possible to do the ID lookup in fetch_pp_tokens
        mode. */
-    sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    sym = normal_id_lookup(&locator_for_curr_id,
+                           IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
       result = TRUE;
     }  /* if */
