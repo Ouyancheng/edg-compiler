@@ -1725,6 +1725,8 @@ need not be addressed here.
 void add_throw_specification(a_func_info_block_ptr  func_info,
                              a_routine_ptr          rp)
 /*
+Transfer the throw specification stored in func_info to the routine type
+supplement for routine rp.
 */
 {
   a_routine_type_supplement_ptr  rtsp;
@@ -1738,13 +1740,17 @@ void add_throw_specification(a_func_info_block_ptr  func_info,
       pos_warning(ec_throw_specification_not_allowed,
                   &func_info->throw_position);
     }  /* if */
-    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
-    rtsp = rp->type->variant.routine.extra_info;
-    check_assertion(rtsp->throw_specification == NULL);
-    rtsp->throw_specification = func_info->throw_specification;
+    if (rp->type->kind != (a_type_kind)tk_routine) {
+      /* The routine was declared in terms of a typedef.  Don't add throw
+         specifications. */
+    } else {
+      rtsp = rp->type->variant.routine.extra_info;
+      check_assertion(rtsp->throw_specification == NULL);
+      rtsp->throw_specification = func_info->throw_specification;
+    }  /* if */
   }  /* if */
   db_exit();
-}  /* if */
+}  /* add_throw_specification */
 
 
 void check_throw_specification(a_func_info_block_ptr  func_info,
