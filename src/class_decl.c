@@ -8770,7 +8770,7 @@ class_type.  Set *updated if a projection symbol is created.
                                                           class_type,
                                                           base_class);
         sym = make_projection_symbol(bcslep->symbol, class_type, fund_base,
-                                     /*path=*/NULL,
+                                     /*path=*/(a_derivation_step*)NULL,
                                      /*ambiguous=*/FALSE);
         sym->variant.projection.access =
                             compute_access(access_for_symbol(bcslep->symbol),
