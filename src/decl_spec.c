@@ -2938,6 +2938,7 @@ is a that of a constructor.
   a_symbol_ptr       tag_sym, sym;
   a_token_cache      cache;
   a_source_position  pos;
+  a_boolean          name_match = FALSE;
 
   db_enter(4, "is_constructor_decl");
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
@@ -2948,6 +2949,9 @@ is a that of a constructor.
        as a constructor declaration if the next two tokens are a left paren
        and declaration start token.  Use token caching in the look-ahead,
        since the tokens will have to be rescanned no matter what. */
+    name_match = TRUE;
+  }  /* if */
+  if (name_match || microsoft_mode) {
     /* Change "A::A" into "A" if we are processing inside the definition of
        class "A".  This is necessary for curr_token_type_symbol to handle
        this case correctly. */
@@ -2977,6 +2981,25 @@ is a that of a constructor.
          class being defined. */
       rescan_cached_tokens(&cache);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!name_match && is_constructor) {
+      /* We must be in Microsoft mode.  MSVC++ allows a typedef name that
+         refers to the current class to replace the class name in a
+         constructor declaration.  The syntax looks like a constructor
+         declaration, so do a lookup to see if it's a typedef name for the
+         current class. */
+      sym = normal_id_lookup(&locator_for_curr_id, IDL_TENTATIVE_TYPE_LOOKUP);
+      if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
+          skip_typerefs(sym->variant.type) == class_type && !sym->ambiguous) {
+        /* Note that qualifiers on the typedef name are ignored -- this
+           corresponds to MSVC++ behavior. */
+        /* name_match = TRUE; */
+      } else {
+        is_constructor = FALSE;
+      }  /* if */
+      clear_specific_symbol(locator_for_curr_id);
+    }  /* if */
+#endif /* if MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_constructor) {
       /* Turn the current locator from a "specific symbol" locator into a
          constructor locator. */

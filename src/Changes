@@ -1,5 +1,15 @@
 Version 2.41
 
+12/14/98  Microsoft compatibility: constructor declaration using typedef
+
+In Microsoft compatibility mode a constructor may now be declared (within
+a class definition) using a typedef name that refers to the parent class.
+
+  struct S {
+    typedef S X;
+    X() { }                 // accepted as declaration of S::S()
+  };
+
 12/12/98  Removal of redundant forward class declaration from source
           sequence list
 
