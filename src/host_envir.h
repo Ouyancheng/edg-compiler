@@ -687,20 +687,6 @@ for that purpose.
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 
 /*
-Flag that is TRUE if, when VLA support is enabled, the front end should
-generate stmk_vla_dealloc statements to mark the points at which variable
-length arrays go out of scope and may be deallocated.  It is used to set
-global variable vla_dealloc_statements_in_il.
-*/
-#ifndef VLA_DEALLOC_STATEMENTS_IN_IL
-#define VLA_DEALLOC_STATEMENTS_IN_IL VLA_ALLOWED
-#endif /* ifndef VLA_DEALLOC_STATEMENTS_IN_IL */
-#if VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED
-  #error -- VLA_DEALLOC_STATEMENTS_IN_IL cannot be true unless \
-            VLA_ALLOWED is true
-#endif /* VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED */
-
-/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.  Note that this can take a lot of extra space, so you should
 enable this only if you really need it.

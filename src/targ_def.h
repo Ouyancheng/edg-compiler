@@ -2138,6 +2138,20 @@ When VLAs are allowed, they are enabled by default in C99 mode.
 #endif /* VLA_ALLOWED */
 
 /*
+Flag that is TRUE if, when VLA support is enabled, the front end should
+generate stmk_vla_dealloc statements to mark the points at which variable
+length arrays go out of scope and may be deallocated.  It is used to set
+global variable vla_dealloc_statements_in_il.
+*/
+#ifndef VLA_DEALLOC_STATEMENTS_IN_IL
+#define VLA_DEALLOC_STATEMENTS_IN_IL VLA_ALLOWED
+#endif /* ifndef VLA_DEALLOC_STATEMENTS_IN_IL */
+#if VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED
+  #error -- VLA_DEALLOC_STATEMENTS_IN_IL cannot be true unless \
+            VLA_ALLOWED is true
+#endif /* VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED */
+
+/*
 Flag that is used as the default setting for global variable vla_enabled.
 The variable can also been controlled from the command line by --[no_]vla.
 (Whatever the default, vla_enabled is always turned off in C++ mode, and
