@@ -41,6 +41,9 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
 static void lower_c99_cast(an_expr_node_ptr expr);
+#if LOWER_FIXED_POINT
+static void lower_c99_fixed_point_constant(a_constant_ptr constant);
+#endif /* LOWER_FIXED_POINT */
 
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 
@@ -1184,7 +1187,7 @@ Transform the given complex cast expression into a function call
 #if FIXED_POINT_ALLOWED
                is_fixed_point_type(src_type) ||
 #endif /* FIXED_POINT_ALLOWED */
-               is_integral_type(src_type)) {
+               is_integral_or_enum_type(src_type)) {
       /* A real, fixed-point, or integral value converted to an imaginary type
          is always zero.  Use a comma operator to preserve side-effects of the
          source expression. */
@@ -1264,6 +1267,251 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
 }  /* post_lower_c99_bool_cast */
 
 #endif /* LOWER_COMPLEX */
+#if LOWER_FIXED_POINT
+
+static int fxtype_value(a_fixed_point_type_descr descr)
+/*
+Return the "fxtype" value that describes the indicated fixed-point
+type description.  An fxtype has, starting from the least-significant
+bit:
+
+(2 bits) Precision: 00 short
+                    01 default
+                    10 long
+                    11 integral operand
+(1 bit)  Kind:       0 _Fract
+                     1 _Accum
+(1 bit)  Sign:       0 signed     ]
+                     1 unsigned   ]--- also used for integral operands
+(1 bit)  Saturation: 0 not _Sat
+                     1 _Sat
+*/
+{
+#define FXTYPE_SIZE 5
+  int fxtype;
+
+  if (descr.precision == (a_fixed_point_precision)fpp_short) {
+    fxtype = 0;
+  } else if (descr.precision == (a_fixed_point_precision)fpp_default) {
+    fxtype = 1;
+  } else if (descr.precision == (a_fixed_point_precision)fpp_long) {
+    fxtype = 2;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  fxtype |= descr.is_fract_type ? 0 : 0x4;
+  fxtype |= descr.is_unsigned ? 0x8 : 0;
+  fxtype |= descr.saturating ? 0x10 : 0;
+  return fxtype;
+}  /* fxtype_value */
+
+
+static int integral_fxtype_value(a_boolean is_signed)
+/*
+Return the fxtype value used to represent an integral operand,
+signed if is_signed is TRUE.  See fxtype_value for the definition
+of the fxtype bits.
+*/
+{
+  int fxtype = 3;  /* 11 in bottom 2 bits means integral value. */
+
+  if (!is_signed) fxtype |= 0x8;
+  return fxtype;
+}  /* integral_fxtype_value */
+
+
+static int fxtype_value_for_type(a_type_ptr type)
+/*
+Return the fxtype value for the given (fixed-point or integral)
+type.  See fxtype_value.
+*/
+{
+  int fxtype;
+
+  if (is_integral_or_enum_type(type)) {
+    fxtype = integral_fxtype_value(is_signed_integral_type(type));
+  } else if (is_fixed_point_type(type)) {
+    fxtype = fxtype_value(skip_typerefs(type)->variant.fixed_point);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return fxtype;
+}  /* fxtype_value_for_type */
+
+
+static a_type_ptr fxvalue_type(void)
+/*
+Return the "fxvalue" type, which is the type of the container used to
+pass fixed-point and integral values to and from the fixed-point runtime.
+*/
+{
+  /* This will usually be a 64-bit data type if long long is supported,
+     and a 32-bit data type otherwise.  One should ensure that the
+     runtime is configured to use the same type. */
+  a_type_ptr type = integer_type(targ_uintmax_kind);
+  return type;
+}  /* fxvalue_type */
+
+
+static int fxcontrol_value(void)
+/*
+Return the "fxcontrol" value for the current location in the
+program.  It describes the current fixed-point pragma state.
+Starting from the least-significant bit:
+
+(1 bit)  FX_FRACT_OVERFLOW   0 DEFAULT
+                             1 SAT
+(1 bit)  FX_ACCUM_OVERFLOW   0 DEFAULT
+                             1 SAT
+(1 bit)  FX_FULL_PRECISION   0 OFF
+                             1 ON
+*/
+{
+#define FXCONTROL_SIZE 3
+  /* FIXME */
+  return 0;
+}  /* fxcontrol_value */
+
+
+/*
+Runtime routine for fixed-point conversions (including integral
+source or destination).
+*/
+static a_routine_ptr fixed_conv_routine;
+/*
+Runtime routines for conversions between floating point and
+fixed point.
+*/
+static char *float_fixed_conv_routine_name[3] = {"_Fixed_from_float",
+                                                 "_Fixed_from_double",
+                                                 "_Fixed_from_ldouble"};
+static a_routine_ptr float_fixed_conv_routine[(int)fk_last];
+static char *fixed_float_conv_routine_name[3] = {"_Fixed_to_float",
+                                                 "_Fixed_to_double",
+                                                 "_Fixed_to_ldouble"};
+static a_routine_ptr fixed_float_conv_routine[(int)fk_last];
+
+
+static void lower_c99_fixed_point_cast(an_expr_node_ptr expr)
+/*
+Lower the indicated cast (which has a fixed-point source and/or
+destination) to a runtime call).
+*/
+{
+  an_expr_node_ptr  src = expr->variant.operation.operands;
+  an_expr_node_ptr  fxmask_expr, new_expr;
+  a_type_ptr        src_type = src->type;
+  a_type_ptr        base_src_type = skip_typerefs(src_type);
+  a_type_ptr        dst_type = expr->type;
+  a_type_ptr        base_dst_type = skip_typerefs(dst_type);
+  a_type_ptr        return_type;
+  a_routine_ptr     *routine;
+  char              *routine_name;
+  an_integer_kind   fxmask_int_kind = (an_integer_kind)ik_unsigned_short;
+  a_float_kind      fkind;
+  unsigned long     fxmask = 0;
+  int               shift_amount = 0;
+  a_constant        zero_constant;
+
+  if (is_void_type(dst_type)) {
+    /* A cast to void.  Nothing needs to be done. */
+  } else if (il_identical_types(base_src_type, base_dst_type)) {
+    /* A do-nothing cast.  Leave it as it is (it will be a cast between
+       integral types). */
+  } else if (is_imaginary_type(dst_type)) {
+    /* A fixed-point value converted to an imaginary type is always zero.
+       Use a comma operator to preserve side-effects of the source
+       expression. */
+    check_assertion(is_fixed_point_type(src_type));
+#if LOWER_COMPLEX
+    dst_type = float_type(dst_type->variant.float_kind);
+#endif /* LOWER_COMPLEX */
+    make_zero_of_proper_type(dst_type, &zero_constant);
+    new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+    overwrite_node(expr, new_expr);
+  } else if (is_imaginary_type(src_type)) {
+    /* An imaginary value converted to a fixed-point type is always zero.
+       Use a comma operator to preserve side-effects of the source
+       expression. */
+    check_assertion(is_fixed_point_type(dst_type));
+    make_zero_of_proper_type(dst_type, &zero_constant);
+    lower_c99_fixed_point_constant(&zero_constant);
+    new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
+    overwrite_node(expr, new_expr);
+  } else {
+    /* Generate a call to the runtime cast routine.  There's a primary
+       routine _Fixed_conv that handles all the fixed-point/fixed-point
+       and fixed-point/integer cases, and 3 routines each (for the different
+       precisions) that handle the fixed-point/floating-point cases. */
+    routine_name = "_Fixed_conv";
+    routine = &fixed_conv_routine;
+    return_type = fxvalue_type();
+    /* Build up the fxmask argument describing the operand and result
+       types. */
+    fxmask = fxcontrol_value();
+    shift_amount = FXCONTROL_SIZE;
+    if (is_fixed_point_type(src_type) || is_integral_or_enum_type(src_type)) {
+      /* Add the mask for the source type. */
+      fxmask |= (fxtype_value_for_type(src_type) << shift_amount);
+      shift_amount += FXTYPE_SIZE;
+      /* Convert the operand to the fxvalue type used to interface to the
+         runtime. */
+      src = add_cast_if_necessary(src, fxvalue_type());
+    } else {
+      /* Conversion from floating or complex to fixed point. */
+      check_assertion(is_floating_type(src_type) ||
+                      is_complex_type(src_type));
+      check_assertion(is_fixed_point_type(dst_type));
+      fkind = base_src_type->variant.float_kind;
+      if (is_complex_type(src_type)) {
+        /* Convert the operand from complex to the same-precision floating
+           type. */
+        src = add_cast_if_necessary(src, float_type(fkind));
+#if LOWER_COMPLEX
+        lower_c99_complex_cast(src);
+#endif /* LOWER_COMPLEX */
+      }  /* if */
+      routine_name = select_name_from_float_kind(fkind,
+                                                float_fixed_conv_routine_name);
+      routine = &float_fixed_conv_routine[(int)fkind];
+    }  /* if */
+    if (is_fixed_point_type(dst_type) || is_integral_or_enum_type(dst_type)) {
+      /* Add the mask for the destination type. */
+      fxmask |= (fxtype_value_for_type(dst_type) << shift_amount);
+      shift_amount += FXTYPE_SIZE;
+    } else {
+      /* Conversion from fixed point to floating or complex. */
+      check_assertion(is_floating_type(dst_type) ||
+                      is_complex_type(dst_type));
+      check_assertion(is_fixed_point_type(src_type));
+      fkind = base_dst_type->variant.float_kind;
+      routine_name = select_name_from_float_kind(fkind,
+                                                fixed_float_conv_routine_name);
+      routine = &fixed_float_conv_routine[(int)fkind];
+      return_type = float_type(fkind);
+    }  /* if */
+    fxmask_expr = node_for_integer_constant((long)fxmask, fxmask_int_kind);
+    /* Make the call of the runtime cast routine. */
+    fxmask_expr->next = src;
+    new_expr = make_prototyped_runtime_call(routine_name, routine,
+                                            return_type,
+                                            integer_type(fxmask_int_kind),
+                                            fxvalue_type(),
+                                            fxmask_expr);
+    /* Cast the value returned by the runtime routine to the final
+       desired type. */
+    new_expr = add_cast_if_necessary(new_expr, expr->type);
+#if LOWER_COMPLEX
+    if (is_complex_type(dst_type)) {
+      lower_c99_complex_cast(new_expr);
+    }  /* if */
+#endif /* LOWER_COMPLEX */
+    /* Overwrite the original node with the lowered expression. */
+    overwrite_node(expr, new_expr);
+  }  /* if */
+}  /* lower_c99_fixed_point_cast */
+
+#endif /* LOWER_FIXED_POINT */
 
 static void lower_c99_cast(an_expr_node_ptr  expr)
 /*
@@ -1273,9 +1521,9 @@ Transform the given cast expression into a function call (compatible with C89).
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_bool_cast) {
     /* Change a cast to bool to a "!= 0" test. */
     lower_bool_cast(expr);
-#if LOWER_COMPLEX || (VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS)
   } else {
     a_type_ptr  tp = expr->type;
+    a_type_ptr  src_tp = expr->variant.operation.operands->type;
     check_assertion(expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast);
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
@@ -1293,13 +1541,22 @@ Transform the given cast expression into a function call (compatible with C89).
       record_vla_component_types_for_lowering(expr->type);
     }  /* if */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_FIXED_POINT
+    if (fixed_point_enabled &&
+        (is_fixed_point_type(tp) ||
+         is_fixed_point_type(src_tp))) {
+      lower_c99_fixed_point_cast(expr);
+    } else
+#endif /* LOWER_FIXED_POINT */
+    /* Do not add code here. */
+    {
 #if LOWER_COMPLEX
-    if (is_nonreal_floating_type(tp) ||
-        is_nonreal_floating_type(expr->variant.operation.operands->type)) {
-      lower_c99_complex_cast(expr);
-    }  /* if */
+      if (is_nonreal_floating_type(tp) ||
+          is_nonreal_floating_type(src_tp)) {
+        lower_c99_complex_cast(expr);
+      }  /* if */
 #endif /* LOWER_COMPLEX */
-#endif /* LOWER_COMPLEX || (VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
+    }  /* if */
   }  /* if */
 }  /* lower_c99_cast */
 
@@ -1597,6 +1854,12 @@ _Bool type, and VLA types.
     case eok_bool_cast:
       lower_c99_cast(expr);
       break;
+#if FIXED_POINT_ALLOWED
+    case eok_fxassign:
+      /* Fixed-point assignment becomes integer assignment. */
+      expr->variant.operation.kind = (an_expr_operator_kind)eok_iassign;
+      break;
+#endif /* FIXED_POINT_ALLOWED */
     case eok_iadd_assign:
     case eok_isubtract_assign:
     case eok_imultiply_assign:
@@ -1666,6 +1929,22 @@ _Bool type, and VLA types.
   }  /* switch */
 }  /* lower_c99_operator */
 
+#if LOWER_FIXED_POINT
+
+static void lower_c99_fixed_point_constant(a_constant_ptr constant)
+/*
+Lower the indicated fixed-point constant.  The lowered form is an
+integral constant.
+*/
+{
+  an_integer_value int_value;
+
+  int_value = constant->variant.fixed_point_value;
+  set_constant_kind(constant, (a_constant_repr_kind)ck_integer);
+  constant->variant.integer_value = int_value;
+}  /* lower_c99_fixed_point_constant */
+
+#endif /* LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
 
 static void lower_c99_complex_constant(a_constant_ptr  constant)
@@ -1712,6 +1991,13 @@ replace them by a representation compatible with C89.
 */
 {
   switch (constant->kind) {
+#if FIXED_POINT_ALLOWED
+    case ck_fixed_point:
+#if LOWER_FIXED_POINT
+      lower_c99_fixed_point_constant(constant);
+#endif /* LOWER_FIXED_POINT */
+      break;
+#endif /* FIXED_POINT_ALLOWED */
     case ck_complex:
 #if LOWER_COMPLEX
       lower_c99_complex_constant(constant);
@@ -1755,9 +2041,6 @@ replace them by a representation compatible with C89.
       break;
     case ck_error:
     case ck_integer:
-#if FIXED_POINT_ALLOWED
-    case ck_fixed_point:
-#endif /* FIXED_POINT_ALLOWED */
     case ck_float:
     case ck_string:
       /* Nothing to be done. */
@@ -2765,6 +3048,92 @@ Replace the C99 _Bool type by its lowered representation.
   }  /* if */
 }  /* lower_c99_bool_type */
 
+#if LOWER_FIXED_POINT
+
+static void lower_c99_fixed_point_type(a_fixed_point_type_descr descr)
+/*
+Lower the C99 fixed-point type whose precision is given by kind.
+The lowered form is a typedef to one of the integral types.
+*/
+{
+  if (fixed_point_type_used_in_primary_IL(descr)) {
+    a_type_ptr      fx_type = fixed_point_type(descr);
+    char            name[30];
+    an_integer_kind ikind;
+
+    /* Develop the name for the typedef. */
+    (void)strcpy(name, "_Fixed_point_");
+    if (descr.precision == (a_fixed_point_precision)fpp_short) {
+      (void)strcat(name, "h");
+    } else if (descr.precision == (a_fixed_point_precision)fpp_long) {
+      (void)strcat(name, "l");
+    }  /* if */
+    if (descr.is_unsigned) {
+      (void)strcat(name, "u");
+    }  /* if */
+    if (descr.is_fract_type) {
+      (void)strcat(name, "r");
+    } else {
+      (void)strcat(name, "k");
+    }  /* if */
+    if (descr.saturating) {
+      (void)strcat(name, "_sat");
+    }  /* if */
+    /* Determine the corresponding integral type (it must have the same
+       size, alignment, and signedness). */
+    for (ikind = 0; ; ikind++) {
+      a_targ_size_t    int_size;
+      a_targ_alignment int_alignment;
+      check_assertion_str(ikind < (int)ik_last,
+                          "lower_c99_fixed_point_type: no suitable int type");
+      get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
+      if (int_size == fx_type->size &&
+          int_alignment == fx_type->alignment &&
+          int_kind_is_signed[(int)ikind] == !descr.is_unsigned) {
+        /* This integral type is okay. */
+        break;
+      }  /* if */
+    }  /* for */
+    set_type_kind(fx_type, (a_type_kind)tk_typeref);
+    fx_type->variant.typeref.type = integer_type(ikind);
+    fx_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
+    (void)strcpy(fx_type->source_corresp.name, name);
+    add_to_front_of_file_scope_types_list(fx_type);
+  }  /* if */
+}  /* lower_c99_fixed_point_type */
+
+
+static void lower_c99_fixed_point_types(void)
+/*
+Replace the fixed-point types by their lowered representations.
+*/
+{
+  a_fixed_point_precision  precision;
+  a_boolean                is_unsigned, is_fract_type, saturating;
+  a_fixed_point_type_descr descr;
+
+  for (precision = (a_fixed_point_precision)fpp_short;
+       precision < (a_fixed_point_precision)fpp_last;
+       precision++) {
+    descr.precision = precision;
+    for (is_unsigned = FALSE;; is_unsigned = TRUE) {
+      descr.is_unsigned = is_unsigned;
+      for (is_fract_type = FALSE;; is_fract_type = TRUE) {
+        descr.is_fract_type = is_fract_type;
+        for (saturating = FALSE;; saturating = TRUE) {
+          descr.saturating = saturating;
+          lower_c99_fixed_point_type(descr);
+          if (saturating) break;
+        }  /* for */
+        if (is_fract_type) break;
+      }  /* for */
+      if (is_unsigned) break;
+    }  /* for */
+  }  /* for */
+}  /* lower_c99_fixed_point_types */
+
+#endif /* LOWER_FIXED_POINT */
+
 
 void lower_c99_il_memory_region(a_memory_region_number region_number)
 /*
@@ -2791,6 +3160,11 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
     lower_c99_nonreal_float_types();
 #endif /* LOWER_COMPLEX */
     lower_c99_bool_type();
+#if LOWER_FIXED_POINT
+    if (fixed_point_enabled) {
+      lower_c99_fixed_point_types();
+    }  /* if */
+#endif /* LOWER_FIXED_POINT */
   }  /* if */
   if (scope->kind == (a_scope_kind)sck_function) {
     pop_context();
@@ -2836,6 +3210,11 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_saved_var_array_elem(cast_cdouble_to_idouble),
       pch_saved_var_array_elem(cast_clong_double_to_ilong_double),
 #endif /* LOWER_COMPLEX */
+#if LOWER_FIXED_POINT
+      pch_saved_var_array_elem(fixed_conv_routine),
+      pch_array_saved_var_array_elem(float_fixed_conv_routine),
+      pch_array_saved_var_array_elem(fixed_float_conv_routine),
+#endif /* LOWER_FIXED_POINT */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
       pch_saved_var_array_elem(vla_types),
       pch_saved_var_array_elem(vla_alloc_routine),
@@ -2859,17 +3238,17 @@ for each translation unit.
 */
 {
 #if LOWER_COMPLEX
-  int k;
-
-  for (k = 0; k < (int)fk_last; ++k) {
-    xnegate_routine[k] = NULL;
-    xadd_routine[k] = NULL;
-    xsubtract_routine[k] = NULL;
-    xmultiply_routine[k] = NULL;
-    xdivide_routine[k] = NULL;
-    xeq_routine[k] = NULL;
-    xne_routine[k] = NULL;
-  }  /* for */
+  { int k;
+    for (k = 0; k < (int)fk_last; ++k) {
+      xnegate_routine[k] = NULL;
+      xadd_routine[k] = NULL;
+      xsubtract_routine[k] = NULL;
+      xmultiply_routine[k] = NULL;
+      xdivide_routine[k] = NULL;
+      xeq_routine[k] = NULL;
+      xne_routine[k] = NULL;
+    }  /* for */
+  }
   cast_cfloat_to_cdouble_routine = NULL;
   cast_cfloat_to_clong_double_routine = NULL;
   cast_cdouble_to_cfloat_routine = NULL;
@@ -2892,6 +3271,15 @@ for each translation unit.
   lowered_complex_double = NULL;
   lowered_complex_long_double = NULL;
 #endif /* LOWER_COMPLEX */
+#if LOWER_FIXED_POINT
+  fixed_conv_routine = NULL;
+  { int k;
+    for (k = 0; k < (int)fk_last; ++k) {
+      float_fixed_conv_routine[k] = NULL;
+      fixed_float_conv_routine[k] = NULL;
+    }  /* for */
+  }
+#endif /* LOWER_FIXED_POINT */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   vla_types = NULL;
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
