@@ -1567,6 +1567,45 @@ Do the output in the way described by octl.
 }  /* form_pm_constant */
 
 
+static a_field_ptr select_anon_union_field_for_addr_constant(
+                                                       a_constant_ptr constant)
+/*
+constant is the address of something in an anonymous union.  Choose a field
+of the anonymous union to be the thing whose address is taken, and return a
+pointer to it.
+*/
+{
+  a_variable_ptr var;
+  a_field_ptr    field;
+  a_type_ptr     anon_union_type;
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_address &&
+                  constant->variant.address.kind ==
+                                           (an_address_base_kind)abk_variable);
+  var = constant->variant.address.variant.variable;
+  check_assertion(var->is_anonymous_parent_object);
+  anon_union_type = var->type;
+  field = anon_union_type->variant.class_struct_union.field_list;
+  /* Get the type of the thing pointed to by the constant. */
+  if (!is_pointer_type(constant->type)) {
+    /* The constant has a strange type, perhaps because it has been cast to
+       another type.  Use the first field. */
+  } else {
+    a_type_ptr type = type_pointed_to(constant->type);
+    /* See if any of the fields matches the desired type. */
+    for (; field != NULL; field = field->next) {
+      /* Stop on finding a field with the desired type. */
+      if (identical_types(type, field->type)) break;
+    }  /* for */
+    /* Use the first field if nothing matched. */
+    if (field == NULL) {
+      field = anon_union_type->variant.class_struct_union.field_list;
+    }  /* if */
+  }  /* if */
+  return field;
+}  /* select_anon_union_field_for_addr_constant */
+
+
 static void form_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             do_indirection,
@@ -1587,6 +1626,7 @@ in the way described by octl.
   a_type_ptr       orig_type = constant->type, underlying_object_type;
   a_type_ptr       con_type;
   a_targ_ptrdiff_t offset;
+  a_field_ptr      anon_union_field;
 
   con_type = skip_typerefs(orig_type);
   /* We need a cast to the result type if the constant is implicitly
@@ -1602,7 +1642,18 @@ in the way described by octl.
       if (!do_indirection) need_ampersand = FALSE;
       break;
     case abk_variable:
-      underlying_object_type= constant->variant.address.variant.variable->type;
+      { a_variable_ptr var = constant->variant.address.variant.variable;
+        anon_union_field = NULL;
+        if (var->is_anonymous_parent_object) {
+          /* Address of something within an anonymous union. */
+          anon_union_field =
+                           select_anon_union_field_for_addr_constant(constant);
+          underlying_object_type = anon_union_field->type;
+        } else {
+          /* Normal variable case. */
+          underlying_object_type = var->type;
+        }  /* if */
+      }
       break;
     case abk_constant:
       underlying_object_type= constant->variant.address.variant.constant->type;
@@ -1721,8 +1772,14 @@ in the way described by octl.
                 iek_routine, octl);
       break;
     case abk_variable:
-      form_name(&constant->variant.address.variant.variable->source_corresp,
-                iek_variable, octl);
+      if (anon_union_field != NULL) {
+        /* The address of a field in an anonymous union. */
+        form_name(&anon_union_field->source_corresp, iek_field, octl);
+      } else {
+        /* Normal variable. */
+        form_name(&constant->variant.address.variant.variable->source_corresp,
+                  iek_variable, octl);
+      }  /* if */
       break;
     case abk_constant:
       /* Address of a constant, specifically a string. */
