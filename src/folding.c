@@ -1571,7 +1571,9 @@ the reason is that the constant is a template parameter constant).
        in forming a null pointer constant, the result cannot be used as
        a null pointer constant. */
     result->null_pointer_constant_ruled_out =
-                                     constant->null_pointer_constant_ruled_out;
+                          constant->null_pointer_constant_ruled_out ||
+                          constant->kind != (a_constant_repr_kind)ck_integer ||
+                          constant->implicit_cast;
   }  /* if */
 
   db_exit();
@@ -2791,8 +2793,12 @@ as the position for any diagnostics issued.
        in forming a null pointer constant, the result cannot be used as
        a null pointer constant. */
     result->null_pointer_constant_ruled_out =
-                                 constant_1->null_pointer_constant_ruled_out ||
-                                 constant_2->null_pointer_constant_ruled_out;
+                        constant_1->null_pointer_constant_ruled_out ||
+                        constant_1->kind != (a_constant_repr_kind)ck_integer ||
+                        constant_1->implicit_cast ||
+                        constant_2->null_pointer_constant_ruled_out ||
+                        constant_2->kind != (a_constant_repr_kind)ck_integer ||
+                        constant_2->implicit_cast;
     if (depends_on_rounding_mode && !constant_context) {
       /* In a non-constant context, leave an operation to be done at runtime
          if its result depends on the floating-point rounding mode. */
