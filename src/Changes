@@ -1,5 +1,19 @@
 Version 2.46
 
+8/9/01   Spurious error on qualified template friend declaration in a
+         class template
+
+A spurious error was issued on a qualified template friend declaration
+that appeared in a class template.  This problem was introduced in version
+2.44 and is now fixed.
+
+  namespace N {
+    template <class T> void f(T);
+  }
+  template <class X> struct A {
+    template <class T> friend void N::f(T);
+  };
+
 8/8/01   Using expand_macros in pragmas saved as text strings
 
 The front end contained a number of assertion checks to make sure

@@ -5673,6 +5673,7 @@ is a template specialization declaration.
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
   a_boolean                         set_invisible = FALSE;
+  a_boolean			    in_prototype_instantiation;
 #if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -5697,6 +5698,8 @@ is a template specialization declaration.
   idlb.type = type_ptr;
   idlb.locator = locator;
   set_linkage_environment(&idlb, orig_decl_level);
+  in_prototype_instantiation =
+            scope_stack[idlb.effective_decl_level].in_prototype_instantiation;
   if (idlb.is_friend_decl && !friend_injection_enabled) {
     set_invisible = TRUE;
   }  /* if */
@@ -5819,8 +5822,7 @@ is a template specialization declaration.
       pos_sy_error(ec_bad_scope_for_definition,
                    &locator->source_position, locator->specific_symbol);
     } else if (idlb.is_friend_decl &&
-               (!func_info->is_definition ||
-         scope_stack[idlb.effective_decl_level].in_prototype_instantiation)) {
+               (!func_info->is_definition || in_prototype_instantiation)) {
       /* Don't check the scope if this is a friend declaration unless it
          is a definition during a real instantiation. */
     } else if (!namespace_is_enclosed_by_scope(sym,
@@ -5845,15 +5847,20 @@ is a template specialization declaration.
        Furthermore, for definitions of namespace-qualified names, be sure
        this is a valid scope for the definition (7.3.1.4). */
     /* Look up the name. */
-    qualified_name_redecl_sym(&idlb);
-    sym = idlb.linked_symbol;
-    if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
-      set_to_error_locator(*locator);
-      sym = NULL;
+    if (in_prototype_instantiation) {
+      /* Don't try to find a matching qualified name for a friend declaration
+         in a prototype instantiation. */
+    } else {
+      qualified_name_redecl_sym(&idlb);
+      sym = idlb.linked_symbol;
+      if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &locator->source_position, sym);
+        set_to_error_locator(*locator);
+        sym = NULL;
+      }  /* if */
+      homonym_symbol = idlb.homonym_symbol;
     }  /* if */
-    homonym_symbol = idlb.homonym_symbol;
   }  /* if */
   if (sym != NULL) {
     tssp = template_supplement_for_symbol(sym);
@@ -5905,15 +5912,22 @@ is a template specialization declaration.
         /* Avoid overloading. */
         homonym_symbol = NULL;
       }  /* if */
-      if (proxy_member_friend) {
+      if (proxy_member_friend ||
+          (in_prototype_instantiation && locator->is_qualified_name)) {
         /* A member template of a (dependent) proxy class was named as a
-           friend.  Hence, create a dummy symbol for it (it will not be
+           friend or a qualified friend declaration in a prototype
+           instantiation.  Create a dummy symbol for it (it will not be
            linked into the symbol table) and configure it with the appropriate
            parent. */
         sym = alloc_symbol((a_symbol_kind)sk_function_template,
                            locator->symbol_header, &locator->source_position);
-        set_class_membership(sym, (a_source_correspondence_ptr)NULL,
-                             locator->parent.class_type);
+        if (locator->is_class_member) {
+          set_class_membership(sym, (a_source_correspondence_ptr)NULL,
+                               locator->parent.class_type);
+        } else if (locator->parent.namespace_ptr != NULL) {
+          set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                   locator->parent.namespace_ptr);
+        }  /* if */
         sym->is_error = locator->is_error;
       } else if (homonym_symbol != NULL) {
         /* Another function with the same name has been declared already.  It
