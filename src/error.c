@@ -1762,6 +1762,9 @@ error code.
     case ec_bad_template_arg_use:
       m = "template parameter %no with type %t is not allowed in this context";
       break;
+    case ec_static_data_member_anon_union:
+      m = "static data member may not be an anonymous union";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
