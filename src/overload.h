@@ -54,10 +54,6 @@ typedef struct a_conv_descr {
 			   Note that the source type may be a derived class
 			   of the destination type. */
   a_byte_boolean
-		std_conversion_needed;
-			/* If TRUE, a standard conversion is required after
-			   a user-defined conversion. */
-  a_byte_boolean
 		result_is_an_lvalue;
 			/* If TRUE, the function returns a reference and the
 			   reference should be left as an lvalue rather than

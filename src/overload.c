@@ -51,7 +51,6 @@ Clear a conversion description.
 {
   conv->routine                        = NULL;
   conv->class_identity_or_bitwise_copy = FALSE;
-  conv->std_conversion_needed          = FALSE;
   conv->result_is_an_lvalue            = FALSE;
   conv->ambiguous                      = FALSE;
   clear_std_conv_descr(&conv->std);
@@ -313,8 +312,9 @@ Print an argument match summary for debug purposes.
   if (amsp->const_anachronism) {
     fprintf(f_debug, " (const anachronism)");
   }  /* if */
-  if (amsp->conversion.std_conversion_needed) {
-    fprintf(f_debug, " (std conversion)");
+  if (amsp->match_level == aml_user_conversion &&
+      amsp->conversion.std.nontrivial_conversion) {
+    fprintf(f_debug, " (plus nontrivial conversion)");
   }  /* if */
   if (amsp->conversion.std.type_qualifiers_added) {
     fprintf(f_debug, " (type qualifiers added)");
@@ -436,7 +436,7 @@ Print a candidate function entry list for debugging purposes.
 
   fprintf(f_debug, "Candidate functions list:");
   if (cfp_list == NULL) {
-    fprintf(f_debug, "NULL\n");
+    fprintf(f_debug, " NULL\n");
   } else {
     fprintf(f_debug, "\n");
     for (cfp = cfp_list; cfp != NULL; cfp = cfp->next) {
@@ -1550,56 +1550,53 @@ Compare two argument match summary entries and return
   } else {
     /* The matches are equal in terms of match level.  One can still be
        better than the other in some cases. */
-    /* A conversion involving a user-defined conversion is better than a
-       conversion involving the same user-defined conversion followed by
-       a standard conversion, e.g.,
-         A->int
-       versus
-         A->int->float
-       (see the commentary at the bottom of p. 317 of the ARM.)
-    */
-    if (arg_match1->conversion.routine != NULL &&
-        arg_match1->conversion.routine == arg_match2->conversion.routine) {
-      /* We have two conversions using the same user-defined conversion. */
-      if (arg_match1->conversion.std_conversion_needed !=
-          arg_match2->conversion.std_conversion_needed) {
-        /* Two user-defined conversions involving the same conversion routine.
-           One does not have a standard conversion after the user-defined
-           conversion and the other does, so the one without the standard
-           conversion is better. */
-        if (arg_match1->conversion.std_conversion_needed) {
-          /* arg_match1 has the standard conversion and arg_match2 does not,
-             so arg_match2 is better. */
-          cmp = -1;
-          goto have_cmp;
-        } else {
-          /* arg_match2 has the standard conversion and arg_match1 does not,
-             so arg_match1 is better. */
-          cmp = 1;
-          goto have_cmp;
+    /* They can only be compared if the user-defined part of the conversion
+       (if any) is the same in both conversions. */
+    if (arg_match1->conversion.routine == arg_match2->conversion.routine) {
+      /* A conversion involving a user-defined conversion is better than a
+         conversion involving the same user-defined conversion followed by
+         a nontrivial conversion, e.g.,
+           A->int
+         versus
+           A->int->float
+         (see the commentary at the bottom of p. 317 of the ARM.)
+      */
+      if (arg_match1->conversion.routine != NULL) {
+        /* We have two conversions using the same user-defined conversion. */
+        if (arg_match1->conversion.std.nontrivial_conversion !=
+            arg_match2->conversion.std.nontrivial_conversion) {
+          /* Two user-defined conversions involving the same conversion
+             routine.  One does not have a nontrivial conversion after the
+             user-defined conversion and the other does, so the one without
+             the nontrivial conversion is better. */
+          if (arg_match1->conversion.std.nontrivial_conversion) {
+            /* arg_match1 has the nontrivial conversion and arg_match2 does
+               not, so arg_match2 is better. */
+            cmp = -1;
+            goto have_cmp;
+          } else {
+            /* arg_match2 has the nontrivial conversion and arg_match1 does
+               not, so arg_match1 is better. */
+            cmp = 1;
+            goto have_cmp;
+          }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-    /* A cast to a base class is better than a cast to further along the
-       same base class derivation (see rule [3] in ARM 13.2):
-         struct A {};
-         struct B : public A {};
-         struct C : public B {};
-         void f(A*);
-         void f(B*);
-         main () {
-           C c;
-           f(&c);  // C* -> B* is better than C* -> B* -> A*
-         }
-       Similar processing applies for casts to derived classes, and for
-       pointers-to-members.  Also, a cast to "void *" is considered worse
-       that any cast to a base class.
-    */
-    if ((arg_match1->conversion.std_conversion_needed ||
-         arg_match1->match_level == aml_std_conversion) &&
-        (arg_match2->conversion.std_conversion_needed ||
-         arg_match2->match_level == aml_std_conversion)) {
-      /* Both matches involve a standard conversion. */
+      /* A cast to a base class is better than a cast to further along the
+         same base class derivation (see rule [3] in ARM 13.2):
+           struct A {};
+           struct B : public A {};
+           struct C : public B {};
+           void f(A*);
+           void f(B*);
+           main () {
+             C c;
+             f(&c);  // C* -> B* is better than C* -> B* -> A*
+           }
+         Similar processing applies for casts to derived classes, and for
+         pointers-to-members.  Also, a cast to "void *" is considered worse
+         that any cast to a base class.
+      */
       bcp_1 = arg_match1->conversion.std.cast_base_class;
       bcp_2 = arg_match2->conversion.std.cast_base_class;
       if (bcp_1 != NULL && bcp_2 != NULL &&
@@ -2038,11 +2035,11 @@ other.  Return
     /* There is something about one argument list that makes it better
        than the other. */
   } else if (cfp1->is_user_conversion &&
-             cfp1->conversion.std_conversion_needed !=
-             cfp2->conversion.std_conversion_needed) {
+             cfp1->conversion.std.nontrivial_conversion !=
+             cfp2->conversion.std.nontrivial_conversion) {
     /* The fact that a standard conversion is needed after a conversion
        function can serve as a tie-breaker. */
-    if (cfp1->conversion.std_conversion_needed) {
+    if (cfp1->conversion.std.nontrivial_conversion) {
       /* A standard conversion is needed after cfp1 and none is needed
          after cfp2, so cfp2 is better. */
       cmp = -1;
@@ -2176,6 +2173,12 @@ is set to NULL.
   a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
 
   db_enter(4, "select_best_candidate_functions");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Entry to select_best_candidate_functions: ");
+    db_candidate_function_list(candidates);
+  }  /* if */
+#endif /* DEBUG */
   *undecidable_because_of_error = FALSE;
   /* See if there are any function templates.  Try matching them to the
      arguments.  Remove those that cannot be made to match from the candidate
@@ -2414,6 +2417,12 @@ create_final_list:
                                                 source_pos);
     candidates->is_function_template = FALSE;
   }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Return from select_best_candidate_functions: ");
+    db_candidate_function_list(candidates);
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* select_best_candidate_functions */
 
@@ -3344,7 +3353,7 @@ is only used in C++ mode.
   an_arg_match_summary      this_match;
   an_arg_match_summary_ptr  this_match_ptr;
   a_std_conv_descr          std_conversion;
-  a_boolean                 compatible, std_conversion_needed;
+  a_boolean                 compatible;
   a_boolean                 result_is_an_lvalue;
   a_candidate_function_ptr  candidate;
 
@@ -3366,7 +3375,6 @@ is only used in C++ mode.
     conv_routine_type = routine_symbol_type(base_conversion_symbol);
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;
-    std_conversion_needed = FALSE;
     return_type = conv_routine_type->variant.routine.return_type;
     /* Drop type qualifiers for the normal case, when the return value
        is an rvalue. */
@@ -3412,7 +3420,6 @@ is only used in C++ mode.
         /* This conversion function returns a type that can be converted
            via a standard conversion to the type we want. */
         compatible = TRUE;
-        std_conversion_needed = TRUE;
         result_is_an_lvalue = FALSE;
       }  /* if */
     } else {
@@ -3462,11 +3469,6 @@ is only used in C++ mode.
       candidate = *candidate_functions;
       candidate->is_user_conversion = TRUE;
       candidate->conversion.routine = conversion_routine;
-      /* If a standard conversion was needed, remember that in the
-         candidate function entry.  A difference of a standard conversion
-         can be used to distinguish between different user-defined
-         conversions. */
-      candidate->conversion.std_conversion_needed = std_conversion_needed;
       candidate->conversion.std = std_conversion;
       candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
     }  /* if */
@@ -5327,17 +5329,15 @@ no additional conversion is needed after the conversion function is called.
                        (a_boolean)conversion_routine->is_virtual,
                        &orig_operand.position, operand);
     if (!conversion->result_is_an_lvalue || 
-        conversion->std_conversion_needed) {
+        conversion->std.nontrivial_conversion) {
       /* The caller will not accept an lvalue, or a standard conversion
          must be done, so convert an lvalue to an rvalue.  The operand
          could only be an lvalue if the conversion function returns a
          reference. */
       conv_lvalue_to_rvalue(operand);
     }  /* if */
-    if (conversion->std_conversion_needed) {
-      /* Do a necessary standard conversion. */
-      cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
-    }  /* if */
+    /* Do any necessary standard or trivial conversion. */
+    cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
   } else {
 #if CHECKING
     if (conversion_routine->special_kind !=
