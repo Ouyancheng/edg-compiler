@@ -12072,19 +12072,6 @@ continue_with_declaration:
       if (vla_enabled) di_flags |= DI_VLA_ALLOWED;
     } else if (vla_enabled) {
       if (!function_definition_allowed &&
-          !(strict_ansi_mode &&
-            /* When allowing VLAs in nonstrict modes, we first assume a non-
-               constant array bound is allowed on any declaration, and later
-               verify that the scanned expression was in fact constant if the
-               array did not have automatic storage duration.  Doing so,
-               however, causes us to e.g. accept "(int)(3.0+4.0)" as a bound
-               for a local static array.  However, in strict mode, that bound
-               is not a valid integral constant-expression (even though it is
-               "constant").  To diagnose those cases in strict mode, we must
-               therefore force the scanning of integral constant-expression
-               bounds by a priori excluding VLAs. */
-            (declared_storage_class == (a_storage_class)sc_static ||
-             declared_storage_class == (a_storage_class)sc_extern)) &&
           declared_storage_class != (a_storage_class)sc_asm) {
         /* Not at file scope, so a VLA may appear on some declarations. */
         di_flags |= DI_VLA_ALLOWED;
