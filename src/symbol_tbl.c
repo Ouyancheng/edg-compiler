@@ -4764,6 +4764,8 @@ next_delete_symbol:;
 }  /* find_corresponding_operator_delete_sym */
 
 
+/*lint -esym(759,make_predeclared_function_symbol)*/
+/*lint -esym(765,make_predeclared_function_symbol)*/
 a_symbol_ptr make_predeclared_function_symbol(a_symbol_locator  *locator,
                                               a_type_ptr        return_type,
                                               a_type_ptr        param1_type,
