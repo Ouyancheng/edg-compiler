@@ -399,12 +399,16 @@ restricted pointer.
 static void check_type_qualifiers(a_type_ptr         *type_ptr,
                                   a_source_position  *error_pos)
 /*
-A parameter or variable is about to be declared with the given type.
-Check to see if any type qualifiers that are specified are meaningful.
+An parameter, variable, or function is about to be declared with the given
+type.  Check to see if any type qualifiers that are specified are meaningful.
 */
 {
   db_enter(4, "check_type_qualifiers");
-  if (is_qualified_type(*type_ptr)) {
+  if (get_type_qualifiers(*type_ptr)
+#if NEAR_AND_FAR_ALLOWED
+                                     & ~(TQ_NEAR|TQ_FAR)
+#endif /* NEAR_AND_FAR_ALLOWED */
+                                                        ) {
     /* The type has type qualifiers. */
     if ((is_function_type(*type_ptr) && C_dialect != C_dialect_cplusplus) ||
         is_void_type(*type_ptr)) {

@@ -1,5 +1,12 @@
 Version 2.42
 
+5/25/99  near/far support: no warning on near/far function in C mode
+
+The following example got an incorrect warning about meaningless type
+qualifiers when compiled in C mode with near/far enabled.  Now fixed.
+
+  void far foo() {}
+
 5/25/99  Partially lowered EH: keeping body of destructor of thrown type
 
 When IL lowering does partial lowering of exception handling, and
