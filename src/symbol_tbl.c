@@ -1398,7 +1398,6 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_asm_entry               = NULL;
   spbp->last_namespace               = NULL;
   spbp->last_using_directive         = NULL;
-  spbp->last_dynamic_init            = NULL;
   spbp->last_pragma                  = NULL;
 #if RECORD_HIDDEN_NAMES_IN_IL
   spbp->last_hidden_name             = NULL;
@@ -8240,6 +8239,7 @@ specific version of the template.
   ssep->last_label               = NULL;
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
+  ssep->last_dynamic_init        = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep->last_source_sequence_entry = NULL;
   ssep->source_sequence_avail_list = NULL;
