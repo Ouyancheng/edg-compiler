@@ -4404,8 +4404,12 @@ class template.
 #endif /* if 0 */
       } else {
         if (rp->storage_class != (a_storage_class)sc_static) {
-          sym_warning(ec_template_and_instance_linkage_conflict,
-                      tip->instance_sym);
+          /* Issue a warning on linkage inconsistency only on nonmember
+             function templates. */
+          if (!sym->is_class_member) {
+            sym_warning(ec_template_and_instance_linkage_conflict,
+                        tip->instance_sym);
+          }  /* if */
           rp->storage_class = (a_storage_class)sc_static;
           rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
         }  /* if */
