@@ -1763,6 +1763,7 @@ translation unit.  Do merging of minor information.
       db_class_list(primary_type->variant.class_struct_union.
                                               extra_info->befriending_classes);
     }  /* if */
+    fprintf(f_debug, "entries added to list:\n");
   }  /* if */
 #endif /* DEBUG */
   merge_befriending_classes_lists(&primary_ctsp->befriending_classes,
@@ -1797,6 +1798,7 @@ translation unit.  Do merging of minor information.
       fprintf(f_debug, "befriending_classes list:\n");
       db_class_list(primary_rout->befriending_classes);
     }  /* if */
+    fprintf(f_debug, "entries added to list:\n");
   }  /* if */
 #endif /* DEBUG */
   merge_befriending_classes_lists(&primary_rout->befriending_classes,
