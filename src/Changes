@@ -1,5 +1,19 @@
 Version 2.42
 
+3/16/99  printf argument checking and const string literals
+
+The argument checking done for printf (when #pragma __printf_args is
+used) was not updated when string literals were made const in C++.
+As a consequence, a remark was issued when a string literal (of
+type const char *) was passed for a "%s" printf specifier (which
+expects a char *).  Now fixed.
+
+  #pragma __printf_args
+  extern "C" int printf(const char *, ...);
+  int main() {
+    printf("%s", "hello\n");
+  }
+
 3/16/99  Abort in find_base_class_of eliminated
 
 An abort in find_base_class_of has been eliminated.  This abort came

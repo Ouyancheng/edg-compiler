@@ -4259,7 +4259,8 @@ static a_type_ptr next_printf_scanf_arg_type(
                                           a_printf_scan_state *pss_ptr,
                                           a_source_position   *err_pos,
                                           a_boolean           *indirect,
-                                          a_boolean           *weakly_typed)
+                                          a_boolean           *weakly_typed,
+                                          a_type_ptr          *alt_type)
 /*
 Return the type that the next argument to a printf or scanf call should have,
 by finding the next thing in the format string that consumes an argument.
@@ -4271,7 +4272,10 @@ If there is an error in the format string, issue a warning at *err_pos and set
 *fmt_string_ptr to NULL.  *indirect is returned TRUE if the type returned
 has an added pointer level relative to the type indicated in the formatting
 string, e.g., for scanf.  *weakly_typed is returned TRUE if the formatting
-specifier is one that is weakly typed, e.g. "%x".
+specifier is one that is weakly typed, e.g. "%x".  *alt_type is usually
+returned NULL, but if some alternate type is also valid for the next
+argument (i.e., in addition to the type returned), *alt_type is set to
+the alternate type.
 
 See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 */
@@ -4287,6 +4291,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 
   *weakly_typed = FALSE;
   *indirect = FALSE;
+  *alt_type = NULL;
   /* Pick up in the middle if the previous call returned a field width
      or precision. */
   if (pss == pss_after_field_width) goto after_field_width;
@@ -4464,6 +4469,12 @@ after_precision:;
         required_type = integer_type((an_integer_kind)ik_char);
         add_pointer = TRUE;
         /* *indirect is not set on purpose. */
+        if (!is_scanf && string_literals_are_const) {
+          /* String literals are const, so allow a const char * argument. */
+          *alt_type = make_pointer_type(
+                          make_qualified_type(required_type,
+                                              (a_type_qualifier_set)TQ_CONST));
+        }  /* if */
         break;
       case 'p':
         /* Pointer conversion.  Basic type is "void *". */
@@ -4532,13 +4543,15 @@ format string (they are updated on return).
 */
 {
   a_type_ptr required_type, eff_required_type, eff_argument_type;
+  a_type_ptr alt_type;
   a_boolean  indirect, weakly_typed;
 
   /* Find the next formatting specifier in the string. */
   required_type = next_printf_scanf_arg_type(is_scanf, fmt_string_ptr,
                                              pss_ptr,
                                              &argument_operand->position,
-                                             &indirect, &weakly_typed);
+                                             &indirect, &weakly_typed,
+                                             &alt_type);
   /* If *fmt_string_ptr was set to NULL there was an error in the format
      string. */
   if (*fmt_string_ptr != NULL) {
@@ -4569,6 +4582,9 @@ format string (they are updated on return).
       eff_required_type = skip_typerefs(eff_required_type);
       if (types_are_compatible(eff_required_type, eff_argument_type)) {
         /* The types are exactly the same. */
+      } else if (alt_type != NULL &&
+                 types_are_compatible(alt_type, eff_argument_type)) {
+        /* The type matches the alternate acceptable type. */
       } else if (weakly_typed &&
                  is_integral_or_enum_type(eff_required_type) &&
                  is_integral_or_enum_type(eff_argument_type) &&
@@ -4864,13 +4880,15 @@ list checking (e.g., for the presence of too few arguments).
   if (arg_block->fmt_string != NULL) {
     /* For a printf- or scanf-like function, check that all the formatting
        specifiers were used. */
-    a_boolean indirect, weakly_typed;
+    a_boolean  indirect, weakly_typed;
+    a_type_ptr alt_type;
     if (next_printf_scanf_arg_type((arg_block->arg_list_kind ==
                                                  (a_pragma_kind)pk_scanf_args),
                                    &arg_block->fmt_string,
                                    &arg_block->pss,
                                    &arg_block->closing_paren_position,
-                                   &indirect, &weakly_typed) != NULL) {
+                                   &indirect, &weakly_typed,
+                                   &alt_type) != NULL) {
       /* There are no more arguments, but the format string has more
          formatting specifiers. */
       pos_warning(ec_too_few_printf_args, &arg_block->closing_paren_position);
