@@ -1,5 +1,14 @@
 Version 2.33
 
+9/13/96 Microsoft compatibility: calling conventions allowed/ignored in more
+        cases
+
+In Microsoft mode, calling conventions applied to pointer and reference
+types are now ignored, with a remark.  Formerly, an error was issued.
+
+  int * __cdecl variable;
+  void (* __cdecl ptr_to_func)(void);
+
 9/13/96 Microsoft compatibility: extra #elses ignored
 
 In Microsoft mode, a second #else in the skipped part of an #if is now

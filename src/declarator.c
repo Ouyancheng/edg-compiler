@@ -1770,24 +1770,11 @@ information should be ignored or if an error should be issued.
     /* Null type -- the calling convention will be discarded. */
     discard = TRUE;
   } else if (calling_convention != (a_calling_convention)cc_default) {
-    a_boolean		ignore = FALSE;
-    a_boolean		invalid_type = FALSE;
-
-    if (is_function_type(*type)) {
-      /* A calling convention on a function type is valid. */
-    } else if (is_reference_type(*type) || is_pointer_type(*type)) {
-      /* A calling convention on a pointer or reference type is invalid. */
-      invalid_type = TRUE;
-    } else {
-      /* All other types are assumed to be object types that are
-         ignored. */
-      ignore = TRUE;
-    }  /* if */
-    if (invalid_type) {
-      pos_error(ec_calling_convention_not_allowed_for_type, decl_pos);
-    } else if (ignore) {
+    if (!is_function_type(*type)) {
+      /* A calling convention on a non-function type is ignored. */
       pos_remark(ec_calling_convention_ignored_for_type, decl_pos);
     } else {
+      /* A calling convention applied to a function type. */
       a_type_ptr	tp = *type;
       a_boolean         any_typedefs = FALSE;
       /* Skip past any typerefs.  See if any of them are typedefs. */
