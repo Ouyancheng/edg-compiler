@@ -4768,7 +4768,7 @@ class.
   }  /* if */
 #endif /* CHECKING */
   if (!have_access_to_symbol(opass_sym)) {
-    str_error(ec_inaccessible_assignment_operator, name_of_symbol(opass_sym));
+    sym_error(ec_inaccessible_assignment_operator, opass_sym);
   }  /* if */
   db_exit();
 }  /* check_access_on_assignment_operator */
