@@ -206,6 +206,16 @@ typedef struct a_source_correspondence {
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Kind of linkage for the name, e.g., is it
 			   externally visible. */
+#ifdef CIL
+  unsigned int  is_local_to_function:1;
+			/* TRUE if a function scope intervenes in the scope
+			   stack between the scope to which the entity belongs
+			   and the file scope.  In general, entities declared
+			   in function and block scopes and within local
+			   classes have the flag set to TRUE, and objects
+			   declared at file scope and within nonlocal classes
+			   have it set to FALSE. */
+#endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
 			/* Scope nesting depth of this entity. */
