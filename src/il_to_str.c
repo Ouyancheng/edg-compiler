@@ -3103,11 +3103,11 @@ name_cases:
           }  /* if */
           break;
         case tpck_cast:
-          octl->output_str("&");
           form_constant(constant->variant.template_param.variant.constant,
                         /*need_parens=*/FALSE, octl);
           break;
         case tpck_address:
+          octl->output_str("&");
           form_constant(constant->variant.template_param.variant.constant,
                         /*need_parens=*/FALSE, octl);
           break;
