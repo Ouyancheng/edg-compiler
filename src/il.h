@@ -488,6 +488,18 @@ extern void db_initializer(a_variable_ptr  var_ptr,
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);
+
+extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
+
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+extern a_comment_ptr alloc_comment(void);
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+
+extern void add_to_source_sequence_list(a_source_sequence_entry_ptr  ssep);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 #if ORPHAN_PROCESSING_NEEDED
 extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                              an_il_entry_kind entry_kind);

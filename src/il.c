@@ -95,6 +95,15 @@ static unsigned long
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+static unsigned long
+		num_source_sequence_entries_allocated,
+		num_src_seq_secondary_decls_allocated;
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+static unsigned long
+		num_comments_allocated;
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
 		num_fs_orphan_pointers_allocated,
@@ -6164,6 +6173,106 @@ points to the associated routine if the kind is sck_function.
 }  /* alloc_scope */
 
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+a_source_sequence_entry_ptr alloc_source_sequence_entry(void)
+/*
+Allocate a source sequence entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_source_sequence_entry_ptr  ssep;
+
+  ssep = (a_source_sequence_entry_ptr)
+                                   alloc_cil(sizeof(a_source_sequence_entry));
+#if DEBUG
+  num_source_sequence_entries_allocated++;
+#endif /* DEBUG */
+  ssep->next        = NULL;
+  ssep->prev        = NULL;
+  ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
+  ssep->entity.ptr  = NULL;
+
+  return ssep;
+}  /* alloc_source_sequence_entry */
+
+a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void)
+/*
+Allocate a source sequence secondary declaration entry, initialize its fields,
+and return a pointer to it.
+*/
+{
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  sssdp = (a_src_seq_secondary_decl_ptr)
+                                  alloc_cil(sizeof(a_src_seq_secondary_decl));
+#if DEBUG
+  num_src_seq_secondary_decls_allocated++;
+#endif /* DEBUG */
+  sssdp->decl_position.seq    = 0;
+  sssdp->decl_position.column = SP_COL_UNKNOWN;
+  sssdp->entity.kind          = (a_byte_il_entry_kind)iek_none;
+  sssdp->entity.ptr           = NULL;
+
+  return sssdp;
+}  /* alloc_src_seq_secondary_decl */
+
+
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+a_comment_ptr alloc_comment(void)
+/*
+Allocate a comment entry, initialize its fields, and return a pointer to it.
+*/
+{
+  a_comment_ptr  cp;
+
+  cp = (a_comment_ptr)alloc_cil(sizeof(a_comment));
+#if DEBUG
+  num_comments_allocated++;
+#endif /* DEBUG */
+  cp->range.start_position.seq    = 0;
+  cp->range.start_position.column = SP_COL_UNKNOWN;
+  cp->range.end_position.seq      = 0;
+  cp->range.end_position.column   = SP_COL_UNKNOWN;
+
+  return cp;
+}  /* alloc_comment */
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+
+void add_to_source_sequence_list(a_source_sequence_entry_ptr  src_seq_ptr)
+/*
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  if (ssep->kind == (a_scope_kind)sck_file ||
+      ssep->kind == (a_scope_kind)sck_function ||
+      (C_dialect == C_dialect_cplusplus &&
+       ssep->kind == (a_scope_kind)sck_class_struct_union)) {
+    /* Use the current scope. */
+  } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    /* Use the function scope. */
+    ssep = &scope_stack[depth_innermost_function_scope];
+  } else {
+    /* Use the file scope. */
+    ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  }  /* if */
+  sp = ensure_il_scope_exists(ssep);
+  sp = ssep->il_scope;
+  check_assertion_str(sp != NULL,
+                      "add_to_source_sequence_list: NULL IL scope");
+  if (sp->source_sequence_list == NULL) {
+    sp->source_sequence_list = src_seq_ptr;
+  } else {
+    ssep->last_source_sequence_entry->next = src_seq_ptr;
+  }  /* if */
+  ssep->last_source_sequence_entry = src_seq_ptr;
+  src_seq_ptr->next = NULL;
+}  /* add_to_source_sequence_list */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+
 #if DEBUG
 unsigned long show_il_space_used(void)
 /*
@@ -6400,6 +6509,13 @@ of the front end.
   num_searches_for_shareable_constants   = 0;
   num_compares_for_shareable_constants   = 0;
   num_get_based_type_calls               = 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  num_source_sequence_entries_allocated  = 0;
+  num_src_seq_secondary_decls_allocated  = 0;
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+  num_comments_allocated                 = 0;
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
   num_orphaned_il_lists_allocated        = 0;
