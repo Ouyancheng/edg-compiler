@@ -30,6 +30,8 @@ lower_name.c -- Do name mangling for IL lowering.
 /* Only include this code if it is needed: */
 #if NEED_NAME_MANGLING
 
+#include "templates.h"
+
 /*
 Control block for mangling.
 */
@@ -101,6 +103,7 @@ static void mangled_template_arguments(
                                     a_boolean                partial_spec,
                                     a_boolean                old_form,
                                     a_mangling_control_block *mctl);
+static a_boolean variable_name_mangling_needed(a_variable_ptr variable);
 
 /*
 Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
@@ -2618,7 +2621,8 @@ types; just put out the base encoded name.
 }  /* mangled_function_name */
 
 
-a_boolean function_name_mangling_needed(a_routine_ptr routine,
+static a_boolean function_name_mangling_needed(
+                                        a_routine_ptr routine,
                                         a_boolean     *suppress_param_encoding)
 /*
 Return TRUE if the name of the indicated routine needs to be mangled.
@@ -2659,6 +2663,134 @@ mangled without parameter encoding.
   return mangling_needed;
 }  /* function_name_mangling_needed */
 
+#if DO_IL_LOWERING
+
+static void start_externalized_name(a_boolean                is_variable,
+                                    a_mangling_control_block *mctl)
+/*
+Begin the output of the externalized mangled name for the entity with
+the indicated source correspondence.  The entity is a variable if
+is_variable is TRUE, a routine otherwise.
+*/
+{
+  char *prefix = (is_variable ? (char *)"__STV__" : (char *)"__STF__");
+
+  /* The generated name has the form
+       __STV__name__module_id  (variable)
+       __STF__name__module_id  (function)
+     Only the prefix is put out here.
+  */
+  add_str_to_mangled_name(prefix, mctl);
+}  /* start_externalized_name */
+
+#endif /* DO_IL_LOWERING */
+#if DO_IL_LOWERING
+
+static void end_externalized_name(a_source_correspondence  *scp,
+                                  a_mangling_control_block *mctl)
+/*
+End the output of the externalized mangled name for the entity with
+the indicated source correspondence.
+*/
+{
+  a_translation_unit_ptr tup;
+  char                   *module_id;
+
+  /* The generated name has the form
+       __STV__name__module_id  (variable)
+       __STF__name__module_id  (function)
+     Only the part after "name" is put out here.
+  */
+  /* Get the module id for the translation unit which this source
+     correspondence is part of.  For a source correspondence with no
+     associated symbol, use the current translation unit. */
+  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
+                                    curr_translation_unit;
+  module_id = *tup->module_id_ptr;
+  add_str_to_mangled_name("__", mctl);
+  add_str_to_mangled_name(module_id, mctl);
+}  /* end_externalized_name */
+
+
+char *externalized_mangled_name(a_source_correspondence  *scp,
+                                a_boolean                is_variable)
+/*
+Generate and return the externalized name for the entity with the
+indicated source correspondence.  An externalized name is a name given
+to a static entity when it is made external so that its name will remain
+unique across the program.  The entity is a variable if is_variable
+is TRUE, a routine otherwise.  The name returned is in a temporary
+buffer, and must be copied elsewhere promptly.
+*/
+{
+  a_mangling_control_block mctl;
+  char                     *name = scp->name;
+  char                     buffer[50];
+
+#if CHECKING
+  /* If the name needs to be mangled, the mangling should have been done
+     already. */
+  { a_boolean dummy;
+    if (scp->name_has_been_mangled) {
+      /* Okay, mangling already done. */
+      /* Compression and truncation shouldn't have been done already,
+         however. */
+      check_assertion_str(!scp->mangled_name_cannot_be_included_in_other_name,
+                      "externalized_mangled_name: mangled name already final");
+    } else if (is_variable ?
+                           variable_name_mangling_needed((a_variable_ptr)scp) :
+                           function_name_mangling_needed((a_routine_ptr)scp,
+                                                         &dummy)) {
+#if DEBUG
+      db_entity_info((char *)scp, is_variable ? iek_variable : iek_routine);
+#endif /* DEBUG */
+      internal_error("externalized_mangled_name: name not mangled");
+    }  /* if */
+  }
+#endif /* CHECKING */
+  start_mangling(&mctl);
+  /* The generated name has the form
+       __STV__name__module_id  (variable)
+       __STF__name__module_id  (function)
+  */
+  start_externalized_name(is_variable, &mctl);
+  if (name == NULL) {
+    /* Entity has no name, e.g., a generated routine.  Generate one. */
+    if (is_variable) {
+      a_variable_ptr var = (a_variable_ptr)scp;
+      if (var->is_anonymous_parent_object) {
+        /* Give a name to an anonymous union variable based on its first
+           member's name.  This is necessary so that the name will come out
+           the same whether compiled in a primary translation unit or a
+           secondary one. */
+        a_type_ptr  union_type = var->type;
+        a_field_ptr field;
+        check_assertion(union_type->kind == (a_type_kind)tk_union);
+        for (;;) {
+          field = union_type->variant.class_struct_union.field_list;
+          if (field == NULL) break;
+          /* Use the name of the first member. */
+          name = field->source_corresp.name;
+          if (name != NULL) break;
+          /* Loop if the first member is itself an anonymous union. */
+          if (!field->is_anonymous_parent_object) break;
+          union_type = field->type;
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    if (name == NULL) {
+      /* Generate a name. */
+      (void)sprintf(buffer, "%lu", unique_id_for_il_pointer(scp));
+      name = buffer;
+    }  /* if */
+  }  /* if */
+  add_str_to_mangled_name(name, &mctl);
+  end_externalized_name(scp, &mctl);
+  add_to_mangled_name('\0', &mctl);
+  return mangling_text_buffer->buffer;
+}  /* externalized_mangled_name */
+
+#endif /* DO_IL_LOWERING */
 #if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
 
 char *get_mangled_function_name(a_routine_ptr routine)
@@ -2672,9 +2804,19 @@ name in the routine entry.
   a_mangling_control_block mctl;
   a_boolean                suppress_param_encoding;
   char                     *mangled_name;
+  a_boolean                needs_to_be_externalized = FALSE;
 
+#if DO_IL_LOWERING
+  /* Static entities are potentially referenced from exported templates
+     and therefore get externalized, which gives them a different kind
+     of mangled name. */
+  needs_to_be_externalized =
+                       (routine->storage_class == (a_storage_class)sc_static &&
+                        any_exported_templates());
+#endif /* DO_IL_LOWERING */
   if ((routine->source_corresp.name_has_been_mangled &&
-       !routine->source_corresp.final_name_mangling_pending) ||
+       !routine->source_corresp.final_name_mangling_pending &&
+       (!needs_to_be_externalized || routine->source_corresp.externalized)) ||
       !function_name_mangling_needed(routine, &suppress_param_encoding)) {
     /* The name has already been (completely) mangled, or it doesn't need
        to be mangled, so just return it. */
@@ -2685,7 +2827,17 @@ name in the routine entry.
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
     /* Create the name. */
+#if DO_IL_LOWERING
+    if (needs_to_be_externalized) {
+      start_externalized_name(/*is_variable=*/FALSE, &mctl);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     mangled_function_name(routine, suppress_param_encoding, &mctl);
+#if DO_IL_LOWERING
+    if (needs_to_be_externalized) {
+      end_externalized_name(&routine->source_corresp, &mctl);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
@@ -2779,9 +2931,19 @@ or a static data member (e.g., not a file scope variable).
 {
   a_mangling_control_block mctl;
   char                     *mangled_name;
+  a_boolean                needs_to_be_externalized = FALSE;
 
+#if DO_IL_LOWERING
+  /* Static entities are potentially referenced from exported templates
+     and therefore get externalized, which gives them a different kind
+     of mangled name. */
+  needs_to_be_externalized =
+                      (variable->storage_class == (a_storage_class)sc_static &&
+                       any_exported_templates());
+#endif /* DO_IL_LOWERING */
   if (variable->source_corresp.name_has_been_mangled &&
-      !variable->source_corresp.final_name_mangling_pending) {
+      !variable->source_corresp.final_name_mangling_pending &&
+      (!needs_to_be_externalized || variable->source_corresp.externalized)) {
     /* The name has already been completely mangled, so just return it. */
     mangled_name = variable->source_corresp.name;
     /* The variable should not be unnamed. */
@@ -2789,7 +2951,17 @@ or a static data member (e.g., not a file scope variable).
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
+#if DO_IL_LOWERING
+    if (needs_to_be_externalized) {
+      start_externalized_name(/*is_variable=*/TRUE, &mctl);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     mangled_member_variable_name(variable, &mctl);
+#if DO_IL_LOWERING
+    if (needs_to_be_externalized) {
+      end_externalized_name(&variable->source_corresp, &mctl);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
@@ -2990,7 +3162,7 @@ Mangle the name of the indicated function, if necessary.
 }  /* mangle_function_name */
 
 
-a_boolean variable_name_mangling_needed(a_variable_ptr variable)
+static a_boolean variable_name_mangling_needed(a_variable_ptr variable)
 /*
 Return TRUE if the name of the indicated variable needs to be mangled.
 */

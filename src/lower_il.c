@@ -12719,94 +12719,19 @@ files.  The static entity must be made external so the instantiation
 files can reference it.
 */
 {
-  sizeof_t name_len, prefix_len, module_id_len;
-  char     *prefix = (is_variable ? (char *)"__STV__" : (char *)"__STF__");
-  char     *module_id;
-  char     *name, *new_name, *ptr;
-  char     buffer[50];
-  a_translation_unit_ptr
-           tup;
+  char     *name, *new_name;
+  sizeof_t name_len;
 
-  name = scp->name;
-#if CHECKING
-  /* If the name needs to be mangled, the mangling should have been done
-     already. */
-  { a_boolean dummy;
-    if (scp->name_has_been_mangled) {
-      /* Okay, mangling already done. */
-      /* Compression and truncation shouldn't have been done already,
-         however. */
-      check_assertion_str(!scp->mangled_name_cannot_be_included_in_other_name,
-              "externalize_source_correspondence: mangled name already final");
-    } else if (is_variable ?
-                           variable_name_mangling_needed((a_variable_ptr)scp) :
-                           function_name_mangling_needed((a_routine_ptr)scp,
-                                                         &dummy)) {
-#if DEBUG
-      db_entity_info((char *)scp, is_variable ? iek_variable : iek_routine);
-#endif /* DEBUG */
-      internal_error("externalize_source_correspondence: name not mangled");
-    }  /* if */
-  }
-#endif /* CHECKING */
-  /* The generated name has the form
-       __STV__name__module_id  (variable)
-       __STF__name__module_id  (function)
-  */
-  if (name == NULL) {
-    /* Entity has no name, e.g., a generated routine.  Generate one. */
-    if (is_variable) {
-      a_variable_ptr var = (a_variable_ptr)scp;
-      if (var->is_anonymous_parent_object) {
-        /* Give a name to an anonymous union variable based on its first
-           member's name.  This is necessary so that the name will come out
-           the same whether compiled in a primary translation unit or a
-           secondary one. */
-        a_type_ptr  union_type = var->type;
-        a_field_ptr field;
-        check_assertion(union_type->kind == (a_type_kind)tk_union);
-        for (;;) {
-          field = union_type->variant.class_struct_union.field_list;
-          if (field == NULL) break;
-          /* Use the name of the first member. */
-          name = field->source_corresp.name;
-          if (name != NULL) break;
-          /* Loop if the first member is itself an anonymous union. */
-          if (!field->is_anonymous_parent_object) break;
-          union_type = field->type;
-        }  /* for */
-      }  /* if */
-    }  /* if */
-    if (name == NULL) {
-      /* Generate a name. */
-      (void)sprintf(buffer, "%lu", unique_id_for_il_pointer(scp));
-      name = buffer;
-    }  /* if */
-  }  /* if */
+  /* Generate a mangled name to keep this entity's name unique. */
+  name = externalized_mangled_name(scp, is_variable);
   name_len = strlen(name);
-  prefix_len = strlen(prefix);
-  /* Get the module id for the translation unit which this source
-     correspondence is part of.  For a source correspondence with no
-     associated symbol, use the current translation unit. */
-  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
-                                    curr_translation_unit;
-  module_id = *tup->module_id_ptr;
-  module_id_len = strlen(module_id);
-  new_name = alloc_lowered_name_string(prefix_len + name_len + module_id_len +
-                                       3);
-  ptr = new_name;
-  (void)strcpy(ptr, prefix);
-  ptr += prefix_len;
-  (void)strcpy(ptr, name);
-  ptr += name_len;
-  (void)strcpy(ptr, "__");
-  ptr += 2;
-  (void)strcpy(ptr, module_id);
+  new_name = alloc_lowered_name_string(name_len + 1);
+  (void)strcpy(new_name, name);
   scp->name = new_name;
   scp->name_linkage = (a_name_linkage_kind)nlk_external;
   scp->externalized = TRUE;
-  /* Clear the same_name_as_external_entity_in_secondary_trans_unit because
-     it should be set only for entities without external linkage. */
+  /* Clear the same_name_as_external_entity_in_secondary_trans_unit flag
+     because it should be set only for entities without external linkage. */
   scp->same_name_as_external_entity_in_secondary_trans_unit = FALSE;
 }  /* externalize_source_correspondence */
 
@@ -12836,7 +12761,6 @@ instantiations when generating instantiations in separate object files.
        rout != NULL;
        rout = rout->next) {
     if (any_exports && is_primary_translation_unit &&
-        !rout->source_corresp.copied_from_secondary_trans_unit &&
         rout->storage_class == (a_storage_class)sc_static) {
       /* When exported templates are present, any static is potentially
          referenced (directly or indirectly) from an instantiation and
@@ -12874,7 +12798,6 @@ instantiations when generating instantiations in separate object files.
     char *var_name = var->source_corresp.name;
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
     if (any_exports && is_primary_translation_unit &&
-        !var->source_corresp.copied_from_secondary_trans_unit &&
         var->storage_class == (a_storage_class)sc_static) {
       /* When exported templates are present, any static is potentially
          referenced (directly or indirectly) from an instantiation and
