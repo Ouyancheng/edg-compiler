@@ -1804,7 +1804,9 @@ a typedef, is_typedef is TRUE.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
     default:
       /* An invalid attribute. */
-      pos_ty_warning(ec_attribute_does_not_apply_to_type, &ap->position, tp);
+      pos_ty_diagnostic(is_typedef ? es_error : es_warning,
+                        ec_attribute_does_not_apply_to_type,
+                        &ap->position, type);
   }  /* switch */
 }  /* apply_one_attribute_to_type */
 
@@ -1904,6 +1906,7 @@ underlying type.
     dst->source_corresp.has_associated_pragma = FALSE;
     dst->copy_with_additional_attributes = TRUE;
     tp->variant.typeref.type = make_qualified_type(dst, qualifiers);
+    dst = tp;
   }  /* if */
   for (ap = attributes; ap != NULL; ap = ap->next) {
     apply_one_attribute_to_type(ap, dst, /*is_typedef=*/TRUE);

@@ -33,11 +33,13 @@ See also the Changes entry of 5/6/03.
 6/3/03   GNU mode: Diagnostic on invalid type attributes
 
 The front end used to issue a hard error when encountering attributes on
-types that do not actually apply to types.  Now only a warning is issued.
+types that do not actually apply to types.  Now only a warning is issued
+if the type is not a typedef.
 For example:
 
-  struct S {} __attribute__((section("text")));  // Now a warning.
-                                                 // Previously an error.
+  struct S {} __attribute__((section("text")));      // Now a warning.
+                                                     // Previously an error.
+  typedef int Int __attribute__((section("text")));  // Still an error.
 
 6/3/03   Microsoft compatibility: abort on in-class specialization
 
