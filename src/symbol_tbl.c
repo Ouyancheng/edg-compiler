@@ -612,29 +612,24 @@ and indentation is the indentation desired.
         type = rp->type;
         if (C_dialect == C_dialect_cplusplus) {
           a_throw_specification_ptr  tsp;
+
           tsp = type->variant.routine.extra_info->throw_specification;
-          if (tsp != NULL) {
-            switch (tsp->kind) {
-              case tsk_any:
-                put_string("throws any");
-                break;
-              case tsk_none:
-                put_string("throws none");
-                break;
-              case tsk_list_entry:
-                (void)sprintf(buffer, "throws (");
-                (void)str_type(&buffer[strlen(buffer)], tsp->type);
-                for (tsp = tsp->next; tsp != NULL; tsp = tsp->next) {
-                  put_string(buffer);
-                  buffer[0] = 0;
-                  (void)str_type(buffer, tsp->type);
-                }  /* for */
-                (void)sprintf(&buffer[strlen(buffer)], ")");
-                put_string(buffer);
-                break;
-              default:
-                put_string("throws ???");
-            }  /* switch */
+          if (tsp == NULL) {
+            if (!exceptions_disabled) put_string("throws any");
+          } else if (tsp->throw_spec_type_list == NULL) {
+            put_string("throws none");
+          } else {
+            a_throw_spec_type_ptr  tstp = tsp->throw_spec_type_list;
+
+            (void)sprintf(buffer, "throws (");
+            (void)str_type(&buffer[strlen(buffer)], tstp->type);
+            for (tstp = tstp->next; tstp != NULL; tstp = tstp->next) {
+              put_string(buffer);
+              buffer[0] = 0;
+              (void)str_type(buffer, tstp->type);
+            }  /* for */
+            (void)sprintf(&buffer[strlen(buffer)], ")");
+            put_string(buffer);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3011,7 +3006,6 @@ the compiler-generated flag should be cleared.
   extra_info->prototyped = TRUE;
   set_routine_calling_method_flag(rout_type);
   clear_func_info(&func_info);
-  set_to_throw_anything(&func_info, &pos_curr_token);
   /* Create the symbol and routine entry.  Note that the routine entry
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
