@@ -114,14 +114,9 @@ typedef struct a_template_param_block {
 /*
 Declarations needed because of forward references:
 */
-static char *demangle_name(char                       *ptr,
-                           unsigned long              nchars,
-                           a_boolean                  stop_on_underscores,
-                           char                       *mclass,
-                           a_template_param_block_ptr temp_par_info,
-                           a_decode_control_block_ptr dctl);
 static char *demangle_name_with_preceding_length(
                                 char                       *ptr,
+                                a_boolean                  allow_member,
                                 a_template_param_block_ptr temp_par_info,
                                 a_decode_control_block_ptr dctl);
 static char *demangle_operation(char                       *ptr,
@@ -509,7 +504,7 @@ position following what was demangled.
     /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
     write_id_ch('&', dctl);
     /* Process the length and name. */
-    p = demangle_name_with_preceding_length(p,
+    p = demangle_name_with_preceding_length(p, /*allow_member=*/TRUE,
                                             (a_template_param_block_ptr)NULL,
                                             dctl);
   } else if (*p == 'L') {
@@ -622,7 +617,7 @@ position following what was demangled.
         (void)demangle_type_name(type+2, dctl);
         write_id_str("::", dctl);
         /* Demangle the length and name. */
-        p = demangle_name_with_preceding_length(p,
+        p = demangle_name_with_preceding_length(p, /*allow_member=*/FALSE,
                                               (a_template_param_block_ptr)NULL,
                                                 dctl);
       } else {
@@ -1081,6 +1076,7 @@ the end of the string returns a null character.
 static char *demangle_name(char                       *ptr,
                            unsigned long              nchars,
                            a_boolean                  stop_on_underscores,
+                           unsigned long              *nchars_left,
                            char                       *mclass,
                            a_template_param_block_ptr temp_par_info,
                            a_decode_control_block_ptr dctl)
@@ -1094,12 +1090,15 @@ of characters in the name, or is zero if the name is open-ended
 (it's ended by a null or double underscore).  A double underscore
 ends the name if stop_on_underscores is TRUE (though some sequences
 beginning with two underscores, e.g., "__pt", end the name even if
-stop_on_underscores is FALSE).  mclass, when non-NULL, points to
-the mangled form of the class of which this name is a member.
-When it's non-NULL, constructor and destructor names will be put
-out in the proper form (otherwise, they are left in their original
-forms).  When temp_par_info != NULL, it points to a block that
-controls output of extra information on template parameters.
+stop_on_underscores is FALSE).  If nchars_left is non-NULL, no
+error is issued if too few characters are taken to satify nchars;
+the count of remaining characters is placed in *nchars_left.
+mclass, when non-NULL, points to the mangled form of the class of
+which this name is a member.  When it's non-NULL, constructor and
+destructor names will be put out in the proper form (otherwise,
+they are left in their original forms).  When temp_par_info != NULL,
+it points to a block that controls output of extra information on
+template parameters.
 */
 {
   char      *p, *end_ptr = NULL;
@@ -1108,6 +1107,7 @@ controls output of extra information on template parameters.
   char      *demangled_name;
   int       mangled_length;
 
+  if (nchars_left != NULL) *nchars_left = 0;
   /* See if the name is special in some way. */
   if ((nchars == 0 || nchars >= 4) && ptr[0] == '_' && ptr[1] == '_') {
     /* Name beginning with two underscores. */
@@ -1263,6 +1263,9 @@ controls output of extra information on template parameters.
        get_char(end_ptr,   ptr, nchars) == '_' &&
        get_char(end_ptr+1, ptr, nchars) == '_')) {
     /* Okay. */
+  } else if (nchars_left != NULL) {
+    /* Return the count of characters not taken. */
+    *nchars_left = nchars-(end_ptr-ptr);
   } else {
     bad_mangled_name(dctl);
   }  /* if */
@@ -1318,6 +1321,7 @@ indication like "f(void)::".
 
 static char *demangle_name_with_preceding_length(
                                    char                       *ptr,
+                                   a_boolean                  allow_member,
                                    a_template_param_block_ptr temp_par_info,
                                    a_decode_control_block_ptr dctl)
 /*
@@ -1325,12 +1329,14 @@ Demangle a name that is preceded by a length, e.g., "3abc" for the type
 name "abc".  Return a pointer to the character position following what
 was demangled.  When temp_par_info != NULL, it points to a block that
 controls output of extra information on template parameters.
+If allow_member is TRUE, the name may be a member name.
 */
 {
   char          *p = ptr;
   char          *p2;
   unsigned long nchars, nchars2;
   a_boolean     has_function_local_info = FALSE;
+  a_boolean     is_member = FALSE;
 
   /* Get the length. */
   p = get_length(p, &nchars, dctl);
@@ -1351,10 +1357,40 @@ controls output of extra information on template parameters.
       }  /* if */
     }  /* for */
   }  /* if */
+  if (allow_member) {
+    /* This might be a member name.  Demangle once to see if we take
+       the whole name.  If not, the rest should be two underscores
+       and the parent name. */
+    unsigned long nchars_left, old_nchars;
+    dctl->suppress_id_output++;
+    p2 = demangle_name(p, nchars, /*stop_on_underscores=*/FALSE,
+                       &nchars_left, (char *)NULL,
+                       (a_template_param_block_ptr)NULL, dctl);
+    dctl->suppress_id_output--;
+    if (nchars_left != 0) {
+      /* We came up short on the name.  Expect two underscores and the
+         parent type. */
+      if (p2[0] != '_' || p2[1] != '_') {
+        bad_mangled_name(dctl);
+      } else {
+        is_member = TRUE;
+        old_nchars = nchars;
+        nchars = p2 - p;
+        p2 += 2;
+        p2 = demangle_type_name(p2, dctl);
+        write_id_str("::", dctl);
+        /* See if we ended up in the right place. */
+        if (p2 != p+old_nchars) {
+          bad_mangled_name(dctl);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Demangle the name. */
   p = demangle_name(p, nchars, /*stop_on_underscores=*/FALSE,
+                    (unsigned long *)NULL,
                     (char *)NULL, temp_par_info, dctl);
-  if (has_function_local_info) p = p2;
+  if (has_function_local_info || is_member) p = p2;
   return p;
 }  /* demangle_name_with_preceding_length */
 
@@ -1379,7 +1415,8 @@ controls output of extra information on template parameters.
   } else {
     /* A simple mangled type name consists of digits indicating the length of
        the name followed by the name itself, e.g., "3abc". */
-    p = demangle_name_with_preceding_length(p, temp_par_info, dctl);
+    p = demangle_name_with_preceding_length(p, /*allow_member=*/FALSE,
+                                            temp_par_info, dctl);
   }  /* if */
   return p;
 }  /* demangle_simple_type_name */
@@ -1911,6 +1948,7 @@ If nchars > 0, take no more than that many characters.
   temp_par_info.set_final_specialization = TRUE;
   dctl->suppress_id_output++;
   p = demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
+                    (unsigned long *)NULL,
                     (char *)NULL, &temp_par_info, dctl);
   dctl->suppress_id_output--;
   final_specialization = temp_par_info.final_specialization;
@@ -1923,6 +1961,7 @@ If nchars > 0, take no more than that many characters.
        which gets mangled as "__pl".  Just write out the name and stop. */
     end_ptr = demangle_name(ptr, nchars,
                             /*stop_on_underscores=*/TRUE,
+                            (unsigned long *)NULL,
                             (char *)NULL,
                             (a_template_param_block_ptr)NULL, dctl);
   } else {
@@ -2019,6 +2058,7 @@ If nchars > 0, take no more than that many characters.
     }  /* if */
     /* Write the name of the member. */
     (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
+                        (unsigned long *)NULL,
                         pname, &temp_par_info, dctl);
     if (member_function) {
       /* Write the declarator part of the type. */
@@ -2050,6 +2090,7 @@ If nchars > 0, take no more than that many characters.
       temp_par_info.actual_template_args_until_final_specialization = FALSE;
       /* Write the name of the member. */
       (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
+                          (unsigned long *)NULL,
                           pname, &temp_par_info, dctl);
       dctl->suppress_id_output--;
       if (!temp_par_info.first_correspondence) {

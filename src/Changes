@@ -1,4 +1,12 @@
-Version 2.46
+Version 3.0
+
+2/14/02  Demangling of template member addresses in nontype template arguments
+
+A bug in demangling for nontype template arguments that are the address
+of a member that is a template instance has been corrected.  An example
+of a name that was not demangled correctly is
+
+__dt__73CT7__tm__62_XCPFSc_Sc50mt1__tm__3_Sc__Q2_2N127CT6__tm__16_XCPFSc_Sc3tf11BFv
 
 2/13/02  Incorrect instantiation file suffix list on Windows
 

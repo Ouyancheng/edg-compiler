@@ -1,5 +1,13 @@
 Version 2.46
 
+2/14/02  Demangling of template member addresses in nontype template arguments
+
+A bug in demangling for nontype template arguments that are the address
+of a member that is a template instance has been corrected.  An example
+of a name that was not demangled correctly is
+
+__dt__73CT7__tm__62_XCPFSc_Sc50mt1__tm__3_Sc__Q2_2N127CT6__tm__16_XCPFSc_Sc3tf11BFv
+
 1/18/02  Demangling of virtual function table names for ambiguous base classes
 
 The name mangling for virtual function tables for ambiguous base classes
