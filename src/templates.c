@@ -4462,8 +4462,16 @@ on the ck_template_param constant pointed to by the expression.
     /* Reuse the current type. */
     new_type = type;
   } else {
-    if (!is_function_type(tp) &&
-        !is_void_type(tp) && !is_reference_type(tp)) {
+    if (is_function_type(tp) ||
+        is_void_type(tp) ||
+        is_reference_type(tp) ||
+        (tp->kind == (a_type_kind)tk_array &&
+         !tp->variant.array.is_variable_size_array &&
+         tp->variant.array.variant.number_of_elements == 0)) {
+      /* The element type is invalid. */
+      *copy_error = TRUE;
+      new_type = NULL;
+    } else {
       /* Create a new array type. */
       new_array_type = alloc_type((a_type_kind)tk_array);
       copy_type(type, new_array_type);
@@ -4503,10 +4511,6 @@ on the ck_template_param constant pointed to by the expression.
         /* The resulting array size is too large. */
         *copy_error = TRUE;
       }  /* if */
-    } else {
-      /* The element type is invalid. */
-      *copy_error = TRUE;
-      new_type = NULL;
     }  /* if */
   }  /* if */
   return new_type;
