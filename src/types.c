@@ -887,7 +887,10 @@ If type is a derived type, return the type from which it is derived.
 Otherwise, return NULL.  If p_is_derived_type is non-NULL, *p_is_derived_type
 is set to TRUE if the given type is a derived type.  This allows the caller to
 distinguish non-derived types from partially constructed derived types, both
-of which result in a NULL return value.
+of which result in a NULL return value.  See the macro
+underlying_type_of_derived_type, which provides a convenient way of
+calling this function for the common case of the second argument
+being NULL.
 */
 {
   a_boolean  is_derived = TRUE;
@@ -917,7 +920,7 @@ of which result in a NULL return value.
     *p_is_derived_type = is_derived;
   }  /* if */
   return type;
-}  /* underlying_type_of_derived_type */
+}  /* f_underlying_type_of_derived_type */
 
 #if BACK_END_IS_CP_GEN_BE
 
