@@ -985,7 +985,7 @@ already been done, and this routine does the end_error call.
            temp_cfp = temp_cfp->next) {
         if (temp_cfp->function_symbol == function_sym) goto next_function;
       }  /* for */
-      if (candidate_functions->next == NULL) {
+      if (is_ambiguous_by_inheritance(function_sym)) {
         /* Function symbol is ambiguous by inheritance.  Use a special
            message.  This happens for conversion functions inherited
            into a derived class. */
@@ -993,8 +993,8 @@ already been done, and this routine does the end_error call.
       } else {
         /* Normal case. */
         err_code = ec_ambiguous_function_add_on;
+        reduce_projection_symbol_to_fundamental_symbol(function_sym);
       }  /* if */
-      reduce_projection_symbol_to_fundamental_symbol(function_sym);
       sym_add_diag_info(err_code, function_sym);
     } else {
       /* Built-in operator case. */
@@ -3214,16 +3214,26 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
   a_symbol_ptr sym2 = cfp2->function_symbol;
 
   if (sym1 != NULL && sym2 != NULL) {
-    sym1 = fundamental_symbol_of(sym1);
-    sym2 = fundamental_symbol_of(sym2);
-    /* Note that sym1 or sym2 can be a function template here. */
-    if (sym1 == sym2 ||
-        ((sym1->kind == (a_symbol_kind)sk_routine ||
-          sym1->kind == (a_symbol_kind)sk_member_function) &&
-         sym1->kind == sym2->kind &&
-         /* Compare IL entry pointers to deal with block extern symbols. */
-         sym1->variant.routine.ptr == sym2->variant.routine.ptr)) {
+    if (sym1 == sym2) {
       same = TRUE;
+    } else if (sym1->kind == (a_symbol_kind)sk_projection ||
+               sym2->kind == (a_symbol_kind)sk_projection) {
+      /* When dealing with class member projections, if the subobjects
+         involved are different the functions are different because
+         they deal with different base class subobjects. */
+      /* same = FALSE; -- already set. */
+    } else {
+      sym1 = fundamental_symbol_of(sym1);
+      sym2 = fundamental_symbol_of(sym2);
+      /* Note that sym1 or sym2 can be a function template here. */
+      if (sym1 == sym2 ||
+          ((sym1->kind == (a_symbol_kind)sk_routine ||
+            sym1->kind == (a_symbol_kind)sk_member_function) &&
+           sym1->kind == sym2->kind &&
+           /* Compare IL entry pointers to deal with block extern symbols. */
+           sym1->variant.routine.ptr == sym2->variant.routine.ptr)) {
+        same = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return same;
@@ -7563,36 +7573,6 @@ functions could still apply).
 }  /* check_for_operator_overloading */
 
 
-static a_boolean unique_conversion_candidate_is_ambiguous(a_symbol_ptr sym)
-/*
-Given a symbol for a user defined conversion operator, check if it is unique
-in the sense that only one projection symbol is found, but the base in which
-the conversion function was declared is ambiguous.  Example:
-   struct A { operator int(); }
-   struct B: A {};
-   struct C: A {};
-   struct D: B, C {}; // Only one projection, but still ambiguous.
-*/
-{
-  a_boolean result = FALSE;
-  if (sym->kind == (a_symbol_kind)sk_projection) {
-    /* Check if this conversion operator comes from an ambiguous base
-       class. */
-    a_base_class_ptr bcp = base_classes_of(sym->parent.class_type);
-    /* First find the original conversion operator symbol: */
-    reduce_projection_symbol_to_fundamental_symbol(sym);
-    /* Then determine which base it comes from: */
-    for (; bcp; bcp = bcp->next) {
-      if (bcp->type == sym->parent.class_type) {
-        break;
-      }  /* if */
-    }  /* for */
-    result = bcp->ambiguous;
-  }  /* if */
-  return result;
-} /* unique_conversion_candidate_is_ambiguous */
-
-
 a_boolean conversion_to_class_possible(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
@@ -7769,26 +7749,18 @@ because of an error.  This routine is used only in C++ mode.
 #endif /* DEBUG */
       } else {
         /* Exactly one constructor or conversion function matches best. */
-        if (candidate_functions->conversion.routine->special_kind ==
-                                    (a_special_function_kind)sfk_conversion) {
-          *ambiguous = unique_conversion_candidate_is_ambiguous(
-                                        candidate_functions->function_symbol);
-        }  /* if */
-        if (!*ambiguous) {
-          okay = TRUE;
-          /* Return information on how the conversion is to be done. */
-          *conversion = candidate_functions->conversion;
-          /* If this is a constructor call and the caller wants it, return
-             also information on any conversion required for the argument
-             (it might involve a user-defined conversion in the explicit
-             cast case). */
-          if (ctor_arg_conversion != NULL &&
-              candidate_functions->conversion.routine->special_kind ==
-                                   (a_special_function_kind)sfk_constructor) {
-            *ctor_arg_conversion = candidate_functions->arg_matches
-                                                                 ->conversion;
-            ctor_arg_conversion_set = TRUE;
-          }  /* if */
+        okay = TRUE;
+        /* Return information on how the conversion is to be done. */
+        *conversion = candidate_functions->conversion;
+        /* If this is a constructor call and the caller wants it, return
+           also information on any conversion required for the argument
+           (it might involve a user-defined conversion in the explicit
+           cast case). */
+        if (ctor_arg_conversion != NULL &&
+            candidate_functions->conversion.routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor) {
+          *ctor_arg_conversion = candidate_functions->arg_matches->conversion;
+          ctor_arg_conversion_set = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7895,13 +7867,9 @@ C++ mode.
 #endif /* DEBUG */
   } else {
     /* There is exactly one best conversion function. */
-    *ambiguous = unique_conversion_candidate_is_ambiguous(
-                                        candidate_functions->function_symbol);
-    if (!*ambiguous) {
-      okay = TRUE;
-      /* Return information on how the conversion is to be done. */
-      *conversion = candidate_functions->conversion;
-    }  /* if */
+    okay = TRUE;
+    /* Return information on how the conversion is to be done. */
+    *conversion = candidate_functions->conversion;
   }  /* if */
   if (*ambiguous) conversion->unusable = TRUE;
   if (*ambiguous && ambiguity_list != NULL) {
