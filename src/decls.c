@@ -2991,9 +2991,9 @@ cross-reference output describing this declaration.
     if (linked_symbol != NULL) {
       orig_nsp = linked_symbol->parent.namespace_ptr;
       /* This is a definition of a namespace member appearing in a scope
-         other than that of the namespace to which it belongs, so reactivate 
-         the original namespace scope. */
-      push_namespace_reactivation_scope(orig_nsp);
+         other than that of the namespace to which it belongs, so push
+         an extension scope for the original namespace. */
+      push_namespace_extension_scope(orig_nsp);
     }  /* if */
   } else {
     /* Determine the linkage of this symbol. */
@@ -3280,7 +3280,7 @@ cross-reference output describing this declaration.
     sym->variant.variable.value_has_been_set = TRUE;
   }  /* if */
   /* Restore the scope stack. */
-  if (orig_nsp != NULL) pop_namespace_reactivation_scope();
+  if (orig_nsp != NULL) pop_namespace_extension_scope();
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
@@ -3425,9 +3425,9 @@ on for use in generating cross-reference output describing this declaration.
     if (linked_symbol != NULL && !is_friend_decl) {
       orig_nsp = linked_symbol->parent.namespace_ptr;
       /* This is a definition of a namespace member appearing in a scope
-         other than that of the namespace to which it belongs, so reactivate 
+         other than that of the namespace to which it belongs, so extend
          the original namespace scope. */
-      push_namespace_reactivation_scope(orig_nsp);
+      push_namespace_extension_scope(orig_nsp);
     }  /* if */
   } else {
     /* Determine the linkage of this symbol. */
@@ -3942,7 +3942,7 @@ skip_overloading:;
      bound to the current declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Restore the scope stack. */
-  if (orig_nsp != NULL) pop_namespace_reactivation_scope();
+  if (orig_nsp != NULL) pop_namespace_extension_scope();
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
