@@ -359,6 +359,12 @@ extern a_boolean check_compatibility_of_pointer_operands(
                    a_boolean         mixed_object_and_incomplete_standard_in_C,
                    a_type_ptr        *operation_type);
 
+extern a_boolean check_ptr_to_member_operands_for_compatibility(
+                                          an_operand        *operand_1,
+                                          an_operand        *operand_2,
+                                          a_source_position *operator_position,
+                                          a_type_ptr        *operation_type);
+
 extern void change_binary_operand_types(a_type_ptr         type,
 				        an_operand         *operand_1,
 				        an_operand         *operand_2,
