@@ -488,6 +488,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_no_nm_info,
   pl_ec_popen_failed,
   pl_ec_specialized_and_instantiated,
+  pl_ec_cannot_open_file_for_update,
   pl_ec_last 	/* must be last */
 } a_pl_error_code;
 
@@ -565,6 +566,9 @@ string.
     break;
   case pl_ec_specialized_and_instantiated:
     m = "\"%s\" has been referenced as both an explicit specialization and a generated instantiation";
+    break;
+  case pl_ec_cannot_open_file_for_update:
+    m = "file \"%s\" is read-only";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -2398,7 +2402,7 @@ has changed then write the updated list of instantiations to the file.
       /* Truncate the original file so that it can be rewritten. */
       f_info = fopen(pifp->info_file_name, "w");
       if (f_info == NULL) {
-        pl_internal_error("Could not reopen instantiation information file.");
+        pl_error(pl_ec_cannot_open_file_for_update, pifp->info_file_name);
       }  /* if */
       /* Rewrite the reserved lines. */
       for (i = 0; i < reserved_info_file_lines; ++i) {

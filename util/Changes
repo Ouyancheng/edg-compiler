@@ -1,5 +1,11 @@
 Version 2.32
 
+5/15/96  Improved prelinker message when .ii file is not writable
+
+A better diagnostic is now issued if the .ii file is not writable
+when the prelinker attempts to update it.  The diagnostic now
+indicates the file name and the fact that it is not writable.
+
 5/6/96   Name demangler enhancements for distinct template mangling
 
 The name demangler has been enhanced to deal with the new form of
