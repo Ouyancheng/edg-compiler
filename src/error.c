@@ -482,8 +482,8 @@ error code.
     case ec_too_many_initializer_values:
       m = "too many initializer values";
       break;
-    case ec_type_must_be_compat_with_prev_def:
-      m = "type must be compatible with previous declaration";
+    case ec_not_compatible_with_previous_decl:
+      m = "this declaration is incompatible with previous declaration";
       break;
     case ec_already_initialized:
       m = "this variable has already been initialized";
