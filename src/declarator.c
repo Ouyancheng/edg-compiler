@@ -222,142 +222,6 @@ derived type to remove the restrict qualifier.
 
 #endif /* RESTRICT_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-static
-a_type_ptr add_microsoft_qualifier_to_type(a_type_ptr		complete_type,
-					   a_type_qualifier_set	qualifiers)
-/*
-Add the type qualifiers indicated by "qualifiers" to the type specified
-by "complete_type".  This routine is used when processing the special
-Microsoft qualifiers.  These are unusual in that they may appear when
-the underlying type has not yet been scanned.  This routine inspects
-the type to determine whether an underlying type exits.  If one does
-exist it simply calls make_qualified_type to add the qualifiers.  Otherwise,
-a typeref is simply added to the front of complete_type.  If, when the
-full type is assembled by add_to_derived_type_list, the underlying
-type ends up being an array type, the type will be adjusted to make
-sure the qualifiers appear in the right place (i.e., over the
-element type and not over the array type).
-
-If the complete_type is already an array type, we check to see if it
-has an underlying type.  If so, we just add the qualifier in the
-usual way.  If not, we add the qualifier under the array type.  The
-element type will later be added under the new qualifier.
-*/
-{
-  a_type_ptr	tp;
-  a_type_ptr	new_tp;
-  a_boolean	is_array = FALSE;
-  a_type_ptr	array_type;
-
-  tp = skip_typerefs_allow_null_referenced_type(complete_type);
-  if (tp != NULL && is_array_type(tp)) {
-    is_array = TRUE;
-    array_type = tp;
-    tp = underlying_array_element_type(tp);
-    if (tp != NULL) {
-      tp = skip_typerefs_allow_null_referenced_type(tp);
-    }  /* if */
-  }  /* if */
-  if (tp != NULL) {
-    /* There is an underlying type.  Just call the normal routine to
-       make a qualified type. */
-    new_tp = make_qualified_type(complete_type, qualifiers);
-  } else {
-    /* There is no underlying type. */
-    new_tp = alloc_type((a_type_kind)tk_typeref);
-    new_tp->variant.typeref.qualifiers = qualifiers;
-    if (is_array) {
-      /* The type is an array, add the qualifier under the array type.  Link
-         the existing element type to the bottom of the new qualifier
-         just in case the array already has a qualifier underneath. */
-      new_tp->variant.typeref.type = array_type->variant.array.element_type;
-      array_type->variant.array.element_type = new_tp;
-      new_tp = complete_type;
-    } else {
-      /* Nonarray.  Just add the qualifier above the existing type. */
-      new_tp->variant.typeref.type = complete_type;
-    }  /* if */
-  }  /* if */
-  return new_tp;
-}  /* add_microsoft_qualifier_to_type */
-
-
-a_type_ptr remove_curr_bottom_derived_type(a_type_ptr type,
-                                           a_type_ptr bottom_derived_type)
-/*
-Scan down the derived type pointed to by "type" until the type specified
-by bottom_derived_type is found.  Truncate the derived type at that point
-and return the type pointer to the caller.
-*/
-{
-  a_type_ptr	tp = type;
-  a_type_ptr	last_tp = NULL;
-  while (tp != NULL) {
-    if (tp == bottom_derived_type) {
-      /* The previous type should be the new bottom type. */
-      if (last_tp == NULL) {
-        /* The new type is NULL.  Just return the NULL to the caller. */
-      } else {
-        /* Clear the current derived type pointer for the new bottom type. */
-        switch (last_tp->kind) {
-          case tk_pointer:  /* Includes C++ reference too. */
-            last_tp->variant.pointer.type = NULL;
-            break;
-          case tk_ptr_to_member:
-            last_tp->variant.ptr_to_member.type = NULL;
-            break;
-          case tk_array:
-            last_tp->variant.array.element_type = NULL;
-            break;
-          case tk_routine:
-            last_tp->variant.routine.return_type = NULL;
-            break;
-          case tk_typeref:
-            last_tp->variant.typeref.type = NULL;
-            break;
-          default:
-            unexpected_condition_str2("remove_curr_bottom_derived_type:",
-                                      "unexpected type kind");
-            break;
-        }  /* switch */
-      }  /* if */
-      break;
-    }  /* if */
-    last_tp = tp;
-    tp = underlying_type_of_derived_type(tp);
-  }  /* while */
-  return last_tp;
-}  /* remove_curr_bottom_derived_type */
-
-
-static void transfer_qualifiers_to_new_type(a_type_ptr *new_type,
-					    a_type_ptr *derived_type,
-				            a_type_ptr *bottom_derived_type)
-/*
-When Microsoft keywords are allowed it is possible for a
-qualifier like __cdecl to be the bottom derived type with
-no base type pointer.  Transfer any qualifiers at the bottom of
-the derived type to the top of the new type, then attach the
-modified new type to the new bottom derived type.
-*/
-{
-  while (*bottom_derived_type != NULL &&
-         (*bottom_derived_type)->kind == (a_type_kind)tk_typeref) {
-    a_type_qualifier_set	qualifiers;
-    qualifiers =  (*bottom_derived_type)->variant.typeref.qualifiers;
-    *new_type = add_microsoft_qualifier_to_type(*new_type, qualifiers);
-    /* Find the new bottom of the derived type. */
-    *bottom_derived_type = remove_curr_bottom_derived_type
-                                       (*derived_type, *bottom_derived_type);
-  }  /* while */
-  /* If the bottom derived type is now NULL, that means the whole derived
-     type is NULL. */
-  if (*bottom_derived_type == NULL) *derived_type = NULL;
-}  /* transfer_qualifiers_to_new_type */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 
 void add_to_derived_type_list(a_type_ptr new_type_ptr,
                               a_type_ptr *derived_type,
@@ -396,30 +260,6 @@ type is legal.
      to nothing.  Each derived type is checked as the type below it
      is attached.  This must be done carefully, because the type
      being attached may look incomplete (its size may be zero). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && *bottom_derived_type != NULL &&
-      (*bottom_derived_type)->kind == (a_type_kind)tk_typeref) {
-    /* The bottom derived type is a typeref.  This only occurs when
-       Microsoft qualifiers are used.  Transfer the qualifiers to the
-       top of the new type. */
-    transfer_qualifiers_to_new_type(&new_type_ptr, derived_type,
-                                    bottom_derived_type);
-  }  /* if */
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "After microsoft qualifier processing:\n");
-    fprintf(f_debug, "  new_type_ptr = ");
-    if (new_type_ptr != NULL) db_type(new_type_ptr);
-    fprintf(f_debug, "\n");
-    fprintf(f_debug, "  derived_type = ");
-    if (*derived_type != NULL) db_type(*derived_type);
-    fprintf(f_debug, "\n");
-    fprintf(f_debug, "  *bottom_derived_type = ");
-    if (*bottom_derived_type != NULL) db_type(*bottom_derived_type);
-    fprintf(f_debug, "\n");
-  }  /* if */
-#endif /* DEBUG */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (*bottom_derived_type == NULL) {
     /* This is the first entry on the list.  No checking can be done yet. */
     *derived_type = new_type_ptr;
@@ -604,11 +444,6 @@ type is legal.
           } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
             /* Okay. */
 #endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
-          } else if ((get_type_qualifiers(new_type_ptr) &
-                                     TQ_ALL_MICROSOFT_QUALIFIERS) != 0) {
-            /* Okay. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
           } else {
             warning(ec_useless_type_qualifiers);
           }  /* if */
@@ -1699,95 +1534,32 @@ If "restrict" is seen, set *restrict_seen to TRUE.
 
 
 #if MICROSOFT_KEYWORDS_ALLOWED
-static void scan_microsoft_qualifiers(a_type_qualifier_set *qualifiers)
+static a_calling_convention scan_microsoft_qualifiers(void)
 /*
-Scan a list of Microsoft type qualifiers (__cdecl, __fastcall, __stdcall).
-This routine is used when the Microsoft qualifiers may appear in a
-place in which qualifiers are not usually allowed.  The set of qualifiers
-found is returned in "qualifiers".
+Scan a list of Microsoft calling conventions (__cdecl, __fastcall, __stdcall).
+Actually, only one calling convention may be specified, but it the
+same value may appear more than once.
 */
 {
-  *qualifiers = 0;
-  while (is_microsoft_type_qualifier()) {
-    a_type_qualifier_set	new_qualifier;
+  a_calling_convention	call_conv = cc_default;
+  while (is_microsoft_calling_convention()) {
+    a_calling_convention	new_call_conv;
     switch (curr_token) {
-      case tok_cdecl:    new_qualifier = TQ_CDECL;    break;
-      case tok_fastcall: new_qualifier = TQ_FASTCALL; break;
-      case tok_stdcall:  new_qualifier = TQ_STDCALL;  break;
+      case tok_cdecl:    new_call_conv = cc_cdecl;    break;
+      case tok_fastcall: new_call_conv = cc_fastcall; break;
+      case tok_stdcall:  new_call_conv = cc_stdcall;  break;
       default: unexpected_condition(); break;
     }  /* switch */
-    if ((*qualifiers & TQ_CALLING_CONVENTION_QUALIFIERS) != 0 &&
-        (new_qualifier & *qualifiers) == 0) {
-      /* The qualifier bit set already contains a calling
-         convention.  The same convention may be specified more
-         than once, but conflicting ones cannot be specified. */
+    if (call_conv != (a_calling_convention)cc_default &&
+        call_conv != new_call_conv) {
+      /* The calling convention has already been set and the new one
+         does not agree with the old one. */
       error(ec_conflicting_calling_conventions);
-    } else {
-      *qualifiers |= new_qualifier;
     }  /* if */
+    call_conv = new_call_conv;
     (void)get_token();
   }  /* while */
 }  /* scan_microsoft_qualifiers */
-
-
-static void add_unbound_qualifiers_to_derived_type
-                                 (a_type_ptr	        *derived_type,
-				  a_type_ptr		*bottom_derived_type,
-	                          a_type_qualifier_set  *qualifiers)
-/*
-Create a tk_typeref entry for the specified set of qualifiers and add it
-to the bottom of the derived type.  Clear the qualifiers field
-passed by the caller.
-*/
-{
-  a_type_ptr	new_type;
-
-  new_type = alloc_type((a_type_kind)tk_typeref);
-  new_type->variant.typeref.type = NULL;
-  new_type->variant.typeref.qualifiers = *qualifiers;
-  add_to_derived_type_list(new_type, derived_type, bottom_derived_type);
-  *qualifiers = TQ_NONE;
-}  /* add_unbound_qualifiers_to_derived_type */
-
-
-static void f_add_unbound_qualifiers(a_type_ptr	           *type,
-	                             a_type_qualifier_set  *qualifiers)
-/*
-Create a tk_typeref entry for the specified set of qualifiers and add it
-to the top of the type specified by type.  Clear the qualifiers field
-passed by the caller.
-*/
-{
-  a_type_ptr	new_type;
-  a_type_ptr	bottom_derived_type;
-
-  new_type = alloc_type((a_type_kind)tk_typeref);
-  bottom_derived_type = new_type;
-  new_type->variant.typeref.type = *type;
-  new_type->variant.typeref.qualifiers = *qualifiers;
-  add_to_derived_type_list(*type, &new_type, &bottom_derived_type);
-  *qualifiers = TQ_NONE;
-  *type = new_type;
-}  /* f_add_unbound_qualifiers */
-
-/*
-Macro to avoid the call in the case where there are no qualifiers.
-*/
-#define add_unbound_qualifiers(type, qualifiers)			\
-  {									\
-    if (*qualifiers != TQ_NONE) f_add_unbound_qualifiers(type, qualifiers);  \
-  }
-
-#else /* MICROSOFT_KEYWORDS_ALLOWED */
-#define add_unbound_qualifiers(type, qualifiers)			\
-  {									\
-    check_assertion(*qualifiers == TQ_NONE)				\
-  }
-
-#define add_unbound_qualifiers_to_derived_type(type, type2, qualifiers) \
-  {									\
-    check_assertion(*qualifiers == TQ_NONE)				\
-  }
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
@@ -1878,7 +1650,6 @@ is empty.
               error(ec_pointer_to_reference);
               err = TRUE;
             }  /* if */
-            add_unbound_qualifiers(&complete_type, &unbound_qualifiers);
             complete_type = make_pointer_type(err ? error_type() :
                                                     complete_type);
           }  /* if */
@@ -1892,7 +1663,6 @@ is empty.
             error(ec_reference_to_void);
             err = TRUE;
           }  /* if */
-          add_unbound_qualifiers(&complete_type, &unbound_qualifiers);
           complete_type = err ? error_type() :
                                 make_reference_type(complete_type);
         }  /* if */
@@ -1904,7 +1674,6 @@ is empty.
            once the type pointed to is known, in case pointers to different
            types have different sizes. */
         a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
-        add_unbound_qualifiers(&complete_type, &unbound_qualifiers);
         new_type_ptr->variant.pointer.type = complete_type;
         if (curr_token == tok_ampersand) {
           new_type_ptr->variant.pointer.is_reference = TRUE;
@@ -1933,13 +1702,15 @@ is empty.
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
-    } else if (is_microsoft_type_qualifier()) {
+    } else if (is_microsoft_calling_convention()) {
       /* A Microsoft qualifier that may appear in a nonstandard place such
          as "int (_cdecl * fp)()". */
-      a_type_qualifier_set	qualifiers;
-      scan_microsoft_qualifiers(&qualifiers);
+      a_calling_convention	call_conv;
+      call_conv  = scan_microsoft_qualifiers();
+#if 0
       unbound_qualifiers |= qualifiers;
       unbound_qualifier_pos = pos_curr_token;
+#endif /* 0 */
       /* Suppress the get_token() that is normally done before scanning
          the qualifiers below, as this will have been done when scanning
          the Microsoft qualifiers. */
@@ -2488,12 +2259,14 @@ otherwise it is NULL.  The syntax is:
       }  /* if */
     }  /* if */
   }  /* if */
+#if 0
   if (unbound_qualifiers != TQ_NONE) {
     /* Add any unbound Microsoft qualifiers to the bottom of the 
        derived type constructed so far. */
     add_unbound_qualifiers_to_derived_type(&derived_type, &bottom_derived_type,
                                            &unbound_qualifiers);
   }  /* if */
+#endif
   /* The declarator can end at this point, or an array or function
      specification (or a series of them) can follow.  The additional
      specifications, if they appear, are parsed in their order of 
@@ -2513,16 +2286,6 @@ otherwise it is NULL.  The syntax is:
      a derived type list, and the new entries are added to its end.
   */
   while (curr_token == tok_lparen || curr_token == tok_lbracket) {
-    a_boolean	have_derived_type;
-    /* See if we have a derived type.  Check for the case where a Microsoft
-       qualifier has been added over a NULL type.  This should not be
-       considered to mean that we have a derived type. */
-#if MICROSOFT_KEYWORDS_ALLOWED
-    have_derived_type = derived_type != NULL &&
-              skip_typerefs_allow_null_referenced_type(derived_type) != NULL;
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
-    have_derived_type = derived_type != NULL;
-#endif /* !MICROSOFT_KEYWORDS_ALLOWED */
     if (curr_token == tok_lparen) {
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer (C++ only). */
@@ -2588,7 +2351,7 @@ function_lparen:
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
       if (C_dialect == C_dialect_cplusplus) {
-        if (have_derived_type) {
+        if (derived_type != NULL) {
           /* If the function is pointed to by a pointer-to-member type, we need
              to pass the class-of-which-a-member to function_declarator. */
           a_type_ptr tp = bottom_derived_type;
@@ -2626,7 +2389,7 @@ function_lparen:
       } else {
         /* Normal C case.  If the derived type is nonnull this is not the
            top-most type, so we don't want to fetch the extra function info. */
-        if (have_derived_type) func_info = NULL;
+        if (derived_type != NULL) func_info = NULL;
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
