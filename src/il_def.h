@@ -2108,7 +2108,7 @@ typedef struct a_param_type {
 			   be deduced. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers that have been removed
-			   from the parameter type; always DM_NONE except in
+			   from the parameter type; always TQ_NONE except in
 			   C++ mode when remove_qualifiers_from_param_types
 			   is TRUE.  If the routine type to which this
 			   param-type entry belongs is associated with a
