@@ -242,8 +242,10 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
        found). */
     sym = NULL;
   } else if (sym != NULL) {
+#if CHECKING
     a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
     check_assertion(is_acceptable_symbol(sym, fund_sym));
+#endif /* CHECKING */
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
     ssep = &scope_stack[decl_scope_level];
