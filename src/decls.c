@@ -460,7 +460,7 @@ class is made.
       err = TRUE;
     } else if (symbol_supplement_for_class(tp)->is_nonreal_class) {
       /* The operator returns a (ref-to?) nonreal-class.  Ignore it for
-         now, since any problems will be be handled whenever the class is
+         now, since any problems will be handled whenever the class is
          instantiated. */
     } else if (is_incomplete_type(tp)) {
       if (cssp->is_prototype_instantiation) {
