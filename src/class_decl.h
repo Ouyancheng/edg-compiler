@@ -18,11 +18,6 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #ifndef CLASS_DECL_H
 #define CLASS_DECL_H 1
 
-/* The pointer to a_routine_fixup is declared here even though the struct
-   itself is defined in class_decl.c.  This allows the pointer to be made
-   available to symbol_tbl.h without creating recursive reference problems. */
-typedef struct a_routine_fixup *a_routine_fixup_ptr;
-
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
@@ -34,14 +29,9 @@ extern void prescan_default_arg_expr(a_param_type_ptr  ptp);
 
 extern a_boolean simplify_curr_class_qualified_name(void);
 
-extern a_boolean do_alignment(a_targ_size_t    *byte_offset,
-                              int              *bit_offset,
-                              a_targ_alignment alignment);
-
-extern a_boolean set_field_size_and_offset(a_field_ptr      field,
-                                           a_targ_size_t    *p_byte_offset,
-                                           int              *p_bit_offset,
-                                           a_targ_alignment *p_alignment);
+extern a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
+                                                 a_type_ptr       old_class,
+                                                 a_type_ptr       new_class);
 
 extern a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,
@@ -86,6 +76,9 @@ extern a_derivation_step_ptr make_derivation_step(
 
 extern void free_derivation_step(a_derivation_step_ptr  step);
 
+extern a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
+                                 a_derivation_step_ptr  dsp2);
+
 extern a_boolean equivalent_paths(a_derivation_step_ptr  path1,
                                   a_derivation_step_ptr  path2);
 
@@ -96,6 +89,8 @@ extern void class_decl_init(void);
 #if DEBUG
 extern void db_base_class(a_base_class_ptr  bcp,
                           a_boolean         show_offset);
+
+extern void db_base_class_list(a_type_ptr tp);
 
 extern void db_all_virtual_function_override_lists(a_type_ptr  class_type);
 #endif /* DEBUG */
