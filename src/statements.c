@@ -5458,8 +5458,8 @@ function try block has to have been established first.
   goto_fixup_list = NULL;
   /* Clear statement stack just to be careful. */
   depth_stmt_stack = -1;
-  /* The function try block (including its catch clauses) are contained
-     within a a block entry in the control_flow_descr_list. */
+  /* The function try block (including its catch clauses) is contained
+     within a block entry in the control_flow_descr_list. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
   cfdp->variant.block.is_function_try_block = TRUE;
   /* Set the lifetime in the control flow entry. */
