@@ -2926,14 +2926,16 @@ Do IL lowering of the indicated source correspondence.
   if (il_header.UCN_identifiers_used) {
     /* Rewrite the escape character in UCNs. */
     char *p;
-    if (source_corresp->name != NULL) {
-      while ((p = strchr(source_corresp->name, '\\')) != NULL) {
-        *p = UCN_ESCAPE_REWRITE_CHAR;
+    p = source_corresp->name;
+    if (p != NULL) {
+      while ((p = strchr(p, '\\')) != NULL) {
+        *p++ = UCN_ESCAPE_REWRITE_CHAR;
       }  /* while */
     }  /* if */
-    if (source_corresp->unmangled_name != NULL) {
-      while ((p = strchr(source_corresp->unmangled_name, '\\')) != NULL) {
-        *p = UCN_ESCAPE_REWRITE_CHAR;
+    p = source_corresp->unmangled_name;
+    if (p != NULL) {
+      while ((p = strchr(p, '\\')) != NULL) {
+        *p++ = UCN_ESCAPE_REWRITE_CHAR;
       }  /* while */
     }  /* if */
   }  /* if */
