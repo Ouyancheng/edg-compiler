@@ -124,15 +124,19 @@ B.  Layout options
   in class_decl.c.
 */
 
-#include "basics.h"
-#include "layout.h"
-#include "il.h"
-#include "error.h"
-#include "cmd_line.h"
-#include "types.h"
-#include "target.h"
-#include "const_ints.h"
 
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
+#include "layout.h"
 
 /* Data structure to track some information about the layout of a class
    as it is being constructed. */

@@ -13,19 +13,19 @@ decl_inits.c -- Scanning of initializers in declarations.
 
 */
 
-#include "basics.h"
-#include "decl_inits.h"
-#include "target.h"
-#include "decls.h"
-#include "il.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "error.h"
-#include "types.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "expr.h"
-#include "lexical.h"
 #include "statements.h"
-#include "cmd_line.h"
 
 
 static void set_initialized_array_size(a_type_ptr    *type,

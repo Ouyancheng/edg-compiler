@@ -13,14 +13,15 @@ def_arg.c -- Processing of default arguments
 
 */
 
-#include "basics.h"
-#include "def_arg.h"
-#include "class_decl.h"
-#include "debug.h"
-#include "mem_manage.h"
-#include "il.h"
-#include "pch.h"
-#include "symbol_tbl.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 
 /* Previously allocated fixup entries available for reuse. */
