@@ -1827,8 +1827,12 @@ associated symbols are listed under the same header).
   if (scp1->name == scp2->name) {
     match = TRUE;
   } else if (sym1 == NULL || sym2 == NULL ||
-             is_unnamed_tag_symbol(sym1) || is_unnamed_tag_symbol(sym2)) {
-    /* A mismatch in which one of the entities is unnamed. */
+             (!sym1->is_class_member && is_unnamed_tag_symbol(sym1)) || 
+             (!sym2->is_class_member && is_unnamed_tag_symbol(sym2))) {
+    /* A mismatch in which one of the entities is unnamed.  Unnamed classes
+       and enums are considered to be matching if they are class members
+       since in those cases the ordering of declarations is sufficient to
+       ascertain a correspondence. */
     check_assertion(!(sym1 == NULL && sym2 == NULL));
     match = FALSE;
   } else {
