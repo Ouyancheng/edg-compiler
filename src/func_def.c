@@ -908,6 +908,8 @@ and for the instantiation of template functions.
       param_id = func_info->param_id_list;
       ptp = rtsp->param_type_list;
       for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+        check_assertion_str(param_id->declared_type != NULL,
+                            "scan_function_body: NULL declared_type");
         if (is_or_contains_vla_type_with_unspecified_bound(
                                                param_id->declared_type)) {
           /* The [*] syntax for VLAs is not allowed for a parameter in a

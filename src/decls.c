@@ -7954,6 +7954,9 @@ continue_with_declaration:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             param_id->source_sequence_entry = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            /* Set the declared_type field in the param_id entry before the
+               type is adjusted (e.g., decays from array to pointer). */
+            param_id->declared_type = local_type_ptr;
           }  /* if */
           /* Check that the type is legal, and do required adjustments. */
 #if RESTRICT_ALLOWED
