@@ -3321,6 +3321,7 @@ of nonzero size (such classes actually have size zero).
         }  /* for */
       }  /* if */
     }  /* if */
+  }  /* if */
 #endif /* IA64_ABI */
 }  /* compute_empty_class_bit */
 
