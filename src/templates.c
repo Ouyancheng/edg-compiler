@@ -2082,12 +2082,13 @@ structure.
     a_type_ptr	type = tap->variant.type;
     if (is_or_contains_local_type(type)) {
       pos_error(ec_local_type_in_template_arg, source_pos);
-    }  /* if */
-    if (is_class_struct_union_type(type)) {
+      tap->variant.type = error_type();
+    } else if (is_class_struct_union_type(type)) {
       a_symbol_ptr class_sym;
       class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       if (is_unnamed_class_symbol(class_sym)) {
         pos_error(ec_unnamed_type_in_template_arg, source_pos);
+        tap->variant.type = error_type();
       }  /* if */
     }  /* if */
     tap = tap->next;
