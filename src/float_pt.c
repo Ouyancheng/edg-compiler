@@ -68,7 +68,7 @@ do nothing.
     memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
       /* Convert to float and store a float in float_value. */
-      float_temp = temp;
+      float_temp = (float)temp;
       /* Do a non-production-quality, slow, but portable test to see whether
          or not the double fits in the float by writing both as strings
          and comparing the strings. */
