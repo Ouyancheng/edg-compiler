@@ -975,6 +975,9 @@ error code.
       m =
          "a pointer to a bound function may only be used to call the function";
       break;
+    case ec_duplicate_typedef:
+      m = "typedef name has already been declared (with same type)";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
