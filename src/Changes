@@ -1,5 +1,17 @@
 Version 2.34
 
+12/2/96  Microsoft compatibility: initializing incomplete array type member
+
+In Microsoft C++ mode the following is now accepted (and an internal
+error is no longer issued):
+
+  struct S {
+    int i;
+    char a[];
+  };
+  S s = { 0, "Hello" };    // Initialization of s.a used to be allowed only
+                           //   in Microsoft C mode; now okay in C++ mode
+
 11/27/96 Exception specifications on pointer-to-member-function declarations
 
 In a follow-up to the changes recorded for 11/6/96, and specifically as
