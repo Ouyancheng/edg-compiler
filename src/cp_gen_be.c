@@ -3730,7 +3730,7 @@ this one is such a continuation.
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_boolean                    need_extern_C_closing_brace = FALSE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_template_decl_ptr          template_decl;
+  a_template_decl_ptr          template_decl = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   *another_decl_in_comma_list = FALSE;
@@ -7310,6 +7310,9 @@ declaration following this one is such a continuation.
   a_boolean                    is_specialization;
   a_boolean                    force_unqualified_name;
   a_scope_ptr                  common_scope, orig_scope = NULL;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr          template_decl = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
@@ -7319,6 +7322,9 @@ declaration following this one is such a continuation.
        different typedefs, default arguments). */
     var_type = sec_decl->declared_type;
     is_specialization = sec_decl->specialized_with_new_syntax;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    template_decl = sec_decl->template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else {
     var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     is_definition = TRUE;
@@ -7331,6 +7337,9 @@ declaration following this one is such a continuation.
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
       is_specialization = !old_specializations_for_generated_instances;
     }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    template_decl = var->template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   check_assertion_str(var_type != NULL,
                       "gen_variable_decl: declared_type is NULL");
@@ -7343,6 +7352,12 @@ declaration following this one is such a continuation.
   if (!suppress_specifiers) {
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (template_decl != NULL) {
+    gen_template_header(template_decl);
+  } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  /* Do not insert code here. */
   if (is_specialization) {
     adjust_namespace_state_for_specialization(&var->source_corresp,
                                               &common_scope, &orig_scope);

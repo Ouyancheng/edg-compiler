@@ -5826,18 +5826,28 @@ recorded in the IL, the template header is passed via template_decl.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
   if (prototype_instantiations_in_il) {
-    a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-    if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
-    if (idlb.is_friend_decl) srk_flags |= SRK_FRIEND;
-    record_symbol_declaration(srk_flags,
+    a_source_sequence_entry_ptr  ssep;
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
+      /* We have already record (mark_defined/mark_declared) the template in
+         the code above, but not the prototype instantiation. */
+      a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+      if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
+      if (idlb.is_friend_decl) srk_flags |= SRK_FRIEND;
+      ssep = func_info->declarator_ssep;
+      record_symbol_declaration(srk_flags,
                               (a_symbol_ptr)rout_ptr->
                                                     source_corresp.assoc_info,
-                              &locator->source_position,
-                              func_info->declarator_ssep);
-    if (ss_entry_kind(func_info->declarator_ssep) ==
-                                                 iek_src_seq_secondary_decl) {
+                              &locator->source_position, ssep);
+    } else {
+      ssep = rout_ptr->source_corresp.source_sequence_entry;
+      if (func_info->declarator_ssep != NULL) {
+        remove_from_src_seq_list(func_info->declarator_ssep);
+        func_info->declarator_ssep = NULL;
+      }  /* if */
+    }  /* if */
+    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       a_src_seq_secondary_decl_ptr sssdp =
-       ss_entry_ptr(func_info->declarator_ssep, a_src_seq_secondary_decl_ptr);
+       ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
       sssdp->declared_type = func_info->declared_type;
       sssdp->template_decl = template_decl;
     } else {

@@ -2691,9 +2691,6 @@ user later during real instantiations.
                                     (a_template_arg_ptr)NULL,
                                     /*push_stop_tokens=*/TRUE,
                                     PS_PROTOTYPE_INSTANTIATION);
-  /* Call mark_defined *after* the template instantiation scope is pushed --
-     correct behavior for source sequence entry generation depends on it. */
-  mark_defined(template_sym, &template_sym->decl_position);
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_boolean  incomplete_type_error_reported;
@@ -6443,6 +6440,15 @@ information.
         }  /* if */
         report_exception_spec_errors(func_info);
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    } else {
+      /* A static data member definition.  It's more convenient to recreate
+         the source sequence entry later on. */
+      if (declarator_ssep != NULL) {
+        remove_from_src_seq_list(declarator_ssep);
+        declarator_ssep = NULL;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
   if (is_initial_decl) {
@@ -11128,6 +11134,10 @@ returned to the caller.
     set_template_cache_info(&tssp->cache, p_token_cache,
                             decl_state->decl_info);
     mark_defined(sym, &locator->source_position);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      sym->variant.static_data_member.variable->template_decl =
+                                                    decl_state->template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   *p_tssp = tssp;
   db_exit();
@@ -12211,9 +12221,6 @@ any non-empty template parameter lists that were scanned.
     tssp->il_template_entry = decl_state->il_template_entry;
     check_assertion(sym != NULL);
     set_source_corresp(&tssp->il_template_entry->source_corresp, sym);
-#ifdef PARSED_TEMPLATES_IN_IL /* FIXME Daveed */
-    decl_state->il_template_entry->template_info = sym->variant.template_info;
-#endif /* PARSED_TEMPLATES_IN_IL */
   }  /* if */
   if (is_class_template) {
     if (!decl_state->decl_scope_err && decl_state->defines_something) {
@@ -12264,9 +12271,6 @@ any non-empty template parameter lists that were scanned.
                                                 /*keep_default_args=*/TRUE);
   } /* if */
   complete_il_template_entry(decl_state, sym, p_template_body_cache);
-#if 0 /*FIXME*/ && PROTOTYPE_INSTANTIATIONS_IN_IL
-  attach_template_decl_structure(decl_state, sym);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
