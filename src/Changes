@@ -1,5 +1,37 @@
 Version 2.23
 
+3/23/94  Elaborated types in function template parameter lists
+
+An elaborated type specifier, when used in a parameter declaration
+in a function template, now helps determine whether a template matches
+a given function call.  This feature fixes a bug in which an internal
+error could occur when an integer type is incorrectly considered as a
+match for an enum type, as in this example:
+
+
+  template <class T> void f(enum T){}
+  enum E {e1, e2};
+  int main()
+  {
+    f(1);
+  }
+
+This example now results in an error because the function call does not
+match a function template.
+
+3/23/94  Class qualifier missing from class types in error messages
+
+The class qualifier was omitted when class types were displayed in
+error messages.  This example now produces the proper output.
+
+  struct C {};
+  struct A {
+    struct C {};
+  };
+
+  C* cp;
+  A::C* acp = cp;
+
 3/22/94 Macro mark_declared
 
 The macro mark_declared was defined incorrectly.  It is now fixed to call
