@@ -848,8 +848,9 @@ typedef struct a_routine_type_supplement {
 
 typedef struct a_template_arg *a_template_arg_ptr;
 typedef struct a_template_arg {
-  /* Representation of an actual argument list associated with an
-     instance of a template class. */
+  /* Representation of an actual argument of an instance of a template class
+     or template function.  A list of these is used to represent the actual
+     argument llist for such an instance. */
   a_template_arg_ptr
                 next;   /* Next in a linked list template arguments. */
   a_boolean     is_type;
