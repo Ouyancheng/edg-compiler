@@ -4678,7 +4678,7 @@ for the GNU C multiline string extension.
       }  /* if */
     }  /* for */
   }  /* if */
-  no_modifs_to_curr_source_line = (source_line_modif_list != NULL);
+  no_modifs_to_curr_source_line = (source_line_modif_list == NULL);
   if (after_end_of_all_source) {
     /* End of all source.  Go end the line with a line-end sequence and
        return. */

@@ -1,5 +1,12 @@
 Version 3.6
 
+12/17/04 Nit in lexical.c
+
+Some code in lexical.c updated for the recent changes to improve
+preprocessing speed set the variable no_modifs_to_curr_source_line
+incorrectly.  As a consequence, the lexical data structure might have
+used more space than necessary.  Now fixed.
+
 12/16/04 Diagnostic on missing unnamed namespace virtual function definition
 
 We give an error if a virtual function of a class in an unnamed namespace is
