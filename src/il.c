@@ -256,14 +256,14 @@ void db_name(a_source_correspondence *sc)
 Dump the name from a source correspondence (if any).
 */
 {
+  if (sc->class_of_which_a_member != NULL) {
+    db_type_name(sc->class_of_which_a_member);
+    fputs("::", f_debug);
+  }  /* if */
   if (sc->name != NULL) {
-    if (sc->class_of_which_a_member != NULL) {
-      db_type_name(sc->class_of_which_a_member);
-      fputs("::", f_debug);
-    }  /* if */
     fputs(sc->name, f_debug);
   } else {
-    fputs("(null)", f_debug);
+    fputs("<NULL>", f_debug);
   }  /* if */
 }  /* db_name */
 
