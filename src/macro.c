@@ -1356,6 +1356,7 @@ associated global variables will also have been set).
   char            *file_name, *full_name;
   a_line_number   line_number;
   a_boolean       at_end_of_source;
+  a_boolean       delete_source_from_loc_was_set_on_entry = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
 #define ARG_VALUES_SIZE 50
 			/* For parameter counts in the normal range, the
@@ -1407,6 +1408,7 @@ associated global variables will also have been set).
   }  /* if */
 #endif /* DEBUG */
   copy_source_position(pos_curr_token, start_pos);
+  macro_depth++;
   /* If possible, clear the macro buffer (a buffer where characters of
      expansions are put).  This is tricky in that we can't clear the
      macro buffer while there are expanded macro calls earlier in the
@@ -1432,6 +1434,13 @@ end_scan_for_macro_modifs:;
 #if CHECKING
   rescan_loc = NULL;  /* To catch error cases. */
 #endif /* CHECKING */
+  /* When a preprocessing directive like an #if appears within a macro
+     invocation, and the #if expression contains a macro invocation,
+     delete_source_from_loc will be non-NULL here, and needs to be set
+     again at the end of this invocation. */
+  if (delete_source_from_loc != NULL) {
+    delete_source_from_loc_was_set_on_entry = TRUE;
+  }  /* if */
   /* Get a pointer to the macro definition structure. */
   mdp = macro_symbol->variant.macro_def;
   param_list = mdp->param_list;
@@ -1949,8 +1958,7 @@ copy_done:;
   slmp->assoc_macro = mdp;
   slmp->source_position = start_pos;
   set_parent_modif(slmp, parent_slmp);
-  if (C_dialect == C_dialect_pcc &&
-      within_curr_source_line(delete_source_from_loc)) {
+  if (C_dialect == C_dialect_pcc && macro_depth == 1) {
     /* In pcc mode, in order to more closely approximate the token-pasting
        behavior of pcc, we immediately macro-expand the text resulting from a
        top-level macro invocation, then make a copy of the macro-expanded
@@ -2030,7 +2038,6 @@ return_point:
   free_macro_arg_entries(prev_end_of_macro_arg_list);
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
-  delete_source_from_loc = NULL;
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   if (*rescan) {
@@ -2047,6 +2054,17 @@ return_point:
        picked up before the next token. */
     curr_char_loc = end_of_curr_token+1;
   }  /* if */
+  if (delete_source_from_loc_was_set_on_entry) {
+    /* delete_source_from_loc was non-NULL on entry to macro_invocation, and
+       needs to be set to the current position (the token after the
+       macro invocation) on exit.  This is a very unusual case that comes
+       up when an #if or the like appears within a macro invocation and
+       contains another macro invocation. */
+    delete_source_from_loc = curr_char_loc;
+  } else {
+    /* Normal case: clear delete_source_from_loc. */
+    delete_source_from_loc = NULL;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug,
@@ -2058,6 +2076,7 @@ return_point:
                      (int)(next_avail_in_macro_buffer - macro_buffer));
   }  /* if */
 #endif /* DEBUG */
+  macro_depth--;
   db_exit();
   return (ctoken);
 }  /* macro_invocation */
@@ -3224,6 +3243,8 @@ to avoid an 8-character external name uniqueness conflict with
 "macro_invocation".
 */
 {
+  /* Variables in macro.h: */
+  macro_depth = 0;
   /* Static variables in macro.c: */
   /* avail_macro_args is not per-file and should not be cleared. */
   macro_arg_list = NULL;
