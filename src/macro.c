@@ -3718,13 +3718,17 @@ Scan and process a #define directive.
         if (pp == NULL && pp2 == NULL) goto def_done;
       }  /* if */
 redef_error:
-      /* Bad redefinition.  Keep the new definition, give a warning. */
-      if (strict_ansi_mode) {
-        pos_sy_diagnostic(strict_ansi_error_severity, ec_bad_macro_redef,
-                       &start_pos, assoc_symbol);
-      } else {
-        pos_sy_warning(ec_bad_macro_redef, &start_pos, assoc_symbol);
-      }  /* if */
+      /* Bad redefinition.  Keep the new definition, give a diagnostic. */
+      { an_error_severity severity = es_warning;
+        if (curr_command_line_macro_def) {
+          /* An invalid command-line redefinition is always an error. */
+          severity = es_error;
+        } else if (strict_ansi_mode) {
+          severity = strict_ansi_error_severity;
+        }  /* if */
+        pos_sy_diagnostic(severity, ec_bad_macro_redef, &start_pos,
+                          assoc_symbol);
+      }
     }  /* if */
     /* Allocate space for the text, and copy it. */
     repl_text_len = next_avail_in_macro_buffer - buffer_start;
