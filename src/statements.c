@@ -2852,7 +2852,7 @@ The return expression is also set for a return from a constructor.
     *return_expr = this_param_value_expr();
   } else {
     /* Get the routine return type. */
-    tp = rout->type->variant.routine.return_type;
+    tp = skip_typerefs(rout->type)->variant.routine.return_type;
     /* A void return in a void function is okay.  In other kinds of functions,
        a diagnostic may be appropriate. */
     if (!is_void_type(tp) && !is_error_type(tp)) {
