@@ -1,5 +1,10 @@
 Version 3.0
 
+4/17/02  Demangling of nested unnamed namespaces
+
+The special mangling for a nested unnamed namespace, __N with nothing
+following it, is now demangled correctly as <unnamed>.
+
 4/17/02  Demangling of local class names
 
 A bug in the demangling of local class names has been fixed.

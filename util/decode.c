@@ -1116,7 +1116,7 @@ template parameters.
 
   if (nchars_left != NULL) *nchars_left = 0;
   /* See if the name is special in some way. */
-  if ((nchars == 0 || nchars >= 4) && ptr[0] == '_' && ptr[1] == '_') {
+  if ((nchars == 0 || nchars >= 3) && ptr[0] == '_' && ptr[1] == '_') {
     /* Name beginning with two underscores. */
     p = ptr + 2;
     if (start_of_id_is("ct", p)) {
@@ -1163,7 +1163,8 @@ template parameters.
       end_ptr = p + mangled_length;
     } else if (nchars != 0 && start_of_id_is("N", p)) {
       /* __Nxxxx: unnamed namespace name.  Put out "<unnamed>" and ignore
-         the characters after "__N". */
+         the characters after "__N".  For nested unnamed namespaces there
+         is no number after the "__N". */
       is_special_name = TRUE;
       write_id_str("<unnamed>", dctl);
       end_ptr = p + nchars - 2;
