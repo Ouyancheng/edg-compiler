@@ -1045,6 +1045,9 @@ error code.
     case ec_function_returning_abstract_class:
       m = "function returning abstract class is not allowed";
       break;
+    case ec_duplicate_friend_decl:
+      m = "duplicate friend declaration";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -369,7 +369,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_pure_specifier,
   ec_bad_data_member_initialization,
   ec_abstract_class_object_not_allowed,
-  ec_function_returning_abstract_class
+  ec_function_returning_abstract_class,
+  ec_duplicate_friend_decl
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
