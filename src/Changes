@@ -1,5 +1,19 @@
 Version 2.37
 
+9/29/97   Incorrect routine name linkage on class member function type
+
+When the definition of a class member function appeared outside the class
+definition but within an extern "C" context, the name linkage on the
+routine type was set incorrectly, with the result (when IL lowering was
+done) that its name was incorrectly mangled.  This has been fixed.
+
+  class A {
+    void f();
+  };
+  extern "C" {
+    void A::f() { }         // name for A::f is now mangled correctly
+  }
+
 9/28/97   __STV__ form mangled name for externalized static variables
 
 Static variables made external are now given a mangled name with a

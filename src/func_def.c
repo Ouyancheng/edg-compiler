@@ -1211,10 +1211,13 @@ on a prior declaration.
     *old_type = routine_symbol_type(sym);
     /* The types may be compatible but not identical.  Create (in type_ptr)
        a composite type.  First copy the implicit this param type pointer
-       into type_ptr:  it is always wrong for nonstatic member functions. */
+       into type_ptr:  it is always wrong for nonstatic member functions.
+       Also be sure the routine name linkage for the type is right. */
     rp = sym->variant.routine.ptr;
     rout_type->variant.routine.extra_info->implicit_this_param_type =
            (*old_type)->variant.routine.extra_info->implicit_this_param_type;
+    rout_type->variant.routine.extra_info->routine_name_linkage =
+           (*old_type)->variant.routine.extra_info->routine_name_linkage;
     /* Do compatibility checking on the throw specification. */
     check_exception_specification(rout_type, rp,
                                   &func_info->throw_position,
