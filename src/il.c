@@ -8838,10 +8838,10 @@ new_type should not have any top-level type qualifiers.  The cast is
 marked as compiler_generated.
 */
 {
-  an_expr_node_ptr cast_node =
+  an_expr_node_ptr cast_expr =
            make_operator_node((an_expr_operator_kind)eok_cast, new_type, node);
-  cast_node->variant.operation.compiler_generated = TRUE;
-  return cast_node;
+  cast_expr->variant.operation.compiler_generated = TRUE;
+  return cast_expr;
 }  /* add_cast */
 
 
