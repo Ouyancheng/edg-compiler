@@ -161,10 +161,13 @@ the options being used for the lookup.
        as synthesized namespace projection symbols. */
     for (sym = sym_hdr->other_symbols; sym != NULL; sym = sym->next) {
       /* Look for symbols whose lookup characteristics match the current
-         lookup. */
+         lookup.  The file_scope_number test is used to exclude file scope
+         symbols from other translation units. */
       if (sym->synthesized_namespace_projection &&
           (a_boolean)sym->qualified_lookup == qualified_lookup &&
           sym->parent.namespace_ptr == qualifier_namespace &&
+          (qualifier_namespace != NULL ||
+           sym->decl_scope == file_scope_number) &&
           (a_boolean)sym->must_be_class_or_namespace_lookup ==
                                                  must_be_class_or_namespace &&
           (a_boolean)sym->instantiation_context_lookup ==
