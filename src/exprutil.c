@@ -4377,6 +4377,55 @@ the member.
 }  /* change_nonreal_member_constant_operand_to_lvalue */
 
 
+void revert_class_rvalue_to_lvalue_if_possible(an_operand *operand)
+/*
+If the given operand is a class rvalue, try to change it back to
+an lvalue.  This is used in GNU and Microsoft modes, which believe
+that a function call returning a class by value can be considered
+to be an lvalue in some cases.
+*/
+{
+  if (!C_mode() &&
+      is_an_rvalue(operand) &&
+      is_class_struct_union_type(operand->type) &&
+      is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    a_boolean        revertible = FALSE;
+    if (expr->kind == (an_expr_node_kind)enk_temp_init &&
+        !expr->variant.init.result_is_addr) {
+      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* A "constructor call" can be turned back into an lvalue. */
+        revertible = TRUE;
+      } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+        /* This is probably a base-class cast on top of another
+           temp-init. */
+        revertible = TRUE;
+      } else if (dip->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+        /* A function call returning a class rvalue can be turned back
+           into an lvalue. */
+        revertible = TRUE;
+      }  /* if */
+    } else if (is_operation_node(expr)) {
+      an_expr_operator_kind op = expr->variant.operation.kind;
+      if (op == (an_expr_operator_kind)eok_call ||
+          op == (an_expr_operator_kind)eok_virtual_call ||
+          op == (an_expr_operator_kind)eok_pm_call) {
+        /* A function call that returns a class can be changed back
+           into an lvalue. */
+        revertible = TRUE;
+      }  /* if */
+    }  /* if */
+    if (revertible) {
+      /* Change the rvalue back into an lvalue. */
+      conv_class_operand_to_object_pointer(operand);
+      conv_object_pointer_to_lvalue(operand);
+    }  /* if */
+  }  /* if */
+}  /* revert_class_rvalue_to_lvalue_if_possible */
+
+
 void revert_gcc_rvalue_to_lvalue_if_possible(an_operand *operand,
                                              a_boolean  ignore_casts)
 /*
@@ -4429,6 +4478,11 @@ for example, in something like "(short)i = 0").
           operand->type = lvalue_type;
           restore_operand_details(operand, &orig_operand);
         }  /* if */
+      } else if (!C_mode() &&
+                 is_class_struct_union_type(operand->type)) {
+        /* A function call returning a class value can be treated as
+           an lvalue. */
+        revert_class_rvalue_to_lvalue_if_possible(operand);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4448,43 +4502,7 @@ return class rvalues.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !C_mode()) {
-    if (is_an_rvalue(operand) &&
-        is_class_struct_union_type(operand->type) &&
-        is_expression_operand(operand)) {
-      an_expr_node_ptr expr = operand->variant.expression;
-      a_boolean        revertible = FALSE;
-      if (expr->kind == (an_expr_node_kind)enk_temp_init &&
-          !expr->variant.init.result_is_addr) {
-        a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-          /* A "constructor call" can be turned back into an lvalue. */
-          revertible = TRUE;
-        } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-          /* This is probably a base-class cast on top of another
-             temp-init. */
-          revertible = TRUE;
-        } else if (dip->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-          /* A function call returning a class rvalue can be turned back
-             into an lvalue. */
-          revertible = TRUE;
-        }  /* if */
-      } else if (is_operation_node(expr)) {
-        an_expr_operator_kind op = expr->variant.operation.kind;
-        if (op == (an_expr_operator_kind)eok_call ||
-            op == (an_expr_operator_kind)eok_virtual_call ||
-            op == (an_expr_operator_kind)eok_pm_call) {
-          /* A function call that returns a class can be changed back
-             into an lvalue. */
-          revertible = TRUE;
-        }  /* if */
-      }  /* if */
-      if (revertible) {
-        /* Change the rvalue back into an lvalue. */
-        conv_class_operand_to_object_pointer(operand);
-        conv_object_pointer_to_lvalue(operand);
-      }  /* if */
-    }  /* if */
+    revert_class_rvalue_to_lvalue_if_possible(operand);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* revert_microsoft_rvalue_to_lvalue_if_possible */

@@ -2181,6 +2181,10 @@ is the current set of expression-scanning options.
       } else {
         /* "." operator. */
         orig_class_struct_union_type = operand_1->type;
+        if (gnu_mode) {
+          revert_gcc_rvalue_to_lvalue_if_possible(operand_1,
+                                                  /*ignore_casts=*/FALSE);
+        }  /* if */
         if (is_an_lvalue(operand_1)) using_lvalue(operand_1);
       }  /* if */
     }  /* if */
@@ -3704,6 +3708,7 @@ operation is a pointer-to-member (see ARM 5.3).
                                        result, &processed);
       }  /* if */
       if (!processed) {
+        a_boolean was_rvalue = is_an_rvalue(&operand);
         /* Non-operator-function cases. */
         /* As of this writing, this call suppresses every known transformation,
            but it's here to allow for future transformations. */
@@ -3713,9 +3718,9 @@ operation is a pointer-to-member (see ARM 5.3).
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                    TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-        if (gcc_mode) {
+        if (gpp_mode) {
           /* Get an lvalue back from what is ordinarily an rvalue in
-             some cases in gcc mode. */
+             some cases in g++ mode. */
           revert_gcc_rvalue_to_lvalue_if_possible(&operand,
                                                   /*ignore_casts=*/FALSE);
         } else if (microsoft_mode && !C_mode()) {
@@ -3730,6 +3735,11 @@ operation is a pointer-to-member (see ARM 5.3).
             pos_warning(ec_pcc_address_of_array, &start_position);
             conv_array_operand_to_pointer_operand(&operand);
           } else {
+            if (!C_mode() && was_rvalue &&
+                is_class_struct_union_type(operand.type)) {
+              /* Warn on taking the address of a temporary. */
+              pos_warning(ec_taking_address_of_temporary, &start_position);
+            }  /* if */
             /* Convert the lvalue operand to an rvalue operand for the
                pointer. */
             take_address_of_lvalue(&operand);

@@ -1,5 +1,21 @@
 Version 3.4
 
+3/3/04   GNU C++ compatibility: call returning class treated as lvalue
+
+IN GNU C++ mode, a function call returning a class value is now
+treated as an lvalue in some cases.  Also, a warning is now issued
+on taking the address of a temporary in any mode that allows it
+(e.g., GNU C++, Microsoft C++).
+
+  struct A {
+    int i;
+    A(int x) : i(x) { }
+  };
+  int main() {
+    ++A(0).i;  // Accepted in g++ mode
+    &A(0);     // Warning in g++ mode
+  }
+
 3/3/04   Microsoft compatibility: dllexport and inline functions
 
 In configurations with LOWER_EXTERN_INLINE set to TRUE and IA64_ABI set to
