@@ -5612,11 +5612,11 @@ Generate C for a statement.
       write_tok_ch('}');
       break;
     case stmk_end_test_while:
-      write_tok_str("do ");
+      write_tok_str("do");
       indent += 2;
       dump_statement(statement->variant.loop_statement);
       indent -= 2;
-      write_tok_str("while ");
+      write_tok_str(" while ");
       dump_boolean_controlling_expression(statement->expr);
       write_tok_ch(';');
       break;
