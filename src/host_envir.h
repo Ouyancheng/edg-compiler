@@ -54,7 +54,11 @@ alignment, or the front end is powerless to provide the requested
 alignment.
 */
 #ifndef HOST_ALIGNMENT_REQUIRED
+#ifdef __alpha
+#define HOST_ALIGNMENT_REQUIRED 8
+#else /* !defined(__alpha) */
 #define HOST_ALIGNMENT_REQUIRED 4
+#endif /* ifdef __alpha */
 #endif /* ifndef HOST_ALIGNMENT_REQUIRED */
 
 /*
