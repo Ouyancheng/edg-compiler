@@ -84,12 +84,9 @@ EXTERN unsigned long
 #endif /* DEBUG */
 
 
-extern a_boolean get_var_remapping_for_inlining(a_variable_ptr var,
-                                                a_boolean      *is_constant,
-                                                a_constant_ptr *con,
-                                                a_variable_ptr *new_var);
-
 extern a_variable_ptr remap_var_for_inlining(a_variable_ptr var);
+
+extern void adjust_copied_expression_for_inlining(an_expr_node_ptr expr);
 
 extern void do_inlining_of_call(an_expr_node_ptr expr,
                                 a_statement_ptr  statement);

@@ -6579,51 +6579,10 @@ Make a copy of an expression tree and return a pointer to it.
   expr_copy = copy_node(expr);
   switch (expr->kind) {
     case enk_variable:
-#if MINIMAL_INLINING
-      if (currently_doing_inlining_of_function_call) {
-        /* Look for variables that get remapped while copying the expressions
-           in a function being inlined. */
-        a_boolean      is_constant;
-        a_constant_ptr con;
-        a_variable_ptr var;
-        if (get_var_remapping_for_inlining(expr->variant.variable,
-                                           &is_constant, &con, &var)) {
-          if (is_constant) {
-            /* The variable is remapped to a constant.  Use an enk_constant
-               instead. */
-            set_expr_node_kind(expr_copy, (an_expr_node_kind)enk_constant);
-            expr_copy->variant.constant = con;
-          } else {
-            /* The variable is remapped to some other variable. */
-            expr_copy->variant.variable = var;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#endif /* MINIMAL_INLINING */
       break;
     case enk_variable_address:
-#if MINIMAL_INLINING
-      if (currently_doing_inlining_of_function_call) {
-        /* Look for variables that get remapped while copying the expressions
-           in a function being inlined. */
-        expr_copy->variant.variable =
-                                remap_var_for_inlining(expr->variant.variable);
-      }  /* if */
-#endif /* MINIMAL_INLINING */
       break;
     case enk_constant:
-#if MINIMAL_INLINING
-      if (currently_doing_inlining_of_function_call) {
-        /* When doing inlining, we may have a constant here that is in
-           a function scope memory region other than the one we are currently
-           working in.  If so, we need to make a copy of the constant so we
-           aren't pointing over to another function scope memory region. */
-        a_constant_ptr con = expr->variant.constant;
-        if (!in_file_scope(con)) {
-          expr_copy->variant.constant = copy_unshared_constant(con);
-        }  /* if */
-      }  /* if */
-#endif /* MINIMAL_INLINING */
       break;
     case enk_error:
     case enk_field:
@@ -6685,6 +6644,12 @@ Make a copy of an expression tree and return a pointer to it.
     default:
       unexpected_condition_str("copy_expr_tree: bad expr kind");
   }  /* if */
+#if MINIMAL_INLINING
+  if (currently_doing_inlining_of_function_call) {
+    /* When doing inlining, look for parameters that should be remapped. */
+    adjust_copied_expression_for_inlining(expr_copy);
+  }  /* if */
+#endif /* MINIMAL_INLINING */
   return expr_copy;
 }  /* copy_expr_tree */
 
