@@ -1185,6 +1185,8 @@ extern a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
                                                  an_il_entry_kind  kind);
 
+extern a_boolean is_zero_constant(a_constant *constant);
+
 /*
 Macro that returns TRUE if an IL entry has a name.  (Applies only to
 those containing source correspondence information.)

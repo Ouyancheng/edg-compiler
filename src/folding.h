@@ -73,8 +73,6 @@ extern void type_change_constant(a_constant        *constant,
                                  a_boolean         *did_not_fold,
                                  a_source_position *err_pos);
 
-extern a_boolean is_zero_constant(a_constant *constant);
-
 extern a_boolean is_false_constant(a_constant *constant);
 
 extern a_boolean is_null_pointer_constant(a_constant *constant);

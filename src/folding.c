@@ -1849,43 +1849,6 @@ exit:
 }  /* type_change_constant */
 
 
-a_boolean is_zero_constant(a_constant *constant)
-/*
-Return TRUE if the constant is an integer, fixed-point, or floating zero.
-*/
-{
-  a_boolean is_zero = FALSE;
-  a_float_kind float_kind;
-
-  if (constant->kind == (a_constant_repr_kind)ck_integer &&
-      !constant->implicit_cast) {
-    is_zero = (cmplit_integer_constant(constant,
-                                       (a_host_large_integer)0) == 0);
-#if FIXED_POINT_ALLOWED
-  } else if (constant->kind == (a_constant_repr_kind)ck_fixed_point) {
-    is_zero = fxp_value_is_zero(&constant->variant.fixed_point_value);
-#endif /* FIXED_POINT_ALLOWED */
-  } else if (constant->kind == (a_constant_repr_kind)ck_float
-#if C99_IL_EXTENSIONS_SUPPORTED
-             || constant->kind == (a_constant_repr_kind)ck_imaginary
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-                                                                    ) {
-    float_kind = skip_typerefs(constant->type)->variant.float_kind;
-    is_zero = fp_is_zero_constant(float_kind,
-                                  &constant->variant.float_value);
-#if C99_IL_EXTENSIONS_SUPPORTED
-  } else if (constant->kind == (a_constant_repr_kind)ck_complex) {
-    float_kind = skip_typerefs(constant->type)->variant.float_kind;
-    is_zero = fp_is_zero_constant(float_kind,
-                                  &constant->variant.complex_value->real) &&
-              fp_is_zero_constant(float_kind,
-                                  &constant->variant.complex_value->imag);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-   }  /* if */
-  return is_zero;
-}  /* is_zero_constant */
-
-
 a_boolean is_false_constant(a_constant *constant)
 /*
 Return TRUE if the constant is an integer, floating, pointer, or
