@@ -1332,10 +1332,14 @@ casts between unrelated classes.
 
     case tk_ptr_to_member:
       /* Converting from pointer-to-member to pointer-to-member. */
-      conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
-                                          is_implicit_cast,
-                                          is_reinterpret_cast, err_pos,
-                                          &err_code, &err_severity);
+      if (!is_reinterpret_cast) {
+        conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
+                                            is_implicit_cast,
+                                            is_reinterpret_cast, err_pos,
+                                            &err_code, &err_severity);
+        } else {
+          *did_not_fold = TRUE;
+        }
       break;
 
     case tk_error:

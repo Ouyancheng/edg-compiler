@@ -2198,10 +2198,12 @@ is TRUE, those related class casts are not checked for.
     }  /* if */
   } else if (!C_mode() && !is_reinterpret_cast &&
              related_member_pointers(old_type, new_type, &baseward_cast,
-                                     &bcp)) {
-    /* C++ cast from pointer-to-member to
-       pointer-to-member-of-related-class.  Note that the underlying
-       member types may be different. */
+                                     &bcp) &&
+             identical_types(skip_typerefs(pm_member_type(old_type)),
+                             skip_typerefs(pm_member_type(new_type)))) {
+    /* C++ cast from pointer-to-member to pointer-to-member-of-related-class.
+       The underlying member types must be the same, since otherwise we have
+       the equivalent of a reinterpret_cast. */
     if (baseward_cast) {
       /* Derived --> base (allowed only as an explicit cast).  Valid unless
          the cast is ambiguous. */

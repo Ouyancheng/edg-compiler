@@ -4507,28 +4507,12 @@ well as C++ mode.
   } else if (is_ptr_to_member(source_type) &&
              is_ptr_to_member(dest_type)) {
     /* Pointer-to-member --> pointer-to-member.  Valid as long as both
-       pointers are pointers to data members or both are pointers to
-       member functions. */
+       pointers are pointers to data members or both are pointers to member
+       functions.  Note that this conversion cannot be folded as part of a
+       constant-expression. */
     if (is_function_type(pm_member_type(source_type)) ==
         is_function_type(pm_member_type(dest_type))) {
-#if 0
       okay = TRUE;
-#else /* 0 */
-      /* We impose the additional requirement (present in the ARM, gone in
-         the WP) that the classes involved be related in some way.  Removing
-         this restriction requires some IL changes to allow reinterpret_casts
-         for pointer-to-members and to represent pointer-to-member constants
-         subjected to reinterpret_casts. */
-      { a_type_ptr source_class, dest_class;
-        source_class = pm_class_type(source_type);
-        dest_class = pm_class_type(dest_type);
-        if (source_class == dest_class ||
-            find_base_class_of(source_class, dest_class) != NULL ||
-            find_base_class_of(dest_class, source_class) != NULL) {
-          okay = TRUE;
-        }  /* if */
-      }
-#endif /* 0 */
     }  /* if */
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
