@@ -55,7 +55,9 @@ IL lowering itself is done).
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
+#if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 /* Forward declaration needed because of mutual recursion: */
 static a_type_ptr make_base_class_spec_type(void);
