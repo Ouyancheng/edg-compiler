@@ -287,6 +287,7 @@ void db_field(a_field *fp)
 Dump a field entry, for debug purposes.
 */
 {
+  (void)fputc('\n', f_debug);
   (void)fputc(' ', f_debug);
   if (C_dialect == C_dialect_cplusplus) {
     (void)fputc(' ', f_debug);
@@ -300,7 +301,6 @@ Dump a field entry, for debug purposes.
   if (fp->bit_size > 0) {
     fprintf(f_debug, ", bit size %d", fp->bit_size);
   }  /* if */
-  (void)fputc('\n', f_debug);
 }  /* db_field */
 
 
@@ -412,19 +412,33 @@ Dump a direct base class entry, for debug purposes.
   db_access_control(bcp->access);
   fprintf(f_debug, " base class %s", tp->source_corresp.name);
   if (bcp->is_virtual) {
-    fprintf(f_debug, " (pointer offset = %lu)", bcp->pointer_offset);
+    fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
+    if (bcp->pointer_base_class != NULL) {
+      fprintf(f_debug, ", in %s",
+              bcp->pointer_base_class->type->source_corresp.name);
+    }  /* if */
+    fputc(')', f_debug);
   } else {
     fprintf(f_debug, " (offset = %lu)", bcp->offset);
-    bcp = tp->variant.class_struct_union.extra_info->base_classes;
-    while (bcp != NULL) {
-      if (bcp->direct) db_direct_base_class(bcp, depth+1);
-      bcp = bcp->next;
-    }  /* while */
+    for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->direct && !bcp->is_virtual) {
+        db_direct_base_class(bcp, depth+1);
+      }  /* if */
+    }  /* for */
     fp = tp->variant.class_struct_union.field_list;
     while (fp != NULL) {
       db_base_class_field(fp, depth);
       fp = fp->next;
     }  /* while */
+    for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->direct && bcp->is_virtual) {
+        db_direct_base_class(bcp, depth+1);
+      }  /* if */
+    }  /* for */
     db_virtual_function_info(tp->variant.class_struct_union.extra_info, depth);
   }  /* if */
   fputs(" ]]", f_debug);
@@ -467,16 +481,25 @@ Dump a virtual base class entry, for debug purposes.
   
   fprintf(f_debug, "  [( virtual base class %s (offset = %lu)",
 		   tp->source_corresp.name, bcp->offset);
-  bcp = tp->variant.class_struct_union.extra_info->base_classes;
-  while (bcp != NULL) {
-    if (bcp->direct) db_direct_base_class(bcp, /*nesting_depth=*/1);
-    bcp = bcp->next;
-  }  /* while */
+  for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp->direct && !bcp->is_virtual) {
+      db_direct_base_class(bcp, /*nesting_depth=*/1);
+    }  /* if */
+  }  /* for */
   fp = tp->variant.class_struct_union.field_list;
   while (fp != NULL) {
     db_base_class_field(fp, /*nesting_depth=*/0);
     fp = fp->next;
   }  /* while */
+  for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp->direct && bcp->is_virtual) {
+      db_direct_base_class(bcp, /*nesting_depth=*/1);
+    }  /* if */
+  }  /* for */
   db_virtual_function_info(tp->variant.class_struct_union.extra_info,
                            /*nesting_depth=*/0);
   fputs(" )]\n", f_debug);
@@ -591,15 +614,23 @@ class_struct_union:
         if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) {
-            db_direct_base_class(bcp, 0);
+            if (!bcp->is_virtual) db_direct_base_class(bcp, 0);
           } else {
             any_indirect_base_classes = TRUE;
           }  /* if */
           if (bcp->is_virtual) any_virtual_base_classes = TRUE;
         } /* for */
-        (void)fputc('\n', f_debug);
         fp = tp->variant.class_struct_union.field_list;
         for (; fp != NULL; fp = fp->next) db_field(fp);
+        if (any_virtual_base_classes) {
+          if (ctsp != NULL) bcp = ctsp->base_classes;
+          for (; bcp != NULL; bcp = bcp->next) {
+            if (bcp->direct && bcp->is_virtual) {
+              db_direct_base_class(bcp, 0);
+            }  /* if */
+          } /* for */
+        }  /* if */
+        (void)fputc('\n', f_debug);
         if (ctsp != NULL && ctsp->assoc_scope != NULL) {
           a_variable_ptr           vp = ctsp->assoc_scope->variables;
           a_routine_ptr            rp = ctsp->assoc_scope->routines;
