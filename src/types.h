@@ -95,26 +95,55 @@ an enum type).
   ((type)->kind == (a_type_kind)tk_integer &&                         \
    (type)->variant.integer.enum_type)
 
-#define is_const_qualified_type(tp)                                   \
-  ((tp)->kind == (a_type_kind)tk_typeref && f_is_const_qualified_type(tp))
-#define is_volatile_qualified_type(tp)                                \
-  ((tp)->kind == (a_type_kind)tk_typeref && f_is_volatile_qualified_type(tp))
-#define is_qualified_type(tp)                                         \
-  ((tp)->kind == (a_type_kind)tk_typeref && f_is_qualified_type(tp))
-#define type_or_element_type_is_const_qualified(tp)                   \
-  (is_const_qualified_type(tp) ||                                     \
-   (is_array_type(tp) &&                                              \
-    is_const_qualified_type(underlying_array_element_type(tp))))
-/* Return TRUE if the type qualifiers on two types match.  Typedefs and
-   the underlying types are ignored. */
-#define type_qualifiers_match(type_1, type_2)                         \
-  (is_const_qualified_type(type_1) == is_const_qualified_type(type_2) && \
-   is_volatile_qualified_type(type_1) == is_volatile_qualified_type(type_2))
 #define is_unknown_type(tp) ((tp)->kind == (a_type_kind)tk_unknown)
 
-extern a_boolean f_is_const_qualified_type(a_type_ptr tp);
-extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp);
-extern a_boolean f_is_qualified_type(a_type_ptr tp);
+/*
+Check for type qualifiers.  In C++ this includes looking for qualifiers
+on the underlying element type of an array.
+*/
+#define is_qualified_type(tp)                                         \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                          \
+    (tp)->kind == (a_type_kind)tk_array) &&                           \
+   f_is_qualified_type((tp), /*top_level=*/C_mode()))
+#define is_const_qualified_type(tp)                                   \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                          \
+    (tp)->kind == (a_type_kind)tk_array) &&                           \
+   f_is_const_qualified_type((tp), /*top_level=*/C_mode()))
+#define is_volatile_qualified_type(tp)                                \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                          \
+    (tp)->kind == (a_type_kind)tk_array) &&                           \
+   f_is_volatile_qualified_type((tp), /*top_level=*/C_mode()))
+/*
+Check for "top-level" type qualifiers -- i.e., don't look at the element
+type if tp is an array.  These macros are used in place of the above both
+for efficiency (when it is known that tp is not an array) and for
+correctness (when looking at the array element type is inappropriate).
+*/
+#define is_top_level_qualified_type(tp)                               \
+  ((tp)->kind == (a_type_kind)tk_typeref &&                           \
+   f_is_qualified_type((tp), /*top_level=*/TRUE))
+#define is_top_level_const_qualified_type(tp)                         \
+  ((tp)->kind == (a_type_kind)tk_typeref &&                           \
+   f_is_const_qualified_type((tp), /*top_level=*/TRUE))
+#define is_top_level_volatile_qualified_type(tp)                      \
+  ((tp)->kind == (a_type_kind)tk_typeref &&                           \
+   f_is_volatile_qualified_type((tp), /*top_level=*/TRUE))
+/*
+Return TRUE if the type qualifiers on two types match.  Typedefs and
+the underlying types are ignored.
+*/
+#define type_qualifiers_match(type_1, type_2)                         \
+  (is_top_level_const_qualified_type(type_1) ==                       \
+          is_top_level_const_qualified_type(type_2) &&                \
+   is_top_level_volatile_qualified_type(type_1) ==                    \
+          is_top_level_volatile_qualified_type(type_2))
+
+extern a_boolean f_is_const_qualified_type(a_type_ptr tp,
+                                           a_boolean  top_level);
+extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp,
+                                              a_boolean  top_level);
+extern a_boolean f_is_qualified_type(a_type_ptr tp,
+                                     a_boolean  top_level);
 
 extern a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
                                          a_base_class_ptr  ref_bcp);

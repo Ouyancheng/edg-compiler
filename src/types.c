@@ -574,62 +574,95 @@ pm_type is a pointer-to-member type.  Return the class type pointed to.
 }  /* pm_class_type */
 
 
-a_boolean f_is_const_qualified_type(a_type_ptr tp)
+a_boolean f_is_const_qualified_type(a_type_ptr tp,
+                                    a_boolean  top_level)
 /*
-Return TRUE if the given type is a const-qualified type (3.1.2.5).
-The macro is_const_qualified_type should be called instead of calling this
-routine directly.
+Return TRUE if the given type is a const-qualified type.  If top_level is
+FALSE and tp is an array, this mean checking for a qualifier on the element
+type; top_level is usually TRUE in C mode (3.1.2.5).  As a general rule,
+macros is_const_qualified_type and is_top_level_const_qualified_type
+should be used instead of calling this routine directly.
 */
 {
   a_boolean is_const = FALSE;
 
-  for (; tp->kind == (a_type_kind)tk_typeref; tp = tp->variant.typeref.type) {
-    if (tp->variant.typeref.is_const) {
-      is_const = TRUE;
+  for (;;) {
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      /* May be a typedef or a qualification. */
+      if (tp->variant.typeref.is_const) {
+        is_const = TRUE;
+        break;
+      }  /* if */
+      tp = tp->variant.typeref.type;
+    } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
+      /* Check the array element type. */
+      tp = tp->variant.array.element_type;
+    } else {
       break;
     }  /* if */
-  }  /* while */
-
+  }  /* for */
   return(is_const);
 }  /* f_is_const_qualified_type */
 
 
-a_boolean f_is_volatile_qualified_type(a_type_ptr tp)
+a_boolean f_is_volatile_qualified_type(a_type_ptr tp,
+                                       a_boolean  top_level)
 /*
-Return TRUE if the given type is a volatile-qualified type (3.1.2.5).
-The macro is_volatile_qualified_type should be called instead of calling this
-routine directly.
+Return TRUE if the given type is a volatile-qualified type.  If top_level is
+FALSE and tp is an array, this mean checking for a qualifier on the element
+type; top_level is usually TRUE in C mode (3.1.2.5).  As a general rule,
+macros is_volatile_qualified_type and is_top_level_volatile_qualified_type
+should be used instead of calling this routine directly.
 */
 {
   a_boolean is_volatile = FALSE;
 
-  for (; tp->kind == (a_type_kind)tk_typeref; tp = tp->variant.typeref.type) {
-    if (tp->variant.typeref.is_volatile) {
-      is_volatile = TRUE;
+  for (;;) {
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      /* May be a typedef or a qualification. */
+      if (tp->variant.typeref.is_volatile) {
+        is_volatile = TRUE;
+        break;
+      }  /* if */
+      tp = tp->variant.typeref.type;
+    } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
+      /* Check the array element type. */
+      tp = tp->variant.array.element_type;
+    } else {
       break;
     }  /* if */
-  }  /* while */
-
+  }  /* for */
   return(is_volatile);
 }  /* f_is_volatile_qualified_type */
 
 
-a_boolean f_is_qualified_type(a_type_ptr tp)
+a_boolean f_is_qualified_type(a_type_ptr tp,
+                              a_boolean  top_level)
 /*
-Return TRUE if the given type is a qualified type (3.1.2.5).
-The macro is_qualified_type should be called instead of calling this
-routine directly.
+Return TRUE if the given type is a const- or volatile-qualified type.  If
+top_level is FALSE and tp is an array, this mean checking for a qualifier
+on the element type; top_level is usually TRUE in C mode (3.1.2.5).  As a
+general rule, macros is_qualified_type and is_top_level_qualified_type
+should be used instead of calling this routine directly.
 */
 {
   a_boolean is_qualified = FALSE;
 
-  for (; tp->kind == (a_type_kind)tk_typeref; tp = tp->variant.typeref.type) {
-    if (tp->variant.typeref.is_const || tp->variant.typeref.is_volatile) {
-      is_qualified = TRUE;
+  for (;;) {
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      /* May be a typedef or a qualification. */
+      if (tp->variant.typeref.is_const || tp->variant.typeref.is_volatile) {
+        is_qualified = TRUE;
+        break;
+      }  /* if */
+      tp = tp->variant.typeref.type;
+    } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
+      /* Check the array element type. */
+      tp = tp->variant.array.element_type;
+    } else {
       break;
     }  /* if */
-  }  /* while */
-
+  }  /* for */
   return(is_qualified);
 }  /* f_is_qualified_type */
 
@@ -3562,7 +3595,8 @@ in C++ mode.  See ARM 13.
   new_extra_info = new_type->variant.routine.extra_info;
   new_this_param_type = new_extra_info->implicit_this_param_type;
   new_this_qualified = (new_this_param_type != NULL &&
-                      is_qualified_type(type_pointed_to(new_this_param_type)));
+                        is_top_level_qualified_type(
+                                   type_pointed_to(new_this_param_type)));
   do {
     /* See if old_sym_ptr and new_type are distinguishable. */
     old_is_template = (old_sym_ptr->kind ==
@@ -3598,7 +3632,8 @@ in C++ mode.  See ARM 13.
        which does a similar check.) */
     old_this_param_type = old_extra_info->implicit_this_param_type;
     old_this_qualified = (old_this_param_type != NULL &&
-                      is_qualified_type(type_pointed_to(old_this_param_type)));
+                          is_top_level_qualified_type(
+                                    type_pointed_to(old_this_param_type)));
     if (old_this_qualified != new_this_qualified ||
         (old_this_param_type != NULL && new_this_param_type != NULL &&
          types_distinguishable(old_this_param_type, new_this_param_type,
