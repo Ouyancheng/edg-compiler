@@ -1399,8 +1399,7 @@ typedef unsigned long a_region_descr_flags_set;
 #define RDF_NONE		0
 #define RDF_INDIRECT		0x01
 			/* TRUE if the address provided by the handle field
-			   is a pointer to the object.  Not used in the
-			   portable scheme. */
+			   is a pointer to the object. */
 #define RDF_CONDITIONAL_FLAG	0x02
 			/* TRUE if the object has an associated flag that
 			   indicates whether the construction has occurred.
