@@ -948,8 +948,22 @@ Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
   r_mangled_parent_qualifier((parent), (unsigned long)1, (store_at))
 
 
-sizeof_t mangled_type_name(a_type_ptr type,
-                           char       *store_at)
+/* Return TRUE if the indicated type needs a parent (class or namespace)
+   qualifier. */
+#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#define type_needs_parent_qualifier(type)                             \
+  ((type)->source_corresp.is_class_member ||                          \
+   (type)->source_corresp.parent.namespace_ptr != NULL)
+#else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#define type_needs_parent_qualifier(type)                             \
+  (((type)->source_corresp.is_class_member ||                         \
+    (type)->source_corresp.parent.namespace_ptr != NULL) &&           \
+   !type->use_cfront_transitional_nested_type_name_mangling)
+#endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
+
+static sizeof_t mangled_type_name(a_type_ptr type,
+                                  char       *store_at)
 /*
 Determine the mangled form of the name of the type "type".  Place the
 mangled name at *store_at if store_at != NULL, and (always) return the
@@ -962,15 +976,7 @@ classes and enums.  Nested types are encoded as such.
   char       *name;
   sizeof_t   digits;
 
-  if (!type->source_corresp.is_class_member &&
-      type->source_corresp.parent.namespace_ptr == NULL) {
-    /* This entity is not a member of a class or a namespace. */
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  } else if (type->use_cfront_transitional_nested_type_name_mangling) {
-    /* This a nested type name promoted into the file scope in
-       cfront 2.1 mode, so do not use the nested form. */
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-  } else {
+  if (type_needs_parent_qualifier(type)) {
     /* The type is a member of a class or namespace, so put out a qualifier.
        Note that the count starts at 2 because the type name itself is level
        1. */
@@ -1996,15 +2002,9 @@ other name mangling that might use the name is done.
   char     *mangled_name;
 
   error_position = type->source_corresp.decl_position;
-  if ((type->source_corresp.is_class_member ||
-       type->source_corresp.parent.namespace_ptr != NULL) &&
-      type->source_corresp.name != NULL &&
-      !type->source_corresp.name_has_been_mangled
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-      /* If this a cfront 2.1 nested type, leave it in the unnested form. */
-      && !type->use_cfront_transitional_nested_type_name_mangling
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-                                       ) {
+  if (type_needs_parent_qualifier(type) &&
+      has_name(type) &&
+      !type->source_corresp.name_has_been_mangled) {
     /* Nested type names must be mangled (because they exist in a scope
        that does not exist in the generated C code).  The mangled form
        is something like
@@ -2128,12 +2128,45 @@ orphan lists).
 
 #endif /* DO_IL_LOWERING */
 
+#if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
+
+static a_boolean base_class_of_same_name_exists(a_base_class_ptr orig_bcp)
+/*
+Return TRUE if in the base class list of which orig_bcp is a part there is
+another base class with the same name.  Note that this is "same name," not
+necessarily "same type."
+*/
+{
+  a_boolean        same_name_exists = FALSE;
+  a_base_class_ptr bcp;
+
+  for (bcp = orig_bcp->derived_class->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp != orig_bcp) {
+      char *bcp_name = bcp->type->source_corresp.name;
+      char *orig_bcp_name = orig_bcp->type->source_corresp.name;
+      if (bcp_name != NULL && orig_bcp_name != NULL &&
+          strcmp(bcp_name, orig_bcp_name) == 0) {
+        /* Found another base class with the same name. */
+        same_name_exists = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return same_name_exists;
+}  /* base_class_of_same_name_exists */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
+
 static sizeof_t mangled_derivation_name(a_derivation_step_ptr dsp,
                                         char                  *store_at)
 /*
-Determine the mangled form of the name of the indicated derivation.  Place
-the mangled name at *store_at if store_at != NULL, and (always) return
-the length of the name.
+Determine the mangled form of the name of the indicated derivation.
+This is used for the base class part of virtual function table names.
+Place the mangled name at *store_at if store_at != NULL, and (always)
+return the length of the name.
 */
 {
   sizeof_t   mangled_name_length, name_length;
@@ -2154,7 +2187,25 @@ the length of the name.
   }  /* if */
   /* Put out the name on the first derivation step. */
   class_type = dsp->base_class->type;
-  name_length = mangled_class_name(class_type, store_at);
+#if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
+  /* cfront doesn't encode nested class information in base class names.
+     This doesn't work in general, because it is possible to have base
+     classes with the same basic name and different qualified names (e.g.,
+     "A" and "A::B").  cfront doesn't seem to work right on all the cases
+     with repeated basic names, so it gets away with it.  We use the
+     cfront-compatible mangling only if there is no other base class
+     with the same name. */
+  if (!base_class_of_same_name_exists(dsp->base_class)) {
+    name_length = mangled_basic_class_name(class_type, store_at);
+  } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 230  && ... */
+  /* Do not insert code here -- this is the "else" of an "if". */
+  {
+    /* Note the use of mangled_class_name instead of mangled_vtbl_class_name
+       because we do not want two lengths on the front of nested class
+       names. */
+    name_length = mangled_class_name(class_type, store_at);
+  }
   mangled_name_length += name_length;
   if (store_at != NULL) store_at += name_length;
   return mangled_name_length;
@@ -2237,6 +2288,45 @@ the length of the name.
 }  /* mangled_vtbl_base_class_name */
 
 
+sizeof_t mangled_vtbl_class_name(a_type_ptr type,
+                                 char       *store_at)
+/*
+Determine the mangled form of the name of the class "type" for use in
+a virtual function table name.  This is similar to what mangled_class_name
+does, but in cfront mode it has a length in front of even nested class
+names (e.g., "7Q2_1A1B" instead of "Q2_1A1B").  Place the mangled name at
+*store_at if store_at != NULL, and (always) return the length of the name.
+*/
+{
+  sizeof_t mangled_name_length, name_length, digits;
+
+#if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
+  /* cfront mode. */
+  if (type_needs_parent_qualifier(type)) {
+    /* The type is a nested type.  Add a length in front of the mangled
+       form. */
+    name_length = mangled_class_name(type, (char *)NULL);
+    digits = digits_to_represent((unsigned long)name_length);
+    mangled_name_length = name_length + digits;
+    if (store_at != NULL) {
+      /* Actually store the name. */
+      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+      store_at += digits;
+      store_at += mangled_class_name(type, store_at);
+    }  /* if */
+  } else {
+    /* Not a nested type name; just put out. */
+    mangled_name_length = mangled_class_name(type, store_at);
+  }  /* if */
+#else /* ABI_COMPATIBILITY_VERSION < 230 || ... */
+  /* In non-cfront mode, or in old ABI versions, just pass through to
+     mangled_class_name. */
+  mangled_name_length = mangled_class_name(type, store_at);
+#endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
+  return mangled_name_length;
+}  /* mangled_vtbl_class_name */
+
+
 sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
                            a_base_class_ptr bcp,
                            char             *store_at)
@@ -2276,7 +2366,7 @@ function table is for class_type itself.  Place the mangled name at
     }  /* if */
   }  /* if */
   /* Add the derived class name. */
-  section_length = mangled_class_name(class_type, store_at);
+  section_length = mangled_vtbl_class_name(class_type, store_at);
   mangled_name_length += section_length;
   if (store_at != NULL) store_at += section_length;
   return mangled_name_length;
