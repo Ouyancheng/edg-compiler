@@ -8788,6 +8788,20 @@ and all subscopes.
     (void)fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  /* Visit all namespaces.  This must be done before the type loop (below) so
+     that nested classes inside namespaces get processed before the
+     out-of-parent-definition placeholders for them. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      do_scope_class_member_promotion(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    do_scope_class_member_promotion(block_scope);
+  }  /* for */
   /* Visit all types to find all classes. */
   /* Note that when processing a function or block scope we will be crossing
      into the file scope here, but these types are truly local types
@@ -8876,29 +8890,33 @@ and all subscopes.
            reason. */
         nested_type->variant.class_struct_union.
                                 nested_class_defined_outside_of_parent = TRUE;
+        if (scope->kind == (a_scope_kind)sck_file) {
+          /* For a placeholder in the file scope types list, take the
+             placeholder off the list. */
+          check_assertion(insert_pointer->next == type);
+          insert_pointer->next = type->next;
+        } else {
+          check_assertion(scope->kind ==(a_scope_kind)sck_namespace);
+          /* For a placeholder in a namespace types list, leave the placeholder
+             on the list so it can be removed when the promotion to the file
+             scope is done (the file-scope placeholder points to the
+             placeholder here, so this placeholder has to stay on the list
+             for now so it can be found). */
+          insert_pointer = type;
+        }  /* if */
       } else {
         /* Not a class type.  Set the insert location after it. */
         insert_pointer = type;
       }  /* if */
     }  /* for */
+    check_assertion(insert_pointer == NULL ||
+                    insert_pointer->next == NULL);
     /* If this scope is in the scope_stack, update its last_type pointer. */
     depth = scope->depth_in_scope_stack;
     if (depth != NO_SCOPE_DEPTH) {
       assoc_pointers_block_of(&scope_stack[depth])->last_type = insert_pointer;
     }  /* if */
   }  /* if */
-  /* Visit all namespaces. */
-  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      do_scope_class_member_promotion(nsp->variant.assoc_scope);
-    }  /* if */
-  }  /* for */
-  /* Visit all block scopes. */
-  for (block_scope = scope->scopes;
-       block_scope != NULL;
-       block_scope = block_scope->next) {
-    do_scope_class_member_promotion(block_scope);
-  }  /* for */
 }  /* do_scope_class_member_promotion */
 
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -9331,15 +9349,23 @@ have been promoted out of those classes.
         /* Save the next pointer since it gets changed when the type is moved
            to the file scope list. */
         temp_type_next = temp_type->next;
-        /* Move temp_type to the file scope types list, following prev_type. */
-        if (prev_type == NULL) {
-          add_to_front_of_file_scope_types_list(temp_type);
+        /* Move temp_type to the file scope types list, following prev_type.
+           Don't move it (discard it instead) it it's a nested class definition
+           placeholder. */
+        if (temp_type->kind == (a_type_kind)tk_typeref &&
+            temp_type->variant.typeref.is_placeholder_for_nested_class_def) {
+          /* Discard this placeholder typeref. */
         } else {
-          temp_type->next = prev_type->next;
-          prev_type->next = temp_type;
+          /* Move this type. */
+          if (prev_type == NULL) {
+            add_to_front_of_file_scope_types_list(temp_type);
+          } else {
+            temp_type->next = prev_type->next;
+            prev_type->next = temp_type;
+          }  /* if */
+          prev_type = temp_type;
+          scope->types = temp_type_next;
         }  /* if */
-        prev_type = temp_type;
-        scope->types = temp_type_next;
         /* Stop on reaching the type pointed to by the placeholder. */
         if (temp_type == namespace_type) break;
       }  /* for */
@@ -9350,6 +9376,7 @@ have been promoted out of those classes.
     }  /* if */
   }  /* for */
   /* Update the "last" pointer for the file-scope types list. */
+  check_assertion(prev_type == NULL || prev_type->next == NULL);
   scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_type = prev_type;
   /* Promote all members other than types out of the namespaces. */
   do_scope_namespace_member_promotion(il_header.primary_scope);
