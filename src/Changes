@@ -79,13 +79,13 @@ control of the behavior of fixed-point arithmetic.  For example:
     acc += x;  // Will saturate acc if the result is out of range.
   }
 
-No lowering is done for fixed-point operations.  The C- and C++-generating
-back ends will render _Fract and _Accum types and assume that the consumer
-of the generated code accepts the extensions.  A back end should also be aware
-that the "usual arithmetic conversions" for binary operators do not include
-conversions to a common type if one of the operands has a fixed-point type
-and the other has a different fixed-point type or an integer type.
-For example:
+No lowering is done (yet) for fixed-point operations.  The C- and
+C++-generating back ends will render _Fract and _Accum types and assume
+that the consumer of the generated code accepts the extensions.  A back
+end should also be aware that the "usual arithmetic conversions" for
+binary operators do not include conversions to a common type if one of
+the operands has a fixed-point type and the other has a different
+fixed-point type or an integer type.  For example:
 
   void f1() {
     short s = 1;
@@ -102,8 +102,10 @@ example:
                                    // space _EDG_NAS_A.
 
 The named address spaces accepted by the front end are described by the array
-named_address_spaces defined in targ_def.h.  Named address spaces can be
-nested.  The following example illustrates the resulting constraints:
+named_address_spaces defined in targ_def.h.  There are no default
+address space names required by the TR, so implementation-specific
+names must be added to make this feature useful.  Named address spaces can
+be nested.  The following example illustrates the resulting constraints:
 
   void f2() {
     int _EDG_NAS_A *pa;
@@ -115,9 +117,9 @@ nested.  The following example illustrates the resulting constraints:
 When no address space is specified, the term "generic address space" is used.
 The nesting relationships between address spaces (including whether or not an
 address space is enclosed by the generic address space) are configured through
-the array named_address_spaces (see targ_def.h).  Named address space are not
+the array named_address_spaces (see targ_def.h).  Named address spaces are not
 lowered; the C- and C++-generating back ends will render them and assume that
-the consumer of the generate code accepts the extensions.
+the consumer of the generated code accepts the extensions.
 
 Named-register storage class specifiers consist of the keyword "register"
 followed by a reserved identifier; they can appear wherever the keyword
@@ -127,16 +129,20 @@ followed by a reserved identifier; they can appear wherever the keyword
                                // described by the identifier _EDG_REG_1.
 
 The named registers recognized by the front end are configured through the
-array named_register_storage_classes defined in targ_def.h.  This configuration
-includes a size for each register: An attempt to declare a variable with a
-named-register storage class smaller than the size of the variable's type
-results in an error.  For example:
+array named_register_storage_classes defined in targ_def.h.  There are
+no default register names required by the TR, so implementation-specific
+names must be added to make this feature useful.  Note also that this
+list of register names is different than the list of registers for
+the GNU asm feature.  The configuration includes a size for each
+register: An attempt to declare a variable with a named-register storage
+class smaller than the size of the variable's type results in an error.
+For example:
 
   register _EDG_REG_1 long double z;  // Error if the size of _EDG_REG_1 is
                                       // smaller than sizeof(long double).
 
 Named registers are not lowered; the C- and C++-generating back ends will
-render them and assume that the consumer of the generate code accepts the
+render them and assume that the consumer of the generated code accepts the
 extensions.
 
 4/29/04  Preprocessor handling of recursive macro calls
