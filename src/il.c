@@ -17,6 +17,7 @@ il.c -- Construction of intermediate language trees.
 #include "host_envir.h"
 #include "il.h"
 #include "il_walk.h"
+#include "debug.h"
 #include "mem_tables.h"
 #include "mem_manage.h"
 #include "target.h"
@@ -5752,115 +5753,88 @@ Display and return the amount of space used for various IL tables.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  fprintf(f_debug, "\nIL table use:\n");
-  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+  db_space_used_header("IL table use:");
 
-#define write_one(name, counter, type)                                \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
-  grand_total += total;                                               \
-}  /* write_one */
-#define write_onex(name, counter, sizex)                              \
-{ num = counter; total = num*sizex;                                   \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num,                \
-                   (unsigned long)sizex, total);                      \
-  grand_total += total;                                               \
-}  /* write_onex */
-#define write_loss(avail_list, counter, type)                         \
-{ type          *ptr;                                                 \
-  unsigned long count = 0;                                            \
-  for (ptr = avail_list; ptr != NULL; ptr = ptr->next) count++;       \
-  if (count != counter) {                                             \
-    fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", counter-count); \
-  }  /* if */                                                         \
-}  /* write_loss */
-#define write_onel(name, avail_list, counter, type)                   \
-{ write_one(name, counter, type);                                     \
-  write_loss(avail_list, counter, type);                              \
-}  /* write_onel */
-
-  write_one("source file", num_source_files_allocated, a_source_file);
-  write_one("constant", num_constants_allocated, a_constant);
-  write_one("String literal text", string_literal_text_space_allocated, char);
-  write_one("param type", num_param_types_allocated, a_param_type);
-  write_one("routine type supplement", num_routine_type_supplements_allocated,
-                                       a_routine_type_supplement);
-  write_one("based type list member", num_based_type_list_members_allocated,
-            a_based_type_list_member);
-  write_one("class type supplement", num_class_type_supplements_allocated,
-                                     a_class_type_supplement);
-  write_one("access adjustment", num_access_adjustments_allocated,
-                                 an_access_adjustment);
-  write_one("class list entry", num_class_list_entries_allocated,
-                                a_class_list_entry);
-  write_one("overriding virtual func",
-                                num_overriding_virtual_functions_allocated,
-                                an_overriding_virtual_function_ptr);
-  write_one("derivation steps", num_derivation_steps_allocated,
-                                a_derivation_step);
-  write_one("base class", num_base_classes_allocated, a_base_class);
-  write_one("template args", num_template_args_allocated, a_template_arg);
-  write_one("type", num_types_allocated, a_type);
-  write_one("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
-  write_one("variable", num_variables_allocated, a_variable);
-  write_one("field", num_fields_allocated, a_field);
-  write_one("routine", num_routines_allocated, a_routine);
-  write_one("asm entry", num_asm_entries_allocated, an_asm_entry);
-  write_one("label", num_labels_allocated, a_label);
-  write_one("expr node", num_expr_nodes_allocated, an_expr_node);
-  write_one("new/delete supplement", num_new_delete_supplements_allocated,
-            a_new_delete_supplement);
-  write_one("switch clause", num_switch_clauses_allocated, a_switch_clause);
-  write_one("block", num_blocks_allocated, a_block);
-  write_one("statement", num_statements_allocated, a_statement);
-  write_one("constructor init", num_constructor_inits_allocated,
-                                a_constructor_init);
-  write_one("scope", num_scopes_allocated, a_scope);
+  db_space_used("source file", num_source_files_allocated, a_source_file);
+  db_space_used("constant", num_constants_allocated, a_constant);
+  db_space_used("String literal text", string_literal_text_space_allocated,
+                char);
+  db_space_used("param type", num_param_types_allocated, a_param_type);
+  db_space_used("routine type supplement",
+                num_routine_type_supplements_allocated,
+                a_routine_type_supplement);
+  db_space_used("based type list member",
+                num_based_type_list_members_allocated,
+                a_based_type_list_member);
+  db_space_used("class type supplement", num_class_type_supplements_allocated,
+                a_class_type_supplement);
+  db_space_used("access adjustment", num_access_adjustments_allocated,
+                an_access_adjustment);
+  db_space_used("class list entry", num_class_list_entries_allocated,
+                a_class_list_entry);
+  db_space_used("overriding virtual func",
+                num_overriding_virtual_functions_allocated,
+                an_overriding_virtual_function_ptr);
+  db_space_used("derivation steps", num_derivation_steps_allocated,
+                a_derivation_step);
+  db_space_used("base class", num_base_classes_allocated, a_base_class);
+  db_space_used("template args", num_template_args_allocated, a_template_arg);
+  db_space_used("type", num_types_allocated, a_type);
+  db_space_used("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
+  db_space_used("variable", num_variables_allocated, a_variable);
+  db_space_used("field", num_fields_allocated, a_field);
+  db_space_used("routine", num_routines_allocated, a_routine);
+  db_space_used("asm entry", num_asm_entries_allocated, an_asm_entry);
+  db_space_used("label", num_labels_allocated, a_label);
+  db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
+  db_space_used("new/delete supplement", num_new_delete_supplements_allocated,
+                a_new_delete_supplement);
+  db_space_used("switch clause",
+                num_switch_clauses_allocated, a_switch_clause);
+  db_space_used("block", num_blocks_allocated, a_block);
+  db_space_used("statement", num_statements_allocated, a_statement);
+  db_space_used("constructor init", num_constructor_inits_allocated,
+                a_constructor_init);
+  db_space_used("scope", num_scopes_allocated, a_scope);
 #if ORPHAN_PROCESSING_NEEDED
-  write_one("orphaned il list", num_orphaned_il_lists_allocated,
-            an_orphaned_il_list);
-  write_onex("fs orphan pointers", num_fs_orphan_pointers_allocated,
-             SPACE_FOR_FS_ORPHAN_POINTER);
+  db_space_used("orphaned il list", num_orphaned_il_lists_allocated,
+                an_orphaned_il_list);
+  db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
+                        SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  write_one("IL entry prefix", num_il_entry_prefixes_allocated,
-            an_il_entry_prefix);
+  db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
+                an_il_entry_prefix);
 
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
-
-  (void)fputc('\n', f_debug);
-  write_onel("rewritten temporary", avail_rewritten_temporaries,
-             num_rewritten_temporaries_allocated, a_rewritten_temporary);
+  db_space_used_total();
 
   (void)fputc('\n', f_debug);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "get_based_type calls", "", "",
-                                          num_get_based_type_calls);  
-  
+  db_space_used_lost("rewritten temporary", avail_rewritten_temporaries,
+                     num_rewritten_temporaries_allocated,
+                     a_rewritten_temporary);
+
   (void)fputc('\n', f_debug);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "num_shareable_constants", "", "",
-                                          num_shareable_constants);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Percent of buckets used", "", "",
-                   (100 * num_used_shareable_constant_buckets) /
-                                               SIZE_SHAREABLE_CONSTANTS_TABLE);
+  db_space_used_other("get_based_type_calls", num_get_based_type_calls, "");
+  (void)fputc('\n', f_debug);
+  db_space_used_other("num_shareable_constants", num_shareable_constants, "");
+  db_space_used_other("Percent of buckets used",
+                      (100 * num_used_shareable_constant_buckets) /
+                      SIZE_SHAREABLE_CONSTANTS_TABLE, "");
   if (num_used_shareable_constant_buckets != 0) {
-    fprintf(f_debug, "%25s %8s %8s %8.2f\n", "Avg non-empty bucket len","", "",
-                     (double)num_shareable_constants /
-                     (double)num_used_shareable_constant_buckets);
+    db_space_used_float_other("Avg non-empty bucket len",
+                             (double)num_shareable_constants /
+                             (double)num_used_shareable_constant_buckets, "");
   }  /* if */
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "num func shareable consts", "", "",
-                                          num_func_shareable_constants);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Number of searches", "", "",
-                                         num_searches_for_shareable_constants);
+  db_space_used_other("num func shareable consts",
+                      num_func_shareable_constants, "");
+  db_space_used_other("Number of searches", 
+                      num_searches_for_shareable_constants, "");
   if (num_searches_for_shareable_constants != 0) {
-    fprintf(f_debug, "%25s %8s %8s %8.2f\n", "Avg compares/search", "", "",
-                     (double)num_compares_for_shareable_constants /
-                     (double)num_searches_for_shareable_constants);
+    db_space_used_float_other("Avg compares/search",
+                             (double)num_compares_for_shareable_constants /
+                             (double)num_searches_for_shareable_constants, "");
   }  /* if */
 
   return grand_total;
-#undef write_one
-#undef write_onex
-#undef write_loss
-#undef write_onel
 }  /* show_il_space_used */
 #endif /* DEBUG */
 
