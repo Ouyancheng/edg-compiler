@@ -91,6 +91,14 @@ typedef struct an_il_to_str_output_control_block {
 			   i.e., skip over them and don't show them in the
 			   output. */
   a_byte_boolean
+	suppress_not_yet_defined_typedefs;
+			/* Suppress typedefs that have not yet been defined,
+			   according to the typedef_definition_has_been_put_out
+			   flag.  Used by the C++-generating back end for
+			   references in template arguments of instantiations
+			   that have been promoted out of their enclosing
+			   nested context. */
+  a_byte_boolean
 	c_generating_back_end;
 			/* TRUE if the output is being done for the
 			   C-generating back end. */
