@@ -886,6 +886,19 @@ build the in-memory version.
      int_kind_is_signed.  Doing this here ensures that it won't be overlooked
      in standalone utility programs. */
   int_kind_is_signed[(int)ik_char] = il_header.plain_chars_are_signed;
+  /* Ditto for C_dialect.  Setting this allows "back end" software to
+     use C_mode(). */
+  switch (il_header.source_language) {
+    case sl_C:
+      C_dialect = il_header.pcc_compatibility_mode ? C_dialect_pcc :
+                                                     C_dialect_ANSI;
+      break;
+    case sl_Cplusplus:
+      C_dialect = C_dialect_cplusplus;
+      break;
+    default:
+      catastrophe(ec_bad_il_file);
+  }  /* switch */
 #endif /* ifdef CIL */
   /* Read the orphaned_file_scope_il_entries array. */
   fread_with_check((char *)orphaned_file_scope_il_entries,
