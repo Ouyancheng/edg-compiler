@@ -655,6 +655,8 @@ position field as the error position.
   operand->state = (an_operand_state)os_none;
   operand->came_from_reference = FALSE;
   /* bound_function is not cleared on purpose. */
+  /* Change the references to errors. */
+  change_refs_to_error(operand->ref_entries_list);
 }  /* conv_to_error_operand */
 
 
