@@ -129,6 +129,7 @@ enum an_access_specifier_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_access_specifier;
+#define is_more_accessible(access1, access2) ((int)(access1) < (int)(access2))
 #endif /* ifdef CIL */
 
 enum a_name_linkage_kind_tag {
