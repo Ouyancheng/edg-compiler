@@ -3155,6 +3155,17 @@ Scan the initializing expression or, in C++, declaration of a for statement.
       is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
     /* Scan a declaration (C++ only). */
     decl_statement();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (sssep->curr_decl_statement != NULL) {
+      /* Add a source sequence entry marking the end of the for-init
+         declaration.  This marker is necessary in case what immediately
+         follows in the source sequence list is an entry for a
+         condition declaration. */
+      add_end_of_construct_source_sequence_entry(
+                                        (char *)sssep->curr_decl_statement,
+                                        (a_byte_il_entry_kind)iek_statement);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Immediately deactivate the decl-statement. */
     wrapup_decl_statement();
   } else {
