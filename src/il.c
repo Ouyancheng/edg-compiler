@@ -4615,14 +4615,14 @@ Return a type that is the unqualified version of the type given by type.
        are qualifiers, they are attached to the element type. */
     if (C_mode()) {
       /* In C array-of-const-int (for example) is not considered a qualified
-         type -- is_qualfied_type will not return TRUE for it, so nothing
+         type -- is_qualified_type will not return TRUE for it, so nothing
          more needs to be done to make it unqualified. */
     } else {
       /* In C++ array-of-const-int *is* a qualified type.  Remove the
          qualifiers from the element type and create another array type. */
       element_type = underlying_array_element_type(type);
       if (element_type == NULL) {
-        /* Array-of-NULL is a possible temporay state during construction of
+        /* Array-of-NULL is a possible temporary state during construction of
            a derived type. */
       } else {
         element_type = make_unqualified_type(element_type);
@@ -7791,7 +7791,7 @@ the dynamic init entry to the object lifetime.
   a_dynamic_init_ptr      prev;
 
   if (olp != NULL) {
-    /* There is an assocated object lifetime. */
+    /* There is an associated object lifetime. */
     if (olp->destructions == dip) {
       /* dip is the head of the destructions list. */
       olp->destructions = dip->next_in_destruction_list;

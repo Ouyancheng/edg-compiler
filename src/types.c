@@ -604,7 +604,7 @@ used instead of calling this routine directly.
       /* Check the array element type. */
       tp = tp->variant.array.element_type;
       if (tp == NULL) {
-        /* Array-of-NULL is a possible temporay state during construction of
+        /* Array-of-NULL is a possible temporary state during construction of
            a derived type. */
         break;
       }  /* if */
