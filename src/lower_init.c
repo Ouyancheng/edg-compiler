@@ -2472,12 +2472,13 @@ do_assignment:;
          the file scope if the initialization has been done (i.e., if the
          first-time-test variable has been set to non-zero. */
       cap->variant.object.first_time_test_var = first_time_test_var;
-      /* Put the entry on the front of a special list. */
-      cap->next = cleanup_actions_for_local_static_variables;
-      cleanup_actions_for_local_static_variables = cap;
-      if (end_cleanup_actions_for_local_static_variables == NULL) {
-        end_cleanup_actions_for_local_static_variables = cap;
-      }  /* if */
+      /* Put the entry on the end of a special list. */
+      if (cleanup_actions_for_local_static_variables == NULL) {
+        cleanup_actions_for_local_static_variables = cap;
+      } else {
+        end_cleanup_actions_for_local_static_variables->next = cap;
+      }   /* if */
+      end_cleanup_actions_for_local_static_variables = cap;
       /* Indicate to the back end that there will be a non-local reference to
          the variable (from the termination routine). */
       ipdp->variable->referenced_non_locally = TRUE;
@@ -4510,7 +4511,7 @@ Do lowering on the file-scope dynamic initializations list.
     processing_file_scope_init_routine = TRUE;
     if (exceptions_enabled) {
       /* Initialize for exception handling lowering. */
-      eh_function_lower_init();
+      eh_function_lower_init(/*file_scope_term_routine=*/FALSE);
     }  /* if */
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip->next) {
@@ -4543,23 +4544,26 @@ Do lowering on the file-scope dynamic initializations list.
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
     file_scope->dynamic_inits = NULL;
   }  /* if */
-  /* Put cleanup actions for local static variables on the front of
-     the file-scope list. */
-  if (cleanup_actions_for_local_static_variables != NULL) {
-    end_cleanup_actions_for_local_static_variables->next =
-                                                 curr_context->cleanup_actions;
-    curr_context->cleanup_actions = cleanup_actions_for_local_static_variables;
-  }  /* if */
   /* Generate any cleanup actions associated with the file scope. */
-  if (curr_context->cleanup_actions != NULL) {
+  if (file_scope_context->cleanup_actions != NULL ||
+      cleanup_actions_for_local_static_variables != NULL) {
     /* There are some file-scope cleanup actions.  Generate a routine
        containing them. */
     scope = file_scope_term_insert_location(&insert_location);
     switch_il_region(file_scope_term_routine_il_region);
     push_context(&context, scope, /*subscope_region=*/FALSE);
+    /* Put cleanup actions for local static variables on the front of
+       the file-scope list.  The list gets reversed in the process. */
+    while (cleanup_actions_for_local_static_variables != NULL) {
+      a_cleanup_action_ptr cap = cleanup_actions_for_local_static_variables;
+      cleanup_actions_for_local_static_variables = cap->next;
+      add_cleanup_action_to_context_list(cap, file_scope_context,
+                                         &insert_location);
+    }  /* if */
+    end_cleanup_actions_for_local_static_variables = NULL;  /* Be neat. */
     if (exceptions_enabled) {
       /* Initialize for exception handling lowering. */
-      eh_function_lower_init();
+      eh_function_lower_init(/*file_scope_term_routine=*/TRUE);
     }  /* if */
     /* Generate the cleanup actions. */
     gen_cleanup_actions(file_scope_context, &insert_location);
