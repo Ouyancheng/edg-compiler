@@ -885,6 +885,10 @@ Display the indicated source correspondence entry.
   }  /* if */
 #endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
+  if (scp->is_local_to_function) {
+    disp_boolean("  is_local_to_function",
+                 (a_boolean)scp->is_local_to_function);
+  }  /* if */
   if (scp->name != NULL) {
     disp_name("  name_linkage");
     switch ((a_name_linkage_kind)scp->name_linkage) {
@@ -1124,30 +1128,42 @@ Display a_routine_type_supplement.
 {
   disp_ptr("param_type_list", (char *)ptr->param_type_list, iek_param_type);
   disp_ptr("assoc_routine", (char *)ptr->assoc_routine, iek_routine);
-  disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
+  if (ptr->has_ellipsis) {
+    disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
+  }  /* if */
 #ifdef CFE
   disp_boolean("prototyped", (a_boolean)ptr->prototyped);
   if (ptr->lint_argsused_flag) {
     disp_boolean("lint_argsused_flag", TRUE);
   }  /* if */
-  disp_boolean("value_returned_by_cctor",
-               (a_boolean)ptr->value_returned_by_cctor);
+  if (ptr->value_returned_by_cctor) {
+    disp_boolean("value_returned_by_cctor",
+                 (a_boolean)ptr->value_returned_by_cctor);
+  }  /* if */
   if (ptr->assoc_routine_is_ctor) {
     disp_boolean("assoc_routine_is_ctor", TRUE);
   }  /* if */
   if (ptr->assoc_routine_is_dtor) {
     disp_boolean("assoc_routine_is_dtor", TRUE);
   }  /* if */
-  disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
-  disp_name("arg_pragma");
-  disp_arg_pragma_kind_name(ptr->arg_pragma);
+  if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
+    disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
+  }  /* if */
+  if (ptr->arg_pragma != (an_arg_pragma_kind)apk_none) {
+    disp_name("arg_pragma");
+    disp_arg_pragma_kind_name(ptr->arg_pragma);
+  }  /* if */
   if (ptr->implicit_this_param_type != NULL) {
     disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
              iek_type);
   }  /* if */
-  disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
-  disp_ptr("throw_specification", (char *)ptr->throw_specification,
-           iek_throw_specification);
+  if (ptr->prototype_scope != NULL) {
+    disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
+  }  /* if */
+  if (ptr->throw_specification != NULL) {
+    disp_ptr("throw_specification", (char *)ptr->throw_specification,
+             iek_throw_specification);
+  }  /* if */
 #endif /* ifdef CFE */
  (void) printf("\n");
 }  /* disp_routine_type_supplement */
@@ -1465,8 +1481,10 @@ Display the indicated variable.
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_variable);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_ptr("assoc_param_type", (char *)ptr->assoc_param_type,
-           iek_param_type);
+  if (ptr->assoc_param_type != NULL) {
+    disp_ptr("assoc_param_type", (char *)ptr->assoc_param_type,
+             iek_param_type);
+  }  /* if */
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
   disp_boolean("address_taken", (a_boolean)ptr->address_taken);
@@ -1780,11 +1798,21 @@ Display the indicated routine.
     disp_opname_kind_name(ptr->opname_kind);
     (void)printf("\n");
   }  /* if */
-  disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
-  disp_boolean("pure_virtual", (a_boolean)ptr->pure_virtual);
-  disp_boolean("is_inline", (a_boolean)ptr->is_inline);
-  disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
-  disp_boolean("called", (a_boolean)ptr->called);
+  if (ptr->is_virtual) {
+    disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
+  }  /* if */
+  if (ptr->is_pure_virtual) {
+    disp_boolean("pure_virtual", (a_boolean)ptr->pure_virtual);
+  }  /* if */
+  if (ptr->is_inline) {
+    disp_boolean("is_inline", (a_boolean)ptr->is_inline);
+  }  /* if */
+  if (ptr->compiler_generated) {
+    disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+  }  /* if */
+  if (ptr->called) {
+    disp_boolean("called", (a_boolean)ptr->called);
+  }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done", TRUE);
@@ -1807,7 +1835,9 @@ Display the indicated routine.
   if (ptr->specific_def) {
     disp_boolean("specific_def", TRUE);
   }  /* if */
-  disp_class_list("befriending_classes", ptr->befriending_classes);
+  if (ptr->befriending_classes != NULL) {
+    disp_class_list("befriending_classes", ptr->befriending_classes);
+  }  /* if */
   if (ptr->is_virtual) {
     disp_unsigned_long("virtual_function_number",
                        (unsigned long)ptr->virtual_function_number);
@@ -2968,30 +2998,40 @@ Display the indicated class type supplement entry.
                (char *)ptr->virtual_function_info_base_class, iek_base_class);
     }  /* if */
   }  /* if */
-  disp_name("anonymous_union_kind");
-  switch (ptr->anonymous_union_kind) {
-    case auk_none:
-      (void)printf("auk_none\n");
-      break;
-    case auk_variable:
-      (void)printf("auk_variable\n");
-      break;
-    case auk_field:
-      (void)printf("auk_field\n");
-      disp_ptr("field", (char *)ptr->anonymous_union_field, iek_field);
-      break;
-    default:
-      (void)printf("**BAD ANONYMOUS UNION KIND**\n");
-  }  /* switch */
+  if (ptr_anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+    disp_name("anonymous_union_kind");
+    switch (ptr->anonymous_union_kind) {
+      case auk_none:
+        (void)printf("auk_none\n");
+        break;
+      case auk_variable:
+        (void)printf("auk_variable\n");
+        break;
+      case auk_field:
+        (void)printf("auk_field\n");
+        disp_ptr("field", (char *)ptr->anonymous_union_field, iek_field);
+        break;
+      default:
+        (void)printf("**BAD ANONYMOUS UNION KIND**\n");
+    }  /* switch */
+  }  /* if */
   if (ptr->access_adjustments != NULL) {
     disp_ptr("access_adjustments", (char *)ptr->access_adjustments,
              iek_access_adjustment);
   }  /* if */
-  disp_class_list("befriending_classes", ptr->befriending_classes);
-  disp_routine_list("friend_routines", ptr->friend_routines);
-  disp_class_list("friend_classes", ptr->friend_classes);
+  if (ptr->befriending_classes != NULL) {
+    disp_class_list("befriending_classes", ptr->befriending_classes);
+  }  /* if */
+  if (ptr->friend_routines != NULL) {
+    disp_routine_list("friend_routines", ptr->friend_routines);
+  }  /* if */
+  if (ptr->friend_classes != NULL) {
+    disp_class_list("friend_classes", ptr->friend_classes);
+  }  /* if */
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
-  disp_template_arg_list("template_arg_list", ptr->template_arg_list);
+  if (ptr->template_arg_list != NULL) {
+    disp_template_arg_list("template_arg_list", ptr->template_arg_list);
+  }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   disp_ptr("assoc_operator_new_routine",
            (char *)ptr->assoc_operator_new_routine, iek_routine);
