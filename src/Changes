@@ -13,7 +13,7 @@ parsing members of classes nested in class templates.
 
 This is now fixed.
 
-1/16/01  Missing default member functions in prototype instantiations
+1/26/01  Missing default member functions in prototype instantiations
 
 The front end used to omit the generation of default member functions in
 prototype instantiations of class templates.  This could lead to errors
