@@ -36,8 +36,8 @@ static sizeof_t mangled_encoding_for_type(a_type_ptr type,
 static sizeof_t mangled_function_name(a_routine_ptr routine,
                                       a_boolean     suppress_param_encoding,
                                       char          *store_at);
-static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
-                                                char           *store_at);
+static sizeof_t mangled_member_variable_name(a_variable_ptr variable,
+                                             char           *store_at);
 
 
 static sizeof_t digits_to_represent(unsigned long value)
@@ -364,7 +364,7 @@ used to encode constants as part of the mangled names of template classes.
     case ck_address:
       /* Address.  Put out the name of the entity whose address is involved. */
       { a_variable_ptr       variable;
-        a_type_ptr           class_type = NULL;
+        a_boolean            is_member = FALSE;
         a_routine_ptr        routine;
         an_address_base_kind abkind;
 
@@ -383,11 +383,11 @@ used to encode constants as part of the mangled names of template classes.
            This is compatible with cfront 3.0.1. */
         if (abkind == (an_address_base_kind)abk_variable) {
           variable = con->variant.address.variant.variable;
-          if (variable->source_corresp.is_class_member) {
-            /* Static data member. */
-            class_type = variable->source_corresp.parent.class_type;
-            str_length = mangled_static_data_member_name(variable,
-                                                         (char *)NULL);
+          if (variable->source_corresp.is_class_member ||
+              variable->source_corresp.parent.namespace_ptr != NULL) {
+            /* Static data member or namespace member variable. */
+            is_member = TRUE;
+            str_length = mangled_member_variable_name(variable, (char *)NULL);
           } else {
             /* Normal variable. */
             str = variable->source_corresp.name;
@@ -415,9 +415,9 @@ used to encode constants as part of the mangled names of template classes.
           (void)sprintf(store_at, "%lu", (unsigned long)str_length);
           store_at += digits;
           if (abkind == (an_address_base_kind)abk_variable) {
-            if (class_type != NULL) {
-              /* Static data member. */
-              (void)mangled_static_data_member_name(variable, store_at);
+            if (is_member) {
+              /* Static data member or namespace member variable. */
+              (void)mangled_member_variable_name(variable, store_at);
             } else {
               /* Normal variable. */
               (void)memcpy(store_at, str, size_t_arg(str_length));
@@ -575,6 +575,39 @@ If the indicated class type is unnamed, give it a name.
     type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_class_a_name */
+
+
+/*
+Seed number for unnamed namespace names.
+*/
+static unsigned long
+		unnamed_namespace_name_seed;
+
+
+static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
+/*
+If the indicated namespace is unnamed, give it a name.
+*/
+{
+  char     *name;
+  sizeof_t name_len;
+
+  /* Note that we may be changing a namespace that is not being lowered yet,
+     but that's okay -- the name in the IL entry is not used by the front
+     end. */
+  if (nsp->source_corresp.name == NULL) {
+    /* The namespace is unnamed, so make up a name. */
+    /* The name is __Nnn, where nn is a unique number for the
+       namespace.  This is not from the ARM or cfront. */
+    unnamed_namespace_name_seed++;
+    name_len = digits_to_represent(unnamed_namespace_name_seed) + 4;
+                                                                 /*"__N"+null*/
+    name = alloc_lowered_name_string(name_len);
+    (void)sprintf(name, "__N%lu", (unsigned long)unnamed_namespace_name_seed);
+    nsp->source_corresp.name = name;
+    nsp->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* give_unnamed_namespace_a_name */
 
 
 /*
@@ -769,56 +802,64 @@ the name.
 }  /* mangled_basic_class_name */
 
 
-static sizeof_t r_mangled_type_name(a_type_ptr    type,
-                                    unsigned long nesting_level,
-                                    char          *store_at)
+static sizeof_t r_mangled_parent_qualifier(
+                                         a_source_correspondence *scp,
+                                         unsigned long           nesting_level,
+                                         char                    *store_at)
 /*
-Determine the mangled form of the name of the type "type".  Place the
-mangled name at *store_at if store_at != NULL, and (always) return the
-length of the name.  See ARM 7.2.1c for name encoding.  This routine should
-not be called directly; mangled_type_name should be used instead.
-A top-level call is made with nesting_level == 1; this routine then makes
-recursive calls to itself with higher nesting levels to process the
-initial parts of the qualified names.
+Determine the parent qualifier needed in the mangled name for a member of
+a class or namespace whose source correspondence is pointed to by scp.
+Place it at *store_at if store_at != NULL, and (always) return the length
+of the parent qualifier.  nesting_level is used to track recursive calls
+of this routine to deal with multiple levels of parents.  nesting_level == 1
+refers to the innermost qualifier of a type, nesting_level == 2 is the
+next level out, etc.  See the macro mangled_parent_qualifier, which supplies
+the usual nesting_level == 1.
 */
 {
-  sizeof_t   mangled_name_length, name_length;
-  char       *name;
-  sizeof_t   digits;
+  a_source_correspondence *parent_scp;
+  sizeof_t                mangled_name_length = 0, name_length;
+  sizeof_t                digits;
+  a_boolean               more_levels;
 
-  /* The mangled form of a type name is the type name with a length
-       preceding it:
-         AB          --> 2AB
-         ABCDEFGHIJK --> 11ABCDEFGHIJK
-     The ARM (7.2.1c) also gives a syntax for encoding qualified class names,
-     like "outer::inner", using a "Q" description:
-       Q2_5outer5inner
-          ^-----^-----mangled class names, outer to inner
-        ^----count of levels of qualification
-     Note that the ARM description does not include the underscore, which
-     is necessary if you allow more than 9 levels of nesting.
-  */
-  mangled_name_length = 0;
+  /* See if the present level is nested inside some other class or
+     namespace. */
+  if (scp->is_class_member) {
+    parent_scp = &scp->parent.class_type->source_corresp;
+  } else {
+    check_assertion(scp->parent.namespace_ptr != NULL);
+    parent_scp = &scp->parent.namespace_ptr->source_corresp;
+  }  /* if */
+  more_levels = (parent_scp->is_class_member ||
+                 parent_scp->parent.namespace_ptr != NULL);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   /* If this a nested type name promoted into the file scope in
      cfront 2.1 mode, do not use the nested form. */
-  if (type->use_cfront_transitional_nested_type_name_mangling) {
-  } else
+  if (scp->parent.class_type->
+                           use_cfront_transitional_nested_type_name_mangling) {
+    more_levels = FALSE;
+  }  /* if */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-  if (type->source_corresp.is_class_member) {
-    /* Nested type.  Do the containing class names. */
-    name_length = r_mangled_type_name(type->source_corresp.parent.class_type,
-                                      nesting_level+1, store_at);
-    mangled_name_length += name_length;
+  if (more_levels) {
+    /* This level is nested inside something else.  Do a recursive call to
+       deal with all of the parents. */
+    name_length = r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
+                                             store_at);
+    mangled_name_length = name_length;
     if (store_at != NULL) store_at += name_length;
-  } else if (!is_immediate_class_type(type)) {
-    /* The type is not a class type (it's a typedef or enum). */
   } else {
-    /* Got to the topmost class. */
+    /* This is the topmost qualifier. */
     if (nesting_level > 1) {
-      /* More than one level of nesting, so put out the "Qn_". */
+      /* More than one level of nesting, so use the ARM (7.2.1c) encoding
+         for nested class names, like "outer::inner", using a "Q" description:
+           Q2_5outer5inner
+              ^-----^-----mangled class names, outer to inner
+            ^----count of levels of qualification
+         Note that the ARM description does not include the underscore, which
+         is necessary if you allow more than 9 levels of nesting.
+         The same scheme is used for namespace names. */
       digits = digits_to_represent(nesting_level);
-      mangled_name_length += 2 + digits;
+      mangled_name_length = 2 + digits;
       if (store_at != NULL) {
         /* Actually store the "Qn_". */
         (void)sprintf(store_at, "Q%lu_", nesting_level);
@@ -826,9 +867,83 @@ initial parts of the qualified names.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Put the innermost type name onto the name. */
+  /* Put the class or namespace name at this level into the mangled name. */
   /* The name is preceded by a count of the number of characters in
      the name. */
+  if (scp->is_class_member) {
+    /* Class name. */
+    a_type_ptr type = scp->parent.class_type;
+    name_length = mangled_basic_class_name(type, (char *)NULL);
+    digits = digits_to_represent((unsigned long)name_length);
+    mangled_name_length += name_length + digits;
+    if (store_at != NULL) {
+      /* Actually store the name. */
+      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+      store_at += digits;
+      store_at += mangled_basic_class_name(type, store_at);
+    }  /* if */
+  } else {
+    /* Namespace name. */
+    a_namespace_ptr nsp = scp->parent.namespace_ptr;
+    char            *name = nsp->source_corresp.name;
+    if (name == NULL) {
+      /* Unnamed namespace. */
+      give_unnamed_namespace_a_name(nsp);
+      name = nsp->source_corresp.name;
+    }  /* if */
+    name_length = strlen(name);
+    digits = digits_to_represent((unsigned long)name_length);
+    mangled_name_length += name_length + digits;
+    if (store_at != NULL) {
+      /* Actually store the name. */
+      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+      store_at += digits;
+      (void)memcpy(store_at, name, size_t_arg(name_length));
+      store_at += name_length;
+    }  /* if */
+  }  /* if */
+  return mangled_name_length;
+}  /* r_mangled_parent_qualifier */
+
+
+/*
+Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
+*/
+#define mangled_parent_qualifier(parent, store_at)                    \
+  r_mangled_parent_qualifier((parent), (unsigned long)1, (store_at))
+
+
+static sizeof_t mangled_type_name(a_type_ptr type,
+                                  char       *store_at)
+/*
+Determine the mangled form of the name of the type "type".  Place the
+mangled name at *store_at if store_at != NULL, and (always) return the
+length of the name.  See ARM 7.2.1c for name encoding.  This routine is
+used for named types (classes, enums, and typedefs) and for unnamed classes.
+*/
+{
+  sizeof_t   mangled_name_length = 0, name_length;
+  char       *name;
+  sizeof_t   digits;
+
+  if (!type->source_corresp.is_class_member &&
+      type->source_corresp.parent.namespace_ptr == NULL) {
+    /* This entity is not a member of a class or a namespace. */
+  } else {
+    /* The type is a member of a class or namespace, so put out a qualifier.
+       Note that the count starts at 2 because the type name itself is level
+       1. */
+    mangled_name_length = r_mangled_parent_qualifier(&type->source_corresp,
+                                                     (unsigned long)2,
+                                                     store_at);
+    if (store_at != NULL) store_at += mangled_name_length;
+  }  /* if */
+  /* Put out the type name itself. */
+  /* The mangled form of a type name is the type name with a length
+       preceding it:
+         AB          --> 2AB
+         ABCDEFGHIJK --> 11ABCDEFGHIJK
+  */
   if (is_immediate_class_type(type)) {
     /* Class name. */
     name_length = mangled_basic_class_name(type, (char *)NULL);
@@ -861,19 +976,6 @@ initial parts of the qualified names.
     }  /* if */
   }  /* if */
   return mangled_name_length;
-}  /* r_mangled_type_name */
-
-
-static sizeof_t mangled_type_name(a_type_ptr type,
-                                  char       *store_at)
-/*
-Determine the mangled form of the name of the type "type".  Place the
-mangled name at *store_at if store_at != NULL, and (always) return the
-length of the name.  See ARM 7.2.1c for name encoding.  This routine is
-used for named types (classes, enums, and typedefs) and for unnamed classes.
-*/
-{
-  return r_mangled_type_name(type, (unsigned long)1, store_at);
 }  /* mangled_type_name */
 
 
@@ -1280,7 +1382,8 @@ types; just put out the base encoded name.
 {
   sizeof_t     mangled_name_length, section_length;
   char         *name;
-  a_type_ptr   class_type = NULL, conversion_type, routine_type;
+  a_type_ptr   conversion_type, routine_type;
+  a_boolean    is_member;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
      but this routine handles:
@@ -1341,13 +1444,13 @@ types; just put out the base encoded name.
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
-  /* See if the function is a member function. */
-  if (routine->source_corresp.is_class_member) {
-    class_type = routine->source_corresp.parent.class_type;
-  }  /* if */
-  /* If we will be adding the class name or the parameter types, put out
-     two underscores to separate the function name from the rest. */
-  if (class_type != NULL || !suppress_param_encoding) {
+  /* See if the function is a class member function or a member of a
+     namespace. */
+  is_member = (routine->source_corresp.is_class_member ||
+               routine->source_corresp.parent.namespace_ptr != NULL);
+  /* If we will be adding the class or namespace name or the parameter types,
+     put out two underscores to separate the function name from the rest. */
+  if (is_member || !suppress_param_encoding) {
     /* Add two underscores after the name. */
     mangled_name_length += 2;
     if (store_at != NULL) {
@@ -1355,15 +1458,17 @@ types; just put out the base encoded name.
       *store_at++ = '_';
     }  /* if */
   }  /* if */
-  if (class_type != NULL) {
-    /* Put out the name of the class of which this function is a member. */
-    section_length = mangled_type_name(class_type, store_at);
+  if (is_member) {
+    /* Put out the name of the class or namespace of which this function
+       is a member. */
+    section_length = mangled_parent_qualifier(&routine->source_corresp,
+                                              store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
   if (!suppress_param_encoding) {
-    if (class_type != NULL) {
-      /* Member function.  Put out the qualifiers on the member function
+    if (routine->source_corresp.is_class_member) {
+      /* Class member function.  Put out the qualifiers on the member function
          type. */
       section_length = mangled_encoding_for_function_qualifiers(routine_type,
                                                                 store_at);
@@ -1456,11 +1561,12 @@ name in the routine entry.
 static sizeof_t mangled_member_name(a_source_correspondence *scp,
                                     char                    *store_at)
 /*
-Determine the mangled form of the name of the class member whose source
-correspondence is given by scp.  Place the mangled name at *store_at if
-store_at != NULL, and (always) return the length of the name.  See ARM
-7.2.1c for name encoding.  This routine must be called only for static
-data member variables and member constants.
+Determine the mangled form of the name of the class or namespace member
+whose source correspondence is given by scp.  Place the mangled name
+at *store_at if store_at != NULL, and (always) return the length of the
+name.  See ARM 7.2.1c for name encoding.  This routine must be called
+only for static data member variables, namespace member variables, and
+class and namespace member constants.
 */
 {
   sizeof_t mangled_name_length, section_length;
@@ -1470,6 +1576,7 @@ data member variables and member constants.
      original name followed by two underscores followed by the mangled
      class name.  For example:
        AB::xy --> xy__2AB
+     The same encoding is used for members of namespaces.
   */
   mangled_name_length = 0;
   name = scp->name;
@@ -1489,24 +1596,24 @@ data member variables and member constants.
     *store_at++ = '_';
     *store_at++ = '_';
   }  /* if */
-  /* Output the mangled class name. */
-  section_length = mangled_type_name(scp->parent.class_type, store_at);
+  /* Output the mangled parent name. */
+  section_length = mangled_parent_qualifier(scp, store_at);
   mangled_name_length += section_length;
   return mangled_name_length;
 }  /* mangled_member_name */
 
 
-static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
-                                                char           *store_at)
+static sizeof_t mangled_member_variable_name(a_variable_ptr variable,
+                                             char           *store_at)
 /*
-Determine the mangled form of the name of the static data member "variable".
-Place the mangled name at *store_at if store_at != NULL, and (always) return
-the length of the name.  See ARM 7.2.1c for name encoding.  This routine
-must be called only for static data member variables.
+Determine the mangled form of the name of the member variable "variable"
+(a static data member or namespace member variable).  Place the mangled name
+at *store_at if store_at != NULL, and (always) return the length of the name.
+See ARM 7.2.1c for name encoding.
 */
 {
   return mangled_member_name(&variable->source_corresp, store_at);
-}  /* mangled_static_data_member_name */
+}  /* mangled_member_variable_name */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
@@ -1529,14 +1636,14 @@ name in the variable entry.
   } else {
     /* Generate the mangled name in a buffer. */
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_static_data_member_name(variable,
-                                                          (char *)NULL);
+    mangled_name_length = mangled_member_variable_name(variable,
+                                                       (char *)NULL);
     /* Make sure we have enough space in temp_text_buffer. */
     alloc_length = mangled_name_length + 1;
     ensure_temp_text_buffer_space(alloc_length);
     mangled_name = temp_text_buffer;
     /* Create the name. */
-    (void)mangled_static_data_member_name(variable, mangled_name);
+    (void)mangled_member_variable_name(variable, mangled_name);
     /* Store the final null. */
     mangled_name[mangled_name_length] = '\0';
   }  /* if */
@@ -1614,6 +1721,25 @@ nested class names.
 }  /* do_type_list_class_name_mangling */
 
 
+static void do_scope_class_name_mangling(a_scope_ptr scope)
+/*
+Do name mangling for class names in the indicated scope (the file scope
+or a namespace scope) and all subscopes in the file-scope memory region.
+*/
+{
+  a_namespace_ptr nsp;
+
+  /* Process the types in the scope. */
+  do_type_list_class_name_mangling(scope->types);
+  /* Process the namespaces in the scope. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      do_scope_class_name_mangling(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+}  /* do_scope_class_name_mangling */
+
+
 static void do_class_name_mangling(void)
 /*
 Do name mangling for all class names.  Note that this does not include
@@ -1622,8 +1748,9 @@ special processing for nested class names.
 {
   a_scope_orphaned_list_header_ptr solhp;
 
-  /* Process the file-scope types and types inside of file-scope classes. */
-  do_type_list_class_name_mangling(il_header.primary_scope->types);
+  /* Process the file scope and all subscopes in the file-scope memory
+     region. */
+  do_scope_class_name_mangling(il_header.primary_scope);
   /* Process local types by visiting the types on orphan lists. */
   for (solhp = il_header.scope_orphaned_list_headers;
        solhp != NULL;
@@ -1636,8 +1763,8 @@ special processing for nested class names.
 static void mangle_member_constant_name(a_constant_ptr con)
 /*
 Mangle the name of the indicated member constant, if necessary.  con
-is either an enumerator constant or (as an extension) a declared member
-constant.
+is either an enumerator constant, a namespace member constant, or (as an
+extension) a declared class member constant.
 */
 {
   sizeof_t mangled_name_length, alloc_length;
@@ -1737,9 +1864,10 @@ Mangle the name of the indicated function, if necessary.
 }  /* mangle_function_name */
 
 
-static void mangle_static_data_member_name(a_variable_ptr variable)
+static void mangle_member_variable_name(a_variable_ptr variable)
 /*
-Mangle the name of the indicated static data member.
+Mangle the name of the indicated static data member or namespace member
+variable.
 */
 {
   sizeof_t mangled_name_length, alloc_length;
@@ -1748,19 +1876,18 @@ Mangle the name of the indicated static data member.
   if (!variable->source_corresp.name_has_been_mangled) {
     error_position = variable->source_corresp.decl_position;
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_static_data_member_name(variable,
-                                                          (char *)NULL);
+    mangled_name_length = mangled_member_variable_name(variable, (char *)NULL);
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
     alloc_length = mangled_name_length + 1;
     mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)mangled_static_data_member_name(variable, mangled_name);
+    (void)mangled_member_variable_name(variable, mangled_name);
     /* Store the final null. */
     mangled_name[mangled_name_length] = '\0';
     variable->source_corresp.name = mangled_name;
     variable->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
-}  /* mangle_static_data_member_name */
+}  /* mangle_member_variable_name */
 
 
 static void do_scope_other_name_mangling(a_scope_ptr scope)
@@ -1771,9 +1898,10 @@ the file scope or a class scope.  If the scope is the file scope,
 the orphan lists for function-local entities are also processed.
 */
 {
-  a_routine_ptr  routine;
-  a_variable_ptr variable;
-  a_constant_ptr con;
+  a_namespace_ptr nsp;
+  a_routine_ptr   routine;
+  a_variable_ptr  variable;
+  a_constant_ptr  con;
 
   /* Visit all types. */
   do_type_list_other_name_mangling(scope->types);
@@ -1787,20 +1915,29 @@ the orphan lists for function-local entities are also processed.
       do_type_list_other_name_mangling(solhp->orphaned_types);
     }  /* for */
   }  /* if */
+  /* Visit all namespaces. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      do_scope_other_name_mangling(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
   /* Visit all routines. */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     mangle_function_name(routine);
   }  /* for */
-  /* If this is a class scope, visit the static data member variables
-     and class constants. */
-  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
-    /* Look for static data members and mangle their names. */
+  if (scope->kind == (a_scope_kind)sck_class_struct_union ||
+      scope->kind == (a_scope_kind)sck_namespace) {
+    /* For a class or namespace scope, visit the member variables
+       and constants. */
+    /* Look for static data members/namespace member variables and mangle
+       their names. */
     for (variable = scope->variables;
          variable != NULL;
          variable = variable->next) {
-      mangle_static_data_member_name(variable);
+      mangle_member_variable_name(variable);
     }  /* for */
-    /* Look for member constants (an extension) and mangle their names. */
+    /* Look for member constants (an extension in classes) and mangle their
+       names. */
     for (con = scope->constants; con != NULL; con = con->next) {
       mangle_member_constant_name(con);
     }  /* for */
@@ -1819,7 +1956,8 @@ other name mangling that might use the name is done.
   char     *mangled_name;
 
   error_position = type->source_corresp.decl_position;
-  if (type->source_corresp.is_class_member &&
+  if ((type->source_corresp.is_class_member ||
+       type->source_corresp.parent.namespace_ptr != NULL) &&
       type->source_corresp.name != NULL &&
       !type->source_corresp.name_has_been_mangled
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -1833,7 +1971,8 @@ other name mangling that might use the name is done.
          __Q2_1A1B
        The "Q2_1A1B" part is the normal representation for a mangled
        name, and the prefix makes it unique (i.e., makes it distinct
-       from all user identifiers). */
+       from all user identifiers).  Similar mangling is used for members
+       of namespaces (a different kind of "nested" type). */
     /* Determine how long the mangled name is. */
     mangled_name_length = mangled_type_name(type, (char *)NULL) +
                           2;  /* "__" */
@@ -1888,6 +2027,26 @@ and subscopes thereunder.
 }  /* do_type_list_nested_type_name_mangling */
 
 
+static void do_scope_nested_type_name_mangling(a_scope_ptr scope)
+/*
+Do name mangling for all nested type names in the indicated scope (the
+file scope or a namespace scope) and all subscopes in the file-scope
+memory region.
+*/
+{
+  a_namespace_ptr nsp;
+
+  /* Process the types in the scope. */
+  do_type_list_nested_type_name_mangling(scope->types);
+  /* Process the namespaces in the scope. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      do_scope_nested_type_name_mangling(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+}  /* do_scope_nested_type_name_mangling */
+
+
 static void do_nested_type_name_mangling(void)
 /*
 Do name mangling for all nested type names.  This must be done separately
@@ -1898,8 +2057,9 @@ virtual function table variable names).
 {
   a_scope_orphaned_list_header_ptr solhp;
 
-  /* Process the file-scope types and types inside of file-scope classes. */
-  do_type_list_nested_type_name_mangling(il_header.primary_scope->types);
+  /* Process the file scope and all subscopes in the file-scope memory
+     region. */
+  do_scope_nested_type_name_mangling(il_header.primary_scope);
   /* Process local types by visiting the types on orphan lists. */
   for (solhp = il_header.scope_orphaned_list_headers;
        solhp != NULL;
@@ -1920,7 +2080,7 @@ orphan lists).
   /* Mangle class names, not including special processing for nested
      class names. */
   do_class_name_mangling();
-  /* Do function and static data member name mangling. */
+  /* Do function, namespace, and static data member name mangling. */
   do_scope_other_name_mangling(il_header.primary_scope);
   /* Mangle nested type names. */
   do_nested_type_name_mangling();
@@ -2217,6 +2377,7 @@ name_lower_init.)
   if (exceptions_enabled && precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(unnamed_class_name_seed),
+      pch_saved_var_array_elem(unnamed_namespace_name_seed),
       pch_saved_var_array_elem(unnamed_enum_name_seed),
       pch_saved_var_array_terminating_elem()
     };
@@ -2235,6 +2396,7 @@ of the front end.
 {
   /* Static variable in lower_name.c: */
   unnamed_class_name_seed = 0;
+  unnamed_namespace_name_seed = 0;
   unnamed_enum_name_seed = 0;
 }  /* name_lower_init */
 
