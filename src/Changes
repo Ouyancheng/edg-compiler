@@ -1,5 +1,11 @@
 Version 2.45
 
+12/2/00  C-generating back end, RECORD_NAME_IN_PARAM_TYPE_ENTRY: parameter
+         names on function declarations
+
+The C-generating back end now puts out parameter names on function
+declarations When RECORD_NAME_IN_PARAM_TYPE_ENTRY is TRUE.
+
 11/24/00 Microsoft mode: __uuidof and templates
 
 The Microsoft extension operator __uuidof has interesting behavior when
