@@ -100,6 +100,10 @@ Do required initialization for host-dependent things.
     c = -1;
     if (c > 0) internal_error("host_init: CHAR_MIN in basics.h is set wrong");
 #endif /* CHAR_MIN == 0 */
+    /* Check that CHAR_MIN and CHAR_MAX add up to the right power of two. */
+#if CHAR_MAX-CHAR_MIN != ((1 << CHAR_BIT) - 1)
+    internal_error("host_init: CHAR_MIN or CHAR_MAX in basics.h is set wrong");
+#endif /* CHAR_MAX ... */
   }
 #endif /* CHECKING */
 
