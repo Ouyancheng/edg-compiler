@@ -1205,6 +1205,11 @@ typedef struct an_id_linkage_block {
 			/* TRUE when the declaration appears within the
 			   context of an extern "C" linkage specification. */
   a_byte_boolean
+		direct_linkage_specifier;
+			/* If TRUE, a linkage specification appeared directly
+			   on the declaration (as opposed to the declaration
+			   just being in a linkage specification block). */
+  a_byte_boolean
 		namespace_reactivated;
 			/* TRUE if a namespace reactivation scope was
 			   pushed during linkage processing; it must be
@@ -1248,6 +1253,7 @@ static void clear_id_linkage_block(an_id_linkage_block *idlbp)
   idlbp->is_local_class_friend_decl = FALSE;
   idlbp->within_unnamed_namespace = FALSE;
   idlbp->extern_C_name_linkage_specified = FALSE;
+  idlbp->direct_linkage_specifier = FALSE;
   idlbp->namespace_reactivated = FALSE;
   idlbp->templ_param_list = NULL;
   idlbp->linkage = idl_none;
@@ -1928,7 +1934,8 @@ specified id-linkage block.
                is_const_qualified_type(idlbp->type) &&
                decl_scope_level == depth_innermost_namespace_scope &&
                idlbp->storage_class == (a_storage_class)sc_unspecified &&
-               !idlbp->extern_C_name_linkage_specified) {
+               !(idlbp->extern_C_name_linkage_specified &&
+                 idlbp->direct_linkage_specifier)) {
       /* In C++ all const qualified objects at file or namespace scope with
          no explicit storage class are internally linked (unless previously
          declared to be extern -- see below). */
@@ -3710,6 +3717,7 @@ cross-reference output describing this declaration.
   idlb.type = type_ptr;
   idlb.is_definition = is_variable_def;
   idlb.storage_class = storage_class;
+  idlb.direct_linkage_specifier = decl_modifiers->direct_linkage_specifier;
   set_linkage_environment(&idlb, decl_scope_level);
   if (!C_mode() && locator->specific_symbol != NULL &&
       (qualifier_namespace_ptr(*locator) != NULL ||
@@ -8940,8 +8948,11 @@ continue_with_declaration:
     /* push_name_linkage was called in decl_specifiers, and the corresponding
        pop must be done before exiting this routine. */
     restore_name_linkage = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   } else if (is_linkage_spec_decl) {
+    /* Record the fact that this declaration has a linkage specifier attached
+       directly to it (as opposed to just being inside a linkage block). */
+    decl_modifiers.direct_linkage_specifier = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Adjust the specifiers-range to reflect the fact that there is a
        linkage specification (which was scanned not by decl_specifiers but
        by the caller). */

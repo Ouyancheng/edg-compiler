@@ -1,5 +1,16 @@
 Version 2.43
 
+9/3/99   Linkage of extern "C" const variables
+
+Variables declared in namespace or global scope with a const type have
+internal linkage by default.  The front end used to change this to external
+linkage if the variable appears in a brace-enclosed linkage-specification.
+This is no longer the case, although a linkage-specification without braces
+does affect the linkage of such a variable.
+
+  extern "C" { int const two = 2; }  // two has internal linkage
+  extern "C" int const forty = 2;    // forty has external linkage
+
 9/3/99   Report extraneous braces in aggregate initializers
 
 The front end now diagnoses extraneous braces around scalar elements of

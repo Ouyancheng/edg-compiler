@@ -8825,6 +8825,7 @@ declaration modifiers.
 */
 {
   decl_modifiers->flags = DM_NONE;
+  decl_modifiers->direct_linkage_specifier = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   decl_modifiers->uuid_string = NULL;
   decl_modifiers->get_property_name = NULL;

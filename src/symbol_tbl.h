@@ -1046,10 +1046,10 @@ typedef struct a_template_decl_info {
 
 
 /*
-Structure that contains non-standard declarative information (e.g., as used
-in Microsoft-compatibility mode).  This block is passed around during
-declaration processing; its contents may be copied into IL entries after
-the appropriate checking is done.
+Structure that contains suppelemtary declarative information (much of it
+nonstandard, e.g., as used in Microsoft-compatibility mode).  This block is
+passed around during declaration processing; its contents may be copied into
+IL entries after the appropriate checking is done.
 */
 typedef struct a_decl_modifiers_block *a_decl_modifiers_block_ptr;
 typedef struct a_decl_modifiers_block {
@@ -1057,7 +1057,13 @@ typedef struct a_decl_modifiers_block {
 		flags;
 			/* A bit-vector of flags representing additional
 			   declarative information (e.g.,  via the __declspec
-			   mechanism in Microsoft compatibility mode). */
+			   mechanism in Microsoft compatibility mode).  This
+			   may eventually be copied into the IL. */
+  a_bit_field	direct_linkage_specifier:1;
+			/* TRUE if an only if a linkage specifier was added
+			   directly to the declaration (e.g., extern "C" A x;
+			   but not extern "C" { A x; }).  Not copied into
+			   the IL. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   char		*uuid_string;
 			/* Pointer to a string representing the argument of
