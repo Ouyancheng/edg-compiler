@@ -1414,7 +1414,7 @@ Scan a case label definition.  The syntax is:
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
-  a_boolean                     err;
+  a_boolean                     err, did_not_fold;
   a_constant                    constant;
   a_constant_ptr                constant_ptr = NULL;
   an_error_code                 err_code;
@@ -1453,6 +1453,7 @@ Scan a case label definition.  The syntax is:
     if (sssep != NULL) {
       type_change_constant(&constant, sssep->switch_selector_type,
                            /*issue_type_chg_warning=*/TRUE,
+                           /*constant_context=*/TRUE, &did_not_fold,
                            &err_code, &err_severity);
       if (err_code != ec_no_error) {
         if (err_severity == es_warning) {

@@ -357,9 +357,7 @@ Convert a pointer constant to a constant of type as specified by
 ??=error conv_pointer_to_whatever: different-sized pointers not implemented.
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   }  /* if */
-  if (*err_code != ec_no_error) {
-    set_error_constant(new_constant);
-  } else {
+  if (*err_code == ec_no_error) {
     copy_constant(old_constant, new_constant);
     implicit_cast(new_constant, new_type);
   }  /* if */
@@ -394,9 +392,30 @@ Convert an integer constant to a pointer constant of type as specified by
 }  /* conv_integer_to_pointer */
 
 
+static void set_folding_error_result(a_constant        *result,
+                                     a_boolean         constant_context,
+                                     a_boolean         *did_not_fold,
+                                     an_error_severity *err_severity)
+/*
+An error has been detected in a folding operation.  Set *result to the proper
+result (often, an error constant).  If not in a constant_context, reduce
+an error to a warning and set *did_not_fold to TRUE.
+*/
+{
+  if (constant_context) {
+    set_error_constant(result);
+  } else {
+    *err_severity = es_warning;
+    *did_not_fold = TRUE;
+  }  /* if */
+}  /* set_folding_error_result */
+
+
 void type_change_constant(a_constant        *constant,
 			  a_type_ptr        new_type,
 			  a_boolean         issue_type_chg_warning,
+                          a_boolean         constant_context,
+                          a_boolean         *did_not_fold,
 			  an_error_code     *err_code,
 			  an_error_severity *err_severity)
 /*
@@ -404,13 +423,17 @@ Convert the indicated constant to "new_type".  Set *err_code and *err_severity
 to indicate any errors or warnings; if none were found, set *err_code to
 ec_no_error.  Warnings for loss of precision or change of sign are given
 only if issue_type_chg_warning is TRUE (usually, TRUE means the type conversion
-is implicit, and FALSE means there was an explicit cast).
+is implicit, and FALSE means there was an explicit cast).  If constant_context
+is FALSE, this operation is being evaluated as part of a nonconstant
+expression, so any error is reduced to a warning and *did_not_fold is
+returned TRUE.
 */
 {
   a_type_ptr constant_type;
   a_constant new_constant;
 
   db_enter(5, "type_change_constant");
+  *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
   clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
@@ -510,7 +533,9 @@ is implicit, and FALSE means there was an explicit cast).
 
 exit:
   if (*err_code != ec_no_error && *err_severity == es_error) {
-    set_error_constant(&new_constant);
+    /* There was an error. */
+    set_folding_error_result(&new_constant, constant_context, did_not_fold,
+                             err_severity);
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
@@ -558,8 +583,10 @@ expressions in statements and the ?:, &&, and || operators.
       is_zero = fp_is_zero_constant(float_kind,
                                     &constant->variant.float_value);
       break;
-    /* Note that ck_address constants are always non-NULL and therefore
-       is_zero is left FALSE. */
+    default:
+      /* Note that ck_address constants are always non-NULL and therefore
+         is_zero is left FALSE. */
+      break;
   }  /* switch */
 
   return (is_zero);
@@ -756,18 +783,32 @@ Do the "!" (not) operation on all types of scalars.
 }  /* do_not */
 
 
+/*
+Return TRUE if the indicated constant is an address constant cast to
+an integral type.  Such a constant is a link-time constant but not a
+compile-time constant.
+*/
+#define is_addr_constant_cast_to_integral_type(constant)              \
+  ((constant)->kind == (a_constant_repr_kind)ck_address &&            \
+   (constant)->implicit_cast && is_integral_type((constant)->type))
+
+
 void unary_operation(an_expr_operator_kind op,
 		     a_constant            *constant,
                      a_type_ptr            result_type,
 		     a_constant            *result,
+                     a_boolean             constant_context,
                      a_boolean             *did_not_fold,
 		     an_error_code         *err_code,
 		     an_error_severity     *err_severity)
 /*
 Fold unary operations on constants.  op indicates the operation,
 constant the operand.  result_type indicates the desired result type.
-The result constant is put into result.  If the operation could not
-be folded, *did_not_fold is returned TRUE.  *err_code and *err_severity are
+The result constant is put into result.  If constant_context is FALSE,
+this operation is being evaluated as part of a nonconstant expression,
+so any error is reduced to a warning and *did_not_fold is returned TRUE.
+*did_not_fold is also returned TRUE if the operation could not be
+folded for any other reason.  *err_code and *err_severity are
 set to indicate any errors or warnings found; if none are found,
 *err_code is set to ec_no_error.
 */
@@ -777,40 +818,43 @@ set to indicate any errors or warnings found; if none are found,
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
-  clear_constant(result, (a_constant_repr_kind)ck_error);
-  result->type = result_type;
   if (constant->kind == (a_constant_repr_kind)ck_error) {
     /* The constant is an error constant; set the result to an error
        constant and return. */
     set_error_constant(result);
-  } else if (constant->kind == (a_constant_repr_kind)ck_address &&
-             constant->implicit_cast && is_integral_type(constant->type)) {
-    /* An address constant cast to an integral type is a link-time
-       constant, not a compile-time constant.  We cannot do operations
-       on it. */
-    *did_not_fold = TRUE;
   } else {
-    switch (op) {
-      case eok_fnegate:
-        do_fnegate(constant, result, err_code, err_severity);
-        break;
-      case eok_inegate:
-        do_inegate(constant, result, err_code, err_severity);
-        break;
-      case eok_complement:
-        do_complement(constant, result, err_code, err_severity);
-        break;
-      case eok_not:
-        do_not(constant, result);
-        break;
+    clear_constant(result, (a_constant_repr_kind)ck_error);
+    result->type = result_type;
+    if (is_addr_constant_cast_to_integral_type(constant)) {
+      /* An address constant cast to an integral type is a link-time
+         constant, not a compile-time constant.  We cannot do operations
+         on it. */
+      *did_not_fold = TRUE;
+    } else {
+      switch (op) {
+        case eok_fnegate:
+          do_fnegate(constant, result, err_code, err_severity);
+          break;
+        case eok_inegate:
+          do_inegate(constant, result, err_code, err_severity);
+          break;
+        case eok_complement:
+          do_complement(constant, result, err_code, err_severity);
+          break;
+        case eok_not:
+          do_not(constant, result);
+          break;
 #if CHECKING
-      default:
-        internal_error("unary_operation: bad unary operator");
-        break;
+        default:
+          internal_error("unary_operation: bad unary operator");
+          break;
 #endif /* CHECKING */
-    }  /* switch */
+      }  /* switch */
+    }  /* if */
     if (*err_code != ec_no_error && *err_severity == es_error) {
-      set_error_constant(result);
+      /* There was an error. */
+      set_folding_error_result(result, constant_context, did_not_fold,
+                               err_severity);
     }  /* if */
   }  /* if */
 
@@ -1904,10 +1948,6 @@ detected, or *err_code == ec_no_error if everything went fine.
     }  /* if */
   }  /* if */
 
-  if (*err_code != ec_no_error && *err_severity == es_error) {
-    set_error_constant(result);
-  }  /* if */
-
 #if DEBUG
   db_binary_operation(db_operator_names[op],
                       constant_1, constant_2, result, *err_code);
@@ -2054,6 +2094,7 @@ void binary_operation(an_expr_operator_kind op,
 		      a_constant            *constant_2,
 		      a_type_ptr            result_type,
 		      a_constant            *result,
+                      a_boolean             constant_context,
 		      a_boolean             *did_not_fold,
 		      an_error_code         *err_code,
 		      an_error_severity     *err_severity)
@@ -2061,9 +2102,12 @@ void binary_operation(an_expr_operator_kind op,
 Fold a two-operand constant operation.  op indicates the operation,
 and constant_1 and constant_2 are the operands.  result_type indicates
 the desired result type.  The result constant is placed in *result.
-*err_code and *err_severity are set to indicate any errors or warnings;
-if there are none, *err_code is set to ec_no_error.  If the operation
-cannot be folded, *did_not_fold is set to TRUE.
+If constant_context is FALSE, this operation is being evaluated as
+part of a nonconstant expression, so any error is reduced to a
+warning and *did_not_fold is returned TRUE.  *did_not_fold is also
+returned TRUE if the operation could not be folded for any other
+reason.  *err_code and *err_severity are set to indicate any errors
+or warnings; if there are none, *err_code is set to ec_no_error.
 */
 {
   db_enter(5, "binary_operation");
@@ -2080,9 +2124,7 @@ cannot be folded, *did_not_fold is set to TRUE.
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
-    if (constant_1->kind == (a_constant_repr_kind)ck_address &&
-        constant_1->implicit_cast &&
-        is_integral_type(constant_1->type)) {
+    if (is_addr_constant_cast_to_integral_type(constant_1)) {
       /* The first constant is an address constant cast to an integral
          type.  Such a constant is a link-time constant, not a compile-time
          constant.  We cannot in general do operations on it.  However,
@@ -2103,9 +2145,7 @@ cannot be folded, *did_not_fold is set to TRUE.
       } else {
         *did_not_fold = TRUE;
       }  /* if */
-    } else if (constant_2->kind == (a_constant_repr_kind)ck_address &&
-               constant_2->implicit_cast &&
-               is_integral_type(constant_2->type)) {
+    } else if (is_addr_constant_cast_to_integral_type(constant_2)) {
       /* The second constant is an address constant cast to an integral
          type.  Such a constant is a link-time constant, not a compile-time
          constant.  We cannot in general do operations on it.  However,
@@ -2219,7 +2259,9 @@ cannot be folded, *did_not_fold is set to TRUE.
     }  /* if */
 
     if (*err_code != ec_no_error && *err_severity == es_error) {
-      set_error_constant(result);
+      /* There was an error. */
+      set_folding_error_result(result, constant_context, did_not_fold,
+                               err_severity);
     }  /* if */
 
   }  /* if */
