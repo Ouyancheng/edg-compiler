@@ -4287,8 +4287,8 @@ called to do the allocation, stripped to its fundamental symbol; and
     /* The symbol is ambiguous. */
     pos_sy_error(ec_ambiguous_name, position, overload_delete_sym);
   } else if (delete_sym == NULL) {
-    /* There is no available appropriate operator delete. */
-    pos_error(ec_no_appropriate_delete, position);
+    /* There is no available appropriate operator delete, so the deletion
+       is just not done. */
   } else {
     /* There is an appropriate operator delete. */
     a_symbol_ptr fund_delete_sym = fundamental_symbol_of(delete_sym);
