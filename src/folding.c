@@ -1213,7 +1213,10 @@ casts between unrelated classes.
   }  /* if */
   if (!C_mode() &&
       (constant->kind == (a_constant_repr_kind)ck_template_param ||
-       is_or_contains_template_param(new_type))) {
+       is_or_contains_template_param(new_type) ||
+       /* On error cases for nontype template parameters, a template param
+          type can appear outside of a prototype instantiation. */
+       new_type->kind == (a_type_kind)tk_template_param)) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a special tpck_cast constant. */
     make_template_param_cast_constant(constant, &new_constant, new_type);
