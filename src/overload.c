@@ -2746,6 +2746,7 @@ void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   a_boolean         is_qualified_name,
                                   a_source_position *call_position,
                                   a_boolean         elided_reference,
+                                  a_boolean         address_taken,
                                   an_operand        *operand,
                                   a_boolean         *access_error_reported)
 /*
@@ -2771,8 +2772,11 @@ overloaded_function_symbol is a non-overloaded function.  operand can be
 NULL if it is not necessary to generate the function designator operand.
 elided_reference is TRUE if the routine was referenced in the program
 but the reference is being elided in the intermediate language (operand
-should be NULL in that case).  On return, *access_error_reported is TRUE
-if an access control checking error was detected.
+should be NULL in that case).  address_taken is TRUE if the address of
+the function is being taken (as opposed to the function being called);
+it controls the type of reference recorded.  On return,
+*access_error_reported is TRUE if an access control checking error
+was detected and reported.
 */
 {
   a_symbol_locator function_symbol_locator;
@@ -2821,6 +2825,8 @@ if an access control checking error was detected.
          "new" call can be folded into a constructor call).  Mark the symbol
          as referenced, but not the IL entry. */
       check_assertion(operand == NULL);
+      /* Note that address_taken does not affect the kind of reference.
+         That's intentional, since this is not a "real" reference. */
       record_symbol_reference(SRK_REFERENCE, function_symbol, call_position,
                               /*update_il_entry=*/FALSE);
     } else {
@@ -2831,7 +2837,9 @@ if an access control checking error was detected.
            operand.  Mark the function as referenced.  Note that we are
            ignoring whether or not the function is virtual; we are assuming
            that the reference is to exactly that function. */
-        record_symbol_reference(SRK_REFERENCE, function_symbol, call_position,
+        record_symbol_reference(SRK_REFERENCE |
+                                  (address_taken ? SRK_ADDRESS_TAKEN : 0),
+                                function_symbol, call_position,
                                 /*update_il_entry=*/FALSE);
         if_evaluating_mark_routine_referenced(function_symbol->
                                                          variant.routine.ptr);
@@ -2844,6 +2852,12 @@ if an access control checking error was detected.
                                          call_position, rep, operand);
         /* Convert the operand to a function pointer. */
         conv_function_designator_to_ptr_to_function(operand);
+        if (!address_taken) {
+          /* Change the kind of reference to the function from "address taken"
+             to "reference". */
+          change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
+                                SRK_REFERENCE);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3118,12 +3132,9 @@ case).  call_position gives the source position of the call.
                                is_qualified_name,
                                call_position,
                                /*elided_reference=*/FALSE,
+                               /*address_taken=*/FALSE,
                                function_operand,
                                &access_error_reported);
-  /* Change the kind of reference to the function from "address taken"
-     to "reference". */
-  change_some_ref_kinds(function_operand->ref_entries_list, SRK_ADDRESS_TAKEN,
-                        SRK_REFERENCE);
   /* Check whether or not a selector is needed. */
   routine_type = routine_symbol_type(function_symbol);
   if (routine_type_is_nonstatic_member_function(routine_type)) {

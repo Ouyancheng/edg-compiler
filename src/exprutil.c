@@ -1900,6 +1900,7 @@ except for casts to ambiguous or inaccessible base classes.
                                          (a_boolean)operand->is_qualified_name,
                                          &operand->position,
                                          /*elided_reference=*/FALSE,
+                                         /*address_taken=*/TRUE,
                                          (an_operand *)NULL,
                                          &access_error_reported);
             make_ptr_to_member_constant_operand(function_symbol,
@@ -1922,6 +1923,7 @@ except for casts to ambiguous or inaccessible base classes.
                                          (a_boolean)operand->is_qualified_name,
                                          &orig_operand.position,
                                          /*elided_reference=*/FALSE,
+                                         /*address_taken=*/TRUE,
                                          operand,
                                          &access_error_reported);
           }  /* if */

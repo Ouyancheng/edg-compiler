@@ -303,6 +303,7 @@ extern void overloaded_function_catch_up(
                                   a_boolean         is_qualified_name,
                                   a_source_position *call_position,
                                   a_boolean         elided_reference,
+                                  a_boolean         address_taken,
                                   an_operand        *operand,
                                   a_boolean         *access_error_reported);
 

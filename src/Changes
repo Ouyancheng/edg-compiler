@@ -1,5 +1,13 @@
 Version 2.27
 
+12/15/94 Address-taken references on pointer-to-member of overloaded
+         member function
+
+Pointer-to-member references to an overloaded member function now
+result in (a) a correct address-taken reference on the cross-reference
+output file, and (b) the setting of the address_taken flag in the
+routine entry.
+
 12/14/94 Union member of class type with user-defined assignment operator
 
 In cfront mode a warning is now issued (instead of an error) if a union

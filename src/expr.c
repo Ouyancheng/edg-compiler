@@ -4278,6 +4278,7 @@ specification allow a variable-sized array as the top type.
                                  /*is_qualified_name=*/FALSE,
                                  &placement_position,
                                  /*elided_reference=*/(new_routine==NULL),
+                                 /*address_taken=*/FALSE,
                                  (an_operand *)NULL,
                                  &access_error_reported);
     /* Adjust the argument types, issue any warnings, and free
