@@ -860,9 +860,20 @@ class_struct_union:
       db_abbreviated_type(tp->variant.ptr_to_member.type);
       break;
     case tk_template_param:
-      fprintf(f_debug, "template-param#%lu ",
+      fputs("template-param", f_debug);
+      if (tp->variant.template_param.kind ==
+                   (a_template_param_type_kind)tptk_type_of_member_constant) {
+        fputs(" <unknown-type>", f_debug);
+      } else {
+        if (tp->variant.template_param.kind ==
+                   (a_template_param_type_kind)tptk_param) {
+          fprintf(f_debug, "#%lu ",
               (unsigned long)tp->variant.template_param.list_position);
-      db_name(&tp->source_corresp);
+        } else {
+          fputc(' ', f_debug);
+        }  /* if */
+        db_name(&tp->source_corresp);
+      }  /* if */
       break;
     default:
       fputs("<bad type>", f_debug);
@@ -3320,8 +3331,10 @@ to default values.
       pte->variant.ptr_to_member.type                    = FALSE;
       break;
     case tk_template_param:
+      pte->variant.template_param.kind =
+                                   (a_template_param_type_kind)tptk_param;
       pte->variant.template_param.list_position = 0;
-      pte->variant.template_param.descr         = NULL;
+      pte->variant.template_param.descr = NULL;
       break;
 #if CHECKING
     default:

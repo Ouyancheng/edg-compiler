@@ -652,7 +652,8 @@ typedef struct a_constant {
     /* When kind = ck_template_param (used only in C++): */
     struct {
       a_template_param_constant_kind
-		kind;	/* The kind of template param constant. */
+		kind;
+			/* The kind of template param constant. */
       union {
 	/* When template param constant kind == tpck_param: */
         unsigned long
@@ -1437,6 +1438,36 @@ typedef struct a_class_type_supplement {
 } a_class_type_supplement;
 
 
+typedef enum a_template_param_type_kind_tag {
+  /* When a type is marked as a template parameter it may one of several
+     kinds. */
+  tptk_param,		/* The template param type represents a simple
+			   template parameter, e.g., for T in the following:
+			     template <class T> class A {
+                               T x;
+                             };
+			   This is the most common and obvious case. */
+  tptk_member,          /* The template param type represents a member of
+			   a tk_template_param class, e.g., for T::X in the
+			   following:
+			     template <class T> class A {
+			       T::X x;
+			     };
+			   (where, during prototype instantiation, X is
+			   assumed to be a member of T and a type). */
+  tptk_type_of_member_constant
+			/* The template param type represents the unknown
+			   type of a non-type member of a template param
+			   class, e.g., the type of T::k in the following:
+			     template <class T> class A {
+			       int a[T::k];
+			     };
+			   (where, during prototype instantiation, k is
+			   assumed to be a member of T and a constant). */
+};
+typedef a_byte a_template_param_type_kind;
+
+
 typedef struct a_template_param_type_descr *a_template_param_type_descr_ptr;
 typedef struct a_template_param_type_descr {
   /* Information about a template parameter type that may be inferred from
@@ -1757,17 +1788,28 @@ typedef struct a_type {
 		type;
 			/* Type of the member pointed to. */
     } ptr_to_member;
-    /* When kind = tk_template_param: */
+    /* When kind = tk_template_param (used only in C++): */
     struct {
+      a_template_param_type_kind
+		kind;
+			/* The kind of template param type. */
       unsigned long
 		list_position;
-			/* Ordinal value indicating the position of the
-			   template parameter in its declaration list (1 is
-			   first param declared, 2 is second, etc.). */
+			/* Ordinal value indicating the position of a
+			   tptk_param template parameter in its declaration
+			   list (1 is the first param declared, 2 is the
+			   second, etc.).  This field is not used for
+			   tptk_member or tptk_type_of_member_constant
+			   variants. */
       a_template_param_type_descr_ptr
 		descr;
 			/* Pointer to a descriptor containing additional
-			   information about this template parameter type. */
+			   information about this template parameter type,
+                           inferred from how the template param type is used.
+			   Its use is optional for tptk_param or tptk_member
+			   template params, but since little can be inferred
+			   about a tptk_type_of_member_constant, it is not
+			   used for that case. */
     } template_param;
 #endif /* ifdef CIL */
 #ifdef FIL
