@@ -95,7 +95,11 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 #define DSI_HAS_DIRECT_LINKAGE_SPECIFICATION (a_decl_flag_set)(0x8000)
 			/* If this bit is set the declaration belongs to
 			   a non-brace-enclosed linkage specification. */
-#define DSI_LAST DSI_HAS_DIRECT_LINKAGE_SPECIFICATION
+#define DSI_IS_CONDITION_DECL (a_decl_flag_set)(0x10000)
+			/* If this bit is set the declaration is that of a
+			   C++ condition in an if, switch, for, or while
+			   statement. */
+#define DSI_LAST DSI_IS_CONDITION_DECL
 			/* Last bit in the bit vector that is in use. */
 
 /* Constants defining bits in the output bit vector returned from
