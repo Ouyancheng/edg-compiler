@@ -464,6 +464,9 @@ and for the instantiation of template functions.
 }  /* scan_function_body */
 
 
+#if !DECL_MODIFIERS_IN_USE
+/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE */
 static void define_member_function(a_symbol_locator   *locator,
 				   a_type_ptr         type_ptr,
                                    a_func_info_block  *func_info,

@@ -2252,6 +2252,9 @@ as appropriate to suppress warnings (e.g., in end_of_scope_symbol_check).
 }  /* mark_symbol_to_suppress_warnings */
 
 
+#if !DECL_MODIFIERS_IN_USE
+/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE */
 void decl_var_or_routine(a_symbol_locator             *locator,
                          a_storage_class              storage_class,
                          a_type_ptr                   type_ptr,
@@ -3086,6 +3089,9 @@ skip_overloading:;
 }  /* decl_var_or_routine */
 
 
+#if !DECL_MODIFIERS_IN_USE
+/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE */
 void decl_function_template(a_symbol_locator    *locator,
                             a_type_ptr          type_ptr,
                             a_func_info_block   *func_info,
@@ -3112,7 +3118,9 @@ class template.
   a_routine_ptr                     rout_ptr;
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
+#if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
+#endif /* DECL_MODIFIERS_IN_USE */
 
   db_enter(3, "decl_function_template");
   if (func_info->is_inline) {
@@ -3242,7 +3250,9 @@ class template.
   }  /* if */
   tssp = template_supplement_for_symbol(sym);
   rout_ptr = tssp->variant.function.routine;
+#if DECL_MODIFIERS_IN_USE
   redeclaration = rout_ptr != NULL;
+#endif /* DECL_MODIFIERS_IN_USE */
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
      information: type, storage class, etc.  These values may be reused

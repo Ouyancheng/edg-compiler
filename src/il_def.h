@@ -2496,6 +2496,7 @@ enum a_decl_modifier_tag {
   dmt_last
 };
 
+#if DECL_MODIFIERS_IN_USE
 EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
 = {
@@ -2510,6 +2511,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 } /* decl_modifier_names */
 #endif /* VAR_INITIALIZERS */
 ;
+#endif /* DECL_MODIFIERS_IN_USE */
 
 /*
 A bit set whose values are used to supply additional declarative information

@@ -3556,6 +3556,9 @@ pointed to by cssp.
 }  /* add_to_conversion_list */
 
 
+#if !DECL_MODIFIERS_IN_USE
+/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE */
 static a_symbol_ptr decl_member_function(
                              a_symbol_locator               *locator,
                              a_type_ptr                     class_type,
@@ -3954,6 +3957,9 @@ source-sequence entry for the declarator; otherwise it is NULL.
 }  /* decl_member_constant */
 
 
+#if !DECL_MODIFIERS_IN_USE
+/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE */
 static void decl_static_data_member(a_symbol_locator *locator,
                                     a_type_ptr       class_type,
                                     a_type_ptr       member_type,
