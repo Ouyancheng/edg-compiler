@@ -1,5 +1,11 @@
 Version 2.28
 
+2/14/95  Aggregate class types
+
+WP 8.5.1 says that an aggregate class has "no private or protected
+members".  We previously interpreted this to apply to nonstatic data
+members only; now we apply it to all members.
+
 2/14/95  More on using .init sections in C-generating back end
 
 The C-generating back end can now generate .init sections when generating
