@@ -1,5 +1,10 @@
 Version 2.46
 
+1/10/01  Error issued on invalid STDC pragma in strict mode
+
+In strict C99 mode, an error (instead of a warning) is issued on an
+invalid STDC pragma.
+
 1/10/01  #ident/#pragma ident string incorrectly rendered by C/C++-generating
          back ends
 

@@ -1715,7 +1715,7 @@ pragmas, and by stdc_pragma for pragmas that appear in the file scope.
     }  /* if */
   }  /* if */
   if (kind == (a_stdc_pragma_kind)(a_stdc_pragma_kind)stdc_pk_none) {
-    warning(ec_unrecognized_stdc_pragma);
+    diagnostic(strict_ansi_error_severity, ec_unrecognized_stdc_pragma);
     err = TRUE;
   }  /* if */
   if (!err) {
@@ -1732,7 +1732,7 @@ pragmas, and by stdc_pragma for pragmas that appear in the file scope.
       }  /* if */
     }  /* if */
     if (value == (a_stdc_pragma_value)(a_stdc_pragma_value)stdc_pv_none) {
-      warning(ec_bad_stdc_pragma_arg);
+      diagnostic(strict_ansi_error_severity, ec_bad_stdc_pragma_arg);
       err = TRUE;
     }  /* if */
     /* Bypass the value. */
@@ -1767,7 +1767,8 @@ is called directly by compound_statement.
   if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_file) {
     process_stdc_pragma(ppp);
   } else {
-    pos_warning(ec_stdc_pragma_not_allowed_here, &ppp->pragma_position);
+    pos_diagnostic(strict_ansi_error_severity,
+                   ec_stdc_pragma_not_allowed_here, &ppp->pragma_position);
   }  /* if */
 }  /* stdc_pragma */
 
