@@ -9852,6 +9852,15 @@ scope that is part of the indicated routine) to the file scope.
                                            !initial_value_for_il_lowering_flag;
               switch_back_to_original_region(region_to_switch_back_to);
             }
+#if LOWER_EXTERN_INLINE
+            if (variable->storage_class == (a_storage_class)sc_unspecified) {
+              /* A static variable of an extern inline function initialized
+                 to a constant.  Rewrite the initialization as executable code
+                 because we want the variable to be a tentative definition
+                 (and therefore it cannot be statically initialized). */
+              lower_constant_init_of_static_in_extern_inline(variable, scope);
+            }  /* if */
+#endif /* LOWER_EXTERN_INLINE */
             break;
           case initk_dynamic:
             /* This dynamic initialization will be rewritten when the
@@ -9866,10 +9875,10 @@ scope that is part of the indicated routine) to the file scope.
 #if LOWER_EXTERN_INLINE
       } else if (variable->init_kind == (an_init_kind)initk_static &&
                  variable->storage_class == (a_storage_class)sc_unspecified) {
-        /* A static variable of an extern inline function initialized to a
-           constant.  Rewrite the initialization as executable code so that
-           the variable can be a tentative definition shared among
-           compilations (that is, it cannot be statically initialized). */
+        /* A static variable of an extern inline function initialized
+           to a constant.  Rewrite the initialization as executable code
+           because we want the variable to be a tentative definition
+           (and therefore it cannot be statically initialized). */
         lower_constant_init_of_static_in_extern_inline(variable, scope);
 #endif /* LOWER_EXTERN_INLINE */
       }  /* if */

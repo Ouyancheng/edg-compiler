@@ -92,12 +92,6 @@ typedef int a_lower_dynamic_init_options_set;
 				   a full expression. */
 #define LDIO_THROW 0x2		/* The initialization being lowered is
 				   the top-level initialization for a throw. */
-#if LOWER_EXTERN_INLINE
-#define LDIO_EXTERN_INLINE_LOCAL_STATIC 0x4
-				/* The variable being initialized is a local
-				   static promoted out of an extern inline
-				   function. */
-#endif /* LOWER_EXTERN_INLINE */
 
 extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                an_init_pos_descr_ptr  ipdp,

@@ -3396,10 +3396,6 @@ stmk_init), (options & LDIO_FULL_EXPR) is set.
 If the dynamic initialization is the top-level one for a throw,
 (options & LDIO_THROW) is set.
 
-if the dynamic initialization is for a local static variable promoted
-out of an extern inline function, (options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
-is set.
-
 *partial_aggr_cond_var will be set to point to the conditional flag variable
 that controls cleanup for a partially-initialized aggregate, when one is
 necessary (only when exceptions are enabled, and only when initializing
@@ -3445,6 +3441,9 @@ in this routine must be FALSE in that case.
   a_boolean          constructor_array_init = FALSE;
   a_variable_ptr     local_static_guard_var;
   a_boolean          do_simple_constant_init_opt = FALSE;
+#if LOWER_EXTERN_INLINE
+  a_boolean          local_static_promoted_out_of_extern_inline;
+#endif /* LOWER_EXTERN_INLINE */
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -3480,24 +3479,30 @@ in this routine must be FALSE in that case.
       (static_var_init || keep_dynamic_init != NULL)) {
     do_simple_constant_init_opt = TRUE;
   }  /* if */
+#if LOWER_EXTERN_INLINE
+  /* See if this is a local static variable promoted out of an extern inline
+     function. */
+  local_static_promoted_out_of_extern_inline =
+                  (variable != NULL &&
+                   variable->promoted_local_static &&
+                   variable->storage_class == (a_storage_class)sc_unspecified);
+#endif /* LOWER_EXTERN_INLINE */
   if (variable != NULL &&
       (variable->init_kind == (an_init_kind)initk_function_local ||
        /* If local entities are being promoted out of functions, the
           variable may already have been promoted out. */
        variable->promoted_local_static_init
 #if LOWER_EXTERN_INLINE
-       /* See if this is a local static variable promoted out of an
-          extern inline function. */
-       || (options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
+       || local_static_promoted_out_of_extern_inline
 #endif /* LOWER_EXTERN_INLINE */
-                                              )) {
+                                                    )) {
     /* The variable is a local static. */
     /* Find the local-static-variable-init entry that describes the
        initialization. */
     if (variable->init_kind == (an_init_kind)initk_function_local) {
       lsvip = find_local_static_variable_init(variable, curr_context->scope);
 #if LOWER_EXTERN_INLINE
-    } else if (options & LDIO_EXTERN_INLINE_LOCAL_STATIC) {
+    } else if (local_static_promoted_out_of_extern_inline) {
      /* Local static variable promoted out of an extern inline function.
         Don't look for the local static variable initialization entry,
         because the initialization is already directly in the variable. */
@@ -3896,6 +3901,29 @@ do_assignment:;
         }  /* if */
         variable->init_kind = (an_init_kind)initk_static;
         variable->initializer.constant = simple_constant;
+#if LOWER_EXTERN_INLINE
+        if (local_static_promoted_out_of_extern_inline) {
+          /* A static variable of an extern inline function initialized
+             to a constant.  The constant is probably the constant part of
+             a nonconstant aggregate.  Insert an assignment to set the variable
+             to the constant, preceding any generated initialization code.
+             This is done because we want the variable to be a tentative
+             definition, which means it must be uninitialized. */
+          an_expr_node_ptr init_val_node;
+          set_block_start_insert_location(block_stmt, &insert_location2);
+          entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
+                                              /*using_as_dest=*/TRUE);
+          check_assertion(dip->variant.constant->kind ==
+                          (a_constant_repr_kind)ck_aggregate);
+          init_val_node = make_node_for_il_constant(dip->variant.constant);
+          insert_assignment_statement(entity_node,
+                                      (an_expr_operator_kind)eok_sassign,
+                                      init_val_node,
+                                      &insert_location2);
+          variable->init_kind = (an_init_kind)initk_none;
+          variable->initializer.constant = NULL;
+        }  /* if */
+#endif /* LOWER_EXTERN_INLINE */
       } else {
         /* Initialization of an automatic variable to a constant.  Can be done
            by keeping the dynamic init entry. */
@@ -3920,9 +3948,9 @@ do_assignment:;
          So we change the initialization kind to initialization to zero. */
       if ((static_var_init && !variable->source_corresp.is_local_to_function
 #if LOWER_EXTERN_INLINE
-           && !(options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
+           && !local_static_promoted_out_of_extern_inline
 #endif /* LOWER_EXTERN_INLINE */
-                                                          ) ||
+                                                         ) ||
           variable->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
       } else {
@@ -3954,9 +3982,10 @@ void lower_constant_init_of_static_in_extern_inline(a_variable_ptr variable,
                                                     a_scope_ptr    scope)
 /*
 The given variable is a local static variable of an extern inline function
-that is initialized to a constant.  Rewrite its initialization as 
+that is initialized to a constant.  Rewrite its initialization as
 executable code so that the variable (already promoted to the file scope
 and made external) can be a tentative definition (i.e., uninitialized).
+scope is the scope in which the variable's definition appears.
 */
 {
   an_insert_location insert_location;
@@ -3982,7 +4011,7 @@ and made external) can be a tentative definition (i.e., uninitialized).
   lower_dynamic_init(&dyn_init, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL,
-                     LDIO_FULL_EXPR | LDIO_EXTERN_INLINE_LOCAL_STATIC,
+                     LDIO_FULL_EXPR,
                      (a_variable_ptr *)NULL,
                      &insert_location, (a_boolean *)NULL);
 }  /* lower_constant_init_of_static_in_extern_inline */
