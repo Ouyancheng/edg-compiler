@@ -14324,7 +14324,8 @@ block -- scopes for "for" init blocks do not have one.
       mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
                                   /*final=*/FALSE, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
-      if (routine_might_exist_in_multiple_copies(routine)) {
+      if (has_name(variable) &&
+          routine_might_exist_in_multiple_copies(routine)) {
         /* A routine whose body might exist in multiple copies, such as
            an extern inline routine.  Make the promoted variable externally
            visible.  This uses the relaxed ref/def model for externals. */

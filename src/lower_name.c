@@ -6182,6 +6182,19 @@ be embedded in other mangled names.
   check_assertion(kind == iek_variable ||
                   kind == iek_constant ||
                   kind == iek_type);
+  if (kind == iek_variable) {
+    a_variable_ptr var = (a_variable_ptr)scp;
+    if (var->is_anonymous_parent_object) {
+      /* Give an anonymous union variable a name based on the name of
+         the first member of the anonymous union.  Note that this is
+         required by the IA-64 ABI spec. */
+      a_source_correspondence *field_scp;
+      char                    *name = first_field_name(var->type, &field_scp);
+      if (name != NULL) {
+        scp->name = name;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Leave the name alone if the entity is unnamed. */
   if (scp->name != NULL) {
     start_mangling(&mctl);
