@@ -1264,6 +1264,7 @@ static void determine_arg_match_level(
                                an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
+                               a_boolean            param_type_is_deduced,
                                a_boolean            try_user_conversions,
                                an_arg_match_summary *arg_summary)
 /*
@@ -1274,8 +1275,10 @@ about which nothing else is known (and arg_operand is ignored; this can
 only be used for operands that don't require user-defined conversions,
 e.g., those being matched up with a "this" parameter).  arg_summary is
 set to indicate the level of match.  This is used in resolving overloaded
-function calls.  See ARM 13.2.  User-defined conversions will be attempted
-only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
+function calls.  See ARM 13.2.  param_type_is_deduced is TRUE if
+the parameter type involved template parameters and was deduced.
+User-defined conversions will be attempted only if try_user_conversions
+is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
   an_operand        *orig_arg_operand;
@@ -1384,7 +1387,16 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
        const volatile here.  It's not clear whether that's an oversight or
        not.  (A core working group discussed it in Austin in March 1995
        and decided it didn't care to bring it up in full committee.) */
-    if (!any_cfront_mode() && !allow_anachronisms) {
+    if ((microsoft_bugs && param_type_is_deduced) ||
+        any_cfront_mode() ||
+        allow_anachronisms) {
+      /* A reference to non-const that's deduced can bind to an rvalue in
+         Microsoft bugs mode (VC++ 6.0).  A reference to non-const can
+        bind to an rvalue in cfront mode or anachronisms mode. */
+      source_can_be_rvalue = TRUE;
+    } else {
+      /* Normal case.  A reference can bind to an rvalue only if it's
+         a reference to const. */
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
     }  /* if */
     /* Check the type qualifiers to see if they can be reconciled by
@@ -1760,6 +1772,7 @@ with a const selector is enabled, allow that kind of mismatch here.
 */
 {
   determine_arg_match_level((an_operand *)NULL, arg_type, param_type,
+                            /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE, match_summary);
   match_summary->is_match_for_this_param = TRUE;
   if (match_summary->match_level == aml_none &&
@@ -1779,6 +1792,7 @@ with a const selector is enabled, allow that kind of mismatch here.
                                                 TQ_CONST);
     determine_arg_match_level((an_operand *)NULL, arg_type,
                               const_this_param_type,
+                              /*param_type_is_deduced=*/FALSE,
                               /*try_user_conversions=*/FALSE,
                               match_summary);
     match_summary->is_match_for_this_param = TRUE;
@@ -2256,7 +2270,7 @@ is known to be visible and the visibility check should be suppressed.
   a_routine_type_supplement_ptr
                            rtsp;
   an_arg_operand_ptr       arg_operand;
-  a_param_type_ptr         param;
+  a_param_type_ptr         param, template_param = NULL;
 #if DEBUG
   unsigned long            narg = 0;
 #endif /* DEBUG */
@@ -2328,6 +2342,12 @@ is known to be visible and the visibility check should be suppressed.
        struct A { A(A, xxx, yyy); }
      which look viable as copy constructors on the first argument. */
   param = rtsp->param_type_list;
+  if (function_template_case) {
+    /* Save the pointer to the first parameter in the template version
+       (i.e., before deduction) for later use.  Note that this is after
+       substitution of explicitly-specified template arguments. */
+    template_param = param;
+  }  /* if */
   for (arg_operand = arg_operand_list;
        arg_operand != NULL;
        arg_operand = arg_operand->next) {
@@ -2410,10 +2430,16 @@ is known to be visible and the visibility check should be suppressed.
       }  /* if */
 #endif /* DEBUG */
     } else {
+      a_boolean param_type_is_deduced = FALSE;
       /* Both the actual argument and formal parameter are available.
          See how well they match. */
+      if (template_param != NULL &&
+          template_param->type_involves_deduced_template_param) {
+        param_type_is_deduced = TRUE;
+      }  /* if */
       determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
                                 param->type,
+                                param_type_is_deduced,
                                 /*try_user_conversions=*/
                                                   !effects_copy_initialization,
                                 arg_match);
@@ -2421,7 +2447,13 @@ is known to be visible and the visibility check should be suppressed.
       if (arg_match->match_level == aml_none) goto reject_function;
     }  /* if */
     /* Go on to the next parameter. */
-    if (!reached_ellipsis) param = param->next;
+    if (!reached_ellipsis) {
+      param = param->next;
+      if (function_template_case) {
+        check_assertion(template_param != NULL);
+        template_param = template_param->next;
+      }  /* if */
+    }  /* if */
   }  /* for */
   /* If param != NULL here, there are default arguments (because we
      got past the argument-count check above). */
@@ -5763,7 +5795,8 @@ the conversions needed (if any), or conversion may be NULL to
 indicate no user-defined conversion.  Even if there is no user-defined
 conversion, a cast may be required, and reference initialization must
 be considered.  param may be NULL to indicate that the argument falls
-under an ellipsis or old-style function.
+under an ellipsis or old-style function.  Note that the argument/parameter
+match has already made it through overload resolution.
 */
 {
   if (param == NULL) {
@@ -11057,7 +11090,8 @@ Check that *source_operand is acceptable as an actual argument for the
 formal parameter described by formal_param.  If not, issue the error err_code.
 If so, convert the operand to the formal parameter type.
 If conversion is non-NULL, the argument has previously been found
-to be acceptable, and *conversion describes it.
+to be acceptable (as far as overload resolution checks that), and
+*conversion describes it.
 */
 {
   a_type_ptr param_type = formal_param->type;
@@ -11071,6 +11105,19 @@ to be acceptable, and *conversion describes it.
                                          conversion, err_code);
   } else {
     /* Normal argument. */
+    if (microsoft_bugs && conversion != NULL &&
+        is_reference_type(param_type) && is_an_rvalue(source_operand)) {
+      /* In Microsoft bugs mode, a reference to non-const is sometimes
+         allowed to bind to an rvalue.  If that's been done (which we
+         know because conversion != NULL means that we've made it through
+         overload resolution), change the reference type to reference
+         to const so that the binding is valid. */
+      a_type_ptr underlying_type = type_pointed_to(param_type);
+      if (!is_const_qualified_type(underlying_type)) {
+        underlying_type = make_qualified_type(underlying_type, TQ_CONST);
+        param_type = make_reference_type(underlying_type);
+      }  /* if */
+    }  /* if */
     prep_initializer_operand(source_operand, param_type,
                              conversion,
                              /*initializing_return_value=*/FALSE,
@@ -11159,6 +11206,7 @@ if so.
   an_arg_match_summary arg_summary;
 
   determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
+                            /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE,
                             &arg_summary);
   compatible = (arg_summary.match_level != aml_none);
@@ -11430,7 +11478,9 @@ used only in C++ mode.
       check_assertion(is_reference_type(param_type));
       arg_match = alloc_arg_match_summary();
       determine_arg_match_level((an_operand *)NULL, arg_type,
-                                param_type, /*try_user_conversions=*/FALSE,
+                                param_type,
+                                /*param_type_is_deduced=*/FALSE,
+                                /*try_user_conversions=*/FALSE,
                                 arg_match);
       if (arg_match->match_level == aml_none) {
         /* This copy constructor cannot be used. */

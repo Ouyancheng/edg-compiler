@@ -1,5 +1,18 @@
 Version 2.45
 
+10/7/00  Microsoft compatibility: deduced reference can bind to rvalue
+
+In Microsoft bugs mode, the front end now allows a deduced template
+function parameter of type reference to non-const to bind to an rvalue.
+This matches the behavior of MSVC++ 6.0 and 7.0.
+
+  template <class T> void f(T &) {}
+  int main() {
+    f(1);       // Accepted in Microsoft bugs mode, error normally
+    f<int>(1);  // Error (T is specified, not deduced)
+    return 0;
+  }
+
 10/7/00  C99 and Microsoft compatibility: function name strings
 
 In C99 mode the front end now recognizes the reserved identifier __func__.
