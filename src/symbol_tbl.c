@@ -5959,7 +5959,7 @@ This routine is only used in SVR4 C compatibility mode.
 static
 a_symbol_ptr find_out_of_scope_declaration(a_symbol_locator *locator)
 /*
-This is an SVR4 compatibility feature that has is now a default ANSI C
+This is an SVR4 compatibility feature that is now a default ANSI C
 mode feature.  This routine is used to make external symbol declarations
 from other scopes visible in the current scope.  For example
 
