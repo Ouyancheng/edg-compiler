@@ -4465,7 +4465,8 @@ instantiation.
      a class template. */
   if (sym != NULL) {
     tssp = template_supplement_for_symbol(sym);
-    is_nested_class_definition = sym->is_class_member && tssp != NULL;
+    is_nested_class_definition = is_class_struct_union_symbol(sym) &&
+                                 sym->is_class_member && tssp != NULL;
   }  /* if */
   /* If get_normal_id_or_qualified_name returned something, we may have a
      name conflict or a redefinition. */
