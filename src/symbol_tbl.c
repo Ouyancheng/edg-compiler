@@ -2996,7 +2996,7 @@ are also allowed.
         /* Note: the last checks serve to exclude anonymous union promotions.
            It is never the case that the field is not yet bound to the symbol
            when an anonymous union member is being promoted, nor will the
-           the parent classes correspond. */
+           parent classes correspond. */
       if (class_name_injection_enabled) {
         /* This C-compatibility feature from the ARM is incompatible with
            class-name injection, which is part of the current standard, but
