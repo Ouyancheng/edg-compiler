@@ -2785,8 +2785,14 @@ final semicolon if output_final_semi is TRUE.
            when the GNU dual-alignment option is in effect the alignment
            of the field's type is not necessarily the alignment that
            was used to place the field. */
-        dump_field_padding(field, field->next->offset,
-                           f_skip_typerefs(field->next->type)->alignment);
+        a_targ_alignment alignment =
+                                 f_skip_typerefs(field->next->type)->alignment;
+#if USER_CONTROL_OF_STRUCT_PACKING
+        if (pack_alignment != 0 && pack_alignment < alignment) {
+          alignment = pack_alignment;
+        }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+        dump_field_padding(field, field->next->offset, alignment);
       }  /* if */
     }  /* for */
     if (union_alignment_needed) {
