@@ -6053,6 +6053,10 @@ or implicit) controlling the declaration.
          goes for compiler-generated copy assignment operators. */
       pos_sy_warning(ec_using_declaration_ignored, &decl_pos, declared_sym);
       err = TRUE;
+    } else if (declared_sym->ambiguous) {
+      /* declared_sym must be a projection symbol -- and it is ambiguous. */
+      sym_error(ec_ambiguous_name, declared_sym);
+      err = TRUE;
     } else {
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp->type == locator_for_curr_id.parent.class_type) {
@@ -6064,9 +6068,38 @@ or implicit) controlling the declaration.
         error(ec_bad_base_class);
         err = TRUE;
       } else if (bcp->ambiguous) {
-        type_error(ec_ambiguous_base_class, bcp->type);
-        err = TRUE;
-      } else {
+        /* The base class is ambiguous, but only issue an error if the member
+           itself is ambiguous -- that is, the member must be either a field
+           or a nonstatic member function or an overload set containing at
+           least one nonstatic member function. */
+        sym = fundamental_symbol_of(declared_sym);
+        if (sym->kind == (a_symbol_kind)sk_field) {
+          /* A field in an ambiguous base class is ambiguous. */
+          err = TRUE;
+        } else {
+          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            if (sym->variant.overloaded_function.mixed_static_nonstatic) {
+              /* There must be at least one nonstatic member function in this
+                 overload set. */
+              err = TRUE;
+            } else {
+              /* Either all are static or all are nonstatic.  Decide which
+                 by looking at the first in the list. */
+              sym = sym->variant.overloaded_function.symbols;
+              sym = fundamental_symbol_of(sym);
+            }  /* if */
+          }  /* if */
+          if (sym->kind == (a_symbol_kind)sk_member_function &&
+              routine_type_is_nonstatic_member_function(
+                                                 routine_symbol_type(sym))) {
+            /* A nonstatic member function in an ambiguous base classes is
+               ambiguous. */
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        if (err) sym_error(ec_ambiguous_name, declared_sym);
+      }  /* if */
+      if (!err) {
         /* Look up the name in the scope of the current class. */
         clear_locator(&locator, &decl_pos);
         locator.symbol_header = locator_for_curr_id.symbol_header;
