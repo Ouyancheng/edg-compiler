@@ -4587,9 +4587,9 @@ the latter will be NULL for variables.
               !is_error_type(sym->variant.extern_symbol_descr->type) &&
               sym->parent.namespace_ptr == nsp) {
             /* A special case -- two extern "C" routine declarations in the
-               same scope.  Consider them a match only if their signatures
-               match; it they don't match, this will be treated as an
-               overloading error. */
+               same namespace.  Consider them a match only if their
+               signatures match; it they don't match, this will be treated
+               as an overloading error. */
             extern_C_overload = TRUE;
           } else {
             /* Except for the special case noted above, two extern "C"
