@@ -1,5 +1,17 @@
 Version 2.27
 
+12/1/94  Spurious error when comma is missing before ellipsis
+
+In contexts in which the evaluation of default arguments must
+be deferred, a spurious error was issued if an ellipsis was used
+without a comma separating it from the previous parameter.  This
+is now fixed.
+
+  template <class T> void f(T, int = 0 ...);
+  class A {
+    void f(int = 1 ...);
+  };
+
 12/1/94  IL lowering of lvalue-returning operations
 
 In the case where an lvalue-returning "?" or "," operator is under
@@ -18,18 +30,18 @@ can also be specified using the --microsoft and --no_microsoft options.
 
 The keywords recognized are
 
-	__cdecl
-	__fastcall
-	__stdcall
-	__inline
-	__declspec
+  __cdecl
+  __fastcall
+  __stdcall
+  __inline
+  __declspec
 
 The __declspec modifiers recognized are
 
-	dllimport
-	dllexport
-	naked
-	thread
+  dllimport
+  dllexport
+  naked
+  thread
 
 11/29/94 Branching into a try block
 

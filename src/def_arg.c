@@ -106,6 +106,7 @@ await actual processing at a later point.
      or right parenthesis.  If both of these are omitted, terminate the token
      stream when some likely delimiter is reached. */
   incr_token_set_array_element(stop_tokens, tok_comma);
+  incr_token_set_array_element(stop_tokens, tok_ellipsis);
   incr_token_set_array_element(stop_tokens, tok_rparen);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   incr_token_set_array_element(stop_tokens, tok_lbrace);
