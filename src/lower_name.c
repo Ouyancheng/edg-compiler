@@ -1115,6 +1115,9 @@ mangling for lengths of literals.
           store_at += type_length;
         }  /* if */
       } else {
+        check_assertion_str2(!tap->is_array_bound_of_unknown_type,
+                             "mangled_template_arguments:",
+                             "is_array_bound_of_unknown_type set");
         /* Constant argument.  The encoding for the constant begins with
            an "X". */
         if (pass == 1) {
