@@ -3466,21 +3466,34 @@ to FALSE if the entity being declared is not initializable.
              ssep->kind == (a_scope_kind)sck_namespace_extension) &&
             ssep->il_scope->variant.assoc_namespace ==
                         qualifier_namespace_ptr(locator_for_curr_id)) {
+          an_error_severity  severity = es_discretionary_error;
+          an_error_code      err_code = ec_qualifier_in_namespace_member_decl;
           /* The declarator name is qualified by the current namespace. */
-          pos_diagnostic(is_template_decl ? es_error : es_discretionary_error,
-                         ec_qualifier_in_namespace_member_decl,
-                         &pos_curr_token);
+          if (is_template_decl && !do_dependent_name_processing) {
+            severity = es_error;
+          }  /* if */
+          if (gpp_mode && severity != es_error) {
+            /* GNU C++ compilers accept the superfluous qualifier.  We cannot
+               emulate this behavior for templates because of reasons explained
+               above (unless dependent name processing has been enabled, but
+               that is not the default in GNU C++ mode). */
+            severity = es_warning;
+            err_code = ec_nonstd_qualifier_in_namespace_member_decl;
+          }  /* if */
+          pos_diagnostic(severity, err_code, &pos_curr_token);
           /* Reset the fields in the locator to make it appear as if the
              qualifier were not present. */
           clear_qualifier_from_locator(&locator_for_curr_id);
-          if (is_template_decl) {
+          if (severity == es_error) {
             /* This is not a benign error in a template declaration, so
                make this an error locator.  Otherwise, there are name-binding
                bugs in this sort of case:
                  namespace N {
                    template <class T> void N::f(T);
-                   class N { ... }
-                   void f(long);         // Problems with this specialization
+                   class N { ... };
+                   void g() {
+                     f(0);   // Problems with this instantiation because
+                   }         // rescanning N::f changes its meaning.
                  }
             */
             set_to_named_error_locator(locator_for_curr_id);
