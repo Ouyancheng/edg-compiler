@@ -1484,8 +1484,7 @@ EXTERN a_boolean
 			   that ABI. */
 
 EXTERN a_boolean
-		warn_about_tail_padding_use
-		                           ;
+		warn_about_tail_padding_use;
 			/* TRUE if a warning should be emitted when a field
 			   of a derived class is placed in the tail padding
 			   of its base class. */
