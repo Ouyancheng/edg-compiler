@@ -226,11 +226,24 @@ static a_boolean		suppress_compilation = FALSE;
    the assumption that we've run into an instantiation loop. */
 static a_boolean		limit_recursion = TRUE;
 
-/* TRUE if we should use the SVR4 format for nm output. */
-static a_boolean		use_SVR4_nm_format = FALSE;
+typedef enum /* an_nm_format_kind */ {
+	nmfk_default,
+		/* SunOS 4.1. */
+	nmfk_SVR4,
+		/* SVR4 - Solaris 2. */
+	nmfk_SGI,
+		/* Silicon Graphics. */
+	nmfk_M88K,
+		/* Motorola 88K SVR4. */
+        nmfk_HPUX,
+		/* HP/UX. */
+        nmfk_anon1,
+		/* Anonymous. */
+	nmfk_lst
+} an_nm_format_kind;
 
-/* TRUE if we should use the SGI format for nm output. */
-static a_boolean		use_SGI_nm_format = FALSE;
+/* The kind of nm output that is expected. */
+static an_nm_format_kind	nm_format = nmfk_default;
 
 /* TRUE if we should simply ignore invalid nm output lines. */
 static a_boolean		ignore_invalid_nm_output = FALSE;
@@ -428,6 +441,16 @@ Allocate an instantiation_site, initialize it, and return a pointer to it.
 }  /* alloc_pl_instantiation_site */
 
 
+static void free_pl_instantiation_site(a_pl_instantiation_site_ptr pisp)
+/*
+Return an instantiation_site to the available list.
+*/
+{
+  pisp->next = avail_pl_instantiation_sites;
+  avail_pl_instantiation_sites = pisp;
+}  /* free_pl_instantiation_site */
+
+
 static void free_pl_symbol(a_pl_symbol_ptr psp)
 /*
 Return an input file to the available list.
@@ -581,6 +604,146 @@ processed further.
 }  /* pl_scan_SVR4_nm_line */
 
 
+static a_boolean pl_scan_alternate_nm_line(char	**name1,
+				      char	**name2,
+				      char	*type,
+				      char	**symbol_name)
+/*
+Read the output of the nm command.  This routine is written to accept
+the output of the nm command on systems such as HP/UX and Motorola 88000 SVR4
+using the -p, -x and -r options.
+
+The output for an object (.o) file is expected to look like:
+
+xxx.o:
+
+0x12345678 T xxx.o:name1
+0x12345678 T xxx.o:name2
+
+The output for an archive file (.a) is expected to look like:
+
+xxx.a[x1.o]:
+
+0x12345678 T x1.o:name1
+0x12345678 T x1.o:name2
+
+xxx.a[x1.o]:
+
+0x12345678 T x2.o:name3
+0x12345678 T x2.o:name4
+
+Or on HP/UX systems, like this:
+
+xxx.o
+xxx.o:              0123456789 T name1
+xxx.o:              0123456789 T name2
+
+xxx.a[x1.o]:
+xxx.a:              0123456789 T name1
+xxx.a:              0123456789 T name2
+
+Returns TRUE if the line contains symbol information; returns FALSE
+if the line is a blank line, or a header line that should not be
+processed further.
+*/
+{
+  a_boolean	result = TRUE;
+  char		*pos;
+  char		*rest_of_line;
+  char		ch;
+  static char	*name1_buffer = NULL;
+  static char	*name2_buffer = NULL;
+  static a_boolean
+		name2_is_NULL = FALSE;
+
+  /* On the first call allocate a buffer that can be used to store the
+     archive name. */
+  if (name1_buffer == NULL) {
+    name1_buffer = pl_malloc_with_check(PL_INPUT_LINE_SIZE);
+    name2_buffer = pl_malloc_with_check(PL_INPUT_LINE_SIZE);
+  }  /* if */
+  /* Clear the pointers to the returned values. */
+  *name1 = *name2 = *symbol_name = NULL;
+  /* Find the first colon which terminates either the archive or the
+     file name. */
+  pos = strchr(pl_input_line, ':');
+  if (pos == NULL) {
+    /* Ignore blank lines.  A nonblank line that doesn't contain
+       a colon is an error. */
+    if (pl_input_line[0] != '\0') pl_invalid_input();
+    result = FALSE;
+  } else if (strchr(pl_input_line, ' ') == NULL) {
+    char	*bracket_pos;
+    /* A line that just contains a string like "xxx.o:" or "libx.a[xxx.o]:".
+       This is an archive header.  Extract the archive and object file names.
+       After the names are extracted the line is not processed. */
+    result = FALSE;
+    /* Find the "[" that separates the archive name from the object
+       file name.  Use the position of the colon if no bracket is found. */
+    bracket_pos = strchr(pl_input_line, '[');
+    if (bracket_pos != NULL) pos = bracket_pos;
+    /* Replace the "[" (or ":") with a NULL. */
+    *pos = '\0';
+    (void)strcpy(name1_buffer, pl_input_line);
+    rest_of_line = pos + 1;
+    name2_is_NULL = (bracket_pos == NULL);
+    if (!name2_is_NULL) {
+      /* Find the "]" that terminates the object file name. */
+      pos = strchr(rest_of_line, ']');
+      *pos = '\0';
+      (void)strcpy(name2_buffer, rest_of_line);
+     }  /* if */
+  } else {
+    /* Return pointers to the names from the header line. */
+    *name1 = name1_buffer;
+    *name2 = name2_is_NULL ? NULL : name2_buffer;
+    /* On HP/UX and some other systems the file name begins each line,
+       skip past this file name. */
+    if (nm_format == nmfk_HPUX || nm_format == nmfk_anon1) {
+      rest_of_line = pos + 1;
+    } else {
+      rest_of_line = pl_input_line;
+    }  /* if */
+    /* The value field may optionally be preceeded by one or more blanks.
+       Skip over any blanks that appear here. */
+    pos = rest_of_line;
+    while (*pos == ' ') pos++;
+    /* Skip over the first field which is expected to contain the
+       value field.  Skip to a blank. */
+    while((ch = *pos), ch != ' ' && ch != '\0') pos++;
+    /* Look for blank after value. */
+    if (*pos++ != ' ') pl_invalid_input();
+    /* Now look for a nonblank. */
+    while (*pos == ' ') pos++;
+    /* Get the type code. */
+    *type = *pos++;
+    if (!isalpha(*type)) pl_invalid_input();
+    if (nm_format == nmfk_HPUX) {
+      /* HP/UX uses lower case letters for some types. */
+      switch (*type) {
+        case 'c':	*type = 'C'; break;
+      }  /* switch */
+    }  /* if */
+    /* Look for blank after type. */
+    if (*pos++ != ' ') pl_invalid_input();
+    if (nm_format == nmfk_anon1) {
+      /* Skip passed extra underscore at the start of every symbol if an
+         underscore is present.   This is only done for anon1. */
+      if (skip_underscore_prefix && *pos == '_') pos++;
+    }  /* if */
+    rest_of_line = pos;
+    /* If the name was not at the start of the line then it is expected
+       to appear here.  Skip past the name. */
+    if (nm_format != nmfk_HPUX && nm_format != nmfk_anon1) {
+      pos = strchr(rest_of_line, ':');
+      rest_of_line = pos + 1;
+    }  /* if */
+    *symbol_name = rest_of_line;
+  }  /* if */
+  return result;
+}  /* pl_scan_alternate_nm_line */
+
+
 static a_boolean pl_scan_default_nm_line(char	**name1,
 					 char	**name2,
 					 char	*type,
@@ -643,7 +806,7 @@ processed further.
       rest_of_line = pos + 1;
     }  /* if */
     pos = rest_of_line;
-    if (use_SGI_nm_format) {
+    if (nm_format == nmfk_SGI) {
       /* The value field may optionally be preceeded by one or more blanks.
          Skip over any blanks that appear here. */
       while (*pos == ' ') pos++;
@@ -701,9 +864,14 @@ or defined in that object file.
     }  /* if */
 #endif /* DEBUG */
 
-    if (use_SVR4_nm_format) {
+    if (nm_format == nmfk_SVR4) {
       process_line = pl_scan_SVR4_nm_line(&name1, &name2, &type,
                                           &symbol_name);
+    } else if (nm_format == nmfk_M88K ||
+               nm_format == nmfk_HPUX ||
+               nm_format == nmfk_anon1) {
+      process_line = pl_scan_alternate_nm_line(&name1, &name2, &type,
+                                               &symbol_name);
     } else {
       /* SGI uses a variant of the default format. */
       process_line = pl_scan_default_nm_line(&name1, &name2, &type,
@@ -1129,8 +1297,8 @@ Read the existing instantiation assignment information from the
       ii_file = fopen(pl_filename_buffer, "r");
 #if DEBUG
       if (pl_debug_level >= 2) {
-        fprintf(stderr, "Opening %s, result=%p\n", pl_filename_buffer,
-                (void *)ii_file);
+        fprintf(stderr, "Opening %s, result=%d\n", pl_filename_buffer,
+                ii_file != NULL);
       }  /* if */
 #endif /* DEBUG */
       if (ii_file != NULL) {
@@ -1343,13 +1511,16 @@ Execute the command to recompile a file.
   static char	*shell_format_string = "%s";
   int		length;
   char		*command;
+  int		result;
 
   length = strlen(shell_format_string) + strlen(command_line);
   command = (char *)pl_malloc_with_check(length);
   sprintf(command, shell_format_string, command_line);
   fprintf(stdout, "%s: executing: %s\n", message_prefix, command);
   fflush(stdout);
-  return system(command_line);
+  result = system(command);
+  free(command);
+  return result;
 }  /* pl_recompile_file */
 
 
@@ -1508,6 +1679,7 @@ Free all dynamically allocated data.
 {
   a_pl_input_file_ptr	pifp;
   a_pl_input_file_ptr	last_pifp;
+  a_pl_symbol_ptr	psp;
 
   pifp = pl_input_files;
   while (pifp != NULL) {
@@ -1515,7 +1687,6 @@ Free all dynamically allocated data.
     a_pl_object_file_ptr	last_pofp;
     pofp = pifp->objects;
     while (pofp != NULL) {
-      a_pl_symbol_ptr	psp;
       a_pl_symbol_ptr	last_psp;
       psp = pofp->symbols;
       while (psp != NULL) {
@@ -1534,6 +1705,23 @@ Free all dynamically allocated data.
     free(last_pifp->filename);
     if (last_pifp->info_filename != NULL) free(last_pifp->info_filename);
     free_pl_input_file(last_pifp);
+  }  /* while */
+
+  psp = pl_symbol_table_head;
+  while (psp != NULL) {
+    a_pl_symbol_ptr	        last_psp;
+    a_pl_instantiation_site_ptr	pisp;
+    pisp = psp->possible_instantiation_sites;
+    while (pisp != NULL) {
+      a_pl_instantiation_site_ptr	last_pisp;
+      last_pisp = pisp;
+      pisp = pisp->next;
+      free_pl_instantiation_site(last_pisp);
+    }  /* while */
+    last_psp = psp;
+    psp = psp->next_in_symbol_table;
+    free(last_psp->name);
+    free_pl_symbol(last_psp);
   }  /* while */
 }  /* pl_free_all */
 
@@ -1565,9 +1753,17 @@ int main(int argc, char *argv[])
       case 'f':
         /* Specifies the nm line format to be expected. */
         if (strcmp(optarg, "SVR4") == 0) {
-          use_SVR4_nm_format = TRUE;
+          nm_format = nmfk_SVR4;
         } else if (strcmp(optarg, "SGI") == 0) {
-          use_SGI_nm_format = TRUE;
+          nm_format = nmfk_SGI;
+          ignore_invalid_nm_output = TRUE;
+          skip_underscore_prefix = FALSE;
+        } else if (strcmp(optarg, "M88K") == 0) {
+          nm_format = nmfk_M88K;
+        } else if (strcmp(optarg, "HPUX") == 0) {
+          nm_format = nmfk_HPUX;
+        } else if (strcmp(optarg, "anon1") == 0) {
+          nm_format = nmfk_anon1;
         } else {
           pl_error("Invalid nm format option");
         }  /* if */
@@ -1606,13 +1802,17 @@ int main(int argc, char *argv[])
         break;
     }  /* switch */
   }  /* while */
-  /* Add to the symbol table any names that the linker predefines. */
-  pl_add_predefined_names();
   /* Determine the nm command to be used. */
   if (nm_command != NULL) {
     /* A command was specified on the command line. */
-  } else if (use_SVR4_nm_format) {
+  } else if (nm_format == nmfk_SVR4) {
     nm_command = SVR4_nm_command;
+  } else if (nm_format == nmfk_SGI) {
+    nm_command = SGI_nm_command;
+  } else if (nm_format == nmfk_M88K ||
+             nm_format == nmfk_HPUX ||
+             nm_format == nmfk_anon1) {
+    nm_command = alternate_nm_command;
   } else {
     /* Use the default command. */
     nm_command = default_nm_command;
@@ -1664,6 +1864,9 @@ int main(int argc, char *argv[])
       }  /* if */
 #endif /* DEBUG */
 
+      /* Add to the symbol table any names that the linker predefines. */
+      pl_add_predefined_names();
+
       pl_prelink();
 
 #if DEBUG
@@ -1684,6 +1887,11 @@ int main(int argc, char *argv[])
       if (!done) pl_free_all();
     } while (!done);
   }  /* if */
+
+#ifdef USING_PURIFY
+  pl_free_all();
+  free(command);
+#endif /* USING_PURIFY */
 
   return (return_status);
 }  /* main */
