@@ -50,9 +50,7 @@ execution.  This has been fixed.
     A(int = S());
   };
 
-template <class T> void foo(T, A<int>::B);
-
-
+  template <class T> void foo(T, A<int>::B);
 
 4/23/97   Microsoft compatibility: default template arguments can be
           redefined
