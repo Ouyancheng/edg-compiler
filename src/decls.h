@@ -168,16 +168,6 @@ extern void decl_typedef(a_symbol_locator   *locator,
                          a_type_ptr         type_ptr,
                          a_symbol_ptr       *symbol_ptr);
 
-extern void declarator(a_boolean         real_declarator_allowed,
-                       a_boolean         abstract_declarator_allowed,
-		       a_type_ptr        specifiers_type,
-                       a_type_ptr        member_parent_type,
-                       a_boolean         static_specified,
-                       a_symbol_locator  *locator,
-                       a_type_ptr        *p_complete_type,
-                       a_type_ptr        *p_bottom_derived_type,
-                       a_func_info_block *func_info);
-
 #if ASM_FUNCTION_ALLOWED
 /* Routine is only needed externally when asm functions are allowed. */
 extern void decl_var_or_routine(a_symbol_locator   *locator,
@@ -191,10 +181,27 @@ extern void decl_var_or_routine(a_symbol_locator   *locator,
                                 a_symbol_ptr       *ext_sym);
 #endif /* ASM_FUNCTION_ALLOWED */
 
-/* Bit vector used to pass flags into and out of decl_specifiers.
-   Each bit represents a flag. */
+/* Bit vector used to pass flags into declarator and into and out of
+   decl_specifiers.  Each bit represents a flag. */
 typedef int a_decl_flag_set;
-/* Constants defining bits in the input bit vector, used in calls to
+/* Constants defining bits in the input bit vector used in calls to
+   declarator. */
+#define DI_NO_INPUT_FLAGS 0x0
+#define DI_REAL_DECLARATOR_ALLOWED 0x1
+			/* If this bit is set the entity may be scanned as an
+			   declarator (rather than an abstract declarator). */
+#define DI_ABSTRACT_DECLARATOR_ALLOWED 0x2
+			/* If this bit is set the entity may be scanned as an
+			   abstract declarator. */
+#define DI_STATIC_SPECIFIED 0x4
+			/* If this bit is set, the keyword "static" has
+			   appeared in the declaration, so that if it turns
+			   out to be a member function, it is a static member
+			   function. */
+#define DI_IS_PARAMETER 0x8
+			/* If this bit is set it is a formal parameter that is
+			   being scanned. */
+/* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
 #define DSI_NO_INPUT_FLAGS 0x0
 #define DSI_STORAGE_CLASS_SPECIFIER_ALLOWED 0x1
@@ -217,7 +224,7 @@ typedef int a_decl_flag_set;
 #define DSI_CONSTRUCTOR_DESTRUCTOR_ALLOWED 0x20
 			/* If this bit is set allow the declaration of a
                            constructor or a destructor. */
-/* Constants defining bits in the output bit vector, returned from
+/* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
 #define DSO_HAS_EXPLICIT_TYPE_SPECIFIER 0x1
@@ -264,6 +271,14 @@ typedef int a_decl_flag_set;
                            consist of (1) a keyword class, struct, union, or
                            enum and (2) an identifier (and optionally (3) the
                            keyword friend). */
+
+extern void declarator(a_decl_flag_set   input_flags,
+		       a_type_ptr        specifiers_type,
+                       a_type_ptr        member_parent_type,
+                       a_symbol_locator  *locator,
+                       a_type_ptr        *p_complete_type,
+                       a_type_ptr        *p_bottom_derived_type,
+                       a_func_info_block *func_info);
 
 extern a_boolean decl_specifiers(a_decl_flag_set input_flags,
 				 a_decl_flag_set *output_flags,
