@@ -34,6 +34,10 @@ templates.c -- Support for C++ templates.
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#ifdef lint
+/* Include the definition of an_arg_operand to suppress lint errors. */
+#include "exprutil.h"
+#endif /* ifdef lint */
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
