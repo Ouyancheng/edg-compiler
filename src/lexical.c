@@ -10441,6 +10441,7 @@ selection operator, in which case it points to the type of the left operand.
                the last qualifier of a vacuous destructor.  Set
                class type to the type pointed to. */
             qualifier_type = type_symbol_type(qualifier_sym);
+            qualifier_type = skip_typerefs(qualifier_type);
             qualifier_is_type = TRUE;
             qualifier_type_is_class = FALSE;
             check_assertion(is_template_param_type(qualifier_type) ||
