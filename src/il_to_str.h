@@ -364,6 +364,9 @@ extern void form_sun_link_scope_specifiers(
                                  an_il_to_str_output_control_block_ptr  octl);
 #endif /* (BACK_END_IS_C_GEN_BE && C_GEN_BE_GENERATES_ANSI_C) || ... */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+
+extern void il_to_str_one_time_init(void);
+
 #endif /* ifndef IL_TO_STR_H */
 
 

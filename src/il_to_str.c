@@ -705,6 +705,11 @@ with "**BAD" for a bad float kind.
 }  /* float_kind_name */
 
 
+#if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
+static a_boolean double_for_long_double_warning_issued;
+#endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
+
+
 static void form_float_kind_name(a_float_kind                          kind,
                                  an_il_to_str_output_control_block_ptr octl)
 /*
@@ -721,10 +726,9 @@ way described by octl.
       /* When generating K&R C from the C-generating back end, put out
          "double" for "long double" and issue a one-time-only warning. */
 #if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
-      static a_boolean warning_issued = FALSE;
-      if (!warning_issued) {
+      if (!double_for_long_double_warning_issued) {
         pos_warning(ec_double_for_long_double, &null_source_position);
-        warning_issued = TRUE;
+        double_for_long_double_warning_issued = TRUE;
       }  /* if */
 #endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
       kind = (a_float_kind)fk_double;
@@ -961,10 +965,10 @@ typedef struct a_template_param_map_level {
 } a_template_param_map_level;
 
 
-static a_template_param_map_level_ptr template_param_map = NULL;
+static a_template_param_map_level_ptr template_param_map;
 			/* A pointer to the two-level lookup structure. */
 
-static a_template_nesting_depth template_param_map_max_level = 0;
+static a_template_nesting_depth template_param_map_max_level;
 			/* The size of the first level (i.e., the maximum
 			   template nesting depth for which a parameter
 			   coordinate has been mapped). */
@@ -4537,6 +4541,18 @@ described by octl).
 
 #endif /* (BACK_END_IS_C_GEN_BE && C_GEN_BE_GENERATES_ANSI_C) || ... */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+
+void il_to_str_one_time_init(void)
+/*
+One-time initialization for il_to_str static variables.
+*/
+{
+  template_param_map = NULL;
+  template_param_map_max_level = 0;
+#if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
+  double_for_long_double_warning_issued = FALSE;
+#endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
+}  /* il_to_str_one_time_init */
 
 
 /******************************************************************************

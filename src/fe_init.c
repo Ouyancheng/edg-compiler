@@ -814,6 +814,7 @@ after the command-line processing has been done.
   def_arg_one_time_init();
   error_one_time_init();
   expr_one_time_init();
+  il_to_str_one_time_init();
   il_one_time_init();
   lookup_one_time_init();
   layout_one_time_init();
