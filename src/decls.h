@@ -218,11 +218,6 @@ extern a_boolean reconcile_external_symbol_types(
                             a_type_ptr            type_ptr,
                             a_boolean             suppress_incompatible_error);
 
-extern a_variable_ptr make_variable(
-                                  a_type_ptr      type_ptr,
-                                  a_storage_class storage_class,
-                                  a_boolean       at_file_or_namespace_scope);
-
 extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
                                   a_scope_depth   scope_depth);
