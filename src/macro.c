@@ -1863,7 +1863,7 @@ end_all_args_scan:;
   }  /* if */
   if (pcc_mode_macro_recursion) {
     /* For pcc mode macro recursion, use an empty string as the expansion
-       of the macro to avoid more resursion errors. */
+       of the macro to avoid more recursion errors. */
     special_repl_text = TRUE;
     repl_text = "";
   }  /* if */
