@@ -2641,9 +2641,12 @@ returned set to TRUE.
   }  /* if */
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member is scanned with the original
-       class reactivated. */
-    push_class_reactivation_scope(symbol_ptr->parent.class_type,
-                                  /*extend_namespace=*/TRUE);
+       class reactivated (if we're parsing a prototype instantiation, this was
+       done elsewhere). */
+    if (!is_template_dependent_context()) {
+      push_class_reactivation_scope(symbol_ptr->parent.class_type,
+                                    /*extend_namespace=*/TRUE);
+    }  /* if */
   } else {
     if (symbol_ptr->parent.namespace_ptr != NULL) {
       push_namespace_reactivation_scope(symbol_ptr->parent.namespace_ptr);
@@ -2927,10 +2930,13 @@ returned set to TRUE.
   }  /* if */
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member was scanned with the original
-       class reactivated.  Restore the scope to what it was before. */
+       class reactivated (if we're parsing a prototype instantiation, this was
+       done elsewhere).  Restore the scope to what it was before. */
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
-    pop_class_reactivation_scope();
+    if (!is_template_dependent_context()) {
+      pop_class_reactivation_scope();
+    }  /* if */
   } else {
     /* If an object lifetime was pushed to surround the initialization of
        a local static variable, pop it now. */
