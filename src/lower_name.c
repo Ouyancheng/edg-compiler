@@ -3204,7 +3204,12 @@ file-scope memory region.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
-    final_entity_name_mangling(&variable->source_corresp);
+    /* Skip variables that aren't members, because final mangling may have
+       been done already for those (e.g., typeinfo variables). */
+    if (variable->source_corresp.is_class_member ||
+        variable->source_corresp.parent.namespace_ptr != NULL) {
+      final_entity_name_mangling(&variable->source_corresp);
+    }  /* if */
   }  /* for */
 }  /* do_scope_final_name_mangling */
 
