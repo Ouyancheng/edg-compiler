@@ -555,17 +555,15 @@ generating the default file name.
 Flag that is TRUE if a back end should be called.  The FALSE setting would
 be used when the back end is invoked by the driver as a separate program.
 */
-#if !STANDALONE_UTILITY_PROGRAM
 #ifndef BACK_END_SHOULD_BE_CALLED
+#if !STANDALONE_UTILITY_PROGRAM
 #define BACK_END_SHOULD_BE_CALLED TRUE  /* You can change this. */
-#endif /* ifndef BACK_END_SHOULD_BE_CALLED */
 #else /* STANDALONE_UTILITY_PROGRAM */
 /* Compiling a standalone utility program, so the back end is not
    being called (not from the front end, anyway). */
-#ifndef BACK_END_SHOULD_BE_CALLED
 #define BACK_END_SHOULD_BE_CALLED FALSE  /* Do not change this. */
-#endif /* ifndef BACK_END_SHOULD_BE_CALLED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* ifndef BACK_END_SHOULD_BE_CALLED */
 #if BACK_END_SHOULD_BE_CALLED && STANDALONE_UTILITY_PROGRAM
  #error -- Back end should not be called in standalone utility program
 #endif /* BACK_END_SHOULD_BE_CALLED && STANDALONE_UTILITY_PROGRAM */
