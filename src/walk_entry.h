@@ -2427,10 +2427,7 @@ after_entry_from_class:
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
           conditionally_clear_fe_pointer(ptr->virtual_function_table_var);
-          /* Note that this is deliberately *not* conditionally_clear_fe_pointer
-             because types as subobject are assigned in secondary translation
-             units. */
-          remap_ptr(ptr->type_as_subobject, a_type_ptr, iek_type);
+          conditionally_clear_fe_pointer(ptr->type_as_subobject);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           conditionally_clear_fe_pointer(ptr->uuid_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -3146,13 +3146,6 @@ thereunder.
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-#if DO_IL_LOWERING
-      if (is_primary_translation_unit) {
-        /* Make sure the type-as-subobject for a class gets the class name
-           before it is changed, if it is a nested class name. */
-        prelower_class_type(type);
-      }  /* if */
-#endif /* DO_IL_LOWERING */
       class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
         do_scope_other_name_mangling(class_scope);
