@@ -243,7 +243,16 @@ variables also make indexing into the VLA arrays more efficient.
            "int[2][3][n][m][6]" can be handled as "int[n][m][6]". */
         check_assertion(tp->kind == (a_type_kind)tk_array);
         if (tp->variant.array.is_vla) {
-          break;
+          if (tp->variant.array.has_assoc_vla_dimension) {
+            /* The normal case. */
+            break;
+          } else {
+            /* A [*] dimension.  This dimension requires no work, but the
+               underlying type may or may not contain more components to
+               lower. */
+            tp = tp->variant.array.element_type;
+            goto skip_to_next_component;
+          }  /* if */
         } else {
           tp = tp->variant.array.element_type;
         }  /* if */
@@ -252,9 +261,14 @@ variables also make indexing into the VLA arrays more efficient.
     /* tp should now point to a VLA type: Create and initialize the variable
        associated with the top-level dimension. */
     dim_var = vla_dimension_variable(tp, &inits, &dim_var_created);
-    check_assertion(dim_var_created);
     tp = skip_typerefs(tp->variant.array.element_type);
-    for (;;) {
+    do {
+      if (!dim_var_created) {
+        /* We ran into a VLA type that already has an updated variable.
+           (Presumably as part of a typedef.) No more components need
+           processing. */
+        goto done;
+      }  /* if */
       /* Look for additional dimension and create/update dimension variables
          accordingly. */
       a_targ_size_t  constant_factor = 1;
@@ -300,15 +314,8 @@ variables also make indexing into the VLA arrays more efficient.
           accums = make_comma_node(acc, accums);
         }  /* if */
       }  /* if */
-      if (tp->kind != (a_type_kind)tk_array) {
-        break;
-      } else if (!dim_var_created) {
-        /* We ran into a VLA type that already has an updated variable.
-           (Presumably as part of a typedef.) No more components need
-           processing. */
-        goto done;
-      }  /* if */
-    }  /* for */
+    }  while (tp->kind == (a_type_kind)tk_array);
+skip_to_next_component:;
   }  /* while */
 done:
   if (inits != NULL) {
@@ -1258,7 +1265,7 @@ Transform the given cast expression into a function call (compatible with C89).
     if (vla_enabled && !expr->variant.operation.compiler_generated &&
         !(tp->kind == (a_type_kind)tk_typeref && typeref_is_typedef(tp)) &&
         is_variably_modified_type(tp)) {
-      /* If the cast introduces a VLA type , we need to compute its dimension
+      /* If the cast introduces a VLA type, we need to compute its dimension
          variables. Note that compiler-generated casts may cast to variably
          modified types, but those are always types based on user-specified
          types (which are already processed). */
@@ -1803,6 +1810,9 @@ in C99 mode to represent a compound literal.
   an_insert_location insert_location;
   an_init_pos_descr  ipd;
   a_boolean          keep_dynamic_init;
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  an_expr_node_ptr   vla_inits = NULL;
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
   /* This routine is similar to lower_temp_init. */
   /* The compound literal is rewritten to use a temporary.  The temporary
@@ -1810,6 +1820,16 @@ in C99 mode to represent a compound literal.
      generated for any non-constant parts. */
   /* Determine the type of the temporary. */
   temp_type = expr->type;
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_enabled && !(temp_type->kind == (a_type_kind)tk_typeref &&
+                       typeref_is_typedef(temp_type)) &&
+      is_variably_modified_type(temp_type)) {
+    /* If the compound literal introduces a VLA type, we need to compute its
+       dimension variables (this is similar to cast operations). */
+    vla_inits = lower_vla_dimensions(temp_type);
+    record_vla_component_types_for_lowering(expr->type);
+  }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   result_is_addr = expr->variant.init.result_is_addr;
   if (result_is_addr) {
     /* The value of the enk_temp_init node is the address of the
@@ -1867,6 +1887,14 @@ in C99 mode to represent a compound literal.
   if (keep_dynamic_init) {
     add_stmk_init_for_compound_literal(var, dip);
   }  /* if */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_inits != NULL) {
+    /* Be sure to compute any needed VLA dimension variables before any
+       expressions inside the compound literal braces. */
+    an_expr_node_ptr  new_expr = make_comma_node(vla_inits, copy_node(expr));
+    overwrite_node(expr, new_expr);
+  }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_temp_init */
 
 
