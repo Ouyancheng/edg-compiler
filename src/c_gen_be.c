@@ -4929,6 +4929,8 @@ done_with_operation:
     case enk_new_delete:  /* enk_new_delete is used in C++ only. */
     case enk_condition:   /* enk_condition is used in C++ only. */
     case enk_typeid:      /* enk_typeid is used in C++ only. */
+    case enk_reuse_value: /* enk_reuse_value is expected to be lowered in
+                             both C and C++. */
     default:
       unexpected_condition_str("dump_expr: bad expr node kind");
   }  /* switch */
