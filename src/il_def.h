@@ -1934,12 +1934,6 @@ typedef struct a_dynamic_init {
 			   The master entry handles destruction etc.  This is
 			   used for the optimization of a "?" operator
 			   returning a class rvalue. */
-  a_dynamic_init_ptr
-		last_copied_to;
-			/* When copy_dynamic_init copies this entry, it sets
-			   this pointer to the address of the copy.  Used to
-			   fix pointers in other parts of the copy.  Front end
-			   only. */
 } a_dynamic_init;
 
 

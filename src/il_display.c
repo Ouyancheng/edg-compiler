@@ -4961,7 +4961,6 @@ Display the indicated dynamic_init structure.
   if (ptr->master_entry != NULL) {
     disp_ptr("master_entry", (char *)ptr->master_entry, iek_dynamic_init);
   }  /* if */
-  /* last_copied_to is front-end-only and is not printed. */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:

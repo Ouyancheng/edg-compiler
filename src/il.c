@@ -8890,7 +8890,6 @@ expression node.  options is a set of options for the copy.
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
-  dip->last_copied_to = new_dip;
   if (options & CE_INSIDE_CONDITIONAL_EXPRESSION) {
     new_dip->inside_conditional_expression = TRUE;
   }  /* if */
@@ -12147,9 +12146,7 @@ a set of options for the copy.
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     case enk_reuse_value:
-      expr_copy->variant.reused_value_init =
-                               expr->variant.reused_value_init->last_copied_to;
-      check_assertion(expr->variant.reused_value_init->last_copied_to != NULL);
+/*FIXME*/
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:

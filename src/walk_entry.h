@@ -2433,7 +2433,6 @@ end_sizeof:;
         /* "_not_needed" here to avoid loops in walk. */
         remap_ptr_not_needed(ptr->master_entry, a_dynamic_init_ptr,
                              iek_dynamic_init);
-        conditionally_clear_fe_pointer(ptr->last_copied_to);
       }
       break;
     case iek_local_static_variable_init:

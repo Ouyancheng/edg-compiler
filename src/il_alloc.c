@@ -1705,7 +1705,6 @@ Initialize a dynamic_init entry of the kind specified.
 #endif /* DO_IL_LOWERING */
   dip->lifetime_of_overlapping_temps = NULL;
   dip->master_entry                  = NULL;
-  dip->last_copied_to                = NULL;
 }  /* clear_dynamic_init */
 
 
