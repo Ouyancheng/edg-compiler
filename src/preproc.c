@@ -481,6 +481,10 @@ the newline of the preprocessing directive that is causing this skip.
           scan_if_expr(&condition);
           /* If the condition is TRUE, stop skipping. */
           if (condition) goto end_skip;
+          /* Check for extra text beyond the end of the expression.  For
+             the case where the skip is ended, the check is done at a
+             higher level. */
+          end_of_directive_processing();
         }  /* if */
         break;
       case ppd_if:

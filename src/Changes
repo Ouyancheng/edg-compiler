@@ -1,5 +1,22 @@
 Version 2.36
 
+5/22/97   Missing test for extra text after expected end of #elif
+
+There was no test for extra text after the presumed end of an #elif
+preprocessing directive whose expression evaluates to 0, encountered
+while skipping lines because of a previous #if or the like.  This was a
+problem in particular for an error case like the following, which
+attempts to do a cast (not allowed in a preprocessing expression):
+
+  #define X 1
+  #ifndef X
+  #elif (char)X
+  #endif
+
+The #elif expression was seen as "(0)0", and scanning stopped on the
+right parenthesis.  That much is as it should be.  However, no error
+was issued for the unprocessed final "0".
+
 5/21/97   IL write/read error eliminated, return value optimization
 
 A bug in IL lowering's processing of return value optimization has been
