@@ -1,5 +1,21 @@
 Version 2.46
 
+7/6/01   Base classes without destructors
+
+The front end used to issue a remark when deriving from a base class with a
+nonvirtual destructor (see Changes entry of 9/13/92), but not when deriving
+from a base class with no user-declared destructor.  Now, both cases are
+treated identically.
+
+  struct B1 {};
+  struct D1: public B1 { int f; };  // Remark now issued (but not previously)
+  struct B2 { ~B2() {} };
+  struct D2: public B2 { int f; };  // Remark issued 
+
+In both cases no remark is issued if the derivation involves only one base
+class, declares no destructor, and does not result in a derived class with a
+size larger than the base class.
+
 7/6/01   Microsoft compatibility: inline specifier on friend member functions
 
 Ordinarily, the front end issues an error on friend declarations that add an

@@ -9366,9 +9366,9 @@ one of its direct base classes.
       for (; bcp != NULL; bcp = bcp->next) {
         if (bcp->direct) {            
           dtor_sym = symbol_supplement_for_class(bcp->type)->destructor;
-          if (dtor_sym != NULL &&
+          if (dtor_sym == NULL ||
               !dtor_sym->variant.routine.ptr->is_virtual) {
-            /* The base class has a nonvirtual destructor, which is not
+            /* The base class does not have a virtual destructor, which is not
                recommended (see commentary in ARM 12.4). */
             pos_ty_remark(ec_base_class_with_nonvirtual_dtor,
                           &bcp->decl_position, bcp->type);
