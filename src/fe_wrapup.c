@@ -93,7 +93,7 @@ Do any processing that is required at the end of a translation unit
     instantiation_wrapup();
   }  /* if */
 
-  /* Pop the file scope off the scope stack. */
+  /* Pop the file scope. */
   pop_scope();
 
   if (!do_preprocessing_only && any_cfront_mode()) {
@@ -116,14 +116,14 @@ Do any processing that is required at the end of a translation unit
 }  /* translation_unit_wrapup */
 
 
-static void file_scope_il_wrapup(void)
+static void file_scope_il_wrapup_part_1(void)
 /*
 Do the processing required to complete the file scope IL.  This is
 called both for secondary translation units (is_primary_translation_unit
 is FALSE) and for primary translation units (is_primary_translation_unit
-is TRUE).  For a primary translation unit, this is done after any
-entries from secondary translation units have been copied to the primary
-translation unit IL.
+is TRUE).
+
+This routine does all of the processing except for popping the file scope.
 */
 {
   a_scope_ptr	il_scope;
@@ -170,6 +170,22 @@ translation unit IL.
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
+  /* Pop the file scope. */
+  pop_scope();
+}  /* file_scope_il_wrapup_part_1 */
+
+
+static void file_scope_il_wrapup_part_2(void)
+/*
+Do the final wrapup processing on a translation unit.
+*/
+{
+  a_scope_ptr	il_scope;
+
+  il_scope = curr_translation_unit->primary_scope;
+
+  /* Reactivate the file scope. */
+  push_file_scope(/*is_reactivation=*/TRUE);
 
 #if MAINTAIN_NEEDED_FLAGS
   /* Set the "needed" flag in defined variables with external linkage --
@@ -217,23 +233,17 @@ translation unit IL.
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   } else {
-    /* A secondary translation unit. */
-    if (total_errors == 0
-#if ENABLE_TRANS_UNIT_TEST_MODE
-        /* In trans_unit_test mode, we don't check for duplicate definitions,
-           so we can't do the copy. */
-        && !trans_unit_test_mode
-#endif /* ENABLE_TRANS_UNIT_TEST_MODE */
-                                ) {
-      /* Copy the IL of the secondary translation unit to the primary
-         translation unit IL. */
+    /* Copy IL from the secondary translation units to the primary IL.
+       In trans_unit_test mode, we don't check for duplicate definitions,
+       so we can't do the copy. */
+    if (total_errors == 0 && !trans_unit_test_mode) {
       copy_secondary_trans_unit_IL_to_primary();
     }  /* if */
   }  /* if */
   /* Pop the file scope. */
   pop_scope();
   check_for_done_with_memory_region(file_scope_region_number);
-}  /* file_scope_il_wrapup */
+}  /* file_scope_il_wrapup_part_2 */
 
 
 static void wrap_up_file_scopes(void)
@@ -243,16 +253,30 @@ Complete the file scope of each of the translation units.
 {
   a_translation_unit_ptr	tup;
 
-  /* Process any secondary translation units. */
+  /* Do the initial wrapup processing for each of the secondary and
+     primary translation units.  This includes all of the processing except
+     for copying IL from secondary translation units, and popping of the
+     file scope.  */
   tup = translation_units->next;
   for (; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
-    file_scope_il_wrapup();
+    file_scope_il_wrapup_part_1();
   }  /* for */
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
   /* Process the primary translation unit. */
-  file_scope_il_wrapup();
+  file_scope_il_wrapup_part_1();
+  /* Do the final wrapup processing for each of the secondary and primary
+     translation units. */
+  tup = translation_units->next;
+  for (; tup != NULL; tup = tup->next) {
+    switch_translation_unit(tup);
+    file_scope_il_wrapup_part_2();
+  }  /* for */
+  /* Switch back to the primary translation unit. */
+  switch_translation_unit(translation_units);
+  /* Process the primary translation unit. */
+  file_scope_il_wrapup_part_2();
 }  /* wrap_up_file_scopes */
 
 
