@@ -3008,6 +3008,7 @@ indicated position.
   diag_message(error_code, error_pos, es_remark, dck_standalone);
 }  /* pos_ty2_remark */
 
+
 void type_remark(an_error_code error_code,
                  a_type_ptr    type)
 /*
@@ -3558,7 +3559,7 @@ multiple message diagnostic being processed.
   init_error_params();
   error_msg_types[1] = type;
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
-}  /* str_add_diag_info */
+}  /* ty_add_diag_info */
 
 
 void str_add_diag_info(an_error_code error_code,
@@ -3582,7 +3583,7 @@ being processed.
 {
   init_error_params();
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
-}  /* str_add_diag_info */
+}  /* add_diag_info */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -3613,7 +3614,7 @@ position and symbol fill-in.
   error_msg_strings[1] = error_string;
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_error, dck_primary);
-}  /* pos_sy_start_error */
+}  /* pos_stsy_start_error */
 
 
 void pos_sy_start_warning(an_error_code     error_code,
