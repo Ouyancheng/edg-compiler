@@ -670,6 +670,12 @@ typedef struct a_func_info_block {
 			/* TRUE if the function "main". */
   unsigned int  is_implicit_declaration:1;
 			/* TRUE if this is an implicit declaration. */
+  unsigned int	function_type_from_typedef:1;
+			/* TRUE if the function type came from a typedef
+			   rather than from the declarator.  When it is TRUE,
+			   an error will be issued on a function definition
+			   and param_id_list and prototype_scope_symbols will
+			   be NULL. */
 } a_func_info_block;
 
 

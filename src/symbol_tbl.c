@@ -7749,6 +7749,7 @@ Clear the fields of a function information block to default values.
   func_info->is_definition               = FALSE;
   func_info->is_main_function            = FALSE;
   func_info->is_implicit_declaration     = FALSE;
+  func_info->function_type_from_typedef  = FALSE;
 }  /* clear_func_info */
 
 
