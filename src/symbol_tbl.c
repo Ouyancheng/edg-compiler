@@ -8577,6 +8577,25 @@ a symbol that should be ignored in favor of a template to be found later.
 }  /* check_for_microsoft_template_lookup_bug */
 
 
+static a_boolean found_in_dependent_base(a_derivation_step_ptr	dsp)
+/*
+Return TRUE if any of the base classes on the derivation path specified
+by "dsp" is a base class that should be ignored during dependent
+lookup.
+*/
+{
+  a_boolean	result = FALSE;
+
+  for (; dsp != NULL; dsp = dsp->next) {
+    if (dsp->base_class->ignore_during_dependent_lookup) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* found_in_dependent_base */
+
+
 a_boolean find_projected_symbol(
 			a_type_ptr               class_ptr,
                         a_symbol_locator         *locator,
@@ -8707,6 +8726,10 @@ created if a projected symbol cannot be found in any of the real bases.
                !symbol_is_or_contains_template(fund_progenitor_sym)) {
       /* The symbol found is not a template name symbol, so do not create a
          projection for it. */
+    } else if (found_in_dependent_base(path)) {
+      /* The symbol was found in a dependent base class.  Don't create a
+         projection symbol. */
+      new_sym = progenitor_sym;
     } else {
       /* Create a new symbol based on the symbol returned. */
       new_sym = make_projection_symbol(progenitor_sym, class_ptr,
