@@ -603,17 +603,22 @@ EXTERN a_boolean
 			   have lifetimes that end at end of scope, label,
 			   or end of switch clause. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		microsoft_mode
 #if VAR_INITIALIZERS
-#if MICROSOFT_EXTENSIONS_ALLOWED
                                = DEFAULT_MICROSOFT_MODE
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-                               = FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* VAR_INITIALIZERS */
                                                        ;
 			/* TRUE if Microsoft extensions are to be accepted. */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+/* When Microsoft mode is unavailable, replace the variable with a macro.
+   This will allow optimizers to remove some useless code when the front-end
+   itself is compiled. */
+#define microsoft_mode (FALSE)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
