@@ -196,6 +196,9 @@ extern a_decl_position_supplement_ptr alloc_decl_position_supplement
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+extern char *copy_string_to_region(a_memory_region_number region,
+                                   char                   *string);
+
 extern char *alloc_text_of_string_literal(sizeof_t size);
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

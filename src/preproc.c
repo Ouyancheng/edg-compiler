@@ -1017,6 +1017,7 @@ simply include that.
     /* Allocate space for and copy the name. */
     /* Escapes are not processed.  That is appropriate since "\" is used
        in file names on Microsoft systems. */
+    a_text_buffer_ptr	buffer;
     name = copy_header_name(/*process_escapes=*/FALSE);
     /* Move past the header name. */
     (void)get_token();
@@ -1026,7 +1027,12 @@ simply include that.
        the imported file name, with a .tlh suffix and the directory
        specified by import_dir_name. */
     name = derived_name(name, ".tlh");
-    name = combine_dir_and_file_name(import_dir_name, name, (char *)NULL, 0);
+    buffer = combine_dir_and_file_name(import_dir_name, name,
+                                       (a_text_buffer_ptr)NULL);
+    /* Copy the name to a string in the IL memory region.  Note that
+       the buffer includes the null terminator. */
+    name = (char*)alloc_il(buffer->size);
+    (void)strcpy(name, buffer->buffer);
     /* Push the name and associated search directory onto the input stack,
        thus starting input from that file. */
     open_file_and_push_input_stack(name,

@@ -116,6 +116,10 @@ static a_mem_alloc_history_number
 		new_alloc_history_entries = 0;
 			/* Number of entries in new_alloc_history. */
 
+static a_text_buffer_ptr
+		file_name_text_buffer;
+			/* A buffer used to construct PCH file names. */
+
 /*
 Macro to write a value to the PCH output file.
 */
@@ -363,20 +367,18 @@ local file name buffer for storage.  Return a pointer to the name.  If no
 directory name is being used, a pointer to the original name is returned.
 */
 {
-  char				*result;
-  static a_file_name_buffer	buffer; /* Statically initialized. */
+  char	*result;
 
   if (pch_dir_name == NULL || is_absolute_file_name(file_name)) {
     result = file_name;
   } else {
-    sizeof_t	name_size;
-    /* Make sure the file name is big enough for the file name,
-       directory, and any added slashes, etc. */
-    name_size = strlen(file_name) + strlen(pch_dir_name) + 10;
-    ensure_file_name_buffer_space(buffer, name_size); /*lint !e727*/
-    result = combine_dir_and_file_name(pch_dir_name, file_name,
-                                       buffer.name,
-                                       (int)buffer.size);
+    if (file_name_text_buffer == NULL) {
+      /* Allocate this buffer the first time it is needed. */
+      file_name_text_buffer = alloc_text_buffer(256);
+    }  /* if */
+    (void)combine_dir_and_file_name(pch_dir_name, file_name,
+                                    file_name_text_buffer);
+    result = file_name_text_buffer->buffer;
   }  /* if */
   return result;
 }  /* build_pch_file_name */
@@ -2236,6 +2238,7 @@ Initialize variables used by the precompiled header routines.
   pragma_hdrstop_found = FALSE;
   pos_of_last_event_from_pch = null_source_position;
   using_a_pch_file = FALSE;
+  file_name_text_buffer = NULL;
 #if DEBUG
   num_pch_events_allocated = 0;
 #endif /* DEBUG */

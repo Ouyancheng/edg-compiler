@@ -332,6 +332,15 @@ static a_directory_name_entry_ptr
 		avail_directory_name_entries = NULL;
 			/* Available list of directory name entries. */
 
+static a_directory_name_entry_ptr
+		template_search_path_tail;
+			/* End of the search path to find exported templates.
+			   The name strings are in general storage. */
+
+static a_text_buffer_ptr
+		dir_and_file_buffer;
+			/* A text buffer used by combine_dir_and_file_name.*/
+
 
 static void free_directory_name_entry(a_directory_name_entry_ptr dnep)
 /*
@@ -500,6 +509,26 @@ input stack.
     }  /* if */
   }  /* if */
 }  /* pop_primary_include_search_dir */
+
+
+void add_to_template_search_path(char		*dir_name)
+/*
+Add the indicated directory to the end of the template file search
+path.  The directory name string should be allocated in general memory.
+*/
+{
+  a_directory_name_entry_ptr dnep;
+
+  dnep = alloc_directory_name_entry();
+  dnep->dir_name = dir_name;
+  dnep->next     = NULL;
+  if (template_search_path == NULL) {
+    template_search_path = dnep;
+  } else {
+    template_search_path_tail->next = dnep;
+  }  /* if */
+  template_search_path_tail = dnep;
+}  /* add_to_template_search_path */
 
 
 static char *end_of_directory_name(char *file_name)
@@ -788,29 +817,36 @@ be passed to the back end.
 }  /* derived_name */
 
 
-char *combine_dir_and_file_name (char *dir_name,
-                                 char *file_name,
-				 char *buffer,
-				 int  buffer_size)
+a_text_buffer_ptr combine_dir_and_file_name(
+				char			*dir_name,
+				char			*file_name,
+				a_text_buffer_ptr	buffer)
 /*
 Combine the given directory name and file name to make a full path name,
-and return a pointer to it.  If possible, this routine will return an already
-allocated string (e.g., file_name if the directory name is null); otherwise,
-it will place the name in *buffer (whose length is given by buffer_size) if
-buffer != NULL and the name will fit; failing that, it will call alloc_il
-to allocate the space in the intermediate language memory region.
+and return a pointer to it.  If buffer is not NULL, the name is constructed
+in buffer, otherwise it is constructed in a default buffer (that will be
+overwritten by the next call that uses it).
 */
 {
-  char      *temp_file_name;
-  sizeof_t  dir_length, total_length;
+  sizeof_t  dir_length;
   a_boolean need_to_add_slash;
 
+  /* If no buffer was specified by the caller, use a default buffer. */
+  if (buffer == NULL) {
+    /* Allocate the default buffer the first time that it is needed. */
+    if (dir_and_file_buffer == NULL) {
+      dir_and_file_buffer = alloc_text_buffer(256);
+    }  /* if */
+    buffer = dir_and_file_buffer;
+  }  /* if */
+  /* Clear the buffer. */
+  reset_text_buffer(buffer);
   /* If the directory name is the current directory, then produce
      a joined name that is just the file name.  This makes for nicer-looking
      file names. */
   dir_length = strlen(dir_name);
   if (dir_length == 0) {
-    temp_file_name = file_name;
+    add_string_to_text_buffer(buffer, file_name);
   } else {
     /* See if a slash will have to be added between the two. */
 #if __VMS__
@@ -822,133 +858,80 @@ to allocate the space in the intermediate language memory region.
     need_to_add_slash = need_to_add_slash && (dir_name[dir_length-1] != '\\');
 #endif /* __MICROSOFT_OS__ */
 #endif /* __VMS__ */
-    total_length = dir_length + strlen(file_name) + need_to_add_slash + 1;
-    /* See if the buffer is provided and if the required string will fit 
-       in it. */
-    if (buffer != NULL && ((sizeof_t)buffer_size) >= total_length) {
-      /* The buffer is supplied and it is big enough.  Use it. */
-      temp_file_name = buffer;
-    } else {
-      /* Allocate the needed space. */
-#if STANDALONE_UTILITY_PROGRAM
-      /* alloc_il can't be used in a standalone utility program. */
-      temp_file_name = (char *)alloc_general((sizeof_t)total_length);
-#else /* !STANDALONE_UTILITY_PROGRAM */
-      temp_file_name = (char *)alloc_il((sizeof_t)total_length);
-#endif /* STANDALONE_UTILITY_PROGRAM */
-    }  /* if */
     /* Copy the directory name. */
-    (void)memcpy(temp_file_name, dir_name, size_t_arg(dir_length));
+    add_string_to_text_buffer(buffer, dir_name);
     if (need_to_add_slash) {
       /* Add the slash following the directory name. */
 #if __MICROSOFT_OS__
+      char	separator_char;
       if (strchr(dir_name, DIRECTORY_SEPARATOR) != NULL) {
 	/* The original path uses regular UNIX-style slashes; use one to splice
 	   the file and path to make it look consistent. */
-        temp_file_name[dir_length++] = DIRECTORY_SEPARATOR;
+        separator_char = DIRECTORY_SEPARATOR;
       } else {
 	/* The directory name does not have any UNIX-style slashes or has no
 	   slashes at all.  In either case, under MSDOS, use an MSDOS-style
 	   slash. */
-        temp_file_name[dir_length++] = '\\';
+        separator_char = '\\';
       }  /* if */
+      add_char_to_text_buffer(buffer, separator_char);
 #else /* __MICROSOFT_OS__ */
-      temp_file_name[dir_length++] = DIRECTORY_SEPARATOR;
-#endif /* if __MICROSOFT_OS__ */
+      add_char_to_text_buffer(buffer, DIRECTORY_SEPARATOR);
+#endif /* __MICROSOFT_OS__ */
     }  /* if */
     /* Add the file name to the directory name. */
-    (void)strcpy(&temp_file_name[dir_length], file_name);
+    add_string_to_text_buffer(buffer, file_name);
   }  /* if */
-  return(temp_file_name);
+  /* Add a null terminator. */
+  add_char_to_text_buffer(buffer, '\0');
+  return buffer;
 }  /* combine_dir_and_file_name */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-char *replace_file_name_suffix(char  *new_suffix,
-                               char  *file_name,
-                               char  *buffer,
-                               int   buffer_size,
-                               char  **suffix_loc)
+void replace_file_name_suffix(char		*new_suffix,
+                              a_text_buffer_ptr	file_name_buffer)
 /*
-Replace the suffix of a file name with a specified suffix.  Try to replace
-the file name in place.  This can be done if file_name is within buffer and
-buffer has enough addition space for the possibly enlarged name or if the
-new suffix takes no more space than the suffix it replaces; otherwise
-storage will be allocated for the new name.  This routine may be called
-iteratively.  On second and subsequent calls, suffix_loc points to the
-place in file_name where the suffix begins (the position of the suffix
-delimiter).
+Replace the suffix of a file name with a specified suffix.  The
+replacement is done in place in file_name_buffer, which is expanded if
+necessary.  This routine may be called iteratively.
 */
 {
-  char       *new_file_name;
-  sizeof_t   curr_file_name_size, curr_suffix_length;
-  sizeof_t   new_file_name_base_size, new_file_name_size;
+  sizeof_t   curr_file_name_size;
   sizeof_t   new_suffix_length;
+  char	     *suffix_loc;
 #define SUFFIX_DELIMITER '.'
 
   db_enter(5, "replace_file_name_suffix");
 #if DEBUG
   if (db_flag_is_set("replace_file_name_suffix")) {
     fprintf(f_debug, "current file_name = \"%s\", new suffix = \"%s\"\n",
-            file_name, new_suffix);
+            file_name_buffer->buffer, new_suffix);
   }  /* if */
 #endif /* DEBUG */
   /* Determine the size of file_name, excluding the trailing NULL. */
-  curr_file_name_size = strlen(file_name);
+  curr_file_name_size = file_name_buffer->size - 1;
   new_suffix_length = strlen(new_suffix);
   check_assertion(curr_file_name_size > 0);
-  check_assertion(file_name[curr_file_name_size] == '\0');
-  if (*suffix_loc != NULL) {
-    /* This name has already had a new suffix added, so we can use *suffix_loc
-       saved from last time. */
-    /* Determine the length of the current suffix. */
-    check_assertion(**suffix_loc == SUFFIX_DELIMITER ||
-                    **suffix_loc == '\0');
-  } else {
-    *suffix_loc = suffix_of(file_name);
-  }  /* if */
-  curr_suffix_length = &file_name[curr_file_name_size] - *suffix_loc;
-  /* The base size of the new file name is the size when the current
-     file name without its suffix. */
-  new_file_name_base_size = curr_file_name_size - curr_suffix_length;
-  /* The total size of the new file name is the base size plus the new
-     suffix plus 1 for the delimiter. */
-  new_file_name_size = new_file_name_base_size + new_suffix_length + 1;
-  if ((file_name == buffer && new_file_name_size > (sizeof_t)buffer_size) ||
-      (file_name != buffer && new_file_name_size > curr_file_name_size)) {
-#if DEBUG
-    if (debug_level >= 5) {
-      fprintf(f_debug, "allocating new storage, size = %d\n",
-                       (int)(new_file_name_size+1));
-    }  /* if */
-#endif /* DEBUG */
-    /* We need to allocate new storage for the file name. */
-    new_file_name = (char *)alloc_il(new_file_name_size+1);
-    /* Copy the file name, minus the current suffix. */
-    (void)memcpy(new_file_name, file_name,
-                 size_t_arg(new_file_name_base_size));
-    *suffix_loc = &new_file_name[new_file_name_base_size];
-  } else {
-    /* We can do the replacement "in place". */
-    new_file_name = file_name;
-  }  /* if */
+  check_assertion(file_name_buffer->buffer[curr_file_name_size] == '\0');
+  suffix_loc = suffix_of(file_name_buffer->buffer);
+  /* Update the buffer to specify that characters should be added
+     at the position specified by suffix_loc. */
+  set_buffer_position(file_name_buffer, suffix_loc);
   if (new_suffix_length > 0) {
     /* Add the delimiter. */
-    **suffix_loc = SUFFIX_DELIMITER;
-    /* Add the new suffix to new_file_name. */
-    strcpy((*suffix_loc) + 1, new_suffix);
-  } else {
-    /* The new suffix is an empty string.  Just terminate the string. */
-    **suffix_loc = '\0';
-  };
+    add_char_to_text_buffer(file_name_buffer, SUFFIX_DELIMITER);
+    /* Add the new suffix to the new filename. */
+    add_to_text_buffer(file_name_buffer, new_suffix, new_suffix_length);
+  }  /* if */
+  /* Terminate the string. */
+  add_char_to_text_buffer(file_name_buffer, '\0');
 #if DEBUG
   if (db_flag_is_set("replace_file_name_suffix")) {
-    fprintf(f_debug, "new file name = \"%s\"\n", new_file_name);
+    fprintf(f_debug, "new file name = \"%s\"\n", file_name_buffer->buffer);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  /* Return a pointer to the new file name. */
-  return new_file_name;
 #undef SUFFIX_DELIMITER
 }  /* replace_file_name_suffix */
 
@@ -3022,6 +3005,8 @@ This is done before command line processing.
   current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
   (void)strcpy(current_directory_name, ptr);
   preinclude_file_name = NULL;
+  template_search_path = NULL;
+  template_search_path_tail = NULL;
 }  /* host_envir_early_init */
 
 
@@ -3036,6 +3021,7 @@ invocation of the front end.
 #if MODULE_ID_NEEDED
   module_id = NULL;
 #endif /* MODULE_ID_NEEDED */
+  dir_and_file_buffer = NULL;
 }  /* host_envir_init */
 
 /*

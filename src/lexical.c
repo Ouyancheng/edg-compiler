@@ -3248,17 +3248,13 @@ path in which the file was found, or NULL if the search path was not
 used.
 */
 {
-  char				*suffix_loc;
   a_file_suffix_ptr		fsp;
   a_boolean			done = FALSE;
   a_directory_name_entry_ptr	curr_directory_name_entry;
   char				*name_to_try;
   FILE				*new_input_file = NULL;
-  /* Buffer in which directory names and file names are combined.  Longer
-     names will bypass the buffer and be allocated directly via alloc_il. */
-#define FILE_NAME_BUFFER_SIZE 130
-  char				buffer[FILE_NAME_BUFFER_SIZE];
   char				*prev_dir_name = NULL;
+  a_text_buffer_ptr		buffer = NULL;
 
   *dir_entry = NULL;
   /* Determine whether we need to do the suffix replacement processing.
@@ -3290,10 +3286,10 @@ used.
       /* We need to traverse the search path.  Merge the current entry in
          the path with the file name and use that name as the base for
          replacing the suffixes. */
-      name_to_try = combine_dir_and_file_name(
+      buffer = combine_dir_and_file_name(
                                       curr_directory_name_entry->dir_name,
-                                      file_name, buffer,
-                                      FILE_NAME_BUFFER_SIZE);
+                                      file_name, (a_text_buffer_ptr)NULL);
+      name_to_try = buffer->buffer;
       /* Now try to open the modified file. */
       if (!replace_suffix) {
         /* We don't need to replace the suffix.  Just try the
@@ -3302,30 +3298,14 @@ used.
       } else {
         /* We need to replace the suffix.  Go through the list of
            suffixes. */
-        if (name_to_try == file_name) {
-          if (strlen(file_name) < (sizeof_t)(FILE_NAME_BUFFER_SIZE - 1)) {
-            /* Copy file_name into the buffer.  Its suffix will be replaced
-               in the inner loop. */
-            (void)strcpy(buffer, file_name);
-            name_to_try = buffer;
-          } else {
-            /* Since we're going to try to modify the file name in place, by
-               replacing its current suffix with another, allocate storage
-               for it. */
-            name_to_try = alloc_il((sizeof_t)(strlen(file_name)+1));
-            (void)strcpy(name_to_try, file_name);
-          }  /* if */
-        }  /* if */
         /* Loop through the linked list of suffixes. */
-        suffix_loc = NULL;
         for (fsp = suffix_list;
              fsp != NULL;
              fsp = fsp->next) {
           /* Replace the existing suffix with a new one. */
-          name_to_try = replace_file_name_suffix(fsp->suffix,
-                                                 name_to_try, buffer,
-                                                 FILE_NAME_BUFFER_SIZE,
-                                                 &suffix_loc);
+          (void)replace_file_name_suffix(fsp->suffix, buffer);
+          /* Get the current buffer pointer in case it was reallocated. */
+          name_to_try = buffer->buffer;
           /* Now try to open the modified file. */
           new_input_file = try_to_open_source_file(name_to_try, file_name);
           if (new_input_file != NULL) break;
@@ -3342,9 +3322,9 @@ used.
     /* If a file was found, return the name in name_found.  If the name
        is currently in the temporary buffer, make a copy and return a
        pointer to the copy. */
-    if (name_to_try == buffer) {
-      name_to_try = alloc_il((sizeof_t)(strlen(buffer)+1)); /*lint !e645*/
-      (void)strcpy(name_to_try, buffer);
+    if (buffer != NULL && name_to_try == buffer->buffer) {
+      name_to_try = alloc_il(buffer->size);
+      (void)strcpy(name_to_try, buffer->buffer);
     }  /* if */
     *name_found = name_to_try;
   }  /* if */
@@ -12119,6 +12099,20 @@ Expand the specified text buffer so that it is large enough to hold
     buffer->allocated_size = new_size;
   }  /* if */
 }  /* expand_text_buffer */
+
+
+void set_buffer_position(a_text_buffer_ptr	buffer,
+			 char			*pos)
+/*
+Update buffer so that any additional characters that are appended
+will be placed starting at the location specified by pos.
+*/
+{
+  /* Make sure pos is a valid location in the buffer. */
+  check_assertion(buffer->buffer <= pos &&
+                  &buffer->buffer[buffer->allocated_size - 1] >= pos);
+  buffer->size = pos - buffer->buffer;
+}  /* set_buffer_position */
 
 
 void add_to_text_buffer(a_text_buffer_ptr	buffer,

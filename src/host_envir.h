@@ -24,6 +24,9 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 #include "lang_feat.h"
 #endif /* ifndef lang_feat.h */
 
+/* Forward declaration of a_text_buffer_ptr. */
+typedef struct a_text_buffer *a_text_buffer_ptr;
+
 /*
 Vertical tab character.
 */
@@ -1496,6 +1499,11 @@ EXTERN a_boolean
 			   is put on the include search path.  Set FALSE
 			   by the "-I-" option. */
 
+EXTERN a_directory_name_entry_ptr
+		template_search_path;
+			/* Search path to find exported templates.
+			   The name strings are in general storage. */
+
 /* Static variable used by directory_of; here in the .h file so it
    can be initialized by fe_init. */
 EXTERN a_directory_name_entry_ptr
@@ -1517,6 +1525,8 @@ extern void change_primary_include_search_dir(char *dir_name);
 /* Manage include search path when source input file is pushed or popped. */
 extern void push_primary_include_search_dir(char *dir_name);
 extern void pop_primary_include_search_dir(char *dir_name);
+
+extern void add_to_template_search_path(char		*dir_name);
 
 EXTERN a_boolean
 		stack_referenced_include_directories
@@ -1552,17 +1562,14 @@ handled separately.
 #endif /* DIRECTORY_SEPARATOR_STRING */
 
 /* Combine a directory name and file name into a full path name. */
-extern char *combine_dir_and_file_name (char *dir_name,
-                                        char *file_name,
-				        char *buffer,
-				        int  buffer_size);
+extern a_text_buffer_ptr combine_dir_and_file_name(
+				char			*dir_name,
+				char			*file_name,
+				a_text_buffer_ptr	buffer);
 
 /* Replace the suffix of a file name with a specified suffix. */
-extern char *replace_file_name_suffix(char  *suffix,
-                                      char  *file_name,
-                                      char  *buffer,
-                                      int   buffer_size,
-                                      char  **suffix_loc);
+extern void replace_file_name_suffix(char		*new_suffix,
+		                     a_text_buffer_ptr	file_name_buffer);
 
 /*
 Include the files needed to define the types used with the stat()

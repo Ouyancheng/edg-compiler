@@ -269,6 +269,9 @@ Initialize the option information table.
                          "exported_template_file",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_template_directory, "template_directory", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   add_option_description(optk_implicit_template_inclusion,
@@ -2318,6 +2321,8 @@ Process the arguments on the command line that invoked the compiler.
      because of command line options, and others will be added as defaults. */
   incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
   put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
+  /* Put the current directory on the template search path. */
+  add_to_template_search_path(current_directory_name);
   /* Scan the command-line options. */
   while ((odp = get_option(argc, argv)) != NULL) {
     an_option_kind	kind = odp->kind;
@@ -2516,6 +2521,10 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_exported_template_file_name:
         exported_template_file_name = opt_arg;
+        break;
+      case optk_template_directory:
+        /* A directory name to be added to the template search path.*/
+        add_to_template_search_path(opt_arg);
         break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION

@@ -661,7 +661,6 @@ A general purpose text buffer that is automatically resized as characters
 are added.  The string may or may not be null-terminated, but if it is
 null-terminated, the null-terminator will be included in "size".
 */
-typedef struct a_text_buffer *a_text_buffer_ptr;
 typedef struct a_text_buffer {
   sizeof_t	allocated_size;
 			/* The size in bytes of the memory allocated for the
@@ -1839,6 +1838,12 @@ extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
 			       sizeof_t			length);
 
 /*
+Add the specified string to a text buffer.
+*/
+#define add_string_to_text_buffer(buffer, string)			\
+  (add_to_text_buffer(buffer, string, strlen(string)))
+
+/*
 Make sure that the specified buffer has at least "length" total bytes in it.
 If not, expand the buffer by reallocating it.
 */
@@ -1847,6 +1852,9 @@ If not, expand the buffer by reallocating it.
     expand_text_buffer(buf, (sizeof_t)(length));			\
   }  /* if */							\
 }  /* ensure_text_buffer_space */
+
+extern void set_buffer_position(a_text_buffer_ptr	buffer,
+				char			*pos);
 
 /*
 Add the specified character to the text buffer specifier by "buf".

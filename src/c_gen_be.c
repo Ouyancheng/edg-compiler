@@ -179,6 +179,12 @@ static unsigned long
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
+#if ONE_INSTANTIATION_PER_OBJECT
+static a_text_buffer_ptr
+		C_output_file_name_buffer;
+			/* A text buffer used to construct the name of the
+			   C output file. */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 static a_boolean
 		curr_output_pos_known;
 			/* TRUE if the current output position is known. */
@@ -7104,22 +7110,26 @@ routine or variable has the given source correspondence field and
 "needed" flag bit number.
 */
 {
-  char *C_output_file_name;
+  char	*C_output_file_name;
 
+  if (C_output_file_name_buffer == NULL) {
+    /* On the first call, allocate a buffer used to construct the file name.
+       This buffer will be resized as needed. */
+    C_output_file_name_buffer = alloc_text_buffer(256);
+  }  /* if */
   /* Generate a file name based on the mangled name of the entity. */
   C_output_file_name = generate_instantiation_output_file_name(scp->name);
   /* Add the right suffix for a generated C file. */
   C_output_file_name = derived_name(C_output_file_name, GEN_C_FILE_SUFFIX);
   /* Add the directory name specified. */
-  C_output_file_name = combine_dir_and_file_name(
-                                              il_header.instantiation_dir_name,
-                                              C_output_file_name,
-                                              (char *)NULL, 0);
+  (void)combine_dir_and_file_name(il_header.instantiation_dir_name,
+                                  C_output_file_name,
+                                  C_output_file_name_buffer);
   needed_flag_bit_number = needed_bit_number;
   /* Do initialization. */
   c_gen_be_file_init();
   /* Generate the C output file. */
-  generate_C_output_file(C_output_file_name);
+  generate_C_output_file(C_output_file_name_buffer->buffer);
   needed_flag_bit_number = 0;
 }  /* generate_one_instantiation_C_output_file */
 
@@ -7188,6 +7198,9 @@ The IL is already available when this routine is called.
   }  /* if */
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#if ONE_INSTANTIATION_PER_OBJECT
+  C_output_file_name_buffer = NULL;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);

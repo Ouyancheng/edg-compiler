@@ -339,6 +339,24 @@ least in non-pcc mode).
   return alloc_il(size);
 }  /* alloc_text_of_string_literal */
 
+
+char *copy_string_to_region(a_memory_region_number region,
+                            char                   *string)
+/*
+Make a copy of the specified string in the memory region indicated by
+"region".
+*/
+{
+  size_t	length;
+  char		*new_string;
+
+  length = strlen(string);
+  new_string = (char *)alloc_in_region(region, length+1);
+  (void)strcpy(new_string, string);
+  return new_string;
+}  /* copy_string_to_region */
+
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 

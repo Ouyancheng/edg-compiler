@@ -109,10 +109,44 @@ static char	*template_info_line_type_namess[(int)tilt_last+1] = {
 };
 
 /*
+Entry used to record information about a file containing exported
+template definitions.
+*/
+typedef struct an_exported_template_file *an_exported_template_file_ptr;
+typedef struct an_exported_template_file {
+  char		*directory_name;
+			/* Directory containing the file. */
+  char		*source_file_name;
+			/* Name of the source file. */
+} an_exported_template_file;
+
+typedef struct a_template_lookup_entry *a_template_lookup_entry_ptr;
+typedef struct a_template_lookup_entry {
+  /* Structure used to represent entries in the hash table of template
+     names.  This is used to record the signatures of template definitions
+     specified in a given exported template file so that a definition
+     for an exported template can be found when an instantiation must be
+     generated. */
+  a_template_lookup_entry_ptr
+		next;
+			/* Pointer to the next template in a given hash
+			   table bucket. */
+  char		*name;
+			/* Name of the template.  This is the name read from
+			   the exported template file.  This will typically
+			   be the mangled name of the template. */
+  an_exported_template_file_ptr
+		exported_template_file;
+			/* Pointer to the entry that describes the file in
+			   which the template was defined. */
+} a_template_lookup_entry;
+
+/*
 Enumeration used to specify the kind of template information file line to
 be written.
 */
 typedef enum /* an_exported_template_line_type */ {
+  etlt_file_name,
   etlt_template_name,
   etlt_last
 } an_exported_template_line_type;
@@ -122,6 +156,7 @@ The template information line type string to be written to the
 file for the various line type kinds.
 */
 static char	*exported_template_line_type_namess[(int)etlt_last+1] = {
+  /* etlt_file_name */			"fnm",
   /* etlt_template_name */		"tnm",
   /* etlt_last */			NULL
 };
@@ -154,6 +189,17 @@ static an_instance_lookup_entry_ptr
 			   entries associated with instantiations that hashed
 			   to a given group. */
 
+#define TEMPLATE_LOOKUP_TABLE_SIZE 599
+			/* The number of buckets in the template lookup table.
+			   This number should be prime. */
+
+static a_template_lookup_entry_ptr
+		template_lookup_table[TEMPLATE_LOOKUP_TABLE_SIZE];
+			/* Table used to find the definition of exported
+			   templates.  Each element of the array points to
+			   a list of entries for templates that hash
+			   to a given group. */
+
 #define HASH_FACTOR ((unsigned int)73)
 			/* The multiplier used in the hash algorithm that
 			   generates an index in the hash table from an
@@ -162,10 +208,6 @@ static an_instance_lookup_entry_ptr
 			   hash table performance that results.  Prime
 			   values are likely to work better than
 			   non-prime values. */
-#define REQUEST_FILE_LINE_INCREMENTAL_ALLOCATION 256
-			/* The number of bytes added to the request file
-			   input line each time it is reallocated; also the
-			   initial allocation. */
 
 static a_boolean
 		any_instantiations_required;
@@ -211,6 +253,11 @@ static a_boolean
 			   This is used to determine whether a list of
 			   added entities should be generated at the end of
 			   the compilation. */
+
+static a_text_buffer_ptr
+		file_read_buffer;
+			/* Buffer used when reading from the various template
+			   files. */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -330,6 +377,10 @@ static unsigned long
 Counters used to track memory usage.
 */
 static unsigned long
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+		num_template_lookup_entries_allocated,
+                num_exported_template_files_allocated,
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 		num_partial_order_candidates_allocated;
 #endif /* DEBUG */
 
@@ -858,7 +909,7 @@ have already existed.
 }  /* close_or_remove_exported_template_file */
 
 
-static void open_exported_template_file(void)
+static void open_exported_template_file_for_output(void)
 /*
 Open the template information file.
 */
@@ -867,7 +918,7 @@ Open the template information file.
   a_boolean	bad_name;
 
   check_assertion_str2(generate_template_files(),
-                       "open_exported_template_file:",
+                       "open_exported_template_file_for_output:",
                        "generate_template_files() is FALSE");
   /* Open the file into which information about exported template will
      be written. */
@@ -880,7 +931,7 @@ Open the template information file.
   } else if (cannot_open) {
     str_catastrophe(ec_cannot_open_output_file, exported_template_file_name);
   }  /* if */
-}  /* open_exported_template_file */
+}  /* open_exported_template_file_for_output */
 
 
 static void write_to_exported_template_file(
@@ -893,7 +944,7 @@ be written.
 */
 {
   if (f_exported_template == NULL) {
-    open_exported_template_file();
+    open_exported_template_file_for_output();
   }  /* if */
   fprintf(f_exported_template, "%s:%s",
           exported_template_line_type_namess[(int)line_type],
@@ -14596,10 +14647,10 @@ to it.
 static an_instance_lookup_entry_ptr find_instance(char		*name,
 				                  a_boolean	add)
 /*
-Find an entry in the instance lookup table with the specified name.  Add
-the name to the list if an entry does not already exist.  This is used to
-build a list of instances found in the instantiation request file and
-later check whether a specified name was included in that list.
+Find an entry in the instance lookup table with the specified name.  If "add"
+is TRUE, add the name to the list if an entry does not already exist.  This
+is used to build a list of instances found in the instantiation request file
+and later check whether a specified name was included in that list.
 */
 {
   register unsigned            hash_value = 0;
@@ -14644,11 +14695,11 @@ later check whether a specified name was included in that list.
   }  /* if */
 
   /* Exiting this loop indicates that the symbol does not exist in the table;
-     allocate a symbol header for it. */
+     allocate a template instance entry header for it. */
   if (add) {
     ilp = alloc_instance_lookup_entry();
-    /* Link the new header onto the front of the appropriate bucket of the
-       symbol table. */
+    /* Link the new entry onto the front of the appropriate bucket of the
+       table. */
     ilp->next = instance_lookup_table[bucket_number];
     instance_lookup_table[bucket_number] = ilp;
     /* Allocate space for the name (including a null terminator) and make a
@@ -14662,55 +14713,27 @@ symbol_found:
 }  /* find_instance */
 
 
-static char *read_instance_name(FILE *f_file)
+static char *read_line_from_file(FILE *f_file)
 /*
-Reads a line of input from the file specified by f_file.  Returns TRUE if
-a line of input is being returned.  Returns FALSE at end-of-file.
+Reads a line of input from the file specified by f_file.  Returns a pointer
+to a buffer containing the line read, or NULL at end-of-file.  The pointer
+returned points to a static buffer that is reused for each call.
 */
 {
-  register char*    buffer_pos;
-  register sizeof_t size = 0;
-  register int      ch;
-  char              *result;
-  static char	    *input_line;
-  static sizeof_t   request_file_line_size = 0;
+  int      ch;
+  char     *result;
 
-  /* Allocate space into which the input line can be read.  Only done
-     the first time this routine is called. */
-  if (request_file_line_size == 0) {
-    input_line =
-            (char *)alloc_general(REQUEST_FILE_LINE_INCREMENTAL_ALLOCATION);
-    request_file_line_size = REQUEST_FILE_LINE_INCREMENTAL_ALLOCATION;
-  }  /* if */
-  buffer_pos = input_line;
-
+  reset_text_buffer(file_read_buffer);
   while (ch = getc(f_file), ch != EOF && ch != '\n') {
-    if (++size == request_file_line_size) {
-      /* The input line needs to be expanded.  This occurs one character
-         before the actual end of the buffer to ensure that there will be
-         enough room for the null terminator at the end of the string. */
-      sizeof_t  curr_offset;
-      sizeof_t	new_size;
-      new_size = request_file_line_size +
-                                      REQUEST_FILE_LINE_INCREMENTAL_ALLOCATION;
-      curr_offset = buffer_pos - input_line;
-      input_line = realloc_general(input_line, request_file_line_size,
-                                   new_size);
-      request_file_line_size = new_size;
-      buffer_pos = input_line + curr_offset;
-    }  /* if */
-    *buffer_pos++ = ch;
+    add_char_to_text_buffer(file_read_buffer, (char)ch);
   }  /* while */
-  
-  /* Terminate string with a null character. */
-  *buffer_pos++ = '\0';
-
   /* Determine whether to return end-of-file (NULL). */
-  result = input_line;
-  if (ch == EOF && size == 0) result = NULL;
-
+  result = file_read_buffer->buffer;
+  if (ch == EOF && file_read_buffer->size == 0) result = NULL;
+  /* Terminate string with a null character. */
+  add_char_to_text_buffer(file_read_buffer, '\0');
   return (result);
-}  /* read_instance_name */
+}  /* read_line_from_file */
 
 
 static a_boolean open_instantiation_request_file(void)
@@ -14746,9 +14769,9 @@ were entered in the hash table; otherwise returns FALSE.
        that don't contain instantiation entries. */
     for (i = 1; i <= INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
       /* Read and discard the line. */
-      (void)read_instance_name(f_instantiation_request);
+      (void)read_line_from_file(f_instantiation_request);
     }  /* if */
-    while ((line = read_instance_name(f_instantiation_request)) != NULL) {
+    while ((line = read_line_from_file(f_instantiation_request)) != NULL) {
       an_instance_lookup_entry_ptr	ilp;
       ilp = find_instance(line, /*add=*/TRUE);
       ilp->in_request_file = TRUE;
@@ -14781,7 +14804,7 @@ Return TRUE if any entries were read.
     /* Read the list of instances from the definition list file and
        create an entry in the instance lookup table that is flagged
        as being in the definition list file. */
-    while ((line = read_instance_name(f_definition_list)) != NULL) {
+    while ((line = read_line_from_file(f_definition_list)) != NULL) {
       an_instance_lookup_entry_ptr	ilp;
       ilp = find_instance(line, /*add=*/TRUE);
       ilp->in_definition_list_file = TRUE;
@@ -15033,6 +15056,213 @@ specified by tip.
      linkage class members. */
   instantiation_mode = saved_instantiation_mode;
 }  /* do_automatic_instantiation_of_entity */
+
+
+static an_exported_template_file_ptr alloc_exported_template_file(void)
+/*
+Allocate an exported template file entry, initialize it, and return a pointer
+to it.
+*/
+{
+  an_exported_template_file_ptr	etfp;
+
+  etfp = alloc_fe_of_type(an_exported_template_file);
+#if DEBUG
+  num_exported_template_files_allocated = 0;
+#endif /* DEBUG */
+  etfp->directory_name = NULL;
+  etfp->source_file_name = NULL;
+  return etfp;
+}  /* alloc_exported_template_file */
+
+
+static a_template_lookup_entry_ptr alloc_template_lookup_entry(void)
+/*
+Allocate a template lookup entry, initialize it, and return a pointer
+to it.
+*/
+{
+  a_template_lookup_entry_ptr	tlp;
+
+  tlp = alloc_fe_of_type(a_template_lookup_entry);
+#if DEBUG
+  num_template_lookup_entries_allocated = 0;
+#endif /* DEBUG */
+  tlp->next = NULL;
+  tlp->name = NULL;
+  tlp->exported_template_file = NULL;
+  return tlp;
+}  /* alloc_template_lookup_entry */
+
+
+static a_template_lookup_entry_ptr find_exported_template(char		*name,
+					                  a_boolean	add)
+/*
+Find an entry in the template lookup table with the specified name.
+If "add" is TRUE add the name to the list if an entry does not already
+exist.  This is used to find the definition of an exported template.
+*/
+{
+  register unsigned            hash_value = 0;
+  register unsigned char       *ptr;
+  a_template_lookup_entry_ptr  tlp    = NULL;
+  int                          bucket_number;
+  int			       length;
+
+  length = strlen(name);
+  /* Hash the symbol's identifier.  This involves taking the identifier's
+     first 3, last 3, and middle 3 characters.  Of course, if the identifier
+     has 9 or fewer characters, take the entire identifier. */
+  ptr = (unsigned char *)name;
+  if (length > 9) {
+    hash_value = *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+    ptr = (unsigned char *)name + (length >> 1) - 1;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+    ptr = (unsigned char *)name + length - 3;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+  } else {
+    register int a;
+    for (a = 0; a < length; a++) {
+      hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    }  /* for */
+  }  /* if */
+  /* Look in the symbol bucket saving the position in case this symbol needs
+     to be added. */
+  bucket_number = hash_value % TEMPLATE_LOOKUP_TABLE_SIZE;
+  if ((tlp = template_lookup_table[bucket_number]) != NULL) {
+    do {
+      if (strcmp(name, tlp->name) == 0) {
+        /* We have a match. */
+        goto symbol_found;
+      }  /* if */
+    } while ((tlp = tlp->next) != NULL);
+  }  /* if */
+
+  /* Exiting this loop indicates that the symbol does not exist in the table;
+     allocate a template lookup entry. */
+  if (add) {
+    tlp = alloc_template_lookup_entry();
+    /* Link the new header onto the front of the appropriate bucket of the
+       table. */
+    tlp->next = template_lookup_table[bucket_number];
+    template_lookup_table[bucket_number] = tlp;
+    /* Allocate space for the name (including a null terminator) and make a
+       copy of the name. */
+    tlp->name = (char *)alloc_fe((sizeof_t)length + 1);
+    strcpy(tlp->name, name);
+  }  /* if */
+
+symbol_found:
+  return tlp;
+}  /* find_template */
+
+
+static FILE *open_exported_template_file_for_input(
+				char				*file_name,
+				a_directory_name_entry_ptr	dnep)
+/*
+Open the specified exported template file to be read.  The file is in the
+directory specified by dnep.  This is used when reading exported template
+files to find template definitions, not when generating a file from this
+compilation.
+
+Returns a pointer to the FILE structure for the file.
+*/
+{
+  FILE			*f_file;
+  a_text_buffer_ptr	file_name_buffer;
+  char			*full_name;
+
+  file_name_buffer = combine_dir_and_file_name(dnep->dir_name, file_name,
+                                               (a_text_buffer_ptr)NULL);
+  full_name = file_name_buffer->buffer;
+#if DEBUG
+  if (db_flag_is_set("export")) {
+    fprintf(f_debug, "Opening export template file: %s\n", full_name);
+  }  /* if */
+#endif /* DEBUG */
+  f_file = fopen(full_name, "r");
+  if (f_file == NULL) {
+    str_catastrophe(ec_cannot_open_exported_template_file, full_name);
+  }  /* if */
+  return f_file;
+}  /* open_exported_template_file_for_input */
+
+
+static void read_exported_template_file(
+				char				*file_name,
+				a_directory_name_entry_ptr	dnep)
+/*
+Read the exported template file specified by file_name, found in the
+directory indicated by dnep.  Create lookup table entries for the
+templates defined in the file.
+*/
+{
+  FILE				*f_file;
+  char				*line;
+  an_exported_template_file_ptr	etfp;
+
+  /* Create an entry that describes this exported template file. */
+  etfp = alloc_exported_template_file();
+  /* Make a copy of the directory name in the front end memory region. */
+  etfp->directory_name = copy_string_to_region(FRONT_END_REGION_NUMBER,
+                                               dnep->dir_name);
+  f_file = open_exported_template_file_for_input(file_name, dnep);
+  while ((line = read_line_from_file(f_file)) != NULL) {
+    if (strncmp(line, "fnm:", 4) == 0) {
+      char	*file_name = &line[4];
+      etfp->source_file_name = copy_string_to_region(
+                                           FRONT_END_REGION_NUMBER, file_name);
+    } else if (strncmp(line, "tnm:", 4) == 0) {
+      a_template_lookup_entry_ptr	tlp;
+      tlp = find_exported_template(line, /*add=*/TRUE);
+      if (tlp->exported_template_file == NULL) {
+        /* Only record the first file that is found that defines the
+           template. */
+        tlp->exported_template_file = etfp;
+
+      }  /* if */
+    } else {
+      unexpected_condition_str("read_exported_template_file: bad line kind");
+    }  /* if */
+  }  /* while */
+  /* Close the file. */
+  (void)fclose(f_file);
+}  /* read_exported_template_file */
+
+
+static void find_exported_template_files(void)
+/*
+Go through the template search path and read the exported template files
+from each directory.  Build a lookup table so that templates from this
+compilation can be looked up to find the corresponding definition.
+*/
+{
+  a_directory_name_entry_ptr	dnep;
+  a_boolean			first;
+
+  db_enter(2, "find_exported_template_files");
+  for (dnep = template_search_path; dnep != NULL; dnep = dnep->next) {
+    for (first = TRUE;;first = FALSE) {
+      char	*file_name;
+      file_name = get_file_name_from_dir(first, dnep->dir_name,
+                                         EXPORTED_TEMPLATE_FILE_SUFFIX,
+                                         current_directory_name);
+      /* A NULL pointer indicates there are no more matching file names. */
+      if (file_name == NULL) break;
+      /* Read the contents of the file. */
+      read_exported_template_file(file_name, dnep);
+    }  /* for */
+  }  /* for */
+  db_exit();
+}  /* find_exported_template_files */
+
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -15549,6 +15779,12 @@ Create the file containing information about exported templates.
     /* Write an entry to the exported template file. */
     write_to_exported_template_file(etlt_template_name, mangled_name);
   }  /* for */
+  /* Only write the other information to the exported template file if
+     some template names were written above. */
+  if (f_exported_template != NULL) {
+    /* Output the file name. */
+    write_to_exported_template_file(etlt_file_name, primary_source_file_name);
+  }  /* if */
 }  /* generate_exported_template_file */
 
 
@@ -16959,6 +17195,14 @@ routines is reported as part of the symbol table memory used.
   db_space_used_lost("partial spec candidates", avail_partial_order_candidates,
                      num_partial_order_candidates_allocated,
                      a_partial_order_candidate);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  db_space_used("template lookup entries", 
+                 num_template_lookup_entries_allocated,
+                 a_template_lookup_entry);
+  db_space_used("exported template files", 
+                 num_exported_template_files_allocated,
+                 an_exported_template_file);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   return grand_total;
 }  /* db_show_template_space_used */
 #endif /* DEBUG */
@@ -16983,6 +17227,10 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(type_of_unknown_templ_param_nontype),
 #if DEBUG
       pch_saved_var_array_elem(num_partial_order_candidates_allocated),
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+      pch_saved_var_array_elem(num_template_lookup_entries_allocated),
+      pch_saved_var_array_elem(num_exported_template_files_allocated),
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -17067,7 +17315,15 @@ Initializations for template.
   num_total_pending_instantiations = 0;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  num_template_lookup_entries_allocated = 0;
+  num_exported_template_files_allocated = 0;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* DEBUG */
+  /* Allocate a buffer used to read the various template files. */
+  file_read_buffer = alloc_text_buffer(1024);
+  /* FIXME - temporary */
+  find_exported_template_files();
 }  /* templates_init */
 
 /******************************************************************************

@@ -59,6 +59,7 @@ typedef enum /*an_option_kind*/ {
   optk_template_info_file,
   optk_definition_list_file_name,
   optk_exported_template_file_name,
+  optk_template_directory,
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   optk_implicit_template_inclusion,
