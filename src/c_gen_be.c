@@ -5347,13 +5347,15 @@ Generate the routine name and type, including the parameter declarations,
 for the definition of the indicated routine.  scope is the associated scope.
 */
 {
-  a_type_ptr           type = rout->type;
+  /* There can be qualifiers above the function type for Microsoft qualifiers
+     like near/far. */
+  a_type_ptr qual_type = rout->type, type = skip_typerefs(qual_type);
 
   check_assertion_str(type->kind == (a_type_kind)tk_routine,
-                      "dump_func_definition_type: top-level type not routine");
+                      "dump_func_definition_type: type not routine");
   /* The storage class and similar preamble have already been written. */
   /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
+  form_type_first_part_simple(qual_type, /*under_lhs_declarator=*/FALSE,
                               /*need_trailing_space=*/TRUE, &octl);
   /* Write the name. */
   dump_routine_name(rout);
@@ -5367,7 +5369,7 @@ for the definition of the indicated routine.  scope is the associated scope.
      when there is a prototyped declaration and an old-style definition. */
   /* Note that IL lowering creates routines with prototyped FALSE but
      old_style_params_scanned also FALSE. */
-  if (!rout->type->variant.routine.extra_info->prototyped ||
+  if (!type->variant.routine.extra_info->prototyped ||
       type->variant.routine.extra_info->old_style_params_scanned) {
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
 #if ASM_FUNCTION_ALLOWED
