@@ -3690,8 +3690,8 @@ FALSE means either the base class does not need a virtual function table
 for class_type, return *shared TRUE.
 */
 {
-  a_boolean        needed = FALSE;
-  a_base_class_ptr class_type_vptr_bcp, bcp_vptr_bcp;
+  a_boolean                   needed = FALSE;
+  a_class_type_supplement_ptr class_type_ctsp, base_class_ctsp;
 
   *shared = FALSE;
   if (bcp->type->variant.class_struct_union.any_virtual_functions) {
@@ -3700,20 +3700,14 @@ for class_type, return *shared TRUE.
        instance of the function table specifically for bcp-in-class_type;
        some other instance may do. */
     /* See if the class type shares its virtual function pointer with
-       the base class. */
-    class_type_vptr_bcp = class_type->variant.class_struct_union.extra_info->
-                                              virtual_function_info_base_class;
-    bcp_vptr_bcp = bcp->type->variant.class_struct_union.extra_info->
-                                              virtual_function_info_base_class;
-    /* The class type has a virtual function table pointer and it is shared
-       with a base class, ... */
-    if (class_type_vptr_bcp != NULL &&
-        /* ... and the base class it shares with is the one we're
-           considering, ... */
-        (class_type_vptr_bcp == bcp ||
-         /* ... or the base class we're considering also shares with that
-            base class. */
-         class_type_vptr_bcp == bcp_vptr_bcp)) {
+       the base class.  This test is done with offsets instead of comparing
+       base class pointers because the latter gets complicated with
+       multi-level sharing. */
+    class_type_ctsp = class_type->variant.class_struct_union.extra_info;
+    base_class_ctsp = bcp->type->variant.class_struct_union.extra_info;
+    if (class_type->variant.class_struct_union.any_virtual_functions &&
+        class_type_ctsp->virtual_function_info_offset ==
+        base_class_ctsp->virtual_function_info_offset+bcp->offset) {
       /* The virtual function pointer for the base class we're considering
          is shared with the one for class_type.  The virtual function
          tables are therefore also shared. */
