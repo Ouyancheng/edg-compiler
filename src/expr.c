@@ -8910,7 +8910,7 @@ to the compound literal.
          initialize a variable (if an lvalue is needed after all). */
       make_constant_operand(literal_con, result);
     } else {
-      make_lvalue_operand_from_array_constant(literal_con, result);
+      make_lvalue_operand_from_compound_constant(literal_con, result);
     }  /* if */
   } else {
     /* Allocate an enk_temp_init node. */

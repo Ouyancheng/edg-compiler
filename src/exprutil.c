@@ -7991,10 +7991,10 @@ subtree, some of which will no longer have array type.
 }  /* conv_array_rvalue_expr_to_object_pointer */
 
 
-void make_lvalue_operand_from_array_constant(a_constant_ptr  constant,
-                                             an_operand      *operand)
+void make_lvalue_operand_from_compound_constant(a_constant_ptr  constant,
+                                                an_operand      *operand)
 /*
-The given constant has array type (presumably the result of a compound
+The given constant has nonscalar type (presumably the result of a compound
 literal).  Make the given operand a variable initialized with that constant.
 */
 {
@@ -8005,7 +8005,7 @@ literal).  Make the given operand a variable initialized with that constant.
   /* The operand is an lvalue for the temporary. */
   make_lvalue_variable_operand(temp_var, operand, (a_ref_entry_ptr)NULL,
                                /*record_expr=*/FALSE);
-}  /* make_lvalue_operand_from_array_constant */
+}  /* make_lvalue_operand_from_compound_constant */
 
 
 static void conv_array_rvalue_to_lvalue(an_operand *operand)
@@ -8021,7 +8021,7 @@ operand is an array rvalue.  Convert it to an lvalue for the array.
     a_constant_ptr  constant;
     check_assertion(gcc_mode && is_constant_operand(operand));
     constant = alloc_unshared_constant(&operand->variant.constant);
-    make_lvalue_operand_from_array_constant(constant, operand);
+    make_lvalue_operand_from_compound_constant(constant, operand);
   } else {
     expr = operand->variant.expression;
     expr = conv_array_rvalue_expr_to_object_pointer(expr);
