@@ -2986,12 +2986,21 @@ returned set to TRUE.
       if (!var_err && vp != NULL && is_incomplete_type(vp->type)) {
         /* An array of unspecified size is initialized with a constant that
            has a known number of elements: adjust the variable type. */
-        a_type_ptr  array_type = skip_typerefs(vp->type);
-        check_assertion(is_array_type(array_type) &&
-                        is_array_type(constant.type));
-        set_initialized_array_size(&array_type,
-                                   constant.type->variant.array.
-                                                  variant.number_of_elements);
+        a_type_ptr     array_type = skip_typerefs(vp->type);
+        a_targ_size_t  num_elems;
+        check_assertion(is_array_type(array_type));
+        if (!is_array_type(constant.type)) {
+          /* An error occurrent while scanning the initializer constant.
+             Set the number of elements to "1" to avoid a second diagnostic
+             about creating a variable of incomplete type. */
+          check_assertion(is_or_contains_error_type(constant.type) &&
+                          total_errors != 0);
+          init_err = TRUE;
+          num_elems = 1;
+        } else {
+          num_elems = constant.type->variant.array.variant.number_of_elements;
+        }  /* if */
+        set_initialized_array_size(&array_type, num_elems);
         vp->type = array_type;
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
