@@ -6415,9 +6415,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   }  /* if */
   if (!processed) {
     result_type = operand_2.type;  /* Assume. */
-    /* Note that at this point types_are_the_same is TRUE if the types
-       are exactly the same before any transformations like
-       lvalue --> rvalue. */
+    /* Note that at this point types_are_the_same is TRUE if the mode is
+       C++ and the operand types are exactly the same before any
+       transformations like lvalue --> rvalue. */
     if (types_are_the_same &&
         is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) {
       /* In C++, if the types are the same and the second and third operands
@@ -6430,7 +6430,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       expr_stack->evaluated = expr3_evaluated;
       do_operand_transformations(&operand_3, TOPT_NO_OPTIONS);
       expr_stack->evaluated = saved_evaluated;
-      if (!types_are_the_same) {
+      if (!C_mode() && !types_are_the_same) {
         /* Determine whether the types are the same after the
            transformations. */
         if (types_are_compatible(operand_2.type, operand_3.type)) {
@@ -6438,10 +6438,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         }  /* if */
       }  /* if */
     }  /* if */
-    /* Note that here types_are_the_same is TRUE if the types are the same
-       after any transformations. */
+    /* Note that here types_are_the_same is TRUE if the mode is C++ and
+       the operand types are the same after any transformations. */
     if (types_are_the_same) {
-      /* If the types are the same no further checking of types is needed. */
+      /* If the types are the same in C++ mode, no further checking of types
+         is needed. */
     } else if (is_throw_operand(&operand_2)) {
       /* The second operand is a throw expression and the third is not
          (because if they both were, they would have the same types),
