@@ -1,5 +1,28 @@
 Version 3.6
 
+4/5/05   Gnu C++ compatibility: "best worst conversion" in overload resolution
+
+The change made on 7/20/04 to implement an "extension" in the GNU C++
+overload resolution algorithm was too broad.  When the candidate
+selected by that process is a user-written function, g++ (all versions)
+gives an error message (the message in g++ 3.2 makes it look as if the
+selected function is used and it's just a warning, but it's really an
+error), which means in effect the process does nothing -- that error is
+equivalent to an ambiguity error.  When the result is a built-in operator,
+however, g++ uses it without a diagnostic, which is the case that the
+7/20/04 change was trying to get working.  So the EDG emulation has
+been changed to throw away the candidate selected if it's not a
+built-in operator, thus restoring an ambiguity error.
+
+  template<class T>
+  struct c {
+    operator T*() const;
+    bool operator==(const T*) const;
+  };
+  bool test(const c<short>&r, short*p) {
+    return (r == p);  // Error again in g++ mode
+  }
+
 4/4/05   Compilation errors in some configurations
 
 When GNU_EXTENSIONS_ALLOWED is TRUE and USER_CONTROL_OF_STRUCT_PACKING is

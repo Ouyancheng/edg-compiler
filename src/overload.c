@@ -4250,6 +4250,13 @@ its candidate function entry.  Otherwise, return NULL.
       }  /* if */
     }  /* if */
   }  /* for */
+  if (best_cfp != NULL) {
+    /* When the candidate selected is not a built-in operator, g++ (3.2
+       through 3.4, at least) gives an error, which is equivalent to
+       considering the case ambiguous.  Built-in operators do take
+       advantage of this extension. */
+    if (best_cfp->operand_type_pattern == NULL) best_cfp = NULL;
+  }  /* if */
   return best_cfp;
 }  /* select_best_gpp_candidate */
 
@@ -4599,13 +4606,15 @@ end_func_winnow:;
          function, so the problem is undecidable. */
       *undecidable_because_of_error = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (gpp_mode && number_in_best_match_set == 0) {
+    } else if (gpp_mode && gnu_version < 40000 &&
+               number_in_best_match_set == 0) {
       /* g++ has an "extension" that chooses one function match over
          another if the worst conversion for its arguments is not as bad
          as the worst conversion for another function's arguments.
          This is tested after we've determined that we would get an
          error by the standard rules, so no standard-conforming
-         program is affected.  This extension is still present in g++ 3.4. */
+         program is affected.  This extension is still present in g++ 3.4
+         but it's gone in g++ 4.0 (except with -fpermissive). */
       best_cfp = select_best_gpp_candidate(candidates);
       if (best_cfp != NULL) {
         /* There's a single best function under the g++ extension.
