@@ -3158,10 +3158,12 @@ enum a_scope_kind_tag {
   sck_template_declaration,
                         /* Template parameter declaration scope, used while
                            scanning the parameter list and declaration of a
-                           class or function template. */
+                           class or function template (C++ only).  Used only
+                           in the front end. */
   sck_template_instantiation,
                         /* Used during the instantiation of class and function
-                           templates to make the template arguments visible. */
+                           templates to make the template arguments visible
+                           (C++ only).  Used only in the front end.  */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */
