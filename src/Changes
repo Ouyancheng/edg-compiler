@@ -1,5 +1,11 @@
 Version 2.37
 
+10/3/97   Microsoft_compatibility: __declspec and inheritance kind
+
+In Microsoft compatibility mode, an inheritance-kind specification on a
+class declaration (see 4/28/97 entry) may now coexist with __declspec
+modifier (or, in 16-bit Microsoft mode, near/far memory attributes).
+
 10/2/97   Some redeclarations of template parameters not detected
 
 Certain kinds of redeclarations of template parameters were not

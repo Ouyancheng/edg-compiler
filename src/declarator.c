@@ -2185,6 +2185,8 @@ encountered, they are scanned and thrown away with a warning.
       a_boolean              local_err;
       a_type_qualifier_set   local_qualifiers = TQ_NONE;
       a_decl_modifiers_block local_decl_modifiers;
+      an_inheritance_kind    inheritance_kind;
+      a_source_position      inheritance_kind_pos;
 
       /* Issue a warning that it's being ignored. */
       warning(ec_decl_modifiers_ignored);
@@ -2192,7 +2194,10 @@ encountered, they are scanned and thrown away with a warning.
       scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/FALSE,
                                              /*is_member_decl=*/FALSE,
                                              &local_decl_modifiers,
-                                             &local_qualifiers, &local_err);
+                                             &local_qualifiers,
+                                             &inheritance_kind,
+                                             &inheritance_kind_pos,
+                                             &local_err);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode && curr_token == tok_mutable) {
       /* The Microsoft compiler appears to accept and ignore "mutable" during

@@ -24,11 +24,13 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void scan_microsoft_extended_decl_modifiers(
-                                    a_boolean                   is_class_decl,
-                                    a_boolean                   is_member_decl,
-                                    a_decl_modifiers_block_ptr  decl_modifiers,
-                                    a_type_qualifier_set        *qualifiers,
-                                    a_boolean                   *err);
+                            a_boolean                   is_class_decl,
+                            a_boolean                   is_member_decl,
+                            a_decl_modifiers_block_ptr  decl_modifiers,
+                            a_type_qualifier_set        *qualifiers,
+                            an_inheritance_kind         *inheritance_kind,
+                            a_source_position           *inheritance_kind_pos,
+                            a_boolean                   *err);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr *type_ptr);

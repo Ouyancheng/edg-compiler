@@ -177,11 +177,13 @@ parenthesis of the property list as the current token.
 
 
 void scan_microsoft_extended_decl_modifiers(
-                                    a_boolean                   is_class_decl,
-                                    a_boolean                   is_member_decl,
-                                    a_decl_modifiers_block_ptr  decl_modifiers,
-                                    a_type_qualifier_set        *qualifiers,
-                                    a_boolean                   *err)
+                            a_boolean                   is_class_decl,
+                            a_boolean                   is_member_decl,
+                            a_decl_modifiers_block_ptr  decl_modifiers,
+                            a_type_qualifier_set        *qualifiers,
+                            an_inheritance_kind         *inheritance_kind,
+                            a_source_position           *inheritance_kind_pos,
+                            a_boolean                   *err)
 /*
 Scan the Microsoft __declspec specifier, which has the form
 
@@ -214,11 +216,16 @@ and far are also allowed; they are returned in *qualifiers.
 is_member_decl is TRUE if the modifiers are being scanned as part of
 the declaration of a class member.
 
-When this routine is called, the current token must be the __declspec
-keyword (or a memory attribute keyword).
+Also, if is_class_decl is TRUE, scan the inheritance kind
+("__single_inheritance", etc.) and return it in *inheritance_kind.  The
+source position of the specified inheritance kind is returned in
+*inheritance_kind_pos.
 */
 {
-  if (is_class_decl) *qualifiers = TQ_NONE;
+  if (is_class_decl) {
+    *qualifiers = TQ_NONE;
+    *inheritance_kind = (an_inheritance_kind)ihk_none;
+  }  /* if */
   for (;;) {
     if (is_class_decl && is_microsoft_memory_attribute()) {
       /* Memory attribute like "near". */
@@ -441,9 +448,44 @@ end_of_uuid_string:
         /* Check for the closing right paren. */
         (void)required_token(tok_rparen, ec_exp_rparen);
       }  /* if */
-    } else {
+    } else if (!is_class_decl ||
+               *inheritance_kind != (an_inheritance_kind)ihk_none) {
       /* Not __declspec or a memory attribute -- exit the loop. */
       break;
+    } else {
+      /* This is a class declaration, so if the next token is an identifier
+         it is probably the class name.  But it might also be the "inheritance
+         kind" -- i.e.,
+           __single_inheritance
+           __multiple_inheritance
+           __virtual_inheritance
+         The syntax is
+           class-keyword inheritance-kind class-name ;
+         (Single-underscore versions of the keywords are also allowed.) */
+      if (curr_token == tok_identifier) {
+        char  *name = locator_for_curr_id.symbol_header->identifier;
+        if (*(name++) == '_') {
+          if (*name == '_') name++;
+          /* Check the name without its leading single or double underscore. */
+          if (strcmp(name, "single_inheritance") == 0) {
+            *inheritance_kind = (an_inheritance_kind)ihk_single;
+          } else if (strcmp(name, "multiple_inheritance") == 0) {
+            *inheritance_kind = (an_inheritance_kind)ihk_multiple;
+          } else if (strcmp(name, "virtual_inheritance") == 0) {
+            *inheritance_kind = (an_inheritance_kind)ihk_virtual;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (*inheritance_kind != (an_inheritance_kind)ihk_none) {
+        /* Remember the source position, in case a diagnostic is required
+           later. */
+        *inheritance_kind_pos = pos_curr_token;
+        /* Advance past the inheritance-kind keyword. */
+        (void)get_token();
+      } else {
+        /* Not an inheritance-kind keyword -- exit the loop. */
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* scan_microsoft_extended_decl_modifiers */
@@ -1109,10 +1151,10 @@ the template.
        it is a local class. */
     is_local_class = TRUE;
   }  /* if */
-  if (!is_expr_qualified_name_start()) {
+  if (curr_token == tok_class ||
+      curr_token == tok_struct ||
+      curr_token == tok_union) {
     /* Skip over "class", "struct", or "union", remembering which appears. */
-    check_assertion(curr_token == tok_class || curr_token == tok_struct ||
-                    curr_token == tok_union);
     if (curr_token == tok_union) {
       tag_kind = (a_symbol_kind)sk_union_tag;
       type_kind = (a_type_kind)tk_union;
@@ -1124,8 +1166,7 @@ the template.
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     clear_decl_modifiers_block(&decl_modifiers);
-    if (microsoft_mode && !C_mode() &&
-        (curr_token == tok_declspec || is_microsoft_memory_attribute())) {
+    if (microsoft_mode && !C_mode()) {
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_function_definition and applied to each member
          declaration, where appropriate. */
@@ -1134,54 +1175,27 @@ the template.
       scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
                                              /*is_member_decl=*/FALSE,
                                              &decl_modifiers,
-                                             &class_qualifiers, &local_err);
+                                             &class_qualifiers,
+                                             &inheritance_kind,
+                                             &inheritance_kind_pos,
+                                             &local_err);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
-    tag_id_present = is_expr_qualified_name_start();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && !C_mode() && tag_id_present &&
-        !locator_for_curr_id.is_qualified_name &&
-        decl_modifiers.flags == DM_NONE && class_qualifiers == TQ_NONE) {
-      /* Check for a Microsoft "inheritance kind" -- i.e.,
-           __single_inheritance
-           __multiple_inheritance
-           __virtual_inheritance
-         The syntax is
-           class-keyword inheritance-kind class-name ;
-         (Single-underscore versions of the keywords are also allowed.) */
-      char  *name = locator_for_curr_id.symbol_header->identifier;
-
-      if (*(name++) == '_') {
-        if (*name == '_') name++;
-        /* Leading single or double underscore. */
-        if (strcmp(name, "single_inheritance") == 0) {
-          inheritance_kind = (an_inheritance_kind)ihk_single;
-        } else if (strcmp(name, "multiple_inheritance") == 0) {
-          inheritance_kind = (an_inheritance_kind)ihk_multiple;
-        } else if (strcmp(name, "virtual_inheritance") == 0) {
-          inheritance_kind = (an_inheritance_kind)ihk_virtual;
-        }  /* if */
-        if (inheritance_kind != (an_inheritance_kind)ihk_none) {
-          /* Remember the source position, in case a diagnostic is required
-             later. */
-          inheritance_kind_pos = pos_curr_token;
-          /* Skip past the inheritance-kind keyword and scan the class name. */
-          (void)get_token();
-          tag_id_present = is_expr_qualified_name_start();
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    tag_id_present = curr_token == tok_identifier ||
+                     (curr_token == tok_colon_colon &&
+                      next_token() == tok_identifier);
   } else {
     /* class_specifier is called with is_friend_decl TRUE only when the name
        has not yet been declared; this happens in cfront compatibility mode
        only.  Default kind is "class" when a class is introduced by a friend
        declaration.   (In fact, there is a slight incompatibility here, since
        in cfront 2.1 this can also be turned into a union declaration.) */
-    check_assertion(is_friend_decl);
+    check_assertion(is_friend_decl &&
+                    curr_token == tok_identifier &&
+                    locator_for_curr_id.has_been_coalesced);
     tag_id_present = TRUE;
     tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
     type_kind = (a_type_kind)tk_class;
@@ -3334,6 +3348,8 @@ Returns TRUE if there is an error in the specifiers.
           a_decl_modifiers_block  new_modifiers;
           a_source_position       specifier_start_pos;
           a_boolean               is_declspec = FALSE;
+          an_inheritance_kind     inheritance_kind;
+          a_source_position       inheritance_kind_pos;
 
           clear_decl_modifiers_block(&new_modifiers);
           specifier_start_pos = pos_curr_token;
@@ -3349,6 +3365,8 @@ Returns TRUE if there is an error in the specifiers.
                                                                           != 0,
                                                &new_modifiers,
                                                (a_type_qualifier_set *)NULL,
+                                               &inheritance_kind,
+                                               &inheritance_kind_pos,
                                                &err);
               decl_specifiers_seen |= DS_DECLSPEC;
               is_declspec = TRUE;
