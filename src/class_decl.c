@@ -5185,17 +5185,11 @@ of the function, and again overloading is a possibility.
       sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
     }  /* if */
     if (is_template_dependent_context()) {
-      /* If the friend declaration is template dependent, create a dummy
-         routine and associated symbol.  Return that instead of calling
-         decl_routine. */
-      if (is_template_dependent_type(function_type) ||
-          template_arg_list_involves_template_param(
-                                                locator->template_arg_list) ||
-          (sym != NULL && is_proxy_member_symbol(sym))) {
-        sym = decl_dependent_friend_function(locator,
-                                             function_type, func_info);
-        goto done;
-      }  /* if */
+      /* If the friend declaration appears in a template dependent context,
+         create a dummy routine and associated symbol.  Return that instead of
+         calling decl_routine. */
+      sym = decl_dependent_friend_function(locator, function_type, func_info);
+      goto done;
     }  /* if */
     if (!(microsoft_mode || any_cfront_mode()) ||
         (sym != NULL && sym->ambiguous)) {
