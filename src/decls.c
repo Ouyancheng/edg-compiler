@@ -4061,19 +4061,6 @@ declaration.
         sym = linked_symbol;
         variable_ptr = linked_symbol->variant.variable.ptr;
         check_assertion(variable_ptr != NULL);
-#if GNU_EXTENSIONS_ALLOWED
-        if (is_variable_def && variable_ptr->aliased_variable != NULL) {
-          /* If the variable was already defined, it cannot be assigned
-             an alias now.  (See apply_attributes_to_variable for
-             additional compatibility notes regarding the way in which
-             GCC handles this situation.) */
-          pos_sy_error(ec_cannot_be_alias_and_defn,
-                       &locator->source_position, sym);
-          /* Pretend the variable was not an alias so that the IL
-             remains internally consistent. */
-          variable_ptr->aliased_variable = NULL;
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         *old_type = variable_ptr->type;
         if (!types_are_redecl_compatible(type_ptr, *old_type)) {
           an_error_severity  severity = es_none;
@@ -5030,15 +5017,6 @@ declaration.
                                   /*preserve_rout_type=*/old_decl_has_body,
                                   /*preserve_type_ptr=*/is_function_def);
         }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-        if (routine_ptr->aliased_routine != NULL) {
-          pos_sy_error(ec_cannot_be_alias_and_defn, 
-                       &locator->source_position, linked_symbol);
-          /* Pretend the routine was not an alias so that the IL
-             remains internally consistent. */
-          routine_ptr->aliased_routine = NULL;
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
     } else {
       /* The linked symbol must be a variable. */

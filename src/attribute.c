@@ -27,9 +27,6 @@ attribute.c -- Processing of attributes, a GCC extension.
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 #include "layout.h"
-#if MAINTAIN_NEEDED_FLAGS
-#include "il_walk.h"
-#endif /* MAINTAIN_NEEDED_FLAGS */
 
 
 /*
@@ -46,6 +43,10 @@ typedef struct an_alias_fixup {
 			/* The symbol that is an alias for another entity. */
   char*		aliased_name;
 			/* The name of the entity being aliased. */
+  a_source_position
+		alias_position;
+			/* The position of the alias attribute (used for error
+			   reporting purposes). */
 } an_alias_fixup;
 
 /* Pointer to the head of the list of alias fixups. */
@@ -57,8 +58,9 @@ static an_alias_fixup_ptr
 	avail_alias_fixups;
 
 
-static void add_alias_fixup(a_symbol_ptr  alias,
-                            char*         aliased_name)
+static void add_alias_fixup(a_symbol_ptr        alias,
+                            char*               aliased_name,
+                            a_source_position*  alias_position)
 /*
 Allocate a fixup entry for a new alias described by the given parameters.
 */
@@ -75,6 +77,7 @@ Allocate a fixup entry for a new alias described by the given parameters.
   alias_fixup_list = entry;
   entry->alias = alias;
   entry->aliased_name = aliased_name;
+  entry->alias_position = *alias_position;
 }  /* add_alias_fixup */
 
 
@@ -108,12 +111,17 @@ Traverse the list of alias fixups and set the alias fields as needed.
         break;
       }  /* if */
     }  /* for */
+    if (entry->alias->defined) {
+      /* An entity cannot have a definition and simultaneously be an alias for
+         another entity. */
+      pos_error(ec_alias_cannot_have_definition, &entry->alias->decl_position);
+    }  /* if */
     if (aliased_sym == NULL) {
-      pos_error(ec_error_aliased_name_undeclared,
-                &entry->alias->decl_position);
+      pos_st_error(ec_aliased_name_undeclared,
+                   &entry->alias_position, entry->aliased_name);
     } else if (aliased_sym->kind != entry->alias->kind) {
-      pos_error(ec_error_aliased_name_bad_kind,
-                &entry->alias->decl_position);
+      pos_sy_error(ec_aliased_name_bad_kind,
+                   &entry->alias->decl_position, aliased_sym);
     } else {
       switch (entry->alias->kind) {
         case sk_routine:
@@ -974,32 +982,8 @@ invalid attributes.
         break;
       case ak_alias:
         if (check_variable_not_local(vp, ap)) {
-          if (vp->storage_class != (a_storage_class)sc_extern) {
-            /* A variable cannot have a definition and simultaneously be
-               an alias for another variable.   Note that GCC
-               emits a diagnostic for these cases:
-
-                 int i attribute((alias("j")));
-                 static int i attribute((alias("j")));
-
-               but not these:
-               
-                 int i; extern int i attribute((alias("j")));
-                 extern int i attribute((alias("j"))); int i = 3;
-
-               In the latter case, the initialization of "i" is
-               completely ignored.
-
-               This seems to be a bug in GCC.  This front end
-               consistently issues diagnostics for all of these
-               cases. */
-            pos_sy_error(ec_cannot_be_alias_and_defn,
-                         &ap->position,
-                         (a_symbol_ptr)vp->source_corresp.assoc_info);
-          } else {
-            add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
-                            ap->variant.alias);
-          }  /* if */
+          add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
+                            ap->variant.alias, &ap->position);
         }  /* if */
         break;
       case ak_nocommon:
@@ -1115,16 +1099,8 @@ messages about any invalid attributes.
         rp->section = ap->variant.section;
         break;
       case ak_alias:
-        if (rp->defined) {
-          /* A routine cannot have a definition and simultaneously be
-             an alias for another routine. */
-          pos_sy_error(ec_cannot_be_alias_and_defn,
-                       &ap->position,
-                       (a_symbol_ptr)rp->source_corresp.assoc_info);
-        } else {
-          add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
-                          ap->variant.alias);
-        }  /* if */
+        add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
+                        ap->variant.alias, &ap->position);
         break;
       case ak_malloc:
         /* GCC does not issue any diagnostics if the routine does not
