@@ -130,8 +130,8 @@ Do any processing required at the end of execution of the front end.
   /* Free front-end-only storage. */
   free_memory_region(NULL_region_number);
 
-  /* Clear the file index list maintained by the error routines (they were
-     allocated in front-end storage. */
+  /* Clear the file index list maintained by the error routines (it was
+     allocated in front-end storage). */
   clear_file_index_list();
 
   db_exit();
