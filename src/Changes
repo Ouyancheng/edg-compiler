@@ -1,10 +1,23 @@
 Version 2.32
 
+2/9/96    Access error on friend class declaration
+
+We now issue an error when a qualified name in a friend declaration refers
+to an inaccessible class -- for instance,
+
+  class A {
+    class B;
+  };
+  class C {
+    friend class A::B;     // Error now issued: A::B is not accessible
+  };
+
 2/6/96    Removal of unneeded object lifetime entries
 
-A bug has been fixed to assure that object lifetimes associated with
-default argument expressions are removed from the IL tree when the routines
-they are associated with are eliminated.
+When unneeded entries are being removed from the IL (see Changes file
+entry for 11/22/95), a bug has been fixed to assure that object lifetimes
+associated with default argument expressions are removed from the IL tree
+when the routines they are associated with are eliminated.
 
 2/6/96    Using a derived class name to access a member of a template
           parameter dependent base class
