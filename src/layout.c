@@ -51,7 +51,7 @@ B.  Layout options
   declaration order or grouped by accessibility.  The front end can be
   configured as required by setting CFRONT_OBJECT_CODE_COMPATIBILITY and
   TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE, both of which are
-  defined in target.h.
+  defined in targ_def.h.
 
   The normal layout is as follows:
 
