@@ -6922,7 +6922,9 @@ instantiated.
       sym_error(ec_instantiation_requested_and_specific_definition, sym);
     }  /* if */
   } else if (routine->is_inline) {
-    result = FALSE;
+    /* An inline function is allowed in an explicit instantiation, but not
+       in a pragma. */
+    result = !is_pragma;
     if (issue_errors) {
       sym_diagnostic(is_pragma ? es_error : es_remark,
                      ec_inline_function_cannot_be_instantiated,
@@ -6940,22 +6942,18 @@ instantiated.
 }  /* sym_can_be_instantiated */
 
 
-static a_boolean check_instantiation_scope(a_symbol_ptr sym)
+static void check_instantiation_scope(a_symbol_ptr sym)
 /*
-The WP (as of 12/95) is unclear about where an explicit instantiation
-is allowed. We assume that it is permitted where an explicit  specialization
+An explicit instantiation is permitted where an explicit specialization
 of the template would be permitted, which is to say in a namespace that
 is or contains the namespace in which the template was declared.
 */
 {
-  a_boolean			result = FALSE;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   if (!namespace_is_enclosed_by_scope(sym, ssep)) {
     sym_diagnostic(es_discretionary_error,
                    ec_bad_scope_for_explicit_instantiation, sym);
-    result = TRUE;
   }  /* if */
-  return result;
 }  /* check_instantiation_scope */
 
 
@@ -6984,6 +6982,12 @@ or the specific definition flag (if instantiate is FALSE).
   }  /* if */
   if (tip != NULL) {
     a_boolean	instantiation_required_flag;
+    if (!is_pragma && tip->explicit_instantiation) {
+      /* A template cannot be instantiated more than once using an explicit
+         instantiation. */
+      sym_diagnostic(es_discretionary_error,
+                     ec_multiple_explicit_instantiations, sym);
+    }  /* if */
     if (pragma_kind == (a_pragma_kind)pk_instantiate) {
       instantiation_required_flag = TRUE;
       tip->explicit_instantiation = TRUE;
