@@ -225,8 +225,8 @@ do not put out any nested type qualifiers, e.g., put out "A::x" as simply "x".
   if (*p == 'Q') {
     /* A nested type name has the form
          Q2_5outer5inner   (outer::inner)
-          ^ ^-----^--------Names from outermost to innermost
-          -----------------Number of levels of qualification.
+            ^-----^--------Names from outermost to innermost
+          ^----------------Number of levels of qualification.
     */
     p = get_number(p+1, &nquals);
     if (nquals > input_id_len) {
@@ -294,7 +294,7 @@ to the character position following what was demangled.
 
   /* Process type qualifiers. */
   p = demangle_type_qualifiers(p);
-  if (isdigit(*p)) {
+  if (isdigit(*p) || *p == 'Q') {
     /* Named type, like class or enum, e.g., "3abc". */
     p = demangle_type_name(p, /*base_name_only=*/FALSE);
   } else {
@@ -370,7 +370,9 @@ Return a pointer to the character position following what was demangled.
         /* Nmn means "m" repetitions of the type of parameter "n".  "m"
            is a one-digit number. */
         /* "n" is also treated as a single-digit number; the front end enforces
-           that.  cfront does not, which leads to some ambiguities. */
+           that (in non-cfront object code compatibility mode).  cfront does
+           not, which leads to some ambiguities when "n" is followed by
+           a class name. */
         if (*p++ == 'N') {
           /* Get the number of repetitions. */
           p = get_single_digit_number(p, &nreps);
@@ -727,8 +729,8 @@ a pointer to the character position following what was demangled.
   /* Now origname points to the original-name part of the mangled name, and
      mname points to the mangled-name part at the end.
        f__1A
-       ^  ^--mname
-       ------origname
+          ^--mname
+       ^-----origname
      The mangled-name part is
        (a)  A class name for a static data member.
        (b)  A class name followed by "F" followed by the encoding for the
@@ -827,7 +829,18 @@ In addition, if the error is that the output buffer is too small,
   /* Check for special cases. */
   if (start_of_id_is("__vtbl__", id)) {
     write_id_str("virtual function table for ");
-    /* ??? */
+#if 0
+    /* If the first name is a base class name and it's not simple, this
+       will produce confusing output.  Also, after some class names there
+       might be "__A" to indicate ambiguity. */
+#endif /* 0 */
+    end_ptr = demangle_type(id+8);
+    if (start_of_id_is("__", end_ptr)) {
+      /* Virtual function table for base class in derived class. */
+      end_ptr += 2;
+      write_id_str(" in ");
+      end_ptr = demangle_type(end_ptr);
+    }  /* if */
   } else if (start_of_id_is("__CBI__", id)) {
     write_id_str("can-be-instantiated flag for ");
     end_ptr = demangle_identifier(id+7);
