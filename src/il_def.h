@@ -1564,6 +1564,13 @@ enum a_pragma_kind_tag {
   pk_weak,		/* Specifies "weak binding" for C_mode() name.  The
 			   name is passed on to the back end. */
 #endif /* PRAGMA_WEAK_ALLOWED */
+  pk_once,              /* Indicates that a header file should only be
+			   included once, even if referenced more than once. */
+  pk_hdrstop,           /* End of sequence of includes to be represented as
+			   a precompiled header.  Ignored except during
+			   PCH prefix scanning. */
+  pk_no_pch,            /* Suppresses generation of PCH file.
+			   Ignored except during PCH prefix scanning. */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -1614,6 +1621,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if PRAGMA_WEAK_ALLOWED
 /* pk_weak */			"weak",
+/* pk_once */                   "once",
+/* pk_hdrstop */                "hdrstop",
+/* pk_no_pch */                 "no_pch",
 #endif /* PRAGMA_WEAK_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
