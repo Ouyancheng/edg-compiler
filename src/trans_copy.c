@@ -1283,6 +1283,8 @@ the lists.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
+    a_variable_ptr corresp_variable =
+                               (a_variable_ptr)canonical_il_entry_of(variable);
     check_no_pending_copies(variable);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other variables
@@ -1310,6 +1312,13 @@ the lists.
         scope->variables = variable->next;
       } else {
         prev_variable->next = variable->next;
+      }  /* if */
+      /* If we need the type of this variable, the type of the corresponding
+         variable can be used. */
+      if (in_secondary_trans_unit(variable->type) &&
+          !has_corresp(variable->type)) {
+        checked_trans_unit_corresp_pointer_of(variable->type) =
+                                                (char *)corresp_variable->type;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1341,6 +1350,8 @@ the lists.
   for (routine = scope->routines;
        routine != NULL;
        routine = routine->next) {
+    a_routine_ptr corresp_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
     check_no_pending_copies(routine);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other routines
@@ -1348,8 +1359,6 @@ the lists.
        dropped. */
     process_routine_if_unneeded_non_template(routine);
     if (has_corresp_that_may_require_merge(routine)) {
-      a_routine_ptr corresp_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
       /* This entry corresponds to something in the primary IL. */
       keep_on_list = FALSE;
       if (check_member_merges &&
@@ -1390,6 +1399,13 @@ the lists.
         scope->routines = routine->next;
       } else {
         prev_routine->next = routine->next;
+      }  /* if */
+      /* If we need the type of this routine, the type of the corresponding
+         variable can be used. */
+      if (in_secondary_trans_unit(routine->type) &&
+          !has_corresp(routine->type)) {
+        checked_trans_unit_corresp_pointer_of(routine->type) =
+                                                 (char *)corresp_routine->type;
       }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
       /* The routine will not be copied over, so eliminate any
@@ -2580,6 +2596,13 @@ translation units has been done.
 }  /* process_functions_moved_from_secondary_trans_units */
 
 
+/*
+Flag used by mark_secondary_termination_test.
+*/
+static a_boolean
+		mark_secondary_first_pass;
+
+
 #if !MAINTAIN_NEEDED_FLAGS
 /*ARGSUSED*/  /* <-- "kind" is not used in that case. */
 #endif /* !MAINTAIN_NEEDED_FLAGS */
@@ -2596,7 +2619,7 @@ as needed and prune the walk.
 
   if (in_secondary_trans_unit(ptr)) {
 #if MAINTAIN_NEEDED_FLAGS
-    mark_as_needed(ptr, kind);
+    if (mark_secondary_first_pass) mark_as_needed(ptr, kind);
 #endif /* MAINTAIN_NEEDED_FLAGS */
     prune = TRUE;
   } else if (il_entry_prefix_of(ptr).il_walk_flag ==
@@ -2625,32 +2648,38 @@ primary IL.)
   db_enter(1,
           "mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed");
   if (primary_il_may_reference_other_trans_units) {
-    walk_file_scope_il((an_entry_process_function_ptr)NULL,
-                       (a_string_entry_process_function_ptr)NULL,
-                       (a_remap_function_ptr)NULL,
-                       mark_secondary_termination_test,
-                       /*clear_fe_pointers=*/FALSE);
-    /* Loop through the memory regions looking for functions in the
-       primary IL, and process them too. */
-    for (n = FILE_SCOPE_REGION_NUMBER + 1;
-         n <= highest_used_region_number;
-         ++n) {
-      if (mem_region_table[n] == NULL) {
-        /* This memory has already been freed. */
-      } else {
-        a_scope_ptr sp = il_header.region_scope_entry[n];
-        a_boolean   from_secondary_trans_unit =
+    /* Do two passes so that the il_walk_flag returns to its original value. */
+    mark_secondary_first_pass = TRUE;
+    for (;;) {
+      walk_file_scope_il((an_entry_process_function_ptr)NULL,
+                         (a_string_entry_process_function_ptr)NULL,
+                         (a_remap_function_ptr)NULL,
+                         mark_secondary_termination_test,
+                         /*clear_fe_pointers=*/FALSE);
+      /* Loop through the memory regions looking for functions in the
+         primary IL, and process them too. */
+      for (n = FILE_SCOPE_REGION_NUMBER + 1;
+           n <= highest_used_region_number;
+           ++n) {
+        if (mem_region_table[n] == NULL) {
+          /* This memory has already been freed. */
+        } else {
+          a_scope_ptr sp = il_header.region_scope_entry[n];
+          a_boolean   from_secondary_trans_unit =
                        (trans_unit_for_scope[sp->number] != translation_units);
-        if (!from_secondary_trans_unit &&
-            sp->kind != (a_scope_kind)sck_file) {
-          walk_routine_scope_il(n,
-                                (an_entry_process_function_ptr)NULL,
-                                (a_string_entry_process_function_ptr)NULL,
-                                (a_remap_function_ptr)NULL,
-                                mark_secondary_termination_test,
-                                /*clear_fe_pointers=*/FALSE);
+          if (!from_secondary_trans_unit &&
+              sp->kind != (a_scope_kind)sck_file) {
+            walk_routine_scope_il(n,
+                                  (an_entry_process_function_ptr)NULL,
+                                  (a_string_entry_process_function_ptr)NULL,
+                                  (a_remap_function_ptr)NULL,
+                                  mark_secondary_termination_test,
+                                  /*clear_fe_pointers=*/FALSE);
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }  /* for */
+      if (!mark_secondary_first_pass) break;
+      mark_secondary_first_pass = FALSE;
     }  /* for */
   }  /* if */
   db_exit();
@@ -2771,43 +2800,51 @@ before lowering and needed flag marking of the primary IL.
   db_enter(1,
            "rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary");
   if (primary_il_may_reference_other_trans_units) {
-    walk_file_scope_il((an_entry_process_function_ptr)NULL,
-                       (a_string_entry_process_function_ptr)NULL,
-                       remap_secondary_pointer,
-                       rewrite_secondary_termination_test,
-                       /*clear_fe_pointers=*/FALSE);
-    /* Loop through the memory regions looking for functions in the
-       primary IL, and process them too. */
-    for (n = FILE_SCOPE_REGION_NUMBER + 1;
-         n <= highest_used_region_number;
-         ++n) {
-      if (mem_region_table[n] == NULL) {
-        /* This memory has already been freed. */
-      } else {
-        a_scope_ptr sp = il_header.region_scope_entry[n];
-        a_boolean   from_secondary_trans_unit =
+    a_boolean first_pass = TRUE;
+    /* Do two passes so that the il_walk_flag returns to its original value. */
+    for (;;) {
+      a_remap_function_ptr remap_func = NULL;
+      if (first_pass) remap_func = remap_secondary_pointer;
+      walk_file_scope_il((an_entry_process_function_ptr)NULL,
+                         (a_string_entry_process_function_ptr)NULL,
+                         remap_func,
+                         rewrite_secondary_termination_test,
+                         /*clear_fe_pointers=*/FALSE);
+      /* Loop through the memory regions looking for functions in the
+         primary IL, and process them too. */
+      for (n = FILE_SCOPE_REGION_NUMBER + 1;
+           n <= highest_used_region_number;
+           ++n) {
+        if (mem_region_table[n] == NULL) {
+          /* This memory has already been freed. */
+        } else {
+          a_scope_ptr sp = il_header.region_scope_entry[n];
+          a_boolean   from_secondary_trans_unit =
                        (trans_unit_for_scope[sp->number] != translation_units);
-        if (!from_secondary_trans_unit &&
-            sp->kind != (a_scope_kind)sck_file &&
-            /* Ignore functions copied from a secondary translation unit. */
-            !sp->variant.routine.ptr->source_corresp.
+          if (!from_secondary_trans_unit &&
+              sp->kind != (a_scope_kind)sck_file &&
+              /* Ignore functions copied from a secondary translation unit. */
+              !sp->variant.routine.ptr->source_corresp.
                                             copied_from_secondary_trans_unit) {
-          walk_routine_scope_il(n,
-                                (an_entry_process_function_ptr)NULL,
-                                (a_string_entry_process_function_ptr)NULL,
-                                remap_secondary_pointer,
-                                rewrite_secondary_termination_test,
-                                /*clear_fe_pointers=*/FALSE);
+            walk_routine_scope_il(n,
+                                  (an_entry_process_function_ptr)NULL,
+                                  (a_string_entry_process_function_ptr)NULL,
+                                  remap_func,
+                                  rewrite_secondary_termination_test,
+                                  /*clear_fe_pointers=*/FALSE);
 #if DO_IL_LOWERING
-          if (any_lowering_needed() &&
-              !il_entry_prefix_of(sp).il_lowering_flag) {
-            /* Do any required lowering etc. */
-            finish_function_body_processing(sp,
-                                            /*discard_function_body=*/FALSE);
-          }  /* if */
+            if (!first_pass && any_lowering_needed() &&
+                !il_entry_prefix_of(sp).il_lowering_flag) {
+              /* Do any required lowering etc. */
+              finish_function_body_processing(sp,
+                                              /*discard_function_body=*/FALSE);
+            }  /* if */
 #endif /* DO_IL_LOWERING */
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }  /* for */
+      if (!first_pass) break;
+      first_pass = FALSE;
     }  /* for */
   }  /* if */
   db_exit();

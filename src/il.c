@@ -11431,6 +11431,7 @@ lifetimes created for its default arguments have been removed, too.
           fputs("Unlinking default arg object lifetime\n", f_debug);
         }  /* if */
 #endif /* DEBUG */
+        ptp->default_arg_expr = NULL;  /* Be neat. */
       }  /* if */
     }  /* for */
   }  /* if */
