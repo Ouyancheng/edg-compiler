@@ -37,7 +37,10 @@ cause the exception object associated with that handler to be destroyed
 12/28/95 Added placement array new and delete and nothrow new routines
 
 The placement version of array new and delete have been added, as
-have the nothrow versions of new and array new.
+have the nothrow versions of new and array new.  The placement delete
+routines, although present, have been disabled because the front end
+does not yet support overloaded operator delete routines, nor calling
+the placement delete routines in the EH mechanism.
 
 11/29/95 Building runtime with RTTI enabled but not exception handling
 
