@@ -4665,6 +4665,8 @@ for the scope, which means no last-pointer is being maintained (anymore).
       /* The class has already been popped off the scope stack. */
       *pointers_block = NULL;
     } else {
+      check_assertion(trans_unit_for_scope[sp->number] ==
+                                                        curr_translation_unit);
       ssep = &scope_stack[scope_level];
       *pointers_block = assoc_pointers_block_of(ssep);
     }  /* if */
@@ -9719,45 +9721,9 @@ with the class or namespace.
 */
 {
   a_scope_ptr                 sp;
-  a_scope_pointers_block_ptr  pointers_block = NULL;
+  a_scope_pointers_block_ptr  pointers_block;
 
-  if (scope_depth == NO_SCOPE_DEPTH) {
-    check_assertion_str(scp != NULL,
-                        "add_to_pragma_list: NULL source corresp ptr");
-
-    /* The pragma is bound to a member of a class or namespace.  The binding
-       may be taking place in the scope of the class or may be taking place
-       in some other scope.  A static data member definition may have a
-       pragma bound to it at file scope and a friend declaration may have a
-       pragma bound to it in the scope of some other class.  A pragma bound
-       to a class member is always entered on the pragma list of the scope
-       of the class.  */
-    if (scp->is_class_member) {
-      sp = scp->parent.class_type->
-                  variant.class_struct_union.extra_info->assoc_scope;
-      scope_depth = sp->depth_in_scope_stack;
-      if (scope_depth != NO_SCOPE_DEPTH) {
-        pointers_block = assoc_pointers_block_of(&scope_stack[scope_depth]);
-      } else {
-        /* The scope stack entry is no longer available. */
-        pointers_block = NULL;
-      }  /* if */
-    } else {
-      a_namespace_ptr  nsp = scp->parent.namespace_ptr;
-      check_assertion_str(nsp, "add_to_pragma_list: NULL namespace ptr");
-      check_assertion_str(!nsp->is_namespace_alias,
-                          "add_to_pragma_list: namespace alias not expected");
-      sp = nsp->variant.assoc_scope;
-      pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
-    }  /* if */
-    /* If the scope of the class or pragma is still on the scope stack, get
-       a pointer to the scope stack entry. */
-  } else {
-    a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
-    sp = ensure_il_scope_exists(ssep);
-    check_assertion_str(sp != NULL, "add_to_pragma_list: NULL IL scope");
-    pointers_block = assoc_pointers_block_of(ssep);
-  }  /* if */
+  sp = get_scope_for_list(scope_depth, scp, &pointers_block);
   if (sp->pragmas == NULL) {
     sp->pragmas = pragma;
   } else if (pointers_block == NULL) {
