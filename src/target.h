@@ -320,6 +320,15 @@ EXTERN int	targ_zero_width_bit_field_alignment
 			   means "use the alignment of the base type given in
 			   the declaration". */
 
+EXTERN int	targ_zero_width_bit_field_affects_struct_alignment
+#if VAR_INITIALIZERS
+                         = TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE when the alignment adustment when a zero-width
+			   (unnamed) bit-field is declared affects the overall
+			   alignment of the struct as well as the alignment
+			   of the next field. */
 /*
 Pointer types:
 */
