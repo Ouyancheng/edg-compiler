@@ -5246,21 +5246,26 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                ((x = y), x)   really: ((&x = y), &x)
              If necessary, make a reusable copy of x.  The same kind of
              rewrite is done for the prefix ++/-- case. */
-          an_expr_node_ptr new_assign_node;
-          a_boolean        suppress_warning;
+          an_expr_node_ptr new_assign_node, source_node;
+          a_boolean        suppress_warning, vars_can_change;
           expr->variant.operation.returns_lvalue_instead_of_usual_rvalue=FALSE;
           /* Make a copy of the assignment node that is an rvalue
              assignment.  The same process works for the prefix ++/-- case
              because the second operand is not touched. */
           new_assign_node = copy_node(expr);
           new_assign_node->type = type_pointed_to(expr->type);
+          /* For assignments, see if the source expression can have side
+             effects on the variables used in the destination expression. */
+          vars_can_change = FALSE;
+          source_node = operand_node->next;
+          if (source_node != NULL) {
+            vars_can_change = node_has_side_effects(source_node,
+                                                    &suppress_warning);
+          }  /* if */
           /* Attach a copy of the lvalue address to it, for the second
              operand of the comma operator. */
           new_assign_node->next = 
-                    make_lvalue_reusable_copy(operand_node,
-                                              node_has_side_effects(
-                                                           operand_node->next,
-                                                           &suppress_warning));
+                      make_lvalue_reusable_copy(operand_node, vars_can_change);
           /* Change the original node to a comma node. */
           set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                             expr->type, new_assign_node);
