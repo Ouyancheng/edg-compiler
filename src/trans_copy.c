@@ -971,8 +971,10 @@ the primary translation unit, respectively) that are being merged.
       last_destr = lifetime->destructions;
       if (last_destr != NULL) {
         /* Find the end of the list. */
-        while (last_destr->next != NULL) last_destr = last_destr->next;
-        last_destr->next = primary_lifetime->destructions;
+        while (last_destr->next_in_destruction_list != NULL) {
+          last_destr = last_destr->next_in_destruction_list;
+        }  /* while */
+        last_destr->next_in_destruction_list = primary_lifetime->destructions;
         primary_lifetime->destructions = lifetime->destructions;
         /* Adjust the parent_destruction_sublist pointer in children:
            a NULL pointer, meaning end of the list, becomes the first
