@@ -7214,9 +7214,9 @@ id_scan:
 	       keyword recognition. */
             if (!fetch_pp_tokens &&
                 (!in_preprocessing_directive ||
-                 assoc_symbol->is_preprocessing_op_or_punc ||
+                 assoc_symbol->variant.keyword.is_preprocessing_op_or_punc ||
                  (caching_pragma_tokens && recognize_keywords_in_pragma))) {
-              ctoken = assoc_symbol->variant.keyword.token;
+              ctoken = (a_token_kind)assoc_symbol->variant.keyword.token;
               /* Check for a keyword that is not yet implemented.  If one is
                  found, issue a diagnostic and treat the keyword as an
 		 identifier. */

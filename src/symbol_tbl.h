@@ -2135,14 +2135,18 @@ typedef struct a_symbol {
   a_bit_field	is_preprocessing_op_or_punc:1;
 			/* TRUE for symbols corresponding to keywords that
 			   are also preprocessing tokens (e.g., "and"). */
-  bitfield_to_avoid_codecenter_warnings()
+  /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
     struct {
-      a_token_kind
+      a_byte_token_kind
 		token;
 			/* For keywords, the token identifying the keyword. */
+      a_bit_field
+		is_preprocessing_op_or_punc:1;
+			/* TRUE for symbols corresponding to keywords that
+			   are also preprocessing tokens (e.g., "and"). */
       an_error_code
 		diagnostic_issued_if_used;
 			/* The error code of a diagnostic to be issued
