@@ -1,5 +1,10 @@
 Version 2.11
 
+10/21/92 Error on static data member definition with no type specifier    
+
+We used to issue a warning when the decl specifiers were omitted in a
+static data member definition; it is now treated as an error.
+
 10/20/92 Internal error in function_definition
 
 An error recovery bug has been fixed in function_definition -- it appeared
