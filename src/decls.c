@@ -9472,25 +9472,28 @@ continue_with_declaration:
         param_id->storage_class = local_storage_class;
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         decl_typedef(&locator, local_type_ptr, &symbol_ptr);
-      } else if (is_static_data_member) {
-        define_static_data_member(&locator, local_storage_class,
-				  local_type_ptr, &symbol_ptr, &linkage);
+      } else {
+        /* Variable or static data member. */
+        if (is_static_data_member) {
+          define_static_data_member(&locator, local_storage_class,
+                                    local_type_ptr, &symbol_ptr, &linkage);
+          var_ptr = symbol_ptr->variant.static_data_member.variable;
+        } else {
+          decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
+                              is_function ? &func_info : NULL, &symbol_ptr,
+                              &linkage, &old_type, &ext_sym);
+          if (is_old_style_param_decl) {
+            /* A variable has been entered for a name that appears in an
+               old-style param declaration but for which no corresponding
+               param-id was created.  Mark the symbol referenced, to suppress
+               subsequent "declared and not referenced" warnings. */
+            symbol_ptr->referenced = TRUE;
+          }  /* if */
+          var_ptr = symbol_ptr->variant.variable.ptr;
+        }  /* if */
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
-        local_type_ptr = symbol_ptr->variant.static_data_member.variable->type;
-        var_ptr = symbol_ptr->variant.static_data_member.variable;
-      } else {
-        decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            is_function ? &func_info : NULL, &symbol_ptr,
-                            &linkage, &old_type, &ext_sym);
-        if (is_old_style_param_decl) {
-          /* A variable has been entered for a name that appears in an
-             old-style param declaration but for which no corresponding
-             param-id was created.  Mark the symbol referenced, to suppress
-             subsequent "declared and not referenced" warnings. */
-          symbol_ptr->referenced = TRUE;
-        }  /* if */
-        var_ptr = symbol_ptr->variant.variable.ptr;
+        if (var_ptr != NULL) local_type_ptr = var_ptr->type;
       }  /* if */
       /* Look for optional initializer. */
       remove_stop_token(tok_assign);
@@ -9565,7 +9568,7 @@ continue_with_declaration:
                     &incomplete_type_error_reported);
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
-        local_type_ptr = var_ptr->type;
+        if (var_ptr != NULL) local_type_ptr = var_ptr->type;
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
             !is_old_style_param_decl) {
           /* Set the storage class of a file-scope initialized variable to
