@@ -4336,7 +4336,7 @@ the same access, FALSE otherwise.
     }  /* if */
   }  /* while */
   return all_have_same_access;
-}  /* max_access_of_overloaded_function */
+}  /* uniform_access_of_overloaded_function */
 
 
 static an_access_specifier max_access_of_overloaded_function(a_symbol_ptr  sym)
@@ -4629,7 +4629,7 @@ class of its derived class.
     if (debug_level >= 4) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      (void)max_access_of_overloaded_function(sym, access);
+      *access = max_access_of_overloaded_function(sym);
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
       *ambiguous = sym->variant.projection.ambiguous;
       *access = sym->variant.projection.access;
