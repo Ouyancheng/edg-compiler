@@ -2428,16 +2428,10 @@ Allocate bcp (an empty base class).
      base in one of the direct base types. */
   if (emulate_gnu_abi_bugs && bcp->is_virtual) {
     offset = virtual_base_offset_computed_for_direct_base_type(bcp);
-    if (offset != 0) {
-      /* If offset corresponds to the offset of the first significant field of
-         the complete object type, no further conflict checking is needed. */
-      a_field_ptr  gnu_first_field = get_gnu_first_field(lob->class_type);
-      if ((gnu_first_field != NULL && gnu_first_field->offset == offset) ||
-          !base_subobject_conflict(bcp, offset)) {
-        /* Carry over the offset computed for a direct base. */
-        bcp->offset = offset;
-        goto done;
-      }  /* if */
+    if (offset != 0 && !base_subobject_conflict(bcp, offset)) {
+      /* Carry over the offset computed for a direct base. */
+      bcp->offset = offset;
+      goto done;
     }  /* if */
   }  /* if */
   if (offset == 0 &&
