@@ -10001,7 +10001,9 @@ class_type.  Set *updated if a projection symbol is created.
             a_symbol_ptr	fund_base_sym =
                                          fundamental_symbol_of(bcslep->symbol);
             if (same_entities(fund_curr_sym->variant.routine.ptr,
-                              fund_base_sym->variant.routine.ptr)) break;
+                              fund_base_sym->variant.routine.ptr)) {
+              break;
+	    }  /* if */
           }  /* if */
         } else if (is_template_list) {
           a_type_ptr  tp1, tp2;
