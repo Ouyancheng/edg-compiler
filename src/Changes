@@ -1,5 +1,21 @@
 Version 2.44
 
+6/28/00  Microsoft compatibility: bit-field cast to similar type gets error
+
+In Microsoft C++ compatibility mode, a bit field selection cast to a
+similar but not identical type got the error "taking the address of a
+bit field is not allowed" in some cases.  Now fixed.
+
+  typedef struct A {
+    struct {
+      unsigned long pad: 21; 
+    } flags;
+  } A;
+  void f(const A *pcs)
+  {
+    unsigned long i = (unsigned long)pcs->flags.pad;
+  }
+
 6/28/00  Sun and Microsoft compatibility: declaration of function or variable
          made visible with a using-declaration
 

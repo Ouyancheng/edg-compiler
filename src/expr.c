@@ -7067,7 +7067,8 @@ C-style casts and C++ functional-notation type conversions.
           if (microsoft_bugs && is_an_lvalue(operand) &&
               f_identical_types(f_skip_typerefs(source_type),
                                 f_skip_typerefs(type_cast_to),
-                                ITF_NO_FLAGS)) {
+                                ITF_NO_FLAGS) &&
+              !is_bit_field_operand(operand)) {
             /* In Microsoft mode, a cast of an lvalue to the same type
                is just ignored, and the operand stays an lvalue.  Note that
                this applies in C++ as well as C. */
