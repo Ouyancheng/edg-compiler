@@ -8875,6 +8875,40 @@ Set the specific symbol to the associated nonfundamental symbol.
 }  /* select_dual_lookup_symbol */
 
 
+static a_boolean is_microsoft_qualifier_start(a_symbol_ptr	sym)
+/*
+In a construct like "X::Y", the Microsoft compiler does not consider this
+to be a qualification of X when X is a typedef to a non-class type.
+In other words, this is treated as "X" and "::Y" by the Microsoft
+compiler.
+*/
+{
+  a_boolean	result = TRUE;
+
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+    a_type_ptr	tp;
+    tp = sym->variant.type.ptr;
+    tp = skip_typerefs(tp);
+    /* A class, struct, union, or template parameter type is
+       permitted as the start of a qualified name. */
+    switch (tp->kind) {
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+      case tk_template_param:
+        break;
+      case tk_enum:
+        result = tp->source_corresp.is_class_member;
+        break;
+      default:
+        result = FALSE;
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_microsoft_qualifier_start */
+
+
 static a_symbol_ptr look_up_qualifier_start(
 			an_id_lookup_options_set	lookup_kind,
 			a_type_ptr			class_type,
@@ -8955,42 +8989,15 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
     } else {
       sym = normal_fund_sym;
     }  /* if */
-    *is_vacuous_dtor = TRUE;
+    if (sym != NULL && !might_be_vacuous_dtor) {
+      /* In Microsoft bugs mode, ignore this symbol unless it is one
+         that actually does not indicate the start of a qualified name. */
+      if (is_microsoft_qualifier_start(sym)) sym = NULL;
+    }  /* if */
+    *is_vacuous_dtor = might_be_vacuous_dtor;
   }  /* if */
   return sym;
 }  /* look_up_qualifier_start */
-
-
-static a_boolean is_microsoft_qualifier_start(a_symbol_ptr	sym)
-/*
-In a construct like "X::Y", the Microsoft compiler does not consider this
-to be a qualification of X when X is a typedef to a non-class type.
-In other words, this is treated as "X" and "::Y" by the Microsoft
-compiler.
-*/
-{
-  a_boolean	result = TRUE;
-
-  if (sym != NULL && is_type_symbol(sym)) {
-    a_type_ptr	tp;
-    tp = type_symbol_type(sym);
-    tp = skip_typerefs(tp);
-    /* A class, struct, union, enum, or template parameter type is
-       permitted as the start of a qualified name. */
-    switch (tp->kind) {
-      case tk_class:
-      case tk_struct:
-      case tk_union:
-      case tk_enum:
-      case tk_template_param:
-        break;
-      default:
-        result = FALSE;
-        break;
-    }  /* switch */
-  }  /* if */
-  return result;
-}  /* is_microsoft_qualifier_start */
 
 
 /*
@@ -9422,16 +9429,19 @@ selection operator, in which case it points to the type of the left operand.
           /* Get the namespace from the symbol entry. */
           qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
           qualifier_is_type = FALSE;
-        } else if (microsoft_bugs && is_enum_symbol(qualifier_sym)) {
+        } else if (microsoft_bugs && is_enum_symbol(qualifier_sym) &&
+                   skip_typerefs(type_symbol_type(qualifier_sym))->
+                                              source_corresp.is_class_member) {
           /* In Microsoft bugs mode the qualifier can be an enumeration
-             name. */
+             name.  Only member enumerations are considered. */
           qualifier_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_type);
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
           qualifier_is_enum = TRUE;
         } else if (qualifier_sym->kind == (a_symbol_kind)sk_type ||
-                   qualifier_sym->kind == (a_symbol_kind)sk_enum_tag) {
+                   (qualifier_sym->kind == (a_symbol_kind)sk_enum_tag &&
+                    is_vacuous_dtor)) {
             /* The class symbol points to a type.  This is the case when
                a class qualifier contains template parameter types or for
                the last qualifier of a vacuous destructor.  Set
