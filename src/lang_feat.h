@@ -239,7 +239,7 @@ ill-formed in 3/94 but they are allowed by some compilers (e.g.,
 Borland).
 */
 #ifndef ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
-#define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS TRUE
+#define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS FALSE
 #endif /* !defined(ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS) */
 
 /*
