@@ -8412,13 +8412,43 @@ or namespace scope) into the file scope.
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    add_to_routines_list(routine, /*at_file_scope=*/TRUE);
+    add_to_routines_list(routine, /*at_file_or_namespace_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted routines.  Since the scope is for a class
      or namespace, we know it cannot be on the scope stack now, and therefore
      we do not need to update a corresponding last pointer. */
   scope->routines = NULL;
 }  /* promote_routines */
+
+
+static void promote_asm_entries(a_scope_ptr scope)
+/*
+Promote the asm entries on the asm_entries list of the indicated scope
+(a namespace scope) into the file scope.
+*/
+{
+  an_asm_entry_ptr asm_entry, next_asm_entry;
+
+  for (asm_entry = scope->asm_entries;
+       asm_entry != NULL;
+       asm_entry = next_asm_entry) {
+    next_asm_entry = asm_entry->next;
+#if DEBUG
+    if (debug_level >= 4) {
+      (void)fprintf(f_debug, "Promoting asm entry out of scope ");
+      db_scope(scope);
+      (void)fprintf(f_debug, ": ");
+      db_name(&asm_entry->source_corresp);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    add_to_asm_entries_list(asm_entry);
+  }  /* for */
+  /* Clear the list of asm entries.  Since the scope is for a namespace,
+     we know it cannot be on the scope stack now, and therefore we do not
+     need to update a corresponding last pointer. */
+  scope->asm_entries = NULL;
+}  /* promote_asm_entries */
 
 
 static void prepare_to_remove_class_along_with_type_as_subobject(
@@ -9120,6 +9150,8 @@ were promoted previously (see do_all_namespace_member_promotion).
   promote_variables(scope);
   /* Promote the member functions out of the namespace. */
   promote_routines(scope);
+  /* Promote the asm declarations out of the namespace. */
+  promote_asm_entries(scope);
 }  /* do_namespace_member_promotion */
 
 
