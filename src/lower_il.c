@@ -421,7 +421,9 @@ static void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
                                                      a_targ_ptrdiff_t *index,
                                                      a_routine_ptr    *func,
                                                      a_targ_ptrdiff_t *offset);
-
+static a_boolean check_for_troublesome_ptr_to_member_constant(
+                                                     a_constant_ptr constant,
+                                                     a_variable_ptr *temp_var);
 
 
 static void clear_insert_location(an_insert_location *insert_location,
@@ -1443,10 +1445,20 @@ This is used when the constant is already an allocated IL constant.
 */
 {
   an_expr_node_ptr node;
+  a_variable_ptr   temp_var;
 
-  node = alloc_expr_node((an_expr_node_kind)enk_constant);
-  node->variant.constant = constant;
-  node->type = constant->type;
+  /* If the constant is a converted pointer-to-member-function constant.
+     If so, it is now a ck_aggregate constant, which cannot be used directly
+     in an expression.  For that case, create a temporary variable
+     initialized with the ck_aggregate, and use the value of the variable. */
+  if (check_for_troublesome_ptr_to_member_constant(constant, &temp_var)) {
+    node = var_rvalue_expr(temp_var);
+  } else {
+    /* Normal case; make a constant node. */
+    node = alloc_expr_node((an_expr_node_kind)enk_constant);
+    node->variant.constant = constant;
+    node->type = constant->type;
+  }  /* if */
   return node;
 }  /* make_node_for_il_constant */
 
