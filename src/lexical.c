@@ -9688,7 +9688,8 @@ Set the specific symbol to the associated nonfundamental symbol.
       /* When the identifier is followed by a "<", and the name is found
          as a template in the class, ignore the other symbol unless it is a
          class template. */
-      if (normal_sym != NULL && !is_class_template_symbol(normal_sym)) {
+      if (normal_sym != NULL &&
+          !is_class_template_or_injected_template_symbol(normal_fund_sym)) {
         normal_sym = NULL;
       }  /* if */
     } else if (is_constructor_symbol(class_sym)) {
@@ -9698,7 +9699,7 @@ Set the specific symbol to the associated nonfundamental symbol.
       class_sym = NULL;
     } else if (class_fund_sym->is_nonreal_member &&
                !is_template_symbol(class_fund_sym) &&
-               is_template_symbol(normal_fund_sym)) {
+               is_template_or_injected_template_symbol(normal_fund_sym)) {
       /* The class symbols is a nonreal nontemplate and the normal symbol
          is a template.  Use the normal symbol. */
       class_sym = NULL;

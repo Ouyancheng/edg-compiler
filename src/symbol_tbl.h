@@ -3371,6 +3371,13 @@ extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
   ((sym)->kind == (a_symbol_kind)sk_class_template ||                  \
    (sym)->kind == (a_symbol_kind)sk_function_template)
 
+/* Return TRUE if a symbol is a class or function template symbol, or
+   an injected template symbol. */
+#define is_template_or_injected_template_symbol(sym)			\
+  ((sym)->kind == (a_symbol_kind)sk_class_template ||                  \
+   (sym)->kind == (a_symbol_kind)sk_function_template ||		\
+   is_injected_template_symbol(sym))
+
 /* Return TRUE if a symbol is a class or function template symbol or an
    overload set containing a function template symbol */
 #define symbol_is_or_contains_template(sym)				\
