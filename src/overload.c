@@ -4865,7 +4865,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
       if (any_cfront_mode() && type_code == PTRDIFF_T_TYPE_CODE) {
         type_code = PROMOTED_INTEGRAL_TYPE_CODE;
       }  /* if */
-      if (is_integral_type(operand_type)) {
+      if (is_integral_or_enum_type(operand_type)) {
         if (type_code == PTRDIFF_T_TYPE_CODE) {
           /* An operand of type ptrdiff_t is wanted. */
           if (skip_typerefs(operand_type)->variant.integer.int_kind ==
