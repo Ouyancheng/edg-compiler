@@ -2064,6 +2064,7 @@ str, str_seq, and str_column are the output labels (the latter two including
 { disp_unsigned_long((str_seq), (unsigned long)(stmt_pos).seq);       \
   disp_unsigned_long((str_column), (unsigned long)(stmt_pos).column); }
 #else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
+#define disp_stmt_source_position(str, str_seq, str_column, stmt_pos) \
 { disp_unsigned_long(str, (unsigned long)(stmt_pos)); }
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
