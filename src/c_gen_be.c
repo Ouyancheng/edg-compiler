@@ -2869,7 +2869,10 @@ final semicolon if output_final_semi is TRUE.
         write_unsigned_num((a_host_large_unsigned)padding);
         write_tok_str("];");
       } else if (padding == 1 ||
-                 (!(il_header.gcc_mode && gcc_is_generated_code_target) &&
+                 (
+#if GNU_EXTENSIONS_ALLOWED
+                  !(il_header.gcc_mode && gcc_is_generated_code_target) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
                   next_initializable_field(
                        type->variant.class_struct_union.field_list) == NULL)) {
         /* One byte of padding needed, or... */
