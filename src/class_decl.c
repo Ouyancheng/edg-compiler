@@ -7237,6 +7237,7 @@ is nothing that prevents it from being changed to having external linkage.
 {
   a_boolean  is_external_linkage_candidate = FALSE;
 
+  db_enter(5, "is_candidate_for_linkage_change");
   check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
   check_assertion(!tp->source_corresp.is_local_to_function);
   if (tp->source_corresp.name_linkage !=
@@ -7261,6 +7262,7 @@ is nothing that prevents it from being changed to having external linkage.
       is_external_linkage_candidate = TRUE;
     }  /* if */
   }  /* if */
+  db_exit();
   return is_external_linkage_candidate;
 }  /* is_candidate_for_linkage_change */
 
@@ -7319,13 +7321,15 @@ the change on the contained type.
       tp = pm_class_type(type);
       check_type_for_linkage_change(tp, count);
       check_type_for_linkage_change(pm_member_type(type), count);
+      break;
     case tk_integer:
-      /* Check for an enum type.  If it a member of a class, its class should
-         be made externally linked, too. */
+      /* Check for an enum type.  If it's a member of a class, its class
+         should be made externally linked, too. */
       if (type->variant.integer.enum_type) {
         tp = type->source_corresp.class_of_which_a_member;
         if (tp != NULL) {
-          /* Nested enum -- change the parent's linkage first. */
+          /* Nested enum -- changing the parent's linkage causes the linkage
+             of all its nested types to be changed. */
           check_type_for_linkage_change(tp, count);
         } else if (is_candidate_for_linkage_change(type)) {
           make_enum_type_externally_linked(type, count);
