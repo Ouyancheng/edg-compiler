@@ -838,21 +838,30 @@ instances will do nothing.
 jmp_buf is a type defined by <setjmp.h> for use in setjmp/longjmp.
 By default, IL lowering uses setjmp/longjmp for exception try/throw
 statements.  jmp_buf is defined to be an array type; we further
-assume it is an array of some kind of integral type, which is not
-guaranteed by the standard but is usually a safe assumption.
+assume it is an array of some kind of integral or floating type, which
+is not guaranteed by the standard but is usually a safe assumption.
 The definitions here specify the number of elements in the array type
-and the integral kind for the array element type.
+and the integral or floating kind for the array element type.
 */
 #ifndef TARG_JMP_BUF_NUM_ELEMENTS
 #define TARG_JMP_BUF_NUM_ELEMENTS 9  /* For SPARC, SunOS 4.1.2. */
 #endif /* !defined(TARG_JMP_BUF_NUM_ELEMENTS) */
 			/* Default value, used to initialize global variable
 			   targ_jmp_buf_num_elements. */
+#ifndef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
+#define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT FALSE
+#endif /* ifndef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT */
+			/* Choose between integer and float. */
 #ifndef TARG_JMP_BUF_ELEMENT_INT_KIND
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 #endif /* !defined(TARG_JMP_BUF_ELEMENT_INT_KIND) */
 			/* Default value, used to initialize global variable
 			   targ_jmp_buf_element_int_kind. */
+#ifndef TARG_JMP_BUF_ELEMENT_FLOAT_KIND
+#define TARG_JMP_BUF_ELEMENT_FLOAT_KIND ((a_float_kind)fk_long_double)
+#endif /* !defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
+			/* Default value, used to initialize global variable
+			   targ_jmp_buf_element_float_kind. */
 
 /*
 The integral kind to be used for a cleanup region number with exception

@@ -478,7 +478,15 @@ EXTERN unsigned int
                                                                      ;
 			/* Number of elements in a jmp_buf array.  Initialized
 			   to the default value but reconfigurable. */
-
+EXTERN a_boolean
+		targ_jmp_buf_elements_are_float
+#if VAR_INITIALIZERS
+                                              = TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* Choose between integer and float members of the
+			   jmp_buf array.  Initialized to the default value
+			   but reconfigurable. */
 EXTERN an_integer_kind
 		targ_jmp_buf_element_int_kind
 #if VAR_INITIALIZERS
@@ -486,6 +494,15 @@ EXTERN an_integer_kind
 #endif /* VAR_INITIALIZERS */
                                                                              ;
 			/* Integer kind indicating the kind of element in a
+			   jmp_buf array.  Initialized to the default value
+			   but reconfigurable. */
+EXTERN a_float_kind
+		targ_jmp_buf_element_float_kind
+#if VAR_INITIALIZERS
+                                              = TARG_JMP_BUF_ELEMENT_FLOAT_KIND
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* Float kind indicating the kind of element in a
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
 

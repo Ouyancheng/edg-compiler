@@ -920,12 +920,15 @@ try/throw) if it is not made already, and return a pointer to it.
 {
   if (jmp_buf_type == NULL) {
     /* jmp_buf is an array; that's part of the standard.  We assume it's
-       an array of elements of some integral type; that's not standard,
-       but it's common.  For other cases, one can pick an integral kind
-       and number of elements to give the right size and alignment. */
+       an array of elements of some integral or floating type; that's not
+       standard, but it's common.  For other cases, one can pick an
+       integral kind and number of elements to give the right size and
+       alignment. */
     jmp_buf_type = alloc_type((a_type_kind)tk_array);
     jmp_buf_type->variant.array.element_type =
-                                   integer_type(targ_jmp_buf_element_int_kind);
+                             targ_jmp_buf_elements_are_float ?
+                                  float_type(targ_jmp_buf_element_float_kind) :
+                                  integer_type(targ_jmp_buf_element_int_kind);
     jmp_buf_type->variant.array.variant.number_of_elements =
                                                      targ_jmp_buf_num_elements;
     set_type_size(jmp_buf_type);
