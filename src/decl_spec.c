@@ -2235,7 +2235,18 @@ new expression and should therefore not be treated as a declaration.
         /* For a local class, save information about the enclosing function. */
         a_class_symbol_supplement_ptr	cssp;
         a_scope_stack_entry_ptr		ssep;
-        ssep = &scope_stack[depth_innermost_function_scope];
+        if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          ssep = &scope_stack[depth_innermost_function_scope];
+        } else {
+          /* Depth innermost function scope is not set when this local
+             class is declared within another nested class.  Find the
+             enclosing function scope. */
+          for (ssep = scope_stack_entry_for(depth_scope_stack);
+               ssep != NULL; ssep = previous_scope_of(ssep)) {
+            if (ssep->kind == (a_scope_kind)sck_function) break;
+          }  /* for */
+        }  /* if */
+        check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
         cssp = symbol_supplement_for_class(class_type);
         cssp->enclosing_routine = ssep->assoc_routine; 
         cssp->local_class_number = ssep->number_of_local_classes++;
