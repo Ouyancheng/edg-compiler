@@ -7026,11 +7026,15 @@ file we simply return.
   char			*full_file_name, *display_name;
   FILE			*f_source;
   a_boolean		is_system_include;
+#if DEBUG
+  a_boolean		print_debug_info = FALSE;
+#endif /* DEBUG */
 
   db_enter(3, "do_implicit_include_if_needed");
   /* Translate the sequence number into a file name and line number. */
 #if DEBUG
-  if (debug_level >= 3) {
+  print_debug_info = debug_level >= 3 || db_flag_is_set("implicit_include");
+  if (print_debug_info) {
     fprintf(f_debug, "Attempting implicit include to define:\n");
     db_symbol(tip->instance_sym, "", 2);
   }  /* if */
@@ -7049,7 +7053,7 @@ file we simply return.
       /* If we haven't already included the corresponding source file then
          do so now. */
 #if DEBUG
-      if (debug_level >= 3) {
+      if (print_debug_info) {
         fprintf(f_debug, "  Looking for source file related to '%s'\n",
                 sfp->file_name);
       }  /* if */
@@ -7072,7 +7076,7 @@ file we simply return.
         if (compare_file_names(full_file_name, sfp->full_name) != 0 &&
             !find_include_history(full_file_name, &ifhp, /*create=*/FALSE)) {
 #if DEBUG
-          if (debug_level >= 3) {
+          if (print_debug_info || db_flag_is_set("show_implicit_include")) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
           }  /* if */
 #endif /* DEBUG */
@@ -7081,7 +7085,7 @@ file we simply return.
 	  if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
 	    (void)fclose(f_source);
 #if DEBUG
-	    if (debug_level >= 3) {
+	    if (print_debug_info) {
 	      fprintf(f_debug, "%s %s %s\n", "do_implicit_include_if_needed:",
                       "skipping guarded include file", full_file_name);
             }  /* if */
