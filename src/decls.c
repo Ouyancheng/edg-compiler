@@ -1290,17 +1290,25 @@ usually the innermost non-class scope.  Starting from the specified scope
 depth, find and return the depth of the containing non-class scope.
 */
 {
+  a_scope_kind  kind;
+
   db_enter(4, "compute_friend_effective_decl_level");
-  while (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union ||
-         scope_stack[depth].kind == (a_scope_kind)sck_class_reactivation) {
+  kind = scope_stack[depth].kind;
+  while (kind == (a_scope_kind)sck_class_struct_union ||
+         kind == (a_scope_kind)sck_class_reactivation) {
     depth--;
-    if (scope_stack[depth].kind == (a_scope_kind)sck_template_instantiation) {
+    kind = scope_stack[depth].kind;
+    if (kind == (a_scope_kind)sck_template_instantiation) {
       if (scope_stack[depth].in_prototype_instantiation) {
         /* During prototype instantiation, use the instantiation scope
            as the effective declaration scope. */
       } else {
         depth = depth_innermost_namespace_scope;
       }  /* if */
+      break;
+    } else if (kind == (a_scope_kind)sck_template_declaration) {
+      /* Must be an error of some sort. */
+      depth = depth_innermost_namespace_scope;
       break;
     }  /* if */
   }  /* while */
