@@ -54,10 +54,10 @@ extern void incr_integer_constant(a_constant *cp);
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
 
+extern char *str_for_integer_constant(a_constant *cp);
+
 extern void write_integer_constant(FILE       *f_output,
                                    a_constant *cp);
-
-extern char *str_for_integer_constant(a_constant *cp);
 
 extern void set_value_of_integer_constant(a_constant *cp,
                                           long       value,
