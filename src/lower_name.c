@@ -1481,8 +1481,16 @@ and "routine" is the routine to which the entity is local.
   add_number_to_mangled_name(id_number, mctl);
   add_str_to_mangled_name("__", mctl);
   if (routine->source_corresp.name != NULL) {
-    mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
-                          mctl);
+    if (routine->source_corresp.name_has_been_mangled &&
+        !routine->source_corresp.
+                               mangled_name_cannot_be_included_in_other_name) {
+      /* Using the mangled name as written is important if the routine
+         is a static function that has been externalized. */
+      add_str_to_mangled_name(routine->source_corresp.name, mctl);
+    } else {
+      mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
+                            mctl);
+    }  /* if */
   }  /* if */
 }  /* add_local_name_suffix */
 
@@ -2515,12 +2523,6 @@ conversion functions.
   }  /* if */
 }  /* mangled_function_base_name */
 
-#if DO_IL_LOWERING
-static void start_externalized_name(a_boolean                is_variable,
-                                    a_mangling_control_block *mctl);
-static void end_externalized_name(a_source_correspondence  *scp,
-                                  a_mangling_control_block *mctl);
-#endif /* DO_IL_LOWERING */
 
 static void mangled_function_name(
                               a_routine_ptr            routine,
@@ -2535,9 +2537,6 @@ types; just put out the base encoded name.
   a_type_ptr conversion_type, routine_type;
   a_boolean  is_member, mangle_as_template;
   a_boolean  is_specialization = FALSE, is_template_specialization = FALSE;
-#if DO_IL_LOWERING
-  a_boolean  needs_to_be_externalized;
-#endif /* DO_IL_LOWERING */
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
      but this routine handles:
@@ -2549,7 +2548,6 @@ types; just put out the base encoded name.
               (a) if the function is nonstatic, "C", "V", or "CV" if there
                   are type qualifiers on the "this" parameter type, or
               (b) if the function is static, "S".
-       (3)  Externalizing of the name if necessary.
      mangled_encoding_for_function_type is then called to do the rest of the
      processing.
   */
@@ -2588,16 +2586,6 @@ types; just put out the base encoded name.
       is_specialization = TRUE;
     }  /* if */
   }  /* if */
-#if DO_IL_LOWERING
-  /* Static entities are potentially referenced from exported templates
-     and therefore get externalized, which gives them a different kind
-     of mangled name. */
-  needs_to_be_externalized =
-                routine_should_be_externalized_for_exported_templates(routine);
-  if (needs_to_be_externalized) {
-    start_externalized_name(/*is_variable=*/FALSE, mctl);
-  }  /* if */
-#endif /* DO_IL_LOWERING */
   /* Put out the base name of the function. */
   conversion_type = NULL;
   if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
@@ -2661,11 +2649,6 @@ types; just put out the base encoded name.
     /* Output the function type, including the parameter types. */
     mangled_encoding_for_function_type(routine_type, do_return_type, mctl);
   }  /* if */
-#if DO_IL_LOWERING
-  if (needs_to_be_externalized) {
-    end_externalized_name(&routine->source_corresp, mctl);
-  }  /* if */
-#endif /* DO_IL_LOWERING */
 }  /* mangled_function_name */
 
 
@@ -2877,7 +2860,18 @@ name in the routine entry.
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
+    /* Create the name. */
+#if DO_IL_LOWERING
+    if (needs_to_be_externalized) {
+      start_externalized_name(/*is_variable=*/FALSE, &mctl);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     mangled_function_name(routine, suppress_param_encoding, &mctl);
+#if DO_IL_LOWERING
+    if (needs_to_be_externalized) {
+      end_externalized_name(&routine->source_corresp, &mctl);
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
