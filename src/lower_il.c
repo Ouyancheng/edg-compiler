@@ -2540,8 +2540,11 @@ the constant.
       /* The variable must be allocated. */
       (void)make_mptr_type();
       if (in_file_scope((char *)constant)) {
-        /* The constant is in the file scope (and therefore possibly shared),
-           so use a file-scope variable. */
+        /* The constant is in the file scope, so use a file-scope variable.
+           The constant is possibly shared, but we're going to rewrite
+           every use of it to reference the variable instead, so the constant
+           will end up being used only in the initialization of the
+           variable (and therefore unshared). */
         assoc_var = make_file_scope_temporary(mptr_type);
       } else {
         /* The constant is in the function scope, so a copy must be made so
