@@ -4248,30 +4248,6 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
-    if (microsoft_mode) {
-      /* Define the _MSC_VER variable that indicates the version of the
-         Microsoft compiler that is being emulated. */
-      (void)enter_predef_macro(conv_unsigned_long_to_str(
-                                            (unsigned long)microsoft_version),
-                               "_MSC_VER",
-                               /*cannot_be_redefined=*/FALSE,
-                               /*ref_suppresses_pch_file=*/FALSE);
-      /* Define _MSC_EXTENSIONS. */
-      (void)enter_predef_macro("1", "_MSC_EXTENSIONS",
-                               /*cannot_be_redefined=*/FALSE,
-                               /*ref_suppresses_pch_file=*/FALSE);
-      /* Define _WIN32. */
-      (void)enter_predef_macro("1", "_WIN32",
-                               /*cannot_be_redefined=*/FALSE,
-                               /*ref_suppresses_pch_file=*/FALSE);
-#ifdef _M_IX86
-      (void)enter_predef_macro(conv_unsigned_long_to_str(
-                                            (unsigned long)_M_IX86),
-                               "_M_IX86",
-                               /*cannot_be_redefined=*/FALSE,
-                               /*ref_suppresses_pch_file=*/FALSE);
-#endif /* ifdef _M_IX86 */
-    }  /* if */
 #if DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
     if (wchar_t_is_keyword) {
       /* Enter a predefined macro that can be used to determine that
@@ -4356,6 +4332,30 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* RUNTIME_USES_NAMESPACES */
+  }  /* if */
+  if (microsoft_mode) {
+    /* Define the _MSC_VER variable that indicates the version of the
+       Microsoft compiler that is being emulated. */
+    (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                            (unsigned long)microsoft_version),
+                             "_MSC_VER",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    /* Define _MSC_EXTENSIONS. */
+    (void)enter_predef_macro("1", "_MSC_EXTENSIONS",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    /* Define _WIN32. */
+    (void)enter_predef_macro("1", "_WIN32",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+#ifdef _M_IX86
+    (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                                      (unsigned long)_M_IX86),
+                             "_M_IX86",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+#endif /* ifdef _M_IX86 */
   }  /* if */
   /* Enter a predefined macro that can be used to determine that the
      EDG front end is being used. */

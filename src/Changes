@@ -1,5 +1,10 @@
 Version 2.44
 
+1/20/00  Microsoft compatibility: predefined macros defined in C mode
+
+Formerly, the Microsoft predefined macros (_MSC_VER, etc.) were only
+defined in C++ mode.  They are now defined in C mode too.
+
 1/20/00  Possible abort on definition of nested class
 
 An invalid memory reference occurred when a nested class was declared
