@@ -541,6 +541,8 @@ by octl.
             octl->c_generating_back_end)) {
         /* Output a reference to the enum type. */
         form_tag_reference(type, octl);
+      } else if (type->variant.integer.wchar_t_type) {
+        octl->output_str("wchar_t");
       } else
 #endif /* ifdef CFE */
       {
