@@ -1655,7 +1655,7 @@ Output the definition of the indicated enum type.
     /* Output the value if it's not the next value in sequence. */
     if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
       write_tok_str(" = ");
-      write_tok_str(str_for_integer_constant(enum_con));
+      dump_constant(enum_con);
       next_enum_value = *enum_con;
     }  /* if */
     enum_con = enum_con->next;
