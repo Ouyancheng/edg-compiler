@@ -5907,7 +5907,7 @@ As an anachronism, allow an expression inside the [ ].
   a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
-  a_boolean          err = FALSE, processed = FALSE;
+  a_boolean          err = FALSE, processed = FALSE, template_case = FALSE;
   a_routine_ptr      delete_routine, dtor_routine;
   an_operand         operand;
   a_constant         constant;
@@ -5970,6 +5970,10 @@ As an anachronism, allow an expression inside the [ ].
                                                  (a_builtin_type_kind_set)
                                                                   BTK_POINTER,
                                                  &processed);
+  } else if (is_template_param_type(operand.type)) {
+    /* A template parameter type is acceptable in a prototype instantiation. */
+    template_case = TRUE;
+    processed = TRUE;
   }  /* if */
   if (!processed) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
@@ -5980,144 +5984,147 @@ As an anachronism, allow an expression inside the [ ].
   } else if (is_error_operand(&operand)) {
     err = TRUE;
   }  /* if */
+  if (!err) {
+    ptr_delete_type = operand.type;
+    if (template_case) {
+      delete_type = type_of_unknown_templ_param_nontype;
+    } else {
+      delete_type = type_pointed_to(ptr_delete_type);
+      if (is_function_type(delete_type)) {
+        /* The type pointed to may not be a function type. */
+        error_in_operand(ec_delete_of_function_pointer, &operand);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (err) {
     make_error_operand(result);
   } else {
-    ptr_delete_type = operand.type;
-    delete_type = type_pointed_to(ptr_delete_type);
-    if (is_function_type(delete_type)) {
-      /* The type pointed to may not be a function type.  The ARM doesn't
-         say that explicitly, but it does say it must be a pointer returned
-         by "new". */
-      error_in_operand(ec_delete_of_function_pointer, &operand);
-      make_error_operand(result);
-    } else {
-      /* Valid type. */
-      ptr_node = make_node_from_operand(&operand);
-      /* Use an enk_new_delete node to represent the delete. */
-      delete_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
-      delete_node->type = void_type();
-      ndsp = delete_node->variant.new_delete;
-      ndsp->is_new = FALSE;
-      ndsp->array_delete = array_delete;
-      ndsp->global_new_or_delete = use_global_delete;
-      ndsp->type = delete_type;
-      ndsp->arg = ptr_node;
-      delete_type = skip_typerefs(delete_type);
-      base_delete_type = delete_type;
-      /* Get the underlying type for any array type. */
-      while (is_array_type(base_delete_type)) {
-        base_delete_type = array_element_type(base_delete_type);
-        base_delete_type = skip_typerefs(base_delete_type);
+    /* Valid type. */
+    ptr_node = make_node_from_operand(&operand);
+    /* Use an enk_new_delete node to represent the delete. */
+    delete_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
+    delete_node->type = void_type();
+    ndsp = delete_node->variant.new_delete;
+    ndsp->is_new = FALSE;
+    ndsp->array_delete = array_delete;
+    ndsp->global_new_or_delete = use_global_delete;
+    ndsp->type = delete_type;
+    ndsp->arg = ptr_node;
+    delete_type = skip_typerefs(delete_type);
+    base_delete_type = delete_type;
+    /* Get the underlying type for any array type. */
+    while (is_array_type(base_delete_type)) {
+      base_delete_type = array_element_type(base_delete_type);
+      base_delete_type = skip_typerefs(base_delete_type);
+    }  /* if */
+    /* See if the object needs destruction. */
+    dtor_routine = NULL;
+    if (is_class_struct_union_type(base_delete_type)) {
+      /* Instantiate the class if it is a template class. */
+      complete_type_is_needed(base_delete_type);
+      if (is_incomplete_type(base_delete_type)) {
+        /* Deleting a pointer to an incomplete class.  Give a warning,
+           because we may not know how to do the right thing (like call
+           a destructor). */
+        pos_warning(ec_delete_of_incomplete_class, &operand.position);
       }  /* if */
-      /* See if the object needs destruction. */
-      dtor_routine = NULL;
-      if (is_class_struct_union_type(base_delete_type)) {
-        /* Instantiate the class if it is a template class. */
-        complete_type_is_needed(base_delete_type);
-        if (is_incomplete_type(base_delete_type)) {
-          /* Deleting a pointer to an incomplete class.  Give a warning,
-             because we may not know how to do the right thing (like call
-             a destructor). */
-          pos_warning(ec_delete_of_incomplete_class, &operand.position);
-        }  /* if */
-        dtor_routine = select_destructor(base_delete_type, base_delete_type,
-                                         &operand.position,
-                                         /*honor_virtual=*/TRUE,
-                                         curr_expr_is_potentially_evaluated());
-        if (dtor_routine != NULL) {
-          /* Class with destructor.  Destruction is required. */
-          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-          if (array_delete) {
-            /* For a delete of an array of classes, generate a dynamic init
-               that replicates the destructor call for the whole array. */
-            a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
-            array_type->variant.array.element_type = base_delete_type;
-            /* Array size is left as zero; size need not be set. */
-            /* The destruction, if any, is indicated both at the array level
-               (for the full delete) and at the element level (for cleanup if
-               an exception is thrown during the processing). */
-            if (exceptions_enabled) {
-              dip->destructor = dtor_routine;
-              dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-            }  /* if */
-            dip = add_array_nonconstant_aggregate_init(dip, array_type,
-                                                       base_delete_type,
-                                                       (a_targ_size_t)0);
+      dtor_routine = select_destructor(base_delete_type, base_delete_type,
+                                       &operand.position,
+                                       /*honor_virtual=*/TRUE,
+                                       curr_expr_is_potentially_evaluated());
+      if (dtor_routine != NULL) {
+        /* Class with destructor.  Destruction is required. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+        if (array_delete) {
+          /* For a delete of an array of classes, generate a dynamic init
+             that replicates the destructor call for the whole array. */
+          a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
+          array_type->variant.array.element_type = base_delete_type;
+          /* Array size is left as zero; size need not be set. */
+          /* The destruction, if any, is indicated both at the array level
+             (for the full delete) and at the element level (for cleanup if
+             an exception is thrown during the processing). */
+          if (exceptions_enabled) {
+            dip->destructor = dtor_routine;
+            dip->destruction_is_for_partially_constructed_aggregate = TRUE;
           }  /* if */
-          dip->destructor = dtor_routine;
-          ndsp->dynamic_init = dip;
+          dip = add_array_nonconstant_aggregate_init(dip, array_type,
+                                                     base_delete_type,
+                                                     (a_targ_size_t)0);
         }  /* if */
+        dip->destructor = dtor_routine;
+        ndsp->dynamic_init = dip;
       }  /* if */
-      /* Select the proper "delete" routine.  If the type is a class type and
-         the class has a "delete" operator, use it.  However, if "::" preceded
-         the keyword "delete", always use the global ::delete. */
-      delete_routine = select_delete_routine(base_delete_type,
-                                             use_global_delete,
-                                             array_delete,
-                                             &delete_position);
-      /* Note that delete_routine will be NULL if an ambiguity was found. */
+    }  /* if */
+    /* Select the proper "delete" routine.  If the type is a class type and
+       the class has a "delete" operator, use it.  However, if "::" preceded
+       the keyword "delete", always use the global ::delete. */
+    delete_routine = select_delete_routine(base_delete_type,
+                                           use_global_delete,
+                                           array_delete,
+                                           &delete_position);
+    /* Note that delete_routine will be NULL if an ambiguity was found. */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-      if (array_delete) {
-        /* If a deleting an array and a runtime routine will be used, the
-           delete routine can be implicit if it is the default global
-           delete. */
-        if (new_or_delete_type_requires_array_handling(base_delete_type)) {
-          an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
+    if (array_delete) {
+      /* If a deleting an array and a runtime routine will be used, the
+         delete routine can be implicit if it is the default global
+         delete. */
+      if (new_or_delete_type_requires_array_handling(base_delete_type)) {
+        an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
                                              (an_opname_kind)onk_array_delete :
                                              (an_opname_kind)onk_delete;
-          a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
-          a_boolean      ambiguous;
+        a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+        a_boolean      ambiguous;
 
-          /* In Microsoft mode, because the non-array delete routine can be
-             used for an array delete, the symbol can be NULL. */
-          if (sym != NULL) {
-            sym = find_default_operator_delete_sym(sym, &ambiguous);
-          }  /* if */
-          if (sym != NULL && delete_routine == sym->variant.routine.ptr) {
-            delete_routine = NULL;
-            /* Mark the destructor as referenced if it is virtual, because
-               the call from the runtime routine will not be virtual (nor
-               need it be, since this is an array of the class type). */
-            if (dtor_routine != NULL && dtor_routine->is_virtual) {
-              if_evaluating_mark_routine_referenced(dtor_routine);
-            }  /* if */
+        /* In Microsoft mode, because the non-array delete routine can be
+           used for an array delete, the symbol can be NULL. */
+        if (sym != NULL) {
+          sym = find_default_operator_delete_sym(sym, &ambiguous);
+        }  /* if */
+        if (sym != NULL && delete_routine == sym->variant.routine.ptr) {
+          delete_routine = NULL;
+          /* Mark the destructor as referenced if it is virtual, because
+             the call from the runtime routine will not be virtual (nor
+             need it be, since this is an array of the class type). */
+          if (dtor_routine != NULL && dtor_routine->is_virtual) {
+            if_evaluating_mark_routine_referenced(dtor_routine);
           }  /* if */
         }  /* if */
-      } else {
+      }  /* if */
+    } else {
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-        if (dtor_routine != NULL) {
-          /* For a class with a destructor, see if the delete can be folded
-             into the destructor. */
-          a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
-          /* Determine and remember the default operator delete() routine for
-             the class. */
-          set_class_assoc_operator_delete_routine(unqual_base_delete_type,
-                                                  (a_routine_ptr)NULL);
-          /* If the delete routine we are using is the default for the class,
-             and the class has a destructor, we can fold the delete into the
-             destructor call. */
-          if (unqual_base_delete_type->variant.class_struct_union.extra_info->
+      if (dtor_routine != NULL) {
+        /* For a class with a destructor, see if the delete can be folded
+           into the destructor. */
+        a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
+        /* Determine and remember the default operator delete() routine for
+           the class. */
+        set_class_assoc_operator_delete_routine(unqual_base_delete_type,
+                                                (a_routine_ptr)NULL);
+        /* If the delete routine we are using is the default for the class,
+           and the class has a destructor, we can fold the delete into the
+           destructor call. */
+        if (unqual_base_delete_type->variant.class_struct_union.extra_info->
                              assoc_operator_delete_routine == delete_routine) {
-            delete_routine = NULL;
-          }  /* if */
+          delete_routine = NULL;
         }  /* if */
+      }  /* if */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-      }  /* if */
-#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
-      if (delete_routine != NULL) {
-        /* The delete routine is actually being called. */
-        /* Mark the routine referenced. */
-        if_evaluating_mark_routine_referenced(delete_routine);
-        /* Mark the routine as called. */
-        delete_routine->called = TRUE;
-      }  /* if */
-      ndsp->routine = delete_routine;
-      /* Make an operand for the result. */
-      make_expression_operand(delete_node, void_type(), result);
     }  /* if */
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+    if (delete_routine != NULL) {
+      /* The delete routine is actually being called. */
+      /* Mark the routine referenced. */
+      if_evaluating_mark_routine_referenced(delete_routine);
+      /* Mark the routine as called. */
+      delete_routine->called = TRUE;
+    }  /* if */
+    ndsp->routine = delete_routine;
+    /* Make an operand for the result. */
+    make_expression_operand(delete_node, void_type(), result);
   }  /* if */
 
   set_operand_position(result, &start_position, &operand.end_position,
