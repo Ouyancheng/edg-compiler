@@ -1016,8 +1016,7 @@ unreachable code).
   }  /* if */
   /* If needed, create a destruction entry and associate it with the
      appropriate object-lifetime entry. */
-  record_end_of_lifetime_destruction(new_dip, static_lifetime,
-                                     /*unordered=*/FALSE);
+  record_end_of_lifetime_destruction(new_dip, static_lifetime);
   /* Mark all dynamically initialized variables as referenced.  (They are
      "referenced" in the sense that a variable assigned to, even if never
      used, is referenced.)  It is especially important not to leave the
