@@ -215,8 +215,7 @@ Unless *inheritance_kind is already set, scan for an inheritance kind keyword
   __virtual_inheritance
 (each of which can also be spelled with a single leading underscore) -- and
 return the result in *inheritance_kind.  The source position of the specified
-inheritance kind is returned in *pos.  If the scan is successful and, return
-TRUE.
+inheritance kind is returned in *pos.  Return TRUE if the scan is successful.
 */
 {
   a_boolean  found = FALSE;
@@ -259,7 +258,7 @@ static void scan_declspec_attributes(
 /*
 Scan the Microsoft __declspec specifier, which has the form
 
-	__declspec ( extended-decl-modifier-seq)
+	__declspec ( extended-decl-modifier-seq )
 
 	extended-decl-modifier-seq:
 		extended-decl_modifier
@@ -276,17 +275,19 @@ Added for compatibility with MSVC++ 5.0:
 
                 selectany
                 nothrow
+                novtable
+                noreturn
                 uuid ( "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh" )
                 property ( get = xxx, put = yyy )
+                allocate ( data-segment-name )
 
-Return the modifiers that were found.  If an error occurs (e.g., an invalid
-modifier), set err to TRUE.  err is unchanged if there are no errors.
-is_class_decl is TRUE when the modifiers apply to a class declaration
-(e.g., "class __declspec(dllexport) A ...") rather than to a declarator.
-In that case, and in 16-bit Microsoft mode, memory attributes like near
-and far are also allowed; they are returned in *qualifiers.
-is_member_decl is TRUE if the modifiers are being scanned as part of
-the declaration of a class member.
+Return the modifiers that were found by updating the decl_modifiers block.
+Issue a warning for an unrecognized modifier.  If an error occurs (e.g., a
+syntax error), set err to TRUE.  err is unchanged if there are no errors.
+is_class_decl is TRUE if the modifiers apply to a class declaration (e.g.,
+"class __declspec(dllexport) A ...") rather than to a declarator.
+is_member_decl is TRUE if the modifiers are being scanned as part of the
+declaration of a class member.
 */
 {
   check_assertion(curr_token == tok_declspec);
@@ -597,7 +598,8 @@ is a pointer to a source position used for diagnostics.
        been seen. */
     if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
       ctsp->inheritance_kind = extended_decl_info->inheritance_kind;
-    } else if (ctsp->inheritance_kind != extended_decl_info->inheritance_kind) {
+    } else if (ctsp->inheritance_kind !=
+                                  extended_decl_info->inheritance_kind) {
       /* Inheritance kind has already been set for this class. */
       pos_stsy_error(ec_inheritance_kind_already_set,
                      &extended_decl_info->inheritance_kind_pos,
@@ -4095,7 +4097,7 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case tok_near:
-        /* Microsoft "near" type qualifier. */
+        /* "near" memory attribute, usually treated as a type qualifier. */
         /* This qualifier applies only on pointer declarators and not in
            normal type specifiers. */
         if ((input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) == 0) {
@@ -4114,7 +4116,7 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         break;
       case tok_far:
-        /* Microsoft "far" type qualifier. */
+        /* "far" memory attribute, usually treated as a type qualifier. */
         /* This qualifier applies only on pointer declarators and not in
            normal type specifiers. */
         if ((input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) == 0) {
