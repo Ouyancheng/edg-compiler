@@ -926,6 +926,12 @@ do_float_complex:
       (void)printf("tk_pointer\n");
       disp_ptr("type_pointed_to", (char *)ptr->variant.pointer.type, iek_type);
 #ifdef CFE
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.pointer.base_variable != NULL) {
+        disp_ptr("base_variable", (char *)ptr->variant.pointer.base_variable,
+                 iek_variable);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_boolean("is_reference",
                    (a_boolean)ptr->variant.pointer.is_reference);
 #endif /* ifdef CFE */

@@ -385,6 +385,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
           case tk_pointer:
             walk_ptr(ptr->variant.pointer.type, a_type_ptr, iek_type);
+#ifdef CFE
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            remap_ptr(ptr->variant.pointer.base_variable, a_variable_ptr,
+                      iek_variable);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifdef CFE */
             break;
 #ifdef CFE
           case tk_array:

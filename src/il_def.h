@@ -2851,6 +2851,13 @@ typedef struct a_type {
                 type;
                         /* Type pointed to by this pointer type. */
 #ifdef CIL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_variable_ptr
+		base_variable;
+			/* Pointer to the variable that is the "base" when
+			   the current pointer type is really a "based
+			   pointer" (used only when microsoft_mode is TRUE). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_byte_boolean
 		is_reference;
 			/* If TRUE, this type is a C++ reference type. */

@@ -826,6 +826,9 @@ to default values.
       break;
     case tk_pointer:
       pte->variant.pointer.type = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pte->variant.pointer.base_variable = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.pointer.is_reference = FALSE;
       break;
     case tk_array:
