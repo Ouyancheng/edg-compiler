@@ -2719,11 +2719,24 @@ for handling virtual bases and functions.
     ctsp->alignment_without_virtual_base_classes = class_type->alignment;
   }  /* if */
   /* The alignment for the class is (by definition) no less than
-     targ_minimum_struct_alignment, but its size may have been computed to
-     be smaller (e.g., for an empty class or a class with a single char
-     field).  Adjust the size if appropriate. */
+     targ_minimum_struct_alignment, but its size may have been computed to be
+     smaller (e.g., for an empty class).  Adjust the size if appropriate. */
   if (class_type->size < class_type->alignment) {
     class_type->size = class_type->alignment;
+#if TARG_PAD_ALLOCATED_EMPTY_BASE
+    /* The size as a base can remain small, so that subsequent fields or bases
+       can be allocated in the area that would otherwise be padding.  However,
+       sometimes that is not desirable.  (In particular with a C generating
+       back end where the base will be emitted as a structure field: the C
+       compiler will perform the padding and we must ensure that this front
+       end agrees with the C compiler on the size and offsets of the type. */
+    if (!C_mode()) {
+      a_class_type_supplement_ptr	ctsp = lob.class_type->
+                                        variant.class_struct_union.extra_info;
+      ctsp->size_without_virtual_base_classes =
+                                 ctsp->alignment_without_virtual_base_classes;
+    }  /* if */
+#endif /* TARG_PAD_ALLOCATED_EMPTY_BASE */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {

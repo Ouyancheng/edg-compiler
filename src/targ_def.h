@@ -1215,6 +1215,18 @@ base classes at the same offset as other subobjects.
 #endif /* TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
 
 /*
+A flag that is TRUE if an empty base that does not share its offset with
+another subobject (i.e., and "allocated base") should be padded according to
+its alignment instead of allocating just one byte for it.  This flag should be
+TRUE if the C generating back end is used, because a C compiler will pad the
+fields of struct type representing allocated empty base subobjects if
+TARG_MINIMUM_STRUCT_ALIGNMENT is larger than one.
+*/
+#ifndef TARG_PAD_ALLOCATED_EMPTY_BASE
+#define TARG_PAD_ALLOCATED_EMPTY_BASE BACK_END_IS_C_GEN_BE
+#endif /* ifndef TARG_PAD_ALLOCATED_EMPTY_BASE */
+
+/*
 When a class with a copy constructor is passed to an ellipsis, does the
 copy constructor get called?  If this is TRUE, what is passed as the argument
 is the address of a temporary into which the class object has been copied.

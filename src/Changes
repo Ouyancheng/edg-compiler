@@ -1,5 +1,31 @@
 Version 2.43
 
+10/14/99 Padding of allocated empty bases
+
+An "allocated empty base" is an empty base class subobject that was not
+optimized to share its offset with another subobject (see Changes entry of
+8/9/99).  Even when the alignment requirement of that base is larger than one,
+the front end used to allocate fields at the byte following the offset of the
+empty base when other alignment requirements permitted so.  However, if the
+C generating back end is used, this can lead to a mismatch between the offsets
+computed by the front end and those assigned by the target C compiler.
+For example:
+
+  struct B {};  struct D: B { char c; };
+
+produces essentially the following C code:
+
+  struct B { char __dummy; };
+  struct D { struct B __b_B; char c; };
+
+Assuming targ_minimum_struct_alignment is four, the front end always concluded
+that both B and D have size four (with field "c" at offset 2), while the C
+compiler allocates 8 bytes for D (with field "c" at offset 5).
+Setting the new configuration option TARG_PAD_ALLOCATED_EMPTY_BASE to TRUE
+causes the front end to force padding on such allocated empty bases.  The
+default value of this option is TRUE if the C generating back end is used,
+and FALSE otherwise.
+
 10/13/99 Abort on IL lowering of asm function with EH enabled
 
 A change introduced in 2.42 caused an assertion failure on IL lowering
