@@ -1,4 +1,12 @@
 Version 3.5
+  
+8/6/04   Unneeded template constructors put out in IA-64 ABI with -tused
+
+In the IA-64 ABI, in -tused mode, in some cases constructors of class
+templates were instantiated and kept in the IL even though they
+were referenced only from code that was later removed.  Now fixed,
+i.e., the constructors are correctly removed from the IL.  This
+was most visible when INSTANTIATE_EXTERN_INLINE is FALSE.
 
 8/5/04   C++-generating back end: MSVC++ cannot parse call to operator()
 

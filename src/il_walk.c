@@ -952,6 +952,27 @@ as needed.
          as needed too, since that's the one that will be copied to the
          primary IL. */
       mark_canonical_as_needed(entry_ptr, entry_kind);
+#if IA64_ABI
+      if (entry_kind == (an_il_entry_kind)iek_routine) {
+        a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+        if ((rout->special_kind == (a_special_function_kind)sfk_constructor ||
+             rout->special_kind == (a_special_function_kind)sfk_destructor) &&
+            rout->storage_class == (a_storage_class)sc_unspecified) {
+          /* External alternate entry points of constructors and destructors
+             should be marked as needed if the primary routine is. */
+          a_routine_list_entry_ptr rlep;
+          for (rlep = rout->variant.ctor_dtor.alternate_entry_points;
+               rlep != NULL;
+               rlep = rlep->next) {
+            a_routine_ptr arout = rlep->routine;
+            /* We have to use mark_as_needed here instead of
+               walk_tree_and_set_needed to get the definition_needed flag
+               set too. */
+            mark_as_needed((char *)arout, (an_il_entry_kind)iek_routine);
+          }  /* for */
+        }  /* if */
+      }  /* if */
+#endif /* IA64_ABI */
     }  /* if */
   }  /* if */
   return prune;

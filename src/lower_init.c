@@ -2781,6 +2781,49 @@ doesn't already have one.
   }  /* if */
 }  /* add_object_lifetime_to_function_scope */
 
+#if MAINTAIN_NEEDED_FLAGS
+
+static a_boolean generated_routine_needed_even_if_unreferenced(
+                                                            a_routine_ptr rout)
+/*
+rout is a generated routine with a definition.  Return TRUE if it should be
+considered needed even if it is not referenced, e.g., because it's an external
+definition.
+*/
+{
+  a_boolean needed = FALSE;
+
+  check_assertion(rout->compiler_generated &&
+                  rout->assoc_scope != NULL_region_number);
+  /* If the routine is external (but not extern inline), mark it as needed. */
+  if (rout->storage_class == (a_storage_class)sc_unspecified &&
+      (!rout->is_inline ||
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+       /* extern inline thunks are needed too. */
+       rout->overriding_function_for_covariant_return_type != NULL
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+                                                                  )) {
+    a_routine_ptr assoc_rout = NULL;
+    /* If this is an entry point of some other routine, it's needed only
+       if the primary routine is needed. */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    if (rout->overriding_function_for_covariant_return_type != NULL) {
+      assoc_rout = rout->overriding_function_for_covariant_return_type;
+      rout = assoc_rout; /* Allow thunk plus ctor/dtor alternate entry. */
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if IA64_ABI
+    if (rout->primary_ctor_or_dtor != NULL) {
+      assoc_rout = rout->primary_ctor_or_dtor;
+    }  /* if */
+#endif /* IA64_ABI */
+    if (assoc_rout == NULL ||
+        assoc_rout->source_corresp.needed) needed = TRUE;
+  }  /* if */
+  return needed;
+}  /* generated_routine_needed_even_if_unreferenced */
+
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 /*
 Structure used by push_generated_routine_context/pop_generated_routine_context
@@ -2881,9 +2924,8 @@ Pop function corresponding to push_generated_routine_context.
   /* Walk subtrees of local types and variables that have already been
      marked as needed. */
   walk_subtrees_of_local_entities(scope);
-  /* If the routine is external (but not extern inline), mark it as needed. */
-  if (rout->storage_class == (a_storage_class)sc_unspecified &&
-      !rout->is_inline) {
+  /* Mark the routine as needed if it's external. */
+  if (generated_routine_needed_even_if_unreferenced(rout)) {
     mark_as_needed((char *)rout, iek_routine);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -11842,13 +11884,6 @@ The overriding function must have a definition in the current compilation.
   }  /* if */
 #endif /* IA64_ABI */
   pop_generated_routine_context(scope, region_number, &grcontext);
-#if MAINTAIN_NEEDED_FLAGS
-  /* Mark the routine as needed.  External routines other than extern inline
-     were marked as needed in pop_generated_routine_context. */
-  if (treat_as_extern_inline(routine)) {
-    mark_as_needed((char *)routine, iek_routine);
-  }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* add_body_for_covariant_return_type_entry_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
