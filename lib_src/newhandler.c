@@ -1,0 +1,49 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1992-1997 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+C++ default new handler.
+
+*/
+
+#include <stddef.h>
+#include <stdlib.h>
+#include "basics.h"
+#include "runtime.h"
+#include "new.h"
+
+EXTERN_C void __default_new_handler(void)
+/*
+The default new handler routine that is called when operator new cannot
+allocate memory.  When exceptions are enabled, this routine simply throws
+a bad_alloc exception.  When exceptions are not enabled, we simply return
+to the caller, which detects that the default new handler is being used
+and returns a NULL pointer to the caller.
+*/
+{
+#if EXCEPTION_HANDLING
+  throw STD_NAMESPACE::bad_alloc();
+#else /* !EXCEPTION_HANDLING */
+  return;
+#endif /* EXCEPTION_HANDLING */
+}  /* __default_new_handler */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1992-1997 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+
+
+

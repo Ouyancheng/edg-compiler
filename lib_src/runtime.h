@@ -4,7 +4,7 @@
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1993 Edison Design Group Inc.                        [_]          *
+* Copyright 1993-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -18,6 +18,7 @@ Miscellaneous declarations for all runtime routines.
 
 #include "config.h"
 #include <stdio.h>
+#include <new.h>
 
 #ifndef DEBUG
 /* Include debugging code. */
@@ -116,6 +117,13 @@ typedef void (*a_copy_constructor_ptr)(void*, void*);
 			/* Type of a copy constructor called from
 			   vec_cctor. */
 
+EXTERN_C void __default_new_handler(void);
+			/* The default new handler routine. */
+
+EXTERN_C STD_NAMESPACE::new_handler
+		_new_handler
+		  initial_value((a_void_function_ptr)__default_new_handler);
+			/* Pointer to the new handler routine to be called. */
 
 #endif /* RUNTIME_H */
 
@@ -126,6 +134,6 @@ typedef void (*a_copy_constructor_ptr)(void*, void*);
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1993 Edison Design Group Inc.                        [_]          *
+* Copyright 1993-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -18,8 +18,6 @@ C++ operator new();
 #include "basics.h"
 #include "runtime.h"
 #include "new.h"
-
-extern "C" STD_NAMESPACE::new_handler _new_handler;
 
 /* Note that operator new is not in the std namespace. */
 
@@ -43,17 +41,19 @@ calls of operator new.
 
   if (size == 0) size = 1;
   while ((ptr = (void *)malloc(size)) == NULL) {
-    if (_new_handler != NULL) {
-      (*_new_handler) ();
-    } else {
-      /* There is no new handler.  If exception handling is supported, throw
-         a bad_alloc exception, otherwise return a NULL value. */
-#if EXCEPTION_HANDLING
-      throw STD_NAMESPACE::bad_alloc();
-#else /* !EXCEPTION_HANDLING */
+    /* The allocation failed -- call the current new handler routine. */
+    (*_new_handler) ();
+#if !EXCEPTION_HANDLING
+    /* A new handler is supposed to make more memory available, or to exit
+       via an exception or by calling abort() or exit().  In order to support
+       implementations without exception handling, the older protocol of
+       returning a NULL value is supported by the default new handler.
+       If the default new handler is being used, and exceptions are not
+       enabled, return a NULL pointer. */
+    if (_new_handler == (STD_NAMESPACE::new_handler)__default_new_handler) {
       return (void *)NULL;
-#endif /* EXCEPTION_HANDLING */
     }  /* if */
+#endif /* EXCEPTION_HANDLING */
   }  /* while */
   return ptr;
 }  /* operator new */
@@ -65,6 +65,6 @@ calls of operator new.
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

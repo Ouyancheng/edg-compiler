@@ -4,7 +4,7 @@
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -21,8 +21,6 @@ default operator new() when memory cannot be allocated.
 #ifndef NULL
 #define NULL 0
 #endif /* ifndef NULL */
-
-extern "C" STD_NAMESPACE::new_handler _new_handler = NULL;
 
 /*
 If the runtime should be defined in the std namespace, open
@@ -57,6 +55,6 @@ the std namespace.
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1997 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
