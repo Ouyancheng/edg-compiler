@@ -13640,7 +13640,7 @@ differs between function and nonfunction declarations.
   }  /* if */
   if (err) depth = NO_SCOPE_DEPTH;
   decl_state->orig_decl_level = depth;
-  if (decl_state->is_template_friend &&
+  if (!err && decl_state->is_template_friend &&
       !decl_state->in_prototype_instantiation) {
     /* For friend declarations (that are not in a prototyep instantiation),
        the effective declaration level is the nearest namespace scope. */

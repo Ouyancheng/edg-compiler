@@ -6763,21 +6763,23 @@ is the one associated with the template.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_template_ptr               tp;
   a_boolean                    from_proto = FALSE;
-  a_boolean                    is_definition;
+  a_boolean                    is_definition = FALSE;
 
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     tp = ss_entry_ptr(sec_decl, a_template_ptr);
     /* The canonical_template field should only be NULL for template template
        parameters, and those do not come through here. */
-    check_assertion(tp->canonical_template != NULL &&
-                    tp->canonical_template->definition_template != tp);
+    check_assertion(!prototype_instantiations_in_il ||
+                    (tp->canonical_template != NULL &&
+                    tp->canonical_template->definition_template != tp));
     is_definition = FALSE;
   } else {
     tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
     /* The canonical_template field should only be NULL for template template
        parameters, and those do not come through here. */
-    check_assertion(tp->canonical_template != NULL &&
-                    tp->canonical_template->definition_template == tp);
+    check_assertion(!prototype_instantiations_in_il ||
+                    (tp->canonical_template != NULL &&
+                     tp->canonical_template->definition_template == tp));
     is_definition = TRUE;
   }  /* if */
   /* If all prototype instantiations are recorded in the IL, the templates
