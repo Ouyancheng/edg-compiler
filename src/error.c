@@ -1327,6 +1327,10 @@ error code.
     case ec_call_of_pure_virtual_function:
       m = "a pure virtual function may not be called";
       break;
+    case ec_protected_access_problem:
+      m =
+      "this protected member is not accessible through this pointer or object";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
