@@ -99,7 +99,7 @@ typedef int a_set_instance_required_options_set;
 			/* TRUE if, in g++ mode, an inline function should be
 			   instantiated when it is put on the instantiations
 			   required list rather than waiting until the end
-                           of the translation unit. */
+			   of the translation unit. */
 
 /*
 Structure used to represent the information found an in export information
