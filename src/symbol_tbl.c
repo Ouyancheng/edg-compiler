@@ -4700,6 +4700,7 @@ instantiation.
   tip = alloc_template_instance();
   tip->template_sym = template_sym;
   tip->instance_sym = sym;
+  sym->decl_scope = template_sym->decl_scope;
   sym->variant.routine.instance_ptr = tip;
   sym->variant.routine.ptr = rout_ptr;
   sym->is_class_member = template_sym->is_class_member;
