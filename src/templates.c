@@ -8908,9 +8908,13 @@ template.  Also update any instances that have already been generated.
 
   /* Update the prototype instantiation. */
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
-  prototype_type = type_symbol_type(prototype_sym);
-  update_extended_decl_info_for_class(prototype_type, extended_decl_info,
-                                      err_pos);
+  if (prototype_sym != NULL) {
+    /* When this routine calls itself to process subordinate templates,
+       the subordinate template has no prototype instantiation. */
+    prototype_type = type_symbol_type(prototype_sym);
+    update_extended_decl_info_for_class(prototype_type, extended_decl_info,
+                                        err_pos);
+  }  /* if */
   /* Update any instances that have already been created. */
   for (instance_sym = tssp->variant.class_template.instantiations;
        instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
