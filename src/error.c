@@ -847,13 +847,15 @@ symbol_name:
     a_scope_stack_entry_ptr  ssep = error_msg_scopes[seg_ptr->sequence_no];
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
                     sym->kind == (a_symbol_kind)sk_class_template);
-    check_assertion(ssep != NULL && ssep->template_arg_list != NULL);
-    add_string_to_segment(" based on template argument", seg_ptr);
-    if (ssep->template_arg_list->next != NULL) {
-      add_string_to_segment("s", seg_ptr);
+    check_assertion(ssep != NULL);
+    if (ssep->template_arg_list != NULL) {
+      add_string_to_segment(" based on template argument", seg_ptr);
+      if (ssep->template_arg_list->next != NULL) {
+        add_string_to_segment("s", seg_ptr);
+      }  /* if */
+      add_string_to_segment(" ", seg_ptr);
+      form_template_args(ssep->template_arg_list, &octl);
     }  /* if */
-    add_string_to_segment(" ", seg_ptr);
-    form_template_args(ssep->template_arg_list, &octl);
   }  /* if */
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
