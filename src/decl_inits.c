@@ -1889,6 +1889,7 @@ initialized.  These are addressed in the course of the processing.
           if (is_qualified_type(init_type)) {
             bcp = NULL;
           } else {
+            a_base_class_ptr  found_bcp = NULL;
             init_type = skip_typerefs(init_type);
             /* Locate it in the base classes list for the current class.  Note
                that only direct and virtual base classes can be specified. */
@@ -1896,7 +1897,17 @@ initialized.  These are addressed in the course of the processing.
             for (; bcp != NULL; bcp = bcp->next) {
               if (bcp->type == init_type) {
                 if (bcp->direct || bcp->is_virtual) {
-                  break;
+                  if (found_bcp == NULL) {
+                    found_bcp = bcp;
+                  } else {
+                    /* This condition occurs when there is a direct nonvirtual
+                       base class with the same name as an indirect virtual
+                       base class. */
+                    pos_ty_error(ec_ambiguous_base_class, &error_position,
+                                 bcp->type);
+                    /* Go ahead and process the first one found. */
+                    break;
+                  }  /* if */
                 } else {
                   /* A base class of the required type was found, but it is
                      neither direct nor virtual.  Unless another is found with
@@ -1905,6 +1916,7 @@ initialized.  These are addressed in the course of the processing.
                 }  /* if */
               }  /* if */
             }  /* for */
+            bcp = found_bcp;
           }  /* if */
           if (bcp == NULL) {
             /* No match found. */
