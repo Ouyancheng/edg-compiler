@@ -1,5 +1,21 @@
 Version 3.6
 
+3/27/05  C++-generating back end: Microsoft compatibility for the scope of
+         names in the initializer of a namespace member
+
+In the Microsoft dialect, the initializer for a namespace member defined
+outside its namespace is not considered to be in the lexical scope of the
+namespace (in contrast to the treatment of initializers for static data
+members of classes).  The C++-generating back end now generates explicit
+namespace qualification in such initializers for names that refer to members
+of the namespace when the Microsoft dialect is the target.  For example:
+
+  namespace N {
+    const int i = 5;
+    extern int j;
+  }
+  int N::j = N::i;  // Formerly generated as "int N::j = i;"
+
 3/26/05  Sun linker scope keywords allowed in C mode
 
 The Sun linker scope specifiers (see Changes entry of 11/10/04)

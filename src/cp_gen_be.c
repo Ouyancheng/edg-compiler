@@ -10221,13 +10221,25 @@ initialization is in a condition declaration if is_condition is TRUE.
   a_boolean          parenthesized_init;
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
+  a_boolean          context_pop_required = FALSE;
 
   get_variable_initializer(var, curr_name_context->assoc_scope,
                            &init_kind, &initializer);
   /* A condition always has an initializer. */
   if (is_condition || is_explicit_initializer(init_kind, initializer)) {
     /* Push the name context for a class/namespace member. */
-    push_name_context_if_member(&var->source_corresp);
+    if (microsoft_dialect_is_generated_code_target &&
+        !var->source_corresp.is_class_member &&
+        var->source_corresp.parent.namespace_ptr != NULL) {
+      /* In the Microsoft dialect, the initializer for a namespace member
+         defined outside its namespace is not in the lexical scope of the
+         namespace; i.e., name references in the initializer that refer to
+         namespace members must be explicitly qualified, unlike static data
+         members of classes. */
+    } else {
+      push_name_context_if_member(&var->source_corresp);
+      context_pop_required = TRUE;
+    }  /* if */
     if (var->source_corresp.is_class_member &&
         init_kind == (an_init_kind)initk_dynamic &&
         initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
@@ -10264,8 +10276,10 @@ initialization is in a condition declaration if is_condition is TRUE.
       default:
         unexpected_condition_str("gen_initializer: bad init kind");
     }  /* switch */
-    /* Pop the name context for a class/namespace member. */
-    pop_name_context_if_member(&var->source_corresp);
+    if (context_pop_required) {
+      /* Pop the name context for a class/namespace member. */
+      pop_name_context_if_member(&var->source_corresp);
+    }  /* if */
   }  /* if */
 }  /* gen_initializer */
 
