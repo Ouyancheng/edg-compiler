@@ -1497,12 +1497,12 @@ The Sun C++ compiler requires a ... as the second parameter of the
 signal handler function.  Define a type to which the real signal handler
 function pointer will be cast.
 */
-#ifdef __SUNPRO_CC
+#if defined(__SUNPRO_CC) && __BSD__
 typedef a_signal_handler_return_value a_signal_handler(int p, ...);
-#else /* ifndef __SUNPRO_CC */
+#else /* !(defined(__SUNPRO_CC) && __BSD__) */
 /* Standard type for a signal handler. */
 typedef a_signal_handler_return_value a_signal_handler(int p);
-#endif /* ifdef __SUNPRO_CC */
+#endif /* defined(__SUNPRO_CC) && __BSD__ */
 
 static void set_signal_handlers(void)
 /*
