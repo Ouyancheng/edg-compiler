@@ -224,6 +224,12 @@ a try block with a catch that matches the type of the object thrown.
   if (destination_ehsep != NULL) {
     __catch_clause_number = destination_catch_value;
     __curr_eh_stack_entry = destination_ehsep;
+#if 0
+    /* This will need to be modified for a more sophisticated memory
+       management scheme.  Also, needs to handle derived to base
+       conversions. */
+#endif /* 0 */
+    __caught_object_address = (void *)throw_buffer;
    longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   }  /* if */
   return 0;

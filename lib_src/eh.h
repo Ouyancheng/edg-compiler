@@ -277,6 +277,10 @@ EXTERN int	__catch_clause_number;
 			/* Contains the sequence number of the catch clause
 			   associated with a given try block. */
 
+EXTERN void*	__caught_object_address;
+			/* The address of the object to be used as the value
+			   of the parameter in the catch clause. */
+
 EXTERN_C int	 __throw(void);
 
 EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
