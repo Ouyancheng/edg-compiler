@@ -655,6 +655,12 @@ function returns the address of the last attribute.
         }  /* if */
       }  /* for */
       attribute_kind = (an_attribute_kind)i;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      if (attribute_kind == (an_attribute_kind)ak_visibility &&
+          !gnu_visibility_attribute_allowed) {
+        attribute_kind = (an_attribute_kind)ak_last;
+      }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       if (attribute_kind == (an_attribute_kind)ak_last) {
         /* If the attribute name was not recognized issue a warning. */
         str_warning(ec_unrecognized_attribute, attribute_name);
@@ -682,6 +688,7 @@ function returns the address of the last attribute.
           case ak_format_arg:
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           case ak_visibility:
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
             if (!scan_attribute_arguments(attribute)) {
               /* If the arguments were erroneous, it sometimes makes
                  sense to ignore the attribute completely so that we
@@ -690,7 +697,6 @@ function returns the address of the last attribute.
               free_attribute_list(attribute);
             }  /* if */
             break;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
           case ak_error:
             /* Skip over the arguments. */
             flush_tokens();

@@ -469,6 +469,21 @@ recorded in the IL).
 #define GNU_VISIBILITY_ATTRIBUTE_ALLOWED FALSE
 #endif /* ifndef GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+#ifndef DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#define DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ALLOWED FALSE
+#endif /* ifndef DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+EXTERN a_boolean
+		gnu_visibility_attribute_allowed
+#if VAR_INITIALIZERS
+			= DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#endif /* VAR_INITIALIZERS */
+			                                          ;
+			/* TRUE if the GNU "visibility" attribute should be
+			   accepted. */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+
 /*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
