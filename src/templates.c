@@ -8756,7 +8756,7 @@ that follows.
                DI_OPERATOR_NAME_ALLOWED;
     if (decl_state->is_member_decl && (dso_flags & DSO_CONSTRUCTOR)) {
       /* If this is a Microsoft mode specialization in a class context, and
-         decl_specifiers returned a constructor flag, pass the contructor
+         decl_specifiers returned a constructor flag, pass the constructor
          flag into declarator.  This flag can only be set when a parent class
          type is provided to declarator. */
       di_flags |= DI_IS_CONSTRUCTOR;
