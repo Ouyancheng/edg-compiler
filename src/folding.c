@@ -1335,6 +1335,21 @@ proper result (often, an error constant).
 }  /* issue_folding_diagnostic */
 
 
+a_boolean related_ptr_to_members(a_type_ptr  type_1,
+                                 a_type_ptr  type_2)
+/*
+Return TRUE if the class types into which the given pointer-to-member types
+point are related by inheritance.
+*/
+{
+  a_type_ptr  class_1 = pm_class_type(type_1);
+  a_type_ptr  class_2 = pm_class_type(type_2);
+
+  return find_base_class_of(class_1, class_2) != NULL ||
+         find_base_class_of(class_2, class_1) != NULL;
+}  /* related_ptr_to_members */
+
+
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/ /* <-- maintain_expression is unused in that case. */
 #endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -1568,7 +1583,11 @@ to the constant is maintained, by adding a cast if necessary.
 
     case tk_ptr_to_member:
       /* Converting from pointer-to-member to pointer-to-member. */
-      if (!is_reinterpret_cast) {
+      if (!is_reinterpret_cast ||
+          /* In Microsoft mode a reinterpret-like cast is OK, if only the
+             member type is reinterpreted; not the class type. */
+          (microsoft_mode &&
+           related_ptr_to_members(constant_type, new_type))) {
         conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
                                             is_implicit_cast, err_pos,
                                             &err_code, &err_severity);

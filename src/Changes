@@ -1,5 +1,25 @@
 Version 2.46
 
+4/16/01  Microsoft compatibility: reinterpret-like cast of pointer-to-member
+         can be a constant
+
+In Microsoft mode, the front end now treats as a constant a pointer-to-member
+constant that is cast to another pointer-to-member type with an unrelated
+member type.  However, the class types associated with the pointer-to-member
+types must be related.  For example:
+
+  struct B {};
+  typedef void (B::*PMB)();
+  struct D: B {
+    void f(int);
+    static PMB x[];
+  };
+  __declspec(selectany) PMB D::x[] = { (PMB)&D::f };
+
+This example used to trigger an error because the initializer "(PMB)&D::f"
+was not treated as a constant expression.  Now it is accepted in Microsoft
+mode.
+
 4/16/01  Enumerator expression that is template-dependent member of
          class, in prototype instantation
 
