@@ -12496,6 +12496,12 @@ see expr.h).
     case tok_imaginary_unit:
       /* The EDG-specific token "__I__" representing an imaginary value such
          that __I__*__I__ == -1. */
+    case tok_nan:
+      /* The EDG-specific token "__NAN__" representing a Not-a-Number
+         constant. */
+    case tok_infinity:
+      /* The EDG-specific token "__INFINITY__" representing an Infinity
+         constant. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tok_float_constant:
       { a_boolean float_con_allowed = TRUE;
@@ -12519,7 +12525,14 @@ see expr.h).
         if (float_con_allowed) {
 #if C99_IL_EXTENSIONS_SUPPORTED
           if (curr_token == tok_imaginary_unit) {
+            /* __I__ */
             make_imaginary_unit_operand(&local_result);
+          } else if (curr_token == tok_nan) {
+            /* __NAN__ */
+            make_nan_operand(&local_result);
+          } else if (curr_token == tok_infinity) {
+            /* __INFINITY__ */
+            make_infinity_operand(&local_result);
           } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           /* Do not insert code here. */

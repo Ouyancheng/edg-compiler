@@ -732,6 +732,10 @@ extern a_type_ptr usual_arithmetic_conversions(a_type_ptr operand_1_type,
 #if C99_IL_EXTENSIONS_SUPPORTED
 extern void make_imaginary_unit_operand(an_operand  *result);
 
+extern void make_nan_operand(an_operand  *result);
+
+extern void make_infinity_operand(an_operand  *result);
+
 extern a_boolean determine_imaginary_operation_type
                                         (a_token_kind          op_token,
                                          an_operand            *operand_1,

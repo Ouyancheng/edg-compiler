@@ -470,6 +470,61 @@ Fetch the value from float_value (of kind kind) and return it.
 }  /* fetch_host_fp_value */
 
 
+static float float_zero = 0.0;
+			/* Value used to compute a NaN.  This used by
+			   make_fp_NaN.  This is a static variable in the
+			   hope that optimizers will permit the division
+			   by zero without giving a warning. */
+
+
+void make_fp_nan(an_internal_float_value *value)
+/*
+Make a float quiet Not-a-Number value in *value.
+*/
+{
+  float nan;
+
+#ifdef __CENTERLINE__
+  /* CodeCenter does not allow division by zero. */
+  union {
+    float x;
+    long  l;
+  } u;
+  u.l = 0x7fffffff;
+  nan = u.x;
+#else /* !defined(__CENTERLINE__) */
+  /* 0.0 / 0.0 produces a NaN. */
+  nan = float_zero / float_zero;
+#endif /* ifdef __CENTERLINE__ */
+  memzero((char *)value, sizeof(an_internal_float_value));
+  (void)memcpy((char *)value, (char *)&nan, sizeof(float));
+}  /* make_fp_nan */
+
+
+void make_fp_infinity(an_internal_float_value *value)
+/*
+Make a float positive Infinity value in *value.
+*/
+{
+  float infinity;
+
+#ifdef __CENTERLINE__
+  /* CodeCenter does not allow division by zero. */
+  union {
+    float x;
+    long l;
+  } u;
+  u.l = 0x7f800000;
+  infinity = u.x;
+#else /* !defined(__CENTERLINE__) */
+  /* 1.0 / 0.0 produces positive Infinity. */
+  infinity = 1.0 / float_zero;
+#endif /* ifdef __CENTERLINE__ */
+  memzero((char *)value, sizeof(an_internal_float_value));
+  (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
+}  /* make_fp_infinity */
+
+
 void fp_change_kind(an_internal_float_value *old_value,
                     a_float_kind            old_kind,
                     an_internal_float_value *new_value,

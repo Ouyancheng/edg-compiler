@@ -146,8 +146,12 @@ typedef enum /*a_token_kind*/ {
   tok_c99_bool,
   tok_c99_complex,
   tok_c99_imaginary,
-  /* Token representing the imaginary number "i" (i*i == -1). */
+  /* Token for __I__, for the C99 imaginary number "i" (i*i == -1). */
   tok_imaginary_unit,
+  /* Token for __NAN__, for a C99 Not-a_Number constant. */
+  tok_nan,
+  /* Token for __INFINITY__, for a C99 Infinity constant. */
+  tok_infinity,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cdecl,
   tok_declspec,
@@ -247,7 +251,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "while", "__generic", "__ALIGNOF__", "__INTADDR__",
    "va_start", "va_arg", "va_end", "va_copy",
    "restrict",
-   "_Bool", "_Complex", "_Imaginary", "__I__",
+   "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
@@ -574,6 +578,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_c99_complex */
    (an_opname_kind)onk_none,          /* tok_c99_imaginary */
    (an_opname_kind)onk_none,          /* tok_imaginary_unit */
+   (an_opname_kind)onk_none,          /* tok_nan */
+   (an_opname_kind)onk_none,          /* tok_infinity */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_declspec */

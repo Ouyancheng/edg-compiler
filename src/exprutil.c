@@ -3481,6 +3481,44 @@ to this value.
 }  /* make_imaginary_unit_operand */
 
 
+static a_constant_ptr nan_constant = (a_constant_ptr)NULL;
+
+void make_nan_operand(an_operand  *result)
+/*
+Create an operand for the constant __NAN__, which represents a
+float Not-a-Number value.  The identifier __NAN__ is EDG-specific (i.e., not
+specified by the C99 standard).  The standard specifies a macro NAN that
+expands to this value.
+*/
+{
+  if (nan_constant == (a_constant_ptr)NULL) {
+    nan_constant = fs_constant((a_constant_repr_kind)ck_float);
+    nan_constant->type = float_type((a_float_kind)fk_float);
+    make_fp_nan(&nan_constant->variant.float_value);
+  }  /* if */
+  make_constant_operand(nan_constant, result);
+}  /* make_nan_operand */
+
+
+static a_constant_ptr infinity_constant = (a_constant_ptr)NULL;
+
+void make_infinity_operand(an_operand  *result)
+/*
+Create an operand for the constant __INFINITY__, which represents a
+float positive Infinity value.  The identifier __INFINITY__ is EDG-specific
+(i.e., not specified by the C99 standard).  The standard specifies a
+macro INFINITY that expands to this value.
+*/
+{
+  if (infinity_constant == (a_constant_ptr)NULL) {
+    infinity_constant = fs_constant((a_constant_repr_kind)ck_float);
+    infinity_constant->type = float_type((a_float_kind)fk_float);
+    make_fp_infinity(&infinity_constant->variant.float_value);
+  }  /* if */
+  make_constant_operand(infinity_constant, result);
+}  /* make_infinity_operand */
+
+
 static void promote_operand_for_imaginary_operation(an_operand   *operand,
                                                     a_float_kind new_fkind)
 /*
@@ -8351,6 +8389,8 @@ Do one-time initialization of variables related to expression processing.
   /* Register variables that must be saved and restored when switching
      between translation units. */
   register_trans_unit_variable(imaginary_unit);
+  register_trans_unit_variable(nan_constant);
+  register_trans_unit_variable(infinity_constant);
 }  /* expr_one_time_init */
 
 
@@ -8364,6 +8404,8 @@ re-initialized for each translation unit.
   curr_expr_ref_entries = NULL;
 #if C99_IL_EXTENSIONS_SUPPORTED
   imaginary_unit = NULL;
+  nan_constant = NULL;
+  infinity_constant = NULL;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* expr_trans_unit_init */
 
