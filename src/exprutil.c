@@ -5241,6 +5241,15 @@ its result still an lvalue.
     /* The source or destination types are floating types, so there's
        actual conversion involved. */
     /* is_still_an_lvalue = FALSE; -- already set. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_integral_type(type_before_cast) &&
+             is_integral_type(type_cast_to)) {
+    /* In Microsoft C lvalue casts involving integral types of different
+       sizes are allowed -- e.g.,
+         long l; ++(char)l;   // affects only the low-order 8 bits
+    */
+    is_still_an_lvalue = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (type_cast_to->size == type_before_cast->size &&
              type_cast_to->alignment == type_before_cast->alignment) {
     /* The types are not floating types, and they have the same size

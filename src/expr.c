@@ -5094,7 +5094,11 @@ C-style casts and C++ functional-notation type conversions.
           }  /* if */
           /* In pcc or SVR4 C mode, some lvalues cast to same-sized types
              remain lvalues (e.g., int to unsigned). */
-          if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+          if ((C_dialect == C_dialect_pcc || SVR4_C_mode
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                       || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                        ) &&
               is_an_lvalue(operand) &&
               still_an_lvalue(source_type, type_cast_to)) {
             /* Use a special "lvalue cast" operator.  Always do the cast on
