@@ -2130,13 +2130,13 @@ anyway, but warnings are issued in strict ANSI C mode.  The switches are
 used only in strict ANSI mode.  Return FALSE if there is an error.
 */
 {
-  a_boolean     okay = FALSE;
-  a_type_ptr    operand_1_type = operand_1->type;
-  a_type_ptr    operand_2_type = operand_2->type;
-  a_boolean     operand_1_is_pointer = is_pointer_type(operand_1_type);
-  a_boolean     operand_2_is_pointer = is_pointer_type(operand_2_type);
-  a_boolean     pointer_normalization_needed, suppress_extensions;
-  an_error_code warning_suggested;
+  a_boolean        okay = FALSE;
+  a_type_ptr       operand_1_type = operand_1->type;
+  a_type_ptr       operand_2_type = operand_2->type;
+  a_boolean        operand_1_is_pointer = is_pointer_type(operand_1_type);
+  a_boolean        operand_2_is_pointer = is_pointer_type(operand_2_type);
+  a_boolean        suppress_extensions;
+  a_std_conv_descr std_conv;
 
   /* The loop here tries the conversions once without extensions
      allowed, and (if that fails) again with extensions allowed,
@@ -2159,10 +2159,9 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                   &operand_2->variant.constant,
                                   operand_1_type,
                                   /*check_as_operands_not_conversion=*/TRUE,
-                                  &pointer_normalization_needed,
                                   suppress_extensions,
                                   ec_incompatible_operands,
-                                  &warning_suggested)) {
+                                  &std_conv)) {
         *operation_type = operand_1_type;
         okay = TRUE;
         break;
@@ -2180,10 +2179,9 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                   &operand_1->variant.constant,
                                   operand_2_type,
                                   /*check_as_operands_not_conversion=*/TRUE,
-                                  &pointer_normalization_needed,
                                   suppress_extensions,
                                   ec_incompatible_operands,
-                                  &warning_suggested)) {
+                                  &std_conv)) {
         *operation_type = operand_2_type;
         okay = TRUE;
         break;
@@ -2200,7 +2198,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       /* In strict ANSI C mode, issue warnings for the extensions let by
          above. */
       if (!pointer_normalization_standard_in_C &&
-          pointer_normalization_needed) {
+          std_conv.pointer_normalization_needed) {
         /* Conversion of null pointer constants to pointers, and conversion
            of pointers to "void *", are not standard in the present case. */
         nonstd_case = TRUE;
@@ -2247,10 +2245,10 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                            operand_1_type, operand_2_type);
       }  /* if */
     }  /* if */
-    if (warning_suggested != ec_no_error && !nonstd_case) {
+    if (std_conv.warning_suggested != ec_no_error && !nonstd_case) {
       /* Oddball cases call for a warning.  Suppress this if we issued a
          diagnostic about nonstandard use. */
-      pos_opt_ty2_warning(warning_suggested, operator_position,
+      pos_opt_ty2_warning(std_conv.warning_suggested, operator_position,
                           operand_1_type, operand_2_type);
     }  /* if */
   } else {
@@ -2276,9 +2274,10 @@ to the operation type; the caller must do that.)  operator_position gives the
 operator position (for errors).  Return FALSE if there is an error.
 */
 {
-  a_boolean  okay = FALSE;
-  a_type_ptr operand_1_type = operand_1->type;
-  a_type_ptr operand_2_type = operand_2->type;
+  a_boolean        okay = FALSE;
+  a_type_ptr       operand_1_type = operand_1->type;
+  a_type_ptr       operand_2_type = operand_2->type;
+  a_std_conv_descr std_conv;
 
   if (is_ptr_to_member_type(operand_1_type)) {
     /* See if the second operand can be converted to the type of the
@@ -2287,7 +2286,8 @@ operator position (for errors).  Return FALSE if there is an error.
                                       is_constant_operand(operand_2),
                                       &operand_2->variant.constant,
                                       operand_1_type,
-                                  /*check_as_operands_not_conversion=*/TRUE)) {
+                                     /*check_as_operands_not_conversion=*/TRUE,
+                                      &std_conv)) {
       *operation_type = operand_1_type;
       okay = TRUE;
     }  /* if */
@@ -2299,7 +2299,8 @@ operator position (for errors).  Return FALSE if there is an error.
                                       is_constant_operand(operand_1),
                                       &operand_1->variant.constant,
                                       operand_2_type,
-                                  /*check_as_operands_not_conversion=*/TRUE)) {
+                                     /*check_as_operands_not_conversion=*/TRUE,
+                                      &std_conv)) {
       *operation_type = operand_2_type;
       okay = TRUE;
     }  /* if */

@@ -3718,10 +3718,8 @@ pointer type).
   an_arg_operand_ptr       arg_operand;
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
   a_type_ptr               operand_type;
-  an_error_code            warning_suggested;
   a_user_conv_descr        user_conversion;
   a_boolean                ambiguous;
-  a_boolean                pointer_normalization_needed;
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
@@ -3845,6 +3843,7 @@ pointer type).
                                               &user_conversion);
         }  /* if */
       } else {
+        a_std_conv_descr std_conv;
         /* A non-class operand. */
         /* Do array --> pointer and function --> pointer transformations. */
         operand_type = do_implicit_type_transformations(operand_type,
@@ -3857,10 +3856,9 @@ pointer type).
                                     &arg_operand->operand.variant.constant,
                                     pointer_type,
                                     /*check_as_operands_not_conversion=*/TRUE,
-                                    &pointer_normalization_needed,
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error, /* arbitrary */
-                                    &warning_suggested)) {
+                                    &std_conv)) {
           /* The conversion can be done. */
           /* As noted above, any match here is considered a standard
              conversion. */

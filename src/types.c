@@ -1141,15 +1141,13 @@ because any exception it can handle would be caught by type_1's handler.
          implicitly converted to the former.  (This is not explicit in
          the working paper or the ARM and may turn out to be an incorrect
          inference; see 15.4 para 1 and para 2.) */
-      a_constant     dummy_con;
-      a_boolean      dummy_flag;
-      an_error_code  dummy_error_code;
+      a_std_conv_descr std_conv;
 
       if (impl_pointer_conversion(type_2, /*source_is_constant=*/FALSE,
-                                  &dummy_con, type_1,
+                                  (a_constant_ptr)NULL, type_1,
                                   /*check_as_operands_not_conversion=*/FALSE,
-                                  &dummy_flag, /*suppress_extensions=*/TRUE,
-                                  ec_no_error, &dummy_error_code)) {
+                                  /*suppress_extensions=*/TRUE,
+                                  ec_no_error, &std_conv)) {
         masked = TRUE;
       }  /* if */
     }  /* if */
@@ -2317,6 +2315,19 @@ that is not required to be checked by the ANSI C standard.
 }  /* interchangeable_types */
 
 
+static void clear_std_conv_descr(a_std_conv_descr_ptr std_conv)
+/*
+Clear a standard conversion description to default values.
+*/
+{
+  std_conv->cast_base_class = NULL;
+  std_conv->reversed_cast = FALSE;
+  std_conv->type_qualifiers_added = FALSE;
+  std_conv->pointer_normalization_needed = FALSE;
+  std_conv->warning_suggested = ec_no_error;
+}  /* clear_std_conv_descr */
+
+
 static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
                                              a_type_ptr dest_type)
 /*
@@ -2395,15 +2406,14 @@ will probably handle it.
 
 
 a_boolean impl_pointer_conversion(
-                                a_type_ptr    source_type,
-                                a_boolean     source_is_constant,
-                                a_constant    *source_constant,
-                                a_type_ptr    dest_type,
-                                a_boolean     check_as_operands_not_conversion,
-                                a_boolean     *pointer_normalization_needed,
-                                a_boolean     suppress_extensions,
-                                an_error_code default_warning_code,
-                                an_error_code *warning_suggested)
+                         a_type_ptr           source_type,
+                         a_boolean            source_is_constant,
+                         a_constant           *source_constant,
+                         a_type_ptr           dest_type,
+                         a_boolean            check_as_operands_not_conversion,
+                         a_boolean            suppress_extensions,
+                         an_error_code        default_warning_code,
+                         a_std_conv_descr_ptr std_conv)
 /*
 Return TRUE if it's okay to implicitly convert something of type source_type
 (any type) to something of type dest_type (a pointer type).
@@ -2412,16 +2422,15 @@ points to the constant value.  (That's needed to check for conversions of a
 null pointer constant to a pointer type.)  If check_as_operands_not_conversion
 is TRUE, the two types are the types of the operands of an operation; only
 do the checks required in that case, which are fewer than the checks required
-for a conversion.  *pointer_normalization_needed is returned TRUE if the
-conversion involves a pointer normalization (null pointer constant --> pointer
-or pointer --> "void *").  suppress_extensions is TRUE if conversions
-that are extensions should not be allowed (what constitutes an
-extension depends on C_dialect, of course).  If the conversion is
-suspect and should be tagged with a warning, *warning_suggested is
+for a conversion.  suppress_extensions is TRUE if conversions that are
+extensions should not be allowed (what constitutes an extension depends on
+C_dialect, of course).  If the conversion is possible, *std_conv is filled
+out to describe the conversion.  In particular, if the conversion is
+suspect and should be flagged with a warning, the warning_suggested field is
 set to an appropriate error code; normally, it is set to ec_no_error.
-default_warning_code will be copied into *warning_suggested when no
+default_warning_code will be copied into warning_suggested when no
 specific message applies.  In strict ANSI mode, if a conversion
-flagged with *warning_suggested is done, the warning is required.
+flagged with warning_suggested is done, the warning is required.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -2431,9 +2440,10 @@ and 3.3.6 (pointer - pointer), 3.3.8 (relational operators), 3.3.9 (equality
 operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 */
 {
-  a_boolean  okay = FALSE, conversion_from_void_star_in_C;
-  a_type_ptr dest_type_pointed_to, source_type_pointed_to;
-  a_type_ptr unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
+  a_boolean        okay = FALSE, conversion_from_void_star_in_C;
+  a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
+  a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
+  a_base_class_ptr bcp;
 
   db_enter(5, "impl_pointer_conversion");
 #if DEBUG
@@ -2445,8 +2455,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  *pointer_normalization_needed = FALSE;
-  *warning_suggested = ec_no_error;
+  clear_std_conv_descr(std_conv);
   /* If in strict ANSI mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
@@ -2476,7 +2485,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          so don't set the flag. */
     } else {
       /* Normal case. */
-      *pointer_normalization_needed = TRUE;
+      std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
@@ -2517,7 +2526,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              qualifiers is tested below; "object type" includes incomplete
              types in the ARM definition). */
           okay = TRUE;
-          *pointer_normalization_needed = TRUE;
+          std_conv->pointer_normalization_needed = TRUE;
         } else if (is_function(unqual_source_type_pointed_to)) {
           /* Converting a pointer to function to a pointer to void. */
           if (C_dialect == C_dialect_cplusplus) {
@@ -2526,23 +2535,24 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                conversions). */
             if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
               okay = TRUE;
-              *pointer_normalization_needed = TRUE;
+              std_conv->pointer_normalization_needed = TRUE;
             }  /* if */
           } else {
             /* In C, such a conversion is nonstandard, but allowed as
                an extension, with a warning */
             if (!suppress_extensions) {
               okay = TRUE;
-              *pointer_normalization_needed = TRUE;
-              *warning_suggested = default_warning_code;
+              std_conv->pointer_normalization_needed = TRUE;
+              std_conv->warning_suggested = default_warning_code;
             }  /* if */
           }  /* if */
         }  /* if */
       } else if (C_dialect == C_dialect_cplusplus &&
                  is_class_or_struct(unqual_source_type_pointed_to) &&
                  is_class_or_struct(unqual_dest_type_pointed_to) &&
-                 find_base_class_of(unqual_source_type_pointed_to,
-                                    unqual_dest_type_pointed_to) != NULL) {
+                 (bcp = find_base_class_of(unqual_source_type_pointed_to,
+                                           unqual_dest_type_pointed_to))
+                                                                     != NULL) {
         /* In C++, a pointer to a class may be implicitly converted to a
            pointer to an accessible base class of that class provided the
            conversion is unambiguous (ARM 4.6).  We leave the ambiguity
@@ -2550,6 +2560,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            That's not quite what the ARM says, but it's what cfront does,
            and it makes sense. */
         okay = TRUE;
+        std_conv->cast_base_class = bcp;
       } else if ((conversion_from_void_star_in_C =
                    (C_dialect != C_dialect_cplusplus &&
                     !check_as_operands_not_conversion &&
@@ -2563,7 +2574,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* As an extension in C, we also allow a "void *" to be converted to
            a function pointer; a warning is issued. */
         okay = TRUE;
-        *warning_suggested = default_warning_code;
+        std_conv->warning_suggested = default_warning_code;
       } else if (!suppress_extensions && source_is_constant &&
                  is_address_of_string_constant(source_constant) &&
                  is_character_type(unqual_source_type_pointed_to) &&
@@ -2571,12 +2582,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* Allow a character string to be converted to a pointer to any kind
            of char.  This is an extension in both C and C++. */
         okay = TRUE;
-        if (strict_ansi_mode) *warning_suggested = default_warning_code;
+        if (strict_ansi_mode) {
+          std_conv->warning_suggested = default_warning_code;
+        }  /* if */
       } else if (C_dialect == C_dialect_pcc) {
         /* In pcc mode, allow conversion between incompatible pointer types,
            with a warning. */
         okay = TRUE;
-        *warning_suggested = default_warning_code;
+        std_conv->warning_suggested = default_warning_code;
       } else if ((!suppress_extensions || any_cfront_mode()) &&
                  same_type_with_added_qualifiers(dest_type_pointed_to,
                                                  source_type_pointed_to,
@@ -2589,7 +2602,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            that mode. */
         okay = TRUE;
         if (!any_cfront_mode()) {
-          *warning_suggested = default_warning_code;
+          std_conv->warning_suggested = default_warning_code;
         } /* if */
       } else if (C_mode() && !suppress_extensions &&
                  interchangeable_types(unqual_dest_type_pointed_to,
@@ -2598,14 +2611,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            as an extension, with a warning.  This covers cases like
            "unsigned char *" --> "char *". */
         okay = TRUE;
-        *warning_suggested = default_warning_code;
+        std_conv->warning_suggested = default_warning_code;
       } else if (C_mode() && !suppress_extensions &&
                  is_function(unqual_dest_type_pointed_to) &&
                  is_function(unqual_source_type_pointed_to)) {
         /* In C, allow conversion between incompatible pointers to
            functions, as an extension, with a warning. */
         okay = TRUE;
-        *warning_suggested = default_warning_code;
+        std_conv->warning_suggested = default_warning_code;
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {
@@ -2614,8 +2627,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);
          ARM 4.6 (pointer conversions: qualifiers cannot be dropped
          implicitly), 5.17 (assignment), 8.4 (initializers). */
-      if (any_qualifier_missing(dest_type_pointed_to,
+      if (type_qualifiers_match(dest_type_pointed_to,
                                 source_type_pointed_to)) {
+        /* The qualifiers are the same. */
+      } else if (any_qualifier_missing(dest_type_pointed_to,
+                                       source_type_pointed_to)) {
+        /* Qualifiers are being dropped. */
         if (cfront_2_1_mode && 
             is_void(unqual_dest_type_pointed_to) &&
             is_void(unqual_source_type_pointed_to)) {
@@ -2625,6 +2642,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           /* Qualifiers are being dropped. */
           okay = FALSE;
         }  /* if */
+      } else {
+        /* Qualifiers are being added. */
+        std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
   } else if (C_dialect == C_dialect_pcc && is_integral(source_type)) {
@@ -2632,7 +2652,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
        pointer constant --> pointer case has been handled above and does
        not come here. */
     okay = TRUE;
-    *warning_suggested = default_warning_code;
+    std_conv->warning_suggested = default_warning_code;
   } else if (is_error(source_type)) {
     /* Error --> pointer is always allowed. */
     okay = TRUE;
@@ -2788,11 +2808,12 @@ and member_type_2 are the destination and source types of a conversion.
 
 
 a_boolean impl_ptr_to_member_conversion(
-                                   a_type_ptr source_type,
-                                   a_boolean  source_is_constant,
-                                   a_constant *source_constant,
-                                   a_type_ptr dest_type,
-                                   a_boolean  check_as_operands_not_conversion)
+                         a_type_ptr           source_type,
+                         a_boolean            source_is_constant,
+                         a_constant           *source_constant,
+                         a_type_ptr           dest_type,
+                         a_boolean            check_as_operands_not_conversion,
+                         a_std_conv_descr_ptr std_conv)
 /*
 Return TRUE if it's okay to implicitly convert something of type source_type
 (any type) to something of type dest_type (a pointer to member type).
@@ -2801,7 +2822,8 @@ points to the constant value.  (That's needed to check for conversions of a
 null pointer constant to a pointer to member type.)
 If check_as_operands_not_conversion is TRUE, the two types are the types
 of the operands of an operation; only do the checks required in that case,
-which are fewer than the checks required for a conversion.
+which are fewer than the checks required for a conversion.  If the conversion
+is possible, *std_conv is filled out to describe the conversion.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -2823,6 +2845,7 @@ pointers to members).
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  clear_std_conv_descr(std_conv);
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
   if (is_ptr_to_member_type(source_type)) {
@@ -2832,14 +2855,24 @@ pointers to members).
        unambiguous derived (sic) class of the source class.  See ARM 4.8. */
     source_type_pointed_to = pm_member_type(source_type);
     dest_type_pointed_to = pm_member_type(dest_type);
-    if (is_same_class_or_base_class_thereof(pm_class_type(dest_type),
-                                            pm_class_type(source_type)) &&
-        member_types_correspond(skip_typerefs(dest_type_pointed_to),
+    if (member_types_correspond(skip_typerefs(dest_type_pointed_to),
                                 skip_typerefs(source_type_pointed_to),
                                 check_as_operands_not_conversion)) {
-      /* We leave the ambiguity and accessibility check to be done when
-         the cast is done. */
-      okay = TRUE;
+      a_type_ptr       source_class_type = pm_class_type(source_type);
+      a_type_ptr       dest_class_type = pm_class_type(dest_type);
+      a_base_class_ptr bcp;
+      /* The types pointed to are the same.  Check the classes. */
+      if (source_class_type == dest_class_type) {
+        /* Same class, okay. */
+        okay = TRUE;
+      } else if ((bcp = find_base_class_of(dest_class_type,
+                                           source_class_type)) != NULL) {
+        /* Derived class, okay. */
+        /* We leave the ambiguity and accessibility check to be done when
+           the cast is done. */
+        okay = TRUE;
+        std_conv->cast_base_class = bcp;
+      }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {
       /* The types pointed to must be such that the type pointed to by the
@@ -2847,15 +2880,23 @@ pointers to members).
          It might have additional qualifiers.  This is not mentioned in
          the ARM, but it makes sense by analogy with pointer types
          (ARM 4.6, 5.17, 8.4). */
-      if (any_qualifier_missing(dest_type_pointed_to,
+      if (type_qualifiers_match(dest_type_pointed_to,
                                 source_type_pointed_to)) {
+        /* The qualifiers are the same. */
+      } else if (any_qualifier_missing(dest_type_pointed_to,
+                                       source_type_pointed_to)) {
+        /* Qualifiers are being dropped. */
         okay = FALSE;
+      } else {
+        /* Qualifiers are being added. */
+        std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
   } else if (source_is_constant &&
              is_null_pointer_constant(source_constant)) {
     /* 0 --> pointer-to-member.  See ARM 4.8. */
     okay = TRUE;
+    std_conv->pointer_normalization_needed = TRUE;
   } else if (is_error(source_type)) {
     /* Error --> pointer to member is always allowed. */
     okay = TRUE;
@@ -2887,7 +2928,7 @@ needed to check for conversions of a null pointer constant to a pointer type.)
 Any type qualifiers on the types themselves are ignored.  suppress_extensions
 is TRUE if conversions that are extensions should not be allowed (what
 constitutes an extension depends on C_dialect, of course).  If the conversion
-is suspect and should be tagged with a warning, *warning_suggested is
+is suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into *warning_suggested when no
 specific message applies.  In strict ANSI mode, if a conversion flagged with
@@ -2908,10 +2949,10 @@ in assignments (for example, struct --> same struct is not handled here).
 See conversion_possible.
 */
 {
-  a_boolean  okay = FALSE;
-  a_boolean  pointer_normalization_needed;
-  a_boolean  source_is_integral;
-  a_type_ptr dest_enum_type, source_enum_type;
+  a_boolean        okay = FALSE;
+  a_boolean        source_is_integral;
+  a_type_ptr       dest_enum_type, source_enum_type;
+  a_std_conv_descr std_conv;
 
   db_enter(5, "impl_conversion_possible");
 #if DEBUG
@@ -2998,16 +3039,17 @@ See conversion_possible.
     okay = impl_pointer_conversion(source_type, source_is_constant,
                                    source_constant, dest_type,
                                    /*check_as_operands_not_conversion=*/FALSE,
-                                   &pointer_normalization_needed,
                                    suppress_extensions,
                                    default_warning_code,
-                                   warning_suggested);
+                                   &std_conv);
+    if (okay) *warning_suggested = std_conv.warning_suggested;
   } else if (is_ptr_to_member_type(dest_type)) {
     /* Conversion to a C++ pointer-to-member type. */
     okay = impl_ptr_to_member_conversion(source_type,
                                          source_is_constant, source_constant,
                                          dest_type,
-                                   /*check_as_operands_not_conversion=*/FALSE);
+                                    /*check_as_operands_not_conversion=*/FALSE,
+                                         &std_conv);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
@@ -3046,7 +3088,7 @@ to something of type dest_type.  If source_is_constant is TRUE, the source
 is a constant, and source_constant points to the constant value.  (That's
 needed to check for conversions of a null pointer constant to a pointer type.)
 Any type qualifiers on the types themselves are ignored.  If the conversion
-is suspect and should be tagged with a warning, *warning_suggested is
+is suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into *warning_suggested when no
 specific message applies.  In strict ANSI mode, if a conversion flagged with

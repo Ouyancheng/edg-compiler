@@ -27,12 +27,11 @@ types.h -- Declarations related to types.c (having to do with types).
 #include "expr.h"
 #endif /* ifndef EXPR_H */
 
-/* There are copies of this macro in il_display.c and in c_gen_be.c;
-   if you change this, you should probably change those definitions
-   as well. */
+/* Strip typerefs off a type. */
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
 
+/* Fast macro version of is_error_type. */
 #define m_is_error_type(tp)                                           \
   (skip_typerefs(tp)->kind == (a_type_kind)tk_error)
 
@@ -250,22 +249,56 @@ extern a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,
                                                  a_type_ptr source_type,
                                                  a_boolean  ignore_qualifiers);
 
+
+/*
+Description of a standard conversion (implicit or explicit), or at least
+of information relating to such a conversion that's non-trivial to compute.
+*/
+typedef struct a_std_conv_descr *a_std_conv_descr_ptr;
+typedef struct a_std_conv_descr {
+  a_base_class_ptr
+		cast_base_class;
+			/* If the standard conversion is a related-class cast,
+			   this is the base class entry for it.  Otherwise,
+			   NULL. */
+  a_byte_boolean
+		reversed_cast;
+			/* If TRUE, cast_base_class describes the
+			   reverse of the cast performed.  Used for
+			   conversions of pointers to members to
+			   pointers to members of derived classes. */
+  a_byte_boolean
+		type_qualifiers_added;
+			/* TRUE if type qualifiers were added under a pointer
+			   or reference.  Serves as a tie-breaker in
+			   overload resolution. */
+  a_byte_boolean
+		pointer_normalization_needed;
+			/* TRUE if the conversion involves converting a
+			   null pointer constant to a pointer type or a
+			   pointer type to "void *". */
+  an_error_code	warning_suggested;
+			/* If not ec_no_error, the code for a warning to be
+			   issued if this conversion is done. */
+} a_std_conv_descr;
+
+
 extern a_boolean impl_pointer_conversion(
-                                a_type_ptr    source_type,
-                                a_boolean     source_is_constant,
-                                a_constant    *source_constant,
-                                a_type_ptr    dest_type,
-                                a_boolean     check_as_operands_not_conversion,
-                                a_boolean     *pointer_normalization_needed,
-                                a_boolean     suppress_extensions,
-                                an_error_code default_warning_code,
-                                an_error_code *warning_suggested);
+                         a_type_ptr           source_type,
+                         a_boolean            source_is_constant,
+                         a_constant           *source_constant,
+                         a_type_ptr           dest_type,
+                         a_boolean            check_as_operands_not_conversion,
+                         a_boolean            suppress_extensions,
+                         an_error_code        default_warning_code,
+                         a_std_conv_descr_ptr std_conv);
 extern a_boolean impl_ptr_to_member_conversion(
-                                  a_type_ptr source_type,
-                                  a_boolean  source_is_constant,
-                                  a_constant *source_constant,
-                                  a_type_ptr dest_type,
-                                  a_boolean  check_as_operands_not_conversion);
+                         a_type_ptr           source_type,
+                         a_boolean            source_is_constant,
+                         a_constant           *source_constant,
+                         a_type_ptr           dest_type,
+                         a_boolean            check_as_operands_not_conversion,
+                         a_std_conv_descr_ptr std_conv);
 extern a_boolean impl_conversion_possible(a_type_ptr    source_type,
                                           a_boolean     source_is_constant,
                                           a_constant    *source_constant,
