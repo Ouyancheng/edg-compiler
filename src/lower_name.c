@@ -2023,12 +2023,16 @@ do_unknown_function:
 #if !IA64_ABI
             a_length_reservation length_reservation;
             reserve_space_for_length(&length_reservation, mctl);
+#else /* IA64_ABI */
+            add_str_to_mangled_name("L_Z", mctl);
 #endif /* !IA64_ABI */
             mangled_member_name(&con->source_corresp,
                                 /*is_specialization=*/FALSE,
                                 mctl);
 #if !IA64_ABI
             fill_in_length(&length_reservation, mctl);
+#else /* IA64_ABI */
+            add_to_mangled_name('E', mctl);
 #endif /* !IA64_ABI */
           }
           break;
