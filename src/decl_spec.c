@@ -3888,7 +3888,7 @@ decl_specifiers.
         /* In Microsoft Visual C++ 6.0 __int8 is a distinct type (not just a
            synonym for a char type). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && microsoft_version >= 1200 &&
+        if (microsoft_mode && microsoft_version == 1200 &&
             size == size_int8) {
           if (ikind == (an_integer_kind)ik_signed_char) {
             /* signed __int8 is the same as __int8. */
@@ -4002,7 +4002,7 @@ decl_specifiers.
            they may mean different things as bit-field types.  The same
            applies to explicitly signed short, long, and long long. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && microsoft_version >= 1200 &&
+        if (microsoft_mode && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
             (int)size <= (int)size_int64) { /*lint !e685*/
           *type_ptr = microsoft_sized_signed_integer_type(
@@ -4015,7 +4015,7 @@ decl_specifiers.
         }  /* if */
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && microsoft_version >= 1200 &&
+        if (microsoft_mode && microsoft_version == 1200 &&
             (int)size >= (int)size_int8 &&
             (int)size <= (int)size_int64) { /*lint !e685*/
           *type_ptr = microsoft_sized_integer_type((an_integer_kind)ikind);

@@ -1,5 +1,14 @@
 Version 3.1
 
+6/25/02  Microsoft __intN specifiers are synonyms for other types
+
+The change to make Microsoft __intN specifiers distinct types (see
+entry for 12/14/99 below) for MSVC++ 6 turns out to have been a bug
+and not a feature in version 6, and has now been changed back in
+MSVC++ 7 to the way it was before.  The EDG front end has been changed
+likewise, and now gives the VC6 behavior only when microsoft_version
+is 1200.
+
 6/24/02  Abort in same_type_with_added_qualifiers
 
 An abort in same_type_with_added_qualifiers has been fixed.

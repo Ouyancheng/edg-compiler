@@ -387,7 +387,7 @@ kind_established:;
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && microsoft_version >= 1200 &&
+    if (microsoft_mode && microsoft_version == 1200 &&
         isuffix_kind != (an_integer_kind)ik_none) {
       const_for_curr_token.type = microsoft_sized_integer_type(kind);
     } else
