@@ -5521,7 +5521,7 @@ assumed if the return type is omitted.
                  &bottom_derived_type, &declarator_ssep, &func_info);
       done_with_func_info(func_info);
 #if 0
-      /* Presumable, declarator_ssep will often be returned pointing at an
+      /* Presumably, declarator_ssep will often be returned pointing at an
          empty source sequence entry.  How should this be handled? */
 #endif /* if 0 */
     }  /* if */
