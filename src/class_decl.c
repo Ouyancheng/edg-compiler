@@ -4119,6 +4119,9 @@ TRUE if a const object can be copied.
   a_boolean             found_nonconst_assignment_operator_for_copy = FALSE;
 
   db_enter(4, "assignment_operator_for_copy_exists");
+  /* Set *const_okay to TRUE unless this subobject's type has a default
+     assignment operator that cannot accept a const object. */
+  *const_okay = TRUE;
   if (sym != NULL) {
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
@@ -4137,16 +4140,17 @@ TRUE if a const object can be copied.
         if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
           /* An copy assignment operator has been located, and it accepts a
              const object. */
+          *const_okay = TRUE;
           break;
         } else {
-          /* This one does not accept a const object, but another in the
-             overload list might, so keep looping. */
-          found_nonconst_assignment_operator_for_copy = TRUE;
+          /* This one does not accept a const object, so set *const_okay
+             to FALSE.  However, another in the overload list might accept
+             const, so keep looping. */
+          *const_okay = FALSE;
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
-  *const_okay = !found_nonconst_assignment_operator_for_copy;
   db_exit();
   return found_assignment_operator_for_copy;
 }  /* assignment_operator_for_copy_exists */
@@ -5029,6 +5033,9 @@ defined for base classes and fields of the current class (class_type).
       if (assignment_operator_for_copy_exists(cssp->assignment_operator,
                                               &const_okay) &&
           !const_okay) {
+        /* There is a default assignment operator for this base class type,
+           but it does not accept a const object.  No need to look any
+           further. */
         goto done;
       }  /* if */
     }  /* if */
@@ -5047,6 +5054,9 @@ defined for base classes and fields of the current class (class_type).
         if (assignment_operator_for_copy_exists(cssp->assignment_operator,
                                                 &const_okay) &&
             !const_okay) {
+          /* There is a default assignment operator for this static data
+             member's class type, but it does not accept a const object.
+             No need to look any further. */
           goto done;
         }  /* if */
       }  /* if */
@@ -5054,6 +5064,8 @@ defined for base classes and fields of the current class (class_type).
   }  /* for */
 done:;
   db_exit();
+  /* Return TRUE unless a subobject type has a default assignment operator
+     that cannot accept a const object. */
   return const_okay;
 }  /* default_assignment_of_const_object_okay */
 
