@@ -12495,7 +12495,9 @@ the needed-flag walk for the file scope.
           externalize_source_correspondence(&rout->source_corresp,
                                             /*is_variable=*/FALSE);
           rout->storage_class = (a_storage_class)sc_unspecified;
+#if MAINTAIN_NEEDED_FLAGS
           mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -12527,7 +12529,9 @@ the needed-flag walk for the file scope.
           externalize_source_correspondence(&var->source_corresp,
                                             /*is_variable=*/TRUE);
           var->storage_class = (a_storage_class)sc_unspecified;
+#if MAINTAIN_NEEDED_FLAGS
           mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
         }  /* if */
       }  /* if */
     }  /* for */
