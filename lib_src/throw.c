@@ -929,6 +929,14 @@ the completion of a catch clause.
     set_base_class_flags(tsep->typeinfo, /*set_flag=*/FALSE);
     is_rethrow = tsep->is_rethrow;
     object_address = tsep->object_address;
+    /* Call the destructor for the object if needed. */
+    if (!is_rethrow) {
+      a_destructor_ptr	dtor_ptr;
+      dtor_ptr = (a_destructor_ptr)tsep->typeinfo->destructor;
+      if (dtor_ptr != NULL) {
+        (dtor_ptr)(object_address, 2);
+      }  /* if */
+    }  /* if */
     /* Free the space used for the throw stack entry.  Note that the stack
        entry and the object must be freed in the reverse of the order
        in which they were allocated since this is a stack. */
