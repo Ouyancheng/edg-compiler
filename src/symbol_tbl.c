@@ -3009,7 +3009,7 @@ allowed for that kind of symbol).
   }  /* switch */
 #if CHECKING
   if (entry_ptr == NULL) {
-    internal_error("reference_to_symbol: NULL assoc IL entry ptr");
+    internal_error("source_corresp_entry_for_symbol: NULL assoc IL entry ptr");
   }  /* if */
 #endif /* CHECKING */
   scptr = &entry_ptr->source_corresp;
