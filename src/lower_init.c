@@ -3821,11 +3821,29 @@ will be changed to an aggregate constant for the constant parts and
        It's just a place-holder that gets overwritten by the dynamic
        initialization. */
     desired_type = ipdp->modifiers->type;
-    /* For pointers to members, switch to the implementation type. */
-    if (is_or_was_ptr_to_data_member_type(desired_type)) {
-      desired_type = integer_type(targ_ptr_to_data_member_int_kind);
-    } else if (is_or_was_ptr_to_member_function_type(desired_type)) {
-      desired_type = make_mptr_type();
+#if DO_C99_IL_LOWERING
+    if (C_mode()) {
+      if (is_imaginary_type(desired_type)) {
+        /* In C99, create a float constant for an imaginary type. */
+        desired_type = skip_typerefs(desired_type);
+        desired_type = float_type(desired_type->variant.float_kind);
+#if LOWER_FIXED_POINT
+      } else if (is_fixed_point_type(desired_type)) {
+        /* A fixed-point type becomes an integer. */
+        desired_type=lowered_integer_type_for_fixed_point_type(desired_type);
+#endif /* LOWER_FIXED_POINT */
+      }  /* if */
+    } else
+#endif /* DO_C99_IL_LOWERING */
+    /* Do not insert code here. */
+    {
+      /* C++ mode. */
+      /* For pointers to members, switch to the implementation type. */
+      if (is_or_was_ptr_to_data_member_type(desired_type)) {
+        desired_type = integer_type(targ_ptr_to_data_member_int_kind);
+      } else if (is_or_was_ptr_to_member_function_type(desired_type)) {
+        desired_type = make_mptr_type();
+      }  /* if */
     }  /* if */
     if (is_aggregate_or_union_type(desired_type)
 #if DO_C99_IL_LOWERING
@@ -3853,13 +3871,6 @@ will be changed to an aggregate constant for the constant parts and
     } else {
       /* Not an aggregate: a zero of the right type will be fine. */
       next_con = con_ptr->next;
-#if DO_C99_IL_LOWERING
-      if (is_imaginary_type(desired_type)) {
-        /* In C99, create a float constant for an imaginary type. */
-        desired_type = skip_typerefs(desired_type);
-        desired_type = float_type(desired_type->variant.float_kind);
-      }  /* if */
-#endif /* DO_C99_IL_LOWERING */
       make_zero_of_proper_type(desired_type, con_ptr);
       con_ptr->next = next_con;
     }  /* if */
