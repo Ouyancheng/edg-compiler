@@ -7748,6 +7748,9 @@ for the class template of which this class is an instance.
   templ_class_type = sym->variant.type.ptr;
   cssp = symbol_supplement_for_class(templ_class_type);
   template_sym = cssp->class_template;
+  /* If this class is from a partial specialization, get the symbol for the
+     primary template. */
+  template_sym = primary_template_of(template_sym);
   return template_sym;
 }  /* class_template_for_injected_template_symbol */
 
