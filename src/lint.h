@@ -51,6 +51,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,check_target_configuration)*/
 /*lint -esym(769,ec_cannot_build_temp_file_name)*/
 /*lint -esym(552,total_remarks)*/
+/*lint -esym(551,caching_tokens)*/
 /*lint -esym(759,crc_32)*/
 /*lint -esym(765,crc_32)*/
 /*lint -esym(714,db_format_integer_value)*/
