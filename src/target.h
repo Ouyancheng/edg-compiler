@@ -501,6 +501,7 @@ EXTERN a_boolean
 			/* If TRUE, all functions are rewritten to be
 			   unprototyped. */
             
+#if DO_FULL_PORTABLE_EH_LOWERING
 
 EXTERN unsigned int
 		targ_jmp_buf_num_elements
@@ -537,6 +538,8 @@ EXTERN a_float_kind
 			/* Float kind indicating the kind of element in a
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
+
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 #if GENERATE_EH_TABLES
 EXTERN an_integer_kind
