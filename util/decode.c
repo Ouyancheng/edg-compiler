@@ -2489,6 +2489,12 @@ be emulated.  Can be changed by a command line option.
 a_boolean	emulate_gnu_abi_bugs = DEFAULT_EMULATE_GNU_ABI_BUGS;
 
 /*
+TRUE if the host integer representation is little-endian.
+*/
+static a_boolean
+		host_little_endian;
+
+/*
 Bits used to represent cv-qualifiers in a bit set.
 */
 typedef int a_cv_qualifier_set;
@@ -3746,6 +3752,145 @@ caller does not need the value.
 }  /* demangle_unqualified_name */
 
 
+static int get_hex_digit(char                       *ptr,
+                         a_decode_control_block_ptr dctl)
+/*
+Convert a hexadecimal digit at ptr to an integral value, and return the
+value.
+*/
+{
+  int           value;
+  unsigned char ch = (unsigned char)ptr[0];
+
+  if (isdigit(ch)) {
+    value = (ch - '0');
+  } else if (isxdigit(ch) && islower(ch)) {
+    value = (ch - 'a' + 10);
+  } else {
+    bad_mangled_name(dctl);
+    value = 0;
+  }  /* if */
+  return value;
+}  /* get_hex_digit */
+
+
+static char *demangle_float_literal(char                       *ptr,
+                                    a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 float literal and output the demangled form.
+Return a pointer to the character position following what was demangled.
+The syntax is:
+
+  <expr-primary> ::= L <type <value float> E
+
+<float> is the hexadecimal representation of the floating-point value,
+high-order bytes first, using lower-case letters.
+*/
+{
+  int  i, length;
+  char *p;
+  union {
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+    long double ld;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    double d;
+    float f;
+  } x;
+
+  /* Zero the bits of x. */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  x.ld = 0.0;
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  x.d = 0.0;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  /* Put parentheses around the type to make a cast. */
+  write_id_ch('(', dctl);
+  ptr = demangle_type(ptr+1, dctl);
+  write_id_ch(')', dctl);
+  /* Determine the number of digits in the value by scanning to the
+     terminating "E". */
+  length = 0;
+  p = ptr;
+  while (*p != 'E' && *p != '\0') {
+    length++;
+    p++;
+  }  /* while */
+  if (length % 2 != 0) {
+    /* An odd number of bytes is an error. */
+    bad_mangled_name(dctl);
+    length -= 1;
+  }  /* if */
+  /* Convert the length to a byte count. */
+  length /= 2;
+  /* p points to the first hex byte to be converted in the loop.
+     For a little-endian host, that's at the end of the hex string. */
+  if (host_little_endian) {
+    p = ptr + length*2 - 2;
+  } else {
+    p = ptr;
+  }  /* if */
+  /* Convert the right number of bytes. */
+  for (i = 0; i < length; i++) {
+    unsigned char byte = get_hex_digit(p, dctl);
+    if (dctl->err_in_id) break;
+    byte = byte<<4 | get_hex_digit(p+1, dctl);
+    if (dctl->err_in_id) break;
+    /* Don't store more bytes than there are in x. */
+    if (i >= sizeof(x)) break;
+    if (host_little_endian) {
+      ((unsigned char *)&x)[sizeof(x)-1-i] = byte;
+      p -= 2;
+    } else {
+      ((unsigned char *)&x)[i] = byte;
+      p += 2;
+    }  /* if */
+  }  /* for */
+  if (!dctl->err_in_id) {
+    /* Convert the floating-point value in x to a string. */
+    char str[60];
+    int  ndig;
+    if (i <= sizeof(float)) {
+#ifdef FLT_DIG
+      ndig = FLT_DIG;
+#else /* !defined(FLT_DIG) */
+      ndig = 6;
+#endif /* ifdef FLT_DIG */
+      (void)sprintf(str, "%.*g", ndig, x.f);
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+    } else if (i > sizeof(double)) {
+#ifdef LDBL_DIG
+      ndig = LDBL_DIG;
+#else /* !defined(LDBL_DIG) */
+      ndig = 18;
+#endif /* ifdef LDBL_DIG */
+      (void)sprintf(str, "%.*Lg", ndig, x.ld);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    } else {
+#ifdef DBL_DIG
+      ndig = DBL_DIG;
+#else /* !defined(DBL_DIG) */
+      ndig = 15;
+#endif /* ifdef DBL_DIG */
+      (void)sprintf(str, "%.*g", ndig, x.d);
+    }  /* if */
+    /* Add trailing ".0" if no decimal point was put out (meaning the
+       value is a whole number). */
+    if (strchr(str, '.') == NULL &&
+        strchr(str, 'e') == NULL) {
+      p = str + strlen(str);
+      *p++ = '.';
+      *p++ = '0';
+      *p++ = '\0';
+    }  /* if */
+    write_id_str(str, dctl);
+    /* Skip the final "E". */
+    ptr += length*2;
+    ptr = advance_past('E', ptr, dctl);
+  }  /* if */
+  return ptr;
+} /* demangle_float_literal */
+
+
 static char *demangle_literal(char                       *ptr,
                               a_decode_control_block_ptr dctl)
 /*
@@ -3767,10 +3912,15 @@ The syntax is:
       ptr = demangle_encoding(ptr+3, /*include_func_params=*/FALSE, dctl);
       ptr = advance_past('E', ptr, dctl);
     }  /* if */
+  } else if (ptr[1] == 'f' || ptr[1] == 'd' ||
+             ptr[1] == 'e' || ptr[1] == 'g') {
+    /* Float literal, L <type> <hex> E, where <hex> is the hexadecimal
+       representation of the value, high-order bytes first, with
+       lower-case hex letters. */
+    ptr = demangle_float_literal(ptr, dctl);
   } else {
-    /* Literal, L <type> <value number> E. */
+    /* Integer literal, L <type> <value number> E. */
     /* Put parentheses around the type to make a cast. */
-    /* FIXME -- doesn't handle float literals yet. */
     write_id_ch('(', dctl);
     ptr = demangle_type(ptr+1, dctl);
     write_id_ch(')', dctl);
@@ -4534,6 +4684,11 @@ length returned the second time will be correct).
   dctl->output_id = output_buffer;
   dctl->output_id_size = output_buffer_size;
   num_substitutions = 0;
+  {
+    /* Determine whether host is little-endian or big-endian. */
+    int i = 1;
+    host_little_endian = (*(char *)&i) == 1;
+  }
   if (start_of_id_is("_Z", id)) {
     /* A mangled name, beginning with "_Z". */
     end_ptr = demangle_encoding(id+2, /*include_func_params=*/TRUE, dctl);
