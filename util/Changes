@@ -1,5 +1,11 @@
 Version 2.37, October 18, 1997
 
+11/25/97 Prelinker problem when not using .ti files
+
+The prelinker could abort or create an invalid .ii file when configured
+to not use a .ti file and when a .ii file was removed.  This has been
+fixed.
+
 10/16/97 --list_object_files option to eccp (-b option to prelinker)
 
 An option has been added to the eccp script and prelinker to permit
@@ -701,7 +707,7 @@ that the instantiation can no longer be generated.  This has been fixed.
 If a compilation is aborted while the prelinker is recompiling a file
 (but before the new object file has been created) an application may
 be left in a state in which simply typing "make" will not result
-in a the application being successfully built.  The user would need to
+in the application being successfully built.  The user would need to
 either remove the .o file or touch the .c file and rerun make.
 This problem has been solved by having the prelinker remove the .o
 file before recompiling a file.
