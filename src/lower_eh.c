@@ -1636,6 +1636,7 @@ already be linked on the list of cleanup actions so its "next"
 pointer can be examined.
 */
 {
+  a_boolean        need_array_info;
   a_targ_size_t    handle_number, conditional_handle_number;
   a_memory_region_number
                    region_to_switch_back_to;
@@ -1647,8 +1648,28 @@ pointer can be examined.
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
   check_assertion(is_object_cleanup_action(cap));
+  /* See if we need array information on the entity. */
+  need_array_info = FALSE;
   if (cap->variant.object.init_pos_descr.whole_array) {
-    /* For arrays, we need an entry in the array table. */
+    /* Yes, the entity is an array. */
+    need_array_info = TRUE;
+  } else if (cap->kind == (a_cleanup_action_kind)cak_new_allocation) {
+    /* For the new-allocation case, check for the 2-argument version of delete;
+       we need array information for that because we need the size of the
+       entity. */
+    a_routine_ptr delete_routine = cap->variant.object.delete_routine;
+    a_routine_type_supplement_ptr
+                  delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
+                                                    variant.routine.extra_info;
+    a_param_type_ptr param1 = delete_routine_rtsp->param_type_list;
+    check_assertion(param1 != NULL);
+    if (param1->next != NULL) {
+      /* Two-argument form.  Need array information. */
+      need_array_info = TRUE;
+    }  /* if */
+  }  /* if */
+  if (need_array_info) {
+    /* We need an entry in the array table. */
     handle_number = array_table_entry(cap, insert_location);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
