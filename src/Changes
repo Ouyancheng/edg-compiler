@@ -1,5 +1,19 @@
 Version 2.46
 
+7/6/01   Microsoft compatibility: inline specifier on friend member functions
+
+Ordinarily, the front end issues an error on friend declarations that add an
+inline specifier to member functions that were previously not declared to be
+"inline".  For example:
+
+  struct A { void f(); };
+  struct B {
+    friend inline void A::f();  // Normally an error
+  };
+
+In Microsoft mode, the front end now ignores the inline specifier without
+issuing a diagnostic.
+
 7/3/01   C++-generating back end: qualification on overloaded member
          function accessed via using-declaration
 
