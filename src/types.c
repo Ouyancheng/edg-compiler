@@ -75,6 +75,9 @@ predicates.
                         !(tp)->variant.pointer.is_reference)
 
 /* The reference type is simply the reference type. */
+/* This is called is_reference_ptr because there is a field called
+   is_reference in il_def.h and old preprocessors have problems with
+   that. */
 #define is_reference_ptr(tp) ((tp)->kind == (a_type_kind)tk_pointer &&\
                               (tp)->variant.pointer.is_reference)
 
@@ -3442,6 +3445,165 @@ See conversion_possible.
 }  /* impl_conversion_possible */
 
 
+a_boolean static_cast_conversion_possible(a_type_ptr source_type,
+                                          a_type_ptr dest_type)
+/*
+Return TRUE if it is okay to explicitly convert something of type source_type
+to something of type dest_type in a static_cast.  Any type qualifiers
+on the types themselves are ignored.  See [expr.static.cast].
+Note that this routine does not check the implicit conversions, which
+are also allowed as static_casts: it also doesn't handle casts to reference
+types, it doesn't reject conversions that cast away constness, and
+it doesn't handle user-defined conversions.  This routine is called only in
+C++ mode.
+*/
+{
+  a_boolean        okay = FALSE, suppress_extensions = FALSE;
+  a_std_conv_descr impl_std_conv;
+
+  db_enter(5, "static_cast_conversion_possible");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "static_cast_conversion_possible: source_type = ");
+    db_abbreviated_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_abbreviated_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  /* If in strict mode and nonstandard constructs should be reported as
+     errors, disable extensions. */
+  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+    suppress_extensions = TRUE;
+  }  /* if */
+  /* Drop any type qualifiers and typedefs on the two types. */
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  check_assertion_str(!is_reference_ptr(dest_type),
+                    "static_cast_conversion_possible: dest_type is reference");
+
+  if (impl_conversion_possible(dest_type,
+                               /*source_is_constant=*/FALSE,
+                               (a_constant *)NULL,
+                               source_type,
+                               suppress_extensions,
+                               ec_bad_cast, /* Arbitrary. */
+                               &impl_std_conv)) {
+    /* The reverse of any standard conversion is allowed. */
+    okay = TRUE;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "static_cast_conversion_possible: %s\n",
+                     okay ? "okay" : "not okay");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return okay;
+}  /* static_cast_conversion_possible */
+
+
+a_boolean reinterpret_cast_conversion_possible(
+                                              a_type_ptr    source_type,
+                                              a_type_ptr    dest_type,
+                                              an_error_code *warning_suggested)
+/*
+Return TRUE if it is okay to explicitly convert something of type source_type
+to something of type dest_type in a reinterpret_cast.  Any type qualifiers
+on the types themselves are ignored.  If the conversion
+is suspect and should be flagged with a warning, *warning_suggested is
+set to an appropriate error code; normally, it is set to ec_no_error.
+In strict mode, if a conversion flagged with *warning_suggested is done,
+the warning is required.  Note that this routine does not handle casts
+to reference types, it doesn't reject conversions that cast away constness,
+and it doesn't handle user-defined conversions.  This routine is called
+in C mode as well as C++ mode.
+*/
+{
+  a_boolean okay = FALSE, suppress_extensions = FALSE;
+
+  db_enter(5, "reinterpret_cast_conversion_possible");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "reinterpret_cast_conversion_possible: source_type = ");
+    db_abbreviated_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_abbreviated_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  *warning_suggested = ec_no_error;
+  /* If in strict mode and nonstandard constructs should be reported as
+     errors, disable extensions. */
+  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+    suppress_extensions = TRUE;
+  }  /* if */
+  /* Drop any type qualifiers and typedefs on the two types. */
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  check_assertion_str(!is_reference_ptr(dest_type),
+               "reinterpret_cast_conversion_possible: dest_type is reference");
+
+  if (is_pointer(source_type) && is_integral(dest_type) &&
+      (C_mode() ||
+       dest_of_ptr_cast_big_enough(source_type, dest_type))) {
+    /* Pointer --> integral is okay if (a) the integer is big enough or
+       (b) it's not big enough but we're compiling C. */
+    okay = TRUE;
+  } else if (is_integral(source_type) && is_pointer(dest_type)) {
+    /* Integral --> pointer. */
+    okay = TRUE;
+  } else if (is_pointer(source_type) && is_pointer(dest_type)) {
+    /* Pointer --> pointer.  Get the types pointed to. */
+    a_type_ptr source_type_pointed_to, dest_type_pointed_to;
+    source_type_pointed_to = type_pointed_to(source_type);
+    source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+    dest_type_pointed_to = type_pointed_to(dest_type);
+    dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
+    if (is_function(source_type_pointed_to) ==
+        is_function(dest_type_pointed_to)) {
+      /* Pointer to function --> pointer to function, or pointer to
+         object/incomplete --> pointer to object/incomplete.  Allowed in both
+         C and C++. */
+      okay = TRUE;
+    } else {
+      /* Pointer to function --> pointer to object/incomplete, or pointer
+         to object/incomplete --> pointer to function.  Allowed in C++ if
+         the destination is big enough.  Allowed as an extension in C. */
+      if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+        if (C_dialect != C_dialect_cplusplus) {
+          /* C mode. */
+          if (!suppress_extensions) {
+            okay = TRUE;
+            *warning_suggested = ec_mixed_function_object_pointers;
+          }  /* if */
+        } else {
+          /* C++ mode. */
+          okay = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (is_ptr_to_member(source_type) &&
+             is_ptr_to_member(dest_type)) {
+    /* Pointer-to-member --> pointer-to-member.  Valid as long as both
+       pointers are pointers to data members or both are pointers to
+       member functions. */
+    if (is_function_type(pm_member_type(source_type)) ==
+        is_function_type(pm_member_type(dest_type))) {
+      okay = TRUE;
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "reinterpret_cast_conversion_possible: %s\n",
+                     okay ? "okay" : "not okay");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return okay;
+}  /* reinterpret_cast_conversion_possible */
+
+
 a_boolean expl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_constant,
                                    a_constant    *source_constant,
@@ -3504,92 +3666,18 @@ conversions (constructors and conversion functions).
     /* This catches incomplete enums for completeness.  The caller probably
        ruled out incomplete types anyway. */
     /* okay = FALSE; -- already set. */
-  } else if (is_integral(source_type) && is_enum(dest_type)) {
-    /* In C++, integral --> enum can only be done by explicit conversion.
-       In C, it's allowed as an implicit conversion but we check for it
-       again here to avoid the warning. */
+  } else if (C_mode() && is_integral(source_type) && is_enum(dest_type)) {
+    /* In C, integral --> enum can only be done as an implicit conversion
+       but we check for it again here to avoid the warning. */
     okay = TRUE;
-  } else if (is_pointer(source_type) && is_integral(dest_type) &&
-             (C_mode() ||
-              dest_of_ptr_cast_big_enough(source_type, dest_type))) {
-    /* Pointer --> integral is okay if (a) the integer is big enough or
-       (b) it's not big enough but we're compiling C. */
+  } else if (!C_mode() &&
+             static_cast_conversion_possible(source_type, dest_type)) {
+    /* The conversion can be done as a static_cast in C++. */
     okay = TRUE;
-  } else if (is_integral(source_type) && is_pointer(dest_type)) {
-    /* Integral --> pointer. */
+  } else if (reinterpret_cast_conversion_possible(source_type, dest_type,
+             warning_suggested)) {
+    /* The conversion can be done as a reinterpret_cast. */
     okay = TRUE;
-  } else if (is_pointer(source_type) && is_pointer(dest_type)) {
-    /* Pointer --> pointer.  Get the types pointed to. */
-    a_type_ptr source_type_pointed_to, dest_type_pointed_to;
-    source_type_pointed_to = type_pointed_to(source_type);
-    source_type_pointed_to = skip_typerefs(source_type_pointed_to);
-    dest_type_pointed_to = type_pointed_to(dest_type);
-    dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
-    if (C_dialect == C_dialect_cplusplus &&
-        is_class_or_struct(source_type_pointed_to) &&
-        is_class_or_struct(dest_type_pointed_to)) {
-      /* Pointer to class --> pointer to class. */
-      /* In C++, a pointer to a class can be cast to a pointer to an
-         unambiguously derived class if the base class is not
-         a virtual base class.  Note that a cast in the other direction
-         (derived --> base) would have been let by above as an implicit
-         cast. */
-      if (find_base_class_of(dest_type_pointed_to,
-                             source_type_pointed_to) != NULL) {
-        /* We leave the ambiguity and virtual-base check to be done when the
-           cast is done. */
-        okay = TRUE;
-      } else {
-        /* All other casts between pointers to classes are valid.  This
-           includes cases where one or the other of the classes is not
-           defined yet. */
-        okay = TRUE;
-      }  /* if */
-    } else if (is_function(source_type_pointed_to) ==
-               is_function(dest_type_pointed_to)) {
-      /* Pointer to function --> pointer to function, or pointer to
-         object/incomplete --> pointer to object/incomplete.  Allowed in both
-         C and C++. */
-      okay = TRUE;
-    } else {
-      /* Pointer to function --> pointer to object/incomplete, or pointer
-         to object/incomplete --> pointer to function.  Allowed in C++ if
-         the destination is big enough.  Allowed as an extension in C. */
-      if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
-        if (C_dialect != C_dialect_cplusplus) {
-          /* C mode. */
-          if (!suppress_extensions) {
-            okay = TRUE;
-            *warning_suggested = ec_mixed_function_object_pointers;
-          }  /* if */
-        } else {
-          /* C++ mode. */
-          okay = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } else if (is_ptr_to_member(source_type) &&
-             is_ptr_to_member(dest_type)) {
-    /* Pointer-to-member --> pointer-to-member.  Valid if the classes involved
-       are the same or related (ARM 5.4).  Note that the type of thing pointed
-       to is not important here, which is different than the implicit
-       base::* --> derived::* case, so the base::* --> derived::* case must be
-       checked here as well as in impl_conversion_allowed.  We leave the
-       ambiguity check to be done when the cast is done. */
-    a_type_ptr source_class, dest_class;
-    source_class = pm_class_type(source_type);
-    dest_class = pm_class_type(dest_type);
-    if (source_class == dest_class ||
-        find_base_class_of(source_class, dest_class) != NULL ||
-        find_base_class_of(dest_class, source_class) != NULL) {
-      /* The ARM doesn't say this, but pointers-to-data-members and
-         pointers-to-member-functions should not be compatible.  This
-         follows cfront. */
-      if (is_function_type(pm_member_type(source_type)) ==
-          is_function_type(pm_member_type(dest_type))) {
-        okay = TRUE;
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (!okay && impl_okay) {
     /* There is a questionable implicit conversion, and no explicit conversion

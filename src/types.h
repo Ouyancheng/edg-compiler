@@ -418,6 +418,12 @@ extern a_boolean impl_conversion_possible(
                                    a_boolean            suppress_extensions,
                                    an_error_code        default_warning_code,
                                    a_std_conv_descr_ptr std_conv);
+extern a_boolean static_cast_conversion_possible(a_type_ptr source_type,
+                                                 a_type_ptr dest_type);
+extern a_boolean reinterpret_cast_conversion_possible(
+                                             a_type_ptr    source_type,
+                                             a_type_ptr    dest_type,
+                                             an_error_code *warning_suggested);
 extern a_boolean expl_conversion_possible(a_type_ptr    source_type,
                                           a_boolean     source_is_constant,
                                           a_constant    *source_constant,
