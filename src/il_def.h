@@ -4858,7 +4858,7 @@ typedef struct a_type {
 			   identify potential 64-bit portability issues. */
   a_bit_field	is_microsoft_intrinsic:1;
 			/* TRUE if this is a class type declared with the
-			   __declspec(intrinsic) specifier. */
+			   __declspec(intrin_type) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;
