@@ -2122,7 +2122,7 @@ qualify static names that are put out as external names, to make them unique.
 Set module_id to the string.
 */
 {
-  char			*file_name = il_header.primary_source_file->file_name;
+  char			*file_name;
   sizeof_t		file_name_len;
   a_scope_ptr		scope = il_header.primary_scope;
   a_variable_ptr	variable;
@@ -2132,8 +2132,9 @@ Set module_id to the string.
   char			*str2;
 
   /* Only generate the module ID the first time that this routine is called
-     for a given primary source file. */
+     for a given translation unit. */
   if (module_id == NULL) {
+    file_name = curr_translation_unit->source_file->file_name;
     /* Find an externally visible variable or routine definition whose name
        can be used as part of the module ID. */
     for (variable = scope->variables;
