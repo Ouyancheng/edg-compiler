@@ -1,5 +1,11 @@
 Version 2.35
 
+1/3/97   ABI_CHANGES_FOR_PLACEMENT_DELETE passed to runtime
+
+The value of the ABI_CHANGES_FOR_PLACEMENT_DELETE flag is passed to the
+runtime as __EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE when using the
+--building_runtime option.
+
 1/3/97   Abort in name mangling with partial specialization of class
 
 A null-pointer-dereference abort could result in some cases when

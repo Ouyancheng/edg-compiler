@@ -3684,23 +3684,21 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Are the ABI changes for RTTI implemented? */
-  (void)enter_predef_macro(
-#if ABI_CHANGES_FOR_RTTI
-                           "1",
-#else /* !ABI_CHANGES_FOR_RTTI */
-                           "0",
-#endif /* ABI_CHANGES_FOR_RTTI */
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                                         ((unsigned long)ABI_CHANGES_FOR_RTTI),
 			   "__EDG_ABI_CHANGES_FOR_RTTI",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Are the ABI changes for array new and delete implemented? */
-  (void)enter_predef_macro(
-#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
-                           "1",
-#else /* !ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
-                           "0",
-#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                         ((unsigned long)ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE),
 			   "__EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Are the ABI changes for placement delete implemented? */
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                         ((unsigned long)ABI_CHANGES_FOR_PLACEMENT_DELETE),
+			   "__EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Pass the library dialect flags to the runtime (__BSD__, __SYSV__, and
