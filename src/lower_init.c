@@ -1477,18 +1477,13 @@ Return TRUE if the indicated delete routine is of the two-argument form.
 }  /* is_two_argument_delete */
 
 
-#if !ABI_CHANGES_FOR_PLACEMENT_DELETE
-/*ARGSUSED*/ /* <-- record_size_for_delete is not used in that case. */
-#endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
-static an_expr_node_ptr make_vec_new_call(
-                                       an_expr_node_ptr entity_node,
-                                       a_type_ptr       entity_type,
-                                       an_expr_node_ptr num_elem_node,
-                                       a_routine_ptr    ctor_routine,
-                                       a_routine_ptr    dtor_routine,
-                                       a_routine_ptr    new_routine,
-                                       a_routine_ptr    delete_routine,
-                                       a_boolean        record_size_for_delete)
+static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
+                                          a_type_ptr       entity_type,
+                                          an_expr_node_ptr num_elem_node,
+                                          a_routine_ptr    ctor_routine,
+                                          a_routine_ptr    dtor_routine,
+                                          a_routine_ptr    new_routine,
+                                          a_routine_ptr    delete_routine)
 /*
 Make a call to a runtime routine (__vec_new or __array_new) that will
 allocate an array and call a constructor for each element of the
@@ -1500,9 +1495,9 @@ the entity.  num_elem_node gives (as an expression) the number of
 elements in the array.  ctor_routine is the constructor routine to be
 called, or NULL if no constructor is to be called.  dtor_routine is
 the destructor routine to be called -- this is non-NULL only if there
-is a destructor and is used only if exceptions are enabled (in that
-case, it may be necessary to destroy array elements that were created
-if a throw occurs halfway through the initialization of the array);
+is a destructor and if exceptions are enabled (in that case, it may
+be necessary to destroy array elements that were created if a
+throw occurs halfway through the initialization of the array);
 the runtime routine __vec_new_eh is called in that case.  If
 new_routine is non-NULL, it points to an "operator new[]" routine to
 be used to do the allocation; if it is null, the default routine is
@@ -1510,12 +1505,8 @@ used.  If delete_routine is non-NULL, it points to an "operator
 delete[]" routine to be used to free the storage if an exception is
 thrown before initialization is completed; if it is NULL, the default
 routine is used.  The runtime routine __array_new is called for cases
-that require a special new or delete routine.  If record_size_for_delete
-is TRUE, the array size is to be recorded by the runtime for use when
-the array is deleted (record_size_for_delete is FALSE for arrays that
-are not dynamically allocated, i.e., static and automatic arrays).
-__placement_array_new is called for cases where entity_node is non-NULL
-and record_size_for_delete is TRUE.
+that require a special new or delete routine.  This routine is not
+used for placement new cases.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
@@ -1533,16 +1524,6 @@ and record_size_for_delete is TRUE.
          __vec_new_eh(entity_node, num_elems, size_elem, ctor_routine,
                                                          dtor_routine)
     */
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
-    /* Or, placement array new: the allocation has already been done
-       (entity_node points to it), and the size must be recorded for
-       use at the time of delete.  The call looks like
-         __placement_array_new(entity_node, num_elems, size_elem,
-                               ctor_routine, dtor_routine)
-    */
-    a_boolean placement_array_new = (entity_node != NULL &&
-                                     record_size_for_delete);
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     if (entity_node == NULL) {
       /* If the runtime routine is supposed to do the allocation, pass a
          null pointer to the routine. */
@@ -1553,19 +1534,6 @@ and record_size_for_delete is TRUE.
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
     size_elem_node->next = ctor_addr_node;
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE
-    if (placement_array_new) {
-      /* Placement array new. */
-      dtor_addr_node = expr_for_pointer_to_routine(exceptions_enabled ?
-                                                            dtor_routine :
-                                                            (a_routine *)NULL);
-      ctor_addr_node->next = dtor_addr_node;
-      call_node = make_runtime_rout_call("__placement_array_new",
-                                         &placement_array_new_routine,
-                                         void_star_type(), arg_expr_list);
-    } else
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
-    /* Do not insert code here; this is the "else" of an "if". */
     if (exceptions_enabled && dtor_routine != NULL) {
       /* __vec_new_eh call, with destructor. */
       dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
@@ -1584,12 +1552,8 @@ and record_size_for_delete is TRUE.
        The dtor_routine and delete_routine are always NULL when exceptions
        are disabled.  is_two_arg is 1 if the delete routine has two arguments
        and 0 otherwise. */
-    /* When initializing an array that is not dynamically allocated,
-       dtor_routine can be non-NULL even if exceptions are disabled. */
     check_assertion(entity_node == NULL);
-    dtor_addr_node = expr_for_pointer_to_routine(exceptions_enabled ?
-                                                            dtor_routine :
-                                                            (a_routine *)NULL);
+    dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
     new_addr_node = expr_for_pointer_to_routine(new_routine);
     delete_addr_node = expr_for_pointer_to_routine(delete_routine);
     is_two_arg_node = node_for_integer_constant(
@@ -1609,6 +1573,83 @@ and record_size_for_delete is TRUE.
   return call_node;
 }  /* make_vec_new_call */
 
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+
+static an_expr_node_ptr make_placement_array_new_call(
+                                          an_expr_node_ptr entity_node,
+                                          a_type_ptr       entity_type,
+                                          an_expr_node_ptr num_elem_node,
+                                          a_routine_ptr    ctor_routine,
+                                          a_routine_ptr    dtor_routine,
+                                          a_routine_ptr    delete_routine,
+                                          an_expr_node_ptr delete_args)
+/*
+Make a call to a runtime routine (__placement_array_new) that will
+record the size of an array allocated via placement new and call a
+constructor for each element of the array.  A pointer to the expression
+created is returned.  entity_node gives the address of the array.
+entity_type gives the type of the pointer to the entity.  num_elem_node
+gives (as an expression) the number of elements in the array.
+ctor_routine is the constructor routine to be called, or NULL if no
+constructor is to be called.  dtor_routine is the destructor routine
+to be called -- this is non-NULL only if there is a destructor and
+if exceptions are enabled (in that case, it may be necessary to
+destroy array elements that were created if a throw occurs halfway
+through the initialization of the array).  If delete_routine is
+non-NULL, it points to an "operator delete[]" routine to be used
+to free the storage if an exception is thrown before initialization
+is completed; if it is NULL, the storage is not freed.
+*/
+{
+  an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
+  an_expr_node_ptr ctor_addr_node, dtor_addr_node;
+
+  /* The call looks like
+         __placement_array_new(entity_node, num_elems, size_elem,
+                               ctor_routine, dtor_routine)
+  */
+  /* Build a constant node for the size of the array elements. */
+  size_elem_node = size_elem_node_from_pointer_type(entity_type);
+  ctor_addr_node = expr_for_pointer_to_routine(ctor_routine);
+  dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+  arg_expr_list = entity_node;
+  entity_node->next = num_elem_node;
+  num_elem_node->next = size_elem_node;
+  size_elem_node->next = ctor_addr_node;
+  ctor_addr_node->next = dtor_addr_node;
+  call_node = make_runtime_rout_call("__placement_array_new",
+                                     &placement_array_new_routine,
+                                     void_star_type(), arg_expr_list);
+  if (delete_routine != NULL) {
+    /* A placement delete routine must be called.  The fact that the
+       pointer is non-NULL means exceptions are enabled. */
+    /* Wrap the call in an internal "try" block whose "catch" is a call
+       of the placement delete routine. */
+    an_expr_node_ptr entity_node_copy, delete_call, temp_value;
+
+    /* Assign the call result to a temporary and make an expression to
+       use it later. */
+    temp_value = assign_expr_to_temp_and_make_expr_for_reuse(call_node);
+    /* The first argument for the delete call is a pointer to the array. */
+    entity_node_copy = make_reusable_copy(entity_node,
+                                          /*vars_can_change=*/TRUE);
+    entity_node_copy->next = delete_args;
+    /* Make a call of the placement delete routine. */
+    delete_call = make_call_node(delete_routine, entity_node_copy,
+                                 /*honor_virtual=*/FALSE,
+                                 (an_insert_location *)NULL);
+    /* Wrap the expressions in an internal "try" block. */
+    call_node = make_internal_try_expr(call_node, delete_call);
+    /* Add a comma expression to get the value returned from the call as
+       the value of the overall expression. */
+    call_node->next = temp_value;
+    call_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                   temp_value->type, call_node);
+  }  /* if */
+  return call_node;
+}  /* make_placement_array_new_call */
+
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
 static an_expr_node_ptr make_vec_delete_call(
                                           an_expr_node_ptr entity_node,
@@ -2166,9 +2207,10 @@ in default_version_of_routine).
     num_elem_node = num_elem_node_from_count(array_element_count);
     call_node = make_vec_new_call(entity_node, entity_node->type,
                                   num_elem_node,
-                                  ctor_routine, dip->destructor,
-                                  (a_routine *)NULL, (a_routine *)NULL,
-                                  /*record_size_for_delete=*/FALSE);
+                                  ctor_routine,
+                                  exceptions_enabled ? dip->destructor :
+                                                       (a_routine *)NULL,
+                                  (a_routine *)NULL, (a_routine *)NULL);
   }  /* if */
   /* Make a statement containing the call. */
   call_stmt = alloc_expr_statement(call_node);
@@ -4034,6 +4076,31 @@ the dynamic init entry that applies to each element and return a pointer to it.
 }  /* elem_dynamic_init */
 
 
+static an_expr_node_ptr copy_arg_list_for_placement_delete(
+                                                an_expr_node_ptr orig_arg_list)
+/*
+Make a copy of the indicated argument list (for a placement new call) to
+be used for a placement delete call, and return a pointer to it.  Each
+argument in the original list is assigned to a temporary, and the temporary
+is referenced in the second list.  (If an argument expression is invariant,
+no temporary is needed; a copy is made.)
+*/
+{
+  an_expr_node_ptr arg_list = NULL, end_arg_list = NULL, orig_arg, arg;
+
+  for (orig_arg = orig_arg_list; orig_arg != NULL; orig_arg = orig_arg->next) {
+    arg = make_reusable_copy(orig_arg, /*vars_can_change=*/TRUE);
+    if (arg_list == NULL) {
+      arg_list = arg;
+    } else {
+      end_arg_list->next = arg;
+    }  /* if */
+    end_arg_list = arg;
+  }  /* for */
+  return arg_list;
+}  /* copy_arg_list_for_placement_delete */
+
+
 /*
 Variable entry for the runtime global variable __array_new_prefix_size,
 which gives the size in bytes of the array allocation prefix.  NULL until
@@ -4067,6 +4134,7 @@ arrays with class elements.
   a_boolean                   ovflo;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
   an_insert_location          insert_location;
+  an_expr_node_ptr            delete_args = NULL;
 
   /* Get the array element type. */
   array_type = skip_typerefs(ndsp->type);
@@ -4107,6 +4175,16 @@ arrays with class elements.
                        "lower_array_new: placement new with null new_routine");
     lower_arg_expr_list(ndsp->arg, new_routine->type,
                         (a_param_type_ptr)NULL);
+    if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL) {
+      /* This is a placement new for which there is a corresponding placement
+         delete.  Make a copy of the argument list for the new call, to
+         be used in the delete call.  Note that this is done after IL lowering,
+         so the argument expressions are evaluated only once.  But that
+         also means temporaries used to pass class objects via copy
+         constructor are shared. */
+      /* Note that the copy skips the first argument (the size). */
+      delete_args = copy_arg_list_for_placement_delete(ndsp->arg->next);
+    }  /* if */
     size_node = ndsp->arg;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the size of the runtime prefix used to keep track of the array
@@ -4310,11 +4388,22 @@ arrays with class elements.
     /* No deletion on throw. */
     delete_routine = NULL;
   }  /* if */
-  /* Construct the call of __vec_new or __array_new. */
-  vec_new_node = make_vec_new_call(entity_node, ptr_elem_type, num_elem_node,
-                                   ctor_routine, dtor_routine,
-                                   new_routine, delete_routine,
-                                   /*record_size_for_delete=*/TRUE);
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+  if (!ndsp->placement_new) {
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+    /* Construct the call of __vec_new or __array_new. */
+    vec_new_node = make_vec_new_call(entity_node, ptr_elem_type, num_elem_node,
+                                     ctor_routine, dtor_routine,
+                                     new_routine, delete_routine);
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+  } else {
+    /* Placement new.  Construct a call of __placement_array_new. */
+    vec_new_node = make_placement_array_new_call(entity_node,
+                                                 ptr_elem_type, num_elem_node,
+                                                 ctor_routine, dtor_routine,
+                                                 delete_routine, delete_args);
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   insert_expr(vec_new_node, &insert_location);
   vec_new_node = insert_location.variant.expr;
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
@@ -4446,31 +4535,6 @@ the point at which code should be inserted.
     }  /* if */
   }  /* if */
 }  /* turn_off_freeing_of_storage_on_exception */
-
-
-static an_expr_node_ptr copy_arg_list_for_placement_delete(
-                                                an_expr_node_ptr orig_arg_list)
-/*
-Make a copy of the indicated argument list (for a placement new call) to
-be used for a placement delete call, and return a pointer to it.  Each
-argument in the original list is assigned to a temporary, and the temporary
-is referenced in the second list.  (If an argument expression is invariant,
-no temporary is needed; a copy is made.)
-*/
-{
-  an_expr_node_ptr arg_list = NULL, end_arg_list = NULL, orig_arg, arg;
-
-  for (orig_arg = orig_arg_list; orig_arg != NULL; orig_arg = orig_arg->next) {
-    arg = make_reusable_copy(orig_arg, /*vars_can_change=*/TRUE);
-    if (arg_list == NULL) {
-      arg_list = arg;
-    } else {
-      end_arg_list->next = arg;
-    }  /* if */
-    end_arg_list = arg;
-  }  /* for */
-  return arg_list;
-}  /* copy_arg_list_for_placement_delete */
 
 
 static void lower_new(an_expr_node_ptr expr)
