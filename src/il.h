@@ -646,8 +646,18 @@ extern void remove_sublist_header_and_parent(
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if ORPHAN_PROCESSING_NEEDED
-extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
-                                             an_il_entry_kind entry_kind);
+/*
+Record a file-scope entry as a potential orphan.  The macro here ensures
+that once the entry is placed on an orphan list the subroutine is no
+longer called (well, except if it's the last entry on the list).
+*/
+#define add_orphaned_file_scope_il_entry(entry_ptr, entry_kind)       \
+{ if (fs_orphan_pointer_of(entry_ptr) == NULL) {                      \
+    f_add_orphaned_file_scope_il_entry((entry_ptr), (entry_kind));    \
+  }  /* if */                                                         \
+}  /* add_orphaned_file_scope_il_entry */
+extern void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
+                                               an_il_entry_kind entry_kind);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 extern void add_scope_orphaned_il_lists(a_scope_ptr scope);

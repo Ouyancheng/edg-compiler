@@ -2074,27 +2074,28 @@ Return TRUE if the sequence number seq_number falls within an include file.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if ORPHAN_PROCESSING_NEEDED
 
-void add_orphaned_file_scope_il_entry (char             *entry_ptr,
-                                       an_il_entry_kind entry_kind)
+void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
+                                        an_il_entry_kind entry_kind)
 /*
 Link the specified file scope IL entry onto the orphaned_file_scope_il_entries
 linked list for the designated IL entry kind.  Only IL entries in the
 file scope memory region have the necessary additional pointer space 
-allocated immediately preceding the entry.
+allocated immediately preceding the entry.  This routine is called by
+the macro add_orphaned_file_scope_il_entry, which checks that
+fs_orphan_pointer_of(entry_ptr) == NULL for speed (this routine does
+not check that again, so it should not be called directly).
 */
 {
   char **last_entry_ptr;
 
-#if CHECKING
-  if (!in_file_scope(entry_ptr)) {
-    internal_error(
- "add_orphaned_file_scope_il_entry: IL entry not in file scope memory region");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(in_file_scope(entry_ptr),
+    "f_add_orphaned_file_scope_...: IL entry not in file scope memory region");
   /* Check if this IL entry is already on the orphaned entry list. */
   last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
-  if (fs_orphan_pointer_of(entry_ptr) == NULL &&
-      entry_ptr != *last_entry_ptr) {
+  /* The following check was done by the macro that guards entry to this
+     routine: fs_orphan_pointer_of(entry_ptr) == NULL.  If one wants this
+     routine to be directly callable, the test should be done again here. */
+  if (entry_ptr != *last_entry_ptr) {
     /* This entry is not in the existing list; add it to the end of the
        list. */
     if (*last_entry_ptr == NULL) {
@@ -2107,7 +2108,7 @@ allocated immediately preceding the entry.
     }  /* if */
     *last_entry_ptr = entry_ptr;
   }  /* if */
-}  /* add_orphaned_file_scope_il_entry */
+}  /* f_add_orphaned_file_scope_il_entry */
 
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
