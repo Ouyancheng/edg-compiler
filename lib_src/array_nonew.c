@@ -22,7 +22,7 @@ Placement version of C++ operator new[]();
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
-void *operator new[](size_t size, const STD_NAMESPACE::nothrow& nothrow_arg)
+void *operator new[](size_t size, const STD_NAMESPACE::nothrow_t& nothrow_arg)
 /*
 Nothrow version of array operator new.  Just call the normal nothrow
 operator new.
