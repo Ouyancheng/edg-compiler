@@ -7573,7 +7573,6 @@ the function is a nonstatic member of class_type.
 {
   a_type_ptr  rout_type;
 
-  check_assertion((*member_type)->kind == (a_type_kind)tk_typeref);
   if (is_definition) {
     /* Not legal to define a function with a typedef type. */
     pos_error(ec_function_type_must_come_from_declarator, err_pos);
