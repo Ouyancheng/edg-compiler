@@ -893,7 +893,6 @@ EXTERN a_boolean
 #undef TARG_MAX_CLASS_OBJECT_SIZE
 #undef TARG_MAX_BASE_CLASS_OFFSET
 #undef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
-#undef TARG_MAX_BIT_FIELD_SIZE
 #undef TARG_BIT_FIELD_CONTAINER_SIZE
 #undef TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #undef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
@@ -971,7 +970,6 @@ EXTERN a_boolean
 #define TARG_MAX_BASE_CLASS_OFFSET targ_max_base_class_offset
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT                           \
                         targ_optimize_empty_base_class_layout
-#define TARG_MAX_BIT_FIELD_SIZE targ_max_bit_field_size
 #define TARG_BIT_FIELD_CONTAINER_SIZE targ_bit_field_container_size
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION targ_microsoft_bit_field_allocation
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED                            \
