@@ -474,11 +474,12 @@ are required in the overall program, not necessarily in the current
 compilation.
 */
 {
-  a_base_class_ptr bcp;
-  a_class_type_supplement_ptr
-                   ctsp = class_type->variant.class_struct_union.extra_info;
   if (class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
+    a_base_class_ptr bcp;
+    a_class_type_supplement_ptr
+                     ctsp = class_type->variant.class_struct_union.extra_info;
+
     /* Loop through the routines list and check the virtual functions. */
     require_definitions_of_virtual_functions_on_routine_list(
                                      class_type,
@@ -492,6 +493,34 @@ compilation.
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */
 
+/* IL lowering provides its own version of this routine. */
+#if !DO_IL_LOWERING
+
+static a_boolean virtual_functions_needed_due_to_definition_of(
+                                                         a_routine_ptr routine)
+/*
+Return TRUE if definitions of virtual functions of the class of which the
+indicated routine is a member are needed (somewhere in the program, but
+not necessarily in the current compilation).  The definition of the
+indicated routine has just been processed.
+*/
+{
+  a_boolean  needed = FALSE;
+  a_type_ptr class_type = routine->source_corresp.parent.class_type;
+
+  if (class_type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Constructor and destructor wrappers refer to the virtual function
+         table and therefore the virtual functions are needed. */
+      needed = TRUE;
+    }  /* if */
+  }  /* if */
+  return needed;
+}  /* virtual_functions_needed_due_to_definition_of */
+
+#endif /* !DO_IL_LOWERING */
 
 static void require_definitions_of_virtual_functions_due_to_definition_of(
                                                          a_routine_ptr routine)
