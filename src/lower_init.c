@@ -6550,13 +6550,22 @@ destructor scope, and also lower the user code.
 }  /* lower_destructor_code */
 
 
-static void b_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
+#if !ONE_INSTANTIATION_PER_OBJECT
+/*ARGSUSED*/ /* residual_destrs is not used in that case. */
+#endif /* !ONE_INSTANTIATION_PER_OBJECT */
+static void b_lower_file_scope_dynamic_inits(
+                                         unsigned long needed_bit_number,
+                                         a_dynamic_init_ptr   *residual_destrs)
 /*
 Do lowering on the file-scope dynamic initializations list.  Generate
 an initialization routine and make sure it will get called at program
 startup.  If needed_bit_number is non-zero, it is the needed flag bit number
 for an instantiation, and only initializations for that bit number should
-be included in the initialization routine.
+be included in the initialization routine.  Any destructions associated
+with the initializations to be done that remain on the object lifetime
+list after lowering are moved to the residual_destrs list.  This is so
+they can be kept off the object lifetime list now and added back in
+after all initialization routines for instantiations have been generated.
 */
 {
   a_dynamic_init_ptr dip, dip_next;
@@ -6583,7 +6592,6 @@ be included in the initialization routine.
   if (needed_bit_number == 1) eff_needed_bit_number = 0;
   if (needed_bit_number != 0) {
     a_dynamic_init_ptr dip_next;
-    a_boolean          process;
     /* We're putting out separate initialization routines for each
        instantiation.   Split the dynamic initializations list into two
        lists: one that gets processed on this call (because the variables
@@ -6619,35 +6627,40 @@ be included in the initialization routine.
        too. */
     dtor_process_list = end_dtor_process_list = NULL;
     dtor_delay_list = end_dtor_delay_list = NULL;
-    process = FALSE;
-    for (dip = file_scope->lifetime->destructions;
-         dip != NULL;
-         dip = dip_next) {
-      dip_next = dip->next_in_destruction_list;
-      dip->next_in_destruction_list = NULL;
-      if (dip->variable != NULL) {
-        process =  (dip->variable->instantiation_needed_bit_number ==
+    if (file_scope->lifetime != NULL) {
+      a_boolean process = FALSE;
+
+      for (dip = file_scope->lifetime->destructions;
+           dip != NULL;
+           dip = dip_next) {
+        dip_next = dip->next_in_destruction_list;
+        dip->next_in_destruction_list = NULL;
+        /* Assume that destructions following a variable on the list are
+           related to that variable. */
+        if (dip->variable != NULL) {
+          process =  (dip->variable->instantiation_needed_bit_number ==
                                                        eff_needed_bit_number);
-      }  /* if */
-      if (process) {
-        /* This destruction gets processed on this call. */
-        if (end_dtor_process_list == NULL) {
-          dtor_process_list = dip;
-        } else {
-          end_dtor_process_list->next_in_destruction_list = dip;
         }  /* if */
-        end_dtor_process_list = dip;
-      } else {
-        /* This destruction does not get processed on this call and goes
-           back on the list. */
-        if (end_dtor_delay_list == NULL) {
-          dtor_delay_list = dip;
+        if (process) {
+          /* This destruction gets processed on this call. */
+          if (end_dtor_process_list == NULL) {
+            dtor_process_list = dip;
+          } else {
+            end_dtor_process_list->next_in_destruction_list = dip;
+          }  /* if */
+          end_dtor_process_list = dip;
         } else {
-          end_dtor_delay_list->next_in_destruction_list = dip;
+          /* This destruction does not get processed on this call and goes
+             back on the list. */
+          if (end_dtor_delay_list == NULL) {
+            dtor_delay_list = dip;
+          } else {
+            end_dtor_delay_list->next_in_destruction_list = dip;
+          }  /* if */
+          end_dtor_delay_list = dip;
         }  /* if */
-        end_dtor_delay_list = dip;
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
     file_scope->dynamic_inits = dip = process_list;
     if (file_scope->lifetime != NULL) {
       file_scope->lifetime->destructions = dtor_process_list;
@@ -6716,6 +6729,20 @@ be included in the initialization routine.
   if (needed_bit_number != 0) {
     file_scope->dynamic_inits = delay_list;
     if (file_scope->lifetime != NULL) {
+      if (file_scope->lifetime->destructions != NULL) {
+        /* There are some destructions that remain on the list after lowering,
+           e.g., ones for temporaries that were built during construction of
+           an aggregate.  Save them on a side list so that they will not
+           be on the primary list and therefore will not accidentally
+           be processed again.  They will be put back on the list after
+           all initialization routines have been generated. */
+        a_dynamic_init_ptr last_destr = file_scope->lifetime->destructions;
+        while (last_destr->next_in_destruction_list != NULL) {
+          last_destr = last_destr->next_in_destruction_list;
+        }  /* if */
+        last_destr->next_in_destruction_list = *residual_destrs;
+        *residual_destrs = file_scope->lifetime->destructions;
+      }  /* if */
       file_scope->lifetime->destructions = dtor_delay_list;
     }  /* if */
   }  /* if */
@@ -6729,8 +6756,11 @@ Do lowering on the file-scope dynamic initializations list.  Also insert
 code to cause the generated initialization routine to be called at startup.
 */
 {
+  a_scope_ptr file_scope = il_header.primary_scope;
+
 #if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
+    a_dynamic_init_ptr residual_destrs = NULL;
     /* When generating one instantiation per object, each instantiation gets
        its own initialization file. */
     /* Each instantiation has an associated bit number.  The bit numbers
@@ -6741,16 +6771,23 @@ code to cause the generated initialization routine to be called at startup.
          needed_bit_number <
                  (il_header.number_of_external_nonclass_template_entities+1)*2;
          needed_bit_number += 2) {
-      b_lower_file_scope_dynamic_inits(needed_bit_number);
+      b_lower_file_scope_dynamic_inits(needed_bit_number, &residual_destrs);
     }  /* for */
-    check_assertion_str(il_header.primary_scope->dynamic_inits == NULL,
+    check_assertion_str(file_scope->dynamic_inits == NULL,
                     "lower_file_scope_dynamic_inits: not all entries lowered");
+    if (file_scope->lifetime != NULL) {
+      /* Restore any redidual destructions left after lowering. */
+      check_assertion_str(file_scope->lifetime->destructions == NULL,
+                       "lower_file_scope_dynamic_inits: non-NULL destrs list");
+      file_scope->lifetime->destructions = residual_destrs;
+    }  /* if */
   } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Do not insert code here; this is the "else" of an "if". */
   {
-    b_lower_file_scope_dynamic_inits((unsigned long)0);
-    il_header.primary_scope->dynamic_inits = NULL;
+    b_lower_file_scope_dynamic_inits((unsigned long)0,
+                                     (a_dynamic_init_ptr *)0);
+    file_scope->dynamic_inits = NULL;
   }
 }  /* lower_file_scope_dynamic_inits */
 
