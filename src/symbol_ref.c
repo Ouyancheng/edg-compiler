@@ -1023,8 +1023,11 @@ created for this entity; otherwise, it is NULL.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Issue a source sequence entry -- unless this is a label definition.  (A
      label is always defined by an stmk_label statement, for which a source
-     sequence entry will be put out.  Putting out both would be redundant. */
-  if (sym_ptr->kind != (a_symbol_kind)sk_label) {
+     sequence entry will be put out; putting out both would be redundant.
+     sk_parameter symbols are not yet bound to a variable, so there's no way
+     to put out a source sequence entry yet.) */
+  if (sym_ptr->kind != (a_symbol_kind)sk_label &&
+      sym_ptr->kind != (a_symbol_kind)sk_parameter) {
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (is_definition && !C_mode() &&
         (sym_ptr->kind == (a_symbol_kind)sk_member_function ||

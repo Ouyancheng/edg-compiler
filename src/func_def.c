@@ -1038,6 +1038,23 @@ and for the instantiation of template functions.
          function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
       if (C_mode()) error(ec_all_proto_params_must_be_named);
     }  /* if */
+    if (!rtsp->prototyped && f_xref_info != NULL) {
+      /* Update the cross-reference output with entries for the comma-list
+         of parameter names in the old-style parameter declaration format. */
+      for (param_id = func_info->param_id_list;
+           param_id != NULL;
+           param_id = param_id->next) {
+        if (param_id->implicitly_declared) {
+          /* Implicitly declared old-style parameters are recorded as
+             definitions -- mark_defined is called in decl_parameter. */
+        } else {
+          /* The symbol pointed to by param_id is still an sk_parameter
+             symbol.  However, its source position will have been modified,
+             so use the original source position. */
+          mark_declared(param_id->symbol, &param_id->old_style_id_pos);
+        }  /* if */
+      }  /* for */
+    }  /* if */
     param_id = func_info->param_id_list;
     ptp = rtsp->param_type_list;
     /* Be sure param-id and param-type lists are in sync. */

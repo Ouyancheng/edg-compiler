@@ -1570,6 +1570,9 @@ issue an error if a default argument expression is encountered.
                              (a_storage_class)sc_unspecified, func_info,
                              (a_source_sequence_entry_ptr)NULL,
                              &last_param_id);
+        /* Update the param-id entry just created with the source position
+           of the identifier. */
+        last_param_id->old_style_id_pos = locator_for_curr_id.source_position;
         /* Advance past the identifier. */
         (void)get_token();
       }  /* if */
