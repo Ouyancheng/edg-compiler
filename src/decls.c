@@ -1412,10 +1412,24 @@ called by id_linkage.
   /* We are only interested in variable and function declarations.  If
      something else was found, we're not interested. */
   if (other_decl != NULL) {
-    if (other_decl->kind != (a_symbol_kind)sk_variable &&
-        other_decl->kind != (a_symbol_kind)sk_routine &&
-        other_decl->kind != (a_symbol_kind)sk_function_template &&
-        other_decl->kind != (a_symbol_kind)sk_overloaded_function) {
+    a_symbol_kind  kind = other_decl->kind;
+
+    if (kind != (a_symbol_kind)sk_variable &&
+        kind != (a_symbol_kind)sk_routine &&
+        kind != (a_symbol_kind)sk_function_template &&
+        kind != (a_symbol_kind)sk_overloaded_function) {
+      if (!C_mode() && kind == (a_symbol_kind)sk_namespace_projection) {
+        /* Check for a case like:
+             namespace N ( void f(int); }
+             using N::f;
+             void f();
+           for which we'll need to form an overload set with N::f and ::f. */
+        kind = fundamental_symbol_of(other_decl)->kind;
+        if (kind == (a_symbol_kind)sk_routine ||
+            kind == (a_symbol_kind)sk_function_template) {
+          *overload_symbol = other_decl;
+        }  /* if */
+      }  /* if */
       other_decl = NULL;
     }  /* if */
   }  /* if */
