@@ -1381,7 +1381,7 @@ operator kinds.  Issue a diagnostic if an error is found.
                  opname_member_function_symbol(opname, tp) == NULL);
         }  /* if */
         if (err) {
-          pos_error(ec_bad_return_type_for_operator_arrow, pos);
+          pos_error(ec_bad_return_type_for_op_arrow, pos);
           rout->type->variant.routine.return_type = error_type();
         }  /* if */
       }  /* if */
@@ -1392,11 +1392,11 @@ operator kinds.  Issue a diagnostic if an error is found.
       if (!is_error_type(tp)) {
         if (opname == (an_opname_kind)onk_new) {
           if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
-            pos_error(ec_bad_return_type_for_operator_new, pos);
+            pos_error(ec_bad_return_type_for_op_new, pos);
           }  /* if */
         } else {
           if (!is_void_type(tp)) {
-            pos_error(ec_bad_return_type_for_operator_delete, pos);
+            pos_error(ec_bad_return_type_for_op_delete, pos);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4543,35 +4543,37 @@ function_lparen:
       }  /* if */
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
-      if (func_info == NULL || derived_type != NULL) {
-        /* If the function is pointed to by a pointer-to-member type, we need
-           to pass the class-of-which-a-member to function_declarator. */
-        a_type_ptr tp = derived_type;
-        member_parent_type = NULL;
-        if (tp != NULL) {
-          if (!is_array_type(tp) ||
-              (tp = underlying_array_element_type(tp)) != NULL) {
-            tp = skip_typerefs(tp);
-            if (is_ptr_to_member_type(tp)) {
-              /* Declaration of a pointer to member function. */
-              member_parent_type = pm_class_type(tp);
-              is_nonstatic_member_function = TRUE;
+      if (C_dialect == C_dialect_cplusplus) {
+        if (func_info == NULL || derived_type != NULL) {
+          /* If the function is pointed to by a pointer-to-member type, we need
+             to pass the class-of-which-a-member to function_declarator. */
+          a_type_ptr tp = derived_type;
+          member_parent_type = NULL;
+          if (tp != NULL) {
+            if (!is_array_type(tp) ||
+                (tp = underlying_array_element_type(tp)) != NULL) {
+              tp = skip_typerefs(tp);
+              if (is_ptr_to_member_type(tp)) {
+                /* Declaration of a pointer to member function. */
+                member_parent_type = pm_class_type(tp);
+                is_nonstatic_member_function = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-        func_info = NULL;
-        is_constructor = is_destructor = FALSE;
-      } else if (is_constructor || is_destructor) {
-        is_nonstatic_member_function = TRUE;
-      } else {
-        if (input_flags & DI_NONSTATIC_MEMBER) {
-          if (locator->is_operator_name &&
-              (locator->variant.opname == (an_opname_kind)onk_new ||
-               locator->variant.opname == (an_opname_kind)onk_delete)) {
-            /* operator new and operator delete are always nonstatic, even
-               if "static" was not specified in the declaration. */
-          } else {
-            is_nonstatic_member_function = TRUE;
+          func_info = NULL;
+          is_constructor = is_destructor = FALSE;
+        } else if (is_constructor || is_destructor) {
+          is_nonstatic_member_function = TRUE;
+        } else {
+          if (input_flags & DI_NONSTATIC_MEMBER) {
+            if (locator->is_operator_name &&
+                (locator->variant.opname == (an_opname_kind)onk_new ||
+                 locator->variant.opname == (an_opname_kind)onk_delete)) {
+              /* operator new and operator delete are always nonstatic, even
+                 if "static" was not specified in the declaration. */
+            } else {
+              is_nonstatic_member_function = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

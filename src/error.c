@@ -1278,10 +1278,10 @@ error code.
     case ec_bad_arg_type_for_operator_new:
       m = "operator new() requires first argument of type \"size_t\"";
       break;
-    case ec_bad_return_type_for_operator_new:
+    case ec_bad_return_type_for_op_new:
       m = "operator new() requires return type of \"void *\"";
       break;
-    case ec_bad_return_type_for_operator_delete:
+    case ec_bad_return_type_for_op_delete:
       m = "operator delete() requires return type of \"void\"";
       break;
     case ec_bad_first_arg_type_for_operator_delete:
@@ -1388,7 +1388,7 @@ error code.
     case ec_delete_count_anachronism:
       m = "delete array size expression ignored (anachronism)";
       break;
-    case ec_bad_return_type_for_operator_arrow:
+    case ec_bad_return_type_for_op_arrow:
       m = "operator->() requires pointer-to-class return type";
       break;
     case ec_cast_to_abstract_class:
