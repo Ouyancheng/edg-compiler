@@ -94,6 +94,7 @@ typedef enum /*an_option_kind*/ {
   optk_diag_remark,
   optk_diag_warning,
   optk_diag_error,
+  optk_display_error_number,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -292,6 +293,8 @@ Initialize the option information table.
                          /*value=*/TRUE, /*arg_required=*/TRUE);
   add_option_description(optk_diag_error, "diag_error", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(optk_display_error_number, "display_error_number",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE);
 }  /* initialize_option_descriptions */
 
 
@@ -955,6 +958,11 @@ Process the arguments on the command line that invoked the compiler.
         /* Options that override the severity of a given diagnostic.  The
            option argument contains a comma separated list of error tags. */
         process_diag_override_option(kind, optarg);
+        break;
+      case optk_display_error_number:
+        /* Display the error number in diagnostic messages. */
+        check_assertion(opt_value == TRUE);
+        display_error_number = TRUE;
         break;
       default:
         /* It should not be possible to get here. */

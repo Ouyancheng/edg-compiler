@@ -2502,7 +2502,8 @@ handle_embedded_quoted_text:
 }  /* write_message */
 
 
-static void write_position_and_severity(an_error_severity severity,
+static void write_position_and_severity(an_error_code     error_code,
+                                        an_error_severity severity,
                                         a_source_position *error_pos,
                                         char              **file_name,
                                         a_line_number     *line_number,
@@ -2521,7 +2522,14 @@ the output.
   a_boolean	at_end_of_source;
   a_boolean     capitalize_severity;
   a_boolean     column_needed;
+  a_boolean	local_display_error_number;
 
+  /* Determine whether the error number should be displayed for this
+     diagnostic.  Internal errors don't have error numbers.  If the
+     caller passes the value ec_no_error, the error number display is
+     suppressed. */
+  local_display_error_number = display_error_number && 
+                               error_code != ec_no_error;
   capitalize_severity = FALSE;
   *src_text_needed = FALSE;
   *in_curr_src_line = FALSE;
@@ -2588,31 +2596,32 @@ the output.
      diagnostic against the total for the severity. */
   switch (severity) {
     case es_remark:
-      severity_string = "remark: ";
+      severity_string = "remark";
       total_remarks++;
       break;
     case es_warning:
-      severity_string = "warning: ";
+      severity_string = "warning";
       total_warnings++;
       break;
     case es_error:
-#if ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES
-      severity_string = "error: ";
-#else /* ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
-      severity_string = "";
-#endif /* ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
+      if (local_display_error_number ||
+          ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) {
+        severity_string = "error";
+      } else {
+        severity_string = "";
+      }  /* if */
       total_errors++;
       break;
     case es_catastrophe:
-      severity_string = "catastrophic error: ";
+      severity_string = "catastrophic error";
       total_catastrophes++;
       break;
     case es_command_line_error:
-      severity_string = "command-line error: ";
+      severity_string = "command-line error";
       total_catastrophes++;
       break;
     case es_internal_error:
-      severity_string = "internal error: ";
+      severity_string = "internal error";
       total_catastrophes++;
       break;
 #if CHECKING
@@ -2628,6 +2637,13 @@ the output.
                                           severity_string+1);
   } else {
     *line_len += fprintf(stderr, "%s", severity_string);
+  }  /* if */
+  /* The error number may optionally be displayed based on a command
+     line option. */
+  if (local_display_error_number) {
+    *line_len += fprintf(stderr, " #%0d: ", (int)error_code);
+  } else {
+    *line_len += fprintf(stderr, ": ");
   }  /* if */
 }  /* write_position_and_severity */
 
@@ -2703,7 +2719,8 @@ in lower case.
 }  /* write_diag_to_raw_listing */
 
 
-static void write_diagnostic(a_source_position          *error_pos,
+static void write_diagnostic(an_error_code              error_code,
+                             a_source_position          *error_pos,
                              an_error_severity          severity,
                              a_diagnostic_category_kind diag_kind)
 /*
@@ -2745,7 +2762,7 @@ additional messages in a multiple message diagnostic.
 
     if (diag_kind == dck_standalone || diag_kind == dck_primary) {
       /* Collect and output error position and severity information. */
-      write_position_and_severity(severity, error_pos, &file_name,
+      write_position_and_severity(error_code, severity, error_pos, &file_name,
                                   &line_number,
                                   &source_text_needed,
                                   &in_current_source_line,
@@ -2844,7 +2861,8 @@ An internal error has occurred.  Write the given message and abort.
   init_error_params();
   error_msg_strings[1] = error_message;
   construct_message_segments("%s");
-  write_diagnostic(&error_position, es_internal_error, dck_standalone);
+  write_diagnostic(ec_no_error, &error_position, es_internal_error,
+                   dck_standalone);
 #ifdef __GNUC__
   /* Avoid gcc warning.  write_diagnostic does not return in this case. */
   exit_compilation(es_internal_error);
@@ -2912,7 +2930,8 @@ terminate the compilation.
   error_msg_strings[2] = concat_string;
   construct_message_segments("%s1%s2");
 
-  write_diagnostic(&error_position, es_command_line_error, dck_standalone);
+  write_diagnostic(error_code, &error_position, es_command_line_error,
+                   dck_standalone);
 #ifdef __GNUC__
   /* Avoid gcc warning.  write_diagnostic does not return in this case. */
   exit_compilation(es_internal_error);
@@ -3236,7 +3255,7 @@ and doing any required expansions, the diagnostic is written.
     }  /* for */
 #endif /* CHECKING */
 #if STANDALONE_UTILITY_PROGRAM
-    write_diagnostic(error_pos, severity, diag_kind);
+    write_diagnostic(error_code, error_pos, severity, diag_kind);
 #else /* !STANDALONE_UTILITY_PROGRAM */
     /* Certain conditions, such as errors that occur while instantiating
        template classes and functions, require additional context information
@@ -3252,7 +3271,7 @@ and doing any required expansions, the diagnostic is written.
     if (diag_kind != dck_standalone && diag_kind != dck_end_list) {
       /* The context display processing is only required after standalone and
          end-list messages. */
-      write_diagnostic(error_pos, severity, diag_kind);
+      write_diagnostic(error_code, error_pos, severity, diag_kind);
     } else {
       int		num_of_contexts = 0;
       a_symbol_ptr	sym;
@@ -3267,7 +3286,7 @@ and doing any required expansions, the diagnostic is written.
       }  /* for */
       /* Issue the original message. */
       context_required = num_of_contexts > 0;
-      write_diagnostic(error_pos, severity, diag_kind);
+      write_diagnostic(error_code, error_pos, severity, diag_kind);
       context_required = FALSE;
       /* Loop through the scope stack and output context information. */
       if (num_of_contexts > 0) {

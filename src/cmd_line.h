@@ -282,6 +282,11 @@ EXTERN a_boolean
 			   definition of a template. */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
+EXTERN a_boolean
+		display_error_number /* = FALSE */;
+			/* Should the diagnostic message output include the
+		           error number. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
