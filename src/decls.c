@@ -1525,7 +1525,7 @@ by id_linkage.
             a_symbol_ptr sym;
             sym = matching_template_function(other_decl, type,
                                              &locator->source_position);
-           if (sym != NULL) {
+            if (sym != NULL) {
               /* Found a match. */
               linked_symbol = other_decl = sym;
               if (sym->variant.routine.instance_ptr->specific_decl) {
@@ -1669,7 +1669,7 @@ determine_linkage:
       func_info->is_inline = templ_is_inline;
       local_storage_class = templ_storage_class;
     }  /* if */
-    if (!at_file_or_namespace_scope &&
+    if (!at_file_or_namespace_scope && !is_template_instance &&
         local_storage_class != (a_storage_class)sc_extern) {
       /* A non-file-scope object without extern storage class has no
          linkage.  In C++ a non-file-scope function may be declared --
@@ -1763,6 +1763,12 @@ determine_linkage:
         linkage = idl_internal;
         *storage_class = (a_storage_class)sc_static;
       }  /* if */
+    } else if (is_template_instance) {
+      /* A template instance whose storage class has been specified or else
+         inferred from the template. */
+      *storage_class = local_storage_class;
+      linkage = (local_storage_class == (a_storage_class)sc_static) ?
+                                              idl_internal : idl_external;
 #if ASM_FUNCTION_ALLOWED
     } else if (local_storage_class == (a_storage_class)sc_asm) {
       /* An asm function has internal linkage. */
@@ -3863,7 +3869,8 @@ skip_overloading:;
     /* There is no symbol pointed to from the routine, so update it with the
        current symbol. */
     set_source_corresp(source_corresp_ptr, sym);
-  } else if (!redeclaration && !template_function_specific_decl) {
+  } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+             (!redeclaration && !template_function_specific_decl)) {
     /* Record a reference to the outer-scope symbol of the same name,
        but do not set the IL entity referenced flag. */
     record_symbol_reference(SRK_REFERENCE,
