@@ -236,7 +236,6 @@ definition a complete type continues to be required in all modes.
 9/24/98   Microsoft compatibility: redeclaration of template parameters
 
 Template parameters can now be redeclared in Microsoft compatibility mode.
-A warning is issued.
 
   template <class T> struct A {
     typedef int T;

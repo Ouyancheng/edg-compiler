@@ -2360,9 +2360,6 @@ severity to be used for the diagnostic when TRUE is returned.
        always errors. */
     *severity = strict_ansi_error_severity;
   }  /* for */
-  /* The Microsoft compiler allows redeclarations.  Only issue a warning in
-     Microsoft mode. */
-  if (result && microsoft_mode) *severity = es_warning;
   return result;
 }  /* is_redeclared_template_param */
 
@@ -2579,7 +2576,8 @@ symbol must be added to the inactive list.
             redecl_err = TRUE;
           }  /* if */
         }  /* if */
-        /* See if this name a redeclaration of a template parameter name. */
+        /* See if this name a redeclaration of a template parameter name.
+           Redeclarations are permitted in Microsoft mode. */
         if (!redecl_err &&
             (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
              depth_template_declaration_scope != NO_SCOPE_DEPTH) &&
@@ -2587,6 +2585,7 @@ symbol must be added to the inactive list.
             sym_ptr->kind != (a_symbol_kind)sk_undefined) {
           an_error_severity severity;
           if (!suppress_error &&
+              !microsoft_mode &&
               is_redeclared_template_param(sym_ptr, &severity)) {
             if (severity == es_error) {
               /* A template parameter name has been reused in the first scope
