@@ -6008,17 +6008,17 @@ parameters.
         dump_variable_storage_class(variable);
       }  /* if */
 #if IA64_ABI
-    if (variable->comdat_group != NULL) {
+      if (variable->comdat_group != NULL) {
 #if GCC_IS_GENERATED_CODE_TARGET
-      /* GCC does not support COMDAT, but it does support weak, which provides
-         a sufficient approximation. */
-      write_tok_str(" __attribute__((__weak__))");
+        /* GCC does not support COMDAT, but it does support weak, which
+           provides a sufficient approximation. */
+        write_tok_str(" __attribute__((__weak__))");
 #endif /* GCC_IS_GENERATED_CODE_TARGET */
-      start_comment();
-      write_tok_str(" COMDAT group: ");
-      write_tok_str(variable->comdat_group);
-      end_comment();
-    } /* if */
+        start_comment();
+        write_tok_str(" COMDAT group: ");
+        write_tok_str(variable->comdat_group);
+        end_comment();
+      } /* if */
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
