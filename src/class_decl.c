@@ -3079,23 +3079,40 @@ such member functions are present.
 }  /* is_valid_union_field */
 
 
-static void check_anonymous_union_symbols(a_field_ptr field_for_anon_union,
-                                          a_type_ptr  class_type)
+static void check_anonymous_union_symbols(a_type_ptr     class_type,
+                                          a_field_ptr    assoc_field_object,
+                                          a_variable_ptr assoc_var_object)
 /*
-Do processing for an anonymous union that is declared within a class.
-The anonymous union as a whole is represented as a field of the containing
-class, and its field entry is passed is by parameter field_for_anon_union.
-The containing class is class_type.
+
+Do processing for an anonymous union that is declared within a class (when
+class_type is non-NULL) or outside a class (when class_type is NULL).
+Specifically, make a pass over all the members of the anonymous union, do
+error checking, and promote each field from the anonymous union to its
+containing scope.  When class_type is non-NULL, the containing scope is a
+class, and the anonymous union as a whole is represented as a field of that
+class (assoc_field_object).  When class_type is NULL, the containing scope
+is the file scope, a routine scope, or a block scope, and the anonymous
+union as a whole is represented as a variable (assoc_var_object).  Only one
+of assoc_field_object and assoc_var_object is defined.
+
 */
 {
-  a_symbol_ptr                   sym, next_sym;
+  a_symbol_ptr                   sym, next_sym, mf_sym;
   a_type_ptr                     member_type;
   a_class_symbol_supplement_ptr  cssp;
   an_anonymous_union_ptr         aup;
+  an_access_specifier            access;
+  a_boolean                      access_error_already_issued = FALSE;
+  a_boolean                      member_function_error_already_issued = FALSE;
+  a_boolean                      is_overloaded;
 
   /* The symbols list for the anonymous union will be eliminated.  Its
      field symbols are promoted to the scope of the containing class. */
-  member_type = field_for_anon_union->type;
+  if (class_type == NULL) {
+    member_type = assoc_var_object->type;
+  } else {
+    member_type = assoc_field_object->type;
+  }  /* if */
   cssp = symbol_supplement_for_class(member_type);
   sym = cssp->symbols;
   cssp->symbols = NULL;
@@ -3103,22 +3120,57 @@ The containing class is class_type.
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
     sym->next_in_scope = NULL;
-    /* Unlink the symbol from the inactive list. */
-    remove_from_inactive_symbols_list(sym);
+    /* Private and protected members are not allowed in an anonymous union
+       (ARM 9.5). */
+    access = access_for_symbol(sym);
+    if (access == (an_access_specifier)as_private ||
+        access == (an_access_specifier)as_protected) {
+      if (!access_error_already_issued) {
+        error(ec_anon_union_member_access);
+        access_error_already_issued = TRUE;
+      }  /* if */
+    }  /* if */
     if (sym->kind == (a_symbol_kind)sk_field) {
-      /* Update the symbol. */
-      sym->class_of_which_a_member = class_type;
+      /* Unlink the symbol from the inactive list. */
+      remove_from_inactive_symbols_list(sym);
       /* Field symbols are promoted to the scope of the containing class, but
          they will continue to point to the field entry of the anonymous
          union.  The bridge is represented by the anonymous_union entry. */
-      aup = alloc_anonymous_union(/*is_var=*/FALSE);
-      aup->variant.field = field_for_anon_union;
+      if (class_type == NULL) {
+        /* Associated object is a variable. */
+        aup = alloc_anonymous_union(/*is_var=*/TRUE);
+        aup->variant.variable = assoc_var_object;
+      } else {
+        /* Associated object is a field of a class. */
+        sym->class_of_which_a_member = class_type;
+        aup = alloc_anonymous_union(/*is_var=*/FALSE);
+        aup->variant.field = assoc_field_object;
+      }  /* if */
       aup->next = sym->variant.field.anonymous_union;
       sym->variant.field.anonymous_union = aup;
       /* Link it back into the symbol table. */
       reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+    } else if (is_member_function_symbol(sym)) {
+      /* This may be a compiler generated default assignment operator, which
+         is okay.  Any user-defined member function is illegal. */
+      if (!member_function_error_already_issued) {
+        if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          mf_sym = sym->variant.overloaded_function.symbols;
+          is_overloaded = TRUE;
+        } else {
+          mf_sym = sym;
+          is_overloaded = FALSE;
+        }  /* if */
+        for (; mf_sym != NULL; mf_sym = is_overloaded ? mf_sym->next : NULL) {
+          if (!mf_sym->variant.routine->compiler_generated) {
+            error(ec_anon_union_member_function);
+            member_function_error_already_issued = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     } else {
-      /* Error? */
+      /* A member that is a type?  Ignore it. */
     }  /* if */
   }  /* for */
 }  /* check_anonymous_union_symbols */
@@ -3276,7 +3328,8 @@ class, struct, or union.
     } else if (is_anonymous_union) {
       /* Constructor and destructor are not allowed, but other checking
          is required. */
-      check_anonymous_union_symbols(field, class_type);
+      check_anonymous_union_symbols(class_type, field,
+                                    /*assoc_var_object=*/NULL);
     } else {
       a_type_ptr  tp;
 
