@@ -643,7 +643,12 @@ processing).
     centity_bits = targ_char_bit;
     centity_is_signed = targ_has_signed_chars; 
   }  /* if */
-  con_type = integer_type(int_kind);
+  if (is_wide && wchar_t_is_keyword) {
+    /* In C++, when wchar_t_is_keyword is set, wchar_t is a distinct type. */
+    con_type = wchar_t_type();
+  } else {
+    con_type = integer_type(int_kind);
+  }  /* if */
   /* See if the characters we have will fit in the size we've determined. */
   if (constant_size > con_type->size) {
     /* Too many characters to fit. */

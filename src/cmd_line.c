@@ -1239,6 +1239,9 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
+    /* Set wchar_t_is_keyword to FALSE, just in case the default value
+       is TRUE.  The value must not be TRUE in C mode. */
+    wchar_t_is_keyword = FALSE;
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */

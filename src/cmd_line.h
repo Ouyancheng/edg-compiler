@@ -462,8 +462,10 @@ EXTERN a_boolean
                                    = DEFAULT_WCHAR_T_IS_KEYWORD
 #endif /* VAR_INITIALIZERS */
                                                                ;
-			/* In C++ mode, indicates whether wchar_t is
-			   to be considered a keyword. */
+			/* Indicates whether wchar_t is to be considered a
+                           keyword.  Once command line processing has been
+			   completed, this value must only be TRUE in C++
+                           mode. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

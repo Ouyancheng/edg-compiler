@@ -332,7 +332,7 @@ unsigned char are all included.
 }  /* is_char_array_type */
 
   
-static a_boolean is_wchar_t_array_type(a_type_ptr tp)
+a_boolean is_wchar_t_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of wchar_t.
 */
@@ -343,9 +343,18 @@ Return TRUE if the given type is an array of wchar_t.
   tp = skip_typerefs(tp);
   if (is_array(tp)) {
     elem_type = skip_typerefs(tp->variant.array.element_type);
-    if (is_integral_type(elem_type) &&
-        (elem_type->variant.integer.int_kind == targ_wchar_t_int_kind)) {
-      is_wchar_t_array = TRUE;
+    if (is_integral_type(elem_type)) {
+      if (!wchar_t_is_keyword) {
+        /* In C mode, or C++ mode when wchar_t is not a distinct type.
+           See if the element type is the appropriate integer kind for
+           wchar_t. */
+        is_wchar_t_array = elem_type->variant.integer.int_kind ==
+                                                        targ_wchar_t_int_kind;
+      } else {
+        /* In C++ mode when wchar_t is a distinct type.  Make sure this is
+           a wchar_t type. */
+        is_wchar_t_array = elem_type->variant.integer.wchar_t_type;
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_wchar_t_array;
@@ -1715,7 +1724,9 @@ which do the initial test for exact pointer equality.
           if (!type_1->variant.integer.enum_type &&
               !type_2->variant.integer.enum_type) {
             if (type_1->variant.integer.int_kind ==
-                                            type_2->variant.integer.int_kind) {
+                                            type_2->variant.integer.int_kind &&
+                type_1->variant.integer.wchar_t_type ==
+                                        type_2->variant.integer.wchar_t_type) {
               identical = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
             } else if (il_identical && same_repr_int_types(type_1, type_2)) {
@@ -2115,7 +2126,9 @@ for exact pointer equality.
                with any other type. */
           } else {
             if (type_1->variant.integer.int_kind ==
-                                            type_2->variant.integer.int_kind) {
+                                           type_2->variant.integer.int_kind &&
+                type_1->variant.integer.wchar_t_type ==
+                                        type_2->variant.integer.wchar_t_type) {
               compat = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
             } else if (C_dialect == C_dialect_pcc &&

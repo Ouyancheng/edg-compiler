@@ -952,26 +952,30 @@ See ARM 7.2.1c for name encoding.
           mangled_name_length += mangled_type_name(type, store_at);
           goto have_whole_mangled_name;
         }  /* if */
-        switch (type->variant.integer.int_kind) {
-          case ik_char:           s = "c";  break;
-          case ik_signed_char:    s = "Sc"; break;
-          case ik_unsigned_char:  s = "Uc"; break;
-          case ik_short:          s = "s";  break;
-          case ik_unsigned_short: s = "Us"; break;
-          case ik_int:            s = "i";  break;
-          case ik_unsigned_int:   s = "Ui"; break;
-          case ik_long:           s = "l";  break;
-          case ik_unsigned_long:  s = "Ul"; break;
+        if (type->variant.integer.wchar_t_type) {
+          s = "w";
+        } else {
+          switch (type->variant.integer.int_kind) {
+            case ik_char:           s = "c";  break;
+            case ik_signed_char:    s = "Sc"; break;
+            case ik_unsigned_char:  s = "Uc"; break;
+            case ik_short:          s = "s";  break;
+            case ik_unsigned_short: s = "Us"; break;
+            case ik_int:            s = "i";  break;
+            case ik_unsigned_int:   s = "Ui"; break;
+            case ik_long:           s = "l";  break;
+            case ik_unsigned_long:  s = "Ul"; break;
 #if LONG_LONG_ALLOWED
-          case ik_long_long:      s = "ll"; break;
-          case ik_unsigned_long_long:
-                                  s = "Ull";break;
+            case ik_long_long:      s = "ll"; break;
+            case ik_unsigned_long_long:
+                                    s = "Ull";break;
 #endif /* LONG_LONG_ALLOWED */
 #if CHECKING
-          default:
-            internal_error("mangled_encoding_for_type: bad int kind");
+            default:
+              internal_error("mangled_encoding_for_type: bad int kind");
 #endif /* CHECKING */
-        }  /* switch */
+          }  /* switch */
+        }  /* if */
         break;
       case tk_float:
         switch (type->variant.float_kind) {

@@ -51,6 +51,7 @@ static a_type_ptr wide_string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr il_error_type;
 static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
+static a_type_ptr il_wchar_t_type;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
@@ -4264,6 +4265,33 @@ ik_short, ik_int, ik_long, and ik_long_long.
 }  /* signed_integer_type */
 
 
+a_type_ptr wchar_t_type(void)
+/*
+Make or find a type entry for a wchar_t type and return a pointer to it.
+This is only used when wchar_t is a distinct type.
+*/
+{
+  a_type_ptr pit;
+
+  if (il_wchar_t_type != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pit = il_wchar_t_type;
+  } else {
+    /* The type must be created. */
+    il_wchar_t_type = pit = alloc_type((a_type_kind)tk_integer);
+    pit->variant.integer.int_kind = targ_wchar_t_int_kind;
+    pit->variant.integer.wchar_t_type = TRUE;
+    set_type_size(pit);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  }  /* if */
+  return pit;
+}  /* wchar_t_type */
+
+
 a_type_ptr float_type(a_float_kind kind)
 /*
 Make or find a type entry for a float type of the indicated kind, and
@@ -4336,9 +4364,14 @@ and return a pointer to it.
     pst = wide_string_types[num_chars];
   } else {
     /* The type must be created. */
+    a_type_ptr	elem_type;
     pst = alloc_type((a_type_kind)tk_array);
-    pst->variant.array.element_type =
-                          integer_type((an_integer_kind)targ_wchar_t_int_kind);
+    if (wchar_t_is_keyword) {
+      elem_type = wchar_t_type();
+    } else {
+      elem_type = integer_type((an_integer_kind)targ_wchar_t_int_kind);
+    }  /* if */
+    pst->variant.array.element_type = elem_type;
     pst->variant.array.variant.number_of_elements = num_chars;
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
@@ -10010,6 +10043,7 @@ of the front end.
   memzero((char *)float_types, sizeof(float_types));
   memzero((char *)string_types, sizeof(string_types));
   memzero((char *)wide_string_types, sizeof(wide_string_types));
+  il_wchar_t_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));

@@ -76,8 +76,8 @@ and return *err TRUE if there is an error of some kind.
       /* The constant is not a string. */
       *err = TRUE;
     } else if (is_wide_string ?
-                 (char_int_kind_from_string_type(*type) ==
-                              char_int_kind_from_string_type(constant->type)) :
+                 (is_wchar_t_array_type(*type) ==
+                                       is_wchar_t_array_type(constant->type)) :
                  is_char_array_type(constant->type)) {
       /* The constant is a string with characters that are compatible with
          the array element type.  (Note that an array of characters of any

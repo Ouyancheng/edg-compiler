@@ -1577,8 +1577,7 @@ decl_specifiers.
       break;
     case bt_wchar_t:
       if (sign == sign_none && size == size_none) {
-        *type_ptr = integer_type(targ_wchar_t_int_kind);
-        (*type_ptr)->variant.integer.wchar_t_type = TRUE;
+        *type_ptr = wchar_t_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
