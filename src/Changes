@@ -1,5 +1,22 @@
 Version 3.3
 
+6/20/03  Microsoft mode: #pragma pack(show)
+
+The front end now recognizes a new form of "#pragma pack": When its argument
+is the simple identifier "show", the front end issues a warning with the
+value set by the most recent "#pragma pack".  For example:
+
+  #pragma pack(show)  // Warning: current value of pragma pack is not set
+  #pragma pack(1)
+  #pragma pack(show)  // Warning: current value of pragma pack is 1
+
+In Microsoft mode the identifier "show" may be followed by another identifier
+and/or an integer constant (in that specific order) separated by commas.
+These additional arguments are ignored with a warning.  For example:
+
+  #pragma pack(show, ignored, 33)  // Additional pack arguments ignored
+                                   // with a warning
+
 6/19/03  Microsoft mode: Accept mismatch in throw (...) specification
 
 In Microsoft bugs mode, the front end now accepts two declarations of the same

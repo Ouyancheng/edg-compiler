@@ -511,6 +511,7 @@ The "enhanced syntax" is also supported:
 
    #pragma pack(push {, name} {, n})
    #pragma pack(pop  {, name} {, n})
+   #pragma pack(show)
 
 "push" mean to push curr_max_member_alignment onto the pack alignment stack.
 A name may be provided to identify the entry for a targeted pop.  When n is
@@ -519,10 +520,12 @@ one is retained.  "pop" with a name means to remove all entries on the pack
 alignment stack down to and including the named entry; without a name, only
 the top entry is removed.  curr_max_member_alignment is then set either to n
 if n is supplied or to the value associated with the last entry popped.
+The only effect of "show" is to issue a warning displaying the value of
+curr_max_member_alignment.
 */
 {
   a_boolean            err = FALSE;
-  a_boolean            is_push = FALSE, is_pop = FALSE;
+  a_boolean            is_push = FALSE, is_pop = FALSE, is_show = FALSE;
   a_host_large_integer val;
   an_error_severity    severity;
   a_boolean            updated = FALSE;
@@ -565,6 +568,19 @@ if n is supplied or to the value associated with the last entry popped.
         curr_max_member_alignment = 0;
       }  /* if */
       /* Advance past "pop". */
+      (void)get_token();
+    } else if (locator_for_curr_id.symbol_header->identifier_length == 4 &&
+               strncmp(locator_for_curr_id.symbol_header->identifier,
+                       "show", size_t_arg(4)) == 0) {
+      char  val_str[20];
+      is_show = TRUE;
+      if (curr_max_member_alignment != 0) {
+        (void)sprintf(val_str, "%d", curr_max_member_alignment);
+      } else {
+        (void)sprintf(val_str, "not set");
+      }  /* if */
+      str_warning(ec_value_of_pragma_pack_show, val_str);
+      /* Advance past "show". */
       (void)get_token();
     }  /* if */
     if (is_push || is_pop) {
@@ -629,14 +645,30 @@ if n is supplied or to the value associated with the last entry popped.
           }  /* if */
         }  /* if */
       }  /* if */
+    } else if (is_show && microsoft_mode) {
+      /* Microsoft compilers accept optional ", <identifier>" and/or
+         ", <integer-constant>" after the "show", but they have no effect. */
+      if (curr_token != tok_rparen && curr_token != tok_end_of_source) {
+        warning(ec_pragma_pack_show_args_ignored);
+        (void)required_token(tok_comma, ec_exp_comma);
+        if (curr_token == tok_identifier) {
+          (void)get_token();
+          if (curr_token != tok_rparen && curr_token != tok_end_of_source) {
+            (void)required_token(tok_comma, ec_exp_comma);
+            /* Next should be an integer constant. */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (curr_token == tok_int_constant) {
     /* Get the integer constant variable and check it against allowable
        values for a pack alignment. */
     val = value_of_integer_constant(&const_for_curr_token, &err);
-    if (err ||
-        !check_pack_alignment_value(val, &curr_max_member_alignment)) {
+    if (is_show && microsoft_mode) {
+      /* Ignore the constant. */
+    } else if (err ||
+               !check_pack_alignment_value(val, &curr_max_member_alignment)) {
       diagnostic(microsoft_mode ? es_warning : es_error,
                  ec_bad_pack_alignment);
       /* Reset the current pack alignment value to zero, which means: use the
@@ -648,7 +680,7 @@ if n is supplied or to the value associated with the last entry popped.
     /* Advance to the right parenthesis. */
     (void)get_token();
   } else if (curr_token == tok_rparen) {
-    if (is_push || is_pop) {
+    if (is_push || is_pop || is_show) {
       /* push/pop version, optionally with a name, but with no constant value
          (i.e., pack(push), pack(push, xxx), pack(pop), or pack(pop, xxx) --
          already dealt with. */
@@ -658,7 +690,7 @@ if n is supplied or to the value associated with the last entry popped.
       curr_max_member_alignment = 0;
       updated = TRUE;
     }  /* if */
-  } else {
+  } else if (!is_show) {
     /* Expected an integer constant. */
     syntax_error(ec_exp_int_constant);
   }  /* if */
