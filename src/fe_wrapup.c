@@ -284,12 +284,10 @@ in the IL.
   a_template_ptr	templ;
 
   for (templ = il_scope->templates; templ != NULL; templ = templ->next) {
-    if (templ->source_corresp.is_class_member) {
-      a_type_ptr	parent_class = templ->source_corresp.parent.class_type;
-      if (parent_class->variant.class_struct_union.is_nonreal_class) {
-        templ->source_corresp.parent.class_type = NULL;
-        templ->source_corresp.is_class_member = FALSE;
-      }  /* if */
+    if (templ->source_corresp.is_class_member &&
+        has_nonreal_parent_type(&templ->source_corresp)) {
+      templ->source_corresp.parent.class_type = NULL;
+      templ->source_corresp.is_class_member = FALSE;
     }  /* if */
   }  /* for */
 }  /* reset_template_parent_info */

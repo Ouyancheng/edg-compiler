@@ -13885,23 +13885,42 @@ purposes.  indent indicates the indentation level.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
+
+a_boolean has_nonreal_parent_type(a_source_correspondence	*scp)
+/*
+Return TRUE if the entity specified by scp has a parent type that is
+a template parameter type or nonreal class.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (scp->is_class_member) {
+    a_type_ptr	parent_type = scp->parent.class_type;
+    if (is_immediate_class_type(parent_type)) {
+      result = parent_type->variant.class_struct_union.is_nonreal_class;
+    } else if (parent_type->kind == (a_type_kind)tk_template_param) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* has_nonreal_parent_type */
+
+
 void add_to_templates_list(a_template_ptr  tp,
                            a_scope_depth   scope_depth)
 /*
 Add the IL template entry pointed to by tp to the indicated scope.
 */
 {
-  a_scope_stack_entry_ptr  ssep;
-  a_scope_ptr              sp;
+  a_scope_stack_entry_ptr     ssep;
+  a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
   assert_is_valid_scope_depth(scope_depth);
   ssep = &scope_stack[scope_depth];
   if (!prototype_instantiations_in_il &&
       (ssep->in_prototype_instantiation ||
-       (tp->source_corresp.is_class_member &&
-        tp->source_corresp.parent.class_type->
-                               variant.class_struct_union.is_nonreal_class))) {
+       has_nonreal_parent_type(&tp->source_corresp))) {
     /* We are not going to record the indicated scope (because it belongs to
        a prototype instantiation), but the given template must go on a list
        somewhere because assoc_template fields may point to it.

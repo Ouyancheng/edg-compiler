@@ -1018,6 +1018,8 @@ extern a_statement_ptr alloc_expr_statement(an_expr_node_ptr node);
 extern void add_to_templates_list(a_template_ptr  tp,
                                   a_scope_depth   scope_depth);
 
+extern a_boolean has_nonreal_parent_type(a_source_correspondence	*scp);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
                                       a_scope_depth		scope_depth);
