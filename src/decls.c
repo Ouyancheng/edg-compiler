@@ -4844,16 +4844,17 @@ skip_overloading:;
          compiler generated ::operator new or ::operator delete).  It was
          created during initialization, but is overridden by the present
          declaration. */
+      check_assertion_str(routine_ptr->source_corresp.decl_position.seq == 0,
+                          "decl_routine: compiler-generated function was"
+                          " already assigned a position");
       routine_ptr->compiler_generated = FALSE;
-      if (routine_ptr->source_corresp.decl_position.seq == 0) {
-        /* Since the IL entry wasn't assigned a position yet, this must be
-           the first time we see a source-level declaration for it. Don't
-           diagnose linkage mismatches either. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
-        first_decl = TRUE;
+      /* Since the flag is cleared here, we're guaranteed that this is the
+         first time we see the declaration in this translation unit. */
+      first_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
-        suppress_diagnostic = TRUE;
-      }  /* if */
+      /* Don't diagnose linkage mismatches either. */
+      suppress_diagnostic = TRUE;
       /* Record the new source position, both in the symbol and in the
          routine entry. */
       sym->decl_position = locator->source_position;
