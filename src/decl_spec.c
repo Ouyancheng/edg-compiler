@@ -2978,13 +2978,19 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   /* Now that we have a type, we can apply any attributes attached to it. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (p_ms_attributes != NULL && *p_ms_attributes != NULL && !is_local_class) {
-    an_ms_attribute_target  attr_target =
+    if (!is_class_definition && curr_token != tok_semicolon) {
+      /* This is a non-autonomous declaration of the class: The attributes
+         do not apply to the class type, but to the entity associated with
+         the declarator. */
+    } else {
+      an_ms_attribute_target  attr_target =
                       is_interface                          ? MSAT_INTERFACE :
                       (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
                       (type_kind == (a_type_kind)tk_class)  ? MSAT_CLASS :
                                                               MSAT_UNION;
-    apply_microsoft_attributes(p_ms_attributes, (char*)class_type,
-                               (an_il_entry_kind)iek_type, attr_target);
+      apply_microsoft_attributes(p_ms_attributes, (char*)class_type,
+                                 (an_il_entry_kind)iek_type, attr_target);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED

@@ -1,5 +1,20 @@
 Version 3.6
 
+12/6/04  Microsoft compatibility: Attributes on elaborated class names
+
+In Microsoft mode, when attributes preceded an elaborated class name (i.e., a
+class name introduced with one of the keywords "struct", "class", or "union"),
+the front end previously always attempted to apply those attributes to the
+indicated type.  Now, no such attempt is made if the type name is not followed
+by its definition or by a semicolon.  Instead, the attribute is applied to the
+entity indicated by the declarator that follows.  For example:
+
+  [export] struct S {
+    [swich_type(char)] union {
+      [case(1)] struct A *p;  // Attribute was previously applied to "A", which
+    };                        // resulted in an error.  Now the attribute is
+  };                          // (correctly) applied to "p".
+
 12/3/04  Microsoft compatibility: Accept correspondence between friend function
          and function with internal linkage
 
