@@ -59,7 +59,7 @@ namespace with a qualifier that is the namespace itself.  For example:
 The example above used to trigger a discretionary error in all modes,
 but it is now accepted with a warning in GNU and Microsoft C++ modes.
 Declarations of templates used to trigger a nondiscretionary error because
-of example like the following:
+of examples like the following:
 
   namespace N {
     template<typename> void N::f() {}  // Not standard C++: Nondiscretionary
