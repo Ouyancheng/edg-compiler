@@ -506,6 +506,24 @@ current expression (used to decide how a comma should be treated).
   return done;
 }  /* token_ends_expr */
 
+
+/*
+Macro to record source positions in an_operand at the end of scanning
+an expression.  result is the result operand.  start_pos and end_pos
+give the beginning and ending source positions.  end_pos is used
+only if EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  This macro does not set
+the position in the underlying expression, if any (see set_operand_position).
+*/
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define set_base_operand_position(result, start_pos, end_pos) \
+  { error_position = (result)->position = *(start_pos); \
+    curr_construct_end_position = (result)->end_position = *(end_pos); \
+  }
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define set_base_operand_position(result, start_pos, end_pos) \
+  { error_position = (result)->position = *(start_pos); }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
 static void f_set_operand_position(an_operand        *result,
@@ -521,15 +539,16 @@ position.  Global variables error_position and curr_construct_end_position
 are set appropriately.
 */
 {
-  error_position = result->position = *start_pos;
-  curr_construct_end_position = result->end_position = *end_pos;
+  set_base_operand_position(result, start_pos, end_pos);
   /* If the operand is an expression, record positions in the expression
      itself. */
   if (is_expression_operand(result)) {
     an_expr_node_ptr expr = result->variant.expression;
     expr->expr_range.start = *start_pos;
     expr->expr_range.end = *end_pos;
-    if (operator_pos != NULL) expr->operator_position = *operator_pos;
+    if (operator_pos != NULL && is_operation_node(expr)) {
+      expr->operator_position = *operator_pos;
+    }  /* if */
   }  /* if */
 }  /* f_set_operand_position */
 
@@ -539,7 +558,7 @@ are set appropriately.
 Macro to record source positions in an_operand at the end of scanning
 an expression.  result is the result operand.  start_pos and end_pos
 give the beginning and ending source positions.  operator_pos gives
-the operator position.  Some of these used only if
+the operator position.  Some of these are used only if
 EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -547,7 +566,7 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
   f_set_operand_position(result, start_pos, end_pos, operator_pos)
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define set_operand_position(result, start_pos, end_pos, operator_pos) \
-{ error_position = (result)->position = *(start_pos); }
+  set_base_operand_position(result, start_pos, end_pos)
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 
@@ -3614,10 +3633,7 @@ See section 3.3.3.2 of the standard.
 
   /* set_operand_position is not used on purpose, because we want to keep
      the position that is in the underlying expression. */
-  error_position = result->position = start_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = result->end_position = operand.end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  set_base_operand_position(result, &start_position, &operand.end_position);
 
   db_exit();
 }  /* scan_indirection_operator */
@@ -7887,6 +7903,8 @@ Also scans C9X compound literals:
       do_cast(type_cast_to, result, &local_bound_function_selector,
               local_options, err, &type_position, &start_position);
     }  /* if */
+    set_operand_position(result, &start_position, &end_position,
+                         &start_position);
   } else {
     /* This is an expression in parentheses. */
     /* Parentheses do not affect the fact that the expression is the
@@ -7908,10 +7926,13 @@ Also scans C9X compound literals:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
+    /* Do not use set_operand_position because we want to leave the
+       position in any underlying expression unchanged (we didn't add
+       anything to the expression to represent the parentheses, so the
+       expression still represents the thing inside the parentheses). */
+    set_base_operand_position(result, &start_position, &end_position);
   }  /* if */
 
-  set_operand_position(result, &start_position, &end_position,
-                       &start_position);
   db_exit();
 }  /* scan_cast_or_expr */
 

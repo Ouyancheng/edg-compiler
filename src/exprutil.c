@@ -1317,14 +1317,12 @@ underlying expression.
 static void set_operand_position_to_pos_curr_token(an_operand *operand)
 /*
 Set the position in the given operand to the current token position.
+If the operand is an expression, do not set the position in the expression.
 */
 {
   operand->position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = end_pos_curr_token;
-  /* If the operand has kind ok_expression, set the position in the
-     expression too. */
-  set_operand_expr_position_if_expr(operand);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* set_operand_position_to_pos_curr_token */
 
@@ -1558,9 +1556,18 @@ destroyed its source position, etc.  Restore such things from
   operand->position = orig_operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = orig_operand->end_position;
-  /* If the operand has kind ok_expression, set the position in the
-     expression too. */
-  set_operand_expr_position_if_expr(operand);
+  /* If necessary, set the position in the expression too. */
+  if (is_expression_operand(orig_operand) &&
+      is_expression_operand(operand) &&
+      orig_operand->variant.expression == operand->variant.expression) {
+    /* The expression is the same, so don't update it.  This is important
+       for cases where we've deliberately set a different position on
+       the operand and the expression (e.g., because of indirection) and
+       we'd like to preserve that over some transformation like
+       lvalue-to-rvalue conversion. */
+  } else {
+    set_operand_expr_position_if_expr(operand);
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->bound_function = orig_operand->bound_function;
   operand->is_qualified_name = orig_operand->is_qualified_name;
@@ -5433,6 +5440,11 @@ reference entry, or is NULL if none is needed.
     }  /* if */
   }  /* if */
   set_operand_position_to_pos_curr_token(result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* If the operand has kind ok_expression, set the position in the
+     expression too. */
+  set_operand_expr_position_if_expr(result);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* make_lvalue_variable_operand */
 
 
