@@ -1281,7 +1281,7 @@ constructors, as in
 
 The caller need not add the right parenthesis to the stop tokens set, or
 remove it later, as this routine takes care of that.  object_class_type
-is the type of the object being constructed which may be different than
+is the type of the object being constructed, which may be different than
 the type of the constructor being called (e.g., when a base class constructor
 is being called for a derived class object).  On return, the source position
 is after the closing parenthesis of the argument list.
@@ -4084,33 +4084,43 @@ static a_routine_ptr select_delete_routine(a_type_ptr        delete_type,
                                            a_source_position *delete_position)
 /*
 Determine the delete routine to be used to delete an object of type
-delete_type, and return a pointer to the routine entry.  If use_global_delete
-is TRUE, return ::operator delete.  If array_delete is TRUE, return the
-right delete routine for an array.  The symbol is marked as referenced
-at *delete_position, but the IL entry is not marked as referenced.
+delete_type, and return a pointer to the routine entry.  use_global_delete
+indicates that a global delete routine should be used even if there is
+a class-specific delete routine.  array_delete indicates that the deletion
+is of an array (delete_type in that case is the type pointed to, i.e.,
+the element type).  The symbol is marked as referenced at *delete_position,
+but the IL entry is not marked as referenced.
 */
 {
   a_symbol_ptr     operator_delete_symbol = NULL;
   a_symbol_locator locator_for_delete;
+  an_opname_kind   opname_kind;
 
   /* Select the proper "delete" routine.  If the type is a class type and
-     the class has a "delete" operator, use it.  However, if use_global_delete
-     or array_delete is TRUE, use the global ::operator delete. */
-  if (!use_global_delete && !array_delete &&
-      is_class_struct_union_type(delete_type)) {
-    operator_delete_symbol = opname_member_function_symbol(
-                                                    (an_opname_kind)onk_delete,
-                                                    delete_type);
-    if (operator_delete_symbol != NULL) {
-      make_locator_for_symbol(operator_delete_symbol, &locator_for_delete);
-      locator_for_delete.source_position = *delete_position;
-      check_ambiguity_and_verify_access(&locator_for_delete);
-      operator_delete_symbol = fundamental_symbol_of(operator_delete_symbol);
+     the class has a "delete" operator, use it, unless a global delete routine
+     is forced. */
+  opname_kind = (an_opname_kind)onk_delete;
+  /* For arrays, use "operator delete[]" instead of "operator delete". */
+  if (array_new_and_delete_enabled && array_delete) {
+    opname_kind = (an_opname_kind)onk_array_delete;
+  }  /* if */
+  if (!use_global_delete && (array_new_and_delete_enabled || !array_delete)) {
+    /* See if the underlying type is a class. */
+    if (is_class_struct_union_type(delete_type)) {
+      /* Look for a class-specific "operator delete" or "operator delete[]". */
+      operator_delete_symbol = opname_member_function_symbol(opname_kind,
+                                                             delete_type);
+      if (operator_delete_symbol != NULL) {
+        make_locator_for_symbol(operator_delete_symbol, &locator_for_delete);
+        locator_for_delete.source_position = *delete_position;
+        check_ambiguity_and_verify_access(&locator_for_delete);
+        operator_delete_symbol = fundamental_symbol_of(operator_delete_symbol);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (operator_delete_symbol == NULL) {
-    /* Use the global operator "delete". */
-    operator_delete_symbol= opname_function_symbol((an_opname_kind)onk_delete);
+    /* Use the global "operator delete" or "operator delete[]". */
+    operator_delete_symbol = opname_function_symbol(opname_kind);
   }  /* if */
   /* Since delete cannot be overloaded, the symbol should not be
      overloaded or a function template. */
@@ -4188,9 +4198,9 @@ If an exception is thrown between the time that the allocation is done and
 the time the initialization is completed, the allocated storage should be
 freed.  Develop a dynamic initialization entry that describes the
 deallocation and return a pointer to it.  base_new_type is the unqualified
-type of entity being allocated; array_new is TRUE for an array new;
-use_global_new is TRUE for a ::new; and *position gives the position
-to be used for errors.
+type of entity being allocated (the element type if an array is being
+allocated); array_new is TRUE for an array new; use_global_new is TRUE
+for a ::new; and *position gives the position to be used for errors.
 */
 {
   a_dynamic_init_ptr dyn_init_to_free_storage;
@@ -4263,7 +4273,7 @@ specification allow a variable-sized array as the top type.
   a_source_position start_position, type_position;
   a_source_position new_position;
   a_type_ptr        new_type, base_new_type, ptr_new_type;
-  a_type_ptr        unqual_new_type;
+  a_type_ptr        unqual_new_type, unqual_base_new_type;
   an_expr_node_ptr  new_array_dimension, sizeof_node;
   an_operand        sizeof_operand;
   a_boolean         use_global_new = FALSE;
@@ -4284,6 +4294,7 @@ specification allow a variable-sized array as the top type.
                     dyn_init_to_free_storage = NULL;
   a_boolean         saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
+  an_opname_kind    opname_kind;
 
   db_enter(4, "scan_new_operator");
 
@@ -4354,8 +4365,8 @@ specification allow a variable-sized array as the top type.
   new_array_dimension = NULL;
   if (is_array_type(new_type)) {
     /* A "new" of an array returns a pointer to the initial element.
-      Note that this is only done for one level, e.g., new int [i][10]
-      returns int (*)[10] not int * (ARM 5.3.3). */
+       Note that this is only done for one level, e.g., new int [i][10]
+       returns int (*)[10] not int * (ARM 5.3.3). */
     base_new_type = array_element_type(new_type);
     array_new = TRUE;
     /* Check for a variable size on the first dimension.  Extract the
@@ -4375,6 +4386,7 @@ specification allow a variable-sized array as the top type.
       err = TRUE;
     }  /* if */
   }  /* if */
+  unqual_base_new_type = skip_typerefs(base_new_type);
   ptr_new_type = make_pointer_type(base_new_type);
   /* The operand of a new must be an object type. */
   if (err) {
@@ -4399,7 +4411,7 @@ specification allow a variable-sized array as the top type.
     /* Valid type. */
     /* Compute the allocation size in bytes. */
     if (new_array_dimension != NULL) {
-      a_type_ptr element_type = skip_typerefs(base_new_type);
+      a_type_ptr element_type = unqual_base_new_type;
       /* The type is a variable-dimension array, as in
            new char[i+1]
          The amount to allocate is the size of the array element times
@@ -4439,18 +4451,23 @@ specification allow a variable-sized array as the top type.
     arg_operand_list = sizeof_arg_operand;
     /* Select the proper "new" routine.  If the type is a class type and
        the class has a "new" operator, use it.  However, if "::" preceded
-       the keyword "new", always use the global ::new.  Also note that
-       since we test new_type instead of base_new_type, we will use
-       the global ::new for arrays of classes, as we should. */
+       the keyword "new", always use the global ::new.  Choose new[]
+       operators instead of the usual ones if the thing being allocated
+       is an array. */
+    opname_kind = (an_opname_kind)onk_new;
+    if (array_new_and_delete_enabled && array_new) {
+      opname_kind = (an_opname_kind)onk_array_new;
+    }  /* if */
     operator_new_symbol = NULL;
-    if (is_class_struct_union_type(new_type) && !use_global_new) {
-      operator_new_symbol = opname_member_function_symbol(
-                                                       (an_opname_kind)onk_new,
-                                                       unqual_new_type);
+    if (!use_global_new && (array_new_and_delete_enabled || !array_new) &&
+        is_class_struct_union_type(base_new_type)) {
+      /* Check for a member "operator new" or "operator new[]". */
+      operator_new_symbol = opname_member_function_symbol(opname_kind,
+                                                         unqual_base_new_type);
     }  /* if */
     if (operator_new_symbol == NULL) {
-      /* Use the global operator "new". */
-      operator_new_symbol = opname_function_symbol((an_opname_kind)onk_new);
+      /* Use the global "operator new" or "operator new[]". */
+      operator_new_symbol = opname_function_symbol(opname_kind);
     }  /* if */
     /* Select the proper "new" function if there are several.  Note that
        this call does not adjust the argument types or build the function
@@ -4484,11 +4501,12 @@ specification allow a variable-sized array as the top type.
          particular, we want to know if the underlying type of a
          multi-dimensional array is a class, so we can know whether or not
          to call a constructor. */
-      base_new_type = skip_typerefs(base_new_type);
-      check_assertion(!base_new_type->variant.array.is_variable_size_array);
+      check_assertion(
+                  !unqual_base_new_type->variant.array.is_variable_size_array);
       effective_num_of_elements *=
-                    base_new_type->variant.array.variant.number_of_elements;
-      base_new_type = array_element_type(base_new_type);
+                unqual_base_new_type->variant.array.variant.number_of_elements;
+      base_new_type = array_element_type(unqual_base_new_type);
+      unqual_base_new_type = skip_typerefs(base_new_type);
     }  /* while */
   }  /* if */
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
@@ -4504,10 +4522,14 @@ specification allow a variable-sized array as the top type.
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
     if (array_new) {
       /* If a allocating an array and a runtime routine will be used, the
-         "new" routine can be implicit if it is the default global new. */
+         "new" routine can be implicit if it is the default global new[]. */
       if (new_or_delete_type_requires_array_handling(base_new_type)) {
+        an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
+                                                (an_opname_kind)onk_array_new :
+                                                (an_opname_kind)onk_new;
         if (function_symbol == 
-                       extract_default_operator_new_sym(operator_new_symbol)) {
+                       extract_default_operator_new_sym(
+                                  opname_function_symbol(array_opname_kind))) {
           new_routine = NULL;
         }  /* if */
       }  /* if */
@@ -4519,7 +4541,6 @@ specification allow a variable-sized array as the top type.
          was selected.  If so, the "new" call can be folded into the
          constructor call. */
       if (ctor_sym != NULL) {
-        a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
         set_class_assoc_operator_new_routine(unqual_base_new_type);
         if (unqual_base_new_type->variant.class_struct_union.extra_info->
                                    assoc_operator_new_routine == new_routine) {
@@ -4649,6 +4670,7 @@ specification allow a variable-sized array as the top type.
     new_node->type = ptr_new_type;
     ndsp = new_node->variant.new_delete;
     ndsp->is_new = TRUE;
+    ndsp->placement_new = placement_new;
     ndsp->type = new_type;
     /* Put the routine and argument list into the supplement.  Note that
        the argument list is present even when the routine is NULL -- that's
@@ -4735,9 +4757,6 @@ As an anachronism, allow an expression inside the [ ].
   a_constant         constant;
   an_expr_node_ptr   expr;
   a_dynamic_init_ptr dip;
-  a_routine_type_supplement_ptr
-                     delete_routine_rtsp;
-  a_param_type_ptr   param1;
   a_new_delete_supplement_ptr
                      ndsp;
 
@@ -4821,6 +4840,7 @@ As an anachronism, allow an expression inside the [ ].
       /* Get the underlying type for any array type. */
       while (is_array_type(base_delete_type)) {
         base_delete_type = array_element_type(base_delete_type);
+        base_delete_type = skip_typerefs(base_delete_type);
       }  /* if */
       /* See if the object needs destruction. */
       dtor_routine = NULL;
@@ -4865,8 +4885,10 @@ As an anachronism, allow an expression inside the [ ].
            delete routine can be implicit if it is the default global
            delete. */
         if (new_or_delete_type_requires_array_handling(base_delete_type)) {
-          if (delete_routine ==
-                           opname_function_symbol((an_opname_kind)onk_delete)->
+          an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
+                                             (an_opname_kind)onk_array_delete :
+                                             (an_opname_kind)onk_delete;
+          if (delete_routine == opname_function_symbol(array_opname_kind)->
                                                          variant.routine.ptr) {
             delete_routine = NULL;
             /* Mark the destructor as referenced if it is virtual, because
@@ -4905,18 +4927,6 @@ As an anachronism, allow an expression inside the [ ].
         if_evaluating_mark_routine_referenced(delete_routine);
         /* Mark the routine as called. */
         delete_routine->called = TRUE;
-        /* If the delete routine is one with two arguments, pass the size
-           of the entity as the second argument. */
-        delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
-                                                    variant.routine.extra_info;
-        param1 = delete_routine_rtsp->param_type_list;
-        check_assertion(param1 != NULL);
-        if (param1->next != NULL) {
-          /* Two-argument form.  Add a second argument of type size_t that
-             indicates the (static) size of the object. */
-          ptr_node->next = node_for_integer_constant((long)(delete_type->size),
-                                                     targ_size_t_int_kind);
-        }  /* if */
       }  /* if */
       ndsp->routine = delete_routine;
       /* Make an operand for the result. */
