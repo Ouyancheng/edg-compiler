@@ -633,9 +633,11 @@ typedef struct a_routine_type_supplement {
    tk_struct, and tk_union). */
 
 enum an_access_adjustment_kind_tag {
-  aak_member_field,     /* Non-static data member. */
-  aak_member_variable,  /* Static data member. */
-  aak_member_function   /* Member function. */
+  aak_field,     /* Non-static data member. */
+  aak_variable,  /* Static data member. */
+  aak_routine,   /* Member function. */
+  aak_type,      /* Member type. */
+  aak_constant   /* Member constant. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_access_adjustment_kind;
@@ -655,20 +657,29 @@ typedef struct an_access_adjustment {
                 kind;   /* Indicates what kind of member is being affected
                            by the access adjustment. */
   union {
-    /* If kind == aak_member_field: */
-    a_field_ptr member_field;
+    /* If kind == aak_field: */
+    a_field_ptr field;
                         /* Pointer to a field entry representing a nonstatic
                            data member of a base class. */
-    /* If kind == aak_member_variable: */
+    /* If kind == aak_variable: */
     a_variable_ptr
-                member_variable;
+                variable;
                         /* Pointer to a variable entry representing a static
                            data member of a base class. */
     /* If kind == aak_routine: */
     a_routine_ptr
-                member_function;
+                routine;
                         /* Pointer to a routine entry representing a member
                            function of a base class. */ 
+    /* If kind == aak_type: */
+    a_type_ptr	type;
+			/* Pointer to a type entry representing a type that is
+			   a member of a base class. */
+    /* If kind == aak_constant: */
+    a_constant_ptr
+		constant;
+			/* Pointer to a constant entry representing a constant
+			   that is a member of a base class. */
   } variant;
 } an_access_adjustment;
 
