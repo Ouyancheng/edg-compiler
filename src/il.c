@@ -877,7 +877,8 @@ class_struct_union:
       db_abbreviated_type(tp->variant.ptr_to_member.type);
       break;
     case tk_template_param:
-      fprintf(f_debug, "template-param#%d ", tp->variant.list_position);
+      fprintf(f_debug, "template-param#%lu ",
+              (unsigned long)tp->variant.list_position);
       db_name(&tp->source_corresp);
       break;
     default:
@@ -975,7 +976,8 @@ Dump the contents of the indicated constant, for debug purposes.
       (void)fputc('}', f_debug);
       break;
     case ck_template_param:
-      fprintf(f_debug, "<template-param#%d ", cp->variant.list_position);
+      fprintf(f_debug, "<template-param#%lu ",
+              (unsigned long)cp->variant.list_position);
       db_name(&cp->source_corresp);
       (void)fputc('>', f_debug);
       break;

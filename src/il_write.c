@@ -104,7 +104,8 @@ triggering an internal error.
   (void)fprintf(f_debug, 
                 "IL info: entry kind =%3ld (%s), \n",
                 (long)entry_kind, s);
-  (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n", entry_ptr);
+  (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n",
+                (unsigned long)entry_ptr);
 #if __CENTERLINE__
   (void)fprintf(f_debug, "         memory region = %4ld\n",
                 _centerline_region_number);
