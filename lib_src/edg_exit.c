@@ -13,9 +13,7 @@ Exit processing.
 
 */
 
-#include <stddef.h>
-#include "basics.h"
-#include "eh.h"
+#include "config.h"
 
 /* The version of exit to be called must be the system exit routine not the
    interface routine in the runtime that has C++ linkage. */
