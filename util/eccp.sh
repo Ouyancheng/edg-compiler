@@ -625,6 +625,8 @@ do
          --no_extern_inline | \
          --guiding_decls | \
          --no_guiding_decls | \
+         --vla | \
+         --no_vla | \
          --distinct_template_signatures | \
          --no_distinct_template_signatures | \
          --multibyte_chars | \
