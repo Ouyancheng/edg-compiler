@@ -819,7 +819,7 @@ ec_generated_exception_spec_override_incompat;;"exception specification for impl
 ec_implicit_call_of_ambiguous_name;;"%no1, implicitly called from %np2, is ambiguous"
 ec_cl_explicit_option_only_in_cplusplus;;"option \"explicit\" can be used only when compiling C++"
 ec_explicit_not_allowed;;"\"explicit\" is not allowed"
-ec_conflicts_with_implicitly_declared_type_info;;"declaration conflicts with implicitly declared \"type_info\""
+ec_conflicts_with_predeclared_type_info;;"declaration conflicts with %sq (reserved class name)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
