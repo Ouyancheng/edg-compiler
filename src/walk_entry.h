@@ -806,6 +806,7 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_template:
       {
         a_template_ptr ptr = (a_template_ptr)entry_ptr;
+        walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_template_ptr, iek_template);
         walk_string_ptr(ptr->text, iek_other_text, 0);
       }
@@ -815,6 +816,7 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_macro:
       {
         a_macro_ptr ptr = (a_macro_ptr)entry_ptr;
+        walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_macro_ptr, iek_macro);
         walk_string_ptr(ptr->text, iek_other_text, 0);
       }
