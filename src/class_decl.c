@@ -9200,15 +9200,20 @@ next_declaration:
       error(ec_no_named_fields);
       add_error_field(class_type, &class_state.end_of_field_list);
     }  /* if */
-    if (!class_state.is_nonreal_instantiation &&
-        may_be_added_to_types_list(class_type, effective_decl_level)) {
-      /* The type will already have been added to the current scope's types
-         list.  However, it should be moved to the end of the list (unless
-         it's already there), since its location in the types list should
-         record where it was defined, not where it was initially declared.
-         move_to_end_of_types_list also takes care of the placeholder typerefs
-         associated with this class. */
-      move_to_end_of_types_list(class_type, effective_decl_level);
+    if (!class_state.is_nonreal_instantiation) {
+      if (is_template_instantiation && delayed_nested_class_def) {
+        /* Force the functions to compute the scope depth, if any. */
+        effective_decl_level = NO_SCOPE_DEPTH;
+      }  /* if */
+      if (may_be_added_to_types_list(class_type, effective_decl_level)) {
+        /* The type will already have been added to the current scope's types
+           list.  However, it should be moved to the end of the list (unless
+           it's already there), since its location in the types list should
+           record where it was defined, not where it was initially declared.
+           move_to_end_of_types_list also takes care of the placeholder
+           typerefs associated with this class. */
+        move_to_end_of_types_list(class_type, effective_decl_level);
+      }  /* if */
       if (!is_template_instantiation &&
           cssp->partial_instantiation_placeholder != NULL) {
         /* This must be a specialization of a template class that was
