@@ -5913,22 +5913,30 @@ block.
   if (curr_token == tok_lbrace) {
     /* This must be an unnamed namespace definition. */
     is_unnamed_namespace = TRUE;
-  } else {
-    if (curr_token != tok_identifier) {
-      add_stop_token(tok_semicolon);
-      add_stop_token(tok_lbrace);
-      (void)required_token(tok_identifier, ec_exp_identifier);
+  } else if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
+    /* Save the identifier's locator before bypassing it. */
+    locator = locator_for_curr_id;
+    /* Issue an error if this is not a simle identifer name. */
+    if (locator.is_qualified_name) {
+      error(ec_qualified_name_not_allowed);
       set_to_error_locator(locator);
-      remove_stop_token(tok_semicolon);
-      remove_stop_token(tok_lbrace);
-    } else {
-      /* Save the identifier's locator before bypassing it. */
-      locator = locator_for_curr_id;
-      if (get_token() == tok_assign) {
-        /* This must be a namespace alias definition. */
-        is_namespace_alias = TRUE;
-      }  /* if */
+      err = TRUE;
+    } else if (locator.is_operator_name || locator.is_conversion_name) {
+      error(ec_operator_name_not_allowed);
+      set_to_error_locator(locator);
+      err = TRUE;
     }  /* if */
+    if (get_token() == tok_assign) {
+      /* This must be a namespace alias definition. */
+      is_namespace_alias = TRUE;
+    }  /* if */
+  } else {
+    add_stop_token(tok_semicolon);
+    add_stop_token(tok_lbrace);
+    (void)required_token(tok_identifier, ec_exp_identifier);
+    set_to_error_locator(locator);
+    remove_stop_token(tok_semicolon);
+    remove_stop_token(tok_lbrace);
   }  /* if */
   if (depth_scope_stack != depth_innermost_namespace_scope) {
     /* The current scope is not the file scope or a namespace scope. */
