@@ -149,7 +149,8 @@ so the integer representation is just some host integral type.
 */
 typedef long an_integer_value;
 /* The printf formatting specifier to be used to print the integer type. */
-#define PRINTF_FORMAT_FOR_INTEGER_VALUE "%ld"  /* long */
+#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
+#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
 
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
