@@ -8053,7 +8053,7 @@ End a name scope by popping an entry off the scope stack.
       pop_object_lifetime();
     }  /* if */
 #if DO_IL_LOWERING
-    if (!old_region_still_needed) {
+    if (!old_region_still_needed && !suppress_il_lowering) {
       /* If we're not supposed to pass object lifetime information to the back
          end, unlink all object lifetimes from the IL tree.  This has to
          be done after the file scope object lifetime has been popped. */
