@@ -7064,7 +7064,7 @@ this entity.
       if (merged) {
         /* Since new_ssep has been added to a sublist, old_ssep can simply be
            removed. */
-        a_src_seq_sublist_ptr  dummy;
+        a_src_seq_sublist_ptr  dummy = NULL;
         remove_from_source_sequence_list(old_ssep, &dummy);
 #if DEBUG
         if (debug_level >= 4) {
