@@ -826,67 +826,110 @@ processing).
 }  /* conv_string_literal */
 
 
-void concat_string_literals(a_constant *first_string,
-                            a_constant *second_string)
+void concat_string_literals(a_token_cache_ptr cache,
+                            an_integer_kind   centity_int_kind)
 /*
-Concatenate the two string literals (or wide string literals) indicated
-by *first_string and *second_string, and place the result in *second_string.
+Concatenate two or more string literals (or wide string literals) contained
+in the indicated token cache, and replace the constant in the first
+cached token with the constant for the concatenation.  (The rest of the
+cached tokens are left as they are; the caller removes and frees them.)
+Some of the constants may be error constants if there were malformed
+string literals in the input; in that case, the output is an error constant.
 This routine implements the lexical concatenation of section 2.1.1.2, phase
-6, of the standard.  The null from the first string is discarded in
-doing the concatenation; the one from the second string is copied as
-the final null of the concatenated string; see 3.1.4.
+6, of the C standard.  The nulls from the initial strings are discarded in
+doing the concatenation, and the one from the last string is copied as
+the final null of the concatenated string; see ANSI C 3.1.4.
+All the strings will be wide or not wide, or rather, all will have the
+same underlying character type (wchar_t and char might be the same type);
+centity_int_kind indicates the underlying character type.
 */
 {
-  a_targ_size_t s1_len, s2_len, new_len;
-  char          *new_str;
-  a_boolean     wide_strings;
+  a_targ_size_t      total_len = 0, str_len, null_len;
+  a_cached_token_ptr ctp;
+  a_boolean          any_error_constant = FALSE;
+  a_constant_ptr     concat_con, con;
+  char               *new_str;
 
-  if (is_error_constant(first_string) || is_error_constant(second_string)) {
-    /* One or the other of the strings had an error, leave the second
-       string as is. */
-  }  else {
-    /* We want wide_strings FALSE if wchar_t and char are the same type,
-       so test for not char array type rather than testing explicitly
-       for wchar_t array. */
-    wide_strings = !is_char_array_type(first_string->type);
-    /* Get string lengths. */
-    s1_len = first_string->variant.string.length;
-    /* Remove null from length of first string. */
-    if (!wide_strings) {
-      s1_len--;
+  db_enter(4, "concat_string_literals");
+  /* Determine the length of the terminating null on strings.  It's usually
+     1, but it may be bigger for wide string literals. */
+  if (centity_int_kind == targ_wchar_t_int_kind) {
+    /* Wide string literal -- the null is the size of a wchar_t. */
+    null_len = targ_sizeof_wchar_t;
+  } else {
+    /* Non-wide string literal -- the null is one byte. */
+    null_len = 1;
+  }  /* if */
+  /* Determine the length of the concatenation. */
+  for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+    check_assertion_str((a_token_kind)ctp->token == tok_string_literal &&
+                        ctp->extra_info_kind == teik_constant,
+                       "concat_string_literals: cached token is not a string");
+    con = ctp->variant.constant;
+    if (is_error_constant(con)) {
+      /* If any constant is an error constant, the overall concatenation
+         will be an error constant. */
+      any_error_constant = TRUE;
+      break;
     } else {
-      s1_len -= targ_sizeof_wchar_t;
+      /* String constant. */
+      check_assertion_str(con->kind == (a_constant_repr_kind)ck_string,
+                          "concat_string_literals: constant not ck_string");
+      /* Determine the length of this string literal. */
+      str_len = con->variant.string.length;
+      /* Except on the last constant, subtract out the space for the
+         final null in the string. */
+      if (ctp->next != NULL) str_len -= null_len;
+      /* Add the length of this string to the accumulated length. */
+      total_len += str_len;
     }  /* if */
-    if (s1_len > 0) {
-      s2_len = second_string->variant.string.length;
-      /* Allocate space for the concatenation. */
-      new_len = s1_len + s2_len;
-      new_str = alloc_text_of_string_literal((sizeof_t)new_len);
-      /* Copy the two strings into the new space. */
-      (void)memcpy(new_str, first_string->variant.string.value,
-                   size_t_arg(s1_len));
-      (void)memcpy(&new_str[s1_len], second_string->variant.string.value,
-                   size_t_arg(s2_len));
-      /* Note that the space for the old strings is just lost; that's
-         judged to be acceptable, since lexical concatenation will probably
-         not be done excessively.  If we wanted to free the old strings:
-
-         free_il(first_string->variant.string.value);
-         free_il(second_string->variant.string.value);
-
-         But there is currently no routine to do that kind of freeing.
-      */
-      /* Adjust the *second_string constant to be the new string. */
-      second_string->variant.string.length = new_len;
-      second_string->variant.string.value  = new_str;
-      if (!wide_strings) {
-        second_string->type = string_type((a_targ_size_t)new_len);
-      } else {
-        second_string->type = wide_string_type(
-                               (a_targ_size_t)(new_len / targ_sizeof_wchar_t));
-      }  /* if */
+  }  /* for */
+  /* Here, we either have the length of the concatenation in total_len, or
+     any_error_constant is set. */
+  /* Build the concatenation and record it in the constant in the first
+     token in the cache. */
+  concat_con = cache->first_token->variant.constant;
+  if (any_error_constant) {
+    /* There is at least one error constant in the concatenation, so return
+       an error constant. */
+    set_error_constant(concat_con);
+  } else {
+    /* No error constants, so do the concatenation. */
+    /* Allocate enough space for the concatenation. */
+    new_str = alloc_text_of_string_literal((sizeof_t)total_len);
+    total_len = 0;
+    /* Copy the constants into the concatenation. */
+    for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+      con = ctp->variant.constant;
+      /* Determine the length of this string literal. */
+      str_len = con->variant.string.length;
+      /* Except on the last constant, subtract out the space for the
+         final null in the string. */
+      if (ctp->next != NULL) str_len -= null_len;
+      /* Copy the string text (including the final null, if that's
+         appropriate). */
+      (void)memcpy(new_str+total_len, con->variant.string.value,
+                   size_t_arg(str_len));
+      /* Keep track of the total length so far, which is also the offset for
+         storing into the concatenation. */
+      total_len += str_len;
+    }  /* for */
+    /* Overwrite the first string with the concatenation.  Note this is
+       done late because the information in the first string is used in the
+       concatenation loop above. */
+    /* The string currently associated with the first constant (and, for that
+       matter, the strings for all the constants) are just lost. */
+    concat_con->variant.string.length = total_len;
+    concat_con->variant.string.value  = new_str;
+    /* Adjust the constant type to match the new length. */
+    if (centity_int_kind != targ_wchar_t_int_kind) {
+      concat_con->type = string_type((a_targ_size_t)total_len);
+    } else {
+      concat_con->type = wide_string_type(
+                             (a_targ_size_t)(total_len / targ_sizeof_wchar_t));
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* concat_string_literals */
 
 
