@@ -5380,10 +5380,7 @@ white_space_loop:
             do {
               slmp = assoc_source_line_modif(curr_char_loc);
               /* If the comment delimiter appears in the expansion of a
-                 macro argument, don't consider it the start of a comment.
-                 This is disallowed partly because you get in trouble with
-                 copy_modif_list later if you allow it (the modification
-                 entries are in the wrong order). */
+                 macro argument, don't consider it the start of a comment. */
               check_assertion(slmp->end_inserted_text != NULL &&
                               *slmp->end_inserted_text == LE_ESCAPE);
               if (slmp->end_inserted_text[1] == LE_END_OF_BUFFER) {
