@@ -1656,10 +1656,10 @@ and return a pointer to it.
       clear_template_cache(&tssp->variant.function.decl_cache,
                           /*reusable=*/TRUE);
       tssp->variant.function.cannot_be_called = FALSE;
-      tssp->variant.function.unused_instantiations = 0;
 #if CHECKING
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
+      tssp->variant.function.unused_instantiations = 0;
       break;
     case sk_static_data_member:
       tssp->variant.static_data_member.definitions = NULL;
@@ -7542,6 +7542,9 @@ Clear the fields of a function information block to default values.
   func_info->prototype_scope_ss_entry_start = NULL;
   func_info->prototype_scope_ss_entry_end   = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  func_info->max_member_alignment           = 0;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* clear_func_info */
 
 

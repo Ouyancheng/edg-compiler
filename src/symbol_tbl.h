@@ -892,6 +892,15 @@ typedef struct a_func_info_block {
                            function prototype scope; NULL if there no entries
                            and prototype_scope_ss_entry_end is also NULL. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      a_targ_alignment
+		max_member_alignment;
+			/* If nonzero, the default maximum alignment of any
+			   nonstatic data member of any class, struct, or
+			   union defined in the body of the function.  The
+			   value may be overridden by #pragma pack directives
+			   within the function body. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 } a_func_info_block;
 
 
