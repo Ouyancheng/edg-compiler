@@ -5056,7 +5056,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   if (curr_expr_kind_is_const()
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       && !curr_expr_kind_is_one_in_which_const_exprs_are_recorded()
-#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
                                                                    ) {
     /* In a constant expression, just throw away the left operand.  This
        comes up in prototype instantiations and with an extension in
