@@ -41,11 +41,6 @@ typedef enum /*an_id_linkage_kind*/ {
 			   the same program */
 } an_id_linkage_kind;
 
-EXTERN a_boolean
-		in_old_style_param_decl_list;
-			/* When we are inside the declaration list for
-			   old-style function parameters, this flag is TRUE. */
-
 typedef struct an_extern_linkage *an_extern_linkage_ptr;
 typedef struct an_extern_linkage {
   a_name_linkage_kind
