@@ -2886,12 +2886,22 @@ members), and does not enter those.
         break;
     }  /* switch */
     if (do_source_corresp_check && could_be_orphan) {
-      /* Named entities and class and namespace members cannot be orphans. */
       a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
-      if (scp->name != NULL ||
-          scp->is_class_member ||
+      if (scp->is_class_member ||
           scp->parent.namespace_ptr != NULL) {
+        /* Class and namespace members cannot be orphans. */
         could_be_orphan = FALSE;
+      } else if (scp->name != NULL) {
+        /* Named entities cannot be orphans. */
+        could_be_orphan = FALSE;
+        /* However, ck_template_param constants in some cases are named
+           only because the name provides part of the value. */
+        if (entry_kind == (an_il_entry_kind)iek_constant) {
+          a_constant_ptr cp = (a_constant_ptr)entry_ptr;
+          if (constant_name_is_part_of_value(cp)) {
+            could_be_orphan = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
     if (could_be_orphan) {
@@ -3462,11 +3472,7 @@ value.  Several fields are cleared or adjusted.
      constant isn't the one directly associated with the source entity,
      if any. */
   break_source_corresp(&ucp->source_corresp);
-  if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-      (cp->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_param ||
-       cp->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_member)) {
+  if (constant_name_is_part_of_value(cp)) {
     /* For some template parameter constants, the name in the source
        correspondence is part of the value.  It was cleared by
        break_source_correspondence, so restore it. */

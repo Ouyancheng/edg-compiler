@@ -265,6 +265,20 @@ a function can be substituted that does something else.
 #define unique_id_for_il_pointer(ptr) ((unsigned long)(ptr))
 
 
+/*
+Return TRUE if the indicated constant is one in which the name forms
+part of the value of the constant, e.g., a template parameter constant.
+*/
+#define constant_name_is_part_of_value(cp) \
+  ((cp)->kind == (a_constant_repr_kind)ck_template_param && \
+   ((cp)->variant.template_param.kind == \
+                         (a_template_param_constant_kind)tpck_param || \
+    (cp)->variant.template_param.kind == \
+                         (a_template_param_constant_kind)tpck_member) || \
+    (cp)->variant.template_param.kind == \
+                         (a_template_param_constant_kind)tpck_unknown_function)
+
+
 extern int compare_source_positions(a_source_position  *pos1,
 				    a_source_position  *pos2);
 
