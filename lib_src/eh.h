@@ -1,0 +1,303 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1993 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+Declarations for exception handling.
+
+*/
+
+#if CHECKING
+EXTERN_C void abort(void);
+#define unexpected_condition() abort()
+#else /* CHECKING */
+#define unexpected_condition() /* nothing */
+#endif /* CHECKING */
+
+#ifndef NULL
+#define NULL (0)
+#endif /* NULL */
+
+#include <setjmp.h>
+
+typedef long an_element_count;
+			/* Type used to represent a count of the number of
+			   elements in an array.  Must be signed because
+			   -1 is used to represent an array whose size is
+			   only known an run time. */
+
+typedef void (*a_function_ptr)();
+			/* A pointer type that can be used to store a
+                           pointer to a destructor or an operator delete
+			   function. */
+
+typedef a_byte *a_unique_type_id;
+			/* The thing pointed to by the unique ID in a
+			   typeinfo record. */
+
+typedef void (*a_void_function_ptr)();
+			/* Type used to store a generic function pointer. */
+
+typedef void (*a_destructor_ptr)(void*, int);
+			/* Type used to store a pointer a destructor. */
+
+typedef void (*a_delete_ptr)(void*);
+			/* Type used to store a pointer to an operator delete
+			   routine. */
+
+
+typedef struct a_typeinfo *a_typeinfo_ptr;
+typedef struct a_typeinfo {
+  a_unique_type_id
+		unique_id;
+			/* When this field is non-NULL two typeinfo
+			   structures describe the same type if their
+			   unique IDs are the same. */
+  a_function_ptr
+		destructor;
+			/* Pointer to the destructor for the object. */
+  a_typeinfo_ptr
+		*base_class_entries;
+			/* Pointer to an array of typeinfo entries for
+			   direct base classes of a class.  The list
+			   is terminated by a NULL pointer. */
+} a_typeinfo;
+
+typedef short an_object_handle;
+			/* An offset into the object address array. */
+
+typedef void *an_object_ptr;
+			/* An address of an object. */
+
+typedef unsigned short a_region_number;
+			/* Type used to represent a region number.
+			   Must be an unsigned type. */
+
+/* Definitions of the values in the flags field of the region description
+   entry. */
+typedef a_byte a_region_descr_flag_set;
+#define RDF_NO_FLAGS		0x0
+			/* Value used when no flags are set. */
+#define RDF_INDIRECT		0x01
+			/* TRUE if the address provided by handle
+			   is a pointer to the object. */
+#define RDF_CONDITIONAL_FLAG	0x02
+			/* TRUE if the object is conditionally constructed.
+			   When this flag is TRUE the next entry on the list
+			   contains a handle that can be used to get the
+			   address of the flag that indicates whether the
+			   object has been constructed.  When this flag is
+			   set the value of the conditional flag (pointed
+			   to be the handle in the region entry) should be
+			   tested before trying to make use of the handle
+			   in the next region entry. */
+#define RDF_NEW_ALLOCATION	0x04
+			/* TRUE if the object was allocated by new and
+			   is to be freed in the event of a throw. */
+#define RDF_ARRAY		0x08
+			/* TRUE if the complete object information can
+			   be found in the array supplement.  This is used
+			   for arrays and for new allocations that require
+			   a two-argument operator delete call. */
+#define RDF_THIS_PARAM_OFFSET	0x10
+			/* TRUE if the object is a base class of an
+			   object being constructed or destructed. */
+
+#define NULL_REGION_NUMBER ((a_region_number)-1)
+			/* The value used when there is no active EH
+			   region.  Also the value used as the previous
+			   region number when there is no previous region. */
+
+
+/* Supplement to a region description entry for array entries and for
+   entries for new allocations that must be deleted using the
+   two-argument form of operator delete. */
+typedef struct an_eh_array_supplement *an_eh_array_supplement_ptr;
+typedef struct an_eh_array_supplement {
+  an_object_handle
+		handle;
+			/* Offset in stack from or index into
+			   the object address array. */
+  a_sizeof_t	element_size;
+			/* Size of each element in the array. */
+  an_element_count	array_size;
+			/* Number of elements in an array.  -1 if the
+			   size is not known at compile time.  Zero for
+			   objects that are not arrays but that must be
+			   deleted using the two-argument operator
+			   delete. */
+} an_eh_array_supplement;
+
+
+/* Structure that describes a single destructable object. */
+typedef struct an_eh_region_descr *an_eh_region_descr_ptr;
+typedef struct an_eh_region_descr {
+  a_void_function_ptr
+		destructor_or_delete_routine;
+			/* When new_allocation is FALSE this points to
+			   the destructor for the object.  When
+			   new_allocation is TRUE this points to the
+			   delete operator for the object. */
+  an_object_handle
+		handle;
+			/* Offset in stack from or index into
+			   the object address array. When RDF_ARRAY is
+			   set the handle contains the index into the
+			   array supplement.  When
+			   RDF_THIS_PARAM_OFFSET is set the handle
+			   contains an offset to be added to the this
+			   parameter to get the address of a base
+			   class. */
+  a_region_number
+	        index_of_previous_region;
+			/* Index of the region description of the
+			   previous region.  This region will be
+			   processed after the processing for this
+			   region has been completed. */
+  a_region_descr_flag_set
+		flags;
+			/* A collection of bits that specify how the
+			   region entry is to be used.  See the
+			   descriptions of the RDF flags above. */
+} an_eh_region_descr;
+
+
+/* Definitions of the values in the flags field of the exception type
+   specification entry. */
+typedef a_byte a_exception_type_specification_flag_set;
+#define ETS_NO_FLAGS		0x0
+			/* Value used when no flags are set. */
+#define ETS_IS_POINTER		0x01
+			/* A pointer to an object of the type specified
+			   by typeinfo is being caught. */
+#define ETS_IS_REFERENCE	0x02
+			/* A reference to an object of the type specified
+			   by typeinfo is being caught. */
+#define ETS_IS_ELLIPSIS		0x04
+			/* The catch clause contains an ellipsis. */
+#define ETS_LAST		0x08
+			/* TRUE if this is the last catch clause associated
+			   with a given try block (i.e., there are no more
+			   entries in the array.) */
+
+
+/* Exception type specifications are used to describe throw specifications
+   for functions and are also used to describe the list of types used in
+   the catch clauses associated with a given try block. */
+typedef struct an_exception_type_specification
+		*an_exception_type_specification_ptr;
+typedef struct an_exception_type_specification {
+  a_typeinfo_ptr
+		typeinfo;
+			/* Pointer to the type information for the entry.
+			   NULL if the entry has no associated type (for
+			   ellipsis entries or for empty throw specification
+			   lists). */
+  a_exception_type_specification_flag_set
+		flags;
+			/* A collection of bits that specify how the
+			   catch entry is to be used.  See the
+			   descriptions of the CE flags above. */
+} an_exception_type_specification;
+
+
+/* The kinds of stack entries that may exist. */
+enum an_eh_stack_entry_kind_tag {
+  ehsek_try_block,
+  ehsek_function,
+  ehsek_throw_spec
+};
+
+typedef a_byte an_eh_stack_entry_kind;
+
+typedef struct an_eh_stack_entry *an_eh_stack_entry_ptr;
+typedef struct an_eh_stack_entry {
+  an_eh_stack_entry_ptr
+		next;
+			/* The next stack entry. */
+  an_eh_stack_entry_kind
+		kind;
+			/* The kind of stack entry. */
+  union {
+    /* When kind == ehsek_try_block. */
+    struct {
+      jmp_buf	setjmp_buffer;
+			/* Buffer used by setjmp to save state
+			   information. */
+      an_exception_type_specification_ptr
+		catch_entries;
+			/* Pointer to an array of entries that describe the
+			   types that can be caught. */
+    } try_block;
+
+    /* When kind == ehsek_function. */
+    struct {
+      an_eh_region_descr
+		*regions;
+			/* Pointer to an array of region
+			   descriptions. */
+      an_object_ptr
+		*object_address_table;
+			/* Pointer to an array of object addresses. */
+      an_eh_array_supplement
+		*array_table;
+			/* Pointer to an array of array description
+			   entries. */
+      a_region_number
+		saved_region_number;
+			/* Previous value of eh_curr_region saved on
+			   entry to this function. */
+    } function;
+    /* When kind == ehsek_throw_spec. */
+    an_exception_type_specification_ptr
+		throw_specification;
+			/* Pointer to an array of entries that specify the
+			   types that can be thrown. */
+  } variant;
+} an_eh_stack_entry;
+
+
+EXTERN a_region_number
+		__eh_curr_region initial_value(0);
+			/* Number of the current region in topmost function
+			   entry on the EH stack. */
+
+EXTERN an_eh_stack_entry_ptr
+		__curr_eh_stack_entry initial_value(0);
+			/* The pointer to the top of the stack of EH
+			   entries. */
+
+EXTERN int	__catch_clause_number;
+			/* Contains the sequence number of the catch clause
+			   associated with a given try block. */
+
+EXTERN_C int	 __throw(void);
+
+EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
+			     a_sizeof_t		size,
+			     a_boolean		is_pointer);
+
+EXTERN void terminate(void);
+
+extern a_void_function_ptr set_terminate(a_void_function_ptr);
+
+EXTERN a_void_function_ptr
+		__default_terminate_routine initial_value(terminate);
+			/* Pointer to the terminate routine to be used. */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1993 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/

@@ -13,10 +13,12 @@ Performs initialization of global variables used by the runtime.
 
 */
 
+#define EXTERN /* empty */
 #define VAR_INITIALIZERS 1
 
 #include "basics.h"
 #include "main.h"
+#include "eh.h"
 
 
 
