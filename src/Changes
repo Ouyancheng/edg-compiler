@@ -1,5 +1,18 @@
 Version 2.33
 
+7/29/96 Internal error caused by error recovery following invalid template
+        argument list
+
+An internal error (in map_token_numbers_to_cache_pointers) could result
+when a template argument list follows a type, for which a template
+argument list is not permitted, in a member function template declaration
+in a class template.
+
+  template <class T> struct A {
+    template <class U> A(U<1);  // U cannot have a template argument list
+  };
+  void f() {}
+
 7/26/96 Internal error on invalid template specialization
 
 The declaration of an invalid template specialization in a scope in
