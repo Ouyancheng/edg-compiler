@@ -5687,7 +5687,8 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
          assignment.  The same process works for the prefix ++/-- case
          because the second operand is not touched. */
       newop = copy_node(expr);
-      newop->type = type_pointed_to(expr->type);
+      /* Drop type qualifiers on the result type. */
+      newop->type = f_skip_typerefs(type_pointed_to(expr->type));
       newop->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       /* newop->result_is_not_used is cleared by copy_type, as it should be. */
       /* For assignments, see if the source expression can have side
