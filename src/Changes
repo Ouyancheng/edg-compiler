@@ -1,5 +1,10 @@
 Version 3.4
 
+10/16/03 Internal error with PROTOTYPE_INSTANTIATIONS_IN_IL
+
+An internal error could occur when PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE
+and also using removal of unneeded entities.  Now fixed.
+
 10/13/03 Build problem when IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
          is FALSE
 

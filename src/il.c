@@ -13968,7 +13968,10 @@ The indicated routine is being removed from the IL.  If it is a template,
 clear its instantiation required information.
 */
 {
-  if ((rp->is_template_function && !rp->is_specialized) ||
+  /* Don't attempt to do this for prototype instantiations, which are not
+     put on the instantiation required list. */
+  if ((rp->is_template_function && !rp->is_specialized &&
+       !rp->is_prototype_instantiation) ||
       (instantiate_extern_inline && rp->is_inline)) {
     a_symbol_ptr sym;
     sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
@@ -13993,9 +13996,12 @@ necessary processing on those members to clear instantiation information.
   check_assertion(!C_mode() && ctsp != NULL);
   if (ctsp->assoc_scope != NULL) {
     a_scope_ptr scope = ctsp->assoc_scope;
-    /* Only check the members if there might be some templates. */
-    if (class_type->variant.class_struct_union.is_template_class ||
-        scope->templates != NULL) {
+    /* Only check the members if there might be some templates.  Suppress this
+       for prototype instantiations, which will not have members on the
+       instantiation required list. */
+    if ((class_type->variant.class_struct_union.is_template_class ||
+         scope->templates != NULL) &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation) {
       a_variable_ptr vp;
       a_routine_ptr  rp;
       for (vp = scope->variables; vp != NULL; vp = vp->next) {
