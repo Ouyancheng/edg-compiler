@@ -2537,11 +2537,10 @@ a_constant_ptr alloc_error_constant(void)
 Allocate and return an error constant.
 */
 {
-  a_constant     con;
   a_constant_ptr cp;
 
-  set_error_constant(&con);
-  cp = alloc_unshared_constant(&con);
+  cp = fs_constant((a_constant_repr_kind)ck_error);
+  set_error_constant(cp);
   return cp;
 }  /* alloc_error_constant */
 
