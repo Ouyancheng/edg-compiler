@@ -2984,6 +2984,86 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   db_exit();
 }  /* scan_ptr_to_member_operator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void prepare_property_ref_incr_decr(a_boolean         is_increment,
+                                    a_source_position *operator_position,
+                                    an_operand        *operand,
+                                    an_operand        *operand_clone,
+                                    an_operand        *result,
+                                    a_boolean         *processed)
+/*
+Do the first part of processing for an increment or decrement of a
+reference to a field declared with the Microsoft C++ extension
+__declspec(property(...)).  is_increment is TRUE if the operation is
+an increment, FALSE for a decrement.  operator_position gives the position
+of the "++" or "--" operator.  operand is the operand of the
+increment/decrement; it is transformed to an rvalue that is a
+call of the appropriate "get" routine.  operand_clone is set to a clone
+of the operand, for use later when generating the "put" call.
+Operator overloading is checked for, and if it applies, it is handled,
+the result is placed in *result, and *processed is set to TRUE.
+*/
+{
+  /* Make a clone of the operand, to be used in the store. */
+  clone_operand(operand, operand_clone);
+  /* Transform the operand to a call of the appropriate "get" function. */
+  rewrite_property_field_reference(operand, (an_operand *)NULL);
+  if (is_overloadable_type_operand(operand)) {
+    /* Look for C++ operator overloading cases. */
+    check_for_operator_overloading((an_opname_kind)(is_increment ?
+                                                         onk_plus : onk_minus),
+                                   /*unary_operator=*/TRUE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   operand, (an_operand *)NULL,
+                                   operator_position,
+                                   result, processed);
+  }  /* if */
+}  /* prepare_property_ref_incr_decr */
+
+
+void process_property_ref_incr_decr(a_boolean         is_increment,
+                                    a_source_position *operator_position,
+                                    an_operand        *operand,
+                                    an_operand        *operand_clone,
+                                    an_operand        *result)
+/*
+Generate the IL operation for an increment or decrement operation on a
+reference to a field declared with the Microsoft C++ extension
+__declspec(property(...)).  is_increment is TRUE if the operation is an
+increment, FALSE for a decrement.  operator_position gives the source
+position of the operator.  "operand" is the operand to be
+incremented/decremented, already transformed into a call of the
+appropriate "get" function.  operand_clone is a clone of the original
+operand, to be transformed into a call of the appropriate "put"
+function.  The result is placed in *result.
+*/
+{
+  an_operand one_operand;
+  a_constant one_constant;
+  a_type_ptr result_type;
+
+  /* Make a constant "1" of the right type. */
+  set_integer_constant(&one_constant, 1L, (an_integer_kind)ik_int);
+  make_constant_operand(&one_constant, &one_operand);
+  /* Determine the operation type. */
+  result_type = determine_arithmetic_conversions(operand, &one_operand);
+  /* Change the operands to the operation type. */
+  change_binary_operand_types(result_type, operand, &one_operand);
+  /* Generate the IL for the operation. */
+  do_binary_operation(which_binary_operator(is_increment ? tok_plus :
+                                                           tok_minus,
+                                            operand->type),
+                      operand, &one_operand,
+                      result_type, result, operator_position);
+  /* Add a call of the appropriate "put" routine. */
+  rewrite_property_field_reference(operand_clone, result);
+  copy_operand(operand_clone, result);
+}  /* process_property_ref_incr_decr */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_postfix_incr_decr(an_operand *operand,
 				   an_operand *result)
@@ -2999,6 +3079,11 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   an_operand            zero_operand;
   an_opname_kind        opname_kind;
   a_source_position     operator_position;
+  a_boolean             property_ref_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_operand            operand_clone;
+  a_boolean             operand_clone_unused = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_postfix_incr_decr");
 
@@ -3010,7 +3095,20 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
   } else {
-    if (C_dialect == C_dialect_cplusplus &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    property_ref_case = is_property_ref_operand(operand);
+    if (property_ref_case) {
+      /* The operand is a reference to a field declared with the Microsoft
+         C++ extension __declspec(property(...)).  The fetch of the field will
+         be made via a call of a "get" function, and the store will be made
+         via a call of a "put" function. */
+      prepare_property_ref_incr_decr(is_increment, &operator_position,
+                                     operand, &operand_clone,
+                                     result, &processed);
+      operand_clone_unused = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
         is_overloadable_type_operand(operand)) {
       /* Look for C++ operator overloading cases. */
       /* Note that postfix ++/-- use a two-argument function to distinguish
@@ -3051,7 +3149,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
              the builtin version of the operator.  Note that this call
              will also try the normal match again, and fail. */
           check_for_operator_overloading(opname_kind,
-                                         /*unary_operator=*/FALSE,  /* sic! */
+                                         /*unary_operator=*/FALSE, /* sic! */
                                          /*must_be_member_function=*/FALSE,
                                          /*try_conversions=*/TRUE,
                                          /*has_predef_meaning=*/FALSE,
@@ -3076,6 +3174,10 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                             ec_expr_not_pointer_to_object)) {
             err = TRUE;
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (property_ref_case) {
+          /* No further checking here. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_enum_type(operand->type)) {
           /* Enum types are not allowed (because the enum promotes to integer
@@ -3099,15 +3201,32 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
       }  /* if */
       if (err) {
         /* Some error already. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (property_ref_case) {
+        /* No further checking here. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (!check_modifiable_lvalue_operand(operand)) {
         /* Operand is not a modifiable lvalue. */
         err = TRUE;
       } else {
-        a_type_kind kind;
         /* Operand is okay. */
         modifying_lvalue(operand, /*value_used=*/TRUE);
         result_type = rvalue_type(operand->type);
-        kind = skip_typerefs(result_type)->kind;
+      }  /* if */
+      if (err) {
+        /* Error of some kind. */
+        make_error_operand(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (property_ref_case) {
+        /* Operand is a reference to a field declared with
+           __declspec(property(...)). */
+        process_property_ref_incr_decr(is_increment, &operator_position,
+                                       operand, &operand_clone, result);
+        operand_clone_unused = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else {
+        /* Determine the IL operator to use. */
+        a_type_kind kind = skip_typerefs(result_type)->kind;
         if (is_increment) {
           switch (kind) {
             case tk_integer:
@@ -3141,11 +3260,6 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 #endif /* CHECKING */
           }  /* switch */
         }  /* if */
-      }  /* if */
-      if (err) {
-        /* Error of some kind. */
-        make_error_operand(result);
-      } else {
         build_unary_result_operand(operand, op, result_type, result);
       }  /* if */
     }  /* if */
@@ -3153,6 +3267,11 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 
   /* Get past the "++" or "--". */
   (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (operand_clone_unused) {
+    operand_will_not_be_used_because_of_error(&operand_clone);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   copy_source_position(operand->position, error_position);
   copy_source_position(operand->position, result->position);
 
@@ -3199,6 +3318,11 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
   a_boolean             is_increment;
   a_type_ptr            orig_result_type, result_type;
   a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             property_ref_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_operand            operand_clone;
+  a_boolean             operand_clone_unused = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_prefix_incr_decr");
 
@@ -3221,7 +3345,20 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
   } else {
-    if (C_dialect == C_dialect_cplusplus &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    property_ref_case = is_property_ref_operand(&operand);
+    if (property_ref_case && !err) {
+      /* The operand is a reference to a field declared with the Microsoft
+         C++ extension __declspec(property(...)).  The fetch of the field will
+         be made via a call of a "get" function, and the store will be made
+         via a call of a "put" function. */
+      prepare_property_ref_incr_decr(is_increment, &start_position,
+                                     &operand, &operand_clone, result,
+                                     &processed);
+      operand_clone_unused = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
         is_overloadable_type_operand(&operand)) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading(opname_kind_for_token[(int)save_token],
@@ -3248,6 +3385,10 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                             ec_expr_not_pointer_to_object)) {
             err = TRUE;
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (property_ref_case) {
+          /* No further checking here. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_enum_type(operand.type)) {
           /* Enum types are not allowed (because the enum promotes to integer
@@ -3271,16 +3412,33 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
       }  /* if */
       if (err) {
         /* Some error already. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (property_ref_case) {
+        /* No further checking here. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (!check_modifiable_lvalue_operand(&operand)) {
         /* Operand is not a modifiable lvalue. */
         err = TRUE;
       } else {
-        a_type_kind kind;
         /* Operand is okay. */
         modifying_lvalue(&operand, /*value_used=*/TRUE);
         orig_result_type = operand.type;
         result_type = rvalue_type(orig_result_type);
-        kind = skip_typerefs(result_type)->kind;
+      }  /* if */
+      if (err) {
+        /* Error of some kind. */
+        make_error_operand(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (property_ref_case) {
+        /* Operand is a reference to a field declared with
+           __declspec(property(...)). */
+        process_property_ref_incr_decr(is_increment, &start_position,
+                                       &operand, &operand_clone, result);
+        operand_clone_unused = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else {
+        /* Determine the IL operator to use. */
+        a_type_kind kind = skip_typerefs(result_type)->kind;
         if (is_increment) {
           switch (kind) {
             case tk_integer:
@@ -3314,11 +3472,6 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 #endif /* CHECKING */
           }  /* switch */
         }  /* if */
-      }  /* if */
-      if (err) {
-        /* Error of some kind. */
-        make_error_operand(result);
-      } else {
         build_unary_result_operand(&operand, op, result_type, result);
         /* In C++, the prefix ++ and -- operators return lvalues. */
         if (C_dialect == C_dialect_cplusplus) {
@@ -3329,6 +3482,11 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     }  /* if */
   }  /* if */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (operand_clone_unused) {
+    operand_will_not_be_used_because_of_error(&operand_clone);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   copy_source_position(start_position, error_position);
   copy_source_position(start_position, result->position);
 
@@ -8946,13 +9104,18 @@ Scan the compound assignment operators (*= /= %= += -= <<= >>= &= ^= |=).
 See section 3.3.16 of the standard.
 */
 {
-  a_token_kind          save_token;
+  a_token_kind          save_token, operator_token;
   an_operand            operand_2;
   a_source_position     operator_position;
   a_boolean             err               = FALSE, processed = FALSE;
   a_type_ptr            orig_result_type, result_type;
   a_type_ptr            operation_type;
   a_boolean             pointer_add_sub   = FALSE;
+  a_boolean             property_ref_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_operand            operand_1_clone;
+  a_boolean             operand_1_clone_unused = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_compound_assignment_operator");
 
@@ -8960,12 +9123,66 @@ See section 3.3.16 of the standard.
   save_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_token = save_token;
 
   if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  property_ref_case = is_property_ref_operand(operand_1);
+  if (property_ref_case && !err) {
+    /* The left operand is a reference to a field declared with the Microsoft
+       C++ extension __declspec(property(...)).  The fetch of the field will
+       be made via a call of a "get" function, and the store will be made
+       via a call of a "put" function. */
+    /* The operation gets performed as the corresponding non-assignment
+       operation, e.g., "+=" becomes "+".  This is used for building the
+       IL operation and for overload resolution. */
+    switch (save_token) {
+      case tok_times_assign:
+        operator_token = tok_star;
+        break;
+      case tok_divide_assign:
+        operator_token = tok_divide;
+        break;
+      case tok_plus_assign:
+        operator_token = tok_plus;
+        break;
+      case tok_minus_assign:
+        operator_token = tok_minus;
+        break;
+      case tok_remainder_assign:
+        operator_token = tok_remainder;
+        break;
+      case tok_shift_left_assign:
+        operator_token = tok_shift_left;
+        break;
+      case tok_shift_right_assign:
+        operator_token = tok_shift_right;
+        break;
+      case tok_and_assign:
+        operator_token = tok_ampersand;
+        break;
+      case tok_excl_or_assign:
+        operator_token = tok_excl_or;
+        break;
+      case tok_or_assign:
+        operator_token = tok_or;
+        break;
+      default:
+        unexpected_condition_str(
+                               "scan_compound_assignment_operator: bad token");
+    }  /* switch */
+    /* Make a clone of operand_1, to be used in the store. */
+    clone_operand(operand_1, &operand_1_clone);
+    operand_1_clone_unused = TRUE;
+    /* Transform the left operand to a call of the appropriate "get"
+       function. */
+    rewrite_property_field_reference(operand_1, (an_operand *)NULL);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* Scan the second operand. */
   (void)get_token();
@@ -8981,7 +9198,8 @@ See section 3.3.16 of the standard.
         (is_overloadable_type_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
-      check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+      check_for_operator_overloading(opname_kind_for_token[
+                                                          (int)operator_token],
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
@@ -8992,20 +9210,23 @@ See section 3.3.16 of the standard.
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      do_operand_transformations(operand_1,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-      if (C_dialect == C_dialect_cplusplus && is_enum_type(operand_1->type)) {
-        /* Enum types are not allowed (because the enum promotes to integer
-           for the operation, and then can't get back to enum). */
-        if (allow_anachronisms) {
-          pos_diagnostic(anachronism_error_severity,
-                         ec_mixed_enum_type_anachronism, &operand_1->position);
-        } else {
-          error_in_operand(ec_enum_type_not_allowed, operand_1);
+      if (!property_ref_case) {
+        do_operand_transformations(operand_1,
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+        if (!C_mode() && is_enum_type(operand_1->type)) {
+          /* Enum types are not allowed (because the enum promotes to integer
+             for the operation, and then can't get back to enum). */
+          if (allow_anachronisms) {
+            pos_diagnostic(anachronism_error_severity,
+                           ec_mixed_enum_type_anachronism,
+                           &operand_1->position);
+          } else {
+            error_in_operand(ec_enum_type_not_allowed, operand_1);
+          }  /* if */
         }  /* if */
-      }  /* if */
-      if (check_modifiable_lvalue_operand(operand_1)) {
-        modifying_lvalue(operand_1, /*value_used=*/TRUE);
+        if (check_modifiable_lvalue_operand(operand_1)) {
+          modifying_lvalue(operand_1, /*value_used=*/TRUE);
+        }  /* if */
       }  /* if */
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* Check the operand types. */
@@ -9080,6 +9301,9 @@ See section 3.3.16 of the standard.
             /* Not pcc mode. */
             /* These operations do integral promotions instead of the usual
                arithmetic conversions. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (property_ref_case) promote_operand(operand_1);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             operation_type = operand_1->type;
             promote_operand(&operand_2);
           }  /* if */
@@ -9091,12 +9315,20 @@ See section 3.3.16 of the standard.
                        /*is_implicit_cast=*/TRUE,
                        /*is_reinterpret_cast=*/FALSE);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (property_ref_case) {
+          cast_operand(operation_type, operand_1,
+                       /*check_cast_access=*/TRUE,
+                       /*is_implicit_cast=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         build_binary_result_operand(operand_1, &operand_2,
-                                    which_binary_operator(save_token,
+                                    which_binary_operator(operator_token,
                                                           operation_type),
                                     result_type, result);
-        /* In C++, assignment operators return lvalues. */
-        if (C_dialect == C_dialect_cplusplus) {
+        if (C_dialect == C_dialect_cplusplus && !property_ref_case) {
+          /* In C++, assignment operators return lvalues. */
           change_assignment_result_to_lvalue(result, operand_1,
                                              orig_result_type);
         }  /* if */
@@ -9104,6 +9336,18 @@ See section 3.3.16 of the standard.
     }  /* if */
   }  /* if */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (property_ref_case && !err) {
+    /* For a reference to a __declspec(property(...)) field, store
+       the result by calling a "put" function. */
+    rewrite_property_field_reference(&operand_1_clone, result);
+    copy_operand(&operand_1_clone, result);
+    operand_1_clone_unused = FALSE;
+  }  /* if */
+  if (operand_1_clone_unused) {
+    operand_will_not_be_used_because_of_error(&operand_1_clone);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Set the error position to the starting position. */
   copy_source_position(operand_1->position, error_position);
   copy_source_position(operand_1->position, result->position);

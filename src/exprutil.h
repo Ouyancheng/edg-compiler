@@ -498,7 +498,10 @@ i.e., it's not inside a sizeof or alignof.
   ((a_boolean)expr_stack->potentially_evaluated)
 
 
-/* Copy an operand. */
+/* Copy an operand.  Note that this does not copy the subtree of the
+   operand.  This macro is used to move an operand from one place to
+   another, with the idea that the old copy will no longer be used.
+   If you want to make a full copy, see clone_operand. */
 #define copy_operand(from, to) (*(to) = *(from))
 
 /*
@@ -677,8 +680,10 @@ extern void change_binary_operand_types(a_type_ptr type,
 				        an_operand *operand_1,
 				        an_operand *operand_2);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void rewrite_property_field_reference(an_operand *operand,
                                              an_operand *put_operand);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
@@ -741,6 +746,9 @@ extern void clear_operand(an_operand_kind kind,
 
 extern void set_operand_kind(an_operand      *operand,
                              an_operand_kind kind);
+
+extern void clone_operand(an_operand *operand,
+                          an_operand *operand_clone);
 
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);

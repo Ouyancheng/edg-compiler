@@ -1224,6 +1224,65 @@ Display an expression operand for debugging purposes.
 }  /* db_operand */
 
 #endif /* DEBUG */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void clone_operand(an_operand *operand,
+                   an_operand *operand_clone)
+/*
+Make a clone of the operand "operand" and put it in "operand_clone".
+The cloning process copies the subtrees of the operand, e.g., if it's
+an expression, a separate copy of the expression is made for the
+operand clone.
+*/
+{
+  an_expr_copy_options_set copy_options =
+                                    expr_stack->inside_conditional_expression ?
+                                             CE_INSIDE_CONDITIONAL_EXPRESSION :
+                                             CE_NO_OPTIONS;
+
+  copy_operand(operand, operand_clone);
+  switch (operand->kind) {
+    case ok_error:
+    case ok_constant:
+    case ok_indefinite_function:
+    case ok_sym_for_member:
+    case ok_undefined_symbol:
+      /* Nothing to copy. */
+      break;
+    case ok_expression:
+      operand_clone->variant.expression =
+                                    copy_expr_tree(operand->variant.expression,
+                                                   copy_options);
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case ok_property_ref:
+      operand_clone->variant.property_ref.object =
+                           copy_expr_tree(operand->variant.property_ref.object,
+                                          copy_options);
+      /* Copy the list of subscript operands. */
+      { an_arg_operand_ptr aop, last_clone_aop = NULL;
+        for (aop = operand->variant.property_ref.subscripts;
+             aop != NULL;
+             aop = aop->next) {
+          an_arg_operand_ptr aop_clone = alloc_arg_operand();
+          clone_operand(&aop->operand, &aop_clone->operand);
+          if (last_clone_aop == NULL) {
+            operand_clone->variant.property_ref.subscripts = aop_clone;
+          } else {
+            last_clone_aop->next = aop_clone;
+          }  /* if */
+          last_clone_aop = aop_clone;
+        }  /* for */
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition_str("clone_operand: unexpected operand kind");
+  }  /* switch */
+}  /* clone_operand */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
 /*
@@ -5822,6 +5881,8 @@ is a "get" if put_operand is NULL.
           /* Create the function call. */
           assemble_function_call(&function_operand, &bound_function_selector,
                                  argument_list, operand);
+          /* Convert lvalue to rvalue, etc. */
+          do_operand_transformations(operand, TOPT_NO_OPTIONS);
         }  /* if */
       }  /* if */
     }  /* if */

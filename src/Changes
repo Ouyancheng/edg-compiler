@@ -1,5 +1,10 @@
 Version 2.37
 
+9/15/97   Microsoft compatibility: __declspec(property(...))
+
+In Microsoft compatibility mode, __declspec(property(...)) is now
+implemented as an attribute on nonstatic data members of classes.
+
 9/11/97   Overload resolution tie-breaker processing updated
 
 The handling of "tie-breakers" in overload resolution has been updated
