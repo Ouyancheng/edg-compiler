@@ -3791,7 +3791,8 @@ rather than determined directly.
       pointers_block->last_type->next = type_ptr;
     }  /* if */
     pointers_block->last_type = type_ptr;
-    if (sp->kind == (a_scope_kind)sck_namespace) {
+    if (sp->kind == (a_scope_kind)sck_namespace &&
+        depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
       /* We are adding a type to the types list of a namespace scope.  Add
          a placeholder type to the types list of the filescope -- it's used
          by IL lowering to get the order right when it promotes namespace
@@ -3889,17 +3890,22 @@ determined directly.
     type_ptr->next = NULL;
   }  /* if */
   if (sp->kind == (a_scope_kind)sck_namespace) {
-    /* The associated placeholder typedef should also be move to the end of
-       its list. */
+    /* The associated placeholder typedef, if there is one, either should also
+       be move to the end of its list or elimianted.  If there isn't one
+       but should be, allocated and add it the list. */
     a_scope_stack_entry_ptr  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    a_boolean                placeholder_needed;
 
+    placeholder_needed = (depth_innermost_namespace_scope != NO_SCOPE_DEPTH);
     sp = ensure_il_scope_exists(ssep);
     pointers_block = assoc_pointers_block_of(ssep);
-    tp = pointers_block->last_type;
-    if (tp->kind == (a_type_kind)tk_typeref &&
+    if (placeholder_needed &&
+        (tp = pointers_block->last_type) != NULL &&
+        tp->kind == (a_type_kind)tk_typeref &&
         tp->variant.typeref.is_placeholder_for_namespace_type &&
         tp->variant.typeref.type == type_ptr) {
-      /* The placeholder entry is already the last on the list. */
+      /* The placeholder entry is needed and it's already the last on the
+         list. */
     } else {
       /* Scan the list until a match is found. */
       prev_tp = NULL;
@@ -3912,19 +3918,26 @@ determined directly.
         }  /* if */
         prev_tp = tp;
         tp = tp->next;
-        check_assertion_str2(tp != NULL, "move_to_end_of_types_list:",
-                             "cannot find placeholder type on types list");
       }  /* for */
-      /* Link around the entry. */
-      if (prev_tp == NULL) {
-        sp->types = tp->next;
+      if (tp == NULL) {
+        /* No associated placeholder was located on the file-scope types
+           list. */
+        if (placeholder_needed) {
+          /* However, one is needed, so create it. */
+          tp = alloc_type((a_type_kind)tk_typeref);
+          tp->variant.typeref.type = type_ptr;
+          tp->variant.typeref.is_placeholder_for_namespace_type = TRUE;
+        }  /* if */
       } else {
-        prev_tp->next = tp->next;
+        /* Link around the entry that was found. */
+        if (prev_tp == NULL) {
+          sp->types = tp->next;
+        } else {
+          prev_tp->next = tp->next;
+        }  /* if */
+        tp->next = NULL;
       }  /* if */
-      /* Reenter it onto the end of the list. */
-      pointers_block->last_type->next = tp;
-      pointers_block->last_type = tp;
-      tp->next = NULL;
+      if (placeholder_needed) add_to_types_list(tp, DEPTH_OF_FILE_SCOPE);
     }  /* if */
   }  /* if */
 }  /* move_to_end_of_types_list */
