@@ -23,6 +23,8 @@ first element of the array.  Now the full array is set to zero.
 
 Some compilation errors appeared when MICROSOFT_EXTENSIONS_ALLOWED was set
 to FALSE but NEAR_AND_FAR_ALLOWED or DECL_MODIFIERS_IN_USE was set to TRUE.
+These compilation errors were introduced by the patch sent out on
+3/19/99.
 
 5/14/99  C++-generating back end: string passed to template reference param
 
