@@ -3688,14 +3688,15 @@ skip_overloading:;
       }  /* if */
       if (err) {
         /* The ARM specifies that inconsistencies are errors for functions but
-           not for variables.  Just issue a warning in the latter case. */
-        if (is_function) {
-          pos_sy_error(ec_incompatible_linkage_specifier,
-                       &locator->source_position, *ext_sym);
-        } else {
-          pos_sy_warning(ec_incompatible_linkage_specifier,
-                         &locator->source_position, *ext_sym);
-        }  /* if */
+           not for variables.  Just issue a remark or, in strict ansi mode,
+           a warning in the latter case. */
+        pos_sy_diagnostic(is_function ?
+                            (an_error_severity)es_error :
+                            (strict_ansi_mode ?
+                               (an_error_severity)es_warning :
+                               (an_error_severity)es_remark),
+                          ec_incompatible_linkage_specifier,
+                          &locator->source_position, *ext_sym);
       }  /* if */
     }  /* if */
   } else if (linkage == idl_internal) {
