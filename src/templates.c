@@ -14243,8 +14243,9 @@ static void merge_default_arg_info(a_template_symbol_supplement_ptr	tssp)
 /*
 Merge the list of default arguments specified by "curr_default_args"
 with the list from "tssp" (if one exists).  Normally, a given parameter
-can only have a single default argument, but in g++ mode redeclarations
-are allowed (and ignored).  This can also occur in error cases.
+can only have a single default argument, but in g++ mode and Microsoft mode
+(for certain Microsoft versions) redeclarations are allowed (and ignored).
+This can also occur in error cases.
 */
 {
   a_def_arg_expr_fixup_ptr	new_args = curr_default_args;
