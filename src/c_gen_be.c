@@ -4750,6 +4750,19 @@ Dump all constants in the indicated scope.
 /* Forward declaration. */
 static void dump_statement_list(a_statement_ptr statement);
 static void dump_prescan_temps(a_statement_ptr statement);
+static void dump_statement(a_statement_ptr statement);
+
+
+static void set_output_position_for_stmt(a_stmt_source_position *spos)
+/*
+Set the output position to match the statement position given by *spos.
+*/
+{
+  a_source_position pos;
+
+  set_position_from_stmt_source_position(pos, *spos);
+  set_output_position(&pos);
+}  /* set_output_position_for_stmt */
 
 
 static void dump_block_declarations(a_statement_ptr statement)
@@ -4801,6 +4814,128 @@ Dump out the contents of a block (but not the surrounding { and }).
   dump_statement_list(statement->variant.block.statements);
   curr_scope = saved_curr_scope;
 }  /* dump_block */
+
+
+static void dump_switch_statement(a_statement_ptr statement)
+/*
+Generate the code for a switch statement.
+*/
+{
+  a_statement_ptr     case_statement, body_statement;
+  a_constant_ptr      constant;
+  a_switch_clause_ptr switch_clause;
+  a_boolean           need_break;
+  /* curr_scope is saved here because dump_block_declarations may change it. */
+  a_scope_ptr         saved_curr_scope = curr_scope;
+
+  write_tok_str("switch (");
+  dump_expression(statement->expr);
+  write_tok_str(") {");
+  body_statement = statement->variant.switch_stmt.body_statement;
+  if (body_statement == NULL) {
+    /* No body statement. */
+  } else if (body_statement->kind != (a_statement_kind)stmk_block) {
+    /* Unusual body statement. */
+    indent += 4;
+    dump_statement(body_statement);
+    write_tok_str("break;");
+    indent -= 4;
+  } else {
+    /* Dump the block body statement (usually empty), without surrounding
+       braces. */
+    indent += 4;
+    if (body_statement->variant.block.extra_info->assoc_scope != NULL) {
+      /* Do the prescan for temporaries needed in the switch clauses,
+         which was put off until now (when we are inside the braces
+         for the scope). */
+      for (switch_clause = statement->variant.switch_stmt.clause_list;
+           switch_clause != NULL;
+           switch_clause = switch_clause->next) {
+        dump_prescan_temps(switch_clause->statements);
+      }  /* for */
+      /* Dump declarations in the block. */
+      dump_block_declarations(body_statement);
+    }  /* if */
+    /* If there are statements in the body statement, dump them. */
+    if (body_statement->variant.block.statements != NULL) {
+      dump_statement_list(body_statement->variant.block.statements);
+      write_tok_str("break;");
+    }  /* if */
+    indent -= 4;
+  }  /* if */
+  for (switch_clause = statement->variant.switch_stmt.clause_list;
+       switch_clause != NULL;
+       switch_clause = switch_clause->next) {
+    /* Indent for the case label. */
+    indent += 2;
+    /* Try to determine a source position for the case label.  This would
+       be easier if there were a source position in the IL, but there
+       isn't. */
+    { a_source_position pos;
+      /* See if there is a statement in the clause that has a position. */
+      for (case_statement = switch_clause->statements;
+           case_statement != NULL;
+           case_statement = case_statement->next) {
+        set_position_from_stmt_source_position(pos, case_statement->position);
+        /* Ignore statements with no source position. */
+        if (pos.seq != 0) {
+          /* Found a statement with a position.  Use it. */
+          set_output_position(&pos);
+          goto position_set;
+        }  /* if */
+      }  /* for */
+      /* We didn't find a statement with a position.  See if there is a
+         break position. */
+      set_position_from_stmt_source_position(pos,
+                                             switch_clause->break_position);
+      if (pos.seq != 0) {
+        /* There is a break position.  Use it. */
+        set_output_position(&pos);
+      }  /* if */
+position_set:;
+    }
+    constant = switch_clause->constant_list;
+    if (constant == NULL) {
+      /* This is the default case. */
+      write_tok_str("default:");
+    } else {
+      do {
+        write_tok_str("case ");
+        dump_constant(constant);
+        write_tok_ch(':');
+      } while ((constant = constant->next) != NULL);
+    }  /* if */
+    need_break = TRUE;
+    /* Indent for the dependent statements. */
+    indent += 2;
+    if ((case_statement = switch_clause->statements) == NULL) {
+      /* NULL statement list indicates that there were no statements for
+         this case, print nothing. */
+    } else {
+      for (; case_statement != NULL; case_statement = case_statement->next) {
+        dump_statement(case_statement);
+        if (case_statement->next == NULL) {
+          /* This is the last statement in this case; check for a goto
+             which indicates a branch out this case.  This branch results
+             from either an explicit goto or falling through to the next
+             case label.  If a goto is present, a break is not needed. */
+          if (case_statement->kind == (a_statement_kind)stmk_goto ||
+               case_statement->kind == (a_statement_kind)stmk_return ) {
+            need_break = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (need_break) {
+      set_output_position_for_stmt(&switch_clause->break_position);
+      write_tok_str("break;");
+    }  /* if */
+    /* Outdent for the dependent statements and the case label. */
+    indent -= 4;
+  }  /* for */
+  curr_scope = saved_curr_scope;
+  write_tok_ch('}');
+}  /* dump_switch_statement */
 
 
 static void dump_dynamic_init(a_dynamic_init_ptr dip)
@@ -4881,30 +5016,14 @@ This is used for stmk_init statements.
 }  /* dump_whole_variable_dynamic_init */
 
 
-static void set_output_position_for_stmt(a_stmt_source_position *spos)
-/*
-Set the output position to match the statement position given by *spos.
-*/
-{
-  a_source_position pos;
-
-  set_position_from_stmt_source_position(pos, *spos);
-  set_output_position(&pos);
-}  /* set_output_position_for_stmt */
-
-
 static void dump_statement(a_statement_ptr statement)
 /*
 Generate C for a statement.
 */
 {
-  a_statement_ptr     case_statement;
-  a_statement_ptr     body_statement, init_stmt, else_stmt;
-  an_expr_node_ptr    init_expr;
-  a_constant_ptr      constant;
-  a_switch_clause_ptr switch_clause;
-  a_boolean           need_break;
-  a_statement_kind    kind;
+  a_statement_ptr  init_stmt, else_stmt;
+  an_expr_node_ptr init_expr;
+  a_statement_kind kind;
 
   if (statement == NULL) {
     /* Empty statement. */
@@ -5057,118 +5176,7 @@ Generate C for a statement.
       write_tok_ch(';');
       break;
     case stmk_switch:
-      write_tok_str("switch (");
-      dump_expression(statement->expr);
-      write_tok_str(") {");
-      body_statement = statement->variant.switch_stmt.body_statement;
-      if (body_statement == NULL) {
-        /* No body statement. */
-      } else if (body_statement->kind != (a_statement_kind)stmk_block) {
-        /* Unusual body statement. */
-        indent += 4;
-        dump_statement(body_statement);
-        write_tok_str("break;");
-        indent -= 4;
-      } else {
-        /* Dump the block body statement (usually empty), without surrounding
-           braces. */
-        /* curr_scope is saved and restored here because
-           dump_block_declarations sets it. */
-        a_scope_ptr saved_curr_scope = curr_scope;
-	indent += 4;
-        if (body_statement->variant.block.extra_info->assoc_scope != NULL) {
-          /* Do the prescan for temporaries needed in the switch clauses,
-             which was put off until now (when we are inside the braces
-             for the scope). */
-          for (switch_clause = statement->variant.switch_stmt.clause_list;
-               switch_clause != NULL;
-               switch_clause = switch_clause->next) {
-            dump_prescan_temps(switch_clause->statements);
-          }  /* for */
-          /* Dump declarations in the block. */
-          dump_block_declarations(body_statement);
-        }  /* if */
-        /* If there are statements in the body statement, dump them. */
-        if (body_statement->variant.block.statements != NULL) {
-          dump_statement_list(body_statement->variant.block.statements);
-          write_tok_str("break;");
-        }  /* if */
-        curr_scope = saved_curr_scope;
-	indent -= 4;
-      }  /* if */
-      for (switch_clause = statement->variant.switch_stmt.clause_list;
-           switch_clause != NULL;
-           switch_clause = switch_clause->next) {
-	/* Indent for the case label. */
-	indent += 2;
-        /* Try to determine a source position for the case label.  This would
-           be easier if there were a source position in the IL, but there
-           isn't. */
-        { a_source_position pos;
-          /* See if there is a statement in the clause that has a position. */
-          for (case_statement = switch_clause->statements;
-               case_statement != NULL;
-               case_statement = case_statement->next) {
-            set_position_from_stmt_source_position(pos,
-                                                   case_statement->position);
-            /* Ignore statements with no source position. */
-            if (pos.seq != 0) {
-              /* Found a statement with a position.  Use it. */
-              set_output_position(&pos);
-              goto position_set;
-            }  /* if */
-          }  /* for */
-          /* We didn't find a statement with a position.  See if there is a
-             break position. */
-          set_position_from_stmt_source_position(pos,
-                                                switch_clause->break_position);
-          if (pos.seq != 0) {
-            /* There is a break position.  Use it. */
-            set_output_position(&pos);
-          }  /* if */
-position_set:;
-        }
-	constant = switch_clause->constant_list;
-	if (constant == NULL) {
-	  /* This is the default case. */
-	  write_tok_str("default:");
-	} else {
-          do {
-	    write_tok_str("case ");
-	    dump_constant(constant);
-	    write_tok_ch(':');
-	  } while ((constant = constant->next) != NULL);
-	}  /* if */
-        need_break = TRUE;
-        /* Indent for the dependent statements. */
-        indent += 2;
-	if ((case_statement = switch_clause->statements) == NULL) {
-	  /* NULL statement list indicates that there were no statements for
-	     this case, print nothing. */
-	} else {
-	  for (; case_statement != NULL;
-               case_statement = case_statement->next) {
-	    dump_statement(case_statement);
-	    if (case_statement->next == NULL) {
-	      /* This is the last statement in this case; check for a goto
-		 which indicates a branch out this case.  This branch results
-		 from either an explicit goto or falling through to the next
-		 case label.  If a goto is present, a break is not needed. */
-	      if (case_statement->kind == (a_statement_kind)stmk_goto ||
-	          case_statement->kind == (a_statement_kind)stmk_return ) {
-                need_break = FALSE;
-	      }  /* if */
-	    }  /* if */
-	  }  /* for */
-	}  /* if */
-        if (need_break) {
-          set_output_position_for_stmt(&switch_clause->break_position);
-	  write_tok_str("break;");
-        }  /* if */
-	/* Outdent for the dependent statements and the case label. */
-	indent -= 4;
-      }  /* for */
-      write_tok_ch('}');
+      dump_switch_statement(statement);
       break;
     case stmk_init:
       /* Dynamic initialization. */
