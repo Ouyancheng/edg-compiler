@@ -2826,11 +2826,15 @@ two names name the same file.
 
 int f_compare_file_names(char		*file1,
 	 		 char		*file2,
-		         a_boolean	ignore_delimiters)
+		         a_boolean	ignore_delimiters,
+			 a_boolean	is_partial_file_name)
 /*
 Return zero if file1 and file2 name the same file.  ignore_delimiters
 is TRUE if the file names are from #include directives and still have
-the '"' or '<' delimiters.
+the '"' or '<' delimiters.  is_partial_file_name is TRUE if the
+file names are not known to be relative to the current directory.
+This suppresses the use of the "stat" function to do a file equality
+comparision.
 */
 {
   char		*start1 = file1;
@@ -2862,22 +2866,26 @@ the '"' or '<' delimiters.
   if (compare_file_chars(file_start1, file_start2) == 0) {
     /* Only check further if the file name components match. */
 #if CAN_COMPARE_FILE_IDENTIFIERS
-    if (same_file_identifiers(start1, start2)) {
-      match = TRUE;
-    }  /* if */
-#else CAN_COMPARE_FILE_IDENTIFIERS
-    char	*dir1;
-    char	*dir2;
-    /* Normalize the directory names so that "./x.h" and "x.h" will
-       compare equal. */
-    dir1 = directory_of(start1);
-    dir2 = directory_of(start2);
-    dir1 = normalize_dir_name(dir1);
-    dir2 = normalize_dir_name(dir2);
-    if (compare_file_chars(dir1, dir2) == 0) {
+    if (!is_partial_file_name &&
+        same_file_identifiers(start1, start2)) {
       match = TRUE;
     }  /* if */
 #endif CAN_COMPARE_FILE_IDENTIFIERS
+    /* If equality has not been determined by the code above, compare the
+       directory names now. */
+    if (!match) {
+      char	*dir1;
+      char	*dir2;
+      /* Normalize the directory names so that "./x.h" and "x.h" will
+         compare equal. */
+      dir1 = directory_of(start1);
+      dir2 = directory_of(start2);
+      dir1 = normalize_dir_name(dir1);
+      dir2 = normalize_dir_name(dir2);
+      if (compare_file_chars(dir1, dir2) == 0) {
+        match = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (ignore_delimiters) {
     /* Restore the original delimiter characters. */

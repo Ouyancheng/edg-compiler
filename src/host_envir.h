@@ -1741,14 +1741,16 @@ up file names.
 
 /*
 Wrapper macro that calls f_compare_file_names with a default value for
-the ignore_delimiters parameter.
+the ignore_delimiters and is_partial_file_name parameters.
 */
 #define compare_file_names(s1, s2)					\
-  (f_compare_file_names(s1, s2, /*ignore_delimiters=*/FALSE))
+  (f_compare_file_names(s1, s2, /*ignore_delimiters=*/FALSE,		\
+                        /*is_partial_file_name=*/FALSE))
 
 extern int f_compare_file_names(char		*file1,
 	 		        char		*file2,
-		                a_boolean	ignore_delimiters);
+		                a_boolean	ignore_delimiters,
+			        a_boolean	is_partial_file_name);
 
 extern int compare_dir_names(char	*dir1,
 			     char	*dir2);

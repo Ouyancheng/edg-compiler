@@ -914,7 +914,8 @@ Return TRUE if two PCH events are equivalent.
           if (result) {
             /* Now compare the actual file names. */
             result = f_compare_file_names(pep1->value, pep2->value,
-                                          /*ignore_delimiters=*/TRUE) == 0;
+                                          /*ignore_delimiters=*/TRUE,
+                                          /*is_partial_file_name=*/TRUE) == 0;
           }  /* if */
         }  /* if */
       }  /* if */
