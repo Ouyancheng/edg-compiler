@@ -633,11 +633,11 @@ do_variable:
       break;
     case sk_projection:
       put_access(sym->variant.projection.access);
-      if (sym->variant.projection.access_adjustment_made) {
-        put_string("access decl");
+      if (sym->variant.projection.is_using_decl) {
+        put_string("using decl");
       }  /* if */
-      if (sym->variant.projection.intervening_access_adjustment) {
-        put_string("intervening access decl");
+      if (sym->variant.projection.any_intervening_using_decl) {
+        put_string("intervening using decl");
       }  /* if */
       { a_projection_descr_ptr pdp = sym->variant.projection.extra_info;
         if (pdp->fundamental_base_class != NULL &&
@@ -1901,8 +1901,8 @@ state.
         pdp->fundamental_base_class = NULL;
         sym_ptr->variant.projection.extra_info= pdp;
         sym_ptr->variant.projection.access    = (an_access_specifier)as_public;
-        sym_ptr->variant.projection.access_adjustment_made = FALSE;
-        sym_ptr->variant.projection.intervening_access_adjustment = FALSE;
+        sym_ptr->variant.projection.is_using_decl = FALSE;
+        sym_ptr->variant.projection.any_intervening_using_decl = FALSE;
       }
       break;
     case sk_overloaded_function:
@@ -3116,9 +3116,9 @@ progenitor_sym is a member) if ambiguous is TRUE.
     pdp->fundamental_symbol = progenitor_pdp->fundamental_symbol;
     /* Set the flag indicating whether there are any intervening access
        declarations in the inheritance path. */
-    if (progenitor_sym->variant.projection.access_adjustment_made ||
-        progenitor_sym->variant.projection.intervening_access_adjustment) {
-      sym->variant.projection.intervening_access_adjustment = TRUE;
+    if (progenitor_sym->variant.projection.is_using_decl ||
+        progenitor_sym->variant.projection.any_intervening_using_decl) {
+      sym->variant.projection.any_intervening_using_decl = TRUE;
     }  /* if */
   } else {
     pdp->fundamental_symbol = progenitor_sym;
@@ -4839,11 +4839,11 @@ this one.
          access is available from the projection symbol. */
       access = proj_sym->variant.projection.access;
       need_to_compute_access = FALSE;
-    } else if (proj_sym->variant.projection.intervening_access_adjustment) {
-      /* There is an access adjustment somewhere on some derivation path, so
+    } else if (proj_sym->variant.projection.any_intervening_using_decl) {
+      /* There is a using declaration somewhere on some derivation path, so
          we must look for a projection symbol that applies at this step of
-         the path in case it is an access adjustment.  It's okay not to find
-         such a projection symbol since the access adjustment might not be
+         the path in case it is a using declaration.  It's okay not to find
+         such a projection symbol since the using declaration might not be
          at the current level. */
       /* Run two loops -- first over the inactive list and then (if needed)
          over the active list. */
@@ -4858,7 +4858,7 @@ this one.
                                          fundamental_symbol == fund_proj_sym) {
             /* Replace the projection symbol we have by the new one.  Note
                that it will get passed down in the recursive call below,
-               which is good, because once we get past the access adjustments
+               which is good, because once we get past the using declarations
                we can use the faster technique. */
             proj_sym = step_proj_sym;
             access = proj_sym->variant.projection.access;
@@ -4871,12 +4871,12 @@ this one.
     }  /* if */
     if (!need_to_compute_access) {
       /* If the symbol is for an overloaded function, we can use the access
-         computed only if the projection symbol is an access adjustment.
+         computed only if the projection symbol is a using declaration.
          Otherwise, the individual functions in the overload sets can have
          distinct access settings, and the projection symbol cannot
          indicate all of them. */
       if (fund_proj_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        if (!proj_sym->variant.projection.access_adjustment_made) {
+        if (!proj_sym->variant.projection.is_using_decl) {
           need_to_compute_access = TRUE;
         }  /* if */
       }  /* if */
@@ -5667,32 +5667,32 @@ next_derivation:;
 
 
 /* Declaration needed because of mutual recursion: */
-static a_symbol_ptr find_progenitor_symbol(a_type_ptr            class_ptr,
-                                           a_symbol_locator      *locator,
-                                           a_boolean             must_be_tag,
-                                           a_derivation_step_ptr *path,
-                                           an_access_specifier   *access,
-                                           a_boolean             *ambiguous,
-                                           a_boolean             *access_adj);
+static a_symbol_ptr find_progenitor_symbol(
+                                        a_type_ptr            class_ptr,
+                                        a_symbol_locator      *locator,
+                                        a_boolean             must_be_tag,
+                                        a_derivation_step_ptr *path,
+                                        an_access_specifier   *access,
+                                        a_boolean             *ambiguous,
+                                        a_boolean             *any_using_decl);
 
 
 static a_symbol_ptr symbol_projected_from_base_class(
-                                          a_base_class_ptr      base_class,
-                                          a_symbol_locator      *locator,
-                                          a_boolean             must_be_tag,
-                                          a_derivation_step_ptr *path,
-                                          an_access_specifier   *access,
-                                          a_boolean             *ambiguous,
-                                          a_boolean             *access_adj)
+                                        a_base_class_ptr      base_class,
+                                        a_symbol_locator      *locator,
+                                        a_boolean             must_be_tag,
+                                        a_derivation_step_ptr *path,
+                                        an_access_specifier   *access,
+                                        a_boolean             *ambiguous,
+                                        a_boolean             *any_using_decl)
 /*
 Given a pointer to a base class (the "current class") and a locator, determine
 whether the name specified in the locator is either defined in the class or
 has a progenitor in a class from which the current class is derived.  If either
 is found, update *path (the derivation path, starting from the current base
 class) and the access specification *access.  base_class is a direct base
-class of its derived class.  *access_adj is set if any progenitor candidate
-is an access adjustment symbol or the projection of an access adjustment
-symbol.
+class of its derived class.  *any_using_decl is set if any progenitor candidate
+represents a using declaration or is or the projection of symbol that does.
 */
 {
   a_symbol_ptr         sym, tag_sym;
@@ -5771,17 +5771,17 @@ symbol.
       if (sym->ambiguous) *ambiguous = TRUE;
       /* Return a flag indicating whether there are any intervening access
          declarations in the inheritance path. */
-      if (sym->variant.projection.access_adjustment_made ||
-          sym->variant.projection.intervening_access_adjustment) {
-        *access_adj = TRUE;
+      if (sym->variant.projection.is_using_decl ||
+          sym->variant.projection.any_intervening_using_decl) {
+        *any_using_decl = TRUE;
       }  /* if */
     } else {
       local_access = access_for_symbol(sym);
     }  /* if */
   } else {
     /* Not found in the base class, so examine its own base classes, if any. */
-    sym = find_progenitor_symbol(base_class->type, locator, must_be_tag,
-                                 path, &local_access, ambiguous, access_adj);
+    sym = find_progenitor_symbol(base_class->type, locator, must_be_tag, path,
+                                 &local_access, ambiguous, any_using_decl);
   }  /* if */
   if (sym != NULL) {
     /* Some symbol was found.  Determine its derivation and access
@@ -6056,13 +6056,14 @@ qualified reference either to A::i or to C::i will pick up A::i).
 }  /* check_for_dominance */       
 
 
-static a_symbol_ptr find_progenitor_symbol(a_type_ptr            class_ptr,
-                                           a_symbol_locator      *locator,
-                                           a_boolean             must_be_tag,
-                                           a_derivation_step_ptr *path,
-                                           an_access_specifier   *access,
-                                           a_boolean             *ambiguous,
-                                           a_boolean             *access_adj)
+static a_symbol_ptr find_progenitor_symbol(
+                                        a_type_ptr            class_ptr,
+                                        a_symbol_locator      *locator,
+                                        a_boolean             must_be_tag,
+                                        a_derivation_step_ptr *path,
+                                        an_access_specifier   *access,
+                                        a_boolean             *ambiguous,
+                                        a_boolean             *any_using_decl)
 /*
 Given a pointer to a class (or struct or union) type and a locator, find
 in the classes from which the current class is derived a symbol that
@@ -6070,9 +6071,8 @@ would serve as progenitor of the name specified in the locator.  Return the
 progenitor symbol or NULL is none is found.  Set *ambiguous to TRUE if
 there is more than one progenitor.  *path and *access (and *ambiguous as well
 under certain circumstances) may be set by subroutines and are just passed
-through back to the caller.  *access_adj is set if any progenitor candidate
-is an access adjustment symbol or the projection of an access adjustment
-symbol.
+through back to the caller.  *any_using_decl is set if any progenitor candidate
+represents a using declaration or is or the projection of symbol that does.
 */
 {
   a_symbol_ptr                 sym = NULL, other_sym;
@@ -6095,14 +6095,14 @@ symbol.
            which it is derived). */
         sym = symbol_projected_from_base_class(bcp, locator, must_be_tag,
                                                path, access, ambiguous,
-                                               access_adj);
+                                               any_using_decl);
       } else {
         /* One projection has already been found; look for another. */
         other_path = NULL;
         other_sym = symbol_projected_from_base_class(bcp, locator,
                                                      must_be_tag, &other_path,
                                                      &other_access, ambiguous,
-                                                     access_adj);
+                                                     any_using_decl);
         if (other_sym != NULL) {
           /* A second projection has been found.  Determine whether this is an
              actual ambiguity. */
@@ -6187,7 +6187,7 @@ it is added to the end of the scope entry symbol list for the class.
   a_scope_stack_entry_ptr      ssep;
   a_scope_pointers_block_ptr   pointers_block;
   a_symbol_ptr                 class_sym;
-  a_boolean                    access_adj = FALSE;
+  a_boolean                    any_using_decl = FALSE;
 
   db_enter(4, "find_projected_symbol");
 #if DEBUG
@@ -6211,7 +6211,7 @@ it is added to the end of the scope entry symbol list for the class.
   } else {
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, must_be_tag,
                                             &path, &access, &ambiguous,
-                                            &access_adj);
+                                            &any_using_decl);
   }  /* if */
   if (progenitor_sym == NULL) {
     /* Indicate that no symbol was found and return a NULL pointer. */
@@ -6232,7 +6232,7 @@ it is added to the end of the scope entry symbol list for the class.
       /* Set the flag indicating whether there are any intervening access
          declarations on any inheritance path linking the current class to
          the fundamental symbol. */
-      new_sym->variant.projection.intervening_access_adjustment = access_adj;
+      new_sym->variant.projection.any_intervening_using_decl = any_using_decl;
       free_derivation_step(path);
       /* Add the symbol to the symbol table. */
       if (add_to_active_list) {
@@ -6553,8 +6553,8 @@ member function is defined.
 {
   a_derivation_step_ptr	path = NULL;
   an_access_specifier   access;
-  a_boolean		ambiguous, access_adj;
-  a_symbol_ptr		new_sym = sym;
+  a_boolean             ambiguous, any_using_decl;
+  a_symbol_ptr          new_sym = sym;
 
   /* Before this routine is called we will have already verified that the
      lookup terminated in the class reactivation scope for the same class
@@ -6570,7 +6570,7 @@ member function is defined.
        class.  Look for the name in a base class. */
     new_sym = find_progenitor_symbol(class_type, locator,
                                      /*must_be_tag=*/FALSE, &path, &access,
-                                     &ambiguous, &access_adj);
+                                     &ambiguous, &any_using_decl);
   }  /* if */
   if (new_sym != NULL) {
     a_symbol_ptr  fund_sym = fundamental_symbol_of(new_sym);

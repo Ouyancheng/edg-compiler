@@ -143,9 +143,9 @@ extern void record_symbol_reference(a_symbol_reference_kind  kind,
 
 void reference_to_invalid_name(a_symbol_locator *locator);
 
-extern void record_access_adjustment(an_access_adjustment_ptr  aap,
-                                     a_symbol_ptr              sym,
-                                     a_source_position         *pos);
+extern void record_class_member_using_decl(a_class_member_using_decl_ptr cmudp,
+                                           a_symbol_ptr                  sym,
+                                           a_source_position             *pos);
 
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 

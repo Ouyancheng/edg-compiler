@@ -55,8 +55,8 @@ extern a_template_param_type_descr_ptr alloc_template_param_type_descr(void);
 
 extern a_base_class_ptr alloc_base_class(void);
 
-extern an_access_adjustment_ptr alloc_access_adjustment(an_il_entry_kind kind);
-
+extern a_class_member_using_decl_ptr alloc_class_member_using_decl(
+                                                      an_il_entry_kind kind);
 extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
 
 extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);

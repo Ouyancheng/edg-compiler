@@ -3474,7 +3474,7 @@ function symbols.
             sym->kind == (a_symbol_kind)sk_overloaded_function) {
           /* Remember sym -- it represents a member function. */
         } else if (sym->kind == (a_symbol_kind)sk_projection &&
-                   sym->variant.projection.access_adjustment_made &&
+                   sym->variant.projection.is_using_decl &&
                    is_function_symbol(fundamental_symbol_of(sym))) {
           /* This function symbol has been through a using-declaration.  It
              should be joined with the current symbol in an overload set. */
@@ -3655,7 +3655,7 @@ pointed to by cssp.
     an_access_specifier  base_class_access;
     a_symbol_ptr         new_sym;
     a_boolean            ambiguous;
-    a_boolean            access_adj;
+    a_boolean            using_decl;
 
     class_type = orig_sym->parent.class_type;
     check_assertion(symbol_supplement_for_class(class_type) == cssp);
@@ -3663,8 +3663,8 @@ pointed to by cssp.
                                                  fundamental_base_class;
     base_class_access = preferred_derivation_of(base_class)->access;
     ambiguous = orig_sym->ambiguous;
-    access_adj = (orig_sym->variant.projection.access_adjustment_made ||
-                  orig_sym->variant.projection.intervening_access_adjustment);
+    using_decl = (orig_sym->variant.projection.is_using_decl ||
+                  orig_sym->variant.projection.any_intervening_using_decl);
     /* Go through the members of the overload set. */
     sym = sym->variant.overloaded_function.symbols;
     for (; sym != NULL; sym = sym->next) {
@@ -3677,7 +3677,7 @@ pointed to by cssp.
       new_sym->variant.projection.access =
                                       compute_access(access_for_symbol(sym),
                                                      base_class_access);
-      new_sym->variant.projection.intervening_access_adjustment = access_adj;
+      new_sym->variant.projection.any_intervening_using_decl = using_decl;
       /* Add the new projection symbol to the conversion list. */
       add_to_conversion_list(new_sym, cssp);
     }  /* for */
@@ -5836,19 +5836,19 @@ next_base_class_conversion_list_entry:;
 }  /* project_base_class_conversion_functions */
 
 
-static an_access_adjustment_ptr new_access_adjustment(
+static a_class_member_using_decl_ptr new_class_member_using_decl(
                                                  a_symbol_ptr         sym,
                                                  an_access_specifier  access)
 /*
-Allocate an access adjustment entry, set its fields based on sym, and return
-a pointer to it.
+Allocate a class-member-using-decl entry, set its fields based on sym, and
+return a pointer to it.
 */
 {
-  an_access_adjustment_ptr  aap;
-  an_il_entry_kind          kind;
-  char                      *entity;
+  a_class_member_using_decl_ptr  cmudp;
+  an_il_entry_kind               kind;
+  char                           *entity;
 
-  /* Determine the access-adjustment-kind, based on the symbol kind. */
+  /* Determine the IL entity and the entity-kind, based on the symbol. */
   switch (sym->kind) {
     case sk_static_data_member:
       kind = iek_variable;
@@ -5875,18 +5875,17 @@ a pointer to it.
       break;
 #if CHECKING
     default:
-      internal_error("new_access_adjustment: unexpected symbol kind");
+      internal_error("new_class_member_using_decl: unexpected symbol kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* Allocate an access adjustment entry of the appropriate kind. */
-  aap = alloc_access_adjustment(kind);
-  aap->access = access;
+  /* Allocate a class member using declb entry of the appropriate kind. */
+  cmudp = alloc_class_member_using_decl(kind);
+  cmudp->access = access;
   /* Add a pointer to the correct IL entity. */
-  aap->entity.kind = (a_byte_il_entry_kind)kind;
-  aap->entity.ptr = entity;
+  cmudp->entity.ptr = entity;
 
-  return aap;
-}  /* new_access_adjustment */
+  return cmudp;
+}  /* new_class_member_using_decl */
 
 
 static void member_using_declaration(a_type_ptr           class_type,
@@ -5904,7 +5903,8 @@ or implicit) controlling the declaration.
   a_boolean                 err = FALSE;
   a_boolean                 is_overloaded;
   a_symbol_locator          locator;
-  an_access_adjustment_ptr  aap;
+  a_class_member_using_decl_ptr
+                            cmudp;
 
   db_enter(3, "member_using_declaration");
   add_stop_token(tok_semicolon);
@@ -6054,7 +6054,7 @@ or implicit) controlling the declaration.
         new_sym = make_projection_symbol(sym, class_type, fund_base_class,
                                          (a_derivation_step_ptr)NULL,
                                          /*ambiguous=*/FALSE);
-        new_sym->variant.projection.access_adjustment_made = TRUE;
+        new_sym->variant.projection.is_using_decl = TRUE;
         new_sym->variant.projection.access = access;
         if (other_sym == NULL) {
           /* Just enter it, since no overloading is involved. */
@@ -6074,17 +6074,17 @@ or implicit) controlling the declaration.
           add_to_conversion_list(new_sym,
                                  symbol_supplement_for_class(class_type));
         }  /* if */
-        /* Create an access-adjustment entry to represent this declaration in
-           the IL. */
-        aap = new_access_adjustment(fund_sym, access);
+        /* Create a class member using decl entry to represent this
+           declaration in the IL. */
+        cmudp = new_class_member_using_decl(fund_sym, access);
         /* Attach it the class type entry. */
-        aap->next = class_type->variant.class_struct_union.
-                                           extra_info->access_adjustments;
+        cmudp->next = class_type->variant.class_struct_union.
+                                        extra_info->class_member_using_decls;
         class_type->variant.class_struct_union.extra_info->
-                                                 access_adjustments = aap;
+                                            class_member_using_decls = cmudp;
         /* Update cross-reference and source sequence info, if required. */
-        record_access_adjustment(aap, fund_sym,
-                                 &locator_for_curr_id.source_position);
+        record_class_member_using_decl(cmudp, fund_sym,
+                                       &locator_for_curr_id.source_position);
       }  /* if */
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;
@@ -6523,7 +6523,7 @@ support is enabled).
             member_using_declaration(class_type, access);
             goto next_declaration;
           }  /* if */
-          /* Check for access adjustment declaration. */
+          /* Check for an access adjustment declaration. */
           if (is_qualified_name_start() &&
               qualifier_class_type(locator_for_curr_id) != class_type &&
               !locator_for_curr_id.is_global_qualified_name &&

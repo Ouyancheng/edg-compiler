@@ -2154,38 +2154,40 @@ source sequence entry is the one associated with the field.
 }  /* gen_field_decl */
 
 
-static void gen_access_adjustment(void)
+static void gen_class_member_using_decl(void)
 /*
-Generate an access adjustment declaration.  The current source sequence
-entry is the one associated with the access adjustment.
+Generate a using declaration or an access adjustment declaration. The current
+source sequence entry is the one associated with the class-member-using-decl
+entry.
 */
 {
-  an_access_adjustment_ptr adj = ss_entry_ptr(curr_source_sequence_entry,
-                                              an_access_adjustment_ptr);
+  a_class_member_using_decl_ptr using_decl =
+                                   ss_entry_ptr(curr_source_sequence_entry,
+                                                a_class_member_using_decl_ptr);
   a_source_correspondence  *scp = NULL;
   an_il_entry_kind         entry_kind;
 
   /* Advance past the source sequence entry for the adjustment. */
   adv_curr_source_sequence_entry();
   /* Put out an access specifier if necessary to change the current access. */
-  gen_member_access_specifier(adj->access);
-  entry_kind = (an_il_entry_kind)adj->entity.kind;
+  gen_member_access_specifier(using_decl->access);
+  entry_kind = (an_il_entry_kind)using_decl->entity.kind;
   /* Get the source correspondence entry for the entity. */
   switch (entry_kind) {
     case iek_field:
-      scp = &((a_field_ptr)adj->entity.ptr)->source_corresp;
+      scp = &((a_field_ptr)using_decl->entity.ptr)->source_corresp;
       break;
     case iek_variable:
-      scp = &((a_variable_ptr)adj->entity.ptr)->source_corresp;
+      scp = &((a_variable_ptr)using_decl->entity.ptr)->source_corresp;
       break;
     case iek_routine:
-      scp = &((a_routine_ptr)adj->entity.ptr)->source_corresp;
+      scp = &((a_routine_ptr)using_decl->entity.ptr)->source_corresp;
       break;
     case iek_type:
-      scp = &((a_type_ptr)adj->entity.ptr)->source_corresp;
+      scp = &((a_type_ptr)using_decl->entity.ptr)->source_corresp;
       break;
     case iek_constant:
-      scp = &((a_type_ptr)adj->entity.ptr)->source_corresp;
+      scp = &((a_type_ptr)using_decl->entity.ptr)->source_corresp;
       break;
     default:
       unexpected_condition();
@@ -2194,23 +2196,25 @@ entry is the one associated with the access adjustment.
   gen_qualified_name(scp, entry_kind);
   write_tok_ch(';');
   write_space();
-  /* For overloaded functions, there is an access adjustment and a source
-     sequence entry for each function in the set.  If that is the case here,
-     advance over the other entries. */
+  /* For overloaded functions, there is a class-member-using-decl entry and
+     a source sequence entry for each function in the set.  If that is the
+     case here, advance over the other entries. */
   if (entry_kind == (an_il_entry_kind)iek_routine) {
     while (curr_source_sequence_entry != NULL &&
-           ss_entry_kind(curr_source_sequence_entry) == iek_access_adjustment){
-      an_access_adjustment_ptr adjb = ss_entry_ptr(curr_source_sequence_entry,
-                                                   an_access_adjustment_ptr);
-      /* Keep going on access adjustments for routines with the same name. */
-      if ((an_il_entry_kind)adjb->entity.kind != iek_routine ||
-          ((a_routine_ptr)adjb->entity.ptr)->source_corresp.name !=
-                  ((a_routine_ptr)adj->entity.ptr)->source_corresp.name) break;
-      /* Advance past the source sequence entry for the adjustment. */
+           ss_entry_kind(curr_source_sequence_entry) ==
+                                            iek_class_member_using_decl) {
+      a_class_member_using_decl_ptr  extra_using_decl;
+      extra_using_decl = ss_entry_ptr(curr_source_sequence_entry,
+                                      a_class_member_using_decl_ptr);
+      /* Keep going on using declarations for routines with the same name. */
+      if ((an_il_entry_kind)extra_using_decl->entity.kind != iek_routine ||
+          ((a_routine_ptr)extra_using_decl->entity.ptr)->source_corresp.name !=
+                  ((a_routine_ptr)using_decl->entity.ptr)->source_corresp.name) break;
+      /* Advance past the source sequence entry for the using declaration. */
       adv_curr_source_sequence_entry();
     }  /* while */  
   }  /* if */
-}  /* gen_access_adjustment */
+}  /* gen_class_member_using_decl */
 
 
 static void gen_class_definition(a_type_ptr type)
@@ -2372,8 +2376,8 @@ is the one associated with the definition of the class.
            is also defined/declared elsewhere. */
         gen_secondary_decl();
         break;
-      case iek_access_adjustment:
-        gen_access_adjustment();
+      case iek_class_member_using_decl:
+        gen_class_member_using_decl();
         break;
       default:
         unexpected_condition_str("gen_class_definition: bad entity kind");

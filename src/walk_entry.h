@@ -1297,11 +1297,12 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_initializer(ptr->init_kind, ptr->initializer);
       }
       break;
-    case iek_access_adjustment:
+    case iek_class_member_using_decl:
       {
-        an_access_adjustment_ptr ptr = (an_access_adjustment_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_access_adjustment_ptr,
-                       iek_access_adjustment);
+        a_class_member_using_decl_ptr ptr =
+                                     (a_class_member_using_decl_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_class_member_using_decl_ptr,
+                       iek_class_member_using_decl);
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
       }
@@ -1389,8 +1390,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         } /* switch */
         remap_ptr(ptr->virtual_function_info_base_class, a_base_class_ptr,
                   iek_base_class);
-        walk_list(ptr->access_adjustments, an_access_adjustment_ptr,
-                  iek_access_adjustment);
+        walk_list(ptr->class_member_using_decls, a_class_member_using_decl_ptr,
+                  iek_class_member_using_decl);
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
         walk_list(ptr->friend_routines, a_routine_list_entry_ptr,

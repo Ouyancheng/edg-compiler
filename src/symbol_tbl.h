@@ -1633,23 +1633,21 @@ typedef struct a_symbol {
 			   with which it was originally declared in its own
 			   class: when the projection symbol represents a
 			   using declaration or access adjustment (i.e., when
-			   access_adjustment_made is TRUE), the access is the
-			   declared access in the derived class; otherwise,
-			   the access is computed based on both the access of
-			   the member within the base class and the access of
-			   the base class itself (along the "preferred
-			   derivation" -- the path affording greatest access
-			   -- when there are multiple paths) within the
-			   derived class. */
+			   is_using_decl is TRUE), the access is the declared
+			   access in the derived class; otherwise, the access
+			   is computed based on both the access of the member
+			   within the base class and the access of the base
+			   class itself (along the "preferred derivation" --
+			   the path affording greatest access -- when there
+			   are multiple paths) within the derived class. */
       unsigned int
-		access_adjustment_made:1;
-			/* If TRUE an access declaration has been made for
-			   the projection symbol, in which case it cannot
-			   be overridden by a local symbol of the same name. */
+		is_using_decl:1;
+			/* If TRUE this projection symbol represents a
+			   using-declaration. */
       unsigned int
-		intervening_access_adjustment:1;
+		any_intervening_using_decl:1;
 			/* TRUE if the access of the inherited name was
-			   modified by an access declaration anywhere on the
+			   modified by an using-declaration anywhere on the
 			   derivation path between the fundamental symbol and
 			   the current projection. */
     } projection;
@@ -2965,11 +2963,11 @@ extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_destructor)
 
-/* Return TRUE if a symbol is a projection symbol created for an
-   access declaration. */
-#define is_access_adjustment_symbol(sym)                              \
+/* Return TRUE if a symbol is a projection symbol created for a class
+   member using declaration. */
+#define is_class_member_using_decl_symbol(sym)                        \
   ((sym)->kind == (a_symbol_kind)sk_projection &&                     \
-   (sym)->variant.projection.access_adjustment_made)
+   (sym)->variant.projection.is_using_decl)
 
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).

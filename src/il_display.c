@@ -3076,16 +3076,16 @@ Display the indicated local_static_variable_init entry.
 }  /* disp_local_static_variable_init */
 
 
-static void disp_access_adjustment(an_access_adjustment_ptr ptr)
+static void disp_class_member_using_decl(a_class_member_using_decl_ptr ptr)
 /*
-Display the indicated access_adjustment entry.
+Display the indicated class_member_using_decl entry.
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_access_adjustment);
+  disp_ptr("next", (char *)ptr->next, iek_class_member_using_decl);
   disp_access("access", ptr->access);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-}  /* disp_access_adjustment */
+}  /* disp_class_member_using_decl */
 
 
 static void disp_overriding_virtual_function (
@@ -3206,9 +3206,9 @@ Display the indicated class type supplement entry.
         (void)printf("**BAD ANONYMOUS UNION KIND**\n");
     }  /* switch */
   }  /* if */
-  if (ptr->access_adjustments != NULL) {
-    disp_ptr("access_adjustments", (char *)ptr->access_adjustments,
-             iek_access_adjustment);
+  if (ptr->class_member_using_decls != NULL) {
+    disp_ptr("class_member_using_decls", (char *)ptr->class_member_using_decls,
+             iek_class_member_using_decl);
   }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
@@ -3530,8 +3530,9 @@ This routine is called during IL walking.
           disp_local_static_variable_init(
                                  (a_local_static_variable_init_ptr)entry_ptr);
           break;
-        case iek_access_adjustment:
-          disp_access_adjustment((an_access_adjustment_ptr)entry_ptr);
+        case iek_class_member_using_decl:
+          disp_class_member_using_decl(
+                                 (a_class_member_using_decl_ptr)entry_ptr);
           break;
         case iek_overriding_virtual_function:
           disp_overriding_virtual_function(

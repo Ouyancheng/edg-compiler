@@ -580,15 +580,15 @@ Dump a virtual base class entry, for debug purposes.
 }  /* db_virtual_base_class */
 
 
-static void db_access_adjustment(an_access_adjustment_ptr aap)
+static void db_class_member_using_decl(a_class_member_using_decl_ptr cmudp)
 /*
-Dump information on an access adjustment entry, for debug purposes.
+Dump information on a class member using-decl entry, for debug purposes.
 */
 {
   a_source_correspondence  *sc;
   char                     *str;
 
-  switch (aap->entity.kind) {
+  switch (cmudp->entity.kind) {
     case iek_variable:   str = "static data member";  break;
     case iek_field:      str = "field";               break;
     case iek_routine:    str = "member function";     break;
@@ -598,16 +598,16 @@ Dump information on an access adjustment entry, for debug purposes.
   }  /* switch */
   fputs("\n    ", f_debug);
   if (str == NULL) {
-    fputs("<bad access adjustment kind>", f_debug);
+    fputs("<bad entity kind>", f_debug);
   } else {
-    db_access_control(aap->access);
-    sc = source_corresp_for_il_entry(aap->entity.ptr,
-                                     (an_il_entry_kind)aap->entity.kind);
+    db_access_control(cmudp->access);
+    sc = source_corresp_for_il_entry(cmudp->entity.ptr,
+                                     (an_il_entry_kind)cmudp->entity.kind);
     check_assertion(sc != NULL);
     fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
     db_name(sc);
   }  /* if */
-}  /* db_access_adjustment */
+}  /* db_class_member_using_decl */
 
 
 void db_type(a_type *tp)
@@ -723,9 +723,9 @@ class_struct_union:
           } /* for */
         }  /* if */
         if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-          a_variable_ptr           vp = ctsp->assoc_scope->variables;
-          a_routine_ptr            rp = ctsp->assoc_scope->routines;
-          an_access_adjustment_ptr aap = ctsp->access_adjustments;
+          a_variable_ptr                vp = ctsp->assoc_scope->variables;
+          a_routine_ptr                 rp = ctsp->assoc_scope->routines;
+          a_class_member_using_decl_ptr cmudp = ctsp->class_member_using_decls;
 
           db_virtual_function_info(tp, /*nesting_depth=*/0);
           if (any_virtual_base_classes) {
@@ -750,9 +750,11 @@ class_struct_union:
                     ctsp->highest_virtual_function_number);
             for (; rp != NULL; rp = rp->next) db_member_function(rp);
           }  /* if */
-          if (aap != NULL) {
-            fputs("\n  access adjustments:", f_debug);
-            for (; aap != NULL; aap = aap->next) db_access_adjustment(aap);
+          if (cmudp != NULL) {
+            fputs("\n  using decls:", f_debug);
+            for (; cmudp != NULL; cmudp = cmudp->next) {
+              db_class_member_using_decl(cmudp);
+            }  /* if */
           }  /* if */
         }  /* if */
         fputc('\n', f_debug);
@@ -7320,14 +7322,14 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
                            il_entry_kind_names[(int)sseocp->entity.kind]);
           
       }  /* switch */
-    } else if (kind == (an_il_entry_kind)iek_access_adjustment) {
-      an_access_adjustment_ptr  aap;
-      aap = (an_access_adjustment_ptr)ssep->entity.ptr;
+    } else if (kind == (an_il_entry_kind)iek_class_member_using_decl) {
+      a_class_member_using_decl_ptr  cmudp;
+      cmudp = (a_class_member_using_decl_ptr)ssep->entity.ptr;
       fputs(": \"", f_debug);
-      if (aap->entity.kind == (a_byte_il_entry_kind)iek_type) {
-        db_type_name((a_type_ptr)aap->entity.ptr);
+      if (cmudp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        db_type_name((a_type_ptr)cmudp->entity.ptr);
       } else {
-        db_name(&((a_field_ptr)aap->entity.ptr)->source_corresp);
+        db_name(&((a_field_ptr)cmudp->entity.ptr)->source_corresp);
       }  /* if */
       fputc('"', f_debug);
     } else if (kind == (an_il_entry_kind)iek_using_directive) {

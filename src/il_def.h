@@ -293,7 +293,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_dynamic_init,	/* a_dynamic_init */
   iek_local_static_variable_init,
 			/* a_local_static_variable_init */
-  iek_access_adjustment,/* an_access_adjustment */
+  iek_class_member_using_decl,
+			/* a_class_member_using_decl */
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
   iek_derivation_step,  /* a_derivation_step */
@@ -414,7 +415,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_using_directive */		"using-directive",
 /* iek_dynamic_init */			"dynamic-init",
 /* iek_local_static_variable_init */	"local-static-variable-init",
-/* iek_access_adjustment */		"access-adjustment",
+/* iek_class_member_using_decl */	"class-member-using-decl",
 /* iek_overriding_virtual_function */ 	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
 /* iek_base_class_derivation */		"base-class-derivation",
@@ -2121,25 +2122,23 @@ typedef struct a_template_arg {
 /* Data structures related to C++ classes (type entries of kind tk_class,
    tk_struct, and tk_union). */
 
-typedef struct an_access_adjustment *an_access_adjustment_ptr;
-typedef struct an_access_adjustment {
-  /* Representation of a C++ access declaration, which adjusts the access
-     to a class member. */
-  an_access_adjustment_ptr
-                next;   /* Next in a linked list of access adjustments. */
+typedef struct a_class_member_using_decl *a_class_member_using_decl_ptr;
+typedef struct a_class_member_using_decl {
+  /* Representation of a C++ using declaration appearing inside a class
+     body and of an access declaration, which adjusts the access to a
+     base class member. */
+  a_class_member_using_decl_ptr
+                next;   /* Next in a linked list of class member using
+			   declaration entries. */
   an_access_specifier
                 access; /* The access control kind for a base member,
-                           adjusting the access that had been specified for
-                           the base class as a whole.  (The effect of this
-                           adjustment is always to reinstate the member's
-                           original access after it had been reduced by a
-			   private derivation.) */
+                           possibly adjusting the access that had been
+			   specified for the base class as a whole. */
   a_tagged_pointer
 		entity;
 			/* The entity (field, function, member type, etc.)
-			   whose access is being affected by the access
-			   adjustment. */
-} an_access_adjustment;
+			   specified in the using declaration. */
+} a_class_member_using_decl;
 
 
 typedef struct an_overriding_virtual_function
@@ -2494,13 +2493,12 @@ typedef struct a_class_type_supplement {
 			/* When anonymous_union_kind is auk_field, a pointer
 			   to the unnamed field entry whose type is the
 			   anonymous union; otherwise NULL. */
-  an_access_adjustment_ptr
-                access_adjustments;
-                        /* A list of entries adjusting access control on
-                           members of base classes, reflecting access
-                           declarations in the current class; NULL if the
-			   current class is not a derived class (i.e., if
-			   base_classes is NULL). */
+  a_class_member_using_decl_ptr
+                class_member_using_decls;
+                        /* A list of entries representing using-declarations
+			   that specify base class members; NULL if there
+			   are none and/or if the current class is not a
+			   derived class (i.e., if base_classes is NULL). */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

@@ -39,7 +39,7 @@ static unsigned long
 		num_routine_type_supplements_allocated,
 		num_based_type_list_members_allocated,
 		num_class_type_supplements_allocated,
-		num_access_adjustments_allocated,
+		num_class_member_using_decls_allocated,
 		num_class_list_entries_allocated,
 		num_routine_list_entries_allocated,
 		num_overriding_virtual_functions_allocated,
@@ -671,25 +671,27 @@ to it.
 }  /* alloc_base_class */
 
 
-an_access_adjustment_ptr alloc_access_adjustment(an_il_entry_kind kind)
+a_class_member_using_decl_ptr alloc_class_member_using_decl(
+                                                       an_il_entry_kind kind)
 /*
-Allocate an access-adjustment entry, initialize its fields, and return a
+Allocate a class-member-using-decl entry, initialize its fields, and return a
 pointer to it.
 */
 {
-  an_access_adjustment_ptr aap;
+  a_class_member_using_decl_ptr cmudp;
 
-  aap = (an_access_adjustment_ptr)alloc_il(sizeof(an_access_adjustment));
+  cmudp = (a_class_member_using_decl_ptr)alloc_il(
+                                           sizeof(a_class_member_using_decl));
 #if DEBUG
-  num_access_adjustments_allocated++;
+  num_class_member_using_decls_allocated++;
 #endif /* DEBUG */
-  aap->next        = NULL;
-  aap->access      = (an_access_specifier)as_public;
-  aap->entity.kind = (a_byte_il_entry_kind)kind;
-  aap->entity.ptr  = (char *)NULL;
+  cmudp->next        = NULL;
+  cmudp->access      = (an_access_specifier)as_public;
+  cmudp->entity.kind = (a_byte_il_entry_kind)kind;
+  cmudp->entity.ptr  = (char *)NULL;
 
-  return aap;
-}  /* alloc_access_adjustment */
+  return cmudp;
+}  /* alloc_class_member_using_decl */
 
 
 a_class_list_entry_ptr alloc_list_entry_for_class(void)
@@ -772,7 +774,7 @@ a pointer to it.
   ctsp->virtual_function_info_base_class  = NULL;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
-  ctsp->access_adjustments                = NULL;
+  ctsp->class_member_using_decls          = NULL;
   ctsp->befriending_classes               = NULL;
   ctsp->friend_routines                   = NULL;
   ctsp->friend_classes                    = NULL;
@@ -2347,8 +2349,9 @@ Display and return the amount of space used for various IL tables.
                 a_based_type_list_member);
   db_space_used("class type supplement", num_class_type_supplements_allocated,
                 a_class_type_supplement);
-  db_space_used("access adjustment", num_access_adjustments_allocated,
-                an_access_adjustment);
+  db_space_used("class member using decls",
+                num_class_member_using_decls_allocated,
+                a_class_member_using_decl);
   db_space_used("class list entry", num_class_list_entries_allocated,
                 a_class_list_entry);
   db_space_used("routine list entry", num_routine_list_entries_allocated,
@@ -2542,7 +2545,7 @@ in il_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_template_args),
 #if DEBUG
-      pch_saved_var_array_elem(num_access_adjustments_allocated),
+      pch_saved_var_array_elem(num_class_member_using_decls_allocated),
       pch_saved_var_array_elem(num_accessible_base_classes_allocated),
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
       pch_saved_var_array_elem(num_eh_prologue_supplements_allocated),
@@ -2644,7 +2647,7 @@ of the front end.
   num_routine_type_supplements_allocated = 0;
   num_based_type_list_members_allocated  = 0;
   num_class_type_supplements_allocated   = 0;
-  num_access_adjustments_allocated       = 0;
+  num_class_member_using_decls_allocated = 0;
   num_class_list_entries_allocated       = 0;
   num_routine_list_entries_allocated     = 0;
   num_overriding_virtual_functions_allocated

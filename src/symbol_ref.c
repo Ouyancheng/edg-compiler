@@ -665,15 +665,15 @@ information on the reference, if required.
 
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* aap is used only when a source sequence entry is created. */
+/*ARGSUSED*/ /* cmudp is used only when a source sequence entry is created. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-void record_access_adjustment(an_access_adjustment_ptr  aap,
-                              a_symbol_ptr              sym,
-                              a_source_position         *pos)
+void record_class_member_using_decl(a_class_member_using_decl_ptr  cmudp,
+                                    a_symbol_ptr                   sym,
+                                    a_source_position              *pos)
 /*
-aap points to an access-adjustment entry created to represent the an
-access adjustment declaration of the inherited member sym.  If appropriate,
-update the cross reference and source sequence output.
+cmudp points to a class-member-using-decl entry created to represent an
+using declaration of the inherited member sym.  If appropriate, update the
+cross reference and source sequence output.
 */
 {
   /* Update the cross reference file if it exists. */
@@ -683,11 +683,11 @@ update the cross reference and source sequence output.
     write_xref_entry(SRK_DECLARATION, sym, pos);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  update_source_sequence_list((char *)aap,
-                              (an_il_entry_kind)iek_access_adjustment,
+  update_source_sequence_list((char *)cmudp,
+                              (an_il_entry_kind)iek_class_member_using_decl,
                               (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-}  /* record_access_adjustment */
+}  /* record_class_member_using_decl */
 
 
 static a_boolean is_cfront_base_class_destructor_access_bug(
