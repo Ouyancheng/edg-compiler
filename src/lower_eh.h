@@ -42,12 +42,7 @@ extern void init_object_addr_table_entry(
 
 extern a_variable_ptr make_caught_object_address_var(void);
 
-extern void make_region_table_entry(a_cleanup_action_ptr cap,
-                                    an_insert_location   *insert_location);
-
-extern a_cleanup_region_number context_cleanup_region_number(
-                                                  a_context_ptr        context,
-                                                  a_cleanup_action_ptr cap);
+extern a_cleanup_region_number cleanup_region_number(a_cleanup_action_ptr cap);
 
 extern void assign_region_number_to_eh_curr_region(
                                      a_cleanup_region_number region_number,
@@ -59,6 +54,11 @@ extern void set_eh_curr_region(a_context_ptr      context,
 extern void set_region_on_prev_destructor_wrapper_cleanup(
                                         a_cleanup_action_ptr cap,
                                         an_insert_location   *insert_location);
+
+extern void make_region_table_entry(a_cleanup_action_ptr cap,
+                                    an_insert_location   *insert_location);
+
+extern void remove_from_exception_cleanup_list(a_cleanup_action_ptr cap);
 
 extern void add_eh_function_prologue(a_scope_ptr scope);
 
