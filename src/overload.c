@@ -1753,10 +1753,12 @@ argument matches.
     /* Check that the argument and parameter lists ended at the same place. */
     if (param != NULL) {
       /* Fewer arguments than required.  No match unless there are default
-         argument values.  Note that has_default_arg is not used here, because
-         there are cases where has_default_arg is set and default_arg_expr
-         is not set yet. */
-      if (param->default_arg_expr == NULL) goto reject_function;
+         argument values.  Note that has_default_arg is not used here,
+         except for function templates, because there are cases where
+         has_default_arg is set and default_arg_expr is not set yet. */
+      if (function_template_case ?
+               !param->has_default_arg :
+               param->default_arg_expr == NULL) goto reject_function;
 #if DEBUG
       if (debug_level >= 4) {
         fprintf(f_debug, "try_overloaded_function_match: default arg match\n");
@@ -1822,7 +1824,7 @@ argument matches.
     }  /* for */
     /* If param != NULL here, there are default arguments (because we
        got past the argument-count check above). */
-    check_assertion_str(param == NULL || param->default_arg_expr != NULL,
+    check_assertion_str(param == NULL || param->has_default_arg,
                     "try_overloaded_function_match: no param, no default arg");
     /* All the arguments can be made to match the parameters. */
     /* See if the "this" parameter, if any, matches. */
@@ -2441,7 +2443,7 @@ evaluated (but not checked to see if the match is good enough).
   } else if (ptp != NULL) {
     /* We ran out of arguments, but we still have parameters.  The parameter
        should have a default argument expression. */
-    if (ptp->default_arg_expr == NULL) {
+    if (!ptp->has_default_arg) {
       internal_error(
            "function_template_matches_operand_list: missing default arg expr");
     }  /* if */
