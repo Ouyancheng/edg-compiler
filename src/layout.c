@@ -629,7 +629,7 @@ there was an overflow error.
 }  /* do_alignment */
 
 
-void pad_ms_bit_field_container(a_layout_block_ptr  lob)
+static void pad_ms_bit_field_container(a_layout_block_ptr  lob)
 /*
 Pad the remaining bits in the current bit field container, as represented
 by the state of the layout block pointed to by lob -- that is, reset the
