@@ -3937,11 +3937,14 @@ void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
 /*
 Set curr_cleanup_state (the cleanup state that applies at the current
 location in the program) to cleanup_state, and generate code at
-*insert_location to record that information.
+*insert_location to record that information.  Called only when exceptions
+are enabled.
 */
 {
   an_expr_node_ptr node;
 
+  check_assertion_str(exceptions_enabled,
+                    "set_curr_cleanup_state: called with exceptions disabled");
   curr_cleanup_state = cleanup_state;
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* In the portable scheme, assign the region number to __eh_curr_region. */
