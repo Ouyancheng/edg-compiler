@@ -25,11 +25,7 @@ il.c -- Construction of intermediate language trees.
 /* Additional header files. */
 #include "exprutil.h"
 #include "folding.h"
-
-#if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
-#endif /* MAINTAIN_NEEDED_FLAGS */
-
 #if !STANDALONE_UTILITY_PROGRAM
 #include "func_def.h"
 #include "pch.h"
