@@ -1,5 +1,24 @@
 Version 2.14
 
+1/28/93 Protected member access checking for implicitly called functions
+
+Implicit calls to protected constructors and destructors should only be
+permitted for objects of a derived class with protected access.  Additional
+calls, such as construction of base class objects were incorrectly being
+accepted.  These cases now give the appropriate errors.
+
+	class A {
+	protected:
+		A(){}
+	};
+
+	class B : public A {
+		B(){
+			A a;	// Error now being diagnosed
+		}
+	};
+
+
 1/27/93 Instantiation of new/delete routines
 
 When new/delete routines are folded into a constructor/destructor,
