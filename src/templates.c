@@ -3614,6 +3614,45 @@ type should not be used in the matching process.
 }  /* matching_template_function */
 
 
+static
+a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,
+                                         a_type_ptr         curr_type,
+		  		         a_boolean	    is_decl_context)
+/*
+Search for a template function based on the function template represented
+by templ_sym and the type pointed to by curr_type.  Return TRUE if a
+match is found.  This routine is like matching_template_function except
+that an actual instance is not generated if one does not already exist.
+
+is_decl_context is TRUE if this routine is called to match a declaration with
+a template instance.  In such cases it is not known whether or not the
+function has an implicit this parameter type, so the implicit this
+type should not be used in the matching process.
+*/
+{
+  a_symbol_ptr          		sym;
+  a_template_arg_ptr    		templ_arg_list = NULL;
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_param_ptr			templ_param_list;
+  a_boolean				result;
+
+#if CHECKING
+  if (!is_function_type(curr_type)) {
+    internal_error("matching_template_function: expected routine type");
+  }  /* if */
+#endif /* CHECKING */
+  curr_type = skip_typerefs(curr_type);
+  tssp = template_supplement_for_symbol(templ_sym);
+  templ_param_list = tssp->cache.decl_info->parameters;
+  result = is_match_for_function_template(templ_sym, curr_type,
+                                          &templ_arg_list, &sym,
+                                          templ_param_list, is_decl_context);
+  /* Free any template arguments that may have been created. */
+  if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
+  return result;
+}  /* has_matching_template_function */
+
+
 void record_predeclared_template_function(
                                        a_symbol_ptr         templ_sym,
                                        a_symbol_ptr         rout_sym,
@@ -6905,8 +6944,8 @@ a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
                                              a_type_ptr        type)
 /*
 sym is some kind of function symbol.  type is the type declared for a
-function template instance; *locator indicates its name.  Return in
-the symbol for the instance, or NULL if no instance is found.
+function template instance;  Return in the symbol for the instance, or
+NULL if no instance is found.
 */
 {
   a_symbol_ptr  orig_sym;
@@ -6937,9 +6976,7 @@ the symbol for the instance, or NULL if no instance is found.
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
       a_symbol_ptr	lookup_sym = NULL;
       /* If this is a function template symbol, use it to find a function
-         that matches the type we are looking for.  If it is a member
-         function symbol, get the corresponding function template symbol
-         from the function instantiation entry. */
+         that matches the type we are looking for. */
       if (sym->kind != (a_symbol_kind)sk_function_template) continue;
       lookup_sym = sym;
       /* Look for a match on the list of instantiations. */
@@ -6963,6 +7000,46 @@ the symbol for the instance, or NULL if no instance is found.
   }  /* if */
   return new_sym;
 }  /* find_matching_template_instance */
+
+
+a_boolean has_matching_template_instance(a_symbol_ptr      sym,
+                                         a_type_ptr        type)
+/*
+sym is some kind of function symbol.  type is the type declared for a
+function template instance;  Return TRUE if one or more function template
+symbols under sym (assuming it is an overload set) matches the type specified
+by type.
+*/
+{
+  a_boolean	found = NULL;
+
+  /* sym is a regular function name that is expected to represent one or
+     more function templates.  Loop through the function templates
+     and find an instance that matches the specified function type. */
+  a_boolean		is_list;
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    sym = sym->variant.overloaded_function.symbols;
+    is_list = TRUE;
+  } else {
+    is_list = FALSE;
+  }  /* if */
+  for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+    a_symbol_ptr	lookup_sym = NULL;
+    /* If this is a function template symbol, use it to find a function
+       that matches the type we are looking for.  If it is a member
+       function symbol, get the corresponding function template symbol
+       from the function instantiation entry. */
+    if (sym->kind != (a_symbol_kind)sk_function_template) continue;
+    lookup_sym = sym;
+    /* Look for a match on the list of instantiations. */
+    if (lookup_sym != NULL) {
+      found = has_matching_template_function(lookup_sym, type,
+                                             /*is_decl_context=*/TRUE);
+      if (found) break;
+    }  /* for */
+  }  /* if */
+  return found;
+}  /* has_matching_template_instance */
 
 
 static void check_for_decl_spec_errors(a_decl_flag_set   dso_flags,

@@ -3938,6 +3938,7 @@ of the function, and again overloading is a possibility.
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
       }  /* if */
     } else {
+      a_symbol_ptr	orig_sym = sym;
       if (sym->parent.class_type == class_type) {
         /* It's a member function of the very class that is according it
            friendship.  Issue a diagnostic. */
@@ -3950,11 +3951,20 @@ of the function, and again overloading is a possibility.
                           sym->kind == (a_symbol_kind)sk_overloaded_function;
       sym = member_function_redecl_sym(sym, function_type);
       if (sym == NULL) {
-        /* Doesn't match. */
-        sym_error(is_overloaded_function ?
-                        ec_overloaded_function_incompatible_type :
-                        ec_not_compatible_with_previous_decl,
-                  locator->specific_symbol);
+        /* If this is a member function, but one with a type that doesn't
+           match a previously declared member, see if it matches an
+           instance of a member template.  If it does, assume that it is
+           an attempt to declare an instance to be a friend, but without
+           using the template <> syntax.. */
+        if (has_matching_template_instance(orig_sym, function_type)) {
+          pos_error(ec_bad_member_template_friend_decl,
+                    &locator->source_position);
+        } else {
+          sym_error(is_overloaded_function ?
+                          ec_overloaded_function_incompatible_type :
+                          ec_not_compatible_with_previous_decl,
+                    locator->specific_symbol);
+        }  /* if */
         set_to_error_locator(*locator);
       } else {
         /* "inline" may not be introduced by this declaration. */

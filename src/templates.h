@@ -97,6 +97,10 @@ extern a_symbol_ptr matching_template_function
                                    a_type_ptr          curr_type,
 				   a_boolean	       is_decl_context);
 
+extern
+a_boolean has_matching_template_instance(a_symbol_ptr      sym,
+                                         a_type_ptr        type);
+
 extern void record_predeclared_template_function(
                                         a_symbol_ptr         templ_sym,
                                         a_symbol_ptr         rout_sym,

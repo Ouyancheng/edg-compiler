@@ -871,6 +871,7 @@ on a prior declaration.
   } else {
     /* Look for a member function symbol of this type in the symbol table.
        It is an error if it is  not already there. */
+    a_symbol_ptr	orig_sym = sym;
     sym = member_function_redecl_sym(sym, type_ptr);
     if (sym == NULL && any_cfront_mode()) {
       /* In cfront it's okay to put a function qualifier on a member function
@@ -888,12 +889,20 @@ on a prior declaration.
       }  /* if */
     }  /* if */
     if (sym == NULL) {
-      /* No member function with a matching type was found.  Issue an error. */
-      pos_sy_error(locator->specific_symbol->kind ==
+      /* No member function with a matching type was found.  Issue an error.
+         If the type matches an instance of a member function template,
+         then this is probably an attempt to define a function using
+         the old specialization syntax.  Issue an error to that effect. */
+      if (has_matching_template_instance(orig_sym, type_ptr)) {
+        pos_error(ec_old_specialization_of_member_template,
+                  &locator->source_position);
+      } else {
+        pos_sy_error(locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_overloaded_function ?
                         ec_overloaded_function_incompatible_type :
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
+      }  /* if */
     } else if (sym->variant.routine.ptr->compiler_generated) {
       /* Attempting to give a definition for a function that was implicitly
          declared. */

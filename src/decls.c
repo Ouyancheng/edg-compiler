@@ -7547,8 +7547,25 @@ continue_with_declaration:
           /* A qualified name that identifies a function is allowed only when
              the function body is present. */
           if (is_member_function_symbol(locator.specific_symbol)) {
-            pos_sy_error(ec_member_function_redecl_outside_class,
-                         &declarator_pos, locator.specific_symbol);
+            /* If this is a member function, but one with a type that doesn't
+               match a previously declared member, see if it matches an
+               instance of a member template.  If it does, assume that it is
+               an attempt to declare a specialization with the incorrect
+               old-style specialization syntax. */
+            a_symbol_ptr	tmp_sym = locator.specific_symbol;
+            a_boolean		is_member_redecl;
+            a_boolean		is_template_instance;
+            is_member_redecl = member_function_redecl_sym(
+                                              tmp_sym, local_type_ptr) != NULL;
+            is_template_instance = has_matching_template_instance(
+                                                      tmp_sym, local_type_ptr);
+            if (!is_member_redecl && is_template_instance) {
+              pos_error(ec_old_specialization_of_member_template,
+                        &locator.source_position);
+            } else {
+              pos_sy_error(ec_member_function_redecl_outside_class,
+                           &declarator_pos, locator.specific_symbol);
+            }  /* if */
           } else {
             pos_sy_error(ec_not_compatible_with_previous_decl,
                          &declarator_pos, locator.specific_symbol);
