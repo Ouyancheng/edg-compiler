@@ -891,7 +891,8 @@ caution when modifying this routine.
              We want to avoid contaminating the name space, etc., so it gets
              declared in the instantiation scope. */
           instance_sym = scope_stack[computed_decl_level].instance_sym;
-          if (instance_sym == NULL || is_real_class_symbol(instance_sym)) {
+          if (instance_sym == NULL ||
+              !is_nonreal_instance_class_symbol(instance_sym)) {
             computed_decl_level = depth_innermost_namespace_scope;
           }  /* if */
           /*FALLTHROUGH*/

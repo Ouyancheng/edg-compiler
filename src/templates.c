@@ -5571,8 +5571,7 @@ instantiated.
        (3.4.1p11). */
     (void)push_scope((a_scope_kind)sck_func_prototype,
                      daefp->cache.decl_info->declaration_scope,
-                     (a_type_ptr)NULL,
-                     (a_routine_ptr)NULL);
+                     rout_ptr->type, (a_routine_ptr)NULL);
     if (tip->prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
     }  /* if */
