@@ -18,18 +18,21 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #ifndef CLASS_DECL_H
 #define CLASS_DECL_H 1
 
-#ifndef IL_H
-#include "il.h"
-#endif /* ifndef IL_H */
-
 /* The pointer to a_delayed_scan_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_delayed_scan_fixup *a_delayed_scan_fixup_ptr;
 
+#ifndef IL_H
+#include "il.h"
+#endif /* ifndef IL_H */
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
+
 extern a_boolean do_alignment(a_targ_size_t    *byte_offset,
-                             int              *bit_offset,
-                             a_targ_alignment alignment);
+                              int              *bit_offset,
+                              a_targ_alignment alignment);
 
 extern a_boolean set_field_size_and_offset(a_field_ptr      field,
                                            a_targ_size_t    *p_byte_offset,
