@@ -3928,20 +3928,22 @@ is the one associated with the pragma.
     end_output_line_if_begun();
     set_output_position(&pp->position);
     disable_line_wrapping();
-    write_str("#pragma ");
-    switch (pp->kind) {
 #if IDENT_DIRECTIVE_AND_PRAGMA
-      case pk_ident:
-        write_str("ident ");
-        dump_constant(pp->variant.ident_string);
-        break;
+    /* Check for #pragma ident (= #ident). */
+    if (pp->kind == (a_pragma_kind)pk_ident) {
+      /* Just put out #ident, which is probably recognized more often than
+         #pragma ident is. */
+      write_str("#ident ");
+      dump_constant(pp->variant.ident_string);
+    } else {
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-      default:
-        check_assertion_str(pp->pragma_text != NULL,
-                            "dump_pragma: NULL pragma_text");
-        write_str(pp->pragma_text);
-        break;
-    }  /* switch */
+      check_assertion_str(pp->pragma_text != NULL,
+                          "dump_pragma: NULL pragma_text");
+      write_str("#pragma ");
+      write_str(pp->pragma_text);
+#if IDENT_DIRECTIVE_AND_PRAGMA
+    }  /* if */
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     write_str(pp->pragma_text);
     enable_line_wrapping();
     end_output_line();
