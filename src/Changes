@@ -1,5 +1,19 @@
 Version 2.28
 
+2/12/95  Derived --> base conversion after conversion function
+
+The front end will now consider derived-->base conversions (class,
+not pointer) following a conversion function.
+
+  struct X {};
+  int operator==(const X&, const X&);
+  struct Y : public X {};
+  struct Z {
+    operator Y();
+  };
+  Z z1, z2;
+  int i = (z1 == z2);  // Now okay
+
 2/12/95  Dropping type qualifiers when binding a reference
 
 Dropping type qualifiers when binding a reference now disqualifies
