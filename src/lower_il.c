@@ -10723,10 +10723,10 @@ constructor, but may instead be after an assignment to "this".
          [endfor]
        endif
        [For each virtual base class of the current class:]
-         Set the virtual base class pointer in the current class to point to
-             the value in the virtual base class parameter.  (The pointers
-             in the base classes do not have to be set because they get set
-             by the constructor calls.)
+         If the virtual base class pointer for the base class is allocated
+             in the current class, initialize it to point to the base class.
+             (The pointers allocated in base classes are set by the constructor
+             calls for those base classes.)
        [endfor]
      [endif]
      [For each initialized direct nonvirtual base class (entries for these
@@ -10794,7 +10794,11 @@ constructor, but may instead be after an assignment to "this".
            base class. */
         vaddr_node = make_cobj_vbase_class_lvalue_from_var(this_param_var,
                                                            bcp);
-        /* Make an expression for the virtual base class parameter. */
+        /* Add a cast if necessary to convert from a pointer to the base
+           class type to a pointer to the type-as-subobject for the base
+           class type. */
+        vaddr_node = add_cast_if_necessary(vaddr_node, vbase_param_var->type);
+        /* Make an assignment to set the virtual base class parameter. */
         (void)insert_var_assignment_statement(vbase_param_var,
                                             (an_expr_operator_kind)eok_passign,
                                               vaddr_node,
@@ -10813,21 +10817,27 @@ constructor, but may instead be after an assignment to "this".
     }  /* for */
     /* Note that the "if" created above effectively ends here.  The code
        created below is executed even when we do not have a complete object. */
-    /* For each direct virtual base class of the current class, set the
+    /* For each virtual base class of the current class, set the
        virtual base class pointer in the current class to point to the value
-       of the associated virtual base class parameter. */
+       of the associated virtual base class parameter, i.e., the address
+       of the virtual base class. */
     vbase_param_var = this_param_var;
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
         vbase_param_var = vbase_param_var->next;
         /* Do not set the pointer if it is shared with a base class --
-           the base class constructor has already set it. */
+           the base class constructor has already or will set it. */
         if (bcp->pointer_base_class == NULL) {
           /* Make an expression for the value of the implicit parameter. */
           vbase_param_node = var_rvalue_expr(vbase_param_var);
           /* Make an expression node for the address of the virtual base
              class pointer. */
           vbptr_node = make_vbptr_field_lvalue_from_var(this_param_var, bcp);
+          /* Add a cast if necessary to convert from a pointer to the
+             type-as_subobject for the base class type to a pointer to the
+             base class type. */
+          vbase_param_node = add_cast_if_necessary(vbase_param_node,
+                                            type_pointed_to(vbptr_node->type));
           /* Make an assignment statement that copies the implicit parameter
              value (set earlier in the constructor code) into the virtual
              base class pointer. */
