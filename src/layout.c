@@ -488,7 +488,17 @@ if n is supplied or to the value associated with the last entry popped.
     }  /* if */
     /* Advance to the right parenthesis. */
     (void)get_token();
-  } else if (curr_token != tok_rparen) {
+  } else if (curr_token == tok_rparen) {
+    if (is_push || is_pop) {
+      /* push/pop version, optionally with a name, but with no constant value
+         (i.e., pack(push), pack(push, xxx), pack(pop), or pack(pop, xxx) --
+         already dealt with. */
+    } else {
+      /* Empty argument list: "#pragma pack()", which means revert to the
+         command-line default. */
+      curr_max_member_alignment = 0;
+    }  /* if */
+  } else {
     /* Expected an integer constant. */
     syntax_error(ec_exp_int_constant);
   }  /* if */
