@@ -3192,8 +3192,8 @@ is allocated, it is allocated in the file scope.
               a_template_param_type_descr_ptr	tptdp_2;
               /* The tag kinds (if any) associated with the template parameters
                  must match. */
-              tptdp_1 = type_1->variant.template_param.descr;
-              tptdp_2 = type_2->variant.template_param.descr;
+              tptdp_1 = base_type_1->variant.template_param.descr;
+              tptdp_2 = base_type_2->variant.template_param.descr;
               /* Set the composite to type_1 until we determine otherwise. */
               comp_type = base_type_1;
               if (tptdp_1 == NULL && tptdp_2 != NULL) {
