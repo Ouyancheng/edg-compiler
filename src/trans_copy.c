@@ -41,19 +41,19 @@ Return TRUE if the given entry has the flag set that indicates that
 it needs to be copied.  The il_walk_flag is used for this purpose.
 */
 #define entry_needs_copy_flag_is_set(ptr) \
-  (il_entry_prefix_of(ptr).il_walk_flag == flag_value_meaning_visited)
+  (il_entry_prefix_of(ptr).il_walk_flag != flag_value_meaning_visited)
 
 /*
 Set the flag that indicates that an entry needs to be copied.
 */
 #define set_entry_needs_copy_flag(ptr) \
-  (il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited)
+  (il_entry_prefix_of(ptr).il_walk_flag = !flag_value_meaning_visited)
 
 /*
 Reset the flag that indicates that an entry needs to be copied.
 */
 #define reset_entry_needs_copy_flag(ptr) \
-  (il_entry_prefix_of(ptr).il_walk_flag = !flag_value_meaning_visited)
+  (il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited)
 
 
 static void copy_address_setup(
@@ -62,7 +62,7 @@ static void copy_address_setup(
                              a_boolean        known_will_process_in_curr_walk);
 
 
-static char *transitive_copy_address_of(char *ptr)
+static char *f_transitive_copy_address_of(char *ptr)
 /*
 Return the copy address for the indicated entry.  In the case where the
 entry is to be merged, and the copy address points to the intermediate
@@ -81,7 +81,14 @@ copy address must be set (i.e., the return value is always non-NULL).
   }  /* if */
   check_assertion(!in_secondary_trans_unit(ptr));
   return ptr;
-}  /* transitive_copy_address_of */
+}  /* f_transitive_copy_address_of */
+
+
+/*
+Macro that provides a convenient interface to f_transitive_copy_address_of.
+*/
+#define transitive_copy_address_of(ptr) \
+  f_transitive_copy_address_of((char *)(ptr))
 
 
 static char *primary_il_entry_of(char             *ptr,
@@ -868,6 +875,9 @@ to the secondary translation unit.
        the file scope in the primary translation unit, and gets merged
        into it. */
     a_scope_ptr corresp_scope = translation_units->primary_scope;
+    /* Make sure flag_value_meaning_visited is set so that
+       the entry needs-copy flag can be used (e.g., in mark_to_merge). */
+    flag_value_meaning_visited = il_entry_prefix_of(scope).il_walk_flag;
     checked_trans_unit_copy_address_of(scope) = (char *)corresp_scope;
     mark_to_merge(scope, iek_scope);
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
@@ -1665,7 +1675,7 @@ unit.
   /* Process only scopes that must be merged into their counterparts. */
   if (entry_to_be_merged(scope)) {
     /* Find the corresponding scope. */
-    primary_scope = (a_scope_ptr)checked_trans_unit_copy_address_of(scope);
+    primary_scope = (a_scope_ptr)transitive_copy_address_of(scope);
     /* Get the pointers block for the primary IL scope. */
     pointers_block = get_pointers_block_for_scope(primary_scope);
     check_assertion(pointers_block != NULL || is_class_scope);
@@ -2458,7 +2468,7 @@ therefore will not be copied.
          n++) {
       if (mem_region_table[n] != NULL &&
           il_header.region_scope_entry[n]->kind == (a_scope_kind)sck_file) {
-        check_for_done_with_memory_region(n);
+        free_memory_region(n);
       }  /* if */
     }  /* for */
   }
