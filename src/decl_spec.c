@@ -1804,6 +1804,7 @@ static a_boolean class_specifier(
                         a_boolean                   is_template_specialization,
                         a_boolean                   marked_as_gnu_extension,
                         a_decl_modifiers_block_ptr  prefix_decl_modifiers,
+                        an_ms_attribute_ptr         ms_attributes,
                         a_type_ptr                  *type_ptr,
                         a_boolean                   *declares_something,
                         a_boolean                   *defines_something,
@@ -1863,6 +1864,8 @@ of the form "class A<int>" to not be considered a specific declaration of
 the template.  is_typedef is TRUE if the class specifier is being typedefed.
 is_ref_within_new_expr indicates that the specifier is parsed as part of a
 new expression and should therefore not be treated as a declaration.
+ms_attributes points to a linked list of Microsoft attributes preceding the
+class specifier (if any).
 */
 {
   a_symbol_kind           tag_kind;
@@ -2754,8 +2757,15 @@ new expression and should therefore not be treated as a declaration.
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
   /* Now that we have a type, we can apply any attributes attached to it. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ms_attributes != NULL) {
+    apply_microsoft_attributes(&ms_attributes, (char*)class_type,
+                               (an_il_entry_kind)iek_type,
+                               is_interface ? MSAT_INTERFACE : MSAT_CLASS);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && attributes != NULL) {
     apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
     free_attribute_list(attributes);
@@ -5190,26 +5200,29 @@ Returns TRUE if there is an error in the specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                  microsoft_w64_seen = FALSE;
   a_source_position          microsoft_w64_pos;
-  an_ms_attribute_ptr        ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  an_ms_attribute_ptr        ms_attributes = NULL;
  
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
   *qualifiers = TQ_NONE;
+  clear_decl_modifiers_block(decl_modifiers);
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_block_size != NULL) *upc_block_size = 0;
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (attributes != NULL) *attributes = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  clear_decl_modifiers_block(decl_modifiers);
-#if GNU_EXTENSIONS_ALLOWED
   if (marked_as_gnu_extension) {
     decl_modifiers->marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && p_ms_attributes != NULL) {
+    ms_attributes = *p_ms_attributes;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
@@ -5484,12 +5497,19 @@ Returns TRUE if there is an error in the specifiers.
         }
         break;
       case tok_lbracket:
-        if (any_decl_specifiers_seen || !microsoft_mode || C_mode()) {
+        if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
+            p_ms_attributes == NULL) {
           /* Microsoft attributes have to precede any specifiers.  They are
              only recognized in Microsoft C++ mode. */
           goto something_unexpected;
         } else {
-          ms_attributes = scan_microsoft_attributes(
+          /* Microsoft attributes are valid here.  Append them to any
+             attributes that we might have seen before. */
+          an_ms_attribute_ptr  *last_ap = p_ms_attributes;
+          while (*last_ap != NULL) {
+            last_ap = &(*last_ap)->next;
+          }  /* while */
+          *last_ap = scan_microsoft_attributes(
                                         (input_flags & DSI_IS_PARAMETER)!= 0);
           goto no_get_token;
         }  /* if */
@@ -6076,10 +6096,17 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           marked_as_gnu_extension, decl_modifiers,
-                          type_ptr, &declares_something,
+                          ms_attributes, type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
               }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (p_ms_attributes != NULL) {
+                /* The Microsoft attributes have been consumed.  Do not pass
+                   them back to the caller. */
+                *p_ms_attributes = ms_attributes = NULL;
+              }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               basic_type = bt_struct_union;
               is_elaborated_type_specifier = TRUE;
             }  /* if */
@@ -6098,8 +6125,8 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           marked_as_gnu_extension, decl_modifiers,
-                          &dummy_type, &dummy_flag, &dummy_flag,
-                          decl_pos_block);
+                          /*ms_attributes=*/NULL, &dummy_type, &dummy_flag,
+                          &dummy_flag, decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;

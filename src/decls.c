@@ -6099,6 +6099,12 @@ skip_overloading:;
     warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ms_attributes != NULL) {
+    apply_microsoft_attributes(&ms_attributes, (char*)routine_ptr,
+                               (an_il_entry_kind)iek_routine, MSAT_ROUTINE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_function_def && qualifier_namespace_ptr(*locator) != NULL) {
     check_assertion(!is_friend_decl || locator->is_error);
     routine_ptr->defined_outside_of_parent = TRUE;
@@ -10653,7 +10659,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   an_ms_attribute_ptr          ms_attributes = NULL;
-  an_ms_attribute_ptr          *last_ms_attribute_ptr = &ms_attributes;
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
   a_boolean                    is_linkage_spec_decl = FALSE;
@@ -10715,11 +10720,6 @@ of local variables (and types, etc.) of functions and in blocks.
       verify_standalone_attributes(&ms_attributes);
       goto advance_past_final_token;
     }  /* if */
-    /* Find the last attribute pointer so we can easily append to this list
-       if necessary. */
-    while (*last_ms_attribute_ptr != NULL) {
-      last_ms_attribute_ptr = &(*last_ms_attribute_ptr)->next;
-    }  /* while */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
@@ -10883,7 +10883,7 @@ continue_with_declaration:
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
                         &type_ptr, &qualifiers, &specifier_attributes,
-                        last_ms_attribute_ptr, &decl_modifiers,
+                        &ms_attributes, &decl_modifiers,
                         &decl_pos_block, (a_upc_block_size*)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
@@ -12013,9 +12013,10 @@ continue_with_declaration:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ms_attributes != NULL) {
         pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
+        /* The attributes are not applied to entities associated with
+           subsequent declarators. */
         ms_attributes = NULL;
       }  /* if */
-      last_ms_attribute_ptr = &ms_attributes;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
@@ -12069,6 +12070,13 @@ return_point:
        have been called. */
     if (restore_name_linkage) pop_name_linkage();
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ms_attributes != NULL) {
+    /* Attributes were specified on a declaration without a declarator,
+       but the attributes were not consumed. */
+    pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   free_attribute_list(specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */

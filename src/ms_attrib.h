@@ -47,6 +47,9 @@ applies.
 #define MSAT_DATA_MEMBER	0x20
 			/* Applies to a class data member. */
 
+#define MSAT_ROUTINE		0x40
+			/* Applies to nonmember functions. */
+
 /*
 Storage size used to represent a target bit set.
 */

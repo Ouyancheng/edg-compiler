@@ -31,6 +31,9 @@ class_decl.c -- Scanning of class declarations.
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_attrib.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /*
@@ -11711,6 +11714,7 @@ member.  Determine whether a diagnostic is actually required and put it out.
 static a_symbol_ptr class_member_declaration(
                       a_type_ptr               class_type,
                       a_class_def_state_ptr    class_state,
+                      an_ms_attribute_ptr      ms_attributes,
                       a_boolean                is_member_template,
                       a_template_param_ptr     templ_param_list,
                       a_boolean                *skip_semicolon_check,
@@ -11721,13 +11725,15 @@ static a_symbol_ptr class_member_declaration(
 /*
 Scan a member declaration appearing inside a class definition.  class_type
 is the type of the class.  class_state points to a block of information
-tracking general information about the class.  *skip_semicolon_check is
-returned TRUE if the caller should suppress the check for a semicolon
-following the member declaration.  templ_param_list is non-NULL for
-function template declarations.  decl_pos_block_ptr is non-NULL when then
-extra source position information collected during this declaration needs
-to be returned to the caller.  If prototype instantiations are recorded in
-the IL, the template header is passed via template_decl.  
+tracking general information about the class.  ms_attributes points to a
+list of Microsoft attributes that have already been parsed for this
+declaration (if any). *skip_semicolon_check is returned TRUE if the caller
+should suppress the check for a semicolon following the member declaration.
+templ_param_list is non-NULL for function template declarations.
+decl_pos_block_ptr is non-NULL when then extra source position information
+collected during this declaration needs to be returned to the caller.
+If prototype instantiations are recorded in the IL, the template header is
+passed via template_decl.  
 */
 {
   a_source_position    decl_start_pos;
@@ -11745,7 +11751,6 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  an_ms_attribute_ptr  ms_attributes = NULL;
   char                 *asm_name = NULL;
   an_attribute_ptr     specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
@@ -12559,6 +12564,14 @@ the IL, the template header is passed via template_decl.
     if (!is_nonstatic_data_member) {
       any_decl_other_than_nonstatic_data_member = TRUE;
     }  /* if */
+#if 0 /* FIXME: Restore code when consumers are coded. */
+    if (ms_attributes != NULL) {
+      pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
+      /* The attributes are not applied to entities associated with
+         subsequent declarators. */
+      ms_attributes = NULL;
+    }  /* if */
+#endif /* FIXME */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
@@ -12583,6 +12596,13 @@ next_declaration:;
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
+#if 0 /* FIXME: Restore code when consumers are coded. */
+    if (ms_attributes != NULL) {
+      /* Attributes were specified on a declaration without a declarator,
+         but the attributes were not consumed. */
+      pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
+    }  /* if */
+#endif /* FIXME */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -12625,6 +12645,7 @@ is the template parameter list for the function template.
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   class_state_ptr = scope_stack[scope_level].class_def_state;
   sym = class_member_declaration(class_type, class_state_ptr,
+                                 /*ms_attributes=*/NULL,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
@@ -12669,6 +12690,7 @@ instance record associated with this instantiation.
   saved_routine_fixup = curr_routine_fixup;
   curr_routine_fixup = NULL;
   (void)class_member_declaration(class_type, &class_state,
+                                 /*ms_attributes=*/NULL,
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
@@ -13258,6 +13280,7 @@ classes.
       }  /* if */
       scope_stack[decl_scope_level].current_access = class_state.access;
       do {
+        an_ms_attribute_ptr  ms_attributes = NULL;
         add_stop_token(tok_semicolon);
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
@@ -13313,6 +13336,22 @@ classes.
         }  /* if */
 #endif /* !ASM_FUNCTION_ALLOWED */
         if (C_dialect == C_dialect_cplusplus) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          a_source_position    pos_ms_attributes;
+          if (microsoft_mode && curr_token == tok_lbracket) {
+            pos_ms_attributes = pos_curr_token;
+            /* A Microsoft attribute of the form "[ ... ]". */
+            ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+            if (curr_token == tok_semicolon) {
+              /* This is a standalone attribute block.  Make sure all of the
+                 specified attributes are standalone attributes.  This also
+                 sets ms_attributes to NULL. */
+              verify_standalone_attributes(&ms_attributes);
+              (void)get_token();
+              goto next_declaration;
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Check for and discard declarations of the form "overload f;". */
           if (check_for_overload_anachronism()) {
             /* Issue diagnostics on pragmas that are trying to bind to an
@@ -13350,6 +13389,9 @@ classes.
             a_token_kind                 final_token = tok_semicolon;
             a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
 
+            if (ms_attributes != NULL) {
+              pos_error(ec_ms_attr_not_allowed, &pos_ms_attributes);
+            }  /* if */
             if (curr_token == tok_extern) {
               /* In Microsoft and GNU modes "extern template ..." is
                  permitted. */
@@ -13368,7 +13410,7 @@ classes.
             goto next_declaration;
           }  /* if */
         }  /* if */
-        (void)class_member_declaration(class_type, &class_state,
+        (void)class_member_declaration(class_type, &class_state, ms_attributes,
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check,
