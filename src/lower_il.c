@@ -4120,7 +4120,7 @@ is already non-zero.
 #if IA64_ABI
   a_class_type_supplement_ptr ctsp;
   a_virtual_table_index       vtbl_index = 0;
-  a_boolean                   is_subobject = (bcp != sub_bcp);
+  a_boolean                   is_subobject;
 #endif /* IA64_ABI */
 
   if (bcp != NULL) {
@@ -4129,6 +4129,11 @@ is already non-zero.
     vtbl_class = class_type;
   }  /* if */
 #if IA64_ABI
+  if (sub_bcp && sub_bcp != bcp && sub_bcp->shares_virtual_function_info) {
+    sub_bcp = find_base_sharing_virtual_function_table(sub_bcp);
+    if (sub_bcp == NULL) sub_bcp = bcp;
+  }  /* if */
+  is_subobject = (bcp != sub_bcp);
   ctsp = vtbl_class->variant.class_struct_union.extra_info;
 #endif /* IA64_ABI */
   cvp = alloc_construction_vtbl();
