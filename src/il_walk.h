@@ -37,6 +37,7 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
    For string type entries, 1.  This must match the order of the
    enumeration an_il_entry_kind. */
 EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
+#define IEK_LAST_CHECK_SIZE 9999
 #if VAR_INITIALIZERS
 = {
   0 /* iek_none */,
@@ -85,11 +86,12 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_class_type_supplement),
   sizeof(a_constructor_init),
   sizeof(an_asm_entry),
+  sizeof(a_template_arg),
 #endif /* ifdef CIL */
 #if ORPHAN_PROCESSING_NEEDED
   sizeof(an_orphaned_il_list),
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  0 /* iek_last */
+  IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */
 ;
