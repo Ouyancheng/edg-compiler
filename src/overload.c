@@ -1775,7 +1775,7 @@ evaluated (but not checked to see if the match is good enough).
   an_arg_operand_ptr arg_operand;
   a_routine_type_supplement_ptr
                      rtsp;
-  a_type_ptr         param_type, arg_type, eff_param_type;
+  a_type_ptr         param_type, arg_type, eff_param_type, routine_type;
   a_base_class_ptr   base_class_conv_needed;
   an_arg_match_summary_ptr
                      arg_match;
@@ -1796,7 +1796,8 @@ evaluated (but not checked to see if the match is good enough).
     goto done;
   }  /* if */
   routine = templ_sym->variant.template_info->variant.function.routine;
-  rtsp = routine->type->variant.routine.extra_info;
+  routine_type = skip_typerefs(routine->type);
+  rtsp = routine_type->variant.routine.extra_info;
   /* Compare the types of the arguments to the parameter types. */
   ptp = rtsp->param_type_list;
   arg_operand = cfp->arg_operand_list;
@@ -3107,7 +3108,8 @@ if an implicit selector is generated (*have_selector is set to TRUE for that
 case).  call_position gives the source position of the call.
 */
 {                                 
-  a_boolean access_error_reported;
+  a_boolean  access_error_reported;
+  a_type_ptr routine_type;
 
   /* Do whatever would have been done to the function had we known
      originally which specific function was intended. */
@@ -3123,8 +3125,8 @@ case).  call_position gives the source position of the call.
   change_some_ref_kinds(function_operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                         SRK_REFERENCE);
   /* Check whether or not a selector is needed. */
-  if (routine_type_is_nonstatic_member_function(
-                                       routine_symbol_type(function_symbol))) {
+  routine_type = routine_symbol_type(function_symbol);
+  if (routine_type_is_nonstatic_member_function(routine_type)) {
     /* The function needs a selector. */
     if (!*have_selector) {
       /* Try to generate a selector. */
