@@ -1,5 +1,19 @@
 Version 2.29
 
+4/5/95   Identifier lookup when caching pragma tokens
+
+When caching pragma tokens, identifiers must be looked up, otherwise
+it is impossible later to know the name of the identifier that was
+scanned.  Formerly, identifiers were only looked up when the pragma
+flag processing_C_code_in_pragma was TRUE.  Now, identifiers are
+always looked up for pragmas that are saved as token caches.  The
+processing_C_code flag is now used to specify whether other processing
+specific to C/C++ code should be performed, such as recognition of keywords.
+
+This change should not result in a change in behavior of existing pragmas.
+Existing code need only be changed if certain pragmas should not recognize
+keywords.
+
 4/5/95   Cfront compatiblity: conversions of class operands to pointer type
          when they are operands of builtin operators
 

@@ -4612,9 +4612,11 @@ whether adjacent string literals are concatenated.
 
 If in_preprocessing_directive is TRUE, the definition of white space is
 changed to that for within preprocessing directives, and newline is
-returned as a token.  If in_preprocessing_directive is TRUE and
-processing_C_code_in_pragma is FALSE, keywords are not recognized, and
-"#", and "##" are recognized and returned as tokens.
+returned as a token.  Normally, if in_preprocessing_directive is TRUE
+keywords are not recognized, and "#", and "##" are recognized and
+returned as tokens.  Recognition of keywords is re-enabled when
+caching_pragma_tokens and recognize_keywords_in_pragma are both TRUE.
+The "#" and "##" tokens are re-enabled when caching_pragma_tokens is TRUE.
 
 If in_pp_if_expression is TRUE (indicating that we are inside a
 preprocessing #if expression), integer constants will get an implicit
@@ -5081,7 +5083,7 @@ id_scan:
          even if the identifier is not looked up in the symbol table. */
       clear_locator(&locator_for_curr_id, &pos_curr_token);
       if ((fetch_pp_tokens || in_preprocessing_directive) &&
-          !expand_macros && !processing_C_code_in_pragma) {
+          !expand_macros && !caching_pragma_tokens) {
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
       } else {
@@ -5127,9 +5129,11 @@ id_scan:
             /* Keyword, return the proper token for it.  When fetching raw
                preprocessing tokens, or inside a preprocessing directive,
                the keywords mean nothing.  An exception is when we are
-	       processing a pragma that contains C code. */
+	       processing a pragma that is explicitly designated as requiring
+	       keyword recognition. */
             if (!fetch_pp_tokens &&
-	        (!in_preprocessing_directive || processing_C_code_in_pragma)) {
+	        (!in_preprocessing_directive ||
+                 (caching_pragma_tokens && recognize_keywords_in_pragma))) {
               ctoken = assoc_symbol->variant.keyword.token;
               /* Check for a keyword that is not yet implemented.  If one is
                  found, issue a diagnostic and treat the keyword as an
@@ -5200,7 +5204,7 @@ check_start_of_pp_directive:
 	} /* if */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 	if (!pcc_preprocessing_mode && in_preprocessing_directive &&
-	    !processing_C_code_in_pragma) {
+	    !caching_pragma_tokens) {
 	  /* We recognize and return these preprocessing tokens even if
 	     we do not know that we are in the body of a #define; this
 	     helps produce reasonable error messages. */
@@ -5331,7 +5335,7 @@ concatenate_adjacent_string_literals:
      If appropriate, string literals following the current one will be
      concatenated with it.  See ANSI C 2.1.1.2, translation phase 6. */
   if (fetch_pp_tokens ||
-      (in_preprocessing_directive && !processing_C_code_in_pragma) ||
+      (in_preprocessing_directive && !caching_pragma_tokens) ||
       !do_string_literal_concatenation) {
     /* String literal concatenation should not be done in the current mode. */
     goto end_of_token_scan_b;

@@ -109,14 +109,21 @@ EXTERN a_boolean
 			   a token, disables recognition of keywords,
 			   and enables "#" and "##" as tokens. */
 EXTERN a_boolean
-		processing_C_code_in_pragma;
-			/* TRUE is we are in a preprocessing directive
-			   (typically a pragma) but we are processing what
-			   is actually C/C++ code.  This disables some of
+		caching_pragma_tokens;
+			/* TRUE is we are in a pragma that is being recorded
+			   as a token cache.  This disables some of
 			   the special processing that is normally done when
 		           is_preprocessing_directive is TRUE; specifically,
-			   keyword recognition is enabled and the tokens
-			   "#" and "##" are disabled. */
+			   identifiers are looked up and the tokens
+			   "#" and "##" are disabled.  Keywords are only
+			   recognized if processing_C_code_in_pragma is
+			   TRUE. */
+
+EXTERN a_boolean
+                recognize_keywords_in_pragma;
+                        /* TRUE if we are saving the tokens of a pragma in
+			   a token cache and keywords should be recognized. */
+
 EXTERN a_boolean
 		do_string_literal_concatenation;
 			/* TRUE if adjacent string literal tokens should be

@@ -1045,7 +1045,6 @@ there.
 */
 {
   a_boolean	save_expand_macros;
-  a_boolean	save_processing_C_code_in_pragma;
   a_boolean	save_do_string_literal_concatenation;
   a_boolean	save_fetch_pp_tokens;
   char		*il_string;
@@ -1053,24 +1052,17 @@ there.
   db_enter(4, "convert_pragma_to_string");
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
-  save_processing_C_code_in_pragma = processing_C_code_in_pragma;
   save_do_string_literal_concatenation = do_string_literal_concatenation;
   save_fetch_pp_tokens = fetch_pp_tokens;
   /* Set the new values. */
   expand_macros = pkdp->expand_macros;
-  processing_C_code_in_pragma = pkdp->processing_C_code_in_pragma;
-  do_string_literal_concatenation = processing_C_code_in_pragma;
-  /* Restore the previous values. */
-  expand_macros = save_expand_macros;
-  processing_C_code_in_pragma = save_processing_C_code_in_pragma;
-  do_string_literal_concatenation = save_do_string_literal_concatenation;
-  fetch_pp_tokens = save_fetch_pp_tokens;
-  /* We expect expand_macros and processing_C_code_in_pragma to be FALSE when
+  do_string_literal_concatenation = FALSE;
+  fetch_pp_tokens = TRUE;
+  /* We expect expand_macros and caching_pragma_tokens to be FALSE when
      building a string representation of the pragma. */
-  check_assertion_str2(!expand_macros && !processing_C_code_in_pragma,
+  check_assertion_str2(!expand_macros && !caching_pragma_tokens,
 		       "convert_pp_directive_to_string:",
 		       "invalid token scanning mode");
-  fetch_pp_tokens = TRUE;
   convert_pp_directive_to_string();
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
@@ -1085,6 +1077,10 @@ there.
     fprintf(f_debug, "Saved pragma string: '%s'\n", il_string);
   }  /* if */
 #endif /* DEBUG */
+  /* Restore the previous values. */
+  expand_macros = save_expand_macros;
+  do_string_literal_concatenation = save_do_string_literal_concatenation;
+  fetch_pp_tokens = save_fetch_pp_tokens;
   db_exit();
 }  /* convert_pragma_to_string */
 
@@ -1098,19 +1094,22 @@ based on the information specified in the pragma description entry.
 */
 {
   a_boolean	save_expand_macros;
-  a_boolean	save_processing_C_code_in_pragma;
+  a_boolean	save_caching_pragma_tokens;
   a_boolean	save_do_string_literal_concatenation;
   a_boolean	save_fetch_pp_tokens;
+  a_boolean     save_recognize_keywords_in_pragma;
 
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
-  save_processing_C_code_in_pragma = processing_C_code_in_pragma;
+  save_caching_pragma_tokens = caching_pragma_tokens;
   save_do_string_literal_concatenation = do_string_literal_concatenation;
   save_fetch_pp_tokens = fetch_pp_tokens;
+  save_recognize_keywords_in_pragma = recognize_keywords_in_pragma;
   /* Set the new values. */
   expand_macros = pkdp->expand_macros;
-  processing_C_code_in_pragma = pkdp->processing_C_code_in_pragma;
-  do_string_literal_concatenation = processing_C_code_in_pragma;
+  caching_pragma_tokens = TRUE;
+  recognize_keywords_in_pragma = pkdp->processing_C_code;
+  do_string_literal_concatenation = pkdp->processing_C_code;
   fetch_pp_tokens = FALSE;
   /* Bypass the identifier that indicates the pragma kind. */
   (void)get_token();
@@ -1124,9 +1123,10 @@ based on the information specified in the pragma description entry.
   terminate_token_cache(&ppp->token_cache);
   /* Restore the previous values. */
   expand_macros = save_expand_macros;
-  processing_C_code_in_pragma = save_processing_C_code_in_pragma;
+  caching_pragma_tokens = save_caching_pragma_tokens;
   do_string_literal_concatenation = save_do_string_literal_concatenation;
   fetch_pp_tokens = save_fetch_pp_tokens;
+  recognize_keywords_in_pragma = save_recognize_keywords_in_pragma;
 }  /* cache_pragma_tokens */
 
 
@@ -1632,7 +1632,8 @@ established by init_predefined_macros.)
   fetch_pp_tokens = FALSE;
   expand_macros = TRUE;
   in_preprocessing_directive = FALSE;
-  processing_C_code_in_pragma = FALSE;
+  caching_pragma_tokens = FALSE;
+  recognize_keywords_in_pragma = FALSE;
   do_string_literal_concatenation = TRUE;
   in_pp_if_expression = FALSE;
   exp_header_name = FALSE;

@@ -125,8 +125,10 @@ typedef struct a_pragma_kind_description {
 			   pragma list associated with the current scope
 			   stack entry.  This flag is used again to determine
 			   the IL scope to be used when
-			   automatically_include_in_il is TRUE.  See the
-			   description below.  */
+			   automatically_include_in_il is TRUE and when an
+			   IL entry is created for a pragma by explicitly
+			   calling create_il_entry_for_pragma.  See the
+			   description below. */
   unsigned int	automatically_include_in_il:1;
 			/* This flag is TRUE if the front end should
 			   automatically generate an IL entry for this
@@ -156,10 +158,15 @@ typedef struct a_pragma_kind_description {
 			   more easily processed through the use of a
 			   character string instead of a token cache. */
   unsigned int	expand_macros:1;
-  unsigned int	processing_C_code_in_pragma:1;
-			/* The value of the flags to be used while scanning
-			   the tokens that make up the body of the pragma
-			   (the tokens after the pragma identifier). */
+                        /* Specifies whether macros should be expanded when
+			   recording the pragma.  Must be FALSE for tokens
+			   saved as text. */
+  unsigned int	processing_C_code:1;
+			/* Used for pragmas that are being saved as a token
+			   cache.  Indicates that the tokens should be
+			   interpreted as C/C++ code.  Keywords should be
+			   recognized, and adjacent string literals
+			   concatenated together. */
   unsigned int	ignore_in_back_end:1;
 			/* TRUE if this pragma may be ignored if it is
 			   not recognized by the back end.  This allows the
