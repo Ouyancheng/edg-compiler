@@ -1,5 +1,17 @@
 Version 2.12
 
+11/10/92 Function template declared "inline"
+
+The inline keyword is now accepted on a function template declaration.
+
+11/10/92 Diagnostics on nonstandard friend class declarations
+
+The diagnostics issued for nonstandard friend class declarations have been
+refined.  Whether an error, a warning, or a remark is put out depends on
+whether the compiler is invoked in normal mode, cfront compatibility mode,
+or strict ANSI mode; and also on whether it is a declaration that
+introduces a new class name or mentions a previously declared name.
+
 11/10/92 C_ANACHRONISMS_ALLOWED
 
 The C anachronisms of appendix A, section 17 of K&R I, i.e.,
@@ -86,7 +98,7 @@ pointer that precedes file-scope IL entries.
 11/9/92 Fixed bug in handling nonstandard friend declarations
 
 Nonstandard friend declarations of previously declared unions were not
-handled in the same manner as structs and unions.  The following
+handled in the same manner as classes and structs.  The following
 (supported as an extension for compatibility with cfront) is now handled
 properly:
 
