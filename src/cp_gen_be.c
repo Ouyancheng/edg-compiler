@@ -4719,12 +4719,14 @@ sequence entry.
     write_tok_str("\"C\" ");
   }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   /* Microsoft-specific keywords. */
   if (var->dllimport_used)   write_tok_str("__declspec(dllimport) ");
   if (is_definition) {
     if (var->dllexport_used) write_tok_str("__declspec(dllexport) ");
   }  /* if */
   if(var->thread_used) write_tok_str("__declspec(thread) ");
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
@@ -5006,6 +5008,7 @@ declaration or definition.
   if (rout->is_inline) write_tok_str("inline ");
   if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
 #if MICROSOFT_KEYWORDS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   /* Microsoft-specific keywords. */
   if (rout->dllimport_used)   write_tok_str("__declspec(dllimport) ");
   if (is_definition) {
@@ -5013,6 +5016,7 @@ declaration or definition.
     if (rout->naked_used)     write_tok_str("__declspec(naked) ");
     if (rout->microsoft_inline_used) write_tok_str("__inline ");
   }  /* if */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
   if (rout_type->kind == (a_type_kind)tk_typeref) {

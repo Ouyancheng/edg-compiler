@@ -480,13 +480,15 @@ if any are put out.  Do the output in the way described by octl.
                       "form_microsoft_qualifier: bad type kind");
   qualifiers = type->variant.typeref.qualifiers;
 
-  if (octl->gen_pcc_code) {
-    /* Qualifiers are suppressed when generating K&R C. */
-  } else {
-    output_qualifier(TQ_CDECL, "__cdecl");
-    output_qualifier(TQ_FASTCALL, "__fastcall");
-    output_qualifier(TQ_STDCALL, "__stdcall");
+#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+  if (octl->gen_compilable_code) {
+    /* Qualifiers are suppressed in compilable code, as an option. */
+    qualifiers = TQ_NONE;
   }  /* if */
+#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+  output_qualifier(TQ_CDECL, "__cdecl");
+  output_qualifier(TQ_FASTCALL, "__fastcall");
+  output_qualifier(TQ_STDCALL, "__stdcall");
   /* Put out trailing space if required. */
   if (qualifier_put_out) octl->output_str(" ");
 }  /* form_microsoft_qualifier */
