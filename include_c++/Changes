@@ -1,4 +1,13 @@
+Version 2.21, December 2.21
+
 11/18/93 struct __iobuf renamed _iobuf in <stdio.h>
+
+11/16/93 toupper/tolower temps made static
+
+The temporary variables used by toupper and tolower to avoid evaluating
+the argument twice have been made static to avoid problems with the change
+that makes declarations that are tentative definitions in C be true
+definitions in C++.
 
 11/15/93 Size of setjmp buffer
 
