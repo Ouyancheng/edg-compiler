@@ -124,11 +124,6 @@ static a_source_sequence_entry_ptr
 			   points to the entry in the function scope memory
 			   region that sent us off to the sublist. */
 
-static unsigned long
-		type_declaration_cannot_be_emitted_now;
-			/* > 0 if we are in a context where a type declaration
-			   cannot be emitted (e.g., a function declarator,
-			   a struct in C mode). */
 
 /*
 The following variables indicate state within a function.  They are saved
@@ -157,6 +152,21 @@ those containing source correspondence information.)
 
 /* Value to use to specify that no name is provided. */
 #define NO_NAME ((a_source_correspondence *)NULL)
+
+
+/*
+Macro to test a type kind to see if it is a class, struct, or union.
+*/
+#define is_class_type_kind(kind)                                      \
+  ((kind) == (a_type_kind)tk_class  ||                                \
+   (kind) == (a_type_kind)tk_struct ||                                \
+   (kind) == (a_type_kind)tk_union)
+
+/*
+Macro to test a type kind to see if it is a tag (class or enum).
+*/
+#define is_tag_type_kind(kind)                                        \
+  (is_class_type_kind(kind) || (kind) == (a_type_kind)tk_enum)
 
 
 /* Needed because of forward references: */
@@ -279,17 +289,16 @@ sequence entries.
   /* Loop until a significant entry (or the end of the list) is found. */
   for (;;) {
     if (curr_source_sequence_entry == NULL) {
-      if (sublist_parent_source_sequence_entry != NULL) {
-        /* End of a sublist in the file scope memory region.  Return to the
-           entry following the entry in the function scope memory region
-           that sent us to this sublist. */
-        curr_source_sequence_entry= sublist_parent_source_sequence_entry->next;
-        sublist_parent_source_sequence_entry = NULL;
-        /* Keep looping. */
-      } else {
+      if (sublist_parent_source_sequence_entry == NULL) {
         /* End of the entire source sequence list. */
         break;
       }  /* if */
+      /* End of a sublist in the file scope memory region.  Return to the
+         entry following the entry in the function scope memory region
+         that sent us to this sublist. */
+      curr_source_sequence_entry= sublist_parent_source_sequence_entry->next;
+      sublist_parent_source_sequence_entry = NULL;
+      /* Keep looping. */
     } else if (is_sublist_parent(curr_source_sequence_entry)) {
       /* This entry points from the function scope memory region to a
          segment of the source sequence list that is in the file scope memory
@@ -308,11 +317,14 @@ sequence entries.
                                                a_src_seq_end_of_construct_ptr);
       if (ss_entry_kind(ssecp) != iek_routine) break;
       curr_source_sequence_entry = curr_source_sequence_entry->next;
+      /* Keep looping. */
 #endif /* 0 */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_comment) {
-      /* Ignore comments (keep looping). */
+      /* Ignore comments. */
+      /* Advance to the next entry. */
       curr_source_sequence_entry = curr_source_sequence_entry->next;
+      /* Keep looping. */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Something else (a significant entry; stop looping). */
@@ -383,18 +395,21 @@ otherwise, set *sec_decl to NULL and return FALSE.
 }  /* curr_src_seq_entry_is_secondary_decl */
 
 
-static a_boolean curr_src_seq_entry_is_type_decl(a_type_ptr *type,
-                                                 a_boolean  *is_definition)
+static a_boolean curr_src_seq_entry_is_type_decl(
+                                   a_type_ptr                   *type,
+                                   a_src_seq_secondary_decl_ptr *sec_decl,
+                                   a_boolean                    *is_definition)
 /*
 Return TRUE if the current source sequence entry is for a type declaration
-(including a secondary declaration).  If so, set *type to the type, and
-*is_definition TRUE if the declaration is a definition.
+(including a secondary declaration).  If so, set *type to the type, *sec_decl
+to the secondary declaration entry (or NULL if this is a primary declaration),
+and *is_definition TRUE if the declaration is a definition.
 */
 {
-  a_boolean                    is_type_decl = FALSE;
-  a_src_seq_secondary_decl_ptr sec_decl;
+  a_boolean is_type_decl = FALSE;
 
   *type = NULL;
+  *sec_decl = NULL;
   *is_definition = FALSE;
   if (curr_source_sequence_entry != NULL) {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_type) {
@@ -402,15 +417,73 @@ Return TRUE if the current source sequence entry is for a type declaration
       *type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
       is_type_decl = TRUE;
       *is_definition = type_is_defined(*type);
-    } else if (curr_src_seq_entry_is_secondary_decl(&sec_decl) &&
-               ss_entry_kind(sec_decl) == iek_type) {
+    } else if (curr_src_seq_entry_is_secondary_decl(sec_decl) &&
+               ss_entry_kind(*sec_decl) == iek_type) {
       /* This is a secondary declaration for a type. */
-      *type = ss_entry_ptr(sec_decl, a_type_ptr);
+      *type = ss_entry_ptr(*sec_decl, a_type_ptr);
       is_type_decl = TRUE;
     }  /* if */
   }  /* if */
   return is_type_decl;
 }  /* curr_src_seq_entry_is_type_decl */
+
+
+static a_boolean curr_src_seq_entry_is_routine_decl(
+                                        a_routine_ptr                *rout,
+                                        a_src_seq_secondary_decl_ptr *sec_decl)
+/*
+Return TRUE if the current source sequence entry is for a routine declaration
+(including a secondary declaration).  If so, set *rout to the routine, and
+*sec_decl to the secondary declaration entry (or NULL if this is a
+primary declaration).
+*/
+{
+  a_boolean is_routine_decl = FALSE;
+
+  *rout = NULL;
+  *sec_decl = NULL;
+  if (curr_source_sequence_entry != NULL) {
+    if (ss_entry_kind(curr_source_sequence_entry) == iek_routine) {
+      /* A primary declaration for a routine. */
+      *rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
+      is_routine_decl = TRUE;
+    } else if (curr_src_seq_entry_is_secondary_decl(sec_decl) &&
+               ss_entry_kind(*sec_decl) == iek_routine) {
+      /* This is a secondary declaration for a routine. */
+      *rout = ss_entry_ptr(*sec_decl, a_routine_ptr);
+      is_routine_decl = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_routine_decl;
+}  /* curr_src_seq_entry_is_routine_decl */
+
+
+static a_boolean is_autonomous_decl(a_type_ptr                   type,
+                                    a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Return TRUE if the indicated type is a tag and its declaration is an
+autonomous declaration (i.e., it's not part of something else), or if
+the type is not a tag (a therefore its declaration is always autonomous).
+sec_decl is non-NULL to indicate the secondary declaration entry, or NULL
+to indicate a primary declaration.
+*/
+{
+  a_boolean   autonomous;
+  a_type_kind kind = type->kind;
+
+  if (!is_tag_type_kind(kind)) {
+    /* Non-tag, always autonomous. */
+    autonomous = TRUE;
+  } else {
+    /* Tag. Check flag. */
+    if (sec_decl == NULL) {
+      autonomous = type->autonomous_primary_tag_decl;
+    } else {
+      autonomous = sec_decl->autonomous_tag_decl;
+    }  /* if */
+  }  /* if */
+  return autonomous;
+}  /* is_autonomous_decl */
 
 
 static void check_for_and_take_source_seq_entry(
@@ -455,10 +528,7 @@ end of the type definition.
   /* Advance past the source sequence entry for the type itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
-  if (kind == (a_type_kind)tk_enum   ||
-      kind == (a_type_kind)tk_class  ||
-      kind == (a_type_kind)tk_struct ||
-      kind == (a_type_kind)tk_union) {
+  if (is_tag_type_kind(kind)) {
     /* For a class or enum, loop through source sequence entries looking
        for the end-of-construct entry for the type. */
     for (;;) {
@@ -492,6 +562,7 @@ The current source sequence entry is one for the indicated type;
 it's a definition if is_definition is TRUE.  Advance past the source
 sequence entries for the type, and, if this is a definition, set the
 definition_delayed flag in the type so it will be processed later.
+This is used to skip over a non-autonomous declaration or definition.
 */
 {
   if (is_definition) {
@@ -1436,12 +1507,9 @@ or enum.
   a_source_sequence_entry_ptr saved_curr_source_sequence_entry;
   a_source_sequence_entry_ptr saved_sublist_parent_source_sequence_entry;
 
-  if (type->definition_delayed ||
-      (!has_name(type) && !type->definition_put_out)) {
-    /* Put out the definition if it is needed and was delayed because we're
-       in a context where we can't put out a freestanding declaration.
-       Also put it out if it has not been put out yet and the type is
-       unnamed (there's no way to refer to it otherwise). */
+  if (type->definition_delayed) {
+    /* Put out the definition if it is needed and was delayed because a
+       non-autonomous definition appeared. */
     type->definition_delayed = FALSE;
     /* Save the current position in the source sequence stream and change it
        to the source sequence entry for the type. */
@@ -1641,10 +1709,11 @@ prototype scope.  Mark those types so that their definitions will be put
 out when they are encountered when generating the parameter types.
 */
 {
-  a_type_ptr type;
-  a_boolean  is_definition;
+  a_type_ptr                   type;
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_boolean                    is_definition;
 
-  while (curr_src_seq_entry_is_type_decl(&type, &is_definition)) {
+  while (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
     if (!type->declared_in_function_prototype) break;
     /* A prototype scope type.  Skip over it and mark it for later
        processing. */
@@ -1661,8 +1730,9 @@ Mark such types so that their definitions will be put out when they are
 encountered when generating the parameter types.
 */
 {
-  a_type_ptr type;
-  a_boolean  is_definition;
+  a_type_ptr                   type;
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_boolean                    is_definition;
 
   for (;;) {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_variable) {
@@ -1673,7 +1743,7 @@ encountered when generating the parameter types.
       break;
     } else {
       /* Anything else should be a type declared in the prototype scope. */
-      if (curr_src_seq_entry_is_type_decl(&type, &is_definition)) {
+      if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
         check_assertion_str(type->declared_in_function_prototype,
                       "bypass_prototyped_param_...: not prototype scope type");
         /* Skip past the source sequence entries for the type and mark the
@@ -1718,9 +1788,6 @@ is non-NULL, in which case that is the function scope.
     }  /* if */
   } else {
     /* Prototyped list. */
-    /* Within the declarator, types must be put out as they are referenced,
-       and not in freestanding declarations. */
-    type_declaration_cannot_be_emitted_now++;
     param = rtsp->param_type_list;
     if (param == NULL) {
       /* The first argument is NULL, so this is a "void" parameter list.
@@ -1773,7 +1840,6 @@ is non-NULL, in which case that is the function scope.
       if (rtsp->param_type_list != NULL) write_tok_str(", ");
       write_tok_str("...");
     }  /* if */
-    type_declaration_cannot_be_emitted_now--;
   }  /* if */
   write_tok_ch(')');
   /* Output a cv-qualifier for a member function, if there is one. */
@@ -2010,11 +2076,6 @@ is the one associated with the definition of the class.
   gen_type_name(type);
   /* Put out the class definition. */
   write_tok_str(" { ");
-  /* While we're inside a C struct, types must be emitted when used,
-     not in freestanding declarations. */
-  if (il_header.source_language == sl_C) {
-    type_declaration_cannot_be_emitted_now++;
-  }  /* if */
   /* Go through the source sequence list and generate the members of the
      class. */
   for (;;) {
@@ -2063,11 +2124,6 @@ is the one associated with the definition of the class.
     }  /* switch */
   }  /* for */
 done:;
-  if (il_header.source_language == sl_C) {
-    /* Undo the restriction imposed above that freestanding declarations
-       cannot be emitted inside a C struct. */
-    type_declaration_cannot_be_emitted_now--;
-  }  /* if */
   write_tok_ch('}');
 }  /* gen_class_definition */
 
@@ -2137,19 +2193,10 @@ source sequence entry.
     is_definition = type_is_defined(type);
   }  /* if */
   kind = type->kind;
-  if (type->definition_put_out && is_definition) {
-    /* The definition has already been put out, so don't do it again.
-       This can happen in C mode when one struct is defined inside another. */
-    skip_type_definition_source_sequence_entries(type);
-  } else if (!has_name(type) || type_declaration_cannot_be_emitted_now) {
-    /* Treat this type declaration as embedded in another declaration, and
-       do not put the declaration out at this point, if (a) the type is
-       unnamed or (b) we are at a point where a type declaration cannot
-       be emitted (e.g., inside a struct in C mode).  Ordinarily, it's
-       okay to render
-         struct A { int i; } x;     as
-         struct A { int i; }; struct A x;
-       but that's not legal in the cases listed above. */
+  if (!is_autonomous_decl(type, sec_decl)) {
+    /* This type declaration is embedded in another declaration.
+       Do not put it out at this time.  Mark it for processing when
+       it is encountered while traversing the IL tree. */
     skip_type_and_delay_definition(type, is_definition);
   } else {
     if (kind == (a_type_kind)tk_typeref) {
@@ -2166,9 +2213,7 @@ source sequence entry.
       /* An enum type definition. */
       gen_enum_definition(type);
     } else {
-      check_assertion_str(kind == (a_type_kind)tk_class ||
-                          kind == (a_type_kind)tk_struct ||
-                          kind == (a_type_kind)tk_union,
+      check_assertion_str(is_class_type_kind(kind),
                           "gen_type_decl: bad type on list");
       /* A class type definition. */
       gen_class_definition(type);
@@ -2272,35 +2317,6 @@ Generate a cast to the indicated type.
   gen_type(type, NO_NAME);
   m_write_tok_ch(')');
 }  /* gen_cast */
-
-
-static void check_for_implicit_function_decl(a_routine_ptr rout)
-/*
-The indicated routine is being called, in C mode.  Check to see if it is
-implicitly declared, by checking to see if the next source sequence entry
-is a declaration for the function.  If so, advance past the source sequence
-entry so it will not be put out as a declaration.
-*/
-{
-  a_routine_ptr                decl_rout = NULL;
-  a_src_seq_secondary_decl_ptr sec_decl;
-
-  /* Check for a primary or secondary declaration of a routine. */
-  if (ss_entry_kind(curr_source_sequence_entry) == iek_routine) {
-    decl_rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
-  } else if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
-    if (ss_entry_kind(sec_decl) == iek_routine) {
-      decl_rout = ss_entry_ptr(sec_decl, a_routine_ptr);
-    }  /* if */
-  }  /* if */
-  if (decl_rout != NULL) {
-    /* Make sure the routine being called is the one being declared. */
-    if (rout == decl_rout) {
-      /* Advance past the declaration source sequence entry. */
-      adv_curr_source_sequence_entry();
-    }  /* if */
-  }  /* if */
-}  /* check_for_implicit_function_decl */
 
 
 static void gen_expr(an_expr_node_ptr expr,
@@ -2569,12 +2585,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_call:
           /* N operand operator. */
-          if (il_header.source_language == sl_C) {
-            /* In C, check for an implicit declaration of the function. */
-            if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
-               check_for_implicit_function_decl(operand_1->variant.routine);
-            }  /* if */
-          }  /* if */
           /* Put out the function to call. */
           gen_lvalue(operand_1);
           write_tok_ch('(');
@@ -3049,18 +3059,70 @@ Generate code for a block statement ("{ ... }").
 }  /* gen_block_statement */
 
 
+static void skip_declarations_in_statement(
+                                      a_source_sequence_entry_ptr stop_on_decl)
+/*
+Skip over the source sequence entries for any type declarations or
+implicit function declarations that appear within a statement.
+If stop_on_decl is non-NULL, it points to the source sequence entry for
+a declaration that begins the next statement, and therefore shouldn't
+be processed here.
+*/
+{
+  a_type_ptr                   type;
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_boolean                    is_definition;
+  a_routine_ptr                rout;
+
+  for (; curr_source_sequence_entry != NULL;) {
+    if (curr_source_sequence_entry == stop_on_decl) {
+      /* This source sequence entry is part of the next statement, so
+         leave it alone. */
+      break;
+    } else if (curr_src_seq_entry_is_type_decl(&type, &sec_decl,
+                                               &is_definition)) {
+      /* A non-autonomous type declaration (e.g., a type declared in
+         a cast in an expression).  Skip it and mark it for later
+         processing.  Note that any declaration that appears within
+         a statement must be non-autonomous. */
+      skip_type_and_delay_definition(type, is_definition);
+    } else if (il_header.source_language == sl_C &&
+               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl)) {
+      /* An implicit declaration of a function in C.  Ignore the
+         source sequence entry. */
+      adv_curr_source_sequence_entry();
+    } else {
+      /* Something else; stop looping. */
+      break;
+    }  /* if */
+  }  /* for */
+}  /* skip_declarations_in_statement */
+
+
 static void gen_statement(a_statement_ptr statement)
 /*
 Generate code for the indicated statement.
 */
 {
-  a_statement_kind    kind;
-  a_switch_clause_ptr scp;
+  a_statement_kind            kind;
+  a_switch_clause_ptr         scp;
+  a_source_sequence_entry_ptr stop_on_decl = NULL;
+  a_statement_ptr             next_statement;
 
   if (statement == NULL) {
     /* Empty statement. */
     write_tok_ch(';');
     goto done;
+  }  /* if */
+  /* If this statement is followed by another statement, and that statement
+     is an stmk_decl, determine the source sequence entry for the
+     declaration with which that next statement begins.  This is used
+     later to limit the extent of processing of declarations within the
+     current statement. */
+  next_statement = statement->next;
+  if (next_statement != NULL &&
+      next_statement->kind == (a_statement_kind)stmk_decl) {
+    stop_on_decl = next_statement->source_sequence_entry;
   }  /* if */
   kind = statement->kind;
   /* Check the current source sequence entry. */
@@ -3188,12 +3250,6 @@ Generate code for the indicated statement.
            processing source sequence entries until a non-declaration is found,
            but if another stmk_decl follows this one we stop on the first
            declaration associated with that one. */
-        a_source_sequence_entry_ptr stop_on_decl = NULL;
-        a_statement_ptr             next_statement = statement->next;
-        if (next_statement != NULL &&
-            next_statement->kind == (a_statement_kind)stmk_decl) {
-          stop_on_decl = next_statement->source_sequence_entry;
-        }  /* if */
         /* Note that there will always be at least an end-of-construct entry
            for the closing brace of the function, so we won't run off the
            end of the list. */
@@ -3207,6 +3263,13 @@ Generate code for the indicated statement.
     default:
       unexpected_condition_str("gen_statement: bad statement kind");
   }  /* switch */
+  /* Skip over the source sequence entries for any types or implicit
+     function declarations in the statement.  Don't do this for blocks
+     because (a) they don't have such declarations and (b) the scan
+     would run off the end of the scope/function. */
+  if (kind != (a_statement_kind)stmk_block) {
+    skip_declarations_in_statement(stop_on_decl);
+  }  /* if */
 done:;
   write_space();
 }  /* gen_statement */
@@ -3540,7 +3603,7 @@ Process all the file scope entities, and everything under those.
   curr_source_sequence_entry = il_header.primary_scope->source_sequence_list;
   adv_to_signif_source_sequence_entry();
   while (curr_source_sequence_entry != NULL) {
-    /* Generate the declaration of the entity. */
+    /* Generate the declaration of a file-scope entity. */
     gen_declaration();
   }  /* while */
 }  /* process_file_scope_entities */
@@ -3613,7 +3676,6 @@ Initialize for the C++/C-generating back end.
   output_position_is_pending = FALSE;
   curr_source_sequence_entry = NULL;
   sublist_parent_source_sequence_entry = NULL;
-  type_declaration_cannot_be_emitted_now = 0;
   curr_function_scope = NULL;
   curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
