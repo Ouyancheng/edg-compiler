@@ -1,5 +1,17 @@
 Version 2.44
 
+5/7/00   Change in cfront mode command-line option processing
+
+Formerly, the cfront mode command-line options would set certain
+flags to the appropriate mode for cfront compatibility regardless
+of whether or not specific values had previously been specified.
+Now, cfront mode only updates the value of flags that have not
+been explicitly set.
+
+For example, the command "edgcpfe --bool --cfront_3.0" did not enable
+the bool keyword (because it disabled in cfront mode).  But now the
+bool keyword is enabled by this command.
+
 5/5/00   File name sometimes omitted from error context output
 
 In the error context output, the file name associated with the context
