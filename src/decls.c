@@ -1772,6 +1772,17 @@ determine_linkage:
          The variable and function acquire static storage class from the prior
          declarations. */
       *storage_class = (a_storage_class)sc_static;
+    } else if (!C_mode() && is_object && other_decl != NULL &&
+               other_decl->kind != (a_symbol_kind)sk_variable) {
+      /* The current declaration is a variable and the declaration it links
+         to is a function. */
+      if (local_storage_class == (a_storage_class)sc_static ||
+          scope_stack[depth_innermost_namespace_scope].
+                                        within_unnamed_namespace) {
+        linkage = idl_internal;
+      } else {
+        linkage = idl_external;
+      }  /* if */
     } else if (local_storage_class == (a_storage_class)sc_extern ||
                (is_function &&
                 local_storage_class == (a_storage_class)sc_unspecified)) {
