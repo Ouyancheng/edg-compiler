@@ -273,6 +273,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
   iek_derivation_step,  /* a_derivation_step */
+  iek_virtual_derivation,
+			/* a_virtual_derivation */
   iek_base_class,	/* a_base_class */
   iek_class_list_entry, /* a_class_list_entry */
   iek_routine_list_entry,
@@ -355,6 +357,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_access_adjustment */		"access-adjustment",
 /* iek_overriding_virtual_function */ 	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
+/* iek_virtual_derivation */		"virtual-derivation",
 /* iek_base_class */			"base-class",
 /* iek_class_list_entry */		"class-list-entry",
 /* iek_routine_list_entry */		"routine-list-entry",
@@ -1502,10 +1505,10 @@ typedef struct an_overriding_virtual_function {
 
 typedef struct a_derivation_step *a_derivation_step_ptr;
 typedef struct a_derivation_step {
-  /* Description of one step in the derivation of a projection symbol
-     from a fundamental class member.  A list of these gives a complete
-     reverse history of the derivation, in order from the most derived
-     class to the fundamental class. */
+  /* Description of one step in the derivation of a projection symbol from a
+     fundamental class member.  A list of these gives a segment of the reverse
+     history of the derivation, in order from the most derived class to the
+     fundamental class. */
   a_derivation_step_ptr
                 next;
 			/* The next step in the derivation path.  If next
@@ -1516,6 +1519,61 @@ typedef struct a_derivation_step {
 			   the class to which the current object should
 			   be cast in traversing the derivation path. */
 } a_derivation_step;
+
+
+typedef struct a_virtual_derivation *a_virtual_derivation_ptr;
+typedef struct a_virtual_derivation {
+  /* Entry identifying one of any number of alternative derivations for an
+     associated virtual base class.  The first in a list of these entries
+     will be the preferred derivation. */
+  a_virtual_derivation_ptr
+		next;
+			/* Next in a linked list of virtual derivation entries
+			   representing the various derivations specified for
+			   a given virtual base class. */
+  a_derivation_step_ptr
+		derivation;
+			/* Pointer to (all or part) of the path from the
+			   derived class to the associated virtual base class.
+			   If direct is TRUE, the derivation consists of a
+			   single step which points to the associated virtual
+			   base class.  If direct is FALSE, it consists of two
+			   or more steps, starting with a step entry pointing
+			   to a virtual or nonvirtual direct base class or a
+			   virtual indirect base class, followed by zero or
+			   more steps pointing to nonvirtual indirect base
+			   classes, and terminated by a step that points to
+			   the associated virtual base class.  Note that when
+			   the path starts with a virtual indirect base class,
+			   the part of the path from the derived class to that
+			   indirect base class has been elided.  Note also
+			   that the rules governing this derivation list and
+			   the one pointed to from a_base_class differ in
+			   that this may have two steps (the first and last)
+			   that point to virtual base classes, whereas the
+			   other may have no more than one (the first). */
+  unsigned int	direct:1;
+			/* TRUE if the associated base class is a direct
+			   base class as a result of this derivation. */
+  unsigned int	first:1;
+			/* TRUE if this derivation is the first encountered
+			   on a depth-first left-to-right traversal of the
+			   direct and indirect base classes of the current
+			   derived class. */
+  unsigned int	preferred:1;
+			/* TRUE if this derivation is "preferred" because it
+			   affords better access from the derived class to the
+			   base class; when two or more derivations give equal
+			   access, the path with no virtual base classes is
+			   preferred over one that has a virtual base class,
+			   and a direct derivation is preferred over an
+			   indirect derivation. */
+  an_access_specifier
+		normal_access;
+			/* The access to a public member of the associated
+			   virtual base class within the context of the
+			   derived class. */
+} a_virtual_derivation;
 
 
 typedef struct a_base_class {
@@ -1547,10 +1605,6 @@ typedef struct a_base_class {
 			/* TRUE if a direct cast from derived_class to this
 			   base class would be ambiguous because it appears
 			   more than once in the derivation. */
-  unsigned int	any_virtual_steps_in_derivation:1;
-			/* TRUE if any derivation step mentioned in the
-			   derivation list for this base class is a virtual
-			   base class. */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   unsigned int  complete_subobject:1;
 			/* TRUE if direct is TRUE and the subobject is
@@ -1569,15 +1623,6 @@ typedef struct a_base_class {
 			   scheme used to emulate cfront's ordering algorithm
 			   involves visiting a base class more than once.) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-  unsigned int  is_duplicate:1;
-			/* TRUE only if is_virtual is TRUE, this flag is set
-			   for duplicate enties for a given virtual base class.
-			   Such entries appear on the duplicate_entries list
-			   pointed to from the "preferred" virtual base class
-			   entry (preferred because of the access afforded by
-			   its derivation).  Note that the preferred entry
-			   does not have this flag set.  Base classes with
-			   is_duplicate set may be ignored. */
   an_access_specifier
                 access; /* The kind of derivation (public, protected, or
                            private) from this base class to the class directly
@@ -1626,11 +1671,48 @@ typedef struct a_base_class {
 			   pointer field in the base class pointed to. */
   a_derivation_step_ptr
 		derivation;
-			/* Pointer to the "casting path" from derived_class
-			   (implicitly at the start of the list) to this
-			   base class; the linked list of step entries always
-			   terminates with a step entry that points to this
-			   base class entry. */
+			/* Pointer to (part or all of) the "casting path"
+			   from derived_class (implicitly at the start of the
+			   derivation) to this base class.  The linked list
+			   always starts with a step entry that points to a
+			   direct base class or a virtual base class, and it
+			   always terminates with one that points to this
+			   base class entry.  If it starts with a step entry
+			   that points to a virtual base, the steps (if any)
+			   between derived_class and the virtual base class
+			   are elided and may be determined by looking at the
+			   virtual base class in question.  Only the initial
+			   step in a derivation list may be virtual.  When the
+			   current base class is itself a virtual base class,
+			   only a single step appears as the derivation; the
+			   rest may be determined from the list pointed to by
+			   paths_to_virtual_base_class. For example:
+				class A { };                              A
+				class B : public A { };                   |
+				class V : public B { };                   B
+				class C : virtual public V { };           |
+				class D : virtual public V { };           V
+				class E : public C, public D { };        / \
+				class F : public E { };                 C   D
+			   the paths of the base classes of F will be:   \ /
+				for base class A:  ==>V==>B==>A           E
+				for base class B:  ==>V==>B               |
+				for base class V:  ==>V                   F
+				for base class C:  ==>E==>C
+				for base class D:  ==>E==>D
+				for base class E:  ==>E
+			   Note that the paths of A, B, and V are abbreviated
+			   because a virtual base class is involved in their
+			   derivations.  The elided section of their paths
+			   is given by the paths_to_virtual_base_class list
+			   for F's virtual base class V, which has two
+			   derivations, ==>E==>C==>V and ==>E==>D==>V. */
+  a_virtual_derivation_ptr
+		paths_to_virtual_base_class;
+			/* Non-NULL if and only if is_virtual is TRUE, a
+			   pointer to a linked list of one or more entries
+			   describing the alternative derivation paths to
+			   this virtual base class. */
   an_overriding_virtual_function_ptr
 		overriding_virtual_functions;
 			/* Pointer to a linked list of entries representing
@@ -1639,15 +1721,6 @@ typedef struct a_base_class {
                            current base class.  These entries are sorted by
 			   virtual function number of the routine pointed
 			   to by the primary_function field. */
-  a_base_class_ptr
-		duplicate_entries;
-			/* Nonnull only if is_virtual is TRUE, this field
-			   points to a linked list of base class entries that
-			   have is_duplicate set to TRUE and which point to
-			   the same type as the current base class entry.
-			   Such entries are of interest because they describe
-			   alternative paths from the derived class to the
-			   virtual base class. */
 #if DO_IL_LOWERING
   a_variable_ptr
 		virtual_function_table_var;
