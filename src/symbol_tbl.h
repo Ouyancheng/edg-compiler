@@ -91,9 +91,11 @@ Clear a symbol locator.
 }  /* clear_locator */
 
 /* Return TRUE if two locators indicate the same symbol. */
+/* Only used in checking whether or not a declaration in an old-style
+   parameter list has the same name as one of the old-style parameters.
+   For that application, specific_symbol should not be checked. */
 #define are_locators_for_same_symbol(loc1, loc2)                      \
-  ((loc1).symbol_header   == (loc2).symbol_header &&                  \
-   (loc1).specific_symbol == (loc2).specific_symbol)
+  ((loc1).symbol_header == (loc2).symbol_header)
 
 /* Set a symbol locator to a dummy value indicating an error. */
 #define set_to_error_locator(loc) clear_locator(&(loc), &error_position)
