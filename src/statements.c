@@ -900,7 +900,7 @@ Allocate a source sequence entry for statement sp and add it to the list for
 the current function scope.
 */
 #define stmt_update_source_sequence_list(sp)                     \
-  update_source_sequence_list((char *)sp, iek_switch_clause,     \
+  update_source_sequence_list((char *)sp, iek_statement,         \
                               (a_source_position *)NULL,         \
                               (a_decl_seq_info_ptr)NULL)
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
