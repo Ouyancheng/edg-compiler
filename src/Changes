@@ -376,8 +376,9 @@ cases.
 4/19/03  Incorrect using-directive lookup in template instantiation
 
 In some unusual circumstances, names made visible by a using-directive
-may not be visible in a template instantiation (this problem has existed
-since at least 2.38 but has only now been discovered).  Now fixed.
+may not have been visible in a template instantiation (this problem
+has existed since at least 2.38 but has only now been discovered).
+Now fixed.
 
   namespace NA1 {
     namespace NA2 {
