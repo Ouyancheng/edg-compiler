@@ -222,6 +222,10 @@ static a_scope_ptr
 			/* Points to the scope being processed currently
 			   (file, function, or block). */
 
+static an_il_to_str_output_control_block
+		octl;	/* Output control block for interface to il_to_str
+			   routines. */
+
 /*
 Static variables that control dump_initializer output:
 */
@@ -672,18 +676,6 @@ This is the non-macro version.
 }  /* write_tok_str */
 
 
-static void write_num(long num)
-/*
-Write the indicated signed number to the output file.  The number is assumed
-to be a complete token.
-*/
-{
-  char buffer[50];
-  (void)sprintf(buffer, "%ld", num);
-  m_write_tok_str(buffer);
-}  /* write_num */
-
-
 static void write_unsigned_num(unsigned long num)
 /*
 Write the indicated unsigned number to the output file.  The number is assumed
@@ -1031,388 +1023,21 @@ Print the name of the indicated label.
 }  /* dump_label_name */
 
 
-static void dump_char(char ch)
-/*
-Dump the indicated character as part of a string literal or character constant.
-Handle unprintable characters and necessary escapes.
-*/
-{
-  if (isprint((unsigned char)ch)
-#if SUNCC
-    /* The Sun cc (4.1.2) in -O mode when outputting assembly language
-       has a bug that transforms quote into accent grave.  Avoid it. */
-      && ch != '\''
-#endif /* SUNCC */
-                 ) {
-    if (ch == '"' || ch == '\'' || ch == '\\') write_ch('\\');
-    m_write_ch(ch);
-  } else {
-    char buffer[10];
-    (void)sprintf(buffer, "\\%03o",
-                  (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
-    write_str(buffer);
-  }  /* if */
-}  /* dump_char */
-
-
-static a_boolean is_wide_string_constant(a_constant_ptr constant)
-/*
-Return TRUE if the indicated string is a wide string constant (L"abc").
-*/
-{
-  a_boolean  is_wide_string = FALSE;
-  a_type_ptr con_type, elem_type;
-
-  if (constant->kind == (a_constant_repr_kind)ck_string) {
-    con_type = skip_typerefs(constant->type);
-    elem_type = con_type->variant.array.element_type;
-    elem_type = skip_typerefs(elem_type);
-    /* Check for element type that is not some variety of char. */
-    is_wide_string = (elem_type->size != 1);
-  }  /* if */
-  return is_wide_string;
-}  /* is_wide_string_constant */
-
-
-static a_boolean is_addr_of_wide_string_constant(a_constant_ptr constant)
-/*
-Return TRUE if the indicated constant is the address of a wide string
-constant (L"abc").
-*/
-{
-  a_boolean is_addr_of_wide_string = FALSE;
-
-  if (constant->kind == (a_constant_repr_kind)ck_address &&
-      constant->variant.address.kind == (an_address_base_kind)abk_constant &&
-      is_wide_string_constant(constant->variant.address.variant.constant)) {
-    is_addr_of_wide_string = TRUE;
-  }  /* if */
-  return is_addr_of_wide_string;
-}  /* is_addr_of_wide_string_constant */
-
-
-static void dump_integer_constant(a_constant_ptr constant)
-/*
-Write out an integer constant (i.e., a constant with a ck_integer
-representation).  The constant is written as an integer even if it has
-been implicitly cast to some other type.  The caller must handle the
-implicit cast if appropriate.
-*/
-{
-  a_boolean       need_cast_close_paren = FALSE;
-  a_boolean       negative = FALSE, err, minus_1_trick = FALSE;
-  a_constant_ptr  eff_constant = constant;
-  a_constant      local_constant;
-  a_type_ptr      con_type = skip_typerefs(constant->type);
-  a_boolean       integer_type_constant =
-                                   (con_type->kind == (a_type_kind)tk_integer);
-  an_integer_kind ikind;
-  a_boolean       signed_constant = FALSE;
-
-  /* See if the constant is signed. */
-  if (integer_type_constant) {
-    ikind = con_type->variant.integer.int_kind;
-    signed_constant = int_kind_is_signed[(int)ikind];
-  }  /* if */
-  if (
-#if C_GEN_BE_GENERATES_ANSI_C
-      /* When generating ANSI C, enum constants have enum type.
-         If this is an integer value or enumerator constant cast to
-         an enum type in C mode, or an integer value cast to an enum
-         type in C++ mode (note that real enumerator constants don't
-         get here), ... */
-      (integer_type_constant && con_type->variant.integer.enum_type)
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-      /* ... or, we're generating K&R C and it's an unsigned constant
-         (pcc doesn't support unsigned integral constants), ... */
-      !signed_constant
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-      /* ... or, it's a constant that's shorter than int, ... */
-      || (integer_type_constant && (int)ikind < (int)ik_int)) {
-    /* ... then prefix the constant with an explicit cast. */
-    write_tok_ch('(');
-    dump_cast(constant->type);
-    need_cast_close_paren = TRUE;
-  }  /* if */
-  if (signed_constant && sign_of_integer_constant(constant) < 0) {
-    /* Negative value.  Put in parentheses. */
-    negative = TRUE;
-    write_tok_ch('(');
-    /* Check for cases on two's complement machines where the constant
-       cannot be represented as a positive constant preceded by a minus
-       sign.  For those cases, use the -INT_MAX-1 trick.  One reason
-       we do this is so that the type of the constant is right. */
-    local_constant = *constant;
-    negate_integer_value(&local_constant.variant.integer_value, &err);
-    if (!err &&
-        le_max_integer_value_of_kind(&local_constant.variant.integer_value,
-                                     /*is_signed=*/TRUE, ikind)) {
-      /* The negative of the constant is a legal constant. */
-    } else {
-      /* The negative of the constant is not legal.  Use the -INT_MAX-1
-         trick. */
-      minus_1_trick = TRUE;
-      local_constant = *constant;
-      eff_constant = &local_constant;
-      incr_integer_value(&local_constant.variant.integer_value);
-    }  /* if */
-  }  /* if */
-  /* Write the literal form of the constant. */
-  m_write_str(str_for_integer_constant(eff_constant));
-  /* Put out a suffix if needed. */
-#if C_GEN_BE_GENERATES_ANSI_C
-  /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
-     a prefix cast is used (see above). */
-  if (!signed_constant) {
-    /* Unsigned constant. */
-    m_write_ch('U');
-  }  /* if */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-  if (integer_type_constant) {
-    /* Add length suffixes if appropriate. */
-    if (ikind == (an_integer_kind)ik_long           ||
-        ikind == (an_integer_kind)ik_unsigned_long) {
-      m_write_ch('L');
-#if LONG_LONG_ALLOWED
-   } else if (ikind == (an_integer_kind)ik_long_long ||
-              ikind == (an_integer_kind)ik_unsigned_long_long) {
-      write_str("LL");
-#endif /* LONG_LONG_ALLOWED */
-    }  /* if */
-  }  /* if */
-  if (negative) {
-    if (minus_1_trick) write_tok_str("-1");
-    write_tok_ch(')');
-  }  /* if */
-  if (need_cast_close_paren) write_tok_ch(')');
-}  /* dump_integer_constant */
-
-
-static void dump_address_constant(a_constant_ptr constant)
-/*
-Generate the value of a ck_address constant.
-*/
-{
-  a_boolean        need_second_ptr_cast, need_scaling_cast;
-  a_boolean        need_ptr_cast, need_ampersand;
-  a_type_ptr       orig_type = constant->type, underlying_object_type;
-  a_type_ptr       con_type;
-  a_targ_ptrdiff_t offset;
-
-  con_type = skip_typerefs(orig_type);
-  /* We need a cast to the result type if the constant is implicitly
-     cast to another type (but we may be able to optimize it away). */
-  need_ptr_cast = constant->implicit_cast;
-  need_second_ptr_cast = FALSE;
-  need_scaling_cast = FALSE;
-  /* Extract the underlying type. */
-  need_ampersand = TRUE;
-  switch (constant->variant.address.kind) {
-    case abk_routine:
-      underlying_object_type = constant->variant.address.variant.routine->type;
-      /* Exploit the implicit decay to pointer. */
-      need_ampersand = FALSE;
-      break;
-    case abk_variable:
-      underlying_object_type= constant->variant.address.variant.variable->type;
-      break;
-    case abk_constant:
-      underlying_object_type= constant->variant.address.variant.constant->type;
-      break;
-    default:
-      unexpected_condition_str(
-                              "dump_address_constant: bad addr constant kind");
-  }  /* switch */
-  underlying_object_type = skip_typerefs(underlying_object_type);
-  if (underlying_object_type->kind == (a_type_kind)tk_array) {
-    /* For an array, exploit the implicit decay to pointer.
-       This is particularly helpful in cases where the underlying
-       variable is something like
-         struct _iobuf x[];
-       for which the array has zero size but the element size is
-       known. */
-    need_ampersand = FALSE;
-    underlying_object_type= underlying_object_type->variant.array.element_type;
-    /* If the constant type desired is exactly the type that results from
-       the type decay, we don't need a cast.  Otherwise, we do. */
-    need_ptr_cast = TRUE;
-    if (orig_type->kind == (a_type_kind)tk_pointer) {
-      if (orig_type->variant.pointer.type == underlying_object_type) {
-        need_ptr_cast = FALSE;
-      }  /* if */
-    }  /* if */
-    underlying_object_type = skip_typerefs(underlying_object_type);
-  }  /* if */
-  /* Look at the offset. */
-  offset = constant->variant.address.offset;
-  if (offset != 0) {
-    a_targ_size_t underlying_object_size = underlying_object_type->size;
-    /* Non-zero offset.  Deal with scaling issues. */
-    /* See if the size of the underlying object is such that scaling
-       can be done implicitly instead of playing tricks with casting
-       to "char *" and back. */
-    if (underlying_object_size != 0 &&
-        (offset % underlying_object_size) == 0) {
-      /* The offset is divisible by the size of the object, so adjust
-         the offset to the proper units. */
-      offset /= underlying_object_size;
-    } else {
-      /* The offset is not evenly divisible by the object size, so
-         we need to cast to "char *" and back again. */
-      need_scaling_cast = TRUE;
-      need_ptr_cast = TRUE;  /* To get cast back. */
-    }  /* if */
-  }  /* if */
-  if (need_ptr_cast) {
-    /* Start with a cast to the desired result type. */
-    write_tok_ch('(');
-    dump_cast(orig_type);
-    /* Look for cases where a pointer is implicitly cast to a strange type
-       (e.g., "char").  The original code probably did this conversion
-       as two casts, but the implicit_cast mechanism only retains
-       information on the final type.  In such cases, go by way of a
-       cast to unsigned long. */
-    if (is_pointer_type(con_type) ||
-        (is_integral_type(con_type) &&
-         con_type->size >= targ_sizeof_pointer)) {
-      /* Okay. */
-    } else {
-      need_second_ptr_cast = TRUE;
-      write_tok_str("((unsigned long)");
-    }  /* if */
-  }  /* if */
-  if (offset != 0) {
-    write_tok_ch('(');
-    if (need_scaling_cast) {
-      /* Need a cast to "char *" to get the offset scaling right. */
-      write_tok_str("(char *)");
-    }  /* if */
-  }  /* if */
-  /* If using an ampersand, surround the name with parentheses to avoid
-     precedence problems. */
-  if (need_ampersand) write_tok_str("(&");
-  switch (constant->variant.address.kind) {
-    case abk_routine:
-      dump_routine_name(constant->variant.address.variant.routine);
-      break;
-    case abk_variable:
-      dump_variable_name(constant->variant.address.variant.variable);
-      break;
-    case abk_constant:
-      /* Address of a constant, specifically a string. */
-      check_assertion_str(constant->variant.address.variant.constant->kind
-                                            == (a_constant_repr_kind)ck_string,
-                          "dump_address_constant: address of nonstring con");
-      dump_constant(constant->variant.address.variant.constant);
-      break;
-    default:
-      unexpected_condition_str(
-                              "dump_address_constant: bad addr constant kind");
-  }  /* switch */
-  if (need_ampersand) write_tok_ch(')');
-  if (offset != 0) {
-    /* Add in the (signed) offset. */
-    write_tok_str(" + ");
-    write_num((long)offset);
-    write_tok_ch(')');
-  }  /* if */
-  if (need_second_ptr_cast) write_tok_ch(')');
-  if (need_ptr_cast) write_tok_ch(')');
-}  /* dump_address_constant */
-
-
 static void dump_constant(a_constant_ptr constant)
 /*
 Output the indicated constant.
 */
 {
-  a_constant_repr_kind kind = constant->kind;
-  a_float_kind         fkind;
-  a_type_ptr           con_type = NULL, orig_type;
-  a_boolean            need_cast_close_paren = FALSE;
-
-  orig_type = constant->type;
-  /* Watch out for constants (like aggregates) that have no type. */
-  if (orig_type != NULL) {
-    con_type = skip_typerefs(orig_type);
-    /* See if we need a cast to the constant result type. */
-    if (kind == (a_constant_repr_kind)ck_address) {
-      /* Don't do this here for address constants (they're handled below). */
-    } else {
-      /* If the constant is implicitly cast to another type, ... */
-      if (constant->implicit_cast) {
-        /* ... then prefix the constant with an explicit cast. */
-        write_tok_ch('(');
-        dump_cast(orig_type);
-        need_cast_close_paren = TRUE;
-      }  /* if */
-    }  /* if */
+  if (constant->kind == (a_constant_repr_kind)ck_string &&
+      constant->variant.string.value == NULL) {
+    /* Wide string constant has been stored in a static variable;
+       the variable is used here.  That's to ensure that the alignment
+       is right. */
+    dump_temp_name((char *)constant);
+  } else {
+    /* Normal constant. */
+    form_constant(constant, /*need_parens=*/TRUE, &octl);
   }  /* if */
-  switch (kind) {
-    case ck_integer:
-#if C_GEN_BE_GENERATES_ANSI_C
-      if (is_enum_constant(constant)) {
-        /* An enum constant. */
-        dump_constant_name(constant);
-      } else
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-      {
-        /* A normal integer constant. */
-        dump_integer_constant(constant);
-      }
-      break;
-    case ck_string:
-      if (is_wide_string_constant(constant) &&
-          constant->variant.string.value == NULL) {
-        /* Wide string constant has been stored in a static variable;
-           the variable is used here.  That's to ensure that the alignment
-           is right. */
-        dump_temp_name((char *)constant);
-      } else {
-        a_targ_size_t a;
-        char          ch;
-        m_write_ch('"');
-        for (a = 0; a < constant->variant.string.length; a++) {
-          ch = constant->variant.string.value[a];
-          /* Suppress the last character if it is a null. */
-          if ((a != (constant->variant.string.length - 1)) || (ch != '\0')) {
-            dump_char(ch);
-          }  /* if */
-        }  /* for */
-        m_write_ch('"');
-      }  /* if */
-      break;
-    case ck_float:
-      /* Put parentheses around the constant in case it's negative. */
-      write_tok_ch('(');
-      fkind = con_type->variant.float_kind;
-#if C_GEN_BE_GENERATES_ANSI_C
-      /* Output the floating-point constant. */
-      write_str(fp_to_string(fkind, &constant->variant.float_value));
-      /* Add a suffix if necessary. */
-      if (fkind == (a_float_kind)fk_float) {
-        write_ch('F');
-      } else if (fkind == (a_float_kind)fk_long_double) {
-        write_ch('L');
-      }  /* if */
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-      /* Generating K&R C.  Suffixes are not allowed. */
-      /* Cast to float if type is float (by default it would be double). */
-      if (fkind == (a_float_kind)fk_float) write_tok_str("(float)");
-      /* Output the floating-point constant. */
-      write_tok_str(fp_to_string(fkind, &constant->variant.float_value));
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-      write_tok_ch(')');
-      break;
-    case ck_address:
-      /* Address constant. */
-      dump_address_constant(constant);
-      break;
-    case ck_aggregate:  /* Only appears in initializers; not handled here. */
-    default:
-      unexpected_condition_str("dump_constant: bad constant kind");
-  }  /* switch */
-  if (need_cast_close_paren) write_tok_ch(')');
 }  /* dump_constant */
 
 
@@ -1477,151 +1102,6 @@ Print the storage class of the indicated variable followed by a space.
 }  /* dump_variable_storage_class */
 
 
-static void dump_int_kind_name(an_integer_kind kind)
-/*
-Print the name of an integer kind.
-*/
-{
-  char *str;
-
-  switch (kind) {
-    case ik_char:
-      str = "char";
-      break;
-    case ik_signed_char:
-#if C_GEN_BE_GENERATES_ANSI_C
-      str = "signed char";
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-      /* K&R C output -- no "signed".  Presumably "char" is signed by default
-         on the target C compiler. */
-      if (annotate) {
-        start_comment();
-        write_tok_str("signed");
-        end_comment();
-        write_space();
-      }  /* if */
-      str = "char";
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-      break;
-    case ik_unsigned_char:
-      str = "unsigned char";
-      break;
-    case ik_short:
-      str = "short";
-      break;
-    case ik_unsigned_short:
-      str = "unsigned short";
-      break;
-    case ik_int:
-      str = "int";
-      break;
-    case ik_unsigned_int:
-      str = "unsigned int";
-      break;
-    case ik_long:
-      str = "long";
-      break;
-    case ik_unsigned_long:
-      str = "unsigned long";
-      break;
-#if LONG_LONG_ALLOWED
-    case ik_long_long:
-      str = "long long";
-      break;
-    case ik_unsigned_long_long:
-      str = "unsigned long long";
-      break;
-#endif /* LONG_LONG_ALLOWED */
-    default:
-      unexpected_condition_str("dump_int_kind_name: bad integer kind");
-  }  /* switch */
-  write_tok_str(str);
-}  /* dump_int_kind_name */
-
-
-static void dump_float_kind_name(a_float_kind kind)
-/*
-Print the name of a float kind.
-*/
-{
-  char *str;
-
-  switch (kind) {
-    case fk_float:
-      str = "float";
-      break;
-    case fk_double:
-      str = "double";
-      break;
-    case fk_long_double:
-#if C_GEN_BE_GENERATES_ANSI_C
-      str = "long double";
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-      if (annotate) {
-        start_comment();
-        write_tok_str("long");
-        end_comment();
-        write_space();
-      }  /* if */
-      str = "double";
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-      break;
-    default:
-      unexpected_condition_str("dump_float_kind_name: bad float kind");
-  }  /* switch */
-  write_tok_str(str);
-}  /* dump_float_kind_name */
-
-
-#if !C_GEN_BE_GENERATES_ANSI_C
-/*ARGSUSED*/  /* <-- Because suppress_const is used only when generating
-                 ANSI C. */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-static void dump_type_qualifier(a_type_ptr type,
-                                a_boolean  suppress_const)
-/*
-Print the type qualifier for the top type of the given type (i.e., just
-the first level), followed by a space.  The type must be a tk_typeref
-containing a type qualifier.  If suppress_const is TRUE, suppress generation
-of "const" in ANSI C mode.
-*/
-{
-  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
-                      "dump_type_qualifier: bad type kind");
-  if (type->variant.typeref.is_const) {
-#if C_GEN_BE_GENERATES_ANSI_C
-#if SUPPRESS_CONST_IN_GENERATED_C
-    suppress_const = TRUE;  /* Suppress const always. */
-#endif /* SUPPRESS_CONST_IN_GENERATED_C */
-    if (suppress_const) start_comment();
-    write_tok_str("const");
-    if (suppress_const) end_comment();
-    write_space();
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-    if (annotate) {
-      start_comment();
-      write_tok_str("const");
-      end_comment();
-      write_space();
-    }  /* if */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-  }  /* if */
-  if (type->variant.typeref.is_volatile) {
-#if C_GEN_BE_GENERATES_ANSI_C
-    write_tok_str("volatile");
-    write_space();
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-    if (annotate) {
-      start_comment();
-      write_tok_str("volatile");
-      end_comment();
-      write_space();
-    }  /* if */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-  }  /* if */
-}  /* dump_type_qualifier */
-
-
 static char *tag_kind(a_type_kind kind)
 /*
 Return a string that describes the tag kind for the indicated type, i.e.,
@@ -1654,183 +1134,36 @@ or enum.  This is always a reference/declaration, never a definition.
 }  /* dump_tag_reference */
 
 
+static void gen_name_reference(char             *entry,
+                               an_il_entry_kind kind)
 /*
-Return TRUE if the indicated typeref is "invisible" now because (a) it's
-local to a function and we're processing the file scope, or (b) if
-suppress_const is TRUE (we're suppressing top-level "const") and the
-typedef contains the const.
-*/
-#define typedef_is_invisible(type, suppress_const)                    \
- (((type)->source_corresp.is_local_to_function &&                     \
-                                      curr_function_scope == NULL) || \
-  ((suppress_const) && is_top_level_const_qualified_type(type)))
-
-/*
-Return TRUE if the indicated type is a typedef that is "invisible" now
-(meaning it shouldn't be put out).  suppress_const is TRUE if top-level
-"const" should be suppressed in ANSI C mode.
-*/
-#define is_invisible_typedef(type, suppress_const)                    \
-  ((type)->kind == (a_type_kind)tk_typeref &&                         \
-   typedef_is_invisible((type), (suppress_const)))
-
-
-static void dump_type_specifier(a_type_ptr type,
-                                a_boolean  suppress_const)
-/*
-Output a type specifier.  If suppress_const is TRUE, suppress generation
-of "const" in ANSI C mode.
+Routine to be called by the il_to_str routines to output a name.
 */
 {
-  switch (type->kind) {
-    case tk_void:
-      write_tok_str("void");
-      break;
-    case tk_integer:
-#if C_GEN_BE_GENERATES_ANSI_C
-      if (type->variant.integer.enum_type &&
-          /* Empty enums (valid in C++ but not C) are put out as integers. */
-          type->variant.integer.enum_info.constant_list != NULL) {
-        /* Enum type. */
-        dump_tag_reference(type);
-      } else
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-      {
-        /* Normal integer type. */
-#if C_GEN_BE_GENERATES_ANSI_C
-        if (type->variant.integer.explicitly_signed) {
-          write_tok_str("signed ");
+  switch (kind) {
+    case iek_type:
+      { a_type_ptr type = (a_type_ptr)entry;
+        if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+          dump_tag_reference(type);
+        } else {
+          /* A typedef; output its name. */
+          dump_type_name(type);
         }  /* if */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-        dump_int_kind_name(type->variant.integer.int_kind);
-      }  /* if */
+      }
       break;
-    case tk_float:
-      dump_float_kind_name(type->variant.float_kind);
+    case iek_variable:
+      dump_variable_name((a_variable_ptr)entry);
       break;
-    case tk_class:
-    case tk_struct:
-    case tk_union:
-      dump_tag_reference(type);
+    case iek_constant:
+      dump_constant_name((a_constant_ptr)entry);
       break;
-    case tk_typeref:
-      if (is_immediate_type_qualifier(type)) {
-        /* The top type is a type qualifier.  Output it and move on to the
-           underlying type. */
-#if C_GEN_BE_GENERATES_ANSI_C
-        /* Some compilers have trouble with "const void".  Drop the const
-           in that case. */
-        if (type->variant.typeref.is_const &&
-            skip_typerefs(type->variant.typeref.type)->kind ==
-                                                        (a_type_kind)tk_void) {
-          suppress_const = TRUE;
-        }  /* if */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-        dump_type_qualifier(type, suppress_const);
-        dump_type_specifier(type->variant.typeref.type, suppress_const);
-      } else if (!has_name(type) ||
-                 typedef_is_invisible(type, suppress_const)) {
-        /* This is an internally generated typeref, or a function-local
-           typedef that is not visible here, so just output the underlying
-           type. */
-        dump_type_specifier(type->variant.typeref.type, suppress_const);
-      } else {
-        /* A typedef; output its name. */
-        dump_type_name(type);
-      }  /* if */
+    case iek_routine:
+      dump_routine_name((a_routine_ptr)entry);
       break;
     default:
-      unexpected_condition_str("dump_type_specifier: bad type kind");
+      unexpected_condition_str("gen_name_reference: bad entry kind");
   }  /* switch */
-}  /* dump_type_specifier */
-
-
-static void dump_pointer_type_qualifiers(a_type_ptr qual_type,
-                                         a_type_ptr type,
-                                         a_boolean  suppress_const)
-/*
-Generate type qualifiers, if any, to follow a pointer "*".  qual_type is
-the full pointer type, and type is the unqualified version of that type
-(i.e., the tk_pointer entry).  If suppress_const is TRUE, suppress generation
-of "const" in ANSI C mode.
-*/
-{
-  for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-    if (typedef_is_invisible(qual_type, suppress_const)) {
-      /* This is a function-local type that's invisible here and is being
-         skipped. */
-    } else {
-      /* Put out a type qualifier. */
-      dump_type_qualifier(qual_type, suppress_const);
-    }  /* if */
-  }  /* for */
-}  /* dump_pointer_type_qualifiers */
-
-
-static void dump_type_first_part(a_type_ptr type,
-                                 a_boolean  under_lhs_declarator,
-                                 a_boolean  need_trailing_space,
-                                 a_boolean  suppress_const)
-/*
-For the indicated type, output the specifiers and the part of the declarator
-that precedes the name.  If under_lhs_declarator is TRUE, this type is
-directly under a type that uses a left-side declarator, e.g., a pointer type.
-(That's used to control use of parentheses around parts of the declarator.)
-If need_trailing_space is TRUE, put a space at the end of the specifiers
-part (needed if the declarator part is not empty, because it contains a
-name or a derived type).  If suppress_const is TRUE, suppress generation of
-top-level "const" in ANSI C mode.
-*/
-{
-  a_type_kind kind;
-  a_type_ptr  qual_type;
-
-  /* Remove type qualifiers but not typedefs.  Also drop typedefs
-     that aren't visible here. */
-  qual_type = type;
-  while (is_immediate_type_qualifier(type) ||
-         is_invisible_typedef(type, suppress_const)) {
-    type = type->variant.typeref.type;
-  }  /* while */
-  kind = type->kind;
-  if (kind == (a_type_kind)tk_pointer) {
-    /* Pointer type. */
-    dump_type_first_part(type->variant.pointer.type,
-                         /*under_lhs_declarator=*/TRUE,
-                         /*need_trailing_space=*/TRUE,
-                         /*suppress_const=*/FALSE);
-    /* Output "*" for pointer. */
-    write_tok_ch('*');
-    /* Output the type qualifiers on the pointer, if any. */
-    dump_pointer_type_qualifiers(qual_type, type, suppress_const);
-  } else if (kind == (a_type_kind)tk_routine) {
-    /* Function type. */
-    /* If qual_type != type, it's because a local typedef appears on top
-       of the function type.  Just ignore it. */
-    dump_type_first_part(type->variant.routine.return_type,
-                         /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE,
-                         /*suppress_const=*/FALSE);
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) write_tok_ch('(');
-  } else if (kind == (a_type_kind)tk_array) {
-    /* Array type. */
-    /* If qual_type != type, it's because a local typedef appears on top
-       of the array type.  Just ignore it. */
-    dump_type_first_part(type->variant.array.element_type,
-                         /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE,
-                         suppress_const);
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) write_tok_ch('(');
-  } else {
-    /* No declarator part to process.  Handle the specifier type. */
-    dump_type_specifier(qual_type, suppress_const);
-    if (need_trailing_space) write_space();
-  }  /* if */
-}  /* dump_type_first_part */
+}  /* gen_name_reference */
 
 
 static void dump_param_id_list(a_variable_ptr param_var)
@@ -1853,8 +1186,8 @@ parameter variable.
 }  /* dump_param_id_list */
 
 
-static void dump_function_declarator(a_type_ptr  type,
-                                     a_scope_ptr scope)
+static void dump_function_declarator_with_scope(a_type_ptr  type,
+                                                a_scope_ptr scope)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope
@@ -1972,71 +1305,18 @@ is non-NULL, in which case that is the function scope.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   }  /* if */
   write_tok_ch(')');
+}  /* dump_function_declarator_with_scope */
+
+
+static void dump_function_declarator(a_type_ptr type)
+/*
+Output a function declarator for the indicated routine type.  This is
+not a function definition.  This routine is used as an interface to the
+il_to_str routines.
+*/
+{
+  dump_function_declarator_with_scope(type, (a_scope_ptr)NULL);
 }  /* dump_function_declarator */
-
-
-static void dump_array_declarator(a_type_ptr type)
-/*
-Generate an array declarator for the indicated array type.
-*/
-{
-  check_assertion(!type->variant.array.is_variable_size_array);
-  write_tok_ch('[');
-  /* For unknown-bound arrays, put nothing between the []. */
-  if (type->variant.array.variant.number_of_elements != 0) {
-    write_unsigned_num((unsigned long)type->
-                                     variant.array.variant.number_of_elements);
-  }  /* if */
-  write_tok_ch(']');
-}  /* dump_array_declarator */
-
-
-static void dump_type_second_part(a_type_ptr type,
-                                  a_boolean  under_lhs_declarator,
-                                  a_boolean  suppress_const)
-/*
-Output the second part of a type reference, the part of the declarator
-that follows the name.  If under_lhs_declarator is TRUE, this type is
-directly under a type that uses a left-side declarator, e.g., a pointer type.
-(That's used to control use of parentheses around parts of the declarator.)
-If suppress_const is TRUE, suppress generation of top-level "const" in
-ANSI C mode.
-*/
-{
-  a_type_kind kind;
-
-  /* Remove type qualifiers but not typedefs.  Also drop typedefs
-     that aren't visible here. */
-  while (is_immediate_type_qualifier(type) ||
-         is_invisible_typedef(type, suppress_const)) {
-    type = type->variant.typeref.type;
-  }  /* while */
-  kind = type->kind;
-  if (kind == (a_type_kind)tk_pointer) {
-    /* Pointer type. */
-    dump_type_second_part(type->variant.pointer.type,
-                          /*under_lhs_declarator=*/TRUE,
-                          /*suppress_const=*/FALSE);
-  } else if (kind == (a_type_kind)tk_routine) {
-    /* Function type. */
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) write_tok_ch(')');
-    dump_function_declarator(type, (a_scope_ptr)NULL);
-    dump_type_second_part(type->variant.routine.return_type,
-                          /*under_lhs_declarator=*/FALSE,
-                          /*suppress_const=*/FALSE);
-  } else if (kind == (a_type_kind)tk_array) {
-    /* Array type. */
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) write_tok_ch(')');
-    dump_array_declarator(type);
-    dump_type_second_part(type->variant.array.element_type,
-                          /*under_lhs_declarator=*/FALSE,
-                          /*suppress_const=*/FALSE);
-  }  /* if */
-}  /* dump_type_second_part */
 
 
 static void dump_general_declaration_using_type(
@@ -2058,9 +1338,9 @@ of top-level "const" in ANSI C mode.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  dump_type_first_part(type, /*under_lhs_declarator=*/FALSE,
+  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL || temp != NULL),
-                       suppress_const);
+                       /*add_const=*/FALSE, suppress_const, &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Write the name. */
@@ -2075,7 +1355,8 @@ of top-level "const" in ANSI C mode.
     dump_temp_name(temp);
   }  /* if */
   /* Write the second part of the declarator. */
-  dump_type_second_part(type, /*under_lhs_declarator=*/FALSE, suppress_const);
+  form_type_second_part(type, /*under_lhs_declarator=*/FALSE, suppress_const,
+                        &octl);
 }  /* dump_general_declaration_using_type */
 
 
@@ -2100,15 +1381,17 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  dump_type_first_part(type, /*under_lhs_declarator=*/add_pointer_to,
+  form_type_first_part(type, /*under_lhs_declarator=*/add_pointer_to,
                        /*need_trailing_space=*/FALSE,
-                       /*suppress_const=*/FALSE);
+                       /*add_const=*/FALSE,
+                       /*suppress_const=*/FALSE,
+                       &octl);
   /* The "name" in the type declarator is null.  For the add_pointer_to
      case, add an extra "*". */
   if (add_pointer_to) write_tok_ch('*');
   /* Write the second part of the declarator. */
-  dump_type_second_part(type, /*under_lhs_declarator=*/add_pointer_to,
-                        /*suppress_const=*/FALSE);
+  form_type_second_part(type, /*under_lhs_declarator=*/add_pointer_to,
+                        /*suppress_const=*/FALSE, &octl);
 }  /* dump_type */
 
 
@@ -4111,7 +3394,7 @@ i.e., instead of "abc" (no final null) dump 'a','b','c'.
   for (a = 0; a < len; a++) {
     write_ch('\'');
     ch = constant->variant.string.value[a];
-    dump_char(ch);
+    form_char(ch, &octl);
     write_ch('\'');
     if (a != len-1) write_tok_ch(',');
   }  /* for */
@@ -4357,6 +3640,23 @@ temporary file (see start_initializer_assignments).
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
   }  /* if */
 }  /* dump_initializer_part */
+
+
+static a_boolean is_addr_of_wide_string_constant(a_constant_ptr constant)
+/*
+Return TRUE if the indicated constant is the address of a wide string
+constant (L"abc").
+*/
+{
+  a_boolean is_addr_of_wide_string = FALSE;
+
+  if (constant->kind == (a_constant_repr_kind)ck_address &&
+      constant->variant.address.kind == (an_address_base_kind)abk_constant &&
+      is_wide_string_constant(constant->variant.address.variant.constant)) {
+    is_addr_of_wide_string = TRUE;
+  }  /* if */
+  return is_addr_of_wide_string;
+}  /* is_addr_of_wide_string_constant */
 
 
 static void prescan_for_addrs_of_wide_string_constants(a_constant_ptr constant)
@@ -5325,16 +4625,16 @@ for the definition of the indicated routine.  scope is the associated scope.
 
   /* The storage class and similar preamble have already been written. */
   /* Write the specifiers and the first part of the declarator. */
-  dump_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                       /*need_trailing_space=*/TRUE,
-                       /*suppress_const=*/FALSE);
+  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
+                       /*need_trailing_space=*/TRUE, /*add_const=*/FALSE,
+                       /*suppress_const=*/FALSE, &octl);
   /* Write the name. */
   dump_routine_name(rout);
   /* Write the second part of the declarator. */
-  dump_function_declarator(type, scope);
-  dump_type_second_part(type->variant.routine.return_type,
+  dump_function_declarator_with_scope(type, scope);
+  form_type_second_part(type->variant.routine.return_type,
                         /*under_lhs_declarator=*/FALSE,
-                        /*suppress_const=*/FALSE);
+                        /*suppress_const=*/FALSE, &octl);
 #if C_GEN_BE_GENERATES_ANSI_C
   /* For an old-style function, declare the parameters. */
   /* Note that this does not use the "prototyped" flag, which is inaccurate
@@ -5370,11 +4670,13 @@ by dump_routine_decl.
   scope = il_header.region_scope_entry[scope_region_number];
   check_assertion_str(scope != NULL, "dump_routine_definition: scope is NULL");
   curr_function_scope = curr_scope = scope;
+  octl.suppress_local_typedefs = FALSE;
   /* Generate the routine name and the parameter declarations. */
   dump_func_definition_type(rout, scope);
   /* Generate the body statement. */
   dump_statement(scope->assoc_block);
   curr_function_scope = NULL;
+  octl.suppress_local_typedefs = TRUE;
   curr_scope = saved_curr_scope;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Now that we're done with the function, free its IL information. */
@@ -5746,6 +5048,21 @@ Initialize for the C-generating back end.
   output_initializer_code_directly = FALSE;
   curr_function_scope = NULL;
   curr_scope = NULL;
+  /* Set out the output control block used for interface with the il_to_str
+     routines. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = write_tok_str;
+  octl.output_partial_token_str = write_str;
+  octl.output_name = gen_name_reference;
+  octl.output_func_declarator = dump_function_declarator;
+  octl.gen_compilable_code = TRUE;
+#if !C_GEN_BE_GENERATES_ANSI_C
+  octl.gen_pcc_code = TRUE;
+#else /* C_GEN_BE_GENERATES_ANSI_C */
+  octl.gen_pcc_code = il_header.pcc_compatibility_mode;
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  octl.suppress_local_typedefs = TRUE;
+  octl.c_generating_back_end = TRUE;
 }  /* init_c_gen_be */
 
 
