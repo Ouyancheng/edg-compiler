@@ -3941,7 +3941,8 @@ on for use in generating cross-reference output describing this declaration.
                         "decl_routine: missing SRK_DEFINITION");
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (is_function_def || !source_sequence_entries_disallowed) {
+  if (!C_mode() &&
+      (is_function_def || !source_sequence_entries_disallowed)) {
     if (func_info->declared_type != NULL) {
       copy_routine_type_default_args(type_ptr, func_info->declared_type);
     }  /* if */

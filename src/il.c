@@ -5668,12 +5668,13 @@ void copy_routine_type_default_args(a_type_ptr  from_type,
 from_type and to_type are routine types with identical param-type lists --
 except that the param-type entries of from_type may have default arguments
 that are missing from to_type.  Copy the default argument expressions from
-from_type to to_type.
+from_type to to_type.  This should be called only in C++ mode.
 */
 {
   a_param_type_ptr  from_ptp, to_ptp;
 
   db_enter(5, "copy_routine_type_default_args");
+  check_assertion(!C_mode());
   from_ptp = skip_typerefs(from_type)->
                     variant.routine.extra_info->param_type_list;
   to_ptp = skip_typerefs(to_type)->
