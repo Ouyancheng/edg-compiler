@@ -498,7 +498,7 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
     /* Set the constant type.  It includes all the type qualifiers from the
        original pointer. */
     new_type = make_identically_qualified_type(curr_type, orig_type);
-    implicit_cast(result, new_type);
+    implicit_cast(result, make_pointer_type(new_type));
   }  /* if */
 }  /* fold_base_class_cast */
 
