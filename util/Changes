@@ -1,5 +1,11 @@
 Version 2.42
 
+4/27/99  Prelinker accepts nm code of "R" for read-only variable definition
+
+The Linux "nm" command uses a type code of "R" to indicate the definition
+of a variable that can be placed in read-only memory.  The prelinker
+has been modified to recognize this type code.
+
 4/27/99  Prelinker calls fopen with a null file name
 
 A bug in edg_prelink caused it to call fopen with a null file name pointer.
