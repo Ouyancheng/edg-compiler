@@ -1876,8 +1876,16 @@ end_sizeof:;
         an_ms_attribute_ptr ptr = (an_ms_attribute_ptr)entry_ptr;
         remap_next_ptr(ptr->next, an_ms_attribute_ptr, iek_ms_attribute);
         remap_ptr(ptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+#if NEEDED_FLAG_WALK
+        /* The param type entry has no needed flag, so avoid a loop in
+           that case (it points back to this attribute). */
+        if (ptr->entity.kind != (a_byte_il_entry_kind)iek_param_type)
+#endif /* NEEDED_FLAG_WALK */
+        /* Do not insert code here. */
+        {
+          remap_ptr(ptr->entity.ptr, a_char_ptr,
+                    (an_il_entry_kind)ptr->entity.kind);
+        }
         walk_string_ptr(ptr->name, iek_other_text, 0);
         walk_string_ptr(ptr->string, iek_other_text, 0);
         walk_list(ptr->arg_list, an_ms_attribute_arg_ptr,
