@@ -1233,12 +1233,12 @@ do_set_proper_definition_needed_flag:
         }  /* if */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if NEEDED_FLAG_WALK
-        walk_ptr(parameter, a_variable_ptr, iek_variable);
+        walk_ptr(ptr->parameter, a_variable_ptr, iek_variable);
 #else /* !NEEDED_FLAG_WALK */
         /* The associated parameter, if any, will appear on the variables
            list of the current scope.  Therefore, here we just remap the
            pointer but do not walk the subtree. */
-        remap_ptr(parameter, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->parameter, a_variable_ptr, iek_variable);
 #endif /* NEEDED_FLAG_WALK */
         walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
