@@ -1274,10 +1274,6 @@ that are being recorded as character strings.
 static char	*pp_dir_string_buffer;
 			/* Not allocated on a per-file basis. */
 
-static sizeof_t	pp_directive_string_length;
-			/* Size of the string in the pp_directive buffer,
-                           not including any null terminator. */
-
 #define PP_DIR_STRING_BUFFER_INCREMENTAL_ALLOCATION 300
 			/* Incremental (and also initial) allocation size for
                            pp_dir_string_buffer.  The initial allocation
@@ -1344,7 +1340,6 @@ the entire string.  The tokens are scanned as preprocessing tokens.
   /* Add a null terminator. */
   ensure_pp_dir_string_buffer_space(pos_in_buffer + 1);
   pp_dir_string_buffer[pos_in_buffer] = '\0';
-  pp_directive_string_length = pos_in_buffer;
   db_exit();
 }  /* convert_pp_directive_to_string */
 
