@@ -11,7 +11,7 @@ errors in such cases in cfront mode.  For example:
   };
   int *A::f() const { return 0; }    // Now a warning in cfront mode
 
-2/27/95  IL change: is_initialization_guard
+2/27/95  IL CHANGE: is_initialization_guard
 
 stmk_if statements and eok_question expression nodes now have a
 field is_initialization_guard set if the test being done is the
@@ -42,7 +42,7 @@ they see "old_style_params_scanned" set to TRUE.  This simplifies some code
     f((char *)0);          // an error is now issued on this
   }
 
-2/25/96  Friend information in source sequence lists
+2/25/96  IL CHANGE: friend information in source sequence lists
 
 When source sequence entries are being generated, friend declarations are
 now identified in either of two ways: when the friend declaration is a
@@ -78,7 +78,7 @@ Support for #pragma weak has been added (when PRAGMA_WEAK_ALLOWED is set).
 This is minimal support: the name specified is not looked up, and the
 text of the pragma is simply passed on to the back end.
 
-2/24/95  Linkage specification as a function type attribute
+2/24/95  IL CHANGE: linkage specification as a function type attribute
 
 The linkage specification in effect at the point of a function type
 declaration is now recorded in the routine type supplement (field
@@ -235,7 +235,7 @@ elaborated type specifier (see WP 9.1 para 5):
   typedef struct { int i, j; } S;
   struct S s;                       // Error (except in cfront mode)
 
-2/16/95  IL CHANGE -- extension to allow "&..."
+2/16/95  IL CHANGE: extension to allow "&..."
 
 If ADDRESS_OF_ELLIPSIS_ALLOWED is TRUE, the expression "&..."  is accepted
 in the body of a function for which an ellipsis appears in the parameter
@@ -423,14 +423,13 @@ This is of very little practical significance, but does avoid a case
 in the IL where type qualifiers seemed to be added without an explicit
 cast, and it matches the current WP wording more closely.
 
-2/9/95   Generalized support of "asm functions"
+2/9/95   IL CHANGE: Generalized support of "asm functions"
 
 When ASM_FUNCTION_ALLOWED is TRUE, asm functions are recognized and passed
-uninterpreted to the back end.  They are represented in the IL like ordinary
-functions, except that they have a storage class of sc_asm and the function
-body (pointed to from the associated scope entry) is represented by an
-stmk_asm statement; the latter points to an asm entry for which
-is_asm_func_body is TRUE and which points to a NULL-terminated string
+uninterpreted to the back end.  They are represented in the IL like
+ordinary functions, except that they have a storage class of sc_asm and the
+function body (pointed to from the associated scope entry) is represented
+by an stmk_asm statement; the latter points to a NULL-terminated string
 containing the text that appeared in the source.  Comments are removed
 unless INCLUDE_ASM_FUNCTION_COMMENTS is TRUE.
 
@@ -506,17 +505,13 @@ The dynamic initialization for a throw no longer indicates a destruction,
 because the runtime is supposed to do the destruction, not the point
 of throw.
 
-2/3/95   IL CHANGE: asm entries
+2/3/95   Asm entries
 
-Some new fields have been added to allow an_asm_entry to represent the
-body of an asm function.  This functionality is used only when
-ASM_FUNCTION_ALLOWED is TRUE.
-
-Moreover, entries of type an_asm_entry are now recorded in the scope's
-asm_entries list only when they are not associated with an stmk_asm
-statement (i.e., when they are "asm declarations" not "asm statements").
-In effect, this means only asm declarations that appear outside a function
-scope are on a list.
+Entries of type an_asm_entry are now recorded in the scope's asm_entries
+list only when they are not associated with an stmk_asm statement (i.e.,
+when they are "asm declarations" not "asm statements").  In effect, this
+means only asm declarations that appear outside a function scope are on a
+list.
 
 2/2/95   C-generating back end initialization of wchar_t array
 
