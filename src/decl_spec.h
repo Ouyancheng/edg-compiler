@@ -165,7 +165,10 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 #define DSO_MUTABLE		(a_decl_flag_set)(0x2000)
 			/* If this bit is set the storage class "mutable" was
 			   found. */
-#define DSO_LAST DSO_MUTABLE
+#define DSO_EXPLICIT		(a_decl_flag_set)(0x4000)
+			/* If this bit is set the specifier "explicit" was
+			   found. */
+#define DSO_LAST DSO_EXPLICIT
 			/* Last bit in the bit vector that is in use. */
 #endif /* DECL_SPEC_H */
 
