@@ -1,5 +1,20 @@
 Version 3.1
 
+7/1/02   Incorrect sizeof result of substituted template type
+
+When evaluating a sizeof expression in a context in which template
+parameters are being replaced with the corresponding template
+argument values, a full instantiation of a template class was not
+being done in some cases, resulting in an incorrect size.  This
+has been fixed.
+
+  template<int size> struct A { };
+  template <class A> struct B { };
+  template <class T> A<sizeof(B<T>)> f(T);
+  int main() {
+    f(1);
+  }
+
 7/1/02   GNU C compatibility: __BASE_FILE__ macro
 
 The GNU C macro __BASE_FILE__ is now implemented in gcc mode.  It

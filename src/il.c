@@ -35,6 +35,7 @@ il.c -- Construction of intermediate language trees.
 #include "pch.h"
 #include "templates.h"
 #include "class_decl.h"
+#include "symbol_ref.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "decl_spec.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9868,6 +9869,7 @@ name lookup options.
             /* No longer a template parameter type, so the sizeof/alignof
                or uuidof is known. */
             new_type = skip_typerefs(new_type);
+            complete_type_is_needed(new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_uuidof) {
