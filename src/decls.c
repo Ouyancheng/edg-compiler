@@ -2770,6 +2770,8 @@ skip_overloading:;
       /* There is no IL entry, so create one now.  If the variable has
          internal or external linkage, it is entered at the file scope. */
       variable_ptr = make_variable(type_ptr, storage_class, at_file_scope);
+      /* Correct the initialization of the defined flag in the variable. */
+      variable_ptr->defined = FALSE;
       source_corresp_ptr = &variable_ptr->source_corresp;
     } else {
       /* There is an existing IL entry that we are reusing. */
@@ -2833,6 +2835,9 @@ skip_overloading:;
           add_to_variables_list(variable_ptr, /*at_file_scope=*/TRUE);
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (srk_flags & SRK_DEFINITION && !(srk_flags & SRK_TENTATIVE_DEF)) {
+      variable_ptr->defined = TRUE;
     }  /* if */
     update_variable_decl_modifiers(variable_ptr, decl_modifiers,
                                    &locator->source_position,
@@ -3465,6 +3470,7 @@ the symbol and its linkage (which is always "none").
       /* Set the IL referenced flag since, as an externally visible variable,
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;
+      var->defined = TRUE;
       /* If this is a member of an instantiation of a class
          template, set the specific_def flag in the instance entry. */
       if (sym->variant.static_data_member.instance_ptr != NULL) {
