@@ -5913,9 +5913,7 @@ in C++ mode.
     internal_error("this_param_value_expr: no this param");
   }  /* if */
 #endif /* CHECKING */
-  expr = alloc_expr_node((an_expr_node_kind)enk_variable);
-  expr->type = this_param_var->type;
-  expr->variant.variable = this_param_var;
+  expr = var_rvalue_expr(this_param_var);
   return expr;
 }  /* this_param_value_expr */
 
