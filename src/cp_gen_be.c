@@ -364,6 +364,7 @@ static void gen_cast(a_type_ptr type);
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
+                          a_boolean             is_reference_cast,
                           a_boolean             is_reinterpret_cast);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens);
@@ -4961,6 +4962,50 @@ to indicate x.y or p->y where y is a static member.
 }  /* is_dot_static_operation */
 
 
+static void gen_new_style_cast(an_expr_node_ptr expr)
+/*
+Output a new-style cast.
+*/
+{
+  char       *opstr;
+  a_type_ptr type = expr->type;
+  a_type     type_copy;
+
+  switch (expr->variant.operation.kind) {
+    case eok_static_cast:
+      opstr = "static_cast";
+      break;
+    case eok_reinterpret_cast:
+      opstr = "reinterpret_cast";
+      break;
+    case eok_const_cast:
+      opstr = "const_cast";
+      break;
+    case eok_dynamic_cast:
+      opstr = "dynamic_cast";
+      break;
+    default:
+      unexpected_condition_str("gen_new_style_cast: bad kind");
+  }  /* switch */
+  write_tok_str(opstr);
+  write_tok_ch('<');
+  /* For casts that were reference casts originally, the type in the
+     expression is the corresponding  pointer type, and the
+     is_reference_cast flag is set. */
+  if (expr->variant.operation.is_reference_cast) {
+    type = skip_typerefs(type);
+    check_assertion(type->kind == (a_type_kind)tk_pointer);
+    type_copy = *type;
+    type_copy.variant.pointer.is_reference = TRUE;
+    type = &type_copy;
+  }  /* if */
+  gen_type(type);
+  write_tok_str(">(");
+  gen_expression(expr->variant.operation.operands);
+  write_tok_ch(')');
+}  /* gen_new_style_cast */
+
+
 static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens)
 /*
@@ -5177,18 +5222,24 @@ precedence confusion and need_parens is TRUE.
               }  /* if */
               if (is_reference_cast) {
                 /* Generate a cast to a reference type. */
-                a_type     type_copy;
-                a_type_ptr dest_type = skip_typerefs(node->type);
-                check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
-                type_copy = *dest_type;
-                type_copy.variant.pointer.is_reference = TRUE;
                 if (need_parens) write_tok_ch('(');
-                gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE,
+                gen_full_cast(node->type, operand_1, /*is_lvalue=*/TRUE,
+                              /*is_reference_cast=*/TRUE,
                               node->variant.operation.is_reinterpret_cast);
                 if (need_parens) write_tok_ch(')');
                 processed = TRUE;
               }  /* if */
             }  /* if */
+          }  /* if */
+          break;
+        case eok_static_cast:
+        case eok_reinterpret_cast:
+        case eok_const_cast:
+        case eok_dynamic_cast:
+          /* For casts to reference types, process as an lvalue. */
+          if (node->variant.operation.is_reference_cast) {
+            gen_new_style_cast(node);
+            processed = TRUE;
           }  /* if */
           break;
         case eok_rvalue:
@@ -5351,13 +5402,26 @@ Generate a cast to the indicated type.
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
+                          a_boolean             is_reference_cast,
                           a_boolean             is_reinterpret_cast)
 /*
 Generate a cast of expr to the type dest_type.  expr is an lvalue if
-is_lvalue is TRUE.  Usually, the output is an old-style cast, but a
-reinterpret_cast is put out when is_reinterpret_cast is TRUE.
+is_lvalue is TRUE.  The original cast was a cast to a reference type
+if is_reference_cast is TRUE.  Usually, the output is an old-style cast,
+but a reinterpret_cast is put out when is_reinterpret_cast is TRUE.
 */
 {
+  a_type type_copy;
+
+  if (is_reference_cast) {
+    /* Substitute a reference type for the pointer type in the
+       reference cast case. */
+    dest_type = skip_typerefs(dest_type);
+    check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
+    type_copy = *dest_type;
+    type_copy.variant.pointer.is_reference = TRUE;
+    dest_type = &type_copy;
+  }  /* if */
   if (is_reinterpret_cast) {
     write_tok_str("reinterpret_cast<");
     gen_type(dest_type);
@@ -5904,6 +5968,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             }  /* if */
           } else {
             gen_full_cast(expr->type, operand_1, /*is_lvalue=*/FALSE,
+                          expr->variant.operation.is_reference_cast,
                           expr->variant.operation.is_reinterpret_cast);
           }  /* if */
           goto done_with_operation;
@@ -5952,25 +6017,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = ".*";
           break;
         case eok_static_cast:
-          write_tok_str("static_cast<");
-          goto finish_new_style_cast;
         case eok_reinterpret_cast:
-          write_tok_str("reinterpret_cast<");
-          goto finish_new_style_cast;
         case eok_const_cast:
-          write_tok_str("const_cast<");
-          goto finish_new_style_cast;
         case eok_dynamic_cast:
-          write_tok_str("dynamic_cast<");
-finish_new_style_cast:
-          gen_type(expr->type);
-          write_tok_str(">(");
-          if (is_reference_type(expr->type)) {
-            gen_lvalue_no_parens(operand_1);
-          } else {
-            gen_expression(operand_1);
-          }  /* if */
-          write_tok_str(")");
+          if (expr->variant.operation.is_reference_cast) write_tok_str("&(");
+          gen_new_style_cast(expr);
+          if (expr->variant.operation.is_reference_cast) write_tok_str(")");
           goto done_with_operation;
         case eok_complement:
           opstr = "~";
@@ -6312,8 +6364,8 @@ finish_new_style_cast:
           } else {
             if (op == (an_expr_operator_kind)eok_generic_member_call) {
               /* Unknown member function call. */
-              gen_expr_with_parens(args);
-              write_tok_str("->");
+              gen_lvalue(args);
+              write_tok_str(".");
               args = args->next;
             }  /* if */
             if (is_constant_node(operand_1) &&

@@ -5345,15 +5345,17 @@ in a number of ways, e.g., if the source operand is an lvalue.
                   is_template_dependent_context());
   /* See whether we know that the operand will be used as an rvalue. */
   if (!curr_expr_kind_is_const() &&
-      (is_class_struct_union_type(dest_type) ||
+      (is_reference_cast ||
+       is_class_struct_union_type(dest_type) ||
        is_template_param_type(dest_type) ||
        is_class_struct_union_type(operand->type) ||
        is_template_param_type(operand->type))) {
     /* This might be a cast to or from a class type, and thus might
        involve a user-defined conversion.  Therefore we don't know whether
        the operand will be used as an lvalue or an rvalue.  Or, the
-       destination type is a template parameter type that might turn out
-       to be a reference type, which has the same consequence. */
+       destination type is a type that is or might turn out to be a
+       reference type, which means the type will be or might be used
+       as an lvalue. */
     if (is_an_lvalue(operand) && is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_template_param &&
