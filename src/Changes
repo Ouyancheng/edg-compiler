@@ -1,5 +1,10 @@
 Version 2.42
 
+8/10/99  No implicit conversion of const string literal to void *
+
+The change for const string literals accidentally allowed the implicit
+conversion of a string literal to  "void *".  That has been removed.
+
 8/10/99  Microsoft compatibility: improvement in __asm support
 
 The handling of Microsoft __asm directives has been modified to preserve

@@ -3659,7 +3659,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* Qualifiers are being dropped. */
         if (string_literals_are_const &&
             source_is_string_literal &&
-            source_type_qualifiers == (dest_type_qualifiers | TQ_CONST)) {
+            source_type_qualifiers == (dest_type_qualifiers | TQ_CONST) &&
+            unqual_dest_type_pointed_to == unqual_source_type_pointed_to) {
           /* A deprecated conversion in standard C++ allows conversion of
              a string literal or wide string literal to a pointer to
              non-const ([conv.array] paragraph 2). */
