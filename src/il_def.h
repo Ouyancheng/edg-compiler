@@ -630,7 +630,7 @@ typedef struct a_param_type {
 			   to be used as the actual argument on a function
 			   call when the actual argument corresponding to
 			   this parameter is omitted (C++ only). */
-  a_byte        il_walk_flag;
+  a_byte	il_walk_flag;
                         /* Like the flag in a_source_correspondence:
                            indicates whether or not this entry has been
                            visited in the current walk through the IL tree.
@@ -638,6 +638,14 @@ typedef struct a_param_type {
                            be shared between routine entries (e.g., when
                            they comes from a typedef'd function type used
                            as the type of an extern function. */
+  a_byte_boolean
+		has_default_arg;
+             		/* TRUE if a default argument has been declared for
+			   this parameter.  Because of delayed token scanning
+			   of default arguments for member functions, this
+			   flag may be set even though default_arg_expr
+                           remains NULL; this a temporary state and applies to
+			   front-end processing only. */
 } a_param_type;
 
 #ifdef CIL
