@@ -538,10 +538,14 @@ typedef int an_expr_copy_options_set;
 			   argument expression, i.e., making a real use from
 			   the scanned expression.  This is set only for
 			   evaluated expressions, not unevaluated ones. */
+#define CE_COPIED_CONSTANTS_MAY_BE_SHARED 0x20
+			/* TRUE if when constants are copied they may be
+			   shared.  FALSE means such constants must be
+			   unshared. */
 
-a_constant_ptr copy_unshared_constant_full(
-                                         a_constant_ptr           old_constant,
-                                         an_expr_copy_options_set options);
+a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
+                                  a_constant_ptr           new_constant,
+                                  an_expr_copy_options_set options);
 
 extern a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant);
 

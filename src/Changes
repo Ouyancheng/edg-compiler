@@ -1,5 +1,19 @@
 Version 2.46
 
+11/18/01 Memory region problem with use of const local var in nontype
+         template argument
+
+When the prototype instantiation of a function template is done (e.g.,
+in strict mode), a use of a local const variable in a nontype
+template argument resulted in some cases in the use of a data structure
+whose storage had already been freed.  Now fixed.
+
+  template <int I> struct A {};
+  template<class T> void f() {
+    const int n = sizeof(T)+1;
+    A<n> x;
+  }  // Later use of A<same-value> could cause reference to freed memory
+
 11/17/01 Setting of "system_include_dir" for primary include search directory
 
 In most configurations, the include search path is updated to include the

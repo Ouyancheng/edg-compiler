@@ -3377,19 +3377,42 @@ value.  Several fields are cleared or adjusted.
 }  /* alloc_unshared_constant */
 
 
-a_constant_ptr copy_unshared_constant_full(
-                                         a_constant_ptr           old_constant,
-                                         an_expr_copy_options_set options)
+a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
+                                  a_constant_ptr           new_constant,
+                                  an_expr_copy_options_set options)
 /*
-Make a copy of an unshared constant and return pointer to the copy.  options
-is the set of options for the copy.  See copy_unshared_copy for a simple
-interface to this routine for the usual case.
+Make a copy of a constant and its subtree and return a pointer to the copy.
+If new_constant is non-NULL, the copy is placed there; otherwise, a new
+constant is allocated.  options is the set of options for the copy.
+By default, the copy will be an unshared constant, but if the option
+CE_COPIED_CONSTANTS_MAY_BE_SHARED is specified, the constant may be
+shared.  See copy_unshared_copy for a simple interface to this routine
+for the usual case.
 */
 {
-  a_constant_ptr new_constant, old_aggr_con, new_aggr_con;
+  a_constant_ptr old_aggr_con, new_aggr_con;
+  a_boolean      may_be_shared =
+                            (options & CE_COPIED_CONSTANTS_MAY_BE_SHARED) != 0;
+  a_constant     local_constant;
+  an_expr_copy_options_set
+                 options_unshared;
 
-  new_constant = alloc_unshared_constant(old_constant);
-  new_constant->next = NULL;
+  /* Create a version of the options set with the may-be-shared bit dropped. */
+  options_unshared = (options &
+                      ~(an_expr_copy_options_set)
+                                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+  if (new_constant != NULL) {
+    /* The caller has passed in the address for the copy. */
+    copy_constant(old_constant, new_constant);
+  } else if (may_be_shared) {
+    /* For the shareable constant case, build up the constant locally and
+       do the allocation at the end of this routine. */
+    new_constant = &local_constant;
+    copy_constant(old_constant, new_constant);
+  } else {
+    /* Allocate a new unshared constant. */
+    new_constant = alloc_unshared_constant(old_constant);
+  }  /* if */
   if (new_constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* For aggregate constants, copy the subtree also. */
     new_constant->variant.aggregate.first_constant = NULL;
@@ -3397,7 +3420,8 @@ interface to this routine for the usual case.
     for (old_aggr_con = old_constant->variant.aggregate.first_constant;
          old_aggr_con != NULL;
          old_aggr_con = old_aggr_con->next) {
-      new_aggr_con = copy_unshared_constant_full(old_aggr_con, options);
+      new_aggr_con = copy_constant_full(old_aggr_con, (a_constant *)NULL,
+                                        options_unshared);
       /* Add the constant to the aggregate list. */
       if (new_constant->variant.aggregate.first_constant == NULL) {
         new_constant->variant.aggregate.first_constant = new_aggr_con;
@@ -3409,13 +3433,14 @@ interface to this routine for the usual case.
   } else if (new_constant->kind == (a_constant_repr_kind)ck_init_repeat) {
     /* For ck_init_repeat constants, copy the subtree also. */
     new_constant->variant.init_repeat.constant =
-        copy_unshared_constant_full(old_constant->variant.init_repeat.constant,
-                                    options);
+                 copy_constant_full(old_constant->variant.init_repeat.constant,
+                                    (a_constant *)NULL,
+                                    options_unshared);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* For ck_dynamic_init constants, copy the subtree also. */
     new_constant->variant.dynamic_init =
                           copy_dynamic_init(old_constant->variant.dynamic_init,
-                                            options);
+                                            options_unshared);
   } else if (new_constant->kind == (a_constant_repr_kind)ck_address) {
     if (new_constant->variant.address.kind ==
                                           (an_address_base_kind)abk_constant) {
@@ -3429,25 +3454,43 @@ interface to this routine for the usual case.
            in the function scope memory region. */
         /* This also comes up in inlining, when we make a copy of a constant
            from one function scope memory region to another. */
-        /* The copy is made unshared because if the original constant was
-           unshared we want the copy to be unshared as well, and we don't
-           know for sure whether the original constant is unshared. */
         new_constant->variant.address.variant.constant =
-                           copy_unshared_constant_full(old_constant_pointed_to,
+                                    copy_constant_full(old_constant_pointed_to,
+                                                       (a_constant *)NULL,
                                                        options);
       }  /* if */
     }  /* if */
+  } else if (new_constant->kind == (a_constant_repr_kind)ck_template_param) {
+    if (new_constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+      new_constant->variant.template_param.variant.expr =
+              copy_expr_tree(old_constant->variant.template_param.variant.expr,
+                             options);
+    } else if (new_constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_cast ||
+               new_constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_address) {
+      new_constant->variant.template_param.variant.constant =
+               copy_constant_full(
+                         old_constant->variant.template_param.variant.constant,
+                         (a_constant *)NULL,
+                         options);
+    }  /* if */
   }  /* if */
-  return new_constant;
-}  /* copy_unshared_constant_full */
+  if (may_be_shared) {
+    new_constant = alloc_shareable_constant(new_constant);
+  }  /* if */
+  return new_constant; /*lint !e809*/
+}  /* copy_constant_full */
 
 
 a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
 /*
-Simple interface to copy_unshared_constant_full for the usual case.
+Simple interface to copy_constant_full for the usual case.
 */
 {
-  return copy_unshared_constant_full(old_constant, CE_NO_OPTIONS);
+  return copy_constant_full(old_constant, (a_constant *)NULL,
+                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
 }  /* copy_unshared_constant */
 
 
@@ -6995,8 +7038,9 @@ expression node.  options is a set of options for the copy.
     case dik_constant:
     case dik_nonconstant_aggregate:
       /* The constant pointed to is unshared and must be copied. */
-      new_dip->variant.constant =
-                   copy_unshared_constant_full(dip->variant.constant, options);
+      new_dip->variant.constant = copy_constant_full(dip->variant.constant,
+                                                     (a_constant *)NULL,
+                                                     options);
       break;
 #if CHECKING
     case dik_bitwise_copy:
@@ -8954,13 +8998,25 @@ a set of options for the copy.
   expr_copy = copy_node(expr);
   switch (expr->kind) {
     case enk_error:
-    case enk_constant:
     case enk_variable:
     case enk_variable_address:
     case enk_field:
     case enk_routine_address:
     case enk_address_of_ellipsis:
       /* Nothing more to copy. */
+      break;
+    case enk_constant:
+      if (in_file_scope(expr_copy) &&
+          !in_file_scope(expr->variant.constant)) {
+        /* Copy a constant to avoid having an expression in the file-scope
+           memory region pointing to a constant in a function scope
+           memory region. */
+        expr_copy->variant.constant =
+                         copy_constant_full(expr->variant.constant,
+                                            (a_constant *)NULL,
+                                            options |
+                                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+      }  /* if */
       break;
     case enk_operation:
       /* Copy the operands of the operation. */

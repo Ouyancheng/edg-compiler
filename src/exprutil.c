@@ -5998,9 +5998,19 @@ void make_constant_variable_operand(a_constant *constant,
 /*
 Same as make_constant_operand, but the new constant operand points to an
 expression for the given variable when RECORD_CONSTANT_EXPRESSIONS_IN_IL
-is TRUE.
+is TRUE.  (The variable is constant-valued and "constant" is its value,
+which means "constant" is actually allocated in the IL.)
 */
 {
+  a_constant local_constant;
+
+  if (curr_il_region_number == file_scope_region_number &&
+      !in_file_scope(constant)) {
+    /* The constant is a function-scope constant, but we're going to
+       need it in the file scope memory region, so copy it. */
+    constant = copy_constant_full(constant, &local_constant,
+                                  CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+  }  /* if */
   make_constant_operand(constant, operand);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   operand->variant.constant.expr =

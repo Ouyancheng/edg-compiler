@@ -1364,10 +1364,11 @@ If not, *failed is set.
               goto cannot_inline_ever;
             }  /* if */
             /* Non-aggregate constant initial value. */
-            /* This uses copy_unshared_constant_full because that routine does
+            /* This uses copy_constant_full because that routine does
                variable remapping if necessary. */
             init_expr = alloc_node_for_constant(
-                             copy_unshared_constant_full(dip->variant.constant,
+                       copy_constant_full(dip->variant.constant,
+                                          (a_constant *)NULL,
                                           CE_DOING_INLINING_OF_FUNCTION_CALL));
           } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
             init_expr = copy_expr_tree_for_inlining(dip->variant.expression);

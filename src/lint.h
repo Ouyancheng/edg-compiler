@@ -170,8 +170,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,copy_statement)*/
 /*lint -esym(759,copy_statement)*/
 /*lint -esym(765,copy_statement)*/
-/*lint -esym(759,copy_unshared_constant_full)*/
-/*lint -esym(765,copy_unshared_constant_full)*/
+/*lint -esym(759,copy_constant_full)*/
+/*lint -esym(765,copy_constant_full)*/
 /*lint -esym(759,set_class_keep_definition_in_il)*/
 /*lint -esym(765,set_class_keep_definition_in_il)*/
 /*lint -esym(759,set_expr_node_kind)*/
