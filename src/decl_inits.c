@@ -3561,7 +3561,7 @@ initialized.  These are addressed in the course of the processing.
           member_or_base_sym = coalesce_and_lookup_generalized_identifier
                                    (GID_NO_OPTIONS, ilm_ctor_initializer_name,
                                     &gid_err);
-          if (!class_name_injection_enabled &&
+          if ((!class_name_injection_enabled || microsoft_mode) &&
               !is_error_locator(locator_for_curr_id) &&
               !locator_for_curr_id.is_qualified_name) {
             /* If no symbol was returned from the lookup, or if the symbol
@@ -3579,6 +3579,10 @@ initialized.  These are addressed in the course of the processing.
                deal properly with hiding within the inheritance hierarchy),
                but the differences will be manifested as slightly different
                diagnostics, and then only in rather obscure cases.
+
+               This check is done in Microsoft mode even though class name
+               injection is enabled because, in Microsoft mode, the injected
+               name is ignored for most lookups.
             */
             a_boolean     check_base_classes;
 

@@ -1,5 +1,19 @@
 Version 2.43
 
+12/1/99  Microsoft compatibility: spurious error on injected class name in
+         constructor initializer
+
+A bug was introduced in version 2.42 that would cause a spurious error to be
+issued in Microsoft mode when an unqualified non-visible base class name was
+used in a constructor initializer list.  This has been fixed.
+
+  struct A {
+    struct C { };
+  };
+  struct B : A::C  {
+    B() : C () {}  // error on use of C
+  };
+
 12/1/99  Additional information about PCH files that cannot be used
 
 It automatic precompiled header file mode, it can sometimes be difficult
