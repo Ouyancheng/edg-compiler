@@ -72,7 +72,10 @@ static char *scan_asm_name(void)
 /*
 Scan a construct of the form
     asm ( "string" )
-and return the contents of the string literal.
+and return the contents of the string literal.  This is a GNU C extension
+that provides the name to be used for an entity in generated assembler
+code.  If the construct is not present, or if it is present but there is 
+an error, return NULL.
 */
 {
   char *result = NULL;
@@ -10265,7 +10268,7 @@ continue_with_declaration:
 #if GNU_EXTENSIONS_ALLOWED
       asm_name = NULL;
       if (gcc_mode) {
-        /* Look for an asm() symbol name tag.  They are ignored in
+        /* Look for an asm() symbol name tag.  It is ignored on
            typedefs (with a warning). */
         asm_start_pos = pos_curr_token;
         asm_name = scan_asm_name();
