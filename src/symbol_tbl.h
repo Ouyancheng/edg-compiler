@@ -1198,6 +1198,34 @@ typedef struct a_template_symbol_supplement {
 
 
 /*
+An entry corresponding to an IL entry of kind a_using_directive and containing
+front-end-only information.  (Note: a using-directive is a declaration of the
+form "using namespace N"; it should not be confused with "using N::x" or
+"using ::x", which are referred to as "using-declarations".)
+*/
+typedef struct an_active_using_directive *an_active_using_directive_ptr;
+typedef struct an_active_using_directive {
+  an_active_using_directive_ptr
+		next;
+			/* Next in the linked list of active using-directives
+			   associated with the current scope or namespace. */
+  a_using_directive_ptr
+		entry;
+			/* The IL entry to which this front-end only entry
+			   corresponds; there is a one-to-one correspondence
+			   between the two sorts of entries, though a pointer
+			   is required in one direction only. */
+  an_active_using_directive_ptr
+		next_in_lookup_list;
+			/* Next in a linked list created during name lookup to
+			   track occurrences of a given name across the set
+			   of potentially relevant namespaces, as indicated by
+			   using directives.  If set, this pointer is cleared
+			   again as soon as the lookup has completed. */
+} an_active_using_directive;
+
+
+/*
 Structure that is logically (and historically) part of a_scope_stack_entry,
 but which must persist longer than a scope stack entry for namespace scopes
 (since "extension-definitions" are allowed for them).  Therefore,
@@ -1240,6 +1268,10 @@ typedef struct a_scope_pointers_block {
 		last_namespace;
 			/* End of list of namespace entries in this scope,
 			   NULL if there are none. */
+  a_using_directive_ptr
+		last_using_directive;
+			/* End of list of using-directive entries in this
+			   scope; NULL if there are none. */
   a_pragma_ptr	last_pragma;
 			/* End of list of IL pragma entries entered on the
 			   pragma_list of il_scope, NULL if none. */
@@ -1255,6 +1287,11 @@ typedef struct a_scope_pointers_block {
 			/* End of the list of template entries entered on
 			   the corresponding IL scope entry; NULL if none. */
 #endif /* RECORD_TEMPLATES_IN_IL */
+  an_active_using_directive_ptr
+		active_using_directives;
+			/* Linked list of entries representing the
+			   using-directives currently active in the current
+			   scope; NULL if none. */
   a_symbol_ptr	unnamed_namespace_sym;
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace
