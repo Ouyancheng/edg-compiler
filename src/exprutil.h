@@ -200,7 +200,8 @@ typedef struct an_arg_operand {
 Description of a user-defined conversion, i.e., a conversion using a
 constructor or conversion function.  Can also be used (with all fields
 at default values) as a description of "no user-defined conversion";
-see is_null_user_conv_descr below.
+see is_null_user_conv_descr below.  Also used to describe a bitwise
+copy of a class in C or C++, which is not really a "user-defined conversion".
 */
 typedef struct a_user_conv_descr *a_user_conv_descr_ptr;
 typedef struct a_user_conv_descr {
@@ -221,7 +222,9 @@ typedef struct a_user_conv_descr {
 			   reference should be left as an lvalue rather than
 			   converted to an rvalue.  If FALSE, the result is
 			   always an lvalue (either originally or after
-			   an lvalue-->rvalue conversion). */
+			   an lvalue-->rvalue conversion).  Note that this
+			   is meaningful even when the entry indicates no
+			   conversion. */
 } a_user_conv_descr;
 
 /*
