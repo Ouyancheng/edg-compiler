@@ -1651,6 +1651,11 @@ called by id_linkage.
         kind == (a_symbol_kind)sk_function_template ||
         kind == (a_symbol_kind)sk_overloaded_function) {
       /* Okay to use other_decl. */
+      if ((kind == (a_symbol_kind)sk_variable) == is_function) {
+        /* We were looking for a function-like entity and found a variable,
+           or vice versa. */
+        other_decl = NULL;
+      }  /* if */
     } else {
       if (!C_mode() && kind == (a_symbol_kind)sk_namespace_projection) {
         kind = fundamental_symbol_of(other_decl)->kind;

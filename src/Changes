@@ -1,5 +1,20 @@
 Version 2.44
 
+4/28/00  Internal error when a qualified file scope declaration find an
+         overload set in an unnamed namespace
+
+The front end used to abort the processing of a qualified file scope
+declaration if a lookup of the declared name found an overloaded set of
+functions in an unnamed namespace.
+
+  namespace {
+    void f();
+    void f(int);
+  }
+  int ::f; // Used to abort
+
+This is now fixed (a normal error is issued).
+
 4/26/00  Microsoft compatibility: allow a namespace alias to be used to
          extend the aliased namespace
 
