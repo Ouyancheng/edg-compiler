@@ -272,9 +272,8 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       unexpected_condition_str("node_has_side_effects: bad node kind");
   }  /* switch */
 
-  if (!has_side_effects && !C_mode() &&
-      /* No test of is_template_dependent_context here on purpose, because
-         this function is used outside of the front end proper. */
+  if (!has_side_effects && !C_mode() && in_front_end &&
+      is_template_dependent_context() &&
       is_template_dependent_type(node->type)) {
     /* A node with a template parameter type is considered to have
        side effects.  This is because it's possible that when the type

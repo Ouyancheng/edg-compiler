@@ -2108,7 +2108,7 @@ checking instead of equivalence checking).
   /* If the pointers are identical, the types are equivalent. */
   if (type_1 == type_2) {
     equiv = TRUE;
-  } else if (mem_region_table[NULL_region_number] == NULL) {
+  } else if (!in_front_end) {
     /* We are being called after fe_wrapup was called.  Proxy classes are
        not a consideration.  The field source_corresp.assoc_info points
        into freed memory. */
@@ -2463,6 +2463,7 @@ for more information.
               case tptk_member:
                 /* Members types are the same if their names are the same
                    and if they are members of identical types. */
+                check_assertion(in_front_end);
                 sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
                 sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
                 check_assertion(sym_1 != NULL && sym_2 != NULL);
@@ -6291,14 +6292,13 @@ its parameters?).
           a_symbol_ptr			class_sym;
           a_class_symbol_supplement_ptr	cssp;
           class_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-          if (class_sym != NULL) {
-            cssp = class_sym->variant.class_struct_union.extra_info;
-            tp = cssp->template_param_for_proxy_class;
-            if (tp != NULL) {
-              if (traverse_type_tree(tp, func, flags)) {
-                status = TRUE;
-                break;
-              }  /* if */
+          check_assertion(in_front_end && class_sym != NULL);
+          cssp = class_sym->variant.class_struct_union.extra_info;
+          tp = cssp->template_param_for_proxy_class;
+          if (tp != NULL) {
+            if (traverse_type_tree(tp, func, flags)) {
+              status = TRUE;
+              break;
             }  /* if */
           }  /* if */
           /* Conditional traversal of contained types. */
@@ -6344,11 +6344,10 @@ its parameters?).
             /* If this class is a member of a proxy class, traverse the type
                of the template parameter with which the proxy class is
                associated. */
-            /* When called from e.g. the C++-generating back-end, we have
-               no access to the symbol table anymore. */
             tp = type_ptr->source_corresp.parent.class_type;
-            tp = (tp->source_corresp.assoc_info == NULL) ?
-                   NULL : symbol_supplement_for_class(tp)
+            check_assertion(in_front_end &&
+                            tp->source_corresp.assoc_info != NULL);
+            tp = symbol_supplement_for_class(tp)
                                              ->template_param_for_proxy_class;
             if (tp != NULL) {
               if (traverse_type_tree(tp, func, flags)) {
@@ -7100,9 +7099,8 @@ to the caller.  If no modification is done return the original type.
         a_symbol_ptr cowam_sym;
         cowam_sym = (a_symbol_ptr)type->source_corresp.parent.class_type->
                                                   source_corresp.assoc_info;
-        if (cowam_sym != NULL) {
-          is_nonreal = !is_real_class_symbol(cowam_sym);
-        }  /* if */
+        check_assertion(in_front_end && cowam_sym != NULL);
+        is_nonreal = !is_real_class_symbol(cowam_sym);
       }  /* if */
     }  /* if */
     /* Only continue processing this typedef if it is either a local typedef

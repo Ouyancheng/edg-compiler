@@ -681,6 +681,8 @@ source file's compilation.
   (void)time(&timer);
   (void)strcpy(curr_date_time, ctime(&timer));
 
+  in_front_end = TRUE;
+
   /* Set a current position indicating we are still in initialization. */
   pos_curr_token.seq = 0;
   pos_curr_token.column = SP_COL_UNKNOWN;

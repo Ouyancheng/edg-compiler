@@ -162,6 +162,8 @@ and before the back end (if any) is executed.
      allocated in front-end storage). */
   clear_file_index_list();
 
+  in_front_end = FALSE;
+
   db_exit();
 }  /* fe_wrapup */
 

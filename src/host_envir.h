@@ -1834,6 +1834,18 @@ EXTERN a_boolean
 			/* If TRUE, prototype instantiations are recorded
 			   in the IL tree. */
 
+EXTERN a_boolean
+		in_front_end
+#if VAR_INITIALIZERS
+                             = FALSE
+#endif /* VAR_INITIALIZERS */
+                                    ;
+			/* TRUE while in the front end, FALSE elsewhere (e.g.,
+			   in the C-generating back end).  TRUE in IL lowering,
+			   if that is done.  FALSE in command-line processing
+			   before the front end starts up.  Stays FALSE in
+			   a standalone utility program. */
+
 #endif /* ifndef HOST_ENVIR_H */
 
 /******************************************************************************

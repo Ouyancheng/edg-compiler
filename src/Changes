@@ -1,5 +1,12 @@
 Version 2.44
 
+7/26/00  in_front_end variable
+
+A global variable "in_front_end" has been added, which is TRUE while
+the front end is running, and FALSE otherwise, e.g., in the C-generating
+back end.  This allows testing to avoid code that depends on front-end
+data structures such as the symbol table.
+
 7/26/00  C++-generating back end: conversion function calls put out as casts
 
 The C++-generating back end now puts out calls of conversion functions
