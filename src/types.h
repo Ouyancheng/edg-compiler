@@ -179,6 +179,13 @@ type that is checked for qualifiers.
   (get_type_qualifiers(tp1) == get_type_qualifiers(tp2))
 
 /*
+Return TRUE if tp1_qualifiers does not have some type qualifier that
+tp2_qualifiers has.
+*/
+#define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)
+  (((tp1_qualifiers) & (tp2_qualifiers)) != (tp2_qualifiers))
+
+/*
 Return TRUE if tp1 does not have some type qualifiers that tp2 has.  Note
 that this macro does not check that the underlying types are compatible.
 */

@@ -635,7 +635,7 @@ that tp2 is a tk_typeref or tk_array.
     any_missing = FALSE;
   } else {
     tp1_qualifiers = get_type_qualifiers(tp1);
-    any_missing = ((tp1_qualifiers & tp2_qualifiers) != tp2_qualifiers);
+    any_missing = any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers);
   }  /* if */
   return any_missing;
 }  /* f_any_qualifier_missing */
