@@ -1,5 +1,16 @@
 Version 2.16
 
+4/6/93  Reference to const initialized from bit field
+
+The following is now accepted:
+
+  struct A { int i:1; } a;
+  const int &r = a.i;
+
+A temporary is generated.  Formerly, this gave an error (cannot take the
+address of a bit field).  This new behavior is not santioned by the ARM,
+but it makes sense, and cfront does it that way.
+
 4/6/93  Diagnostic on storage class with class/enum declaration
 
 The default is now to issue a warning when a storage class is declared
