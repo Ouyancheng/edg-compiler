@@ -843,6 +843,48 @@ Initialization routine for IL reading.
 }  /* il_read_init */
 
 
+static void init_flags_and_types(void)
+/*
+This routine initializes flags and types mostly based on the il_header.
+This ensures that "back end" components (including utilities like the IL
+display program) can query these entitities.
+*/
+{
+#ifdef CIL
+  /* Make sure that the signedness of "plain" char is set correctly in
+     int_kind_is_signed.  Doing this here ensures that it won't be overlooked
+     in standalone utility programs. */
+  int_kind_is_signed[(int)ik_char] = il_header.plain_chars_are_signed;
+  /* Ditto for C_dialect.  Setting this allows "back end" software to
+     use C_mode().  Also set global variable default_routine_name_linkage,
+     which may be needed in outputting function types. */
+  switch (il_header.source_language) {
+    case sl_C:
+      C_dialect = il_header.pcc_compatibility_mode ? C_dialect_pcc :
+                                                     C_dialect_ANSI;
+      default_routine_name_linkage = (a_name_linkage_kind)nlk_external;
+      break;
+    case sl_Cplusplus:
+      C_dialect = C_dialect_cplusplus;
+      default_routine_name_linkage =
+                               (a_name_linkage_kind)nlk_cplusplus_external;
+      break;
+    default:
+      catastrophe(ec_bad_il_file);
+  }  /* switch */
+  /* Also set enum_type_is_integral.  This affects how is_integral_type
+     and related routines regard enum types. */
+  enum_type_is_integral = il_header.enum_type_is_integral;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Also set global variables relating to Microsoft compatibility mode. */
+  microsoft_mode = il_header.microsoft_mode;
+  microsoft_version = il_header.microsoft_version;
+  init_microsoft_sized_int_types();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifdef CIL */
+}  /* init_flags_and_types */
+
+
 void il_read(FILE *il_file)
 /*
 Read the file-scope intermediate language from the indicated file and
@@ -902,37 +944,7 @@ build the in-memory version.
   old_il_header_region_scope_entry = il_header.region_scope_entry;
   fread_with_check((char *)&il_header, sizeof(il_header));
   il_header.region_scope_entry = old_il_header_region_scope_entry;
-#ifdef CIL
-  /* Make sure that the signedness of "plain" char is set correctly in
-     int_kind_is_signed.  Doing this here ensures that it won't be overlooked
-     in standalone utility programs. */
-  int_kind_is_signed[(int)ik_char] = il_header.plain_chars_are_signed;
-  /* Ditto for C_dialect.  Setting this allows "back end" software to
-     use C_mode().  Also set global variable default_routine_name_linkage,
-     which may be needed in outputting function types. */
-  switch (il_header.source_language) {
-    case sl_C:
-      C_dialect = il_header.pcc_compatibility_mode ? C_dialect_pcc :
-                                                     C_dialect_ANSI;
-      default_routine_name_linkage = (a_name_linkage_kind)nlk_external;
-      break;
-    case sl_Cplusplus:
-      C_dialect = C_dialect_cplusplus;
-      default_routine_name_linkage =
-                               (a_name_linkage_kind)nlk_cplusplus_external;
-      break;
-    default:
-      catastrophe(ec_bad_il_file);
-  }  /* switch */
-  /* Also set enum_type_is_integral.  This affects how is_integral_type
-     and related routines regard enum types. */
-  enum_type_is_integral = il_header.enum_type_is_integral;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Also set global variables relating to Microsoft compatibility mode. */
-  microsoft_mode = il_header.microsoft_mode;
-  microsoft_version = il_header.microsoft_version;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
+  init_flags_and_types();
   /* Read the orphaned_file_scope_il_entries array. */
   fread_with_check((char *)orphaned_file_scope_il_entries,
                    sizeof(orphaned_file_scope_il_entries));

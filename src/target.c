@@ -24,6 +24,64 @@ target.c -- Target configuration support
 /* Header files common to all files. */
 #include "fe_common.h"
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void init_microsoft_sized_int_types()
+/*
+Map __int8, __int16, __int32, and __int64 to the appropriate integer
+kinds.  Leave the variables set to ik_none if a match can't be found;
+only if a corresponding integer kind is found will the corresponding
+keyword be entered into the symbol table.
+*/
+{
+#if STANDALONE_UTILITY_PROGRAM
+  /* The signedness of characters can be set on the command line, but for
+     standalone utilities, we determine this from the IL header (very similar
+     code appears in target_init). */
+  an_integer_kind  plain_char_int_kind;
+  if (C_dialect == C_dialect_pcc) {
+    /* In pcc mode, a "plain" char is the same as either "signed char"
+       or "unsigned char". */
+    plain_char_int_kind = il_header.plain_chars_are_signed ?
+                               (an_integer_kind)ik_signed_char :
+                               (an_integer_kind)ik_unsigned_char;
+  } else {
+    /* In ANSI mode, a "plain" char is different than "signed char" and
+       "unsigned char". */
+    plain_char_int_kind = (an_integer_kind)ik_char;
+  }  /* if */
+#endif /* STANDALONE_UTILITY_PROGRAM */
+  /* Map __int8 to plain char if and only if 8-bit chars are being used. */
+  if (targ_char_bit == 8) {
+    targ_int8_int_kind = plain_char_int_kind;
+    targ_unsigned_int8_int_kind = (an_integer_kind)ik_unsigned_char;
+  }  /* if */
+  /* For the other cases, find the first integer kinds, signed and unsigned,
+     that hold exactly 16, 32 and 64 bits, respectively. */  
+  targ_int16_int_kind = int_kind_for_bit_size(16, /*signed=*/TRUE);
+  if (targ_int16_int_kind != (an_integer_kind)ik_none) {
+    targ_unsigned_int16_int_kind = int_kind_for_bit_size(16, /*signed=*/FALSE);
+    check_assertion_str(targ_unsigned_int16_int_kind !=
+                                              (an_integer_kind)ik_none,
+                       "target_init: can't set int kind for unsigned __int16");
+  }  /* if */
+  targ_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/TRUE);
+  if (targ_int32_int_kind != (an_integer_kind)ik_none) {
+    targ_unsigned_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/FALSE);
+    check_assertion_str(targ_unsigned_int32_int_kind !=
+                                              (an_integer_kind)ik_none,
+                       "target_init: can't set int kind for unsigned __int32");
+  }  /* if */
+  targ_int64_int_kind = int_kind_for_bit_size(64, /*signed=*/TRUE);
+  if (targ_int64_int_kind != (an_integer_kind)ik_none) {
+    targ_unsigned_int64_int_kind = int_kind_for_bit_size(64, /*signed=*/FALSE);
+    check_assertion_str(targ_unsigned_int64_int_kind !=
+                                              (an_integer_kind)ik_none,
+                       "target_init: can't set int kind for unsigned __int64");
+  }  /* if */
+}  /* init_microsoft_sized_int_types */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if TARG_ALL_POINTERS_SAME_SIZE
 /*ARGSUSED*/ /* Because tp is not used. */

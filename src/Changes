@@ -1,5 +1,11 @@
 Version 2.45
 
+8/29/00  Microsoft mode: bad output of IL display program
+
+A bug introduced in version 2.44 caused the IL display program to output
+"**BAD-SIZED-INT-KIND**" for Microsoft sized integer types (like __int64).
+This is now fixed.
+
 8/28/00  C++-generating back end: regenerating a cast sequence on an
          overloaded function
 

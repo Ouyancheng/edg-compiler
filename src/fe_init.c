@@ -478,38 +478,7 @@ Initialize target machine characteristics.
 #endif /* DO_IL_LOWERING */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Map __int8, __int16, __int32, and __int64 to the appropriate integer
-     kinds.  Leave the variables set to ik_none if a match can't be found;
-     only if a corresponding integer kind is found will the corresponding
-     keyword be entered into the symbol table. */
-  /* Map __int8 to plain char if and only if 8-bit chars are being used. */
-  if (targ_char_bit == 8) {
-    targ_int8_int_kind = plain_char_int_kind;
-    targ_unsigned_int8_int_kind = (an_integer_kind)ik_unsigned_char;
-  }  /* if */
-  /* For the other cases, find the first integer kinds, signed and unsigned,
-     that hold exactly 16, 32 and 64 bits, respectively. */  
-  targ_int16_int_kind = int_kind_for_bit_size(16, /*signed=*/TRUE);
-  if (targ_int16_int_kind != (an_integer_kind)ik_none) {
-    targ_unsigned_int16_int_kind = int_kind_for_bit_size(16, /*signed=*/FALSE);
-    check_assertion_str(targ_unsigned_int16_int_kind !=
-                                              (an_integer_kind)ik_none,
-                       "target_init: can't set int kind for unsigned __int16");
-  }  /* if */
-  targ_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/TRUE);
-  if (targ_int32_int_kind != (an_integer_kind)ik_none) {
-    targ_unsigned_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/FALSE);
-    check_assertion_str(targ_unsigned_int32_int_kind !=
-                                              (an_integer_kind)ik_none,
-                       "target_init: can't set int kind for unsigned __int32");
-  }  /* if */
-  targ_int64_int_kind = int_kind_for_bit_size(64, /*signed=*/TRUE);
-  if (targ_int64_int_kind != (an_integer_kind)ik_none) {
-    targ_unsigned_int64_int_kind = int_kind_for_bit_size(64, /*signed=*/FALSE);
-    check_assertion_str(targ_unsigned_int64_int_kind !=
-                                              (an_integer_kind)ik_none,
-                       "target_init: can't set int kind for unsigned __int64");
-  }  /* if */
+  init_microsoft_sized_int_types();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* target_init */
 

@@ -1029,6 +1029,10 @@ EXTERN a_boolean
 #define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void init_microsoft_sized_int_types(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 a_targ_size_t size_of_pointer_to(a_type_ptr        type_pointed_to,
                                  a_targ_alignment  *alignment);
 
