@@ -4822,6 +4822,9 @@ typedef struct a_template {
 #endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
 
+/*
+An entry containing the text of a macro (not yet implemented).
+*/
 typedef struct a_macro *a_macro_ptr;
 typedef struct a_macro {
   /* The source_corresp field must be first. */
