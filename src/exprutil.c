@@ -745,12 +745,6 @@ is pushed regardless of any of the other factors.
                                          expr_stack->is_default_arg_expression;
     new_entry->inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
-    if (expression_kind == (an_expression_kind)ek_sizeof &&
-        expr_stack->expression_kind == (an_expression_kind)ek_template_arg) {
-      /* Allow only constant expressions inside nontype template arguments,
-         even inside a sizeof.  See Core Issue 339. */
-      new_entry->expression_kind = expr_stack->expression_kind;
-    }  /* if */
   }  /* if */
   expr_stack = new_entry;
   /* Do special handling for constant expressions.  This is done late so that
