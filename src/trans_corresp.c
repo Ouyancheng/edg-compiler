@@ -825,6 +825,11 @@ is in fact valid.
         (!types_are_redecl_compatible(var->type, corresp_var->type) ||
          !same_exception_spec(var->type, corresp_var->type) ||
          var->is_specialized != corresp_var->is_specialized ||
+         var->is_member_constant != corresp_var->is_member_constant ||
+         /* In-class static member initializations must be equivalent. */
+         (var->is_member_constant &&
+          !eq_constants(var->initializer.constant,
+                        corresp_var->initializer.constant)) ||
 #if DECL_MODIFIERS_IN_USE
          var->decl_modifiers != corresp_var->decl_modifiers ||
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -2209,6 +2214,12 @@ translation unit correspondence pointer if one is found.
                     /* Record the correspondence. */
                     record_trans_unit_corresp(routine,
                                               sub_sym->variant.routine.ptr);
+                  } else if (routine->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external &&
+                             corresp_routine->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+                    f_report_bad_trans_unit_corresp((char*)routine,
+                                                    &sub_sym->decl_position);
                   }  /* if */
                 }
                 break;
