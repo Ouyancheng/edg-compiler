@@ -3880,6 +3880,9 @@ or struct definition.  The syntax is
         type_ptr->variant.class_struct_union.
                        any_virtual_functions_including_in_base_classes = TRUE;
       }  /* if */
+      if (base_class_type->variant.class_struct_union.any_mutable_member) {
+        type_ptr->variant.class_struct_union.any_mutable_member = TRUE;
+      }  /* if */
       /* Now create the new base class entry and add it to the end of the
          base classes list. */
       new_direct_bcp = alloc_base_class();
@@ -7469,6 +7472,7 @@ specific information about the member declaration, respectively.
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = class_state->access;
     field->is_mutable = ((decl_info->dso_flags & DSO_MUTABLE) != 0);
+    class_type->variant.class_struct_union.any_mutable_member = TRUE;
   }  /* if */
   if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
@@ -7580,6 +7584,11 @@ specific information about the member declaration, respectively.
         }  /* if */
         if (!member_cssp->assignment_by_bitwise_copy_allowed) {
           cssp->assignment_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
+        /* If the member type has mutable members, set the flag in the parent
+           type. */
+        if (tp->variant.class_struct_union.any_mutable_member) {
+          class_type->variant.class_struct_union.any_mutable_member = TRUE;
         }  /* if */
         /* A POD may not have a field with a type that is a non-POD class
            (or array thereof). */
