@@ -1599,7 +1599,7 @@ since the start of the compilation.  The value is converted to milliseconds.
   /* clock() returns a value in units of CLOCKS_PER_SEC.  Convert this value
      to milliseconds. */
   temp = cpu_time;
-  temp = (cpu_time * 1000) / CLOCKS_PER_SEC;
+  temp = (temp * 1000) / CLOCKS_PER_SEC;
   cpu_time = (clock_t)temp;
   return cpu_time;
 #else /* !__ANSIC__ */
