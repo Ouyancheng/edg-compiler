@@ -19,6 +19,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "decls.h"
 #include "il.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "error.h"
 #include "types.h"
 #include "expr.h"

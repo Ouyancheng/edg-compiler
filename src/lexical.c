@@ -26,6 +26,7 @@ and parsing of them into tokens.
 #include "debug.h"
 #include "mem_manage.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "macro.h"
 #include "il.h"
 #include "literals.h"
