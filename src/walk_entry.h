@@ -505,18 +505,21 @@ the file scope, do not process it (but record an orphan in the latter case).
           case ck_error:
           case ck_integer:
           case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             /* No pointers. */
             break;
           case ck_string:
             walk_string_ptr(ptr->variant.string.value, iek_string_text,
                             ptr->variant.string.length);
             break;
-#ifdef FFE
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
           case ck_complex:
             walk_ptr(ptr->variant.complex_value, an_internal_complex_value_ptr,
                      iek_internal_complex_value);
             break;
-#endif /* ifdef FFE */
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
           case ck_address:
             switch (ptr->variant.address.kind) {
@@ -724,6 +727,10 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_unknown:
           case tk_void:
           case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case tk_complex:
+          case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FFE
           case tk_fcharacter:
           case tk_hollerith:
@@ -1910,10 +1917,12 @@ end_sizeof:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
-#ifdef FFE
+#if FFE || C99_IL_EXTENSIONS_SUPPORTED
     case iek_internal_complex_value:
       /* No pointers. */
       break;
+#endif /* FFE || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
     case iek_bound_info_entry:
       {
         a_bound_info_entry_ptr ptr = (a_bound_info_entry_ptr)entry_ptr;
@@ -2628,6 +2637,7 @@ after_entry_from_class:
       }
       break;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:

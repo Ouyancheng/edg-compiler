@@ -1090,6 +1090,8 @@ ec_unrecognized_stdc_pragma;;"unrecognized STDC pragma"
 ec_bad_stdc_pragma_arg;;"expected \"ON\", \"OFF\", or \"DEFAULT\""
 ec_stdc_pragma_not_allowed_here;;"a STDC pragma may only appear in the global scope or as the before any statements or declarations in a block scope"
 ec_bad_va_copy;;"incorrect use of va_copy"
+ec_only_applies_to_float_types;;"%sq can only be used with floating-point types"
+ec_invalid_complex_operator;;"operator cannot be applied to complex operand"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

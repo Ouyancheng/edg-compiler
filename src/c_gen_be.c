@@ -3275,18 +3275,28 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_iadd:
         case eok_fadd:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xadd:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd:
         case eok_padd_subsc:
           opstr = "+";
           break;
         case eok_isubtract:
         case eok_fsubtract:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xsubtract:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract:
         case eok_pdiff:
           opstr = "-";
           break;
         case eok_imultiply:
         case eok_fmultiply:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xmultiply:
+        case eok_jmultiply:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "*";
           break;
         case eok_idivide:
@@ -3301,16 +3311,25 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /*FALLTHROUGH*/
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
         case eok_fdivide:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xdivide:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/";
           break;
         case eok_peq:
         case eok_ieq:
         case eok_feq:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xeq:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "==";
           break;
         case eok_pne:
         case eok_ine:
         case eok_fne:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xne:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "!=";
           break;
         case eok_pgt:
@@ -3355,16 +3374,25 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_iassign:
         case eok_fassign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xassign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_passign:
         case eok_sassign:
           opstr = "=";
           goto process_assignment;
         case eok_imultiply_assign:
         case eok_fmultiply_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xmultiply_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "*=";
           goto process_assignment;
         case eok_idivide_assign:
         case eok_fdivide_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xdivide_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/=";
           goto process_assignment;
         case eok_remainder_assign:
@@ -3383,11 +3411,17 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto process_assignment;
         case eok_iadd_assign:
         case eok_fadd_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xadd_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd_assign:
           opstr = "+=";
           goto process_assignment;
         case eok_isubtract_assign:
         case eok_fsubtract_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xsubtract_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract_assign:
           opstr = "-=";
           goto process_assignment;

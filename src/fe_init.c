@@ -235,6 +235,10 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_function_name, "__func__");
     /* Enable new type names. */
     enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
+    enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
+    enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
+    /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
+    enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
   }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type.
      __INTADDR__(addr_expr) scans its argument as an initializer

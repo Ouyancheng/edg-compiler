@@ -3175,6 +3175,39 @@ operand_1, operand_2, and operand_3, with result type result_type.
   ((ikind) == (an_integer_kind)ik_unsigned_int)
 
 
+static a_float_kind promoted_float_kind(a_float_kind  fkind_1,
+                                        a_float_kind  fkind_2)
+/*
+fkind_1 and fkind_2 represent the precision of a floating-point types
+involved in a binary operation (or fk_last if the corresponding operand
+does not have a floating-point type).  Return the precision of the
+result (i.e., the precision to which both operands should be promoted).
+If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
+*/
+{
+  a_float_kind result = (a_float_kind)fk_last;
+  if (is_long_double(fkind_1) || is_long_double(fkind_2)) {
+    /* If either operand has type "long double", the other operand is
+       converted to "long double". */
+    result = (a_float_kind)fk_long_double;
+  } else if (is_double(fkind_1) || is_double(fkind_2)) {
+    /* If either operand has type "double", the other operand is converted to
+       "double". */
+    result = (a_float_kind)fk_double;
+  } else if (is_float(fkind_1) || is_float(fkind_2)) {
+    /* If either operand has type "float", the other operand is converted to
+       "float". */
+    if (C_dialect == C_dialect_pcc) {
+      /* When in pcc mode, all float operations are done as double. */
+      result = (a_float_kind)fk_double;
+    } else {
+      result = (a_float_kind)fk_float;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* promoted_float_kind */
+
+
 static a_type_ptr determine_arithmetic_conversions_full(
                                                  an_operand *operand_1,
                                                  a_type_ptr operand_1_type,
@@ -3197,7 +3230,6 @@ Likewise for operand_2/operand_2_type.
   a_type_ptr      type_2 = (operand_2 != NULL) ? operand_2->type :
                                                  operand_2_type;
   a_type_ptr      result_type;
-  a_float_kind    fkind_1, fkind_2;
   an_integer_kind ikind_1, ikind_2;
 
   db_enter(4, "determine_arithmetic_conversions_full");
@@ -3205,6 +3237,7 @@ Likewise for operand_2/operand_2_type.
   if (is_error_type(type_1) || is_error_type(type_2)) {
     result_type = error_type();
   } else {
+    a_float_kind    fkind_1, fkind_2, result_fkind;
     /* Get past possible typerefs. */
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
@@ -3213,23 +3246,21 @@ Likewise for operand_2/operand_2_type.
                                          (a_float_kind)fk_last;
     fkind_2 = is_floating_type(type_2) ? type_2->variant.float_kind :
                                          (a_float_kind)fk_last;
-
-    if (is_long_double(fkind_1) || is_long_double(fkind_2)) {
-      /* If either operand has type "long double", the other operand is
-	 converted to "long double". */
-      result_type = float_type((a_float_kind)fk_long_double);
-    } else if (is_double(fkind_1) || is_double(fkind_2)) {
-      /* If either operand has type "double", the other operand is converted to
-         "double". */
-      result_type = float_type((a_float_kind)fk_double);
-    } else if (is_float(fkind_1) || is_float(fkind_2)) {
-      /* If either operand has type "float", the other operand is converted to
-         "float". */
-      if (C_dialect == C_dialect_pcc) {
-        /* When in pcc mode, all float operations are done as double. */
-        result_type = float_type((a_float_kind)fk_double);
-      } else {
-        result_type = float_type((a_float_kind)fk_float);
+    result_fkind = promoted_float_kind(fkind_1, fkind_2);
+    if (result_fkind != fk_last) {
+      /* One of the operands had a (possibly complex) floating-point type. */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      if (type_1->kind == (a_type_kind)tk_complex ||
+          type_2->kind == (a_type_kind)tk_complex) {
+        /* If either operand has a complex type, the domain of the result is
+           also "_Complex".  The "_Imaginary" case requires operator-specific
+           treatment, however. */
+        result_type = complex_type(result_fkind);
+      } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      /* Do not insert code here. */
+      {
+        result_type = float_type(result_fkind);
       }  /* if */
     } else {
       /* Neither operand had type float; do the integral promotions on both
@@ -3406,6 +3437,200 @@ case; see the header comment of that routine for details.
   return result_type;
 }  /* usual_arithmetic_conversions */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static void promote_operand_for_imaginary_operation(
+                                              an_operand       *operand,
+                                              a_float_kind  new_fkind,
+                                              a_boolean        complex_domain)
+/*
+Promote the given operand to a floating-point type precision specified by
+fkind.  If complex_domain is TRUE, the operand should also be promoted to
+the complex domain; otherwise, the domain of the operand (real or imaginary)
+should be preserved.
+*/
+{
+  a_type_ptr  type = operand->type;
+  a_float_kind  fkind = is_floating_type(type) ? type->variant.float_kind :
+                                                 (a_float_kind)fk_last;
+
+  check_assertion(type->kind != tk_complex);
+  if (new_fkind != fkind || complex_domain) {
+    a_type_ptr  promoted_type;
+    if (complex_domain) {
+      promoted_type = complex_type(new_fkind);
+    } else if (type->kind == tk_imaginary) {
+      promoted_type = imaginary_type(new_fkind);
+    } else {
+      promoted_type = float_type(new_fkind);
+    }  /* if */
+    cast_operand(promoted_type, operand, /*check_cast_access=*/FALSE,
+                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
+  }  /* if */
+}  /* promote_operand_for_imaginary_operation */
+
+
+void prepare_imaginary_operation(a_token_kind           op_token,
+                                 an_operand             *operand_1,
+                                 an_operand             *operand_2,
+                                 a_type_ptr             *result_type,
+                                 an_expr_operator_kind  *op)
+/*
+Operations on imaginary floating-point types are a little peculiar in the
+sense that the result type is not necessarily a type to which both operands
+(operand_1 and operand_2) are promoted.  Instead, one of the operands may be
+promoted and the result type (returned through result_type) depends on the
+particular operation (represented by op_token).  This routine also determines
+the IL operator (*op) implementing the given arithmetic operation.
+*/
+{
+  a_type_ptr    type_1 = skip_typerefs(operand_1->type),
+                type_2 = skip_typerefs(operand_2->type);
+  a_float_kind  fkind_1 = is_floating_type(type_1) ?
+                           type_1->variant.float_kind : (a_float_kind)fk_last,
+                fkind_2 = is_floating_type(type_2) ?
+                           type_2->variant.float_kind : (a_float_kind)fk_last;
+  a_float_kind  fkind_result = promoted_float_kind(fkind_1, fkind_2);
+  a_boolean     type_1_is_imaginary =
+                                  (type_1->kind == (a_type_kind)tk_imaginary),
+                type_2_is_imaginary =
+                                  (type_2->kind == (a_type_kind)tk_imaginary);
+
+  check_assertion(type_1_is_imaginary || type_2_is_imaginary);
+  /* Determine the appropriate IL operator and corresponding result type. */
+  switch (op_token) {
+    case tok_plus:
+      fkind_result = promoted_float_kind(fkind_1, fkind_2);
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *op = (an_expr_operator_kind)eok_fadd;
+        *result_type = imaginary_type(fkind_result);
+      } else {
+        *op = (an_expr_operator_kind)eok_xadd;
+        *result_type = complex_type(fkind_result);
+      }  /* if */
+      break;
+    case tok_minus:
+      fkind_result = promoted_float_kind(fkind_1, fkind_2);
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *op = (an_expr_operator_kind)eok_fsubtract;
+        *result_type = imaginary_type(fkind_result);
+      } else {
+        *op = (an_expr_operator_kind)eok_xsubtract;
+        *result_type = complex_type(fkind_result);
+      }  /* if */
+      break;
+    case tok_star:
+      fkind_result = promoted_float_kind(fkind_1, fkind_2);
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *op = (an_expr_operator_kind)eok_jmultiply;
+        *result_type = float_type(fkind_result);
+      } else {
+        *op = (an_expr_operator_kind)eok_fmultiply;
+        *result_type = imaginary_type(fkind_result);
+      }  /* if */
+      break;
+    case tok_divide:
+      fkind_result = promoted_float_kind(fkind_1, fkind_2);
+      *op = (an_expr_operator_kind)eok_fdivide;
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *result_type = float_type(fkind_result);
+      } else {
+        *result_type = imaginary_type(fkind_result);
+      }  /* if */
+      break;
+    case tok_assign:
+      fkind_result = fkind_1;
+      *op = (an_expr_operator_kind)eok_fassign;
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *result_type = type_1;
+      } else {
+        pos_ty2_error(ec_incompatible_assignment_operands,
+                      &error_position, type_2, type_1);
+        *result_type = error_type();
+      }  /* if */
+      break;
+    case tok_plus_assign:
+      fkind_result = fkind_1;
+      *op = (an_expr_operator_kind)eok_fadd_assign;
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *result_type = type_1;
+      } else {
+        pos_ty2_error(ec_incompatible_operands,
+                      &error_position, type_2, type_1);
+        *result_type = error_type();
+      }  /* if */
+      break;
+    case tok_minus_assign:
+      fkind_result = fkind_1;
+      *op = (an_expr_operator_kind)eok_fsubtract_assign;
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *result_type = type_1;
+      } else {
+        pos_ty2_error(ec_incompatible_operands,
+                      &error_position, type_2, type_1);
+        *result_type = error_type();
+      }  /* if */
+      break;
+    case tok_times_assign:
+      fkind_result = fkind_1;
+      *op = (an_expr_operator_kind)eok_fmultiply_assign;
+      if (type_1_is_imaginary && !is_nonreal_floating_type(type_2)) {
+        *result_type = type_1;
+      } else {
+        pos_ty2_error(ec_incompatible_operands,
+                      &error_position, type_2, type_1);
+        *result_type = error_type();
+      }  /* if */
+      break;
+    case tok_divide_assign:
+      fkind_result = fkind_1;
+      *op = (an_expr_operator_kind)eok_fdivide_assign;
+      if (type_1_is_imaginary && !is_nonreal_floating_type(type_2)) {
+        *result_type = type_1;
+      } else {
+        pos_ty2_error(ec_incompatible_operands,
+                      &error_position, type_2, type_1);
+        *result_type = error_type();
+      }  /* if */
+      break;
+    case tok_eq:
+      fkind_result = promoted_float_kind(fkind_1, fkind_2);
+      *op = (an_expr_operator_kind)eok_feq;
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *result_type = imaginary_type(fkind_result);
+      } else {
+        pos_ty2_error(ec_incompatible_operands,
+                      &error_position, type_2, type_1);
+        *result_type = error_type();
+      }  /* if */
+      break;
+    case tok_ne:
+      fkind_result = promoted_float_kind(fkind_1, fkind_2);
+      *op = (an_expr_operator_kind)eok_fne;
+      if (type_1_is_imaginary && type_2_is_imaginary) {
+        *result_type = imaginary_type(fkind_result);
+      } else {
+        pos_ty2_error(ec_incompatible_operands,
+                      &error_position, type_2, type_1);
+        *result_type = error_type();
+      }  /* if */
+      break;
+    default:
+      error(ec_invalid_complex_operator);
+      *result_type = error_type();
+  }  /* switch */
+  if (!is_error_type(*result_type)) {
+    promote_operand_for_imaginary_operation(
+     operand_1, fkind_result, (*result_type)->kind == (a_type_kind)tk_complex);
+    promote_operand_for_imaginary_operation(
+     operand_2, fkind_result, (*result_type)->kind == (a_type_kind)tk_complex);
+  } else {
+    *op = (an_expr_operator_kind)eok_error;
+  }  /* if */
+}  /* prepare_imaginary_operation */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -4395,6 +4620,92 @@ type is an error type, return eok_error.
 #endif /* CHECKING */
       }  /* switch */
       break;
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+      switch (token) {
+	case tok_plus:
+	  op = (an_expr_operator_kind)eok_fadd;
+	  break;
+	case tok_minus:
+	  op = (an_expr_operator_kind)eok_fsubtract;
+	  break;
+        case tok_star:
+          op = (an_expr_operator_kind)eok_jmultiply;
+          break;
+        case tok_divide:
+          op = (an_expr_operator_kind)eok_fdivide;
+          break;
+	case tok_eq:
+	  op = (an_expr_operator_kind)eok_feq;
+	  break;
+	case tok_ne:
+	  op = (an_expr_operator_kind)eok_fne;
+	  break;
+	case tok_assign:
+	  op = (an_expr_operator_kind)eok_fassign;
+	  break;
+	case tok_times_assign:
+	  op = (an_expr_operator_kind)eok_fmultiply_assign;
+	  break;
+	case tok_divide_assign:
+	  op = (an_expr_operator_kind)eok_fdivide_assign;
+	  break;
+	case tok_plus_assign:
+	  op = (an_expr_operator_kind)eok_fadd_assign;
+	  break;
+	case tok_minus_assign:
+	  op = (an_expr_operator_kind)eok_fsubtract_assign;
+	  break;
+#if CHECKING
+        default:
+	  internal_error("which_binary_operator: bad float operator");
+#endif /* CHECKING */
+      }  /* switch */
+      break;
+
+    case tk_complex:
+      switch (token) {
+	case tok_plus:
+	  op = (an_expr_operator_kind)eok_xadd;
+	  break;
+	case tok_minus:
+	  op = (an_expr_operator_kind)eok_xsubtract;
+	  break;
+        case tok_star:
+          op = (an_expr_operator_kind)eok_xmultiply;
+          break;
+        case tok_divide:
+          op = (an_expr_operator_kind)eok_xdivide;
+          break;
+	case tok_eq:
+	  op = (an_expr_operator_kind)eok_xeq;
+	  break;
+	case tok_ne:
+	  op = (an_expr_operator_kind)eok_xne;
+	  break;
+	case tok_assign:
+	  op = (an_expr_operator_kind)eok_xassign;
+	  break;
+	case tok_times_assign:
+	  op = (an_expr_operator_kind)eok_xmultiply_assign;
+	  break;
+	case tok_divide_assign:
+	  op = (an_expr_operator_kind)eok_xdivide_assign;
+	  break;
+	case tok_plus_assign:
+	  op = (an_expr_operator_kind)eok_xadd_assign;
+	  break;
+	case tok_minus_assign:
+	  op = (an_expr_operator_kind)eok_xsubtract_assign;
+	  break;
+#if CHECKING
+        default:
+	  internal_error("which_binary_operator: bad float operator");
+#endif /* CHECKING */
+      }  /* switch */
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
     case tk_pointer:
       switch (token) {

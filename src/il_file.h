@@ -89,8 +89,10 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   1 /* iek_id_name */,
   1 /* iek_string_text */,
   1 /* iek_other_text */,
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   sizeof(an_internal_complex_value),
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
   sizeof(a_bound_info_entry),
   sizeof(a_do_loop),
   sizeof(a_label_list_entry),

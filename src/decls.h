@@ -94,6 +94,21 @@ Microsoft extensions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Macro to be used in conjunction with is_type_keyword to check for C99
+extensions.
+*/
+#if C99_IL_EXTENSIONS_SUPPORTED
+#define or_is_c99_type_keyword(tok)                                       \
+  || (c99_mode &&                                                         \
+      ((tok) == tok_c99_bool  ||                                          \
+       (tok) == tok_c99_complex || (tok) == tok_c99_imaginary))
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define or_is_c99_type_keyword(tok)                                       \
+  || (c99_mode && (tok) == tok_c99_bool)
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+
+/*
 Macro that is TRUE if the indicated token is a type keyword, e.g., int.
 If you change this, see also type_keyword.
 */
@@ -103,7 +118,8 @@ If you change this, see also type_keyword.
    (tok) == tok_long     || (tok) == tok_float    ||                  \
    (tok) == tok_double   || (tok) == tok_signed   ||                  \
    (tok) == tok_unsigned || (tok) == tok_wchar_t  ||                  \
-   (tok) == tok_bool     || (tok) == tok_c99_bool                     \
+   (tok) == tok_bool                                                  \
+   or_is_c99_type_keyword(tok)                                        \
    or_is_microsoft_type_keyword(tok))
 
 /*

@@ -729,6 +729,14 @@ extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 extern a_type_ptr usual_arithmetic_conversions(a_type_ptr operand_1_type,
                                                a_type_ptr operand_2_type);
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+extern void prepare_imaginary_operation(a_token_kind           op_token,
+                                        an_operand             *operand_1,
+                                        an_operand             *operand_2,
+                                        a_type_ptr             *result_type,
+                                        an_expr_operator_kind  *op);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                an_operand *operand,

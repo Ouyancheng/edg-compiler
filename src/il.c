@@ -60,6 +60,10 @@ static a_type_ptr microsoft_sized_int_types[(int)ik_last];
 static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static a_type_ptr float_types[(int)fk_last];
+#if C99_IL_EXTENSIONS_SUPPORTED
+static a_type_ptr complex_types[(int)fk_last];
+static a_type_ptr imaginary_types[(int)fk_last];
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
 static a_type_ptr string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr wide_string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
@@ -839,6 +843,12 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
         }  /* if */
         break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
+      case tk_imaginary:
+        fprintf(f_debug, tp->kind == (a_type_kind)tk_complex ? "_Complex "
+                                                             : "_Imaginary ");
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_float:
         fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
         break;
@@ -3493,6 +3503,9 @@ nonidentical.
         }  /* if */
         break;
       case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         cp1_type = skip_typerefs(cp1_type);
         if (is_floating_type(cp1_type)) {
           eq = (fp_compare(cp1_type->variant.float_kind,
@@ -3783,6 +3796,8 @@ region).
     case ck_error:
     case ck_integer:
     case ck_float:
+    case ck_imaginary:
+    case ck_complex:
       /* No references. */
       break;
     case ck_string:
@@ -3909,6 +3924,13 @@ put it on a list of constants).
        Those with assoc_info non-NULL were handled above.  For others, make a
        new copy every time. */
     scp = alloc_unshared_constant(cp);
+#if C99_IL_EXTENSIONS_SUPPORTED
+  } else if (cp->kind == (a_constant_repr_kind)ck_complex) {
+    /* Sharing complex constants could lead to IL walk complications due to
+       the an_internal_complex_value entity that they point to (always
+       allocated in file scope). */
+    scp = alloc_unshared_constant(cp);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else {
     /* The constant has no source correspondence. */
     /* If the current IL region is not the file scope region (i.e., it's
@@ -5048,6 +5070,60 @@ return a pointer to it.
   return pft;
 }  /* float_type */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+a_type_ptr complex_type(a_float_kind kind)
+/*
+Make or find a type entry for a complex type of the indicated kind, and
+return a pointer to it.
+*/
+{
+  a_type_ptr pft;
+
+  if (complex_types[kind] != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pft = complex_types[kind];
+  } else {
+    /* The type must be created. */
+    complex_types[kind] = pft = alloc_type((a_type_kind)tk_complex);
+    pft->variant.float_kind = kind;
+    set_type_size(pft);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pft, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  }  /* if */
+  return pft;
+}  /* complex_type */
+
+
+a_type_ptr imaginary_type(a_float_kind kind)
+/*
+Make or find a type entry for a imaginary type of the indicated kind, and
+return a pointer to it.
+*/
+{
+  a_type_ptr pft;
+
+  if (imaginary_types[kind] != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pft = imaginary_types[kind];
+  } else {
+    /* The type must be created. */
+    imaginary_types[kind] = pft = alloc_type((a_type_kind)tk_imaginary);
+    pft->variant.float_kind = kind;
+    set_type_size(pft);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pft, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  }  /* if */
+  return pft;
+}  /* imaginary_type */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_type_ptr string_type(a_targ_size_t num_chars)
 /*

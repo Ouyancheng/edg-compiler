@@ -287,32 +287,60 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 *err_code == ec_no_error if everything went fine.
 */
 {
-  a_host_large_integer	old_value;
-  a_host_large_unsigned	unsigned_old_value;
-  a_boolean     	err;
-  a_type_ptr    	constant_type = skip_typerefs(new_constant->type);
-  a_float_kind  	float_kind = constant_type->variant.float_kind;
+  a_host_large_integer    old_value;
+  a_host_large_unsigned   unsigned_old_value;
+  a_boolean               err, accum_err = FALSE;
+  a_type_ptr              float_type = skip_typerefs(new_constant->type);
+  a_constant_repr_kind    constant_kind = (a_constant_repr_kind)ck_float;
+  a_float_kind            float_kind = float_type->variant.float_kind;
+  an_internal_float_value *float_value;
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+  /* We may be converting to a nonreal floating type. */
+  if (float_type->kind == (a_type_kind)tk_complex) {
+    constant_kind = (a_constant_repr_kind)ck_complex;
+  } else if (float_type->kind == (a_type_kind)tk_imaginary) {
+    constant_kind = (a_constant_repr_kind)ck_imaginary;
+  }
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(new_constant, (a_constant_repr_kind)ck_float);
+  set_constant_kind(new_constant, constant_kind);
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+  if (float_type->kind == (a_type_kind)tk_complex) {
+    float_value = &new_constant->variant.complex_value->real;
+    fp_string_to_float(float_kind, "+0.0",
+                       &new_constant->variant.complex_value->imag, &err);
+    accum_err |= err;
+  } else if (float_type->kind == (a_type_kind)tk_imaginary) {
+    fp_string_to_float(float_kind, "+0.0", &new_constant->variant.float_value,
+                       &err);
+    accum_err |= err;
+    goto conversion_done;
+  } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* Do not insert code here. */
+  {
+    float_value = &new_constant->variant.float_value;
+  }  /* if */
   if (int_constant_is_signed(old_constant)) {
     /* The source is a signed integer value. */
     old_value = value_of_integer_constant(old_constant, &err);
+    accum_err |= err;
     if (!err) {
-      fp_host_large_integer_to_float(float_kind, old_value,
-                                     &new_constant->variant.float_value, &err);
+      fp_host_large_integer_to_float(float_kind, old_value, float_value, &err);
     }  /* if */
   } else {
     /* The source is an unsigned integer value. */
     unsigned_old_value = unsigned_value_of_integer_constant(old_constant,
                                                             &err);
+    accum_err |= err;
     if (!err) {
       fp_host_large_unsigned_to_float(float_kind, unsigned_old_value, 
-                                      &new_constant->variant.float_value,
-                                      &err);
+                                      float_value, &err);
     }  /* if */
   }  /* if */
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -320,11 +348,14 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     /* Try again with larger precision by converting the integer to a
        character string then converting the string to a float value. */
     char *str = str_for_integer_constant(old_constant);
-    fp_string_to_float(float_kind, str, &new_constant->variant.float_value,
-                       &err);
+    fp_string_to_float(float_kind, str, float_value, &err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  if (err) {
+#if C99_IL_EXTENSIONS_SUPPORTED
+conversion_done:;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+  if (accum_err) {
     /* Some error. */
     *err_code = ec_integer_to_float_conversion;
     *err_severity = es_error;
@@ -346,12 +377,28 @@ is returned TRUE if the result has been determined but might be different
 depending on the rounding mode.
 */
 {
-  a_host_large_integer	int_value;
-  a_host_large_unsigned	unsigned_int_value;
-  an_integer_value	result_value;
-  a_boolean        	err, is_signed;
-  a_float_kind     	float_kind =
-                         skip_typerefs(old_constant->type)->variant.float_kind;
+  a_host_large_integer    int_value;
+  a_host_large_unsigned   unsigned_int_value;
+  an_integer_value	  result_value;
+  a_boolean        	  err, is_signed;
+  a_type_ptr              float_type = skip_typerefs(old_constant->type);
+  a_float_kind     	  float_kind = float_type->variant.float_kind;
+  an_internal_float_value *float_value;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  an_internal_float_value zero;
+
+  if (float_type->kind == (a_type_kind)tk_complex) {
+    float_value = &old_constant->variant.complex_value->real;
+  } else if (float_type->kind == (a_type_kind)tk_imaginary) {
+    a_boolean  err = FALSE;
+    fp_string_to_float(float_kind, "+0.0", &zero, &err);
+    float_value = &zero;
+  }
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* Do not insert code here. */
+  {
+    float_value = &old_constant->variant.float_value;
+  }  /* if */
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -359,12 +406,12 @@ depending on the rounding mode.
   is_signed = int_constant_is_signed(new_constant);
   if (is_signed) {
     /* Destination is a signed integer. */
-    fp_to_host_large_integer(float_kind, &old_constant->variant.float_value,
+    fp_to_host_large_integer(float_kind, float_value,
                              &int_value, &err, depends_on_rounding_mode);
     if (!err) set_integer_value(&result_value, int_value);
   } else {
     /* Destination is an unsigned integer. */
-    fp_to_host_large_unsigned(float_kind, &old_constant->variant.float_value,
+    fp_to_host_large_unsigned(float_kind, float_value,
                               &unsigned_int_value, &err,
                               depends_on_rounding_mode);
     if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
@@ -373,7 +420,7 @@ depending on the rounding mode.
   if (err) {
     /* Try again with larger precision by converting the float to a
        character string then converting the string to an integer value. */
-    char *str = fp_to_string(float_kind, &old_constant->variant.float_value);
+    char *str = fp_to_string(float_kind, float_value);
     conv_float_string_to_integer_value(str, &result_value, is_signed, &err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -389,11 +436,12 @@ depending on the rounding mode.
 }  /* conv_float_to_integer */
 
 
-static void conv_float_to_float(a_constant        *old_constant,
-			        a_constant        *new_constant,
-			        an_error_code     *err_code,
-				an_error_severity *err_severity,
-                                a_boolean         *depends_on_rounding_mode)
+static void conv_float_to_float(a_constant           *old_constant,
+			        a_constant           *new_constant,
+                                a_constant_repr_kind new_constant_kind,
+			        an_error_code        *err_code,
+				an_error_severity    *err_severity,
+                                a_boolean            *depends_on_rounding_mode)
 /*
 Convert a float of some kind (in *old_constant) to a float constant
 in *new_constant, with type as indicated therein.  Return *err_code and
@@ -404,18 +452,94 @@ depending on the rounding mode.
 */
 {
   a_boolean    err;
-  a_float_kind old_kind =
-                         skip_typerefs(old_constant->type)->variant.float_kind;
-  a_float_kind float_kind =
-                         skip_typerefs(new_constant->type)->variant.float_kind;
-
+  a_type_ptr   old_type = skip_typerefs(old_constant->type);
+  a_type_ptr   new_type = skip_typerefs(new_constant->type);
+  a_float_kind old_kind = old_type->variant.float_kind;
+  a_float_kind new_kind = new_type->variant.float_kind;
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(new_constant, (a_constant_repr_kind)ck_float);
-  fp_change_kind(&old_constant->variant.float_value, old_kind,
-                 &new_constant->variant.float_value, float_kind,
-                 &err, depends_on_rounding_mode);
+  set_constant_kind(new_constant, new_constant_kind);
+#if C99_IL_EXTENSIONS_SUPPORTED
+  if ((old_type->kind != (a_type_kind)tk_float ||
+       new_type->kind != (a_type_kind)tk_float) &&
+      (old_type->kind != (a_type_kind)tk_imaginary ||
+       new_type->kind != (a_type_kind)tk_imaginary)) {
+    switch (old_type->kind) {
+      case tk_float:
+        switch (new_type->kind) {
+          case tk_imaginary:
+            fp_string_to_float(new_kind, "+0.0",
+                               &new_constant->variant.float_value,
+                               &err);
+            break;
+          case tk_complex:
+            fp_change_kind(&old_constant->variant.float_value, old_kind,
+                           &new_constant->variant.complex_value->real, new_kind,
+                           &err, depends_on_rounding_mode);
+            fp_string_to_float(new_kind, "+0.0",
+                               &new_constant->variant.complex_value->imag,
+                               &err);
+            break;
+        }  /* switch */
+        break;
+      case tk_imaginary:
+        switch (new_type->kind) {
+          case tk_float:
+            fp_string_to_float(new_kind, "+0.0",
+                               &new_constant->variant.float_value,
+                               &err);
+            break;
+          case tk_complex:
+            fp_string_to_float(new_kind, "+0.0",
+                               &new_constant->variant.complex_value->real,
+                               &err);
+            fp_change_kind(&old_constant->variant.float_value, old_kind,
+                           &new_constant->variant.complex_value->imag, new_kind,
+                           &err, depends_on_rounding_mode);
+            break;
+        }  /* switch */
+        break;
+      case tk_complex:
+        switch (new_type->kind) {
+          case tk_float:
+            /* Retain the real part only. */
+            fp_change_kind(&old_constant->variant.complex_value->real, old_kind,
+                           &new_constant->variant.float_value, new_kind,
+                           &err, depends_on_rounding_mode);
+            break;
+          case tk_imaginary:
+            /* Retain the imaginary part only. */
+            fp_change_kind(&old_constant->variant.complex_value->imag, old_kind,
+                           &new_constant->variant.float_value, new_kind,
+                           &err, depends_on_rounding_mode);
+            break;
+          case tk_complex:
+            /* This is similar to the float-float or imaginary-imaginary cases,
+               but both the real and the imaginary components must change. */
+            fp_change_kind(&old_constant->variant.complex_value->real, old_kind,
+                           &new_constant->variant.complex_value->real, new_kind,
+                           &err, depends_on_rounding_mode);
+            fp_change_kind(&old_constant->variant.complex_value->imag, old_kind,
+                           &new_constant->variant.complex_value->imag, new_kind,
+                           &err, depends_on_rounding_mode);
+            break;
+        }  /* switch */
+        break;
+#if CHECKING
+      default:
+        internal_error("conv_float_ot_float: bad floating-point type");
+#endif /* CHECKING */
+    }  /* switch */
+  } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  {
+    /* Singular floating-point types in the same domain (i.e., two real or
+       imaginary constants). */
+    fp_change_kind(&old_constant->variant.float_value, old_kind,
+                   &new_constant->variant.float_value, new_kind,
+                   &err, depends_on_rounding_mode);
+  }  /* if */
   if (err) {
     *err_code = ec_float_to_float_conversion;
     *err_severity = es_error;
@@ -1283,6 +1407,10 @@ to the constant is maintained, by adding a cast if necessary.
                                   &err_code, &err_severity);
           break;
         case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_imaginary:
+        case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           /* Converting integer to float. */
           conv_integer_to_float(constant, &new_constant,
                                 &err_code, &err_severity);
@@ -1314,7 +1442,53 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting float to float. */
-          conv_float_to_float(constant, &new_constant,
+          conv_float_to_float(constant, &new_constant, ck_float,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_imaginary:
+          /* Converting float to imaginary (results in zero). */
+          conv_float_to_float(constant, &new_constant, ck_imaginary,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+        case tk_complex:
+          /* Converting float to complex. */
+          conv_float_to_float(constant, &new_constant, ck_complex,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if CHECKING
+        default:
+          internal_error("type_change_constant: float to bad type");
+#endif /* CHECKING */
+      }  /* switch */
+      break;
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+      switch (new_type->kind) {
+        case tk_integer:
+          /* Converting imaginary to integer. */
+          conv_float_to_integer(constant, &new_constant,
+                                &err_code, &err_severity,
+                                &depends_on_rounding_mode);
+          break;
+        case tk_float:
+          /* Converting float to float. */
+          conv_float_to_float(constant, &new_constant, ck_float,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+        case tk_imaginary:
+          conv_float_to_float(constant, &new_constant, ck_imaginary,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+        case tk_complex:
+          conv_float_to_float(constant, &new_constant, ck_complex,
                               &err_code, &err_severity,
                               &depends_on_rounding_mode);
           break;
@@ -1324,6 +1498,38 @@ to the constant is maintained, by adding a cast if necessary.
 #endif /* CHECKING */
       }  /* switch */
       break;
+
+    case tk_complex:
+      switch (new_type->kind) {
+        case tk_integer:
+          /* Converting complex to integer. */
+          conv_float_to_integer(constant, &new_constant,
+                                &err_code, &err_severity,
+                                &depends_on_rounding_mode);
+          break;
+        case tk_float:
+          /* Converting complex to float. */
+          conv_float_to_float(constant, &new_constant, ck_float,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+        case tk_imaginary:
+          conv_float_to_float(constant, &new_constant, ck_imaginary,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+        case tk_complex:
+          conv_float_to_float(constant, &new_constant, ck_complex,
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
+          break;
+#if CHECKING
+        default:
+          internal_error("type_change_constant: float to bad type");
+#endif /* CHECKING */
+      }  /* switch */
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
     case tk_pointer:
       /* Converting from pointer. */
@@ -1455,11 +1661,23 @@ Return TRUE if the constant is an integer or floating zero.
       !constant->implicit_cast) {
     is_zero = (cmplit_integer_constant(constant,
                                        (a_host_large_integer)0) == 0);
-  } else if (constant->kind == (a_constant_repr_kind)ck_float) {
+  } else if (constant->kind == (a_constant_repr_kind)ck_float
+#if C99_IL_EXTENSIONS_SUPPORTED
+             || constant->kind == (a_constant_repr_kind)ck_imaginary
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+                                                                    ) {
     float_kind = skip_typerefs(constant->type)->variant.float_kind;
     is_zero = fp_is_zero_constant(float_kind,
                                   &constant->variant.float_value);
-  }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  } else if (constant->kind == (a_constant_repr_kind)ck_complex) {
+    float_kind = skip_typerefs(constant->type)->variant.float_kind;
+    is_zero = fp_is_zero_constant(float_kind,
+                                  &constant->variant.complex_value->real) &&
+              fp_is_zero_constant(float_kind,
+                                  &constant->variant.complex_value->imag);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+   }  /* if */
   return is_zero;
 }  /* is_zero_constant */
 
@@ -2344,7 +2562,7 @@ static void do_fadd(a_constant        *constant_1,
 		    an_error_severity *err_severity,
                     a_boolean         *depends_on_rounding_mode)
 /*
-Do the addition operation on all types of float.
+Do the addition operation on all types of float and imaginary values.
 */
 {
   a_boolean    err;
@@ -2354,7 +2572,8 @@ Do the addition operation on all types of float.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(result, (a_constant_repr_kind)ck_float);
+  check_assertion(constant_1->kind == constant_2->kind);
+  set_constant_kind(result, constant_1->kind);
   fp_add(float_kind,
          &constant_1->variant.float_value,
          &constant_2->variant.float_value,
@@ -2378,7 +2597,7 @@ static void do_fsubtract(a_constant        *constant_1,
 			 an_error_severity *err_severity,
                          a_boolean         *depends_on_rounding_mode)
 /*
-Do the subtraction operation on all types of float.
+Do the subtraction operation on all types of float and imaginary values.
 */
 {
   a_boolean    err;
@@ -2388,7 +2607,8 @@ Do the subtraction operation on all types of float.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(result, (a_constant_repr_kind)ck_float);
+  check_assertion(constant_1->kind == constant_2->kind);
+  set_constant_kind(result, constant_1->kind);
   fp_subtract(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
@@ -2406,10 +2626,10 @@ Do the subtraction operation on all types of float.
 
 
 static void do_fmultiply(a_constant        *constant_1,
-		         a_constant        *constant_2,
-		         a_constant        *result,
-		         an_error_code     *err_code,
-			 an_error_severity *err_severity,
+                         a_constant        *constant_2,
+                         a_constant        *result,
+                         an_error_code     *err_code,
+                         an_error_severity *err_severity,
                          a_boolean         *depends_on_rounding_mode)
 /*
 Do the multiplication operation on all types of float.
@@ -2537,6 +2757,333 @@ relational operator "op", and return a 0 or 1 integer in "result".
 #endif /* DEBUG */
 }  /* do_fcompare */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+static void do_xadd(a_constant        *constant_1,
+		    a_constant        *constant_2,
+		    a_constant        *result,
+		    an_error_code     *err_code,
+		    an_error_severity *err_severity,
+                    a_boolean         *depends_on_rounding_mode)
+/*
+Do the addition operation on all types of complex.
+*/
+{
+  a_boolean    err, accum_err = FALSE;
+  a_type_ptr   constant_type = skip_typerefs(constant_1->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+  fp_add(float_kind,
+         &constant_1->variant.complex_value->real,
+         &constant_2->variant.complex_value->real,
+         &result->variant.complex_value->real, &err,
+         depends_on_rounding_mode);
+  accum_err |= err;
+  fp_add(float_kind,
+         &constant_1->variant.complex_value->imag,
+         &constant_2->variant.complex_value->imag,
+         &result->variant.complex_value->imag, &err,
+         depends_on_rounding_mode);
+  accum_err |= err;
+  if (accum_err) {
+    *err_code = ec_bad_float_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("x+", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_xadd */
+
+
+static void do_xsubtract(a_constant        *constant_1,
+                         a_constant        *constant_2,
+                         a_constant        *result,
+                         an_error_code     *err_code,
+                         an_error_severity *err_severity,
+                         a_boolean         *depends_on_rounding_mode)
+/*
+Do the subtraction operation on all types of complex.
+*/
+{
+  a_boolean    err, accum_err = FALSE;
+  a_type_ptr   constant_type = skip_typerefs(constant_1->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+  fp_subtract(float_kind,
+              &constant_1->variant.complex_value->real,
+              &constant_2->variant.complex_value->real,
+              &result->variant.complex_value->real, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_subtract(float_kind,
+              &constant_1->variant.complex_value->imag,
+              &constant_2->variant.complex_value->imag,
+              &result->variant.complex_value->imag, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  if (accum_err) {
+    *err_code = ec_bad_float_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("x-", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_xsubtract */
+
+
+static void do_xmultiply(a_constant        *constant_1,
+                         a_constant        *constant_2,
+                         a_constant        *result,
+                         an_error_code     *err_code,
+                         an_error_severity *err_severity,
+                         a_boolean         *depends_on_rounding_mode)
+/*
+Do the multiplication operation on all types of complex.
+FIXME: This is an oversimplified algorithm that can exhibit dynamic range
+       problems (e.g., catastrophic cancellation).
+*/
+{
+  a_boolean                err, accum_err = FALSE;
+  a_type_ptr               constant_type = skip_typerefs(constant_1->type);
+  a_float_kind             float_kind = constant_type->variant.float_kind;
+  an_internal_float_value  temp_value;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+  /* Compute real part of the result. */
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->real,
+              &constant_2->variant.complex_value->real,
+              &result->variant.complex_value->real, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->imag,
+              &constant_2->variant.complex_value->imag,
+              &temp_value, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_subtract(float_kind, &result->variant.complex_value->real, &temp_value,
+              &result->variant.complex_value->real,
+              &err, depends_on_rounding_mode);
+  accum_err |= err;
+  /* Compute imaginary part of the result. */
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->real,
+              &constant_2->variant.complex_value->imag,
+              &result->variant.complex_value->imag, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->imag,
+              &constant_2->variant.complex_value->real,
+              &temp_value, &err, depends_on_rounding_mode);
+  accum_err |= err;
+  fp_add(float_kind, &result->variant.complex_value->imag, &temp_value,
+         &result->variant.complex_value->imag,
+         &err, depends_on_rounding_mode);
+  accum_err |= err;
+  if (accum_err) {
+    *err_code = ec_bad_float_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("x*", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_xmultiply */
+
+
+static void do_xdivide(a_constant        *constant_1,
+                       a_constant        *constant_2,
+                       a_constant        *result,
+                       an_error_code     *err_code,
+                       an_error_severity *err_severity,
+                       a_boolean         *depends_on_rounding_mode)
+/*
+Do the division operation on all types of complex.
+FIXME: This is an oversimplified algorithm that can exhibit dynamic range
+       problems (e.g., catastrophic cancelation).
+*/
+{
+  a_boolean                err, accum_err = FALSE;
+  a_type_ptr               constant_type = skip_typerefs(constant_1->type);
+  a_float_kind             float_kind = constant_type->variant.float_kind;
+  
+  an_internal_float_value  quad_norm, temp_value;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+  /* Compute the real value quad_norm = real_2*real_2 - imag_2*imag_2. */
+  fp_multiply(float_kind,
+              &constant_2->variant.complex_value->real,
+              &constant_2->variant.complex_value->real,
+              &quad_norm, &err, depends_on_rounding_mode);
+  accum_err |= err;
+  fp_multiply(float_kind,
+              &constant_2->variant.complex_value->imag,
+              &constant_2->variant.complex_value->imag,
+              &temp_value, &err, depends_on_rounding_mode);
+  accum_err |= err;
+  fp_add(float_kind, &quad_norm, &temp_value, &quad_norm,
+         &err, depends_on_rounding_mode);
+  accum_err |= err;
+  /* Compute real part of the result. */
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->real,
+              &constant_2->variant.complex_value->real,
+              &result->variant.complex_value->real, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->imag,
+              &constant_2->variant.complex_value->imag,
+              &temp_value, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_add(float_kind, &result->variant.complex_value->real, &temp_value,
+         &result->variant.complex_value->real,
+         &err, depends_on_rounding_mode);
+  accum_err |= err;
+  fp_divide(float_kind, &result->variant.complex_value->real, &quad_norm,
+            &result->variant.complex_value->real,
+            &err, depends_on_rounding_mode);
+  accum_err |= err;
+  /* Compute imaginary part of the result. */
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->real,
+              &constant_2->variant.complex_value->imag,
+              &result->variant.complex_value->imag, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_multiply(float_kind,
+              &constant_1->variant.complex_value->imag,
+              &constant_2->variant.complex_value->real,
+              &temp_value, &err, depends_on_rounding_mode);
+  accum_err |= err;
+  fp_subtract(float_kind, &temp_value, &result->variant.complex_value->imag,
+              &result->variant.complex_value->imag,
+              &err, depends_on_rounding_mode);
+  accum_err |= err;
+  fp_divide(float_kind, &result->variant.complex_value->imag, &quad_norm,
+            &result->variant.complex_value->imag,
+            &err, depends_on_rounding_mode);
+  accum_err |= err;
+  if (accum_err) {
+    *err_code = ec_bad_float_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("x/", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_xdivide */
+
+
+static void do_xcompare(a_constant            *constant_1,
+                        an_expr_operator_kind op,
+                        a_constant            *constant_2,
+                        a_constant            *result)
+/*
+Compare complex constants constant_1 and constant_2 according to the
+relational operator "op", and return a 0 or 1 integer in "result".
+Unlike real values, no ordering can be tested: only equality (or lack
+thereof).
+*/
+{
+  int          real_cmp, imag_cmp;
+  int          result_value;
+  a_boolean    real_unordered, imag_unordered;
+  a_float_kind float_kind =
+                           skip_typerefs(constant_1->type)->variant.float_kind;
+
+  /* Develop a strcmp-like relation value in cmp:
+       constant_1 > constant_2   1
+       constant_1 = constant_2   0
+       constant_1 < constant_2  -1
+     "unordered" is set if the two values are unordered with respect to one
+     another.
+  */
+  real_cmp = fp_compare(float_kind,
+                        &constant_1->variant.complex_value->real,
+                        &constant_2->variant.complex_value->real,
+                        &real_unordered);
+  imag_cmp = fp_compare(float_kind,
+                        &constant_1->variant.complex_value->imag,
+                        &constant_2->variant.complex_value->imag,
+                        &imag_unordered);
+  /* Now determine the result value for this particular operator. */
+  /* If two values are unordered, they are unequal.  This is needed for
+     NaN != NaN. */
+  result_value = (real_cmp != 0) || (imag_cmp != 0) ||
+                 real_unordered || imag_unordered;
+  if (op == (an_expr_operator_kind)eok_xeq) {
+    result_value = !result_value;
+  } else {
+    check_assertion(op == (an_expr_operator_kind)eok_xne);
+  }  /* if */
+  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+  set_integer_value(&result->variant.integer_value,
+                    (a_host_large_integer)result_value);
+
+#if DEBUG
+  db_binary_operation(db_operator_names[op],
+                      constant_1, constant_2, result, ec_no_error);
+#endif /* DEBUG */
+}  /* do_xcompare */
+
+
+static void do_jmultiply(a_constant        *constant_1,
+                         a_constant        *constant_2,
+                         a_constant        *result,
+                         an_error_code     *err_code,
+                         an_error_severity *err_severity,
+                         a_boolean         *depends_on_rounding_mode)
+/*
+Do the multiplication operation on two imaginary numbers (any precision).
+*/
+{
+  a_boolean    err, accum_err = FALSE;
+  a_type_ptr   constant_type = skip_typerefs(constant_1->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_float);
+  fp_multiply(float_kind,
+              &constant_1->variant.float_value,
+              &constant_2->variant.float_value,
+              &result->variant.float_value, &err,
+              depends_on_rounding_mode);
+  accum_err |= err;
+  fp_negate(float_kind, &result->variant.float_value,
+            &result->variant.float_value, &err);
+  accum_err |= err;
+  if (accum_err) {
+    *err_code = ec_bad_float_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("j*", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_jmultiply */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_boolean valid_address_constant(a_constant *constant,
                                  a_boolean  *just_past_end)
@@ -3068,6 +3615,34 @@ as the position for any diagnostics issued.
         case eok_fle:
           do_fcompare(constant_1, op, constant_2, result);
           break;
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xadd:
+          do_xadd(constant_1, constant_2, result, &err_code, &err_severity,
+                  &depends_on_rounding_mode);
+          break;
+        case eok_xsubtract:
+          do_xsubtract(constant_1, constant_2, result,
+                       &err_code, &err_severity, &depends_on_rounding_mode);
+          break;
+        case eok_xmultiply:
+          do_xmultiply(constant_1, constant_2, result,
+                       &err_code, &err_severity, &depends_on_rounding_mode);
+          break;
+        case eok_xdivide:
+          do_xdivide(constant_1, constant_2, result,
+                     &err_code, &err_severity, &depends_on_rounding_mode);
+          break;
+        case eok_xeq:
+        case eok_xne:
+          do_xcompare(constant_1, op, constant_2, result);
+          break;
+        case eok_jmultiply:
+          do_jmultiply(constant_1, constant_2, result,
+                       &err_code, &err_severity, &depends_on_rounding_mode);
+          break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
         case eok_pdiff:
           do_pdiff(constant_1, constant_2, result, did_not_fold, &err_code,
                    &err_severity);

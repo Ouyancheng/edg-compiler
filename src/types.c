@@ -79,8 +79,16 @@ predicates.
    !(tp)->variant.integer.bool_type)
 
 /* The floating types comprise all sizes of float. */
-#define is_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
+#define is_real_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+#define is_nonreal_floating(tp) ((tp)->kind == (a_type_kind)tk_complex ||    \
+                                 (tp)->kind == (a_type_kind)tk_imaginary)
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define is_nonreal_floating(tp) FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#define is_floating(tp) (is_real_floating(tp) || is_nonreal_floating(tp))
+#define is_imaginary(tp) ((tp)->kind == (a_type_kind)tk_imaginary)
 /* Arithmetic types are the integral types plus the floating types; in C++
    mode enum types are not integral. */
 #define is_arithmetic_or_enum(tp) (is_integral_or_enum(tp) || is_floating(tp))
@@ -318,12 +326,43 @@ Return TRUE if the type is a character type (signed, unsigned, or "plain").
 
 a_boolean is_floating_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a floating type (3.1.2.5).
+Return TRUE if the given type is a floating type.
 */
 {
   tp = skip_typerefs(tp);
   return(is_floating(tp));
 }  /* is_floating_type */
+
+
+a_boolean is_real_floating_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a real floating type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_real_floating(tp));
+}  /* is_real_floating_type */
+
+
+a_boolean is_nonreal_floating_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a nonreal (imaginary or complex) floating
+type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_nonreal_floating(tp));
+}  /* is_nonreal_floating_type */
+
+
+a_boolean is_imaginary_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an imaginary floating type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_imaginary(tp));
+}  /* is_imaginary_type */
 
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
@@ -1576,6 +1615,10 @@ set, leave it alone.  Also compute and set the alignment requirement.
                                        &size, &alignment);
         break;
       case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
+      case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         switch (type_ptr->variant.float_kind) {
           case fk_float:
             size = targ_sizeof_float;
@@ -1594,6 +1637,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
             internal_error("set_type_size: bad float kind");
 #endif /* CHECKING */
         }  /* switch */
+#if C99_IL_EXTENSIONS_SUPPORTED
+        if (type_ptr->kind == (a_type_kind)tk_complex) size *= 2;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         break;
       case tk_pointer:
         size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
@@ -2335,6 +2381,10 @@ for more information.
           }  /* if */
           break;
         case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_complex:
+        case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           identical = (type_1->variant.float_kind ==
                        type_2->variant.float_kind);
           break;
@@ -6208,6 +6258,10 @@ its parameters?).
       case tk_error:
       case tk_void:
       case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
+      case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_unknown:
         /* Leaf nodes -- no further traversal required. */
         break;

@@ -144,8 +144,12 @@ typedef enum /*a_token_kind*/ {
 #if RESTRICT_ALLOWED
   tok_restrict,
 #endif /* RESTRICT_ALLOWED */
-  /* C99 types: _Bool. */
+  /* C99 types: _Bool, _Complex and _Imaginary. */
   tok_c99_bool,
+  tok_c99_complex,
+  tok_c99_imaginary,
+  /* Token representing the imaginary number "i" (i*i == -1). */
+  tok_imaginary_unit,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cdecl,
   tok_declspec,
@@ -247,7 +251,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if RESTRICT_ALLOWED
    "restrict",
 #endif /* RESTRICT_ALLOWED */
-   "_Bool",
+   "_Bool", "_Complex", "_Imaginary", "__I__",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
@@ -573,6 +577,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_restrict */
 #endif /* RESTRICT_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_c99_bool */
+   (an_opname_kind)onk_none,          /* tok_c99_complex */
+   (an_opname_kind)onk_none,          /* tok_c99_imaginary */
+   (an_opname_kind)onk_none,          /* tok_imaginary_unit */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_declspec */

@@ -3515,12 +3515,19 @@ typedef enum {
   size_int64
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_type_size;
+/* C99 floating-point modifiers. */
+typedef enum {
+  cxa_none,
+  cxa_complex,
+  cxa_imaginary
+} a_complex_attribute;
 
 
-static a_boolean combine_type_specifiers(a_type_ptr    *type_ptr,
-                                         a_basic_type  basic_type,
-                                         a_type_sign   sign,
-                                         a_type_size   size)
+static a_boolean combine_type_specifiers(a_type_ptr           *type_ptr,
+                                         a_basic_type         basic_type,
+                                         a_type_sign          sign,
+                                         a_type_size          size,
+                                         a_complex_attribute  complex_attr)
 /*
 Given a basic type, a sign specifier, and a size specifier, return a
 pointer to a type entry in *type_ptr.  This routine is only called from
@@ -3832,7 +3839,17 @@ decl_specifiers.
             fkind = (a_float_kind)fk_long_double;
           }  /* if */
         }  /* if */
-        *type_ptr = float_type((a_float_kind)fkind);
+#if C99_IL_EXTENSIONS_SUPPORTED
+        if (complex_attr == cxa_complex) {
+          *type_ptr = complex_type((a_float_kind)fkind);
+        } else if (complex_attr == cxa_imaginary) {
+          *type_ptr = imaginary_type((a_float_kind)fkind);
+        } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        /* Do not insert code here. */
+        {
+          *type_ptr = float_type((a_float_kind)fkind);
+        }  /* if */
       }  /* if */
       break;
     case bt_struct_union:
@@ -4243,6 +4260,7 @@ Returns TRUE if there is an error in the specifiers.
   a_basic_type               basic_type = bt_none;
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
+  a_complex_attribute        complex_attr = cxa_none;
   a_source_position          restrict_pos;
   a_source_position          storage_class_pos;
   a_boolean                  bad_type_name_error;
@@ -5029,6 +5047,38 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE;
         }  /* if */
         break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tok_c99_complex:
+        if (!c99_mode) {
+          error(ec_type_specifier_not_allowed);
+          err = TRUE;
+        } else if (complex_attr == cxa_complex) {
+          /* E.g. "_Complex float _Complex". */
+          error(ec_dupl_decl_specifier);
+        } else if (complex_attr == cxa_imaginary) {
+          /* E.g. "_Imaginary float _Complex". */
+          error(ec_bad_combination_of_type_specifiers);
+          bad_combination_of_type_specifiers = TRUE;
+        } else {
+          complex_attr = cxa_complex;
+        }  /* if */
+        break;
+      case tok_c99_imaginary:
+        if (!c99_mode) {
+          error(ec_type_specifier_not_allowed);
+          err = TRUE;
+        } else if (complex_attr == cxa_imaginary) {
+          /* E.g. "_Imaginary float _Imaginary". */
+          error(ec_dupl_decl_specifier);
+        } else if (complex_attr == cxa_complex) {
+          /* E.g. "_Complex float _Imaginary". */
+          error(ec_bad_combination_of_type_specifiers);
+          bad_combination_of_type_specifiers = TRUE;
+        } else {
+          complex_attr = cxa_imaginary;
+        }  /* if */
+        break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tok_signed:
       case tok_unsigned:
         /* A type specifier (3.5.2) that modifies the signedness of a
@@ -5669,6 +5719,18 @@ exit_loop:
          user about a missing type specifier.  This is handled by the
          caller. */
     }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    if (complex_attr != cxa_none &&
+        basic_type != bt_float && basic_type != bt_double) {
+      /* "_Imaginary" and "_Complex" must be combined with a floating-point
+         type.  For error recovery purposes we assume "double" was actually
+         specified. */
+      str_error(ec_only_applies_to_float_types,
+                (complex_attr == cxa_complex) ? "_Complex" : "_Imaginary");
+      basic_type = bt_double;
+      *output_flags |= DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
+    }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     if (dangling_type_specifier) {
       /* Set the bit to mark a malformed type specification, typically
          caused by a missing semicolon following an class, struct, union,
@@ -5684,7 +5746,8 @@ exit_loop:
       /* Combine the type specifiers (except for the type qualifiers) into a
          type.  *type_ptr is updated, based on the basic type, sign, and size
          specified. */
-      if (!combine_type_specifiers(type_ptr, basic_type, sign, size)) {
+      if (!combine_type_specifiers(type_ptr, basic_type, sign, size,
+                                   complex_attr)) {
         err = TRUE;
       } else {
         /* Add any type qualifiers (const or volatile) to the type. */

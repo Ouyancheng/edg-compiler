@@ -367,9 +367,11 @@ typedef enum /*an_il_entry_kind*/ {
   iek_id_name,          /* String giving the name of an identifier. */
   iek_string_text,	/* Text of a string literal. */
   iek_other_text,	/* Text of a file name or similar information. */
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   iek_internal_complex_value,
 			/* an_internal_complex_value */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
   iek_bound_info_entry,	/* a_bound_info_entry */
   iek_do_loop,		/* a_do_loop */
   iek_label_list_entry,	/* a_label_list_entry */
@@ -508,8 +510,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_id_name */			"id-name",
 /* iek_string_text */			"string-text",
 /* iek_other_text */			"other-text",
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
 /* iek_internal_complex_value */	"internal-complex-value",
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
 /* iek_bound_info_entry */		"bound-info-entry",
 /* iek_do_loop */			"do-loop",
 /* iek_label_list_entry */		"label-list-entry",
@@ -1138,6 +1142,10 @@ enum a_constant_repr_kind_tag {
                            strings, as well as for CHARACTER constants. */
 #endif /* ifdef FIL */
   ck_float,             /* All sizes of float. */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  ck_complex,       /* All sizes of C99's _Complex types. */
+  ck_imaginary,     /* All sizes of C99's _Imaginary types. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
   ck_complex,           /* Complex. */
 #endif /* ifdef FIL */
@@ -1190,7 +1198,7 @@ enum an_address_base_kind_tag {
 typedef a_byte an_address_base_kind;
 
 #endif /* ifdef CIL */
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
 typedef struct an_internal_complex_value *an_internal_complex_value_ptr;
 typedef struct an_internal_complex_value {
   /* Internal representation for a complex value. */
@@ -1199,7 +1207,7 @@ typedef struct an_internal_complex_value {
                 imag;   /* Real and imaginary parts of the value. */ 
 } an_internal_complex_value;
 
-#endif /* ifdef FIL */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 
 #ifdef CIL
 /*
@@ -1758,13 +1766,13 @@ typedef struct a_constant {
     an_internal_float_value
                 float_value;
                         /* A floating-point value in internal form. */
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
     /* When kind == ck_complex: */
     an_internal_complex_value_ptr
                 complex_value;
                         /* A complex value, represented internally as two
                            floating-point values. */
-#endif /* ifdef FIL */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CIL
     /* When kind == ck_address: */
     struct {
@@ -2006,6 +2014,10 @@ enum a_type_kind_tag {
   tk_integer,           /* All integral types, including enum. */
   tk_enum = tk_integer, /* Synonym for tk_integer. */
   tk_float,             /* All float types. */
+  tk_complex,           /* Complex (C99 and Fortran).  Must have the same
+                           layout as an array of two reals of the appropriate
+                           size. */
+  tk_imaginary,         /* C99 imaginary types. */
   tk_pointer,           /* Pointer type. */
 #ifdef CIL
 			/* Also used for reference in C++. */
@@ -2015,7 +2027,6 @@ enum a_type_kind_tag {
                         /* Also, Fortran main programs, subroutines and
                            statement functions. */
 #endif /* ifdef FIL */
-#ifdef CIL
   tk_array,             /* Array. */
   tk_class,             /* Class. */
   tk_struct,            /* Struct. */
@@ -2028,15 +2039,12 @@ enum a_type_kind_tag {
 			   declaration (C++ front end only, except when
 			   prototype instantiations are passed to a
 			   back end). */
-#endif /* ifdef CIL */
-#ifdef FIL
+  /* Fortran-only types. */
   tk_fcharacter,        /* Fortran character. */
   tk_hollerith,         /* Hollerith constant.  Only used for actual
                            arguments; elsewhere, hollerith constants are
                            changed to something else. */
   tk_farray,            /* Fortran array.  Can be multi-dimensional. */
-  tk_complex,           /* Complex.  Must have the same layout as an
-                           array of two reals of the appropriate size. */
   tk_stmt_label,        /* Statement label value in ASSIGN or alternate
                            return. */
   tk_format,            /* FORMAT. */
@@ -2046,7 +2054,6 @@ enum a_type_kind_tag {
                            or a standard type (function). */
   tk_blockdata,         /* A pseudo-routine representing a BLOCK DATA
                            subprogram. */
-#endif /* ifdef FIL */
   tk_unknown            /* Unknown. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -5774,7 +5781,7 @@ enum an_expr_operator_kind_tag {
                            integer can be of any integral type; the integral
                            promotions are not done. */
   eok_passign,          /* Pointer assignment. */
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd,             /* Complex addition. */
   eok_xsubtract,        /* Complex subtraction. */
   eok_xmultiply,        /* Complex multiplication. */
@@ -5785,6 +5792,15 @@ enum an_expr_operator_kind_tag {
   eok_complex,          /* Join two real operands, produce a complex as the
                            result.  The first operand is the real part, the
                            second the imaginary part. */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  eok_xadd_assign,      /* Complex add assign operator. */
+  eok_xsubtract_assign, /* Complex subtract assign operator. */
+  eok_xmultiply_assign, /* Complex multiply assign operator. */
+  eok_xdivide_assign,   /* Complex divide assign operator. */
+  eok_jmultiply,        /* Imaginary multiplication */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
   eok_ceq,              /* Fortran character string equality. */
   eok_cne,              /* Fortran character string inequality. */
   eok_cgt,              /* Fortran character string greater than. */
@@ -8442,8 +8458,13 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=", "i=",
    "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=", "f=",
    "p+", "p-", "p=",
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
    "x+", "x-", "x*", "x/", "x==", "x!=", "x=", "complex",
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+   "x+=", "x-=", "x*=", "x/=", "j*",
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
    "c==", "c!=", "c>", "c<", "c>=", "c<=", "c=", "//",
    "i**i", "r**i", "x**i", "r**r", "x**x",
 #endif /* ifdef FIL */

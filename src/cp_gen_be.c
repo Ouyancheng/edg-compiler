@@ -5511,6 +5511,9 @@ finish_new_style_cast:
         case eok_add:
         case eok_iadd:
         case eok_fadd:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xadd:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd:
         case eok_padd_subsc:
           opstr = "+";
@@ -5518,6 +5521,9 @@ finish_new_style_cast:
         case eok_subtract:
         case eok_isubtract:
         case eok_fsubtract:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xsubtract:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract:
         case eok_pdiff:
           opstr = "-";
@@ -5525,16 +5531,26 @@ finish_new_style_cast:
         case eok_multiply:
         case eok_imultiply:
         case eok_fmultiply:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xmultiply:
+        case eok_jmultiply:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "*";
           break;
         case eok_divide:
         case eok_idivide:
         case eok_fdivide:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xdivide:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/";
           break;
         case eok_eq:
         case eok_ieq:
         case eok_feq:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xeq:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_peq:
         case eok_pmeq:
           opstr = "==";
@@ -5542,6 +5558,9 @@ finish_new_style_cast:
         case eok_ne:
         case eok_ine:
         case eok_fne:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xne:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_pne:
         case eok_pmne:
           opstr = "!=";
@@ -5576,6 +5595,9 @@ finish_new_style_cast:
         case eok_assign:
         case eok_iassign:
         case eok_fassign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xassign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_passign:
         case eok_sassign:
         case eok_pmassign:
@@ -5585,12 +5607,18 @@ finish_new_style_cast:
         case eok_multiply_assign:
         case eok_imultiply_assign:
         case eok_fmultiply_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xmultiply_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "*=";
           operand_1_is_lvalue = TRUE;
           break;
         case eok_divide_assign:
         case eok_idivide_assign:
         case eok_fdivide_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xdivide_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/=";
           operand_1_is_lvalue = TRUE;
           break;
@@ -5601,6 +5629,9 @@ finish_new_style_cast:
         case eok_add_assign:
         case eok_iadd_assign:
         case eok_fadd_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xadd_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd_assign:
           opstr = "+=";
           operand_1_is_lvalue = TRUE;
@@ -5608,6 +5639,9 @@ finish_new_style_cast:
         case eok_subtract_assign:
         case eok_isubtract_assign:
         case eok_fsubtract_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xsubtract_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract_assign:
           opstr = "-=";
           operand_1_is_lvalue = TRUE;

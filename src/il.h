@@ -333,6 +333,12 @@ extern a_type_ptr bool_type(void);
 
 extern a_type_ptr float_type(a_float_kind kind);
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+extern a_type_ptr complex_type(a_float_kind kind);
+
+extern a_type_ptr imaginary_type(a_float_kind kind);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
 extern a_type_ptr string_type(a_targ_size_t num_chars);
 
 extern a_type_ptr wide_string_type(a_targ_size_t num_chars);

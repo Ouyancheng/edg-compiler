@@ -1024,6 +1024,13 @@ by octl.
         form_int_type_name(type, octl);
       }  /* if */
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+    case tk_imaginary:
+      octl->output_str(type->kind == (a_type_kind)tk_complex ?
+                       "_Complex " : "_Imaginary ");
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      /* Fall through. */
     case tk_float:
       form_float_kind_name(type->variant.float_kind, octl);
       break;
@@ -2854,6 +2861,36 @@ without a leading "&".  Do the output in the way described by octl.
 }  /* form_unknown_function_constant */
 
 
+static void form_float_constant(
+                           an_internal_float_value               *float_value,
+                           a_float_kind                          fkind,
+                           an_il_to_str_output_control_block_ptr octl)
+/*
+Output the given floating-point value with the proper suffix (or cast in
+K&R/pcc mode) determined by fkind.
+*/
+{
+  if (!octl->gen_pcc_code) {
+    /* Output the floating-point constant. */
+    output_partial_token_str(fp_to_string(fkind, float_value), octl);
+    /* Add a suffix if necessary. */
+    if (fkind == (a_float_kind)fk_float) {
+      output_partial_token_str("F", octl);
+    } else if (fkind == (a_float_kind)fk_long_double) {
+      output_partial_token_str("L", octl);
+    }  /* if */
+  } else {
+    /* Generating K&R C.  Suffixes are not allowed. */
+    /* Cast to float if type is float (by default it would be double). */
+    if (fkind == (a_float_kind)fk_float) {
+      output_partial_token_str("(float)", octl);
+    }  /* if */
+    /* Output the floating-point constant. */
+    output_partial_token_str(fp_to_string(fkind, float_value), octl);
+  }  /* if */
+}  /* form_float_constant */
+
+
 void form_constant(a_constant_ptr                        constant,
                    a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
@@ -2866,7 +2903,9 @@ precedence confusion.  Do the output in the way described by octl.
 */
 {
   a_constant_repr_kind kind = constant->kind;
+#ifdef FFE
   a_float_kind         fkind;
+#endif /* ifdef FFE */
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, is_enum;
   a_boolean            need_reinterpret_cast = FALSE;
@@ -3098,32 +3137,38 @@ precedence confusion.  Do the output in the way described by octl.
       }
       break;
     case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* Floating-point constant. */
       /* Put parentheses around the constant in case it's negative. */
       octl->output_str("(");
-      fkind = con_type->variant.float_kind;
-      if (!octl->gen_pcc_code) {
-        /* Output the floating-point constant. */
-        output_partial_token_str(
-                    fp_to_string(fkind, &constant->variant.float_value), octl);
-        /* Add a suffix if necessary. */
-        if (fkind == (a_float_kind)fk_float) {
-          output_partial_token_str("F", octl);
-        } else if (fkind == (a_float_kind)fk_long_double) {
-          output_partial_token_str("L", octl);
-        }  /* if */
-      } else {
-        /* Generating K&R C.  Suffixes are not allowed. */
-        /* Cast to float if type is float (by default it would be double). */
-        if (fkind == (a_float_kind)fk_float) {
-          output_partial_token_str("(float)", octl);
-        }  /* if */
-        /* Output the floating-point constant. */
-        output_partial_token_str(
-                    fp_to_string(fkind, &constant->variant.float_value), octl);
+      form_float_constant(&constant->variant.float_value,
+                          con_type->variant.float_kind,
+                          octl);
+      if (kind == (a_constant_repr_kind)ck_imaginary) {
+        /* Complex and imaginary constants are constructed with the
+           EDG-specific __I__. */
+        octl->output_str("*__I__");
       }  /* if */
       octl->output_str(")");
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_complex:
+      /* Complex constant. */
+      /* Put parentheses around the constant. */
+      octl->output_str("(");
+      form_float_constant(&constant->variant.complex_value->real,
+                          con_type->variant.float_kind,
+                          octl);
+      octl->output_str("+");
+      form_float_constant(&constant->variant.complex_value->imag,
+                          con_type->variant.float_kind,
+                          octl);
+      octl->output_str("*__I__");
+      octl->output_str(")");
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FFE
     case ck_complex:
       /* Complex constant. */

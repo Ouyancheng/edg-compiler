@@ -479,11 +479,24 @@ fields to default values.
       cp->variant.string.value = NULL;
       break;
     case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* The entire float_value must be zeroed to allow use of memcmp
          and the like on the field. */
       memzero((char *)&cp->variant.float_value,
               sizeof(cp->variant.float_value));
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_complex:
+      /* The entire float_value must be zeroed to allow use of memcmp
+         and the like on the field. */
+      cp->variant.complex_value = (an_internal_complex_value_ptr)
+                                 alloc_il(sizeof(*cp->variant.complex_value));
+      memzero((char *)cp->variant.complex_value,
+              sizeof(*cp->variant.complex_value));
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
       cp->variant.address.kind = (an_address_base_kind)abk_variable;
       cp->variant.address.variant.variable = NULL;
@@ -1004,6 +1017,8 @@ to default values.
       pte->variant.integer.enum_info.affiliated_type = NULL;
       break;
     case tk_float:
+    case tk_complex:
+    case tk_imaginary:
       pte->variant.float_kind = (a_float_kind)fk_float;
       break;
     case tk_pointer:
