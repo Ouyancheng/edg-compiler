@@ -5336,10 +5336,12 @@ specification allow a variable-sized array as the top type.
                     unqual_new_type->variant.array.variant.number_of_elements;
     }  /* if */
     while (is_array_type(base_new_type)) {
-      check_assertion(
-                  !unqual_base_new_type->variant.array.is_variable_size_array);
-      effective_num_of_elements *=
+      if (unqual_base_new_type->variant.array.is_variable_size_array) {
+        check_assertion(err);
+      } else {
+        effective_num_of_elements *=
                 unqual_base_new_type->variant.array.variant.number_of_elements;
+      }  /* if */
       base_new_type = array_element_type(unqual_base_new_type);
       unqual_base_new_type = skip_typerefs(base_new_type);
     }  /* while */
