@@ -1023,14 +1023,16 @@ TRUE, the entity is the destination of an initialization operation.
 
 
 static void add_init_assignment(a_dynamic_init_ptr     dip,
+                                a_constant_ptr         con,
                                 an_expr_node_ptr       entity_node,
                                 an_insert_location_ptr insert_location)
 /*
 Make an assignment statement to implement the dynamic initialization
-described by dip.  entity_node is an expression that gives the address
+described by dip.  If dip is NULL, con indicates the constant value of
+the initializer.  entity_node is an expression that gives the address
 of the entity to be initialized.  Insert the statement at *insert_location
 and update *insert_location.  The constant or expression initial value
-pointed to by dip is lowered.
+pointed to by dip or con is already lowered.
 */
 {
   an_expr_node_ptr      init_val_node;
@@ -1038,11 +1040,10 @@ pointed to by dip is lowered.
   an_expr_operator_kind op;
   a_boolean             string_literal_case = FALSE;
 
-  switch (dip->kind) {
+  switch ((dip == NULL) ? (a_dynamic_init_kind)dik_constant : dip->kind) {
     case dik_zero:
       /* Set the entity to zero (default initialization). */
       { a_constant     zero_constant;
-        a_constant_ptr con;
         a_type_ptr     entity_type = type_pointed_to(entity_node->type);
         make_zero_of_proper_type(entity_type, &zero_constant);
         con = alloc_shareable_constant(&zero_constant);
@@ -1056,7 +1057,7 @@ pointed to by dip is lowered.
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       /* The constant has already been lowered. */
-      { a_constant_ptr con = dip->variant.constant;
+      { if (dip != NULL) con = dip->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_string &&
             !con->implicit_cast) {
           /* An character array initialized by a string literal, e.g., in
@@ -2601,7 +2602,25 @@ aggregate, set *keep_constant to TRUE.
     } else {
       /* Normal constant. */
       lower_constant(con_ptr);
-      *keep_constant = TRUE;
+      if (ipd.indirect_through_variable) {
+        /* The entity being initialized is not a simple variable, so we
+           don't want to keep any part of the initialization as a constant
+           aggregate initialization.  This comes up with return value
+           optimization (the variable is initialized with a partially-constant
+           aggregate, but the initialization is actually done on the address
+           passed in by the caller as the return address, and that can't be
+           initialized with an aggregate). */
+        an_expr_node_ptr entity_node;
+        entity_node = make_init_entity_node(&ipd,
+                                            /*using_as_address=*/FALSE,
+                                            /*using_as_dest=*/TRUE);
+        con_ptr->next = NULL;
+        add_init_assignment((a_dynamic_init *)NULL, con_ptr, entity_node,
+                            insert_location);
+      } else {
+        /* Normal case.  Keep this as part of a constant aggregate. */
+        *keep_constant = TRUE;
+      }  /* if */
     }  /* if */
     /* Find the next member in the aggregate. */
     if (array_aggr) {
@@ -3915,7 +3934,8 @@ do_assignment:;
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
                                           /*using_as_dest=*/TRUE);
-      add_init_assignment(dip, entity_node, eff_insert_location);
+      add_init_assignment(dip, (a_constant *)NULL, entity_node,
+                          eff_insert_location);
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result

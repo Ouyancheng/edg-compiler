@@ -1,5 +1,26 @@
 Version 2.42
 
+4/1/99   IL lowering problem with aggregate initialization and return value
+         optimization
+
+In a case like the following, which involves a partially-constant
+aggregate initialization of a variable that is eliminated by the
+return value optimization, IL lowering got an internal error in
+lower_init.c (lower_dynamic_init).  Now fixed.
+
+  struct A {
+    A(int);
+    A(const A&);
+  };
+  struct S {
+    int n;
+    A   a;
+  };
+  S f() {
+    S rv = {0, 0};
+    return rv;
+  }
+
 3/31/99  C-generating back end: address of lvalue cast in pcc mode
 
 The C-generating back end can now handle a case where the address of
