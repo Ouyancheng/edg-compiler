@@ -203,6 +203,7 @@ non-NULL, also append the characters in the comment, through but not including
   a_source_line_modif_ptr  slmp;
   char                     *curr_char, *next_char;
   sizeof_t                 len;
+  char                     ch;
 
   if (prev_seq_number != curr_seq_number) {
     /* We've advanced to a new source line.  Update prev_stop_char to point to
@@ -233,19 +234,22 @@ non-NULL, also append the characters in the comment, through but not including
   while (curr_char != stop_char) {
     switch (*curr_char) {
       case LE_ESCAPE:
-        if (curr_char[1] == LE_END_OF_TOKEN) {
+        ch = curr_char[1];
+        if (ch == LE_END_OF_TOKEN ||
+            ch == LE_INERT_MACRO) {
           /* Marker put into text by preprocessing of macros, to force the same
              interpretation of token boundaries as during the macro definition.
-             Skip over it. */
+             Or, marker that indicates that a macro name should not be
+             expanded.  Skip over the escape and don't put it out. */
           next_char = curr_char + LE_ESCAPE_LEN;
-        } else if (curr_char[1] == LE_END_OF_INSERTION) {
+        } else if (ch == LE_END_OF_INSERTION) {
           /* End of the expansion text for a macro.  Find the character
              location of the character following the macro invocation, and
              continue there. */
           slmp = assoc_source_line_modif(curr_char);
           next_char = curr_char;
           leave_insertion(slmp, next_char);
-        } else if (curr_char[1] == LE_NEWLINE) {
+        } else if (ch == LE_NEWLINE) {
           /* Newline character. */
           len = 1;
           add_to_asm_func_buffer("\n", len);

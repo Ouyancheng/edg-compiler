@@ -750,6 +750,11 @@ print the replacement text and expansions of macros.
         ch = '`';
         n_printed++;
         p += LE_ESCAPE_LEN;
+      } else if (ch == LE_INERT_MACRO) {
+        /* Marker to suppress expansion of following macro name. */
+        ch = '#';
+        n_printed++;
+        p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -1065,10 +1070,11 @@ length of the stringized version.
   for (p = map->raw_text; ; p++) {
     ch = *p;
     if (ch == LE_ESCAPE) {
-      if (p[1] == LE_END_OF_TOKEN) {
+      if (p[1] == LE_END_OF_TOKEN || p[1] == LE_INERT_MACRO) {
         /* End of token marker, also indicates end of character constant or
            string literal, and start of another token soon.  The end of token
-           marker itself is not put out. */
+           marker itself is not put out.  The inert-macro marker is handled
+           the same way. */
         within_char_literal = FALSE;
         start_of_token = TRUE;
         p += LE_ESCAPE_LEN-1;
@@ -1415,6 +1421,7 @@ associated global variables will also have been set).
 {
   a_macro_def_ptr mdp;
   sizeof_t	  repl_text_len;
+  a_boolean       repl_text_len_precomputed = FALSE;
   a_token_kind	  ctoken = tok_error;
   a_boolean	  got_proper_closing_token = FALSE;
   a_boolean	  special_repl_text = FALSE;
@@ -1441,6 +1448,7 @@ associated global variables will also have been set).
   unsigned long   sequence_id;
   a_boolean       need_end_of_token_marker;
   a_boolean       is_macro_call = TRUE;  /* Assume. */
+  a_boolean       is_inert_macro = FALSE;  /* Assume. */
   a_boolean       pcc_mode_macro_recursion = FALSE;
   a_source_position
                   start_pos;
@@ -1556,16 +1564,8 @@ end_scan_for_macro_modifs:;
       if (slmp->assoc_macro == mdp) {
         /* The identifier does appear within its own expansion. */
         if (!pcc_preprocessing_mode) {
-          /* Leave the identifier unexpanded and exit. */
-#if DEBUG
-          if (debug_level >= 4) {
-            fprintf(f_debug, "Macro is inert, left as identifier.\n");
-          }  /* if */
-#endif /* DEBUG */
-          ctoken = tok_identifier;
-          *rescan = FALSE;
-          is_macro_call = FALSE;
-          goto return_point;
+          is_inert_macro = TRUE;
+          break;
         } else {
           /* In pcc mode, arguments to macros are not macro-expanded before
              being put into the macro expansion, which means that a macro
@@ -1592,13 +1592,40 @@ end_scan_for_macro_modifs:;
          when we reach the primary source line. */
     } while ((slmp = parent_source_line_modif(slmp)) != NULL);
   }  /* if */
-  /* The macro name is not inert. */
   /* Set a flag to cause deletion of the text of the macro invocation.
      This is a global flag so that if we go to a new line during skipping
      of white space, the appropriate part of the current line will be
      deleted (skip_white_space checks the flag). */
   delete_source_from_loc = start_of_curr_token;
-  if (mdp->object_like) {
+  if (is_inert_macro) {
+    /* A macro name appearing within its own expansion.  Do not scan
+       arguments, and do not expand the macro.  Replace it with an
+       LE_INERT_MACRO escape sequence followed by the identifier string. */
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Macro is inert, left as identifier.\n");
+    }  /* if */
+#endif /* DEBUG */
+    is_macro_call = FALSE;
+    got_proper_closing_token = TRUE;
+    /* Use a special a_macro_arg entry as the expansion text buffer.
+       Put it on the list of macro args so it can be found if the
+       buffers are resized. */
+    special_macro_arg = alloc_macro_arg();
+    add_to_macro_arg_list(special_macro_arg);
+    special_repl_text = TRUE;
+    repl_text = special_macro_arg->raw_text;
+    len_of_curr_token = locator_for_curr_id.symbol_header->identifier_length;
+    repl_text_len = len_of_curr_token + LE_ESCAPE_LEN;
+    repl_text_len_precomputed = TRUE;
+    ensure_arg_raw_text_space(repl_text_len, special_macro_arg);
+    text_loc = repl_text;
+    *text_loc++ = LE_ESCAPE;
+    *text_loc++ = LE_INERT_MACRO;
+    (void)memcpy(text_loc,
+                 locator_for_curr_id.symbol_header->identifier,
+                 size_t_arg(len_of_curr_token));
+  } else if (mdp->object_like) {
     /* "Object-like" macro (has no arguments).  Or, a special predefined
        macro, which might have arguments. */
     got_proper_closing_token = TRUE;
@@ -1736,6 +1763,7 @@ end_scan_for_macro_modifs:;
                  curr_token != tok_end_of_source &&
                  ((curr_token != tok_comma && curr_token != tok_rparen) ||
                   paren_count != 0)) {
+            sizeof_t raw_text_len;
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
               paren_count++;
@@ -1743,12 +1771,14 @@ end_scan_for_macro_modifs:;
               if (paren_count > 0) paren_count--;
             }  /* if */
             /* Put the characters of the token, a preceding end-of-token
-	       marker if necessary, and a preceding blank if
-               there was preceding white space, into the buffer. */
-            ensure_arg_raw_text_space(len_of_curr_token +
-                                      any_white_space_skipped +
-                                      need_end_of_token_marker*LE_ESCAPE_LEN,
-                                      map);
+               marker if necessary, and a preceding blank if there was
+               preceding white space, into the buffer.  Also an
+               LE_INERT_MACRO escape sequence if needed. */
+            raw_text_len = len_of_curr_token;
+            if (any_white_space_skipped) raw_text_len++;
+            if (need_end_of_token_marker) raw_text_len += LE_ESCAPE_LEN;
+            if (curr_token_is_inert_macro) raw_text_len += LE_ESCAPE_LEN;
+            ensure_arg_raw_text_space(raw_text_len, map);
             if (need_end_of_token_marker) {
               map->raw_text[(map->raw_len)++] = LE_ESCAPE;
               map->raw_text[(map->raw_len)++] = LE_END_OF_TOKEN;
@@ -1756,6 +1786,13 @@ end_scan_for_macro_modifs:;
             }  /* if */
             if (any_white_space_skipped) {
               map->raw_text[(map->raw_len)++] = ' ';
+            }  /* if */
+            if (curr_token_is_inert_macro) {
+              /* Prefix for a macro identifier name that indicates that the
+                 name came from its own expansion and should not be
+                 expanded further. */
+              map->raw_text[(map->raw_len)++] = LE_ESCAPE;
+              map->raw_text[(map->raw_len)++] = LE_INERT_MACRO;
             }  /* if */
             (void)memcpy(&(map->raw_text[map->raw_len]), start_of_curr_token,
                          size_t_arg(len_of_curr_token));
@@ -1967,7 +2004,7 @@ end_arg_expansion:;
   if (special_repl_text) {
     /* One of the special macros, like __LINE__ and  __FILE__; the text is
        just a string. */
-    repl_text_len = strlen(repl_text);
+    if (!repl_text_len_precomputed) repl_text_len = strlen(repl_text);
   } else {
     /* Normal replacement text, with sections. */
     repl_text_len = 0;
@@ -1985,6 +2022,10 @@ end_arg_expansion:;
           case rt_raw_argument:
           case rt_right_raw_argument:
             sect_len = map->raw_len;
+            /* Don't count an LE_INERT_MACRO escape if present, since it
+               will be removed. */
+            if (map->raw_text[0] == LE_ESCAPE &&
+                map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
             break;
           case rt_stringized_raw_argument:
             /* Determine the length of the stringized version of the
@@ -2044,6 +2085,13 @@ end_arg_expansion:;
           case rt_right_raw_argument:
             sect_len = map->raw_len;
             text_loc = map->raw_text;
+            /* Remove an LE_INERT_MACRO escape if present, since the token
+               is being pasted to another one. */
+            if (map->raw_text[0] == LE_ESCAPE &&
+                map->raw_text[1] == LE_INERT_MACRO) {
+              sect_len -= LE_ESCAPE_LEN;
+              text_loc += LE_ESCAPE_LEN;
+            }  /* if */
             break;
           case rt_stringized_raw_argument:
             /* Generate the text of the stringized version of the argument,

@@ -873,6 +873,11 @@ escape.
 			   macro definitions and macro expansions, to
 			   guarantee that the text will be tokenized the
 			   same way as on the original macro definition. */
+#define LE_INERT_MACRO 5
+			/* Precedes an identifier that is the name of
+			   a macro that appears within its own expansion,
+			   and should therefore not be expanded.  Not used
+			   in pcc preprocessing mode. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1121,6 +1126,12 @@ EXTERN an_error_code
 			   useful if the token was fetched with fetch_pp_tokens
 			   TRUE, since no diagnostic was put out in that
 			   case. */
+EXTERN a_boolean
+		curr_token_is_inert_macro;
+			/* TRUE if the current token is an identifier that
+			   is the name of a macro that was found within its
+			   own expansion and therefore should not be expanded
+			   again.  Not used in pcc preprocessing mode. */
 
 EXTERN a_boolean
 		any_initial_get_token_tests_needed;

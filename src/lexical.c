@@ -2125,8 +2125,9 @@ is TRUE.
         } else if (ch == LE_ESCAPE) {
           /* Lexical escape. */
           ch = loc_in_line[1];
-          if (ch == LE_END_OF_TOKEN) {
-            /* Do not output end-of-token markers. */
+          if (ch == LE_END_OF_TOKEN ||
+              ch == LE_INERT_MACRO) {
+            /* Do not output end-of-token or inert-macro markers. */
             token_start = TRUE;
             loc_in_line += LE_ESCAPE_LEN;
           } else if (ch == LE_END_OF_INSERTION) {
@@ -2401,8 +2402,9 @@ the calls to this routine.
       } else if (ch == LE_ESCAPE) {
         /* Lexical escape. */
         ch = loc_in_line[1];
-        if (ch == LE_END_OF_TOKEN) {
-          /* Do not output end-of-token markers. */
+        if (ch == LE_END_OF_TOKEN ||
+            ch == LE_INERT_MACRO) {
+          /* Do not output end-of-token or inert-macro markers. */
           token_start = TRUE;
           loc_in_line += LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
@@ -4417,6 +4419,10 @@ white_space_loop:
            At this level, should be ignored.  Note that kind_skipped is not
            set, since this is not white space. */
         curr_char_loc += LE_ESCAPE_LEN;
+      } else if (ch == LE_INERT_MACRO) {
+        /* Marker put into text to indicate that the following macro name
+           should not be expanded.  Return to caller. */
+        goto end_skip;
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
@@ -5440,7 +5446,10 @@ and end_of_curr_token will be set to point to the beginning and end of
 the current token, and len_of_curr_token will be set to its length.
 
 If expand_macros is TRUE, preprocessing macros are expanded as they are
-scanned.  The caller sees only the tokens after expansion.
+scanned.  The caller sees only the tokens after expansion.  If a
+macro name is preceded by an LE_INERT_MACRO escape sequence, the
+macro is not expanded and the identifier is returned to the caller with
+curr_token_is_inert_macro set to TRUE.
 
 When fetch_pp_tokens is FALSE, do_string_literal_concatenation controls
 whether adjacent string literals are concatenated.
@@ -5493,7 +5502,7 @@ If in_asm_block_or_function is TRUE, return tok_newline for ends of lines.
   a_boolean             err;
   unsigned long         num_chars;
   a_symbol_kind		id_kind;
-  a_boolean		rescan;
+  a_boolean		rescan, is_inert_macro;
 #if DEBUG
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
@@ -5544,6 +5553,7 @@ rescan_token:
 start_of_token_scan:  /* Restart here after scanning white space. */
   /* Remember the start character position of the token. */
   start_of_curr_token = curr_char_loc;
+  is_inert_macro = FALSE;
   /* Branch to different processing code according to the first
      character of the token.  *curr_char_loc must be used instead of
      ch because ch is not set when arriving at start_of_token_scan
@@ -5610,6 +5620,13 @@ start_of_token_scan:  /* Restart here after scanning white space. */
            At this level, should be ignored. */
         curr_char_loc += LE_ESCAPE_LEN;
         goto rescan_token;
+      } else if (ch == LE_INERT_MACRO) {
+        /* Marker put into text preceding a macro name to indicate that the
+           macro name should not be expanded. */
+        curr_char_loc += LE_ESCAPE_LEN;
+        start_of_curr_token = curr_char_loc;
+        is_inert_macro = TRUE;
+        goto id_scan;
       } else {
         unexpected_condition_str("get_token: bad lexical escape");
       }  /* if */
@@ -5957,7 +5974,8 @@ id_scan:
            keywords are entered first and therefore appear at the end of the
            list. */
         while (assoc_symbol != NULL) {
-          if ((id_kind = assoc_symbol->kind) == (a_symbol_kind)sk_macro) {
+          if ((id_kind = assoc_symbol->kind) == (a_symbol_kind)sk_macro &&
+              !is_inert_macro) {
             /* Macro to be expanded. */
             if (expand_macros) {
               ctoken = macro_invocation(assoc_symbol, &rescan);
@@ -6156,6 +6174,7 @@ return_from_token_scan:
   if (start_of_curr_token != NULL) {
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
+  curr_token_is_inert_macro = is_inert_macro;
 #if DEBUG
   if (debug_level >= 3) {
     /* Write out the current token. */
@@ -6167,6 +6186,9 @@ return_from_token_scan:
       /* Print token string if valid. */
       fprintf(f_debug, ", \"%.*s\"", (int)len_of_curr_token,
                                      start_of_curr_token);
+    }  /* if */
+    if (curr_token_is_inert_macro) {
+      fprintf(f_debug, " (inert)");
     }  /* if */
     /* Dump constants only if they have been converted. */
     if (!fetch_pp_tokens && is_literal_constant_token(ctoken)) {
