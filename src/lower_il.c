@@ -253,6 +253,7 @@ static void adjust_bool_operation_types(an_expr_node_ptr expr,
                                         a_boolean        *p_adjusted,
                                         a_boolean        see_if_possible);
 static void lower_pm_comparison(an_expr_node_ptr expr);
+static void do_scope_namespace_member_promotion(a_scope_ptr scope);
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -8929,6 +8930,8 @@ were promoted previously (see do_all_namespace_member_promotion).
 
   check_assertion(!nsp->is_namespace_alias);
   scope = nsp->variant.assoc_scope;
+  /* Do namespaces nested within this one. */
+  do_scope_namespace_member_promotion(scope);
   /* Promote the member constants out of the namespace. */
   promote_constants(scope);
   /* Promote the member variables of the namespace. */
