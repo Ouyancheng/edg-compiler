@@ -5922,7 +5922,7 @@ Remove the cleanup action cap_to_remove from the current context.
 {
   a_cleanup_action_ptr cap, prev_cap;
 
-  if (cap_to_remove->applies_on_exception_cleanup) {
+  if (exceptions_enabled && cap_to_remove->applies_on_exception_cleanup) {
     /* Remove the entry from the exception-cleanup-order list. */
     remove_from_exception_cleanup_list(cap_to_remove);
   }  /* if */
