@@ -978,6 +978,9 @@ and the class instantiation will detect the runaway case.
 
   db_enter(3, "define_template_static_data_member");
   var_ptr = tip->instance_sym->variant.static_data_member.variable;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  var_ptr->declared_type = var_ptr->type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   tssp = tip->template_sym->
                  variant.static_data_member.instance_ptr->template_info;
   static_data_member_sym = tip->instance_sym;
@@ -988,7 +991,6 @@ and the class instantiation will detect the runaway case.
     internal_error("define_template_static_data_member: sym already def'd");
   }  /* if */
 #endif /* CHECKING */
-  static_data_member_sym->defined = TRUE;
   if (tssp->token_cache.first_token != NULL) {
     a_boolean  incomplete_type_error_reported;
     a_boolean  has_parenthesized_initializer;
@@ -1012,8 +1014,9 @@ and the class instantiation will detect the runaway case.
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
     push_class_reactivation_scope(static_data_member_sym->
                                                   class_of_which_a_member);
-    
-
+    /* Call mark_defined *after* the template instantiation scope is pushed --
+       correct behavior for source sequence entry generation depends on it. */
+    mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
     rescan_reusable_cache(&tssp->token_cache);
     /* If the first token is an equals sign then this is not a parenthesized
        initializer.   Initializers that begin with an invalid token will
@@ -1025,7 +1028,7 @@ and the class instantiation will detect the runaway case.
     } else {
       has_parenthesized_initializer = TRUE;
     }  /* if */
-    initializer(static_data_member_sym, &static_data_member_sym->decl_position,
+    initializer(static_data_member_sym, &tip->template_sym->decl_position,
                 idl_internal, has_parenthesized_initializer,
                 /*is_old_style_param_decl=*/FALSE,
                 &incomplete_type_error_reported);
@@ -1043,11 +1046,12 @@ and the class instantiation will detect the runaway case.
     pop_scope();
 
   } else {
+    mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
     (void)def_initializer(static_data_member_sym,
-                          &static_data_member_sym->decl_position);
+                          &tip->template_sym->decl_position);
   }  /* if */
-  /* Usually template functions are instantiated "on demand" and the
-     referenced flag will already have been set.  But if the
+  /* Usually template static data members are instantiated "on demand" and
+     so the referenced flag will already have been set.  But if the
      instantiation mode says to instantiate whether or not there is
      a reference, we should set the referenced flag anyway, so that
      the back-end will be sure to generate the function. */ 
