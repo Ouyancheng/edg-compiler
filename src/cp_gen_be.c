@@ -6269,9 +6269,19 @@ Generate code for the indicated "for" statement.
          a typical C++ case would have an stmk_decl followed by an
          stmk_init.  Just translate the first statement. */
       init_stmt = init_stmt->variant.block.statements;
-      check_assertion_str(init_stmt->next == NULL ||
-                          init_stmt->next->kind == (a_statement_kind)stmk_init,
-                          "gen_for_statement: unexpected init block");
+#if CHECKING
+      check_assertion(init_stmt != NULL &&
+                      init_stmt->kind == (a_statement_kind)stmk_decl);
+      /* All the statements of the block should be related to declarations. */
+      { a_statement_ptr stmt;
+        for (stmt = init_stmt->next; stmt != NULL; stmt = stmt->next) {
+          check_assertion(
+                 init_stmt->next->kind == (a_statement_kind)stmk_init ||
+                 init_stmt->next->kind == (a_statement_kind)stmk_vla_decl ||
+                 init_stmt->next->kind == (a_statement_kind)stmk_set_vla_size);
+        }  /* for */
+      }
+#endif /* CHECKING */
     }  /* if */
     if (init_stmt->kind != (a_statement_kind)stmk_decl) {
       /* Anything other than a declaration, e.g., all C cases. */

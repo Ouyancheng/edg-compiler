@@ -11,6 +11,8 @@ and the resulting generated C did not compile.  Now fixed.
     for (int i = 1, a[j]; i < j; i++) { a[i] = 0; }
   }
 
+A similar problem in the C++-generating back end has also been fixed.
+
 2/12/01  RECORD_CONSTANT_EXPRESSIONS_IN_IL, enums with typedef type
 
 In some cases involving enum constants whose values are given by
