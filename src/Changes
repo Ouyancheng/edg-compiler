@@ -55,15 +55,15 @@ to an integral type, but not to an enum type.
 
 12/13/96 Partial specialization of class templates
 
-Partial specialization of class templates is now supported.  A
-partial specialization is a version of a class template that is to
-be used for instantiations that match the argument list of the
-partial specialization.  When an instantiation of the class is
-required, the front end selects the partial specialization that
-most closely matches the argument list.  If none of the specializations
-match, the primary template is used.  If more than one specialization
-matches, and the specializations are "unordered" relative to one
-another, then the instantiation is ambiguous.
+Partial specialization of class templates is now supported.  A partial
+specialization is a version of a class template that is used for
+instantiations that match the argument list of the partial
+specialization.  When an instantiation of the class is required, the
+front end selects the partial specialization that most closely matches
+the argument list.  If none of the specializations match, the primary
+template is used.  If more than one specialization matches, and the
+specializations are "unordered" relative to one another, then the
+instantiation is ambiguous.
 
   #include <stdio.h>
   template <class T, class U> struct A        { int i; A() : i(1) {} }; // #1
