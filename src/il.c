@@ -294,6 +294,11 @@ entity is not from the primary translation unit.
   trans_unit_name = db_symbol_trans_unit((a_symbol_ptr)scp->assoc_info);
   if (trans_unit_name != NULL) {
     add_char_to_text_buffer(db_name_str_buffer, '[');
+    if (!in_secondary_trans_unit(scp)) {
+      /* This entity was in a secondary translation unit, but has been
+         copied to the primary IL. */
+      add_string_to_text_buffer(db_name_str_buffer, "copied from ");
+    }  /* if */
     add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
     add_char_to_text_buffer(db_name_str_buffer, ']');
   }  /* if */
@@ -317,11 +322,14 @@ information, such as its address and translation unit.
 */
 {
   char *curr;
+
   fprintf(f_debug, "%s\n",
                    db_name_str((a_source_correspondence *)entry, kind));
   fprintf(f_debug, "address = %lx", (unsigned long)entry);
-  fprintf(f_debug, ", in %s trans unit\n", in_secondary_trans_unit(entry) ?
+  fprintf(f_debug, ", in %s trans unit", in_secondary_trans_unit(entry) ?
                                              "secondary" : "primary");
+  fprintf(f_debug, ", in %s scope\n", in_file_scope(entry) ?
+                                             "file" : "function");
   if (in_secondary_trans_unit(entry)) {
     /* Display the correspondence chain. */
     fprintf(f_debug, "corresp =");
