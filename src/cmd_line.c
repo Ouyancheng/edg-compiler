@@ -4161,9 +4161,6 @@ enable_microsoft_mode:
     /* Do argument dependent lookup when doing dependent name processing. */
     arg_dependent_lookup_enabled = TRUE;
   }  /* if */
-  if (nonclass_prototype_instantiations) {
-    implicit_typename_enabled = FALSE;
-  }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();
   } else {
@@ -4181,6 +4178,9 @@ enable_microsoft_mode:
     check_upc_mode();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  if (nonclass_prototype_instantiations) {
+    implicit_typename_enabled = FALSE;
+  }  /* if */
   /* Set restrict_enabled if any form of the restrict keyword is allowed. */
   restrict_enabled = restrict_keyword_enabled || gnu_restrict_keyword_enabled;
   if (ignore_std_namespace) {

@@ -1,5 +1,15 @@
 Version 3.6
 
+1/24/05  GNU C++ compatibility: implicit typename and g++ 3.4 mode
+
+The implicit typename feature is usually enabled in g++ mode, but should
+have been disabled in g++ mode when gnu_version is >= 30400.  Having
+implicit typename enabled resulted in spurious errors when parsing
+nonclass template bodies.  Now fixed.
+
+  template <class T> bool f() {
+    if (T::i) return true; else return false;
+  }
 
 1/21/05  Handling of types across translation units in C mode
 
