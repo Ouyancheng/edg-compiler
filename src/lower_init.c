@@ -1130,16 +1130,9 @@ make_zero_of_proper_type handles returning a -1 constant for a
 NULL pointer-to-data member in the IA-64 ABI.
 */
 {
-#if IA64_ABI
+  make_zero_of_proper_type(desired_type, zero_constant);
   if (is_or_was_ptr_to_data_member_type(desired_type)) {
-    /* Make an integer -1 and convert it to the desired type. */
-    set_integer_constant(zero_constant, (a_host_large_integer)-1,
-                         targ_ptr_to_data_member_int_kind);
-  } else
-#endif /* IA64_ABI */
-  /* Do not insert code here. */
-  {
-    make_zero_of_proper_type(desired_type, zero_constant);
+    lower_ptr_to_member_constant(zero_constant);
   }  /* if */
 }  /* make_lowered_zero_of_proper_type */
 
@@ -1168,12 +1161,7 @@ pointed to by dip or con is already lowered.
       { a_constant     zero_constant;
         a_type_ptr     entity_type = type_pointed_to(entity_node->type);
         make_lowered_zero_of_proper_type(entity_type, &zero_constant);
-        con = alloc_shareable_constant(&zero_constant);
-        /* Lower the zero constant so that (e.g.) pointer to data member
-           constants become the right integral constants. */
-        mark_as_not_visited(con);
-        lower_constant(con);
-        init_val_node = make_node_for_il_constant(con);
+        init_val_node = alloc_node_for_constant(&zero_constant);
       }
       break;
     case dik_constant:
