@@ -98,12 +98,6 @@ static a_control_flow_descr_ptr
 			   case the lifetime pointer in the associated
 			   statement should be cleared. */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-static a_statement_ptr last_statement_ptr;
-			/* Pointer set to last statement allocated when
-			   its end position will not be known until later. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
 #define function_scope_object_lifetime                                \
   (scope_stack[depth_innermost_function_scope].curr_scope_object_lifetime)
 
