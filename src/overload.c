@@ -558,6 +558,7 @@ values.
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
   amsp->arg_is_constant            = FALSE;
+  amsp->lvalue_to_rvalue_conversion_used = FALSE;
   amsp->param_type                 = NULL;
   amsp->guide_type                 = NULL;
   clear_conv_descr(&amsp->conversion);
@@ -638,6 +639,9 @@ Print an argument match summary for debug purposes.
     } else {
       fprintf(f_debug, " (plus conversion)");
     }  /* if */
+  }  /* if */
+  if (amsp->lvalue_to_rvalue_conversion_used) {
+    fprintf(f_debug, " (lvalue-to-rvalue conv)");
   }  /* if */
   if (amsp->conversion.std.type_qualifiers_added) {
     fprintf(f_debug, " (type qualifiers added)");
@@ -1885,6 +1889,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   /* No match is possible. */
   arg_summary->match_level = aml_none;
 have_level:;
+  arg_summary->lvalue_to_rvalue_conversion_used = arg_converted_to_rvalue;
   /* Do some special processing for simple matches.  User-defined conversions
      do their own processing for these issues. */
   if (arg_summary->match_level != aml_none &&
@@ -3403,7 +3408,9 @@ Return TRUE if the indicated standard conversion is an identity conversion
 (i.e., no conversion at all, ignoring lvalue-to-rvalue conversions).
 is_ref is TRUE if the parameter has a reference type.  For a reference
 binding, type_qualifiers_added does not indicate a qualification
-conversion.
+conversion.  Lvalue-to-rvalue conversions are ignored in this test
+because of [over.ics.rank] paragraph 3 first bullet first sub-bullet
+"excluding any Lvalue Transformation" in the subsequence check.
 */
 #define is_identity_conversion(is_ref, conv) \
   (!(conv)->nontrivial_conversion && \
@@ -3504,6 +3511,13 @@ apply that would make one better than the other, and return
         }  /* if */
       } else {
         /* Not cfront mode. */
+        a_boolean do_subsequence_test =
+                           (!microsoft_bugs ||
+                            (!arg_match1->lvalue_to_rvalue_conversion_used &&
+                             !arg_match2->lvalue_to_rvalue_conversion_used &&
+                             (microsoft_version >= 1300 ||
+                              (is_ptr_or_ref_type(param_type1) &&
+                               is_ptr_or_ref_type(param_type2)))));
         a_boolean param1_is_ref =
                              is_ref_or_ref_equivalent(param_type1, arg_match1);
         a_boolean param2_is_ref =
@@ -3512,12 +3526,14 @@ apply that would make one better than the other, and return
            no change at all) and the other has a qualification conversion,
            the identity conversion is a subsequence of the other and is
            better. */
-        if (is_identity_conversion(param1_is_ref,
+        if (do_subsequence_test &&
+            is_identity_conversion(param1_is_ref,
                                    &arg_match1->conversion.std) &&
             is_qualification_conversion(param2_is_ref,
                                         &arg_match2->conversion.std)) {
           cmp = 1;
-        } else if (is_identity_conversion(param2_is_ref,
+        } else if (do_subsequence_test &&
+                   is_identity_conversion(param2_is_ref,
                                           &arg_match2->conversion.std) &&
                    is_qualification_conversion(param1_is_ref,
                                                &arg_match1->conversion.std)) {
@@ -3546,8 +3562,12 @@ apply that would make one better than the other, and return
               (single_ref_qual_ovl_res_tiebreaker &&
                (param1_is_ref || param2_is_ref) &&
                /* In Microsoft bugs mode, the tie-breaker applies only when
-                  the argument is not a constant. */
-               (!microsoft_bugs || !arg_match1->arg_is_constant))) {
+                  the argument is not a constant, if one parameter is
+                  not a pointer or reference. */
+               (!microsoft_bugs ||
+                (is_ptr_or_ref_type(param_type1) &&
+                 is_ptr_or_ref_type(param_type2)) ||
+                !arg_match1->arg_is_constant))) {
             /* The tiebreaker applies only when the qualifiers under the
                references are different. */
             if (qualifiers1 != qualifiers2) {

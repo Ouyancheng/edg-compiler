@@ -216,6 +216,12 @@ typedef struct an_arg_match_summary {
 		arg_is_constant;
 			/* TRUE if the corresponding argument is a constant.
 			   This is used for a Microsoft-mode test. */
+  a_byte_boolean
+		lvalue_to_rvalue_conversion_used;
+			/* TRUE if the argument was converted from an lvalue
+			   to an rvalue.  This follows the C++ standard
+			   definition, which includes function --> pointer
+			   and array --> pointer. */
   a_type_ptr	param_type;
 			/* The type of the parameter.  Used in looking
 			   for conversion subsequences involving addition

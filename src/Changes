@@ -1,5 +1,28 @@
 Version 3.5
 
+10/7/04  Microsoft compatibility: overload resolution tiebreakers,
+         array decay to pointer
+
+A further tweak to the overload resolution tiebreaker rules (see
+previous Changes entries on 8/15/02 and 6/3/02): the handling
+of lvalue-to-rvalue conversions (which includes array --> pointer
+decay) in tiebreakers has been adjusted to more closely match
+MSVC++, and the behavior of the earlier changes (cited above)
+has been adjusted for --microsoft_version=1200.
+
+  typedef long wchar_t;
+  template <class T> struct U {
+    template<typename V> U(const V& p ) { p->QueryInterface(); }
+    U (const wchar_t*) { } // intended constructor
+  };
+  struct Foo { };
+  typedef U<Foo> UF;
+  void func() {
+    UF uf = UF(L"abcd");  // Formerly got error in microsoft_version=1200
+                          // and 1300 (wrong constructor chosen).  Now
+                          // accepted.
+  }
+
 10/7/04  GNU compatibility: __builtin_classify_type and __builtin_constant_p
 
 In addition to being constant-folded calls to the GNU built-in functions
