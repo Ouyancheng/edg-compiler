@@ -532,6 +532,14 @@ Flags to be set when using the KAI inliner.
 #ifndef IA64_ABI
 #define IA64_ABI 1
 #endif /* IA64_ABI */
+#ifndef MAINTAIN_NEEDED_FLAGS
+#define MAINTAIN_NEEDED_FLAGS 1
+#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
+#ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
+#if MAINTAIN_NEEDED_FLAGS
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 
 /* Settings needed in order for bit-field allocation to match gcc. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
