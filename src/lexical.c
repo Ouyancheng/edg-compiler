@@ -5487,7 +5487,12 @@ float_accum_1:
   }  /* if */
   /* Check for the presence of an exponent. */
   if (kind == k_hex) {
-    if ((ch = *curr_char_loc) != 'p' && ch != 'P') goto end_float_accum;
+    if ((ch = *curr_char_loc) != 'p' && ch != 'P') {
+      /* A missing binary suffix -- this is an error. */
+      error_at_line_pos(ec_bad_float_constant, curr_char_loc);
+      err = TRUE;
+      goto end_float_accum;
+    }  /* if */
   } else {
     if ((ch = *curr_char_loc) != 'e' && ch != 'E') goto end_float_accum;
   }  /* if */

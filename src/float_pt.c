@@ -819,6 +819,7 @@ fit in the indicated type.
   int				nibble_in_part = 0;
   a_boolean			too_many_digits = FALSE;
   a_boolean			bits_discarded = FALSE;
+  a_boolean			any_digits = FALSE;
 
   *err = FALSE;
   *inexact = FALSE;
@@ -872,6 +873,7 @@ fit in the indicated type.
       /* If this character precedes the decimal point, update the implied
          exponent. */
       if (!after_decimal) exponent += 4;
+      any_digits = TRUE;
     }  /* if */
   }  /* for */
   /* Check for the presence of an exponent. */
@@ -911,17 +913,20 @@ fit in the indicated type.
     mantissa.underflow = TRUE;
   }  /* if */
   /* Normalize the mantissa. */
-  while ((mantissa.parts[0] & 0x80000000) == 0) {
-    shift_left_mantissa(&mantissa, 1);
+  if (any_digits) {
+    while ((mantissa.parts[0] & 0x80000000) == 0) {
+      shift_left_mantissa(&mantissa, 1);
+      exponent--;
+    }  /* while */
+    if (kind != (a_float_kind)fk_long_double ||
+        !long_double_has_no_implicit_bit) {
+      /* Shift one bit further to have an implied initial one bit.  This is
+         only done for floating point representations that use an implicit
+         bit. */
+      shift_left_mantissa(&mantissa, 1);
+    }  /* if */
     exponent--;
-  }  /* while */
-  if (kind != (a_float_kind)fk_long_double ||
-      !long_double_has_no_implicit_bit) {
-    /* Shift one bit further to have an implied initial one bit.  This is only
-       done for floating point representations that use an implicit bit. */
-    shift_left_mantissa(&mantissa, 1);
   }  /* if */
-  exponent--;
 #if DEBUG
   if (db_flag_is_set("fp_hex_string_to_float")) {
     fprintf(f_debug, "fp hex value: ");
@@ -1313,6 +1318,9 @@ Initialize static variables related to float_pt.c.
   sizeof_t	size;
 
   /* Determine whether the host system is big or little endian. */
+  /* Suppress the CodeCenter warning that would be issued because we
+     access an "int" using a "char" pointer. */
+  /*SUPPRESS 112 */
   host_little_endian = (*(char *)&i) == 1;
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* At least on Intel implementations, 80-bit floating-point values do not
