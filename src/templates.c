@@ -2014,6 +2014,10 @@ and create a function instantiation entry to bind the two symbols together.
   rout_sym->variant.routine.instance_ptr = tip;
   /* Mark the routine entry as an instance of a member function template. */
   rout_sym->variant.routine.ptr->is_template_function = TRUE;
+  /* Be sure the is_line flag is transferred to the new routine entry. */
+  if (sym->variant.routine.ptr->is_inline) {
+    rout_sym->variant.routine.ptr->is_inline = TRUE;
+  }  /* if */
 
   db_exit();
 }  /* find_member_function_template */
