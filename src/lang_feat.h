@@ -1498,9 +1498,9 @@ Flag that is true if Embedded C (TR 18037) named address space specifiers
 should be recognized by default.  This is the default initial value of
 named_address_spaces_enabled.
 */
-#ifndef DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED
-#define DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED FALSE
-#endif /* DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED */
+#ifndef DEFAULT_NAMED_ADDRESS_SPACES_ENABLED
+#define DEFAULT_NAMED_ADDRESS_SPACES_ENABLED FALSE
+#endif /* DEFAULT_NAMED_ADDRESS_SPACES_ENABLED */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
