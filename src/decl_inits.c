@@ -396,8 +396,8 @@ element type is template dependent.
        is being initialized with a string.  Handle this case specially. */
     a_boolean      err = FALSE;
 
-    /* The object to be initialized is an array (possibly incomplete) of
-       char or wchar_t -- i.e., a string or wide string. */
+    /* Do concatenations like "abc" __FUNCTION__. */
+    (void)do_expression_level_string_literal_concatenation();
     if (!using_pending_init_con) {
       /* The constant wasn't prescanned. */
       cp = &const_for_curr_token;

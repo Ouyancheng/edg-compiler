@@ -14237,7 +14237,8 @@ rather than a static variable.
     /* gcc mode keywords are strings except for __func__ (which is
        a variable because it's from C99).  The gcc documentation says
        that the string cases will be changed to variables in gcc 3.2,
-       but as of 3.3 they are still strings. */
+       but as of 3.3 they are still strings.  In 3.4 they appear to
+       be variables. */
     is_string = (token != tok_func_name);
   } else {
     /* Other cases (C99, g++): use a static variable. */
@@ -14245,6 +14246,36 @@ rather than a static variable.
   }  /* if */
   return is_string;
 }  /* token_is_function_name_string_literal */
+
+
+a_boolean do_expression_level_string_literal_concatenation(void)
+/*
+The current token is a string literal and the current context is
+expression-like.  Check whether the string literal is followed
+by a function-name token like __FUNCTION__ that is treated as
+a string literal, and if so do concatenation of the string literals,
+setting the current token to the result.  Return TRUE if any
+concatenation was done.  Because we are at expression level, we
+are actually parsing the code and we know what function we are
+in, which is not true in some token-level contexts, e.g., when
+caching the tokens of a member function.
+*/
+{
+  a_boolean    concat_done = FALSE;
+  a_token_kind nextt;
+
+  check_assertion(curr_token == tok_string_literal);
+  nextt = next_token();
+  if (token_is_function_name_string_literal(nextt)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || nextt == tok_microsoft_lprefix
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                       ) {
+    concat_adjacent_string_literals(/*function_name_case=*/TRUE);
+    concat_done = TRUE;
+  }  /* if */
+  return concat_done;
+}  /* do_expression_level_string_literal_concatenation */
 
 
 void set_curr_token_to_function_name_string(a_boolean do_concat)
@@ -14888,18 +14919,8 @@ see expr.h).
       break;
     case tok_string_literal:
       { a_boolean is_simple_string = TRUE;
-        a_token_kind nextt = next_token();
-        if (token_is_function_name_string_literal(nextt)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            || nextt == tok_microsoft_lprefix
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                             ) {
-          /* Handle cases where a string is followed by a function-name
-             keyword like __FUNCTION__ that is treated like a string literal
-             and therefore must be concatenated, e.g.,
-               "abc" __FUNCTION__
-          */
-          concat_adjacent_string_literals(/*function_name_case=*/TRUE);
+        /* Do concatenations like "abc" __FUNCTION__. */
+        if (do_expression_level_string_literal_concatenation()) {
           if (!microsoft_mode) is_simple_string = FALSE;
         }  /* if */
         make_string_constant_operand(&const_for_curr_token, &local_result);

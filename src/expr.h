@@ -83,6 +83,8 @@ extern a_boolean is_expr_start_token(a_token_kind tok);
 
 extern a_boolean token_is_function_name_string_literal(a_token_kind token);
 
+extern a_boolean do_expression_level_string_literal_concatenation(void);
+
 extern void set_curr_token_to_function_name_string(a_boolean do_concat);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
