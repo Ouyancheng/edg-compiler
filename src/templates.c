@@ -2072,35 +2072,6 @@ enclosing template.
 }  /* determine_referencing_namespace */
 
 
-static a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym)
-/*
-If "sym" was declared in a translation unit other than the current one,
-push its translation unit onto the translation unit stack.
-
-Return TRUE if a translation unit was pushed, FALSE if not.
-*/
-{
-  a_boolean			push_needed = FALSE;
-  a_translation_unit_ptr	tup;
-
-  if (!sym->is_error) {
-    tup = trans_unit_for_symbol(sym);
-    push_needed = tup != curr_translation_unit;
-    if (push_needed) {
-      push_translation_unit_stack(tup);
-    }  /* if */
-    if (curr_translation_unit == translation_units &&
-        secondary_trans_units_on_stack > 0) {
-      /* If we are in the primary translation unit, and if there are secondary
-         translation units on the stack, set a flag that indicates that the
-         primary IL may contain references to other translation units. */
-      primary_il_may_reference_other_trans_units = TRUE;
-    }  /* if */
-  }  /* if */
-  return push_needed;
-}  /* push_translation_unit_if_needed */
-
-
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
 class_type is an incomplete class type.  If it is an instance of a class

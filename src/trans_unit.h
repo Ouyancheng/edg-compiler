@@ -177,6 +177,8 @@ extern void push_translation_unit_stack(a_translation_unit_ptr	tup);
 
 extern void pop_translation_unit_stack(void);
 
+extern a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym);
+
 extern void f_register_trans_unit_variable(a_void_ptr	var,
 					   sizeof_t	size);
 
