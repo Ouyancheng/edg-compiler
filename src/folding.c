@@ -1309,10 +1309,9 @@ Return TRUE if the given constant is a null pointer constant.
         if (C_dialect == C_dialect_cplusplus) {
           /* In C++ (void *)0 is not a null pointer constant. */
         } else if (is_pointer_type(constant->type) &&
-                   !is_top_level_qualified_type(constant->type)) {
+                   !is_qualified_type(constant->type)) {
           ptr_type = type_pointed_to(constant->type);
-	  if (is_void_type(ptr_type) &&
-              !is_top_level_qualified_type(ptr_type)) {
+	  if (is_void_type(ptr_type) && !is_qualified_type(ptr_type)) {
 	    is_null_pointer = TRUE;
 	  }  /* if */
 	}  /* if */

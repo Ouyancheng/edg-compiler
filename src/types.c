@@ -3595,7 +3595,7 @@ in C++ mode.  See ARM 13.
   new_extra_info = new_type->variant.routine.extra_info;
   new_this_param_type = new_extra_info->implicit_this_param_type;
   new_this_qualified = (new_this_param_type != NULL &&
-                        is_top_level_qualified_type(
+                        is_qualified_type(
                                    type_pointed_to(new_this_param_type)));
   do {
     /* See if old_sym_ptr and new_type are distinguishable. */
@@ -3632,7 +3632,7 @@ in C++ mode.  See ARM 13.
        which does a similar check.) */
     old_this_param_type = old_extra_info->implicit_this_param_type;
     old_this_qualified = (old_this_param_type != NULL &&
-                          is_top_level_qualified_type(
+                          is_qualified_type(
                                     type_pointed_to(old_this_param_type)));
     if (old_this_qualified != new_this_qualified ||
         (old_this_param_type != NULL && new_this_param_type != NULL &&

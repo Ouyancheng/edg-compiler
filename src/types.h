@@ -115,9 +115,7 @@ on the underlying element type of an array.
    f_is_volatile_qualified_type((tp), /*top_level=*/C_mode()))
 /*
 Check for "top-level" type qualifiers -- i.e., don't look at the element
-type if tp is an array.  These macros are used in place of the above both
-for efficiency (when it is known that tp is not an array) and for
-correctness (when looking at the array element type is inappropriate).
+type if tp is an array.
 */
 #define is_top_level_qualified_type(tp)                               \
   ((tp)->kind == (a_type_kind)tk_typeref &&                           \
@@ -130,13 +128,12 @@ correctness (when looking at the array element type is inappropriate).
    f_is_volatile_qualified_type((tp), /*top_level=*/TRUE))
 /*
 Return TRUE if the type qualifiers on two types match.  Typedefs and
-the underlying types are ignored.
+the underlying types are ignored.  On an array type it is the element
+type that is checked for qualifiers.
 */
-#define type_qualifiers_match(type_1, type_2)                         \
-  (is_top_level_const_qualified_type(type_1) ==                       \
-          is_top_level_const_qualified_type(type_2) &&                \
-   is_top_level_volatile_qualified_type(type_1) ==                    \
-          is_top_level_volatile_qualified_type(type_2))
+#define type_qualifiers_match(tp1, tp2)                               \
+  (is_const_qualified_type(tp1) == is_const_qualified_type(tp2) &&    \
+   is_volatile_qualified_type(tp1) == is_volatile_qualified_type(tp2))
 
 extern a_boolean f_is_const_qualified_type(a_type_ptr tp,
                                            a_boolean  top_level);

@@ -2390,7 +2390,7 @@ or struct definition.  The syntax is
          10, p. 196), issue an error and skip over this class: it is not a
          valid base class name. */
       check_for_uninstantiated_template_class(base_class_type);
-      if (is_top_level_qualified_type(base_class_type) ||
+      if (is_qualified_type(base_class_type) ||
           (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
           base_class_type->kind == (a_type_kind)tk_union ||
           !is_complete_class_struct_union_type(base_class_type)) {
@@ -2767,7 +2767,7 @@ without it.
   new_this_type = new_rts->implicit_this_param_type;
   new_function_is_qualified =
                (new_this_type != NULL &&
-                is_top_level_qualified_type(type_pointed_to(new_this_type)));
+                is_qualified_type(type_pointed_to(new_this_type)));
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
@@ -2776,7 +2776,7 @@ without it.
     orig_this_type = orig_rts->implicit_this_param_type;
     orig_function_is_qualified =
                (orig_this_type != NULL &&
-                is_top_level_qualified_type(type_pointed_to(orig_this_type)));
+                is_qualified_type(type_pointed_to(orig_this_type)));
     if (new_function_is_qualified != orig_function_is_qualified) {
       /* No match is possible.  Don't bother calling types_are_compatible. */
     } else {
@@ -4636,7 +4636,7 @@ operator routine or do bitwise assignment.
        the base class's assignment function), and then do the appropriate
        copy of each member. */
     const_source_var =
-         is_top_level_const_qualified_type(type_pointed_to(source_var->type));
+         is_const_qualified_type(type_pointed_to(source_var->type));
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         /* We are only interested in direct base classes. */
@@ -6054,7 +6054,7 @@ Scan the body of a class definition, including the base classes list.
               if (inline_specified) {
                 pos_error(ec_inline_not_allowed, &decl_start_pos);
               }  /* if */
-              if (is_top_level_qualified_type(member_type)) {
+              if (is_qualified_type(member_type)) {
                 pos_error(ec_useless_type_qualifiers, &decl_start_pos);
               }  /* if */
             } else if (member_storage_class == (a_storage_class)sc_typedef) {
@@ -6583,8 +6583,8 @@ Scan the body of a class definition, including the base classes list.
                           source_corresp.class_of_which_a_member = class_type;
           } else if (curr_token == tok_assign &&
                      is_scalar_type(local_type) &&
-                     is_top_level_const_qualified_type(local_type) &&
-                     !is_top_level_volatile_qualified_type(local_type) &&
+                     is_const_qualified_type(local_type) &&
+                     !is_volatile_qualified_type(local_type) &&
                      member_storage_class == (a_storage_class)sc_unspecified &&
                      C_dialect == C_dialect_cplusplus) {
             /* Provide support for the nonstandard declaration of a member
