@@ -6929,6 +6929,7 @@ the symbol for the instance, or NULL if no instance is found.
         if (sym_found != NULL) {
           if (any_found) {
             sym_error(ec_ambiguous_overloaded_function, orig_sym);
+            new_sym = NULL;
             break;
           }  /* if */
           any_found = TRUE;
