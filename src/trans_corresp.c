@@ -1727,6 +1727,11 @@ also deals with the consequences of type becoming the new canonical entry.
        the members. */
     if (is_immediate_class_type(type)) {
       establish_trans_unit_correspondences_for_class(type);
+      if (type->variant.class_struct_union.is_template_class) {
+        /* Make sure this instance will be compared against the canonical
+           entry. */
+        add_verification_entry(iek_type, (char*)type);
+      }  /* if */
     } else if (is_immediate_enum_type(type)) {
       establish_trans_unit_correspondences_for_enum(type);
     }  /* if */
@@ -2714,9 +2719,9 @@ is in fact valid.
                 tcp = trans_unit_corresp_of(type);
 
   if (tcp == NULL) {
-    /* This should only happen in if an error prevented us from setting
+    /* This should only happen in if an error prevents us from setting
        correspondences on all entities in secondary translation units. */
-    check_assertion(total_errors != 0);
+    expect_error();
     corresp_type = type;
   } else {
     corresp_type = (a_type_ptr)tcp->canonical;
