@@ -770,6 +770,8 @@ the template.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier         decl_modifiers = DM_NONE;
   a_type_qualifier_set    class_qualifiers = TQ_NONE;
+  an_inheritance_kind     inheritance_kind = (an_inheritance_kind)ihk_none;
+  a_source_position       inheritance_kind_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_specifier");
@@ -800,7 +802,7 @@ the template.
     }  /* if */
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!C_mode() &&
+    if (microsoft_mode && !C_mode() &&
         (curr_token == tok_declspec || is_microsoft_memory_attribute())) {
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_function_definition and applied to each member
@@ -816,6 +818,39 @@ the template.
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
     tag_id_present = is_expr_qualified_name_start();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && !C_mode() && tag_id_present &&
+        !locator_for_curr_id.is_qualified_name &&
+        decl_modifiers == DM_NONE && class_qualifiers == TQ_NONE) {
+      /* Check for a Microsoft "inheritance kind" -- i.e.,
+           __single_inheritance
+           __multiple_inheritance
+           __virtual_inheritance
+         The syntax is
+           class-keyword inheritance-kind class-name ;
+      */
+      char  *name = locator_for_curr_id.symbol_header->identifier;
+
+      if (*(name++) == '_' && *(name++) == '_') {
+        /* Leading double underscore. */
+        if (strcmp(name, "single_inheritance") == 0) {
+          inheritance_kind = (an_inheritance_kind)ihk_single;
+        } else if (strcmp(name, "multiple_inheritance") == 0) {
+          inheritance_kind = (an_inheritance_kind)ihk_multiple;
+        } else if (strcmp(name, "virtual_inheritance") == 0) {
+          inheritance_kind = (an_inheritance_kind)ihk_virtual;
+        }  /* if */
+        if (inheritance_kind != (an_inheritance_kind)ihk_none) {
+          /* Remember the source position, in case a diagnostic is required
+             later. */
+          inheritance_kind_pos = pos_curr_token;
+          /* Skip past the inheritance-kind keyword and scan the class name. */
+          (void)get_token();
+          tag_id_present = is_expr_qualified_name_start();
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* class_specifier is called with is_friend_decl TRUE only when the name
        has not yet been declared; this happens in cfront compatibility mode
@@ -1374,17 +1409,33 @@ the template.
        declaration. */
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
-  if (is_class_definition) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!C_mode()) {
+  if (microsoft_mode && !C_mode()) {
+    a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+    if (is_class_definition) {
       /* If there were any class-wide modifiers or memory attributes
          specified, record them in the class type supplement. */
-      a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
       ctsp->decl_modifiers = decl_modifiers;
       ctsp->qualifiers = class_qualifiers;
     }  /* if */
+    if (inheritance_kind != (an_inheritance_kind)ihk_none) {
+      /* Set the specified inheritance kind, unless a different inheritance
+         kind has already been locked in -- either explicitly through a prior
+         declaration or implicitly, based on the setting of global variable
+         default_inheritance_kind, if a pointer-to-member declaration has
+         been seen. */
+      if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
+        ctsp->inheritance_kind = inheritance_kind;
+      } else if (ctsp->inheritance_kind != inheritance_kind) {
+        /* Inheritance kind has already been set for this class. */
+        pos_sy_error(ec_inheritance_kind_already_set, &inheritance_kind_pos,
+                     tag_sym);
+      }  /* if */
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
                               orig_decl_level, is_local_class,
                               delayed_nested_class_def,

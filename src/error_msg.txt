@@ -931,6 +931,7 @@ ec_using_decl_in_embedded_cplusplus;;"Embedded C++ does not support using-declar
 ec_mutable_in_embedded_cplusplus;;"Embedded C++ does not support \"mutable\""
 ec_multiple_inheritance_in_embedded_cplusplus;;"Embedded C++ does not support multiple or virtual inheritance"
 ec_cl_invalid_microsoft_version;;"invalid Microsoft version number: "
+ec_inheritance_kind_already_set;;"pointer-to-member representation has already been set for %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

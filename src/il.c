@@ -4795,6 +4795,18 @@ existing type entry.
       set_type_size(tp);
       add_based_type_list_member(member_type,
                                  (a_based_type_kind)btk_ptr_to_member, tp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode) {
+        /* A pointer-to-member declaration involving a given class type
+           locks in the inheritance kind (i.e., the pointer-to-member
+           representation). */
+        a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+        if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
+          ctsp->inheritance_kind = default_inheritance_kind;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   return tp;
