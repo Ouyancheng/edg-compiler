@@ -14439,11 +14439,26 @@ nonstandard class member constants.  Assumes copy-initialization
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (is_array_type(required_type) && is_array_type(result.type)) {
     check_assertion(gcc_mode || is_string_type(result.type));
-    if (!types_are_compatible_ignoring_qualifiers(result.type,
-                                                  required_type)) {
+    if (!types_are_compatible(result.type, required_type)) {
       pos_ty2_error(ec_bad_initializer_type, &result.position,
                     result.type, required_type);
-      make_error_operand(&result);
+      conv_to_error_operand(&result);
+    }  /* if */
+    /* Make a constant from the operand. */
+    if (is_an_lvalue(&result)) {
+      /* The operand represents a &"..." form: strip the ck_address constant
+         to recover the plain string literal. */
+      a_constant_ptr  string_con;
+      check_assertion(is_string_type(result.type) &&
+                      result.kind == (an_operand_kind)ok_constant);
+      string_con = &result.variant.constant;
+      check_assertion(string_con->kind == (a_constant_repr_kind)ck_address &&
+                      string_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant);
+      copy_constant(string_con->variant.address.variant.constant, constant);
+    } else {
+      /* The operand could be a constant or an error. */
+      extract_constant_from_operand(&result, constant);
     }  /* if */
   } else {
     /* Convert to the required type. */
@@ -14454,17 +14469,6 @@ nonstandard class member constants.  Assumes copy-initialization
                              /*is_copy_initialization=*/TRUE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
-  }  /* if */
-  /* Make a constant from the operand. */
-  if (is_an_lvalue(&result) && is_string_type(result.type)) {
-    /* The operand represents a &"..." form: strip the ck_address constant
-       to recover the plain string literal. */
-    a_constant_ptr  string_con = &result.variant.constant;
-    check_assertion(string_con->kind == (a_constant_repr_kind)ck_address &&
-                    string_con->variant.address.kind ==
-                                           (an_address_base_kind)abk_constant);
-    copy_constant(string_con->variant.address.variant.constant, constant);
-  } else {
     /* The operand could be a constant or an error. */
     extract_constant_from_operand(&result, constant);
   }  /* if */
@@ -14764,8 +14768,7 @@ This routine is also called in C99 and GNU C modes.
           string_case = TRUE;
           goto required_type_determined;
         } else if (is_array_type(result.type) &&
-                   types_are_compatible_ignoring_qualifiers(result.type,
-                                                            required_type)) {
+                   types_are_compatible(result.type, required_type)) {
           /* In GNU C mode a compound literal may initialize an element of
              array type. */
           check_assertion(gcc_mode);
