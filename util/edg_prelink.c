@@ -3076,6 +3076,7 @@ end_of_options:
 #endif /* DEBUG */
 
       pl_symbol_table_head = NULL;
+      specialization_list = NULL;
       memzero((char *)pl_symbol_table, sizeof(pl_symbol_table));
 
       /* Execute the nm command. */
