@@ -2251,6 +2251,10 @@ empty statement block.
     pop_class_reactivation_scope();
     /* Mark the symbol for this routine "defined". */
     rout_sym->defined = TRUE;
+    /* Notify the correspondence routines that a definition of this function
+       is now present.  Note that this is done for both template classes
+       and normal classes. */
+    establish_function_instantiation_corresp(rout_ptr);
     /* If the translation unit stack was pushed above, pop it now. */
     if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
