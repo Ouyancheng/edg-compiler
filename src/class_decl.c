@@ -3103,14 +3103,12 @@ if access, static-ness, and virtual-ness are unchanged.  A warning is issued.
   db_enter(3, "redecl_member_function");
   /* Let the current access override the original access specification, but
      if there's a difference, issue an error. */
+  pos_sy_error(ec_member_function_redeclaration, err_pos, sym);
   if (access != rp->source_corresp.access ||
       (is_virtual && !rp->is_virtual) ||
       (routine_type_is_nonstatic_member_function(rp->type) !=
          routine_type_is_nonstatic_member_function(member_type))) {
-    pos_st_error(ec_id_already_declared, err_pos, sym->header->identifier);
   } else {
-    /* Issue a warning that this redeclaration is nonstandard. */
-    pos_warning(ec_nonstd_member_function_redeclaration, err_pos);
     /* If the new declaration specifies "inline", keep it, even if the
        previous declaration did not. */
     if (is_inline) rp->is_inline = TRUE;
