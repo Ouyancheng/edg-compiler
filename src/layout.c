@@ -560,9 +560,11 @@ aligned according to container_alignment.
       } else if (container_size == targ_sizeof_long_long) {
        container_alignment = targ_alignof_long_long;
 #endif /* LONG_LONG_ALLOWED */
+#if CHECKING
       } else {
         internal_error(
              "align_offsets_for_bit_field: bad targ_bit_field_container_size");
+#endif /* CHECKING */
       }  /* if */
     } else if (targ_bit_field_container_size == 0) {
       /* Use the smallest integral type into which the field will fit as
