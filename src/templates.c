@@ -755,6 +755,30 @@ instantiation.
 
 
 static
+a_func_info_block *func_info_for_template(
+                                      a_template_symbol_supplement_ptr tssp)
+/*
+Returns a pointer to the func_info to be used for a given template.
+Typically, this is the one stored in the template symbols supplement.
+But if the template is a member template declared within a class template,
+the func_info may be associated with the member template from the prototype
+instantiation.
+*/
+{
+  a_func_info_block	*fibp;
+
+  if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
+    /* Use the cache from the original template. */
+    fibp = &tssp->prototype_template->
+                           variant.template_info->variant.function.func_info;
+  } else {
+    fibp = &tssp->variant.function.func_info;
+  }  /* if */
+  return fibp;
+}  /* func_info_for_template */
+
+
+static
 void find_class_template_member(a_symbol_ptr  ct_symbol,
                                 a_type_ptr    parent_class)
 /*
@@ -1599,6 +1623,7 @@ Instantiate the body of the template function associated with tip.
   an_extern_linkage                 saved_linkage;
   a_symbol_ptr			    template_sym;
   a_template_cache_ptr		    tcp;
+  a_func_info_block		    *func_info_ptr;
 
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
@@ -1609,6 +1634,7 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
+  func_info_ptr = func_info_for_template(tssp);
   if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
     /* This function instantiation occurs within the context of other
        instantiations of the same function template.  When the number of
@@ -1642,7 +1668,7 @@ Instantiate the body of the template function associated with tip.
     db_symbol(template_sym, "\nbased on: ", 2);
   }  /* if */
 #endif /* DEBUG */
-  if (tssp->variant.function.func_info.is_inline) {
+  if (func_info_ptr->is_inline) {
     rout_ptr->is_inline = TRUE;
     rout_ptr->storage_class = (a_storage_class)sc_static;
     rout_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
@@ -1720,14 +1746,14 @@ Instantiate the body of the template function associated with tip.
      process_curr_construct_pragmas; otherwise the pragmas we're interested
      in would have been disposed of. */
   record_lint_argsused_and_varargs_state(rout_sym);
-  if (!exceptions_enabled && !tssp->variant.function.func_info.is_inline &&
-      tssp->variant.function.func_info.throw_position.seq != 0) {
+  if (!exceptions_enabled && !func_info_ptr->is_inline &&
+      func_info_ptr->throw_position.seq != 0) {
     /* Issue a diagnostic on attempting to define a noninline function with
        an exception specification when exception support is not enabled.
        (No diagnostic is issued on nondefinition -- the exception
        specification is just ignored.) */
     pos_error(ec_no_exception_support,
-              &tssp->variant.function.func_info.throw_position);
+              &func_info_ptr->throw_position);
   }  /* if */
   /* Set the default name linkage to that of the template.  It will be
      active while the function body is scanned and then restored. */
@@ -1736,7 +1762,7 @@ Instantiate the body of the template function associated with tip.
   def_external_linkage.is_explicit = FALSE;
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);
-  scan_function_body(rout_ptr, &tssp->variant.function.func_info,
+  scan_function_body(rout_ptr, func_info_ptr,
                      (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                       SFB_IS_INSTANTIATION));
   /* scan_function_body does not scan past the right brace. */
@@ -2999,9 +3025,11 @@ It is FALSE if the instantiation scope was pushed by the caller.
   a_param_type_ptr		ptp;
   a_type_ptr			templ_rout_type;
   a_type_ptr			rout_type;
+  a_func_info_block		*func_info_ptr;
 
   templ_rout_type = skip_typerefs(templ_rout->type);
   rout_type = skip_typerefs(rout_ptr->type);
+  func_info_ptr = func_info_for_template(tssp);
   daefp = tssp->variant.function.def_arg_expr_list;
   if (daefp != NULL) {
     templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
@@ -3028,9 +3056,9 @@ It is FALSE if the instantiation scope was pushed by the caller.
                          daefp->cache.decl_info->declaration_scope,
                          (a_type_ptr)NULL,
                          (a_routine_ptr)NULL);
-        if (tssp->variant.function.func_info.prototype_scope_symbols != NULL) {
+        if (func_info_ptr->prototype_scope_symbols != NULL) {
           reactivate_prototype_scope_symbols(
-                    tssp->variant.function.func_info.prototype_scope_symbols);
+                                     func_info_ptr->prototype_scope_symbols);
         }  /* if */
         /* Update the default argument expression entry to point to the
            current param type entry. */
@@ -3044,7 +3072,7 @@ It is FALSE if the instantiation scope was pushed by the caller.
         daefp = daefp->next;
         /* Restore the prototype scope symbols pointer in the func_info
            block. It shouldn't have changed, but we do it to be safe. */
-        tssp->variant.function.func_info.prototype_scope_symbols =
+        func_info_ptr->prototype_scope_symbols =
              assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
         /* Pop the reactivated function prototype scope off the stack. */
         pop_scope();
