@@ -2675,10 +2675,12 @@ are created by a new expression (in which case sym is NULL).  In both cases
         }  /* if */
       }  /* if */
     } else {
-      /* Uninitialized const new-object.  Issue a warning.  (One can infer
-         from the ARM that an error is required, but it's not explicit.
-         Until the language definition is improved, we'll let it by.) */
-      warning(ec_missing_initializer_on_unnamed_const);
+      /* Uninitialized const new-object.  Issue an discretionary error in
+         strict mode, otherwise a warning. (One can infer from the ARM that
+         an error is required, but it's not explicit.)  */
+      diagnostic(strict_ansi_mode ?
+                    strict_ansi_discretionary_severity : es_warning,
+                 ec_missing_initializer_on_unnamed_const);
     }  /* if */
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
@@ -2734,7 +2736,9 @@ are created by a new expression (in which case sym is NULL).  In both cases
           pos_sy_diagnostic(severity, code, &sym->decl_position, sym);
         } else {
           /* New object -- there's no name to display. (C++ only.) */
-          error(ec_unnamed_object_with_uninitialized_field);
+          diagnostic(strict_ansi_mode ?
+                        strict_ansi_discretionary_severity : es_warning,
+                     ec_unnamed_object_with_uninitialized_field);
         }  /* if */
       }  /* if */
     }  /* if */
