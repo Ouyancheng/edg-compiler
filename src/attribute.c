@@ -209,9 +209,10 @@ that do take arguments.
 {
   char               *name;
   int                i;
-  a_source_position  pos = error_position;
+  a_source_position  pos;
   a_boolean          result = TRUE;
 
+  pos = error_position;
   /* Different kinds of attributes take different kinds of 
      arguments.  */
   switch (attribute->kind) {

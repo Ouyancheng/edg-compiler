@@ -5909,7 +5909,7 @@ describe the next parameter.
                f = f->next) {
             new_severity = arg_okay_for_old_style_param(argument_operand, 
                                                         f->type);
-            if (new_severity < severity) {
+            if ((int)new_severity < (int)severity) {
               severity = new_severity;
               if (severity == (an_error_severity)es_none) {
                 break;
