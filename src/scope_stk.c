@@ -3304,10 +3304,12 @@ is pushed here, and popped when the instantiation scope is popped.
     { a_decl_sequence_number	decl_seq;
       /* Set the active using flags for the newly created context. */
       decl_seq = decl_info->decl_seq;
-      if (microsoft_mode && (assoc_routine != NULL || assoc_type != NULL)) {
-        /* In Microsoft mode, all using-directives are considered (not just the
-           ones that should be visible, except during the partial instantiation
-           of a function (when assoc_routine and assoc_type will be NULL). */
+      if (!do_dependent_name_processing &&
+          (assoc_routine != NULL || assoc_type != NULL)) {
+        /* When not doing dependent name lookup, all using-directives are
+           considered (not just the ones that should be visible), except
+           during the partial instantiation of a function (when assoc_routine
+           and assoc_type will be NULL). */
         decl_seq = NO_DECL_SEQUENCE_NUMBER;
       }  /* if */
       set_active_using_list_scope_depths(depth_scope_stack, /*set_value=*/TRUE,
