@@ -64,6 +64,7 @@ static unsigned long
                 num_overriding_virtual_functions_allocated,
                 num_derivation_steps_allocated,
                 num_base_classes_allocated,
+                num_template_args_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_variables_allocated,
@@ -2690,6 +2691,30 @@ return a pointer to it.
 
   return ovfp;
 }  /* alloc_overriding_virtual_function */
+
+
+a_template_arg_ptr alloc_template_arg(a_boolean is_type_arg)
+/*
+Allocate a template argument entry, initialize its fields, and return
+a pointer to it.
+*/
+{
+  a_template_arg_ptr tap;
+
+  tap = (a_template_arg_ptr)alloc_il(sizeof(a_template_arg));
+
+#if DEBUG
+  num_template_args_allocated++;
+#endif
+  tap->next             = NULL;
+  tap->is_type          = is_type_arg;
+  if (is_type_arg) {
+    tap->variant.type     = NULL;
+  } else {
+    tap->variant.constant = NULL;
+  }  /* if */
+  return tap;
+}  /* alloc_template_arg */
 
 
 a_base_class_ptr alloc_base_class(void)
@@ -5370,6 +5395,7 @@ Display and return the amount of space used for various IL tables.
   write_one("derivation steps", num_derivation_steps_allocated,
                                 a_derivation_step);
   write_one("base class", num_base_classes_allocated, a_base_class);
+  write_one("template args", num_template_args_allocated, a_template_arg);
   write_one("type", num_types_allocated, a_type);
   write_one("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   write_one("variable", num_variables_allocated, a_variable);
@@ -5477,6 +5503,7 @@ of the front end.
   num_class_type_supplements_allocated   = 0;
   num_derivation_steps_allocated         = 0;
   num_base_classes_allocated             = 0;
+  num_template_args_allocated            = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
   num_variables_allocated                = 0;

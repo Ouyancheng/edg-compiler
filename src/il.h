@@ -177,6 +177,8 @@ extern a_derivation_step_ptr alloc_derivation_step(void);
 extern an_overriding_virtual_function_ptr
                                        alloc_overriding_virtual_function(void);
 
+extern a_template_arg_ptr alloc_template_arg(a_boolean is_type_arg);
+
 extern a_base_class_ptr alloc_base_class(void);
 
 extern void set_type_kind(a_type_ptr  pte,

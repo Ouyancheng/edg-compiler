@@ -844,6 +844,26 @@ typedef struct a_routine_type_supplement {
 #endif /* ifndef CIL */
 } a_routine_type_supplement;
 
+typedef struct a_template_arg *a_template_arg_ptr;
+typedef struct a_template_arg {
+  /* Representation of an actual argument list associated with an
+     instance of a template class. */
+  a_template_arg_ptr
+                next;   /* Next in a linked list template arguments. */
+  a_boolean     is_type;
+                        /* TRUE if this argument is a type argument.  FALSE
+                           if it is a constant value. */
+  union {
+    /* When is_type = TRUE. */
+    a_type_ptr  type;   /* The type supplied as the argument. */
+    /* When is_type = FALSE. */
+    a_constant_ptr
+                constant;
+                        /* The constant supplied as the argument. */
+  } variant;
+} a_template_arg;
+
+
 #ifdef CIL
 /* Data structures related to C++ classes (type entries of kind tk_class,
    tk_struct, and tk_union). */
