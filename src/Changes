@@ -1,5 +1,16 @@
 Version 2.24
 
+6/30/94  Distinguishing a template-id from a declarator-id
+
+A bug has been fixed in declarator processing -- a template-id is no
+longer mistaken for a declarator-id.  We now diagnose errors in the
+following:
+
+  template <class T> class A {};
+  void f(A<int> A<int>);           // error (missing comma) is now issued
+  static A<int> A<int>;            // errors (missing identifier, missing
+                                   //   semicolon) are now issued
+
 6/30/94  const/volatile as tie-breaker in overload resolution
 
 The way that const/volatile serve as tie-breakers in overload resolution
