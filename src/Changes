@@ -5,6 +5,22 @@ Version 2.21
 In strict mode, pointers to interchangeable types (e.g., "int *" and
 "unsigned int *") are no longer considered interchangeable.
 
+12/17/93 Initialization of arrays with elements of class type
+
+A bug has been fixed in initializing arrays of unspecified size whose
+elements are empty classes.  For instance, the following used to loop
+indefinitely; now we issue an error on the invalid initial value:
+
+  class A { };
+  A a[] = { 0 };                // error
+
+A related fix has to do with initializing arrays with elements of
+nonaggregate class type -- trying to initialize an element with a
+brace-enclosed list is now reported as an error, e.g.:
+
+  class B { int i; B(); };      // user-defined ctor ==> nonaggregate
+  B b[2] = { { 0 }, { 0 } };    // error
+  
 12/17/93 C-generating back end output of types
 
 The C-generating back end now outputs typedefs instead of the underlying
