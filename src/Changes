@@ -1,6 +1,11 @@
 Version 2.31
 
-1/15/95   Too few macro arguments now a warning in PCC and SVR4 modes
+1/15/96   Implicit conversion from pointer to integer allowed in SVR4 mode
+
+An implicit conversion from a pointer to an integer, previously
+only allowed in PCC mode, is now also permitted in SVR4 C mode.
+
+1/15/96   Too few macro arguments now a warning in PCC and SVR4 modes
 
 A macro invocation with too few arguments now results in a warning
 instead of an error in PCC preprocessing mode and in SVR4 C mode.

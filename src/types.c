@@ -3056,8 +3056,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         if (strict_ansi_mode) {
           std_conv->warning_suggested = default_warning_code;
         }  /* if */
-      } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode)
-		 && !suppress_extensions) {
+      } else if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
         /* In pcc mode and in SVR4 C compatibility mode, allow conversion
 	   between incompatible pointer types, with a warning. */
         okay = TRUE;
@@ -3543,7 +3542,7 @@ See conversion_possible.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (C_dialect == C_dialect_pcc &&
+    } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
                is_pointer(source_type) &&
                is_integral(dest_type)) {
       /* In pcc mode, allow pointer --> integer (even if the integer is not
