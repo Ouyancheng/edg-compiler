@@ -15575,6 +15575,7 @@ that follows.
   a_boolean			microsoft_nonstd_specialization = FALSE;
   an_attribute_ptr              *p_attributes = NULL;
   an_attribute_ptr              attributes = NULL;
+  a_boolean                     already_specialized = FALSE;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -15780,7 +15781,6 @@ that follows.
       /* Determine whether this entity has already been referenced by
          looking at the source correspondence entry.  An entity that
          has already been referenced cannot be specialized. */
-      a_boolean	already_specialized;
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         vp = sym->variant.static_data_member.variable;
         scp = &vp->source_corresp;
@@ -15789,18 +15789,14 @@ that follows.
            more detailed type information than the in-class declaration (e.g.,
            an array bound). */
         vp->type = composite_type(vp->type, type);
+        is_definition = (curr_token == tok_assign ||
+                         has_parenthesized_initializer);
       } else {
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                         sym->kind == (a_symbol_kind)sk_member_function);
         rp = sym->variant.routine.ptr;
         scp = &rp->source_corresp;
         already_specialized = rp->is_specialized;
-      }  /* if */
-      /* See if this is a declaration or a definition. */
-      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        is_definition = (curr_token == tok_assign ||
-                         has_parenthesized_initializer);
-      } else {
         is_constructor = is_constructor_symbol(sym);
         is_definition = (curr_token == tok_lbrace ||
                          curr_token == tok_try ||
@@ -15961,6 +15957,13 @@ that follows.
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
+#if SUN_EXTENSIONS_ALLOWED
+        if (sun_mode) {
+          update_variable_decl_modifiers(vp, &decl_modifiers,
+                                         &locator.source_position,
+                                         already_specialized);
+        }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
       } else {
         /* A specialization of a routine. */
         /* Issue an error if the exception specification on the instance does
@@ -16044,6 +16047,14 @@ that follows.
           apply_attributes_to_routine(attributes, rp);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+        if (sun_mode) {
+          update_routine_decl_modifiers(rp, &decl_modifiers,
+                                        &locator.source_position,
+                                        already_specialized, is_definition,
+                                        rp->is_inline);
+        }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
@@ -20606,6 +20617,11 @@ instantiation.
         sym_error(ec_not_instantiatable_entity, sym);
       }  /* if */
     }  /* if */
+#if SUN_EXTENSIONS_ALLOWED
+    if (sun_mode && (decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE)) {
+      error(ec_invalid_link_scope);
+    }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
     goto done;
   } else {
     clear_func_info(&func_info);

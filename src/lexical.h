@@ -247,6 +247,12 @@ typedef enum /*a_token_kind*/ {
   tok_null,
   /* Recognized in cfront compatibility mode only. */
   tok_overload,
+#if SUN_EXTENSIONS_ALLOWED
+  /* Recognized in Sun C++ mode only. */
+  tok_global_link_scope,
+  tok_symbolic_link_scope,
+  tok_hidden_link_scope,
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   /* Recognized in UPC mode only. */
   tok_upc_strict,
@@ -326,6 +332,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "bool", "false", "true", "typename",
    "__typeof__", "__extension__", "__null",
    "overload",
+#if SUN_EXTENSIONS_ALLOWED
+   "__global", "__symbolic", "__hidden",
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
    "strict", "relaxed", "shared", "upc_forall", "upc_barrier", "upc_notify",
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
@@ -734,6 +743,11 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_extension */
    (an_opname_kind)onk_none,          /* tok_null */
    (an_opname_kind)onk_none,          /* tok_overload */
+#if SUN_EXTENSIONS_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_global_link_scope */
+   (an_opname_kind)onk_none,          /* tok_symbolic_link_scope */
+   (an_opname_kind)onk_none,          /* tok_hidden_link_scope */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_upc_strict */
    (an_opname_kind)onk_none,          /* tok_upc_relaxed */

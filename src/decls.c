@@ -49,7 +49,6 @@ specifier.  Includes an "||" at the beginning.
 #define or_is_microsoft_storage_class() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
 /*
 Macro that is TRUE if the current token is the start of a storage class
 specifier (3.5.1).
@@ -59,6 +58,16 @@ specifier (3.5.1).
    curr_token == tok_static   || curr_token == tok_auto     ||        \
    curr_token == tok_register || curr_token == tok_mutable            \
    or_is_microsoft_storage_class())
+
+/*
+Macro that is TRUE if the current token denotes a link scope specifier.
+*/
+#if SUN_EXTENSIONS_ALLOWED
+#define is_sun_link_scope_specifier()                                 \
+  (curr_token == tok_global_link_scope ||                             \
+   curr_token == tok_symbolic_link_scope ||                           \
+   curr_token == tok_hidden_link_scope)
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 /*
 Macro that is TRUE if the current token is the start of a function
@@ -252,6 +261,10 @@ of declarations that are permitted.
     /* A Microsoft attribute can start a declaration. */
     is_start = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  } else if (is_sun_link_scope_specifier()) {
+    is_start = TRUE;
+#endif /* SUN_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_identifier &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
@@ -3179,6 +3192,32 @@ diagnostics.
           case dmt_noinline:
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+          case dmt_global_link_scope:
+          case dmt_symbolic_link_scope:
+          case dmt_hidden_link_scope:
+            if (routine->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_internal||
+                routine->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_none) {
+              pos_error(ec_link_scope_requires_external_linkage, position);
+            } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+              if (is_redecl &&
+                  (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
+                          (routine->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
+                pos_error(ec_link_scope_relaxation, position);
+              } else {
+                /* An explicit instantiation may include a link scope different
+                   from that recorded in the template.  Therefore, we clear
+                   any existing link scope recorded in the entry. */
+                routine->decl_modifiers &= ~DM_ANY_SUN_LINK_SCOPE;
+                routine->decl_modifiers |=
+                               (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE);
+              }  /* if */
+            }  /* if */
+            new_modifiers->flags &= ~DM_ANY_SUN_LINK_SCOPE;
+            break;
+#endif /* SUN_EXTENSIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
             break;
@@ -3273,6 +3312,27 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
             }  /* if */
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+          case dmt_global_link_scope:
+          case dmt_symbolic_link_scope:
+          case dmt_hidden_link_scope:
+            if (variable->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_internal ||
+                variable->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_none) {
+              pos_error(ec_link_scope_requires_external_linkage, position);
+            } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+              if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
+                         (variable->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
+                pos_error(ec_link_scope_relaxation, position);
+              } else {
+                variable->decl_modifiers |=
+                               (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE);
+              }  /* if */
+            }  /* if */
+            new_modifiers->flags &= ~DM_ANY_SUN_LINK_SCOPE;
+            break;
+#endif /* SUN_EXTENSIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
             break;
@@ -4888,19 +4948,21 @@ declaration.
       alloc_at_file_scope && !redeclaration) {
     add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
+  /* The name linkage has already been determined.  Apply it to the current
+     declaration, and report inconsistencies, if appropriate. */
+  set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
+                   &locator->source_position);
+#if DECL_MODIFIERS_IN_USE
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(variable_ptr, decl_modifiers,
                                  &locator->source_position, redeclaration);
+#endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!variable_ptr->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-  /* The name linkage has already been determined.  Apply it to the current
-     declaration, and report inconsistencies, if appropriate. */
-  set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
-                   &locator->source_position);
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
@@ -6458,10 +6520,6 @@ skip_overloading:;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  update_routine_decl_modifiers(routine_ptr, decl_modifiers,
-                                &locator->source_position, redeclaration,
-                                is_function_def,
-                                (a_boolean)func_info->is_inline);
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
       !redeclaration && !template_function_specific_decl &&
       !explicit_template_reference) {
@@ -6495,6 +6553,12 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
+#if DECL_MODIFIERS_IN_USE
+  update_routine_decl_modifiers(routine_ptr, decl_modifiers,
+                                &locator->source_position, redeclaration,
+                                is_function_def,
+                                (a_boolean)func_info->is_inline);
+#endif /* DECL_MODIFIERS_IN_USE */
   if (notify_correspondence_processing) {
     /* This had to be delayed until the name linkage was set. */
     establish_block_extern_function_correspondence(routine_ptr);
@@ -11325,6 +11389,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_decl_flag_set              dsi_flags, di_flags;
   a_symbol_ptr                 symbol_ptr = NULL, ext_sym;
   a_boolean                    decl_specifiers_omitted = FALSE;
+  a_boolean                    declarator_omitted = FALSE;
   a_boolean                    is_function, is_main_function;
   a_boolean                    is_static_data_member;
   a_symbol_locator             locator;
@@ -11622,20 +11687,31 @@ continue_with_declaration:
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-  if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
-    if (is_linkage_spec_decl) {
-      /* This is something like ``extern "C" f();'' -- treat the linkage
-         specifier like a decl-specifier, for the purposes of diagnostics. */
-    } else {
-      decl_specifiers_omitted = TRUE;
+  if ((dso_flags & DSO_NO_DECL_SPECIFIERS) && !is_linkage_spec_decl) {
+    /* This is something like ``extern "C" f();'' -- treat the linkage
+       specifier like a decl-specifier, for the purposes of diagnostics. */
+    decl_specifiers_omitted = TRUE;
+  } else {
+    /* Check for cases without a declarator and issue a diagnostic if it's
+       invalid. */
+    declarator_omitted = check_for_missing_declarator(
+                                  dso_flags, type_ptr, declared_storage_class,
+                                  register_id, is_old_style_param_decl,
+                                  is_linkage_spec_decl,
+                                  &decl_start_pos, err);
+  }  /* if */
+#if SUN_EXTENSIONS_ALLOWED
+  if (declarator_omitted ||
+      declared_storage_class == (a_storage_class)sc_typedef) {
+    if (decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE) {
+      /* Link scope specifiers can only appear on function and variable
+         declarations. */
+      error(ec_invalid_link_scope);
     }  /* if */
   }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   /* The declaration can end at this point (";" is next). */
-  if (!decl_specifiers_omitted &&
-      check_for_missing_declarator(dso_flags, type_ptr, declared_storage_class,
-                                   register_id, is_old_style_param_decl,
-                                   is_linkage_spec_decl,
-                                   &decl_start_pos, err)) {
+  if (!decl_specifiers_omitted && declarator_omitted) {
     if (curr_token != tok_semicolon) {
       /* This must be a "dangling type specifier", and an error has already
          been issued on the missing semicolon.  required_token is not called

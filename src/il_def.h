@@ -3610,6 +3610,13 @@ enum a_decl_modifier_tag {
   dmt_noreturn,
   dmt_noinline,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  /* The order of the following link scope values (increasing strictness) is
+     important. */
+  dmt_global_link_scope,
+  dmt_symbolic_link_scope,
+  dmt_hidden_link_scope,
+#endif /* SUN_EXTENSIONS_ALLOWED */
   dmt_last
 };
 
@@ -3630,6 +3637,11 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_noreturn */		"noreturn",
   /* dmt_noinline */		"noinline",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  /* dmt_global_link_scope */	"__global",
+  /* dmt_symbolic_link_scope */	"__symbolic",
+  /* dmt_hidden_link_scope, */	"__hidden",
+#endif /* SUN_EXTENSIONS_ALLOWED */
   /* dmt_last */		"last"
 } /* decl_modifier_names */
 #endif /* VAR_INITIALIZERS */
@@ -3678,6 +3690,22 @@ about variables and routines.
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(noinline) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+#define DM_GLOBAL_LINK_SCOPE	(1 << (int)dmt_global_link_scope)
+			/* TRUE if the declaration includes the Sun __global
+			   specifier. */
+#define DM_SYMBOLIC_LINK_SCOPE	(1 << (int)dmt_symbolic_link_scope)
+			/* TRUE if the declaration includes the Sun __symbolic
+			   specifier. */
+#define DM_HIDDEN_LINK_SCOPE	(1 << (int)dmt_hidden_link_scope)
+			/* TRUE if the declaration includes the Sun __hidden
+			   specifier. */
+#define DM_ANY_SUN_LINK_SCOPE	(DM_GLOBAL_LINK_SCOPE |    \
+				 DM_SYMBOLIC_LINK_SCOPE |  \
+				 DM_HIDDEN_LINK_SCOPE)
+			/* TRUE if the entity was declared with any Sun link
+			   scope specifier. */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 /*
 Type used to represent a set of decl modifiers.

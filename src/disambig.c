@@ -511,6 +511,12 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_microsoft_inline:
       case tok_forceinline:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+      /* Sun linkage scope specifiers are treated as storage classes. */
+      case tok_global_link_scope:
+      case tok_symbolic_link_scope:
+      case tok_hidden_link_scope:
+#endif /* SUN_EXTENSIONS_ALLOWED */
       /* Function specifiers. */
       case tok_inline:
       case tok_virtual:

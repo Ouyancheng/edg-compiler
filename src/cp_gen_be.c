@@ -8834,6 +8834,23 @@ definition, is_definition is TRUE.
 #define gen_microsoft_routine_decl_modifiers(rout, is_definition) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if SUN_EXTENSIONS_ALLOWED
+
+static void gen_sun_link_scope_specifiers(a_decl_modifier  flags)
+/*
+Generate the __global, __symbolic, or __hidden keyword according to the value
+of flags.  Only generate the keyword if we target a Sun compiler. 
+*/
+{
+  if (sun_is_generated_code_target && (flags & DM_ANY_SUN_LINK_SCOPE)) {
+    form_sun_link_scope_specifiers(flags, &octl);
+  }  /* if */
+}  /* gen_sun_link_scope_specifiers */
+
+#else /* !SUN_EXTENSIONS_ALLOWED */
+#define gen_sun_link_scope_specifiers(flags) /* Nothing */
+#endif /* SUN_EXTENSIONS_ALLOWED */
+
 static void gen_instantiation_directive(void)
 /*
 Generate code for an instantiation directive.
@@ -8880,6 +8897,7 @@ Generate code for an instantiation directive.
         { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
           a_boolean     context_pop_needed;
           gen_microsoft_routine_decl_modifiers(rout, /*is_definition=*/FALSE);
+          gen_sun_link_scope_specifiers(rout->decl_modifiers);
           gen_routine_specifiers_and_declaration(
                                          rout, rout->type,
                                          /*is_definition=*/FALSE,
@@ -8902,6 +8920,7 @@ Generate code for an instantiation directive.
         break;
       case iek_variable:
         { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
+          gen_sun_link_scope_specifiers(var->decl_modifiers);
           gen_general_declaration_using_type(var->type,
                                              (a_type_mode_kind)tmk_none,
                                              &var->source_corresp,
@@ -10161,6 +10180,7 @@ declaration following this one is such a continuation.
       write_space();
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
+   gen_sun_link_scope_specifiers(var->decl_modifiers);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
       a_decl_modifier decl_modifiers = var->decl_modifiers;
@@ -10898,6 +10918,7 @@ TRUE if the declaration following this one is such a continuation.
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
+    gen_sun_link_scope_specifiers(rout->decl_modifiers);
     if (rout->is_inline && !decl_within_function &&
         !(friend_decl && (rout->expl_template_arg_list_used ||
                           rout->source_corresp.is_class_member)) &&

@@ -6237,6 +6237,13 @@ parameters.
         }  /* if */
       } /* if */
 #endif /* IA64_ABI */
+#if SUN_EXTENSIONS_ALLOWED
+      if (sun_is_generated_code_target) {
+        /* Sun-specific "link scope specifiers" (__global, __symbol, or
+           __hidden). */
+        form_sun_link_scope_specifiers(variable->decl_modifiers, &octl);
+      }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_dialect_is_generated_code_target) {
         /* Microsoft-specific keywords. */
@@ -8161,6 +8168,13 @@ if this routine has a body (dump nothing if it has no body).
       write_space();
     } /* if */
 #endif /* IA64_ABI */
+#if SUN_EXTENSIONS_ALLOWED
+    if (sun_is_generated_code_target) {
+      /* Sun-specific "link scope specifiers" (__global, __symbol, or
+         __hidden). */
+      form_sun_link_scope_specifiers(rout->decl_modifiers, &octl);
+    }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
       /* Microsoft-specific keywords. */

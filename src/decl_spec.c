@@ -5291,6 +5291,40 @@ check_missing_declarator_in_member_declaration.
   return result;
 }  /* unelaborated_cfront_friend_class */
 
+#if SUN_EXTENSIONS_ALLOWED
+
+static void scan_link_scope_specifier(a_decl_flag_set         input_flags,
+                                      a_decl_modifiers_block  *decl_modifiers)
+/*
+The current token corresponds to a Sun link scope specifier.  Update
+decl_modifiers to reflect the specifier if appropriate.  Issue an error
+if this is there are several such specifiers on the current declaration or
+if the specifiers appear on a parameter declaration.  input_flags is the
+flag set passed to the call to decl_specifiers.
+*/
+{
+  if (input_flags & DSI_IS_PARAMETER) {
+    error(ec_parameter_with_link_scope_specifier);
+  } else if (decl_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) {
+    error(ec_multiple_link_scope_specifiers);
+  } else {
+    switch (curr_token) {
+      case tok_global_link_scope:
+        decl_modifiers->flags |= DM_GLOBAL_LINK_SCOPE;
+        break;
+      case tok_symbolic_link_scope:
+        decl_modifiers->flags |= DM_SYMBOLIC_LINK_SCOPE;
+        break;
+      case tok_hidden_link_scope:
+        decl_modifiers->flags |= DM_HIDDEN_LINK_SCOPE;
+        break;
+      default:
+        unexpected_condition();
+    }  /* if */
+  }  /* if */
+}  /* scan_link_scope_specifier */
+
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void microsoft_specific_decl_specifiers(
@@ -6087,6 +6121,15 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         break;
 #endif /* ASM_FUNCTION_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+      case tok_global_link_scope:
+      case tok_symbolic_link_scope:
+      case tok_hidden_link_scope:
+        /* A Sun-specific storage class allowed only on function and variable
+           declarations with external linkage. */
+        scan_link_scope_specifier(input_flags, decl_modifiers);
+        break;
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_microsoft_inline:
       case tok_forceinline:

@@ -4495,6 +4495,28 @@ Output an asm register name for a variable in the way described by octl.
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+
+void form_sun_link_scope_specifiers(
+                                 a_decl_modifier                        flags,
+                                 an_il_to_str_output_control_block_ptr  octl)
+/*
+Output the Sun link scope specifiers as indicated by flags (in the way
+described by octl).
+*/
+{
+  if (flags & DM_GLOBAL_LINK_SCOPE) {
+    octl->output_str("__global ");
+  }  /* if */
+  if (flags & DM_SYMBOLIC_LINK_SCOPE) {
+    octl->output_str("__symbolic ");
+  }  /* if */
+  if (flags & DM_HIDDEN_LINK_SCOPE) {
+    octl->output_str("__hidden ");
+  }  /* if */
+}  /* form_sun_link_scope_specifiers */
+
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 
 /******************************************************************************

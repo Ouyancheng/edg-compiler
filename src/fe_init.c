@@ -553,6 +553,13 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_export, "export");
     }  /* if */
   }  /* if */
+#if SUN_EXTENSIONS_ALLOWED
+  if (sun_mode) {
+    enter_keyword((a_token_kind)tok_global_link_scope, "__global");
+    enter_keyword((a_token_kind)tok_symbolic_link_scope, "__symbolic");
+    enter_keyword((a_token_kind)tok_hidden_link_scope, "__hidden");
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     enter_keyword((a_token_kind)tok_upc_shared,      "shared");

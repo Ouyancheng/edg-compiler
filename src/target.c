@@ -284,9 +284,11 @@ to match the source dialect (including the version of the dialect).
 {
 #if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
   check_assertion_str(!gcc_is_generated_code_target &&
-                      !microsoft_dialect_is_generated_code_target,
+                      !microsoft_dialect_is_generated_code_target &&
+                      !sun_is_generated_code_target,
                       "Target dialect already set.");
-  check_assertion(!(gnu_mode && microsoft_mode));
+  check_assertion((gnu_mode != 0) + (microsoft_mode != 0) + (sun_mode != 0)
+                                                                        < 2);
   if (gnu_mode) {
     gcc_is_generated_code_target = TRUE;
 #if GCC_BUILTIN_VARARGS
@@ -298,6 +300,8 @@ to match the source dialect (including the version of the dialect).
   } else if (microsoft_mode) {
     microsoft_dialect_is_generated_code_target = TRUE;
     msvc_target_version_number = microsoft_version;
+  } else if (sun_mode) {
+    sun_is_generated_code_target = TRUE;
   }  /* if */
 #endif /* CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 }  /* select_cp_gen_be_target_dialect */

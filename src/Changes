@@ -1,5 +1,19 @@
 Version 3.5
 
+10/26/04 Sun compatibility: Link scope specifiers
+
+When the new configuration flag SUN_EXTENSIONS_ALLOWED is set to TRUE, the
+front end now accepts link scope specifiers in Sun mode.  These specifiers
+(__global, __symbolic, and __hidden) can appear on variable and function
+declarations when they have external linkage.  For example:
+
+  __hidden int x;
+  __symbolic void f() {}
+
+The C- and C++-generating back ends will render the new specifiers when
+generating code for a Sun compiler, which is indicated by setting the new
+configuration flag SUN_IS_GENERATED_CODE_TARGET to TRUE.
+
 10/26/04 Embedded C: Conversion of negative fixed-point value to unsigned int
 
 A diagnostic is now issued on a compile-time conversion of a negative

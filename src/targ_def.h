@@ -2254,7 +2254,16 @@ use typename.
 
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for the GNU C compiler (gcc or g++).
+generate code for a Sun compiler.  This is the default value of the global
+variable sun_is_generated_code_target.
+*/
+#ifndef SUN_IS_GENERATED_CODE_TARGET
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#endif /* SUN_IS_GENERATED_CODE_TARGET */
+
+/*
+Switch that is TRUE if the C-generating or C++-generating back end should
+generate code for a GNU compiler (gcc or g++).
 */
 /* The old name of this macro was GCC_IS_C_GEN_BE_TARGET; it that's set,
    transfer its value to the new macro. */

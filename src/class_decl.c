@@ -684,7 +684,7 @@ typedef struct a_member_decl_info {
   a_decl_modifiers_block
 		decl_modifiers;
 			/* Decl-modifiers returned from decl_specifiers
-			   (Microsoft compatibility mode only). */
+			   (Microsoft and Sun compatibility modes only). */
   a_decl_pos_block
 		decl_pos_block;
 			/* Additional source position information on the
@@ -7152,33 +7152,39 @@ is set to NULL by this function.
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+  if (microsoft_mode || sun_mode) {
+    if (!is_error_locator(*locator)) {
+      /* If decl-modifiers were declared for the class and/or for the
+         member, check for consistency and use the union of the two. */
+      if (!sun_mode) {
+        merge_decl_modifiers(class_type, decl_info,
+                             (a_boolean)func_info->is_definition);
+      }  /* if */
+      update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
+                                    &locator->source_position,
+                                    /*is_redecl=*/FALSE,
+                                    (a_boolean)func_info->is_definition,
+                                    (a_boolean)func_info->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (!is_error_locator(*locator)) {
-    /* If decl-modifiers were declared for the class and/or for the
-       member, check for consistency and use the union of the two. */
-    merge_decl_modifiers(class_type, decl_info,
-                         (a_boolean)func_info->is_definition);
-    update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
-                                  &locator->source_position,
-                                  /*is_redecl=*/FALSE,
-                                  (a_boolean)func_info->is_definition,
-                                  (a_boolean)func_info->is_inline);
-    /* If this function explicitly overrides a virtual function in a base
-       class, record that fact. */
-    if (overridden_function != NULL) {
-      rtn->is_virtual = TRUE;
-      rtn->overridden_function = overridden_function;
-    }  /* if */
-    if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
-      apply_microsoft_attributes(p_ms_attributes, (char*)rtn,
-                                 (an_il_entry_kind)iek_routine, MSAT_METHOD);
-    }  /* if */
-  } else if (p_ms_attributes != NULL) {
-    /* We indicate that the attributes have been consumed by clearing the
-       caller's attribute pointer. */
-    *p_ms_attributes = NULL;
-  }  /* if */
+      /* If this function explicitly overrides a virtual function in a base
+         class, record that fact. */
+      if (overridden_function != NULL) {
+        rtn->is_virtual = TRUE;
+        rtn->overridden_function = overridden_function;
+      }  /* if */
+      if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+        apply_microsoft_attributes(p_ms_attributes, (char*)rtn,
+                                   (an_il_entry_kind)iek_routine, MSAT_METHOD);
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (p_ms_attributes != NULL) {
+      /* We indicate that the attributes have been consumed by clearing the
+         caller's attribute pointer. */
+      *p_ms_attributes = NULL;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
     /* Apply the attributes to the routine. */
@@ -7785,13 +7791,13 @@ in-class member function declarations.)
         cssp->constructor = overload_sym;
       }  /* if */
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
     update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
   }  /* if */
   decl_info->member_sym = sym;
   db_exit();
@@ -8166,9 +8172,13 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   /* If decl-modifiers were declared for the class and/or for the member,
      check for consistency and use the union of the two. */
   merge_decl_modifiers(class_type, decl_info, /*is_definition=*/FALSE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
   update_variable_decl_modifiers(var, &decl_info->decl_modifiers,
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Disallow data members in interface types. */
   if (microsoft_mode && class_type->variant.class_struct_union.is_interface) {
     pos_error(ec_interface_cannot_have_data_member, &locator->source_position);

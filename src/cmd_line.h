@@ -190,7 +190,9 @@ typedef enum /*an_option_kind*/ {
   optk_include_file_suffixes,
   optk_compound_literals,
   optk_base_assign_op_is_default,
+#if SUN_EXTENSIONS_ALLOWED
   optk_sun_mode,
+#endif /* SUN_EXTENSIONS_ALLOWED */
   optk_dependent_name_processing,
   optk_ignore_namespace_std,
   optk_parse_nonclass_templates,
@@ -241,14 +243,6 @@ EXTERN a_boolean
 			/* -A option: issue warnings on nonstandard
 			   features used, disable features that conflict
 			   with ANSI C (i.e., asm). */
-EXTERN a_boolean
-                sun_mode
-#if VAR_INITIALIZERS
-                         = DEFAULT_SUN_COMPATIBILITY
-#endif /* VAR_INITIALIZERS */
-                                                    ;
-                        /* Accept language features supported
-                           by Sun CC release 5.0. */
 
 EXTERN a_boolean
                 cfront_2_1_mode /* = FALSE */;

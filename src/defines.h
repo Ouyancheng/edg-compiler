@@ -257,6 +257,8 @@ Flags to be set when using the KAI inliner.
 #endif /* !defined(OPTIMIZED_VERSION) */
 
 #endif /* SUN_TEST_VERSION */
+#define SUN_EXTENSIONS_ALLOWED 1
+#define DEFAULT_SUN_COMPATIBILITY 0
 
 #else /* !defined(sun) */
 

@@ -361,13 +361,23 @@ also be controlled from the command line by --[no_]export.
 #endif /* DEFAULT_EXPORT_TEMPLATE_ALLOWED */
 
 /*
-Flag that is TRUE if Sun CC 5.0 compatibility features should be allowed by
+Flag that is TRUE if a set of Sun C++ compatibility features should be
+allowed.
+*/
+#ifndef SUN_EXTENSIONS_ALLOWED
+#define SUN_EXTENSIONS_ALLOWED FALSE
+#endif /* ifndef SUN_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE if Sun CC 5.x compatibility features should be allowed by
 default.  It is the default initial value of the associated global variable
 sun_mode and can be overridden by the command-line options --sun and --no_sun.
 */
+#if SUN_EXTENSIONS_ALLOWED
 #ifndef DEFAULT_SUN_COMPATIBILITY
-#define DEFAULT_SUN_COMPATIBILITY FALSE
+#define DEFAULT_SUN_COMPATIBILITY TRUE
 #endif /* DEFAULT_SUN_COMPATIBILITY */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 /*
 Flag that is TRUE to include code for UPC (Unified Parallel C) support.
@@ -640,22 +650,24 @@ are supported (e.g., in Microsoft 16-bit mode).
 
 /*
 Flag that is TRUE when extensions are allowed for additional declaration
-modifiers.  It should always be TRUE when support for Microsoft extensions
-is included.  (The decl-modifiers mechanism is a hook by which an
+modifiers.  It should always be TRUE when support for Microsoft and/or Sun
+extensions is included.  (The decl-modifiers mechanism is a hook by which an
 implementation can provide a certain class of custom extensions; the only
-decl-modifiers currently supported by EDG are for Microsoft compatibility.)
+decl-modifiers currently supported by EDG are for Microsoft and Sun
+compatibility.)
 */
 #ifndef DECL_MODIFIERS_IN_USE
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
 #define DECL_MODIFIERS_IN_USE TRUE          /* Do not change this. */
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED) */
 #define DECL_MODIFIERS_IN_USE FALSE         /* You can change this. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifndef DECL_MODIFIERS_IN_USER */
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DECL_MODIFIERS_IN_USE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* ifndef DECL_MODIFIERS_IN_USE */
+#if (MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED) && \
+    !DECL_MODIFIERS_IN_USE
  #error -- DECL_MODIFIERS_IN_USE must be true when \
-           MICROSOFT_EXTENSIONS_ALLOWED is true
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DECL_MODIFIERS_IN_USE */
+           MICROSOFT_EXTENSIONS_ALLOWED or SUN_EXTENSIONS_ALLOWED is true
+#endif /* (MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED) && ... */
 
 /*
 Flag that indicates the version of the Microsoft compiler that should
@@ -702,6 +714,26 @@ verification that the attributes are used in appropriate locations is done.
 #ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
 #define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING TRUE
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
+
+/*
+The global variable sun_mode is defined here (rather than in cmd_line.h) so
+that it can be available to standalone utilities.
+*/
+#if SUN_EXTENSIONS_ALLOWED || defined(_lint)
+EXTERN a_boolean
+                sun_mode
+#if VAR_INITIALIZERS
+                         = DEFAULT_SUN_COMPATIBILITY;
+#endif /* VAR_INITIALIZERS */
+                                ;
+                        /* Accept C language features supported by SUN C++ 5.x
+                           compilers. */
+#else /* !(SUN_EXTENSIONS_ALLOWED || defined(_lint)) */
+/* Make sun_mode a constant-expression so some code can be optimized away.
+   Since lint would warn about such code, we do not do this when processed
+   by lint. */
+#define sun_mode FALSE
+#endif /* SUN_EXTENSIONS_ALLOWED || defined(_lint) */
 
 /*
 The global variable gcc_mode is defined here (rather than in cmd_line.h) so

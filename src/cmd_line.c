@@ -898,6 +898,7 @@ Initialize the option information table.
                          "no_base_assign_op_is_default",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if SUN_EXTENSIONS_ALLOWED
   add_option_description(optk_sun_mode,
                          "sun",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -906,6 +907,7 @@ Initialize the option information table.
                          "no_sun",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* SUN_EXTENSIONS_ALLOWED */
   add_option_description(optk_dependent_name_processing,
                          "dep_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2145,6 +2147,7 @@ an otherwise implicitly enabled Sun mode.
 */
 {
   if (sun_mode) {
+#if SUN_EXTENSIONS_ALLOWED
     if (option_kind_used[(int)optk_sun_mode]) {
       /* Sun mode was enabled by a command line option. */
       command_line_error(error_code);
@@ -2153,6 +2156,10 @@ an otherwise implicitly enabled Sun mode.
          explicit mode setting on the command line overrides it. */
       sun_mode = FALSE;
     }  /* if */
+#else /* !SUN_EXTENSIONS_ALLOWED */
+    /* If Sun extensions are disabled, sun_mode should be a FALSE constant. */
+    unexpected_condition();
+#endif /* SUN_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* exclude_sun_mode */
 
@@ -2865,6 +2872,7 @@ order of development of this front end, and is inconsistent and strange.
      used, the exclude_microsoft_mode call will be done before the Microsoft
      mode test calls exclude_gpp_mode. */
   for (pass = 0; pass <= 1; pass++) {
+#if SUN_EXTENSIONS_ALLOWED
     if (sun_mode &&
         (DEFAULT_SUN_COMPATIBILITY != 0) == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode
@@ -2873,6 +2881,7 @@ order of development of this front end, and is inconsistent and strange.
       exclude_gcc_mode(ec_cl_incompatible_language_modes);
       exclude_gpp_mode(ec_cl_incompatible_language_modes);
     }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
         (DEFAULT_MICROSOFT_MODE != 0) == pass) {
@@ -3776,14 +3785,16 @@ enable_microsoft_mode:
            operator for a class. */
         allow_copy_assignment_op_with_base_class_param = opt_value;
         break;
+#if SUN_EXTENSIONS_ALLOWED
       case optk_sun_mode:
-        /* Compatibility with Sun CC 5.0 (various extensions/bugs) should or
+        /* Compatibility with Sun CC 5.x (various extensions/bugs) should or
            should not be provided.  This option implies C++ mode, even in
            the "--no_sun" form.  In other words, --[no_]sun is short for
            --c++ --[no_]_sun. See --c99 and --svr4 for similar behavior. */
         sun_mode = opt_value;
         C_dialect = C_dialect_cplusplus;
         break;
+#endif /* SUN_EXTENSIONS_ALLOWED */
       case optk_dependent_name_processing:
         /* Enable dependent name processing for templates. */
         do_dependent_name_processing = opt_value;

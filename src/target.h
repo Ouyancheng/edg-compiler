@@ -1143,6 +1143,15 @@ EXTERN a_boolean
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
 EXTERN a_boolean
+		sun_is_generated_code_target
+#if VAR_INITIALIZERS
+                                               = SUN_IS_GENERATED_CODE_TARGET
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if code is being generated for a SUNPro
+			   compiler. */
+
+EXTERN a_boolean
 		gcc_is_generated_code_target
 #if VAR_INITIALIZERS
                                                = GCC_IS_GENERATED_CODE_TARGET
