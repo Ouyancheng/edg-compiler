@@ -285,7 +285,8 @@ so the integer representation is just some host integral type.
 This type must be unsigned; a_signed_integer_value is the signed version.
 Note that the types are allowed to be the unsigned and signed versions
 of "long long" if the host allows them.  If "long long" is used, check the
-setting of AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG.
+setting of AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG.  Also make sure
+that HOST_ALIGNMENT_REQUIRED is appropriate for long longs.
 */
 typedef unsigned long an_integer_value;
 typedef long a_signed_integer_value;
