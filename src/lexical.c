@@ -2408,17 +2408,6 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     fprintf(f_pp_output, " %lu \"",  (unsigned long)eff_line_number);
     /* Put out the file name.  For ANSI/ISO output, add escapes as
        necessary. */
-    if (microsoft_mode && microsoft_version >= 1300 &&
-        curr_ise->is_include_file && *curr_ise->dir_entry->dir_name == '\0' &&
-        !is_absolute_file_name(curr_ise->file_name)) {
-      /* When a file is found via inspection of the current directory, the
-         Microsoft compiler (starting with version 7.0) output the file
-         name as a fully qualified name. */
-      (void)write_file_name(current_directory_name, f_pp_output,
-                            /*process_escapes=*/!pcc_preprocessing_mode);
-      (void)write_file_name(DIRECTORY_SEPARATOR_STRING, f_pp_output,
-                            /*process_escapes=*/!pcc_preprocessing_mode);
-    }  /* if */
     (void)write_file_name(curr_ise->file_name, f_pp_output,
                           /*process_escapes=*/!pcc_preprocessing_mode);
     fputc('"', f_pp_output);
@@ -3604,6 +3593,7 @@ used.
     /* Loop through the directory name entries.  The "done" flag will be
        set if the loop should not be repeated (i.e., an absolute path name
        was specified). */
+    char	*dir_name;
     for (curr_directory_name_entry = search_path;
          !done && curr_directory_name_entry != NULL;
          curr_directory_name_entry = curr_directory_name_entry->next) {
@@ -3616,8 +3606,14 @@ used.
       /* We need to traverse the search path.  Merge the current entry in
          the path with the file name and use that name as the base for
          replacing the suffixes. */
+      dir_name = curr_directory_name_entry->dir_name;
+      if (microsoft_mode && microsoft_version >= 1300 && *dir_name == '\0') {
+        /* The Microsoft compiler uses a full path name when looking in the
+           current directory for a file. */
+        dir_name = current_directory_name;
+      }  /* if */
       buffer = combine_dir_and_file_name(
-                                      curr_directory_name_entry->dir_name,
+                                      dir_name,
                                       file_name, (a_text_buffer_ptr)NULL);
       name_to_try = buffer->buffer;
       /* Now try to open the modified file. */
