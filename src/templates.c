@@ -3116,6 +3116,15 @@ A pointer to the head of the list is returned in tcsp.
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
+#if GNU_EXTENSIONS_ALLOWED
+      if (tssp->attributes != NULL) {
+        /* When parsing the template, some attributes were encountered
+           between the class-key ("class", "struct", or "union") and the
+           class template name. */
+        apply_attributes_to_type(tssp->attributes, prototype_type,
+                                 /*is_typedef=*/FALSE);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Scan the base specifiers list, if any, and the body of the class.
      The pending class definition counter is incremented while processing
      the instantiation.  This ensures that the fixup of the instantiation
@@ -4761,6 +4770,15 @@ prototype instantiation is considered as a potential match.
                                              class_type);
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+      if (tssp->attributes != NULL) {
+        /* When parsing the template, some attributes were encountered
+           between the class-key ("class", "struct", or "union") and the
+           class template name. */
+        apply_attributes_to_type(tssp->attributes, class_type,
+                                 /*is_typedef=*/FALSE);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
 #if DEBUG
     if (db_sym_trace("instantiations", sym)) {
@@ -10982,6 +11000,9 @@ declaration of a partial specialization declared outside of its class.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr                  attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -11040,6 +11061,13 @@ declaration of a partial specialization declared outside of its class.
                                  &extended_decl_info, &err);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  if (curr_token == tok_attribute) {
+    /* Attributes embedded in the elaborated name.  They will be recorded
+       in the template symbol supplement later on. */
+    attributes = scan_attributes();
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                        GID_USE_PROTOTYPE_NOT_NONREAL |
@@ -11548,6 +11576,20 @@ declaration of a partial specialization declared outside of its class.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes != NULL) {
+    /* If this is a class template definition, record the attributes so they
+       can be applied at instantiation time. */
+    if (is_definition) {
+      check_assertion(tssp->attributes == NULL);
+      tssp->attributes = attributes;
+    } else {
+      pos_warning(ec_attribute_ignored_on_incomplete_class_decl,
+                  &attributes->position);
+      free_attribute_list(attributes);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_partial_specialization && !is_redecl) {
     /* Make sure that the template parameters are used correctly in the
        partial specialization template argument list. */
@@ -14501,6 +14543,16 @@ the declaration token cache.
       prescan_decl_modifiers();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    if (curr_token == tok_attribute) {
+      /* Skip over any GNU attributes. */
+      (void)get_token();
+      if (curr_token == tok_lparen) {
+        flush_until_matching_token();
+        (void)get_token();
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_USE_PROTOTYPE_NOT_NONREAL |
                                         GID_IS_TEMPLATE_PRESCAN |

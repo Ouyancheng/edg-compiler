@@ -1,5 +1,16 @@
 Version 3.5
 
+7/29/04  GNU compatibility: Attributes on class templates
+
+In GNU mode, the front end did not accept attributes appearing immediately
+after the "class", "struct", "union" keyword of a class template.  For example:
+
+  template<typename T>
+  struct __attribute__((deprecated)) S {  // Previously a syntax error.
+  };
+
+This is now fixed.
+
 7/29/04  ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS, "?" in gcc mode
 
 The front end failed to properly emulate gcc on examples like the
