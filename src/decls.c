@@ -6159,6 +6159,7 @@ Return a pointer to the variable that is declared.
     set_to_error_locator(locator);
     error_position = pos_curr_token;
   }  /* if */
+  complete_type_is_needed(type_ptr);
   if (is_incomplete_type(type_ptr)) {
     /* Incomplete type is not allowed. */
     pos_error(ec_incomplete_type_not_allowed, &decl_pos);
