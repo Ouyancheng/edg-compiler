@@ -124,8 +124,8 @@ EXTERN a_boolean
 #endif /* VAR_INITIALIZERS */
                                                                               ;
 			/* If this is TRUE, enum types will be allocated
-			   the smallest of char, short, or int in which
-			   the enumeration values will fit.  If FALSE,
+			   the smallest in some set of integral types into
+			   which the enumeration values will fit.  If FALSE,
 			   int is always used. */
 EXTERN a_boolean
 		string_literals_shared;
