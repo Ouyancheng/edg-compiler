@@ -329,6 +329,25 @@ the default value for the global flag wchar_t_is_keyword.
 #define DEFAULT_WCHAR_T_IS_KEYWORD TRUE
 #endif /* ifndef DEFAULT_WCHAR_T_IS_KEYWORD */
 
+/*
+Flag that is TRUE if, when wchar_t is a keyword, a preprocessing symbol
+should be defined to prevent the system header files from attempting to
+redefine wchar_t as a typedef.
+*/
+#ifndef DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
+#define DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
+
+/*
+The name of the macro to be defined when wchar_t is a keyword.  This is
+only used when DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD is TRUE.
+*/
+#if DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
+#ifndef MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD
+#define MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD "_WCHAR_T"
+#endif /* ifndef MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD */
+#endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
