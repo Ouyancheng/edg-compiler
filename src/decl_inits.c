@@ -1305,17 +1305,22 @@ issuing an error on an incomplete type.
                                                dik_constant));
       local_di.variant.constant = cp;
       if (incomplete_init) {
-        /* A const or ref field was not initialized.  Issue an error. */
-        an_error_code		code;
-	an_error_severity	severity;
-        if (C_dialect == C_dialect_cplusplus) {
-          code = ec_var_with_uninitialized_member;
-          severity = es_error;
+        /* A const or ref field was not initialized. */
+        if (is_union_type(vp_type)) {
+          /* No diagnostic for unions. */
         } else {
-          code = ec_var_with_uninitialized_field;
-          severity = es_warning;
+          /* Issue an error. */
+          an_error_code		code;
+          an_error_severity	severity;
+          if (C_dialect == C_dialect_cplusplus) {
+            code = ec_var_with_uninitialized_member;
+            severity = es_error;
+          } else {
+            code = ec_var_with_uninitialized_field;
+            severity = es_warning;
+          }  /* if */
+          pos_sy_diagnostic(severity, code, source_pos, symbol_ptr);
         }  /* if */
-        pos_sy_diagnostic(severity, code, source_pos, symbol_ptr);
       }  /* if */
     }  /* if */
     if (!err && put_init_in_variable) {
@@ -2218,25 +2223,31 @@ scan_paren:
            default constructor should be called. */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
             (is_reference_type(tp) || is_const_qualified)) {
-          /* Ref-type field or const-qualified field but no initializer.  There
-             may be more than one, so we wait to collect them all before
-             issuing the error. */
-          /* Remove cip from the list. */
-          if (prev_cip == NULL) {
-            cip_list = cip->next;
+          /* Ref-type field or const-qualified field but no initializer. */
+          if (is_union_type(class_type)) {
+            /* We don't issue diagnostics on initializing union members,
+               partly because it's not well defined what should happen when
+               const and non-const members are mixed, */
           } else {
-            prev_cip->next = cip->next;
+             /* There may be more than one uninitialized const or ref field,
+                so we wait to collect them all before issuing the error. */
+            /* Remove cip from the list. */
+            if (prev_cip == NULL) {
+              cip_list = cip->next;
+            } else {
+              prev_cip->next = cip->next;
+            }  /* if */
+            cip->next = NULL;
+            /* Add it to a list that identifies fields that need to be
+               initialized but have no initializer. */
+            if (uninit_list == NULL) {
+              uninit_list = cip;
+            } else {
+              end_of_uninit_list->next = cip;
+            }  /* if */
+            end_of_uninit_list = cip;
+            continue;
           }  /* if */
-          cip->next = NULL;
-          /* Add it to a list that identifies fields that need to be
-             initialized but have no initializer. */
-          if (uninit_list == NULL) {
-            uninit_list = cip;
-          } else {
-            end_of_uninit_list->next = cip;
-          }  /* if */
-          end_of_uninit_list = cip;
-          continue;
         }  /* if */
         if (cssp == NULL ||
             (cssp->constructor == NULL &&
@@ -2617,9 +2628,11 @@ are created by a new expression (in which case sym is NULL).  In both cases
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
     type = skip_typerefs(type);
-    if (is_class_struct_union_type(type) &&
-        (vp == NULL ||
-         vp->storage_class != (a_storage_class)sc_extern)) {
+    if (is_union_type(type)) {
+      /* No diagnostic on unions with const/ref members. */
+    } else if (is_class_struct_union_type(type) &&
+               (vp == NULL ||
+                vp->storage_class != (a_storage_class)sc_extern)) {
       /* The object is a class-struct-union type or an array whose element
          type is a class-struct-union type.  Issue a warning if there is a
          const qualified field or a field of reference type.  Note that this

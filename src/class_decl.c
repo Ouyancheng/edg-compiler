@@ -5307,7 +5307,7 @@ destination type is not yet on the current class's conversion list.
           }  /* if */
         }  /* for */
         /* A new destination type for conversion.  Create a symbol to
-           represent its projection into the current class  and record it in
+           represent its projection into the current class and record it in
            a new conversion list entry. */
         make_locator_for_symbol(bcclep->symbol, &loc);
         clear_specific_symbol(loc);
@@ -6916,36 +6916,43 @@ next_declaration:
          this check is done before compiler-generated constructors, if any,
          are entered. */
       if (any_const_or_ref_fields && cssp->constructor == NULL) {
-        a_symbol_ptr  sym;
-
-        if (!cssp->is_class_aggregate) {
-          /* Issue an error for a non-aggregate class, since there's no other
-             way to initialize an object of the class. */
-          pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
-                             &error_position, tag_sym);
+        if (is_union_type(class_type)) {
+          /* Note that we do not do this check for unions.  This is partly
+             because a union may have a mixture of const and non-const
+             declarations, and it's not clear that the const members really
+             need to be initialized. */
         } else {
-          /* Issue a warning for an aggregate class.  If an attempt is made
-             to declare an object without appropriate initialization, an error
-             will be issued.  For example:
-               class A { const int i; };     // Just a warning
-               A x = { 0 };                  // Okay -- ARM 8.4.1
-               A y = x;                      // Probably okay -- ARM 8.4.1
-               A z;                          // Error will be issued       */
-          pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+          a_symbol_ptr  sym;
+
+          if (!cssp->is_class_aggregate) {
+            /* Issue an error for a non-aggregate class, since there's no other
+               way to initialize an object of the class. */
+            pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
                                &error_position, tag_sym);
-        }  /* if */
-        /* List each of the uninitialized const or ref member. */
-        for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-          if (sym->kind == (a_symbol_kind)sk_field) {
-            a_type_ptr  tp = sym->variant.field.ptr->type;
-            if (is_reference_type(tp)) {
-              sym_add_diag_info(ec_reference_member, sym);
-            } else if (is_const_qualified_type(tp)) {
-              sym_add_diag_info(ec_const_member, sym);
-            }  /* if */
+          } else {
+            /* Issue a warning for an aggregate class.  If an attempt is made
+               to declare an object without appropriate initialization, an
+               error will be issued.  For example:
+                 class A { const int i; };     // Just a warning
+                 A x = { 0 };                  // Okay -- ARM 8.4.1
+                 A y = x;                      // Probably okay -- ARM 8.4.1
+                 A z;                          // Error will be issued       */
+            pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+                                 &error_position, tag_sym);
           }  /* if */
-        }  /* for */
-        end_error();
+          /* List each of the uninitialized const or ref member. */
+          for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+            if (sym->kind == (a_symbol_kind)sk_field) {
+              a_type_ptr  tp = sym->variant.field.ptr->type;
+              if (is_reference_type(tp)) {
+                sym_add_diag_info(ec_reference_member, sym);
+              } else if (is_const_qualified_type(tp)) {
+                sym_add_diag_info(ec_const_member, sym);
+              }  /* if */
+            }  /* if */
+          }  /* for */
+          end_error();
+        }  /* if */
       }  /* if */
       if (!is_nonreal_instantiation) {
         /* Create compiler-generated default constructor, copy constructor,
