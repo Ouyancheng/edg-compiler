@@ -4194,9 +4194,15 @@ do_assignment:;
            entry in the function scope, and then the variable was promoted
            by promote_local_entities_to_file_scope). */
         if (!in_file_scope((char *)simple_constant)) {
+          a_boolean  saved_flag_value = initial_value_for_il_lowering_flag;
+
           a_memory_region_number region_to_switch_back_to = NULL_region_number;
           switch_to_file_scope_region(&region_to_switch_back_to);
+          /* Make sure the copy is created with flags indicating it
+             has not been lowered yet. */
+          initial_value_for_il_lowering_flag = FALSE;
           simple_constant = copy_unshared_constant(simple_constant);
+          initial_value_for_il_lowering_flag = saved_flag_value;
           switch_back_to_original_region(region_to_switch_back_to);
         }  /* if */
         variable->init_kind = (an_init_kind)initk_static;
