@@ -2771,7 +2771,7 @@ redef_error:
     /* Put the macro def block pointer into the symbol entry. */
     assoc_symbol->variant.macro_def = mdp;
 def_done:;
-    mark_defined(assoc_symbol, &pos_curr_token);
+    mark_defined(assoc_symbol, &assoc_symbol->decl_position);
   }  /* if */
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
