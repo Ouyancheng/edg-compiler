@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -21,9 +21,6 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
-
-/* None of this is needed if not walking the IL. */
-#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK
 
 #ifndef IL_H
 #include "il.h"
@@ -197,8 +194,71 @@ extern void process_local_types(
                    a_scope_ptr                        scope,
                    a_type_list_processing_routine_ptr list_processing_routine);
 
-#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK */
-                     
+
+/*
+Types for expression and statement traversal routines.
+*/
+typedef struct an_expr_or_stmt_traversal_block
+		*an_expr_or_stmt_traversal_block_ptr;
+/* Type of function called to process an expression node. */
+typedef void a_traversal_expr_process_function(
+                                          an_expr_node_ptr,
+                                          an_expr_or_stmt_traversal_block_ptr);
+typedef a_traversal_expr_process_function
+		*a_traversal_expr_process_function_ptr;
+/* Type of function called to process a constant. */
+typedef void a_traversal_constant_process_function(
+                                          a_constant_ptr,
+                                          an_expr_or_stmt_traversal_block_ptr);
+typedef a_traversal_constant_process_function
+		*a_traversal_constant_process_function_ptr;
+/* Type of function called to process a dynamic initialization. */
+typedef void a_traversal_dynamic_init_process_function(
+                                          a_dynamic_init_ptr,
+                                          an_expr_or_stmt_traversal_block_ptr);
+typedef a_traversal_dynamic_init_process_function
+		*a_traversal_dynamic_init_process_function_ptr;
+/* Type of function called to process a statement. */
+typedef void a_traversal_statement_process_function(
+                                          a_statement_ptr,
+                                          an_expr_or_stmt_traversal_block_ptr);
+typedef a_traversal_statement_process_function
+		*a_traversal_statement_process_function_ptr;
+typedef struct an_expr_or_stmt_traversal_block {
+  /* If you add fields here, also add them to
+     clear_expr_or_stmt_traversal_block. */
+  /* For the callback routines, if the pointer is NULL no routine is
+     called.  The tree is still traversed below that node. */
+  a_traversal_expr_process_function_ptr
+		process_expr;
+			/* Function called for each expression node. */
+  a_traversal_constant_process_function_ptr
+		process_constant;
+			/* Function called for each constant. */
+  a_traversal_dynamic_init_process_function_ptr
+		process_dynamic_init;
+			/* Function called for each dynamic init. */
+  a_traversal_statement_process_function_ptr
+		process_statement;
+			/* Function called for each statement. */
+  a_boolean	terminate;
+			/* A called routine can set this to TRUE to
+			   terminate the tree walk. */
+  a_boolean	suppress_subtree_walk;
+			/* A called routine can set this to TRUE to
+			   suppress the walk of the subtree of the
+			   current entry. */
+  a_boolean	result;
+			/* A place for called routines to store a boolean
+			   result for the overall walk. */
+} an_expr_or_stmt_traversal_block;
+
+extern void clear_expr_or_stmt_traversal_block(
+                                   an_expr_or_stmt_traversal_block_ptr tblock);
+
+extern void traverse_expr(an_expr_node_ptr                    expr,
+                          an_expr_or_stmt_traversal_block_ptr tblock);
+
 #endif /* ifndef IL_WALK_H */
 
 /******************************************************************************
@@ -207,6 +267,6 @@ extern void process_local_types(
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

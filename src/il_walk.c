@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -20,8 +20,6 @@ il_walk.c -- Routines to walk the intermediate language tree.
    processing. */
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
-
-#if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -2453,7 +2451,436 @@ in cases where the orphan lists have not been generated yet.
 end_of_routine:;
 }  /* process_local_types */
 
-#endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK */
+
+void clear_expr_or_stmt_traversal_block(
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Clear the block used for expression or statement tree traversal to
+default values.
+*/
+{
+  tblock->process_expr = NULL;
+  tblock->process_constant = NULL;
+  tblock->process_dynamic_init = NULL;
+  tblock->process_statement = NULL;
+  tblock->terminate = FALSE;
+  tblock->suppress_subtree_walk = FALSE;
+  tblock->result = FALSE;
+}  /* clear_expr_or_stmt_traversal_block */
+
+
+static void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
+                                  an_expr_or_stmt_traversal_block_ptr tblock);
+
+static void traverse_constant(a_constant_ptr                      constant,
+                              an_expr_or_stmt_traversal_block_ptr tblock);
+
+static void traverse_expr_list(an_expr_node_ptr                    expr_list,
+                               an_expr_or_stmt_traversal_block_ptr tblock);
+
+static void traverse_statement(a_statement_ptr                     statement,
+                               an_expr_or_stmt_traversal_block_ptr tblock);
+
+
+static void traverse_constant_list(
+                             a_constant_ptr                      constant_list,
+                             an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the tree of the given constant list.  Call user-provided routines as
+specified in the control block.
+*/
+{
+  a_constant_ptr con;
+
+  for (con = constant_list; con != NULL; con = con->next) {
+    traverse_constant(con, tblock);
+    if (tblock->terminate) break;
+  }  /* for */
+}  /* traverse_constant_list */
+
+
+static void traverse_constant(a_constant_ptr                      constant,
+                              an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the tree of the given constant.  Call user-provided routines as
+specified in the control block.
+*/
+{
+  if (tblock->process_constant != NULL) {
+    /* Call the user-provided routine. */
+    tblock->process_constant(constant, tblock);
+    /* Terminate the walk if told to do so. */
+    if (tblock->terminate) goto end_of_routine;
+    /* Skip the subtree walk if told to do so. */
+    if (tblock->suppress_subtree_walk) {
+      tblock->suppress_subtree_walk = FALSE;
+      goto end_of_routine;
+    }  /* if */
+  }  /* if */
+  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    traverse_constant_list(constant->variant.aggregate.first_constant,
+                           tblock);
+  } else if (constant->kind == (a_constant_repr_kind)ck_init_repeat) {
+    traverse_constant(constant->variant.init_repeat.constant, tblock);
+  } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    traverse_dynamic_init(constant->variant.dynamic_init, tblock);
+  }  /* if */
+end_of_routine:;
+}  /* traverse_constant */
+
+
+static void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
+                                  an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the tree of the given dynamic initialization.  Call user-provided
+routines as specified in the control block.
+*/
+{
+  if (tblock->process_dynamic_init != NULL) {
+    /* Call the user-provided routine. */
+    tblock->process_dynamic_init(dip, tblock);
+    /* Terminate the walk if told to do so. */
+    if (tblock->terminate) goto end_of_routine;
+    /* Skip the subtree walk if told to do so. */
+    if (tblock->suppress_subtree_walk) {
+      tblock->suppress_subtree_walk = FALSE;
+      goto end_of_routine;
+    }  /* if */
+  }  /* if */
+  switch (dip->kind) {
+    case dik_none:
+    case dik_zero:
+      break;
+    case dik_constant:
+      traverse_constant(dip->variant.constant, tblock);
+      break;
+    case dik_expression:
+    case dik_call_returning_class_via_cctor:
+      traverse_expr(dip->variant.expression, tblock);
+      break;
+    case dik_constructor:
+      traverse_expr_list(dip->variant.constructor.args, tblock);
+      break;
+    case dik_nonconstant_aggregate:
+      traverse_constant(dip->variant.constant, tblock);
+      break;
+    case dik_bitwise_copy:
+      break;
+    default:
+      unexpected_condition_str("traverse_dynamic_init: bad kind");
+  }  /* switch */
+end_of_routine:;
+}  /* traverse_dynamic_init */
+
+
+static void traverse_expr_list(an_expr_node_ptr                    expr_list,
+                               an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the tree of the given expression list.  Call user-provided routines
+as specified in the control block.
+*/
+{
+  an_expr_node_ptr expr;
+
+  for (expr = expr_list; expr != NULL; expr = expr->next) {
+    traverse_expr(expr, tblock);
+    /* Terminate the walk if told to do so. */
+    if (tblock->terminate) break;
+  }  /* for */
+}  /* traverse_expr_list */
+
+
+void traverse_expr(an_expr_node_ptr                    expr,
+                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the tree of the given expression.  Call user-provided routines
+as specified in the control block.
+*/
+{
+  if (tblock->process_expr != NULL) {
+    /* Call the user-provided routine. */
+    tblock->process_expr(expr, tblock);
+    /* Terminate the walk if told to do so. */
+    if (tblock->terminate) goto end_of_routine;
+    /* Skip the subtree walk if told to do so. */
+    if (tblock->suppress_subtree_walk) {
+      tblock->suppress_subtree_walk = FALSE;
+      goto end_of_routine;
+    }  /* if */
+  }  /* if */
+  switch (expr->kind) {
+    case enk_error:
+      break;
+    case enk_operation:
+      traverse_expr_list(expr->variant.operation.operands, tblock);
+      break;
+    case enk_constant:
+      traverse_constant(expr->variant.constant, tblock);
+      break;
+    case enk_variable:
+    case enk_variable_address:
+    case enk_field:
+      break;
+    case enk_temp_init:
+      traverse_dynamic_init(expr->variant.init.dynamic_init, tblock);
+      break;
+    case enk_new_delete:
+      { a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+        if (ndsp->arg != NULL) {
+          traverse_expr_list(ndsp->arg, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+        if (ndsp->dynamic_init != NULL) {
+          traverse_dynamic_init(ndsp->dynamic_init, tblock);
+          if (tblock->terminate) goto end_of_routine;
+         }  /* if */
+        if (ndsp->freeing_of_storage_on_exception != NULL) {
+          traverse_dynamic_init(ndsp->freeing_of_storage_on_exception, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+      }
+      break;
+    case enk_throw:
+      if (expr->variant.throw_info != NULL) {
+        traverse_dynamic_init(expr->variant.throw_info->dynamic_init, tblock);
+        if (tblock->terminate) goto end_of_routine;
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+        if (expr->variant.throw_info->expr != NULL) {
+          traverse_expr(expr->variant.throw_info->expr, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+      }  /* if */
+      break;
+    case enk_condition:
+      traverse_dynamic_init(expr->variant.condition->dynamic_init, tblock);
+      if (tblock->terminate) goto end_of_routine;
+      traverse_expr(expr->variant.condition->expr, tblock);
+      break;
+    case enk_object_lifetime:
+      traverse_expr(expr->variant.object_lifetime.expr, tblock);
+      break;
+    case enk_typeid:
+      if (expr->variant.typeid_info.expr != NULL) {
+        traverse_expr(expr->variant.typeid_info.expr, tblock);
+      }  /* if */
+      break;
+    case enk_runtime_sizeof:
+      if (!expr->variant.runtime_sizeof.is_type) {
+        traverse_expr(expr->variant.runtime_sizeof.variant.expr, tblock);
+      }  /* if */
+      break;
+    case enk_address_of_ellipsis:
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      traverse_statement(expr->variant.statement, tblock);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+    case enk_lowered_eh_construct:
+      break;
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+    case enk_routine_address:
+      break;
+    default:
+      unexpected_condition_str("traverse_expr: bad expr kind");
+  }  /* switch */
+end_of_routine:;
+}  /* traverse_expr */
+
+
+static void traverse_statement_list(
+                            a_statement_ptr                     statement_list,
+                            an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the tree of the given statement list.  Call user-provided routines
+as specified in the control block.
+*/
+{
+  a_statement_ptr stmt;
+
+  for (stmt = statement_list; stmt != NULL; stmt = stmt->next) {
+    traverse_statement(stmt, tblock);
+    if (tblock->terminate) break;
+  }  /* for */
+}  /* traverse_statement_list */
+
+
+static void traverse_statement(a_statement_ptr                     statement,
+                               an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the tree of the given statement.  Call user-provided routines
+as specified in the control block.
+*/
+{
+  if (tblock->process_statement != NULL) {
+    /* Call the user-provided routine. */
+    tblock->process_statement(statement, tblock);
+    /* Terminate the walk if told to do so. */
+    if (tblock->terminate) goto end_of_routine;
+    /* Skip the subtree walk if told to do so. */
+    if (tblock->suppress_subtree_walk) {
+      tblock->suppress_subtree_walk = FALSE;
+      goto end_of_routine;
+    }  /* if */
+  }  /* if */
+  switch (statement->kind) {
+    case stmk_expr:
+      traverse_expr(statement->expr, tblock);
+      break;
+    case stmk_if:
+      traverse_expr(statement->expr, tblock);
+      if (tblock->terminate) goto end_of_routine;
+      traverse_statement(statement->variant.if_stmt.then_statement, tblock);
+      if (tblock->terminate) goto end_of_routine;
+      if (statement->variant.if_stmt.else_statement != NULL) {
+        traverse_statement(statement->variant.if_stmt.else_statement, tblock);
+      }  /* if */
+      break;
+    case stmk_while:
+      traverse_expr(statement->expr, tblock);
+      if (tblock->terminate) goto end_of_routine;
+      traverse_statement(statement->variant.loop_statement, tblock);
+      break;
+    case stmk_end_test_while:
+      traverse_statement(statement->variant.loop_statement, tblock);
+      if (tblock->terminate) goto end_of_routine;
+      traverse_expr(statement->expr, tblock);
+      break;
+    case stmk_goto:
+    case stmk_label:
+      break;
+    case stmk_return:
+      if (statement->variant.return_dynamic_init != NULL) {
+        traverse_dynamic_init(statement->variant.return_dynamic_init, tblock);
+      } else {
+        traverse_expr(statement->expr, tblock);
+      }  /* if */
+      break;
+    case stmk_block:
+      traverse_statement_list(statement->variant.block.statements, tblock);
+      break;
+    case stmk_for:
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      { a_for_loop_ptr flp = statement->variant.for_loop.extra_info;
+        if (flp->initialization != NULL) {
+          traverse_statement(flp->initialization, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+        /* "expr" is the termination test expression. */
+        if (statement->expr != NULL) {
+          traverse_expr(statement->expr, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+        traverse_statement(statement->variant.for_loop.statement, tblock);
+        if (tblock->terminate) goto end_of_routine;
+        if (flp->increment != NULL) {
+          traverse_expr(flp->increment, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+        if (flp->affinity != NULL) {
+          traverse_expr(flp->affinity, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      }
+      break;
+    case stmk_switch:
+      { a_switch_clause_ptr scp;
+        traverse_expr(statement->expr, tblock);
+        if (tblock->terminate) goto end_of_routine;
+        traverse_statement(statement->variant.switch_stmt.body_statement,
+                           tblock);
+        if (tblock->terminate) goto end_of_routine;
+        for (scp = statement->variant.switch_stmt.clause_list;
+             scp != NULL;
+             scp = scp->next) {
+          traverse_constant_list(scp->constant_list, tblock);
+          if (tblock->terminate) goto end_of_routine;
+          traverse_statement_list(scp->statements, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* for */
+      }
+      break;
+    case stmk_init:
+      traverse_dynamic_init(statement->variant.dynamic_init, tblock);
+      break;
+    case stmk_asm:
+      break;
+#if ASM_FUNCTION_ALLOWED
+    case stmk_asm_func_body:
+      break;
+#endif /* ASM_FUNCTION_ALLOWED */
+    case stmk_try_block:
+      { a_try_supplement_ptr tsp = statement->variant.try_block;
+        a_handler_ptr        handler;
+        traverse_statement(tsp->statement, tblock);
+        if (tblock->terminate) goto end_of_routine;
+        for (handler = tsp->handlers;
+             handler != NULL;
+             handler = handler->next) {
+          traverse_dynamic_init(handler->dynamic_init, tblock);
+          if (tblock->terminate) goto end_of_routine;
+          traverse_statement(handler->statement, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* for */
+      }
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_microsoft_try:
+      { a_microsoft_try_supplement_ptr mtsp = statement->variant.microsoft_try;
+        traverse_statement(mtsp->guarded_statement, tblock);
+        if (tblock->terminate) goto end_of_routine;
+        if (mtsp->except_expr != NULL) {
+          traverse_expr(mtsp->except_expr, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+        traverse_statement(mtsp->cleanup_statement, tblock);
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    case stmk_decl:
+      break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    case stmk_set_vla_size:
+      { a_vla_dimension_ptr vlap = statement->variant.vla_dimension;
+        traverse_expr(vlap->dimension_expr, tblock);
+      }
+      break;
+    case stmk_vla_decl:
+    case stmk_vla_dealloc:
+      break;
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_notify:
+    case stmk_upc_wait:
+    case stmk_upc_barrier:
+    case stmk_upc_fence:
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_assigned_goto:
+      /* Used for GNU "goto *expr;". */
+      traverse_expr(statement->expr, tblock);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+    case stmk_empty:
+      break;
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+    default:
+      unexpected_condition_str("traverse_statement: bad statement kind");
+  }  /* if */
+end_of_routine:;
+}  /* traverse_statement */
 
 
 /******************************************************************************
@@ -2462,6 +2889,6 @@ end_of_routine:;
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2003 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
