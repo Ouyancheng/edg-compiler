@@ -84,6 +84,15 @@ instead of K&R C.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE */
 
+#if !C_GEN_BE_GENERATES_ANSI_C
+#if ASM_FUNCTION_ALLOWED
+/* asm functions cannot be generated if K&R C, since they require function
+   prototypes (except when old-style parameters are implicitly declared). */
+ #error -- When K&R C is put out the C-generating back end requires \
+            ASM_FUNCTION_ALLOWED FALSE
+#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+
 /*
 See if the target is the Sun cc compiler, which has some bugs we know
 about and can work around.
@@ -211,6 +220,14 @@ static a_boolean
 		annotate;
 			/* Flag indicating whether or not annotations should
 			   be output. */
+#if ASM_FUNCTION_ALLOWED /*USL*/
+static a_boolean
+		within_asm_function_definition;
+			/* Flag indicating generation of an asm function is in
+			   progress (used to suppress forward declarations of
+			   asm functions and for special handling with
+			   implicitly declared old-style parameters). */
+#endif /* ASM_FUNCTION_ALLOWED */
 #if !C_GEN_BE_GENERATES_ANSI_C
 static char	*module_id, *module_init_id;
 			/* Seed for module-unique names. */
@@ -417,6 +434,12 @@ Write a #line directive for the indicated sequence number, line number, and
 file.
 */
 {
+#if STANDALONE_UTILITY_PROGRAM
+  /* This is a command-line option normally, but it's not available in the
+     standalone version. */
+  a_boolean gen_old_style_line_dirs = FALSE;
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
   /* End the previous line if there is one. */
   end_output_line_if_begun();
   curr_output_line = line_number;
@@ -969,6 +992,9 @@ entity is unnamed, generate a name.
       m_write_tok_str(name);
     }  /* if */
   } else if (scp->class_of_which_a_member != NULL ||
+#if ASM_FUNCTION_ALLOWED /*USL*/
+/*             within_asm_function_definition || */
+#endif /* ASM_FUNCTION_ALLOWED */
              !scp->is_local_to_function) {
     /* No prefix on members of classes or things that aren't local to
        functions (e.g., file-scope typedefs). */
@@ -4279,11 +4305,12 @@ Dump out the contents of a block (but not the surrounding { and }).
 
 static void dump_asm_function_body(an_asm_entry_ptr  aep)
 /*
-Generate an asm function body.
+Generate an asm function body, including the opening and closing braces.
 */
 {
   char *p = aep->variant.asm_func_body, *eol;
 
+  write_space();
   write_tok_ch('{');
   for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
     /* Write a sequence of characters ending with a newline. */
@@ -4675,6 +4702,7 @@ Generate C for a statement.
     case stmk_asm:
       /* asm statement. */
 #if ASM_FUNCTION_ALLOWED
+      /* ... or asm function. */
       if (statement->variant.asm_entry->is_asm_func_body) {
         /* Generate "{ ... }". */
         dump_asm_function_body(statement->variant.asm_entry);
@@ -4961,11 +4989,15 @@ for the definition of the indicated routine.  scope is the associated scope.
   /* Note that IL lowering creates routines with prototyped FALSE but
      old_style_params_scanned also FALSE. */
   if (!rout->type->variant.routine.extra_info->prototyped ||
-      type->variant.routine.extra_info->old_style_params_scanned)
+      type->variant.routine.extra_info->old_style_params_scanned) {
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
-  {
-    dump_old_style_parameter_decls(scope);
-  }
+#if ASM_FUNCTION_ALLOWED
+    if (!within_asm_function_definition)
+#endif /* ASM_FUNCTION_ALLOWED */
+      dump_old_style_parameter_decls(scope);
+#if C_GEN_BE_GENERATES_ANSI_C
+  }  /* if */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
 }  /* dump_func_definition_type */
 
 
@@ -5025,6 +5057,10 @@ if this routine has a body (dump nothing if it has no body).
     /* Routines with names beginning "__builtin_" should not be declared
        or defined. */
 #endif /* SGIC */
+#if ASM_FUNCTION_ALLOWED
+  } else if (!dump_defn && rout->storage_class == (a_storage_class)sc_asm) {
+    /* Suppress forward declaration of an asm function. */
+#endif /* ASM_FUNCTION_ALLOWED */
   } else if (!start_unreferenced_bracket(&rout->source_corresp)) {
     /* Unreferenced routine. */
   } else {
@@ -5090,8 +5126,18 @@ if this routine has a body (dump nothing if it has no body).
       dump_declaration_using_type(rout->type, &rout->source_corresp);
       write_tok_ch(';');
     } else {
+#if ASM_FUNCTION_ALLOWED
+      /* If appropriate, set a flag to assure special processing for asm
+         function definitions. */
+      if (storage_class == (a_storage_class)sc_asm) {
+        within_asm_function_definition = TRUE;
+      }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
       /* The definition of the routine. */
       dump_routine_definition(rout);
+#if ASM_FUNCTION_ALLOWED
+      within_asm_function_definition = FALSE;
+#endif /* ASM_FUNCTION_ALLOWED */
     }  /* if */
     end_unreferenced_bracket(&rout->source_corresp);
   }  /* if */
@@ -5163,6 +5209,11 @@ Generate C from the intermediate language.
   char              *C_output_file_name;
   a_boolean         cannot_open, bad_name;
   a_source_position pos;
+#if STANDALONE_UTILITY_PROGRAM
+  /* This is a command-line option normally, but it's not available in the
+     standalone version. */
+  char              *gen_c_file_name = NULL;
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
   /* Open the output file. */
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
@@ -5406,6 +5457,9 @@ Initialize for the C-generating back end.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   octl.suppress_local_typedefs = TRUE;
   octl.c_generating_back_end = TRUE;
+#if ASM_FUNCTION_ALLOWED
+  within_asm_function_definition = FALSE;
+#endif /* ASM_FUNCTION_ALLOWED */
 }  /* init_c_gen_be */
 
 
