@@ -94,27 +94,32 @@ allowed, issue a diagnostic and return FALSE.
 */
 {
   a_type_ptr     tp;
-  an_error_code  error_code = es_none;
+  an_error_code  error_code = ec_no_error;
   
   if (!is_error_type(type)) {
     if (is_ptr_or_ref_type(type)) {
+      /* Pointer types and references may be restrict qualified unless they
+         point to function types. */
       tp = type_pointed_to(type);
       if (tp != NULL && is_function_type(tp)) {
         error_code = ec_restrict_pointer_to_function;
       }  /* if */
     } else if (is_ptr_to_member_type(type)) {
+      /* Pointer-to-member types may be restrict qualified unless they point
+         to function types. */
       tp = pm_member_type(type);
       if (tp != NULL && is_function_type(tp)) {
         error_code = ec_restrict_pointer_to_function;
       }  /* if */
     } else {
+      /* Anything else is disallowed. */
       error_code = ec_restrict_not_allowed;
     }  /* if */
-    if (error_code != es_none) {
+    if (error_code != ec_no_error) {
       pos_error(error_code, error_pos);
     }  /* if */
   }  /* if */
-  return (error_code == es_none);
+  return (error_code == ec_no_error);
 }  /* restrict_qualifier_is_allowed */
 
 
