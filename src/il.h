@@ -220,6 +220,22 @@ extern an_expr_node_ptr function_addr_expr(a_routine_ptr rout);
 
 extern an_expr_node_ptr this_param_value_expr(void);
 
+extern an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
+                                                    a_field_ptr      field);
+
+extern an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
+                                                    a_field_ptr      field);
+
+extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
+                                                  a_base_class_ptr bcp);
+
+extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
+                                                 an_expr_node_ptr source);
+
+extern a_statement_ptr make_call_assignment_statement(a_routine_ptr    rout,
+                                                      an_expr_node_ptr dest,
+                                                      an_expr_node_ptr source);
+
 extern a_switch_clause_ptr alloc_switch_clause(void);
 
 extern void set_statement_kind(a_statement_ptr  sp,

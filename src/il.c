@@ -24,6 +24,7 @@ il.c -- Construction of intermediate language trees.
 #include "types.h"
 #include "cmd_line.h"
 #include "float_pt.h"
+#include "exprutil.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
@@ -3655,6 +3656,132 @@ in C++ mode.
   expr->variant.variable = this_param_var;
   return expr;
 }  /* this_param_value_expr */
+
+
+an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
+                                             a_field_ptr      field)
+/*
+Make an expression for an lvalue reference to field "field" of "node" and
+return a  pointer to it.
+*/
+{
+  an_expr_operator_kind op;
+  an_expr_node_ptr      field_node;
+
+  /* Make the expression node for the field. */
+  field_node = alloc_expr_node((an_expr_node_kind)enk_field);
+  field_node->type = field->type;
+  field_node->variant.field = field;
+  node->next = field_node;
+  /* Use a different operator for bit field references. */
+  op = (field->bit_size != 0) ? (an_expr_operator_kind)eok_bit_field :
+                                (an_expr_operator_kind)eok_field;
+  /* Make the field selection node.  Note that no special processing is
+     done for type qualifiers on the node pointer type.  They're probably
+     not needed. */
+  node = make_operator_node(op, make_pointer_type(field->type), node);
+  return node;
+}  /* field_lvalue_selection_expr */
+
+
+an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
+                                             a_field_ptr      field)
+/*
+Make an expression for an rvalue reference to field "field" of "node" and
+return a  pointer to it.
+*/
+{
+  an_expr_operator_kind op;
+  an_expr_node_ptr      field_node;
+
+  /* Make the expression node for the field. */
+  field_node = alloc_expr_node((an_expr_node_kind)enk_field);
+  field_node->type = field->type;
+  field_node->variant.field = field;
+  node->next = field_node;
+  /* Use a different operator for bit field references. */
+  op = (field->bit_size != 0) ? (an_expr_operator_kind)eok_value_bit_field :
+                                (an_expr_operator_kind)eok_value_field;
+  /* Make the field selection node.  Note that no special processing is
+     done for type qualifiers on the node pointer type.  They're probably
+     not needed. */
+  node = make_operator_node(op, field->type, node);
+  return node;
+}  /* field_rvalue_selection_expr */
+
+
+an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
+                                           a_base_class_ptr bcp)
+/*
+Create an expression node that selects the base class indicated from
+the object pointed to by node, and return a pointer to it.  The base
+class need not be an immediate base class.
+*/
+{
+  a_derivation_step_ptr dsp;
+
+  /* Add a base class cast for each step in the derivation. */
+  for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+    node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
+                              dsp->base_class->type, node);
+  }  /* for */
+  return node;
+}  /* base_class_selection_expr */
+
+
+a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
+                                          an_expr_node_ptr source)
+/*
+Create an expression statement pointing to an assignment operator that
+assigns the rvalue "source" to the lvalue "dest".  Return a pointer to
+the statement.
+*/
+{
+  a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
+  an_expr_node_ptr node;
+
+  /* Make the assignment node. */
+#if 0
+  /* Fix the return type when assignment operators return lvalues. */
+#endif
+  node = make_operator_node(which_binary_operator(tok_assign, source->type),
+                            source->type, dest);
+  dest->next = source;
+  /* Put the assignment node under the statement. */
+  stmt->expr = node;
+  return stmt;
+}  /* make_assignment_statement */
+
+
+a_statement_ptr make_call_assignment_statement(a_routine_ptr    rout,
+                                               an_expr_node_ptr dest,
+                                               an_expr_node_ptr source)
+/*
+Create an expression statement pointing to a call operator that
+calls "rout" to assign the lvalue "source" to the lvalue "dest".  Return
+a pointer to the statement.
+*/
+{
+  a_statement_ptr       stmt = alloc_statement((a_statement_kind)stmk_expr);
+  an_expr_node_ptr      node, func_addr_node;
+  an_expr_operator_kind op;
+
+  /* Make a node for the address of the function. */
+  func_addr_node = function_addr_expr(rout);
+  /* Link the operands to the function address node. */
+  func_addr_node->next = dest;
+  dest->next = source;
+  /* Make the call node. */
+  if (rout->is_virtual) {
+    op = (an_expr_operator_kind)eok_virtual_call;
+  } else {
+    op = (an_expr_operator_kind)eok_call;
+  }  /* if */
+  node = make_operator_node(op, dest->type, func_addr_node);
+  /* Put the call node under the statement. */
+  stmt->expr = node;
+  return stmt;
+}  /* make_call_assignment_statement */
 
 
 a_switch_clause_ptr alloc_switch_clause(void)
