@@ -4451,10 +4451,8 @@ what will be done with the operand.
 {
   if (is_indefinite_function_operand(operand)) {
     /* Replace an indefinite function by the address of an unknown
-       function in the set. */
-    an_operand_state saved_state = operand->state;
+       function in the set.  The result is always an rvalue. */
     make_unknown_dependent_function_operand(operand->variant.symbol, operand);
-    operand->state = saved_state;
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand);
@@ -4517,29 +4515,60 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
 */
 {
   an_operand orig_operand;
+  a_boolean  can_fold = FALSE;
 
   orig_operand = *operand;
   check_assertion(!is_reference_type(dest_type));
-  if (is_error_operand(operand)) {
-    /* Leave an error operand alone. */
-  } else if (curr_expr_kind_is_const() ||
-             (is_constant_operand(operand) &&
-              !is_class_struct_union_type(dest_type) &&
-              !is_class_struct_union_type(operand->type))) {
-    /* In a constant expression, cast the constant rather than building
-       an expression tree.  Note that we don't use cast_operand or
-       type_change_constant, because this conversion might be highly
-       invalid. */
-    /* We also cast the constant in some cases in non-constant expressions.
-       In particular, it is important that initializers for entities of
-       integral or enum type be folded to constants so their values can
-       be used in constant expressions. */
-    do_generic_operand_transformations(operand);
-    if (is_an_lvalue(operand)) {
+  /* See whether we know that the operand will be used an an rvalue. */
+  if (!curr_expr_kind_is_const() &&
+      (is_class_struct_union_type(dest_type) ||
+       is_template_param_type(dest_type) ||
+       is_class_struct_union_type(operand->type) ||
+       is_template_param_type(operand->type))) {
+    /* This might be a cast to or from a class type, and thus might
+       involve a user-defined conversion.  Therefore we don't know whether
+       the operand will be used as an lvalue or an rvalue.  Or, the
+       destination type is a template parameter type that might turn out
+       to be a reference type, which has the same consequence. */
+    a_constant_ptr con = &operand->variant.constant;
+    if (is_an_lvalue(operand) &&
+        con->kind == (a_constant_repr_kind)ck_template_param &&
+        con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_address) {
+      /* The constant is the address of a member of a nonreal class.
+         It won't matter whether this is considered an lvalue or an
+         rvalue as an operand to the generic cast, so convert it to
+         an rvalue because that allows folding of the cast and
+         preservation of the possibility that this expression can be
+         used as a constant expression. */
       conv_lvalue_to_rvalue(operand);
     }  /* if */
-    check_assertion_str(is_constant_operand(operand),
-                        "generic_cast_operand: non-const operand");
+  } else {
+    /* The operand will definitely be used as an rvalue. Convert it if
+       necessary. */
+    /* Doing the generic transformations first avoids an error on
+       an indefinite function. */
+    do_generic_operand_transformations(operand);
+    do_operand_transformations(operand, TOPT_NO_OPTIONS);
+  }  /* if */
+  /* Determine whether we can fold the cast to a constant. */
+  /* This is necessary in constant expressions, and also for initializers
+     for entities of const integral or enum type (so their values can be used
+     in constant expressions). */
+  if (curr_expr_kind_is_const()) {
+    can_fold = TRUE;
+  } else if (is_constant_operand(operand)) {
+    /* In a non-constant expression, fold casts of constant rvalues. */
+    if (is_an_rvalue(operand)) can_fold = TRUE;
+  }  /* if */
+  if (is_error_operand(operand)) {
+    /* Leave an error operand alone. */
+  } else if (can_fold) {
+    /* Fold a constant cast. */
+    check_assertion_str(is_constant_operand(operand) && is_an_rvalue(operand),
+                        "generic_cast_operand: non-const or lvalue operand");
+    /* Note that we don't use cast_operand or type_change_constant,
+       because this conversion might be highly invalid. */
     if (!il_identical_types(operand->type, dest_type)) {
       a_type_ptr con_dest_type = dest_type;
       a_constant orig_constant;
