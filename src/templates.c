@@ -15558,6 +15558,11 @@ templates defined in the file.
       unexpected_condition_str("read_exported_template_file: bad line kind");
     }  /* if */
   }  /* while */
+  if (etfp->source_file_name == NULL) {
+    /* The exported template file did not contain a file name.  Issue
+       an error. */
+    str_catastrophe(ec_corrupted_export_template_file, file_name);
+  }  /* if */
   /* See if the translation unit associated for this exported template file
      has already been loaded. */
   check_for_already_loaded_trans_unit(etfp);
