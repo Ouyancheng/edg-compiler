@@ -225,11 +225,11 @@ static a_type_ptr
 				/* Array of pointers to the types to be
 				   used for substitutions in diagnostic
 				   messages. */
+#if !STANDALONE_UTILITY_PROGRAM
 static a_source_position_ptr
 		error_msg_positions[MAX_ERR_SEG_KIND_PER_MSG + 1];
 				/* Array of source positions to be used
 				   for insertion into diagnostic messages. */
-#if !STANDALONE_UTILITY_PROGRAM
 static a_symbol_ptr
 		error_msg_syms[MAX_ERR_SEG_KIND_PER_MSG + 1];
 				/* Array of pointers to the symbols to be
@@ -360,24 +360,6 @@ error code.
   return (message_text[(int)error_code]);
 }  /* error_text */
 
-#if CHECKING
-
-static sizeof_t digits_to_represent(unsigned long value)
-/*
-Return the number of digits needed for the decimal representation of value,
-e.g., 1297 --> 4.
-*/
-{
-  sizeof_t ndigits = 1;
-
-  while (value > 9) {
-    value /= 10;
-    ndigits++;
-  }  /* while */
-  return ndigits;
-}  /* digits_to_represent */
-
-#endif /* CHECKING */
 
 static void add_string_to_segment(char              *str,
                                   a_msg_segment_ptr seg_ptr)
@@ -534,6 +516,24 @@ string immediately into whichever memory region is appropriate.
 }  /* format_type_string */
 
 #if !STANDALONE_UTILITY_PROGRAM
+#if CHECKING
+
+static sizeof_t digits_to_represent(unsigned long value)
+/*
+Return the number of digits needed for the decimal representation of value,
+e.g., 1297 --> 4.
+*/
+{
+  sizeof_t ndigits = 1;
+
+  while (value > 9) {
+    value /= 10;
+    ndigits++;
+  }  /* while */
+  return ndigits;
+}  /* digits_to_represent */
+
+#endif /* CHECKING */
 
 static void form_source_position(a_source_position   *pos,
                                  a_source_position   *error_pos,
@@ -1770,8 +1770,8 @@ a diagnostic message.
   for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
     error_msg_strings[i] = NULL;
     error_msg_types[i] = NULL;
-    error_msg_positions[i] = NULL;
 #if !STANDALONE_UTILITY_PROGRAM
+    error_msg_positions[i] = NULL;
     error_msg_syms[i] = NULL;
     error_msg_scopes[i] = NULL;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
