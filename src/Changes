@@ -1,6 +1,6 @@
 Version 3.5
 
-11/24/98  Microsoft compatibility: incompatible template parameter lists
+7/21/04  Microsoft compatibility: incompatible template parameter lists
 
 The Microsoft compatibility issue described in the Changes entry of 11/24/98
 is fixed in MSVC++ 7.1.  Therefore, we no longer emulate it when
