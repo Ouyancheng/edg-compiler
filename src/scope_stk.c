@@ -1513,7 +1513,8 @@ to the namespace and class that must be reactivated.
     parent_namespace = sp->variant.assoc_namespace;
   }  /* if */
   if (instance_sym == NULL ||
-      template_sym->kind == (a_symbol_kind)sk_function_template) {
+      (!template_sym->is_class_member && 
+       template_sym->kind == (a_symbol_kind)sk_function_template)) {
     /* When there is no specific instance being instantiated, that indicates
        that we are instantiating something like a template parameter type
        that depends on another template parameter, or a default template
@@ -1525,16 +1526,28 @@ to the namespace and class that must be reactivated.
        scope that contained the template declaration based on which the
        current instantiation is being done.
 
-       When generating an instance of a function template that was defined
-       in some other class scope, we need to create the context of that
-       class scope in order to do the instantiation. */
+       When generating an instance of a function template (that is not a
+       member template) that was defined in some other class scope, we need
+       to create the context of that class scope in order to do the 
+       instantiation. */
     *p_tp = parent_type;
     *p_nsp = parent_namespace;
   } else {
     /* If we are instantiating a particular instance of a template, get
        the parent information from the template being instantiated. */
     *p_nsp = parent_namespace_for_symbol(template_sym);
-    *p_tp = NULL;
+    if (template_sym != NULL && template_sym->is_class_member &&
+        (template_sym->kind == (a_symbol_kind)sk_class_template ||
+         template_sym->kind == (a_symbol_kind)sk_function_template)) {
+      /* This is a member template -- use the parent class type as the
+         type that must be reactivated. */
+      *p_tp = template_sym->parent.class_type;
+    } else {
+      /* For nonmember templates, and for members of template classes that
+         are not themselves members, the class context, if needed, will
+         have been created by the caller. */
+      *p_tp = NULL;
+    }  /* if */
   }  /* if */
 }  /* get_parent_information_for_template */
 
@@ -1745,8 +1758,6 @@ scopes.
     if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
       fprintf(f_debug, "Pushed instantiation scope for: ");
       db_symbol(instance_sym, "", 0);
-      fprintf(f_debug, "scope stack after instantiation scope:\n");
-      db_scope_stack();
       fprintf(f_debug, "context_scope=%0d, common_scope=%0d\n", context_scope,
               common_depth);
     }  /* if */
@@ -1757,6 +1768,12 @@ scopes.
     ssep = &scope_stack[depth_scope_stack];
     ssep->parent_instantiation_pushed = parent_instantiation_pushed;
   }  /* if */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
+      fprintf(f_debug, "scope stack after instantiation scope:\n");
+      db_scope_stack();
+    }  /* if */
+#endif /* DEBUG */
   return scope;
 }  /* push_template_instantiation_scope */
 

@@ -1315,6 +1315,30 @@ Allocate a namespace list entry and return a pointer to it.
 }  /* alloc_namespace_list_entry */
 
 
+a_symbol_ptr corresp_prototype_for_class_symbol(a_symbol_ptr sym)
+/*
+sym points to a symbol entry for a class.  If the class is an instance
+of a template, but not a specialized template or a nonreal class, return
+the corresponding prototype symbol from the class symbol supplement.
+Otherwise, return NULL.
+*/
+{
+  a_class_symbol_supplement_ptr	cssp;
+  a_symbol_ptr			result_sym = NULL;
+
+  check_assertion(is_class_struct_union_symbol(sym));
+  cssp = sym->variant.class_struct_union.extra_info;
+  if (cssp->is_instance && !cssp->is_specific_template_def &&
+      !cssp->is_nonreal_class) {
+    result_sym = cssp->corresp_prototype_sym;
+    check_assertion_str2(result_sym != NULL,
+                         "corresp_prototype_for_class_symbol:",
+                         "no corresponding prototype symbol for instance");
+  }  /* if */
+  return result_sym;
+}  /* corresp_prototype_for_class_symbol */
+
+
 a_template_cache_segment_ptr alloc_template_cache_segment(
                                 a_symbol_ptr				sym,
                                 a_template_symbol_supplement_ptr	tssp)
@@ -1467,6 +1491,7 @@ and return a pointer to it.
   clear_template_cache(&tssp->cache, /*reusable=*/TRUE);
   tssp->befriending_classes = NULL;
   tssp->cache_segment = NULL;
+  tssp->access = (an_access_specifier)as_inaccessible;
   switch (kind) {
     case sk_class_template:
     case sk_class_or_struct_tag:
@@ -1478,6 +1503,7 @@ and return a pointer to it.
       tssp->variant.class_template.name_linkage =
                                             (a_name_linkage_kind)nlk_none;
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
+      tssp->variant.class_template.is_specific_definition = FALSE;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
@@ -4336,6 +4362,11 @@ It cannot be used for checking access (see have_access_to_symbol).
   } else if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
     /* Projection symbol. */
     access = sym_ptr->variant.projection.access;
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_class_template ||
+             sym_ptr->kind == (a_symbol_kind)sk_function_template) {
+    /* Access for class and function templates is stored in the template
+       symbol supplement. */
+    access = sym_ptr->variant.template_info->access;
   } else {
     /* Normal symbol (not projection or overloaded function). */
     check_assertion_str2(sym_ptr->kind

@@ -110,8 +110,9 @@ void delayed_scan_for_function_template_default_args(
                     a_template_symbol_supplement_ptr tssp,
                     a_boolean                        push_instantiation_scope);
 
-extern void template_declaration(a_boolean  *defines_something,
-                                 a_boolean   no_advance_past_final_token);
+extern
+void template_declaration(a_boolean  		*defines_something,
+                          a_boolean   		no_advance_past_final_token);
 
 extern
 void template_directive_or_declaration(a_boolean  *defines_something,
