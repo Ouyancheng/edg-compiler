@@ -671,17 +671,22 @@ instantiation.
 a_symbol_ptr primary_template_of(a_symbol_ptr sym)
 /*
 If sym is a partial specialization, return the primary template.  Otherwise,
-just return sym.
+just return sym.  If the symbol provided is NULL, return a NULL symbol
+pointer.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				result_sym;
 
-  check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
-  tssp = sym->variant.template_info;
-  result_sym = tssp->variant.class_template.primary_template_sym != NULL
-                   ? tssp->variant.class_template.primary_template_sym
-                   : sym;
+  if (sym != NULL) {
+    check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
+    tssp = sym->variant.template_info;
+    result_sym = tssp->variant.class_template.primary_template_sym != NULL
+                     ? tssp->variant.class_template.primary_template_sym
+                     : sym;
+  } else {
+    result_sym = NULL;
+  }  /* if */
   return result_sym;
 }  /* primary_template_of */
 
@@ -729,6 +734,20 @@ supplement already associated with ct_symbol.
         break;
       }  /* if */
     }  /* for */
+    if (sym != NULL) {
+      /* Make sure that the tokens sequence number of the template matches
+         the one we are looking for.  If not, it is probably a partial
+         specialization. */
+      tssp = sym->variant.template_info;
+      if (tssp->token_sequence_number != curr_token_sequence_number) {
+        /* Check each of its partial specializations. */
+        for (sym = tssp->variant.class_template.partial_specializations;
+             sym != NULL; sym = sym->next) {
+          tssp = sym->variant.template_info;
+          if (tssp->token_sequence_number == curr_token_sequence_number) break;
+        }  /* for */
+      }  /* if */
+    }  /* if */
     check_assertion_str2(sym != NULL || total_errors != 0,
                          "find_class_template_member:",
                          "no corresponding template");
@@ -820,6 +839,8 @@ in ps_arg_list.
   a_type_ptr				prototype_type;
   a_class_type_supplement_ptr		ctsp;
   a_template_param_ptr			templ_param_list;
+  a_template_arg_ptr			local_arg_list;
+  a_boolean				local_arg_list_used = FALSE;
   
   /* Get a pointer to the prototype instantiation associated with this
      partial specialization.  Then get the template argument list from
@@ -832,15 +853,24 @@ in ps_arg_list.
   /* Get the template parameter list associated with this partial
      specialization. */
   templ_param_list = tssp->cache.decl_info->parameters;
+  /* If no template argument list was provided by the caller, use a local
+     one.  This is the case when the caller doesn't care about the
+     argument list. */
+  if (ps_arg_list == NULL) {
+    ps_arg_list = &local_arg_list;
+    local_arg_list = NULL;
+    local_arg_list_used = TRUE;
+  }  /* if */
   if (matches_template_arg_list(arg_list, templ_tap, ps_arg_list,
                                 templ_param_list)) {
     if (all_templ_params_have_values(*ps_arg_list, templ_param_list)) {
       result = TRUE;
     }  /* if */
   }  /* if */
-  if (!result) {
+  if (!result || local_arg_list_used) {
     /* If no match was found, free the template argument list that was
-       created, if any. */
+       created, if any.  The argument list is also freed if the caller
+       does not want one returned. */
     free_template_arg_list(*ps_arg_list);
   }  /* if */
   return result;
@@ -1093,8 +1123,20 @@ might not be able to if the template itself has not yet been defined.
        the class definition.  Simply ignore the instantiation request. */
   } else {
     a_template_cache_ptr	body_cache;
-    a_symbol_ptr		partial_spec_sym = NULL;
     tssp = template_supplement_for_symbol(template_sym);
+    /* Check whether this particular instance should be generated from a
+       partial specialization.  This is only done for class templates, not
+       normal nested classes of class templates. */
+    if (template_sym->kind == (a_symbol_kind)sk_class_template &&
+        tssp->variant.class_template.partial_specializations != NULL) {
+      a_symbol_ptr		partial_spec_sym = NULL;
+      partial_spec_sym = check_partial_specializations(
+                                       instance_sym, class_type, template_sym);
+      if (partial_spec_sym != NULL) {
+        template_sym = partial_spec_sym;
+        tssp = template_supplement_for_symbol(template_sym);
+      }  /* if */
+    }  /* if */
     /* If this is a class template defined within another class template,
        the prototype instantiation is associated with the definition
        within the original template.  Get a pointer to the template
@@ -1106,21 +1148,6 @@ might not be able to if the template itself has not yet been defined.
     }  /* if */
     tssp_of_prototype =
                      template_supplement_for_symbol(template_sym_of_prototype);
-    /* Now that we have the symbol associated with the true definition of
-       the primary template, check whether this particular instance should
-       be generated from a partial specialization.  This is only done for
-       class templates, not normal nested classes of class templates. */
-    if (template_sym->kind == (a_symbol_kind)sk_class_template &&
-        tssp_of_prototype->
-                    variant.class_template.partial_specializations != NULL) {
-      partial_spec_sym = check_partial_specializations(
-                          instance_sym, class_type, template_sym_of_prototype);
-    }  /* if */
-    if (partial_spec_sym != NULL) {
-      template_sym_of_prototype = partial_spec_sym;
-      tssp_of_prototype =
-                     template_supplement_for_symbol(template_sym_of_prototype);
-    }  /* if */
     body_cache = cache_for_template(tssp_of_prototype);
     /* There is a class template from which to generate this class and it is
        a real instantiation. */
@@ -1162,6 +1189,14 @@ might not be able to if the template itself has not yet been defined.
          complete. */
       ++(tssp->pending_instantiations);
       cssp->instantiation_in_progress = TRUE;
+      if (template_sym->kind == (a_symbol_kind)sk_class_template) {
+        /* If this is an instance of a class template (as opposed to a
+           nested class of a class template) update the class_template
+           pointer to reflect the template from which the instance was
+           generated.  This will be different from the previous value
+	   when a partial specialization is used. */
+        cssp->class_template = template_sym;
+      }  /* if */
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("instantiations")) {
         fprintf(f_debug, "Beginning full instantiation of: ");
@@ -2731,8 +2766,8 @@ matches a class type from the parameter list of a template function.
      Then we call matches_template_type on the template arg types. */
   templ_cssp = symbol_supplement_for_class(templ_type);
   if (templ_cssp->class_template != NULL &&
-      symbol_supplement_for_class(type)->class_template ==
-                                     templ_cssp->class_template &&
+      primary_template_of(symbol_supplement_for_class(type)->class_template) ==
+                            primary_template_of(templ_cssp->class_template) &&
       templ_cssp->is_nonreal_class) {
     /* The two classes refer to the same template, but templ_type
        is a nonreal instantiation -- i.e., one based on template
@@ -5290,6 +5325,103 @@ list and template argument list of a partial specialization are valid.
 }  /* check_partial_spec_template_param_usage */
 
 
+static void check_for_prior_use_of_partial_spec(a_symbol_ptr	ps_sym,
+						a_symbol_ptr	primary_sym)
+/*
+ps_sym is a pointer to a class template symbol for a partial instantiation.
+Check the existing instantiations of the primary template to determine
+whether the new partial specialization would be preferred over the
+template actually used to generate the instance.  primary_sym is a pointer
+to the primary template whose list of instantiations is to be checked.
+This is NULL when called from class_template_declaration, but is non-NULL
+when this routine calls itself recursively.  This is done to for member
+class templates of class templates to check the instantiations of
+subordinate templates.
+*/
+{
+  a_template_symbol_supplement_ptr	ps_tssp;
+  a_template_symbol_supplement_ptr	primary_tssp;
+  a_symbol_ptr				sym;
+
+  ps_tssp = ps_sym->variant.template_info;
+  if (primary_sym == NULL) {
+    /* When no primary template symbol is passed in, use the one pointed
+       to by this partial specialization. */
+    primary_sym = ps_tssp->variant.class_template.primary_template_sym;
+  }  /* if */
+  primary_tssp = primary_sym->variant.template_info;
+  for (sym = primary_tssp->variant.class_template.instantiations;
+       sym != NULL; sym = sym->next) {
+    a_class_symbol_supplement_ptr	cssp;
+    a_type_ptr				instance_type;
+    a_template_arg_ptr			templ_arg_list;
+    cssp = sym->variant.class_struct_union.extra_info;
+    instance_type = sym->variant.class_struct_union.type;
+    /* Skip nonreal classes.  This includes prototype instantiations. */
+    if (cssp->is_nonreal_class) continue;
+    /* Skip specialized classes. */
+    if (instance_type->variant.class_struct_union.is_specialized) continue;
+    /* Skip the instance if a full instantiation has not yet been done. */
+    if (is_incomplete_type(instance_type)) continue;
+    templ_arg_list = instance_type->
+                     variant.class_struct_union.extra_info->template_arg_list;
+    if (matches_partial_specialization(ps_sym, templ_arg_list,
+                                       (a_template_arg_ptr*)NULL)) {
+      /* It does match the partial specialization.  Now see whether the
+         existing instantiation came from the primary template or another
+         partial specialization.  If it came from the primary, it is always
+         an error.  If it came from another partial specialization we must
+         see which of the specializations is a better match. */
+      a_symbol_ptr			instance_ct_sym;
+      a_template_symbol_supplement_ptr	instance_tssp;
+      /* Get the class template symbol that was used to generate this
+         instance. */
+      instance_ct_sym = sym->
+                         variant.class_struct_union.extra_info->class_template;
+      instance_tssp = instance_ct_sym->variant.template_info;
+      if (instance_tssp->variant.class_template.primary_template_sym == NULL) {
+        /* The instance was generated from the primary template. */
+        pos_sy_error(ec_partial_spec_after_instantiation,
+                     &ps_sym->decl_position, sym);
+      } else {
+        /* The instance was generated by another partial specialization.
+           See which is a better match. */
+        a_boolean	new_is_more_specialized;
+        a_boolean	curr_is_more_specialized;
+        new_is_more_specialized = is_more_specialized(ps_sym, instance_ct_sym);
+        curr_is_more_specialized = is_more_specialized(instance_ct_sym,
+                                                       ps_sym);
+        if (new_is_more_specialized && !curr_is_more_specialized) {
+          /* The new instance is better.  Issue an error. */
+          pos_sy_error(ec_partial_spec_after_instantiation,
+                       &ps_sym->decl_position, sym);
+        } else if (curr_is_more_specialized && !new_is_more_specialized) {
+          /* The template used for the instantiation is a better match than
+             this one.  This is okay. */
+        } else {
+          /* They are unordered.  This renders the instantiation ambiguous. */
+          pos_sy_error(ec_partial_spec_after_instantiation_ambiguous,
+                       &ps_sym->decl_position, sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (primary_tssp->subordinate_templates != NULL) {
+    /* This is a member function template declared in a class template.
+       We need to visit the template symbols for this template in each
+       of the instantiations of the enclosing class template process
+       the instantiations list of those templates. */
+    a_symbol_list_entry_ptr	slep;
+    for (slep = primary_tssp->subordinate_templates;
+         slep != NULL; slep = slep->next) {
+      a_symbol_ptr			subordinate_sym;
+      subordinate_sym = slep->symbol;
+      check_for_prior_use_of_partial_spec(ps_sym, subordinate_sym);
+    }  /* for */
+  }  /* if */
+}  /* check_for_prior_use_of_partial_spec */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -5463,8 +5595,14 @@ instantiation.
         err = TRUE;
       }  /* if */
     } else if (is_nonreal_instance_class_symbol(sym)) {
-      partial_spec_nonreal_sym = sym;
-      sym = NULL;
+      if (sym->is_class_member && decl_state->class_declared_in == NULL) {
+        pos_error(ec_member_partial_spec_not_in_class,
+                  &locator.source_position);
+        err = TRUE;
+      } else {
+        partial_spec_nonreal_sym = sym;
+        sym = NULL;
+      }  /* if */
     } else {
       /* The symbol found is a real class.  This is an invalid partial
          specialization. */
@@ -5737,14 +5875,22 @@ instantiation.
     add_befriending_class_to_class_template(tssp,
                                             decl_state->class_declared_in);
   }  /* if */
-  if (!decl_state->in_prototype_instantiation && sym->is_class_member &&
-      sym->kind == (a_symbol_kind)sk_class_template) {
+  if (sym->is_class_member && sym->kind == (a_symbol_kind)sk_class_template) {
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
-    if (decl_state->class_declared_in != NULL) {
-      /* Only do this for the original declaration inside the class. */
-      find_class_template_member(sym, sym->parent.class_type);
+    if (decl_state->in_prototype_instantiation) {
+      /* Save the token sequence number associated with this declaration.
+         This is done here for function templates that are class members.
+         This information is used later to match a template declaration in
+         a real instantiation with the corresponding template from the
+         prototype instantiation. */
+      tssp->token_sequence_number = curr_token_sequence_number;
+    } else {
+      if (decl_state->class_declared_in != NULL) {
+        /* Only do this for the original declaration inside the class. */
+        find_class_template_member(sym, sym->parent.class_type);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (decl_state->is_specialization && !decl_state->is_template_friend) {
@@ -5753,7 +5899,7 @@ instantiation.
     record_specialization(decl_state, sym, tssp);
   }  /* if */
   if (tssp->variant.class_template.prototype_instantiation == NULL &&
-      (tssp->prototype_template == NULL ||
+      (tssp->prototype_template == NULL || is_partial_specialization ||
        tssp->is_specific_definition || is_definition)) {
     /* Create the symbol for the prototype instantiation (but don't do
        the instantiation yet).  The prototype instantiation type is
@@ -5761,7 +5907,9 @@ instantiation.
        specialized.  The "is_definition" test is there for error cases.
        Subordinate templates should have had their bodies removed already,
        but may still appear to be defined if the actual definition is
-       improperly formed. */
+       improperly formed.  Prototype types are needed for partial
+       specializations, because the template argument list of the
+       prototype instantiation must be recorded. */
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           is_partial_specialization);
   }  /* if */
@@ -5846,6 +5994,11 @@ instantiation.
          for the definition and also for the initial declaration. */
      set_template_cache_info(&tssp->cache, definition_token_cache,
                               decl_state->decl_info);
+    }  /* if */
+    if (is_partial_specialization && !is_redecl) {
+      /* Check any existing instances to see if the new partial specialization
+         would have been a better match. */
+      check_for_prior_use_of_partial_spec(sym, (a_symbol_ptr)NULL);
     }  /* if */
   }  /* if */
   *p_sym_ptr = sym;
