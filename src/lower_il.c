@@ -9344,8 +9344,18 @@ have been promoted out of those classes.
       for (temp_type = scope->types;
            /* Termination test in loop. */;
            temp_type = temp_type_next) {
-        check_assertion_str(temp_type != NULL,
+
+#if CHECKING
+        if (temp_type == NULL) {
+#if DEBUG
+          (void)fputs("Can't find ", f_debug);
+          db_abbreviated_type(namespace_type);
+          (void)fputc('\n', f_debug);
+#endif /* DEBUG */
+          unexpected_condition_str(
                 "do_all_namespace_member_promotion: namespace type not found");
+        }  /* if */
+#endif /* CHECKING */
         /* Save the next pointer since it gets changed when the type is moved
            to the file scope list. */
         temp_type_next = temp_type->next;
@@ -9358,6 +9368,16 @@ have been promoted out of those classes.
         } else {
           /* Move this type. */
           if (prev_type == NULL) {
+#if DEBUG
+            if (debug_level >= 4) {
+              if (temp_type != namespace_type) {
+                fputs("Moving intervening type to file-scope types list: ",
+                      f_debug);
+                db_abbreviated_type(temp_type);
+                fputc('\n', f_debug);
+              }  /* if */
+            }  /* if */
+#endif /* DEBUG */
             add_to_front_of_file_scope_types_list(temp_type);
           } else {
             temp_type->next = prev_type->next;
