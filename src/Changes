@@ -81,9 +81,10 @@ be accepted.  This is now done correctly.
 10/21/04 Microsoft/GNU C++ compatibility: spurious error on static
          data member initialization
 
-A spurious error would occur in Microsoft and g++ modes if a static
-data member was initialized using a parenthesised initializer, and
-the initializer used the name of the static data member.  Now fixed.
+Version 3.2 introduced a problem that resulted in a spurious error in Microsoft
+and g++ modes if a static data member was initialized using a parenthesized
+initializer, and the initializer used the name of the static data member.
+Now fixed.
 
   struct A {
     static int* i;
