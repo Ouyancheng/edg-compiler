@@ -8166,6 +8166,7 @@ is the one associated with the template.
     set_output_position(&tp->source_corresp.decl_position);
     gen_name(&tp->source_corresp, iek_template, GN_NO_OPTIONS,
              (a_boolean*)NULL);
+    write_tok_str("; ");
     adv_curr_source_sequence_entry();
   } else {
       /* If all prototype instantiations are recorded in the IL, the templates
