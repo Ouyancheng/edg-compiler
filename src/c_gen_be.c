@@ -4734,7 +4734,8 @@ parameters.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable, &init_kind);
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (init_con != NULL && needed_flag_bit_number != 0) {
+  if (storage_class == (a_storage_class)sc_unspecified &&
+      needed_flag_bit_number != 0) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file variable definitions into the instantiation files. */
@@ -4743,6 +4744,7 @@ parameters.
                                    variable->instantiation_needed_bit_number) :
                             (needed_flag_bit_number != 1)) {
       init_con = NULL;
+      init_kind = (an_init_kind)initk_none;
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
