@@ -3907,9 +3907,15 @@ table.
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   if (is_anonymous_union) {
-    /* A static data members is not allowed to be an anonymous union.  An error
+    /* A static data member is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
-    check_anonymous_union_symbols(class_type, (a_field_ptr)NULL, var);
+    a_symbol_ptr  assoc_object_sym;
+
+    assoc_object_sym = make_anonymous_parent_object_symbol(
+                                                  (a_symbol_kind)sk_variable,
+                                                  &locator->source_position);
+    assoc_object_sym->variant.variable.ptr = var;
+    check_anonymous_union_symbols(assoc_object_sym);
   }  /* if */
   /* Special processing for static data members of template classes. */
   if (corresp_prototype_tag_sym != NULL || is_nonreal_class) {
@@ -4073,57 +4079,87 @@ such member functions are present.
 }  /* is_valid_union_field */
 
 
-void check_anonymous_union_symbols(a_type_ptr     class_type,
-                                   a_field_ptr    assoc_field_object,
-                                   a_variable_ptr assoc_var_object)
+void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym)
 /*
-Do processing for an anonymous union that is declared within a class (when
-class_type is non-NULL) or outside a class (when class_type is NULL).
-Specifically, make a pass over all the members of the anonymous union, do
-error checking, and promote each field from the anonymous union to its
-containing scope.  When class_type is non-NULL, the containing scope is a
-class, and the anonymous union as a whole is represented as a field of that
-class (assoc_field_object).  When class_type is NULL, the containing scope
-is the file scope, a routine scope, or a block scope, and the anonymous
-union as a whole is represented as a variable (assoc_var_object).  Only one
-of assoc_field_object and assoc_var_object is defined.
+assoc_object_sym is a symbol for an unnamed field or variable that is the
+object associated with an anonymous union.  The type of the field or
+variable is an anonymous union type.  Process the member symbols of the
+anonymous union: make a pass over all its members, perform some error
+checking, and promote each field from the anonymous union to its containing
+scope.  The scope to which the symbols are promoted is decl_scope_level.
 */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+/*
+When assoc_object_sym refers to a field, its type may also be an unnamed
+struct or class, or a typedef referring to an unnamed class, struct, or
+union.  If the type is a typedef, the symbols are not promoted, but rather
+new ones are allocated in scope specified by decl_scope_level.
+*/
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 {
-  a_symbol_ptr                   sym, next_sym, mf_sym, apo_sym;
+  a_symbol_ptr                   sym, next_sym, mf_sym;
   a_class_symbol_supplement_ptr  cssp;
+  a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
-  a_type_ptr                     object_type, tp;
-  a_boolean                      reuse_same_symbol;
+  a_type_ptr                     assoc_object_type, tp, class_type = NULL;
+  a_boolean                      reuse_symbol = TRUE;
 
   db_enter(4, "check_anonymous_union_symbols");
-  if (assoc_var_object != NULL) {
-    object_type = assoc_var_object->type;
-    assoc_var_object->is_anonymous_parent_object = TRUE;
-    assoc_object_access = assoc_var_object->source_corresp.access;
-    apo_sym = make_anonymous_parent_object_symbol(
-                           (a_symbol_kind)sk_variable,
-                           &assoc_var_object->source_corresp.decl_position);
-  } else {
-    object_type = assoc_field_object->type;
-    assoc_field_object->is_anonymous_parent_object = TRUE;
-    assoc_object_access = assoc_field_object->source_corresp.access;
-    apo_sym = make_anonymous_parent_object_symbol(
-                           (a_symbol_kind)sk_field,
-                           &assoc_field_object->source_corresp.decl_position);
+  switch (assoc_object_sym->kind) {
+    case sk_variable:
+      assoc_object_type = assoc_object_sym->variant.variable.ptr->type;
+      check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
+      assoc_object_access = (an_access_specifier)as_public;
+      break;
+    case sk_field:
+      assoc_object_type = assoc_object_sym->variant.field.ptr->type;
+      assoc_object_access = assoc_object_sym->
+                              variant.field.ptr->source_corresp.access;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+      is_class_struct_union_type(assoc_object_type);
+      if (assoc_object_type->kind == (a_type_kind)tk_typeref) {
+        reuse_symbol = FALSE;
+      }  /* if */
+#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+      check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+      break;
+    case sk_static_data_member:
+      assoc_object_type =
+               assoc_object_sym->variant.static_data_member.variable->type;
+      assoc_object_access = assoc_object_sym->variant.static_data_member.
+                                           variable->source_corresp.access;
+      break;
+#if CHECKING
+    default:
+      internal_error("check_anonymous_union_symbols: bad symbol kind");
+#endif /* CHECKING */
+  }  /* switch */
+  if (reuse_symbol && !C_mode()) {
+    ctsp = assoc_object_type->variant.class_struct_union.extra_info;
+    if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
+      ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
+      ctsp->anonymous_union_field = assoc_object_sym->variant.field.ptr;
+    } else {
+      ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
+    }  /* if */
   }  /* if */
-  reuse_same_symbol = object_type->kind != (a_type_kind)tk_typeref;
+  if (scope_stack[decl_scope_level].kind ==
+                               (a_scope_kind)sck_class_struct_union) {
+    class_type = scope_stack[decl_scope_level].assoc_type;
+  }  /* if */
   /* The symbols list for the anonymous union will be eliminated.  Its
      field symbols are promoted to the scope of the containing class. */
-  cssp = symbol_supplement_for_class(object_type);
+  cssp = symbol_supplement_for_class(assoc_object_type);
   sym = cssp->symbols;
   cssp->symbols = NULL;
   /* Go through each of the symbols on the list. */
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
-    if (reuse_same_symbol) sym->next_in_scope = NULL;
+    if (reuse_symbol) sym->next_in_scope = NULL;
     /* Private and protected members are not allowed in an anonymous union
        (ARM 9.5). */
     access = access_for_symbol(sym);
@@ -4136,7 +4172,7 @@ of assoc_field_object and assoc_var_object is defined.
     }  /* if */
     switch (sym->kind) {
       case sk_field:
-        if (reuse_same_symbol) {
+        if (reuse_symbol) {
           /* Unlink the symbol from the inactive list and link it back into
              the symbol table in the current scope. */
           sym->class_of_which_a_member = class_type;
@@ -4147,7 +4183,7 @@ of assoc_field_object and assoc_var_object is defined.
           sym->variant.field.ptr->source_corresp.access = assoc_object_access;
           remove_anonymous_union_member_from_inactive_symbols_list(sym);
           reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-          sym->variant.field.anonymous_parent_object = apo_sym;
+          sym->variant.field.anonymous_parent_object = assoc_object_sym;
         } else {
 #if 0
 NYI
@@ -4180,7 +4216,7 @@ NYI
       case sk_class_or_struct_tag:
       case sk_union_tag:
       case sk_enum_tag:
-        if (reuse_same_symbol) {
+        if (reuse_symbol) {
           /* Unlink the symbol from the inactive list and link it back into
              the symbol table in the current scope. */
           tp = type_symbol_type(sym);
@@ -4202,7 +4238,7 @@ NYI
         break;
       case sk_constant:
         /* An enum constant. */
-        if (reuse_same_symbol) {
+        if (reuse_symbol) {
           /* Set the parent class in the symbol but not in the IL entry.  The
              symbol is promoted, but the type remains nested. */
           sym->class_of_which_a_member = class_type;
@@ -4463,8 +4499,13 @@ class, struct, or union.
         if (is_anonymous_union) {
           /* Constructor and destructor are not allowed, but other checking
              is required. */
-          check_anonymous_union_symbols(class_type, field,
-                                        (a_variable_ptr)NULL);
+          a_symbol_ptr  assoc_object_sym;
+
+          assoc_object_sym = make_anonymous_parent_object_symbol(
+                                              (a_symbol_kind)sk_field,
+                                              &locator->source_position);
+          assoc_object_sym->variant.field.ptr = field;
+          check_anonymous_union_symbols(assoc_object_sym);
         } else {
           /* If a nonstatic data member of a class is itself a class object
              (or an array whose elements are class objects) and the subobject

@@ -956,6 +956,7 @@ current scope.
 {
   a_variable_ptr vp;
   a_boolean      at_file_scope = (decl_scope_level == DEPTH_OF_FILE_SCOPE);
+  a_symbol_ptr   assoc_object_sym;
 
   /* Check the storage class.  At file scope, only static is allowed. */
   if (at_file_scope) {
@@ -998,7 +999,11 @@ current scope.
   vp = make_variable(anon_union_type, storage_class, at_file_scope);
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
-  check_anonymous_union_symbols((a_type_ptr)NULL, (a_field_ptr)NULL, vp);
+  assoc_object_sym = make_anonymous_parent_object_symbol(
+                                                (a_symbol_kind)sk_variable,
+                                                &pos_curr_token);
+  assoc_object_sym->variant.variable.ptr = vp;
+  check_anonymous_union_symbols(assoc_object_sym);
 }  /* make_anonymous_union_variable */
 
 
