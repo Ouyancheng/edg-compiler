@@ -9158,7 +9158,8 @@ or implicit) controlling the declaration.
     /* The identifier should be a qualified name, with the qualifier a base
        class of the current class. */
     declared_sym = locator_for_curr_id.specific_symbol;
-    fund_sym = fundamental_symbol_of(declared_sym);
+    fund_sym = (declared_sym == NULL) ? NULL
+                                      : fundamental_symbol_of(declared_sym);
     if (!locator_for_curr_id.is_class_member) {
       error(ec_class_qualified_name_required);
       err = TRUE;
