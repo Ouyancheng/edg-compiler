@@ -1216,7 +1216,12 @@ operator routine or do bitwise assignment.
         /* A field. */
         fp = sym->variant.field.ptr;
         tp = skip_typerefs(fp->type);
-        /* The check for const and ref members has already been done. */
+        if (is_const_qualified_type(tp) || is_reference_type(tp)) {
+          /* The error has already been issued for const and ref members.
+             Don't bother trying to do the copy. */
+          check_assertion(total_errors > 0);
+          continue;
+        }  /* if */
         /* If this is an array, we need the element type. */
         if (is_array_type(tp)) {
           array_type = tp;
