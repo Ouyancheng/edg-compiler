@@ -241,6 +241,8 @@ Flags to be set when using the KAI inliner.
 #define RUNTIME_USES_NAMESPACES 1
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 
+#define BUILTIN_VA_LIST_OVERRIDE_TYPE "__gnuc_va_list"
+
 #else /* ifndef __linux__ */
 
 /* Options for UnixWare test version. */
