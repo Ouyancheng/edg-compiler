@@ -1779,8 +1779,7 @@ classes, where it points to the primary IL copy.  Update the
   if (instantiate_extern_inline && routine->is_inline &&
       routine->storage_class == (a_storage_class)sc_unspecified) {
     /* extern inline functions are put on a list so they can be
-       "instantiated".  If a function is both a template instance and
-       extern inline, it goes on both lists. */
+       "instantiated". */
     if (overwrite && orig_sym->defined) {
       /* The corresponding routine already had a definition, so there is
          already a list entry for the routine in the primary IL. */
