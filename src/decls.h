@@ -240,13 +240,9 @@ extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
                                     a_boolean      preserve_rout_type,
                                     a_boolean      preserve_type_ptr);
 
-extern void add_exception_specification(a_func_info_block_ptr  func_info,
-                                        a_routine_ptr          rp);
-
-
-extern void check_exception_specification(a_func_info_block_ptr  func_info,
-                                          a_routine_ptr          rp);
-
+extern void check_exception_specification(a_type_ptr         new_rout_type,
+                                          a_routine_ptr      rp,
+                                          a_source_position  *throw_pos);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(

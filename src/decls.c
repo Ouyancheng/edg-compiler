@@ -787,46 +787,9 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
-void add_exception_specification(a_func_info_block_ptr  func_info,
-                                 a_routine_ptr          rp)
-/*
-Transfer the exception specification stored in func_info to the routine type
-supplement for routine rp.
-*/
-{
-  a_routine_type_supplement_ptr  rtsp;
-  a_type_ptr			 rout_type;
-
-  db_enter(4, "add_exception_specification");
-  if (exceptions_enabled) {
-    if (func_info->exception_specification != NULL &&
-        func_info->is_main_function) {
-      /* main() cannot have a throw specification, since there's no call stack
-         to unwind from main. */
-      pos_warning(ec_exception_specification_not_allowed,
-                  &func_info->throw_position);
-    }  /* if */
-    rout_type = rp->type;
-    while (rout_type->kind == (a_type_kind)tk_typeref &&
-           !typeref_is_typedef(rout_type)) {
-      rout_type = rout_type->variant.typeref.type;
-    }  /* while */
-    if (rp->type->kind == (a_type_kind)tk_typeref) {
-      /* The routine was declared in terms of a typedef.  Don't add throw
-         specifications. */
-    } else {
-      check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-      rtsp = rp->type->variant.routine.extra_info;
-      check_assertion(rtsp->exception_specification == NULL);
-      rtsp->exception_specification = func_info->exception_specification;
-    }  /* if */
-  }  /* if */
-  db_exit();
-}  /* add_exception_specification */
-
-
-void check_exception_specification(a_func_info_block_ptr  func_info,
-                                   a_routine_ptr          rp)
+void check_exception_specification(a_type_ptr         new_rout_type,
+                                   a_routine_ptr      rp,
+                                   a_source_position  *throw_pos)
 /*
 Check that the throw specification on the current declaration, if any, is
 consistent with that of the previous declaration.
@@ -839,37 +802,31 @@ consistent with that of the previous declaration.
   a_symbol_ptr                         rout_sym;
 
   db_enter(4, "check_exception_specification");
-  if (exceptions_enabled) {
+  if (exceptions_enabled && rp->type->kind != (a_type_kind)tk_typeref) {
     rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
     old_tsp = skip_typerefs(rp->type)->
                          variant.routine.extra_info->exception_specification;
-    new_tsp = func_info->exception_specification;
-    if (new_tsp != NULL && func_info->is_main_function) {
-      /* main() cannot have a throw specification, since there's no call stack
-         to unwind from main. */
-      pos_warning(ec_exception_specification_not_allowed,
-                  &func_info->throw_position);
-    }  /* if */
+    new_tsp = skip_typerefs(new_rout_type)->
+                    variant.routine.extra_info->exception_specification;
     if (old_tsp == NULL) {
       /* Previous specification asserted that any exception may be thrown.
          It is compatible only with an identical specification on the current
          declaration. */
       if (new_tsp != NULL) {
-        pos_stsy_error(ec_incompatible_exception_specification,
-                       &func_info->throw_position, "", rout_sym);
+        pos_stsy_error(ec_incompatible_exception_specification, throw_pos,
+                       "", rout_sym);
       }  /* if */
     } else if (new_tsp == NULL) {
       /* Issue an error on the omission of a throw specification on the current
          declaration (it must have been present on the previous one). */
-      pos_sy_error(ec_omitted_exception_specification,
-                   &func_info->throw_position, rout_sym);
+      pos_sy_error(ec_omitted_exception_specification, throw_pos, rout_sym);
     } else if (old_tsp->exception_specification_type_list == NULL) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with an identical specification on the current
          declaration. */
       if (new_tsp->exception_specification_type_list != NULL) {
         pos_stsy_start_error(ec_incompatible_exception_specification,
-                             &func_info->throw_position, ":", rout_sym);
+                             throw_pos, ":", rout_sym);
         add_diag_info(ec_previous_exception_specification_was_empty);
         end_error();
       }  /* if */
@@ -906,8 +863,7 @@ consistent with that of the previous declaration.
                  discrepancy.  This is the first diagnostic, so put out
                  the header message first. */
               pos_stsy_start_error(ec_incompatible_exception_specification,
-                                   &func_info->throw_position, ":",
-                                   rout_sym);
+                                   throw_pos, ":", rout_sym);
               any_difference_seen = TRUE;
             }  /* if */
             ty_add_diag_info(ec_omitted_in_previous_exception_specification,
@@ -938,9 +894,8 @@ consistent with that of the previous declaration.
               /* This is the first diagnostic, so put out the header
                  message first. */
               pos_stsy_start_error(ec_incompatible_exception_specification,
-                                   &func_info->throw_position, ":",
-                                   rout_sym);
-               any_difference_seen = TRUE;
+                                   throw_pos, ":", rout_sym);
+              any_difference_seen = TRUE;
             }  /* if */
             ty_add_diag_info(ec_included_in_previous_exception_specification,
                              other_estp->type);
@@ -2316,6 +2271,11 @@ created; the caller must set it.
                     ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
         if (*routine_ptr != NULL) {
           /* There is a routine entry we can reuse. */
+          if (C_dialect == C_dialect_cplusplus) {
+            /* Do compatibility checking on the throw specification. */
+            check_exception_specification(type_ptr, *routine_ptr,
+                                          &func_info->throw_position);
+          }  /* if */
           use_existing_il_entry = TRUE;
           preexisting_type = (*routine_ptr)->type;
           (*routine_ptr)->type = type_ptr;
@@ -3747,6 +3707,11 @@ on for use in generating cross-reference output describing this declaration.
         } else {
           /* The declarations are compatible.  Form the composite type. */
           *old_type = routine_ptr->type;
+          if (C_dialect == C_dialect_cplusplus) {
+            /* Do compatibility checking on the throw specification. */
+            check_exception_specification(type_ptr, routine_ptr,
+                                          &func_info->throw_position);
+          }  /* if */
           reconcile_routine_types(routine_ptr, type_ptr,
                                   /*preserve_rout_type=*/old_decl_has_body,
                                   /*preserve_type_ptr=*/is_function_def);
@@ -3896,6 +3861,11 @@ on for use in generating cross-reference output describing this declaration.
           sym->variant.routine.instance_ptr->specific_decl = TRUE;
         }  /* if */
         *old_type = routine_ptr->type;
+        if (C_dialect == C_dialect_cplusplus) {
+          /* Do compatibility checking on the throw specification. */
+          check_exception_specification(type_ptr, routine_ptr,
+                                        &func_info->throw_position);
+        }  /* if */
         reconcile_routine_types(routine_ptr, type_ptr,
                                 /*preserve_rout_type=*/old_decl_has_body,
                                 /*preserve_type_ptr=*/is_function_def);
@@ -3925,15 +3895,6 @@ skip_overloading:;
   } else if (func_info->is_implicit_declaration) {
     /* This is an implicit declaration of a function.  The symbol has
        already been entered and marked as declared. */
-  } else {
-    if (C_dialect == C_dialect_cplusplus && routine_ptr != NULL) {
-      /* Do compatibility checking on the throw specification and, if this
-         is a definition, bind the throw specification to the routine entry.
-         Note that if it is a definition the checking must be done before
-         the routine's decl position is modified, to assure that the
-         "original declaration line number" is displayed accurately. */
-      check_exception_specification(func_info, routine_ptr);
-    }  /* if */
   }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none) {
@@ -3974,15 +3935,14 @@ skip_overloading:;
                             /*preserve_rout_type=*/TRUE,
                             /*preserve_type_ptr=*/FALSE);
     /* Do compatibility checking for the throw specification. */
-    check_exception_specification(func_info, routine_ptr);
+    check_exception_specification(type_ptr, routine_ptr,
+                                  &func_info->throw_position);
   } else if (routine_ptr == NULL) {
     /* There is no IL entry, so create one now, and add it to the routine
        list of the file scope. */
     routine_ptr = make_routine(type_ptr, storage_class,
                                depth_innermost_namespace_scope);
     if (C_dialect == C_dialect_cplusplus) {
-      /* Bind the throw specification to the routine entry. */
-      add_exception_specification(func_info, routine_ptr);
       if (locator->is_operator_name) {
         routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
         routine_ptr->opname_kind = locator->variant.opname;
@@ -4469,8 +4429,6 @@ is not a template declaration scope.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
-    /* Bind the throw specification to the routine entry's type. */
-    add_exception_specification(func_info, rout_ptr);
   } else {
     if (func_info->is_inline) {
       if (!rout_ptr->is_inline) {
@@ -4480,7 +4438,8 @@ is not a template declaration scope.
     }  /* if */
     /* Be sure the current throw specification is consistent with the one
        on the previous declaration. */
-    check_exception_specification(func_info, rout_ptr);
+    check_exception_specification(type_ptr, rout_ptr,
+                                  &func_info->throw_position);
   }  /* if */
   update_routine_decl_modifiers(rout_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
@@ -7245,10 +7204,20 @@ continue_with_declaration:
           if (locator.specific_symbol == NULL ||
               !locator.specific_symbol->is_class_member) {
             /* Not a member function named "main". */
+            a_routine_type_supplement_ptr  rtsp;
+
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
             if (def_external_linkage.is_explicit) {
               pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
+            }  /* if */
+            rtsp = skip_typerefs(local_type_ptr)->variant.routine.extra_info;
+            if (rtsp->exception_specification != NULL) {
+              /* main() cannot have a throw specification, since there's no
+                 call stack to unwind from main. */
+              pos_warning(ec_exception_specification_not_allowed,
+                          &func_info.throw_position);
+              rtsp->exception_specification = NULL;
             }  /* if */
             /* "inline" and "static" are not allowed (ARM 3.4). */
             if (storage_class == (a_storage_class)sc_static) {
@@ -7261,6 +7230,7 @@ continue_with_declaration:
             }  /* if */
           }  /* if */
         } else {
+          /* C mode. */
           if (storage_class == (a_storage_class)sc_unspecified ||
               storage_class == (a_storage_class)sc_extern) {
             /* Not a static function named "main".  This is not an option

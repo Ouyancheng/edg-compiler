@@ -594,7 +594,9 @@ type is legal.
 }  /* add_to_derived_type_list */
 
 
-static void scan_exception_specification(a_func_info_block_ptr  func_info)
+static an_exception_specification_ptr scan_exception_specification(
+                        a_func_info_block_ptr          func_info,
+                        a_boolean                      exception_spec_allowed)
 /*
 Scan a throw specification, which may be empty or take either of two forms:
 
@@ -606,7 +608,7 @@ thrown".  A throw specification with an empty list ("throw ()") means "no
 exception will be thrown".  An empty throw specification means "any
 exception may be thrown".
 
-Update the func_info block with a pointer to the appropriate kind of throw
+Return a (possibly NULL) pointer to the appropriate kind of throw
 specification entry.
 
 Diagnostics are issued on redundant types on a list, but if this is a
@@ -614,7 +616,7 @@ redeclaration of a routine, reconciliation with the previous throw
 specification is handled later (see check_exception_specification).
 */
 {
-  an_exception_specification_ptr       esp;
+  an_exception_specification_ptr       esp = NULL;
   an_exception_specification_type_ptr  estp, other_estp, end_of_list = NULL;
   a_source_position                    type_pos;
   a_stop_token_array                   save_stop_token_array;
@@ -631,12 +633,11 @@ specification is handled later (see check_exception_specification).
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
-  if (exceptions_enabled) {
+  if (exceptions_enabled && exception_spec_allowed) {
     esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     esp->throw_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    func_info->exception_specification = esp;
   }  /* if */
   /* Bypass "throw". */
   (void)get_token();
@@ -645,7 +646,7 @@ specification is handled later (see check_exception_specification).
     (void)get_token();
     if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
-         this routine. */
+         this routine." */
       /* Bypass the right paren. */
       (void)get_token();
       goto done;
@@ -679,8 +680,8 @@ specification is handled later (see check_exception_specification).
     } else {
       type_name(&estp->type);
     }  /* if */
-    if (exceptions_enabled) {
-      /* Add esp to the list. */
+    if (esp != NULL) {
+      /* Add estp to the list. */
       if (end_of_list == NULL) {
         esp->exception_specification_type_list = estp;
       } else {
@@ -723,6 +724,7 @@ specification is handled later (see check_exception_specification).
   copy_stop_tokens(save_stop_token_array, stop_token_array);
 done:;
   db_exit();
+  return esp;
 }  /* scan_exception_specification */
 
 
@@ -1422,6 +1424,7 @@ scope is that of a class definition.
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
     a_type_qualifier_set  qualifiers;
+    a_boolean             exception_spec_allowed;
 #if RESTRICT_ALLOWED
     a_boolean             restrict_qualified = FALSE;
 #endif /* RESTRICT_ALLOWED */
@@ -1522,7 +1525,10 @@ scope is that of a class definition.
       /* Error?  Warning? */
     }  /* if */
 #endif /* if 0 */
-    scan_exception_specification(func_info);
+    exception_spec_allowed = (func_info != &local_func_info_block);
+    extra_info->exception_specification =
+                        scan_exception_specification(func_info,
+                                                     exception_spec_allowed);
   }  /* if */
   done_with_func_info(local_func_info_block);
   copy_source_position(start_pos, error_position);

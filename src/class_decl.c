@@ -3973,7 +3973,8 @@ of the function, and again overloading is a possibility.
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do exception specification compatibility checking. */
-          check_exception_specification(func_info, rp);
+          check_exception_specification(function_type, rp,
+                                        &func_info->throw_position);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!func_info->is_definition) {
             /* Since this is a non-defining entry, it is represented by a
@@ -4425,8 +4426,8 @@ matching function, set *ambiguous to TRUE.
 }  /* special_function_symbol */
 
 
-static a_boolean merge_exception_specifications(a_func_info_block  *func_info,
-                                                a_symbol_ptr       sym)
+static a_boolean merge_exception_specifications(a_symbol_ptr  sym,
+                                                a_type_ptr    new_rout_type)
 /*
 Look up the exception specification associated with the member function
 indicated by sym and record it in func_info, merging it with the exception
@@ -4437,6 +4438,7 @@ TRUE.
   a_boolean                            throw_any;
   an_exception_specification_ptr       old_esp, new_esp;
   an_exception_specification_type_ptr  old_estp, estp;
+  a_routine_type_supplement_ptr        rtsp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   /* Fetch the exception specification associated with the member function
@@ -4448,7 +4450,8 @@ TRUE.
     throw_any = TRUE;
   } else {
     throw_any = FALSE;
-    new_esp = func_info->exception_specification;
+    rtsp = new_rout_type->variant.routine.extra_info;
+    new_esp = rtsp->exception_specification;
     if (new_esp == NULL) {
       /* No exception specification has been recorded in func_info yet, so
          allocate the entry. */
@@ -4456,7 +4459,7 @@ TRUE.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       new_esp->throw_position = sym->decl_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      func_info->exception_specification = new_esp;
+      rtsp->exception_specification = new_esp;
     }  /* if */
     /* Now traverse the types specified for the exception specification of the
        function indicated by sym.  Make a copy of any that does not already
@@ -4478,9 +4481,8 @@ TRUE.
           /* Skip it. */
         } else {
           /* It hasn't been added to the list yet.  Allocate a new
-             exception-specification type entry and add it to the list
-             attached to the func_info block.  The order is unimportant, so
-             it can be placed on the front of the list. */
+             exception-specification type entry and add it to the list.  The
+             order is unimportant, so it can be placed on the front. */
           estp = alloc_exception_specification_type();
           estp->type = old_estp->type;
           estp->next = new_esp->exception_specification_type_list;
@@ -4494,18 +4496,12 @@ TRUE.
 
 
 static void form_exception_specification_for_generated_function(
-                                      a_special_function_kind  sfkind,
-                                      a_type_ptr               rout_type,
-                                      a_type_ptr               class_type,
-                                      a_func_info_block        *func_info)
+                                                         a_routine_ptr  rp)
 /*
-Synthesize an exception specification for an implicitly declared (i.e.,
-compiler-generated) member function -- a constructor, destructor, or
-assignment operator, as indicated by sfkind.  rout_type is the type of the
-function being generated, and class_type is its parent class.  The exception
-specification is still recorded in the func_info block at this point in the
-processing.  The synthesized exception specification is the union of all
-exception specifications for the routines that will be called when the
+Synthesize an exception specification for the implicitly declared (i.e.,
+compiler-generated) member function rp -- a constructor, destructor, or
+assignment operator.  The synthesized exception specification is the union of
+all exception specifications for the routines that will be called when the
 definition of the compiler-generated member function is finally put out.  For
 instance, if a destructor is implicitly generated, it is assumed to throw all
 exceptions that any destructor it calls (for a base class or nonstatic data
@@ -4513,15 +4509,20 @@ member) is able to throw.  This routine is only called in C++ mode and only
 when exception support is enabled.
 */
 {
-  a_base_class_ptr  bcp;
-  a_field_ptr       fp;
-  a_type_ptr        tp;
-  a_symbol_ptr      sym;
-  a_boolean         throw_any = FALSE;
-  a_boolean         ambiguous;
-  a_param_type_ptr  first_param;
+  a_special_function_kind  sfkind;
+  a_type_ptr               rout_type, class_type;
+  a_base_class_ptr         bcp;
+  a_field_ptr              fp;
+  a_type_ptr               tp;
+  a_symbol_ptr             sym;
+  a_boolean                throw_any = FALSE;
+  a_boolean                ambiguous;
+  a_param_type_ptr         first_param;
 
   check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
+  sfkind = rp->special_kind;
+  class_type = rp->source_corresp.parent.class_type;
+  rout_type = rp->type;
   first_param = rout_type->variant.routine.extra_info->param_type_list;
   /* Go through the base classes looking for matching special functions, and
      merge the exception specifications. */
@@ -4535,10 +4536,10 @@ when exception support is enabled.
         throw_any = TRUE;
       } if (sym != NULL) {
         /* Form the union of exception specifications. */
-        throw_any = merge_exception_specifications(func_info, sym);
+        throw_any = merge_exception_specifications(sym, rout_type);
       }  /* if */
     }  /* if */
-    /* If any exception might be thrown, (i.e., the union is the universe),
+    /* If any exception might be thrown (i.e., if the union is the universe),
        stop looking. */
     if (throw_any) break;
   }  /* for */
@@ -4555,7 +4556,7 @@ when exception support is enabled.
           throw_any = TRUE;
         } if (sym != NULL) {
           /* Form the union of exception specifications. */
-          throw_any = merge_exception_specifications(func_info, sym);
+          throw_any = merge_exception_specifications(sym, rout_type);
         }  /* if */
       }  /* if */
       /* If any exception might be thrown, stop looking. */
@@ -4564,7 +4565,7 @@ when exception support is enabled.
   }  /* if */
   if (throw_any) {
     /* Clear the exception_specification pointer, in case it had been set. */
-    func_info->exception_specification = NULL;
+    rout_type->variant.routine.extra_info->exception_specification = NULL;
   }  /* if */
 }  /* form_exception_specification_for_generated_function */
 
@@ -4896,18 +4897,11 @@ declared member functions.
     } else if (decl_info->is_destructor) {
       rtn->special_kind = (a_special_function_kind)sfk_destructor;
     }  /* if */
-    if (exceptions_enabled) {
-      if (compiler_generated) {
-        /* A compiler generated constructor, destructor, or assignment
-           operator is assumed to through any exception that can be thrown
-           a base-class function it will call. */
-        form_exception_specification_for_generated_function(
-                                               rtn->special_kind, member_type,
-                                               class_type, func_info);
-      }  /* if */
-      /* Update the routine (actually, its routine-type-supplement) with the
-         exception-specification info. */
-      add_exception_specification(func_info, rtn);
+    if (exceptions_enabled && compiler_generated) {
+      /* A compiler generated constructor, destructor, or assignment
+         operator is assumed to through any exception that can be thrown
+         a base-class function it will call. */
+      form_exception_specification_for_generated_function(rtn);
     }  /* if */
     /* If "virtual" was specified in the declaration, mark the routine as
        virtual.  Even if it wasn't, its virtualness can be inherited.  In

@@ -956,6 +956,9 @@ on a prior declaration.
     rp = sym->variant.routine.ptr;
     rout_type->variant.routine.extra_info->implicit_this_param_type =
            (*old_type)->variant.routine.extra_info->implicit_this_param_type;
+    /* Do compatibility checking on the throw specification. */
+    check_exception_specification(rout_type, rp,
+                                  &func_info->throw_position);
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
@@ -986,11 +989,6 @@ on a prior declaration.
         }  /* if */
       }  /* if */
     }  /* if */
-    /* Do compatibility checking on the throw specification and bind the
-       throw specification to the routine entry.  Note that the checking must
-       be done before the routine's decl position is modified, to assure that
-       the "original declaration line number" is displayed accurately. */
-    check_exception_specification(func_info, rp);
     /* If this is an member function of an instantiation of a class
        template, set the specific_def flag in the instance entry. */
     if (sym->variant.routine.instance_ptr != NULL) {
