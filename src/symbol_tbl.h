@@ -1639,7 +1639,7 @@ typedef enum /*a_symbol_reference_kind*/ {
   srk_declaration,	/* Declaration or definition. */
   srk_modification,	/* Reference that changes the value of a variable. */
   srk_address_taken,	/* Address of a variable or function taken. */
-  srk_reference		/* All other kinds of references. */
+  srk_use		/* All other kinds of references. */
 } a_symbol_reference_kind;
 
 extern a_symbol_ptr find_symbol(char             *identifier,
@@ -1935,6 +1935,11 @@ extern void mark_symbol_referenced(a_symbol_reference_kind kind,
 extern void reference_to_symbol(a_symbol_reference_kind kind,
                                 a_symbol_ptr            sym_ptr,
                                 a_source_position       *source_position);
+extern void mark_used(a_symbol_ptr        sym,
+                      a_source_position   *err_pos,
+                      a_boolean           suppress_warning);
+extern void mark_variable_value_set(a_symbol_ptr  sym);
+
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
