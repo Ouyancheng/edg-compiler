@@ -329,6 +329,10 @@ static void dump_general_declaration_using_type(
                                       char                    *temp,
                                       a_type_qualifier_set    added_qualifiers,
                                       a_boolean               suppress_const);
+static void dump_enum_definition(a_type_ptr type,
+                                 a_boolean  output_final_semi);
+static void dump_struct_union_definition(a_type_ptr type,
+                                         a_boolean  output_final_semi);
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens);
@@ -1119,13 +1123,76 @@ Print the name of the indicated label.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
 }  /* dump_label_name */
 
+#if C_GEN_BE_GENERATES_ANSI_C
+
+static a_boolean ttt_has_prototype_scope(a_type_ptr  type_ptr,
+                                         a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a type that
+contains a prototype scope.  Since a prototype scope is created only if
+something is declared in it, this means the type contains a type defined
+within a prototype scope; that can happen only in C.
+*/
+{
+  a_boolean contains_proto_scope_type = FALSE;
+
+  if (type_ptr->kind == (a_type_kind)tk_routine) {
+    if (type_ptr->variant.routine.extra_info->prototype_scope != NULL) {
+      contains_proto_scope_type = TRUE;
+      *force_end_of_traversal = TRUE;
+    }  /* if */
+  }  /* if */
+  return contains_proto_scope_type;
+}  /* ttt_has_prototype_scope */
+
+
+static a_boolean type_contains_prototype_scope_type(a_type_ptr type)
+/*
+Return TRUE if the indicated type contains a type defined in a prototype
+scope.
+*/
+{
+  a_boolean contains_proto_scope_type = FALSE;
+
+  if (traverse_type_tree(type, ttt_has_prototype_scope,
+                         TTT_RETURN_TYPE | TTT_PARAM_TYPES |
+                         TTT_SKIP_TYPEREFS)) {
+    contains_proto_scope_type = TRUE;
+  }  /* if */
+  return contains_proto_scope_type;
+}  /* type_contains_prototype_scope_type */
+
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
 
 static void dump_constant(a_constant_ptr constant)
 /*
 Output the indicated constant.
 */
 {
-  form_constant(constant, /*need_parens=*/TRUE, &octl);
+#if C_GEN_BE_GENERATES_ANSI_C
+  if (il_header.source_language == sl_C &&
+      constant->implicit_cast &&
+      constant->kind == (a_constant_repr_kind)ck_integer &&
+      is_pointer_type(constant->type) &&
+      cmplit_integer_constant(constant, 0L) == 0 &&
+      type_contains_prototype_scope_type(constant->type)) {
+    /* When generating ANSI C, types defined in prototype scopes are kept.
+       Suppress casts of NULL constants to types containing such types,
+       because they can't be written (the types defined in prototype scopes
+       cannot be named elsewhere).  The cast must have been implicit
+       in the original program.  Types cannot be defined in prototype scopes
+       in C++, so there's no need to check in C++ mode.  When generating
+       K&R C, all function declarators that involve a prototype scope are
+       put out as unprototyped if the prototype scope has not been examined
+       to promote out types defined therein, so a cast to such a type is
+       always writable. */
+    write_tok_ch('0');
+  } else
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+  {
+    form_constant(constant, /*need_parens=*/TRUE, &octl);
+  }  /* if */
 }  /* dump_constant */
 
 
@@ -1231,11 +1298,25 @@ Generate a reference to the indicated type, which is a class, struct, union,
 or enum.  This is always a reference/declaration, never a definition.
 */
 {
-  /* Put out a reference to the tag by name.  Note that unnamed tags will
-     have been given compiler-generated names so they can be referred to. */
-  write_tok_str(tag_kind(type->kind));
-  write_space();
-  dump_type_name(type);
+#if C_GEN_BE_GENERATES_ANSI_C
+  /* When generating ANSI C, a struct/union/enum defined in a function
+     prototype gets put out in place (if it has not been promoted out
+     of the prototype scope). */
+  if (type->declared_in_function_prototype && type->size != 0) {
+    if (type->kind == (a_type_kind)tk_enum) {
+      dump_enum_definition(type, /*output_final_semi=*/FALSE);
+    } else {
+      dump_struct_union_definition(type, /*output_final_semi=*/FALSE);
+    }  /* if */
+  } else
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+  {
+    /* Put out a reference to the tag by name.  Note that unnamed tags will
+       have been given compiler-generated names so they can be referred to. */
+    write_tok_str(tag_kind(type->kind));
+    write_space();
+    dump_type_name(type);
+  }  /* if */
 }  /* dump_tag_reference */
 
 
@@ -1308,20 +1389,24 @@ is non-NULL, in which case that is the function scope.
   /* A routine is put out as unprototyped if its interface is unprototyped
      or if this is the definition and the definition is old-style (i.e.,
      there was a prototyped declaration and then an old-style definition). */
-  /* If the prototype is attached to a function, in C mode, its prototype
-     scope if any will have been processed to promote the types out into
-     the file scope.  If the prototype appears in some other weird context,
-     e.g.,
-       long *(*p) (struct { int i; }) = {0};
+  /* If the prototype is attached to a function or variable, in C mode,
+     its prototype scope if any will have been processed to promote the
+     types out into the file scope.  If the prototype appears in some
+     other weird context, e.g.,
+       struct {
+         long *(*p) (struct { int i; });
+       } x;
      the prototype will not have been processed and should be put out
-     here as an old-style function declarator.  That avoids problems
-     with constants cast to prototype scope types elsewhere (like, for
-     example, the constant 0 in the above). */
+     here as an old-style function declarator.  This processing is only
+     done when generating K&R C.  When generating ANSI C, such types in
+     such unprocessed prototype scopes are put out in place. */
   /* When generating K&R C, a definition of a prototyped function is put
      out as an old-style function. */
   if (!rtsp->prototyped ||
+#if !C_GEN_BE_GENERATES_ANSI_C
       (il_header.source_language == sl_C &&
        !type->prototype_scope_types_if_any_promoted) ||
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
       (scope != NULL
 #if C_GEN_BE_GENERATES_ANSI_C
                      && rtsp->old_style_params_scanned
@@ -1639,9 +1724,11 @@ Print a typedef declaration.
 }  /* dump_typedef_decl */
 
 
-static void dump_enum_definition(a_type_ptr type)
+static void dump_enum_definition(a_type_ptr type,
+                                 a_boolean  output_final_semi)
 /*
-Output the definition of the indicated enum type.
+Output the definition of the indicated enum type.  Output the final semicolon
+if output_final_semi is TRUE.
 */
 {
   a_constant_ptr enum_con;
@@ -1700,7 +1787,8 @@ Output the definition of the indicated enum type.
     write_tok_ch(',');
     incr_integer_value(&next_enum_value.variant.integer_value);
   }  /* for */
-  write_tok_str("};");
+  write_tok_ch('}');
+  if (output_final_semi) write_tok_ch(';');
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Close the #if 0 started above. */
   write_endif_0_directive();
@@ -1709,9 +1797,11 @@ done:;
 }  /* dump_enum_definition */
 
 
-static void dump_struct_union_definition(a_type_ptr type)
+static void dump_struct_union_definition(a_type_ptr type,
+                                         a_boolean  output_final_semi)
 /*
-Output the definition of the indicated struct or union type.
+Output the definition of the indicated struct or union type.  Output the
+final semicolon if output_final_semi is TRUE.
 */
 {
   a_field_ptr field;
@@ -1864,7 +1954,8 @@ Output the definition of the indicated struct or union type.
       write_tok_str("char __dummy;");
     }  /* if */
     indent -= 2;
-    write_tok_str("};");
+    write_tok_ch('}');
+    if (output_final_semi) write_tok_ch(';');
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (pack_alignment != 0) {
       /* Restore the packing alignment to a default state. */
@@ -1903,7 +1994,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
          types, so nothing need be put out here. */
       if (type->variant.integer.enum_info.constant_list == NULL) break;
       /* Output enums only on the first pass. */
-      if (pass == 1) dump_enum_definition(type);
+      if (pass == 1) dump_enum_definition(type, /*output_final_semi=*/TRUE);
       break;
     case tk_struct:
     case tk_union:
@@ -1929,7 +2020,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
           end_unreferenced_bracket(&type->source_corresp);
         }  /* if */
       } else if (output_defn) {
-        dump_struct_union_definition(type);
+        dump_struct_union_definition(type, /*output_final_semi=*/TRUE);
       }  /* if */
       break;
     case tk_typeref:
@@ -2037,7 +2128,7 @@ The prototype scope is part of the routine indicated by rout.  rout is
 NULL for a prototype scope that is not associated with a routine.
 pass is 1 or 2 (declarations are output on the first pass, full definitions
 on the second pass, to avoid ordering problems).  *any_found is set to
-TRUE if any prototype scope types are found.  This routine is only called
+TRUE if any prototype scope types are found.  This routine is called only
 when the source language is C.
 */
 {
@@ -2049,6 +2140,7 @@ when the source language is C.
     if (pass == 1) {
       /* Do some name mangling so that the name remains unique. */
       adjust_promoted_local_type_name(type, rout, proto_scope->number);
+      type->declared_in_function_prototype = FALSE;
     }  /* if */
     dump_type_decl(type, pass);
   }  /* for */
@@ -2074,7 +2166,6 @@ any prototype scope types are processed.  This routine is used, only
 in C mode, to process types that will have to be put out more than
 once (e.g., types of functions); without promotion of the prototype
 scope types, the two instances of the type would not be compatible.
-This is only called when the source language is C.
 */
 {
   /* Do a loop so that we deal with prototype scopes at all levels in the
@@ -2161,14 +2252,16 @@ Dump all types declared within one scope.
       check_membership_info(type, scope);
       dump_type_decl(type, pass);
     }  /* for */
-    /* Examine functions and generate any prototype scope types as
-       file-scope types so that they will be the same for the declaration
-       and definition of the function.  This effectively promotes those
-       prototype scope types out of the prototype scope.  Note that
-       this is done even for functions without a definition because it
-       is possible to call those functions (e.g., with a 0 to match a
-       pointer) and the types would get referenced in the cast of
-       the argument. */
+    /* K&R C doesn't have prototype scopes, so when generating K&R C
+       promote any types defined in prototype scopes out of those scopes.
+       This is done only for types directly associated with entities
+       that are put out twice by the C-generating back end (i.e.,
+       functions and variables) because the first and second declarations
+       have to match.  In other cases, the function type is just put
+       out as unprototyped so any types defined in the prototype scope are
+       not visible.  When generating ANSI C, we need to do this for types
+       that are put out twice, and for the others the type will be defined
+       in place in the prototype scope. */
 #if 0
     /* These prototype scope types should really be merged with the types
        from the top level of the function, since there can be references
@@ -2183,15 +2276,22 @@ Dump all types declared within one scope.
     if (il_header.source_language == sl_C && !suppress_prototype_scope_pass) {
       a_boolean      any_found = FALSE;
       a_routine_ptr  rout;
+      a_variable_ptr var;
       for (rout = scope->routines; rout != NULL; rout = rout->next) {
         /* This processing is needed even for functions without definitions
            because it's possible to call the function in some cases:
              void f(struct A { int i; } *);
-             void m() { f(0) }
+             void m() { f(0); }
            We want to promote the prototype scope types so the cast on the
            call can be written.
         */
         dump_prototype_scope_types_within_type(rout->type, pass, &any_found);
+      }  /* for */
+      for (var = scope->variables; var != NULL; var = var->next) {
+        dump_prototype_scope_types_within_type(var->type, pass, &any_found);
+      }  /* for */
+      for (var = scope->nonstatic_variables; var != NULL; var = var->next) {
+        dump_prototype_scope_types_within_type(var->type, pass, &any_found);
       }  /* for */
       /* If no types were found in prototype scopes on the first pass,
          there's no need for the second pass. */
