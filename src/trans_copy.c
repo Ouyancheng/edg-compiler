@@ -1642,6 +1642,7 @@ if appropriate.
       a_template_instance_ptr copy_instance;
       a_template_instance_ptr saved_next = NULL;
       a_template_instance_ptr saved_next_in_instantiation_list = NULL;
+      a_boolean               saved_instantiation_required = FALSE;
       /* The routine is a template instance. */
       if (overwrite) {
         /* There is already a copy of this instance in the primary IL,
@@ -1653,6 +1654,7 @@ if appropriate.
         saved_next = copy_instance->next;
         saved_next_in_instantiation_list =
                      copy_instance->next_in_instantiation_list;
+        saved_instantiation_required = copy_instance->instantiation_required;
       } else {
         /* This is a new instance, for which there is no copy in the primary
            IL.  Create a new instantiation list entry by making a copy of the
@@ -1660,9 +1662,12 @@ if appropriate.
         copy_instance = alloc_template_instance();
       }  /* if */
       *copy_instance = *instance;
+      /* Note that some flags were previously merged, so saving/restoring
+         them here preserves the merged value. */
       copy_instance->next = saved_next;
       copy_instance->next_in_instantiation_list =
                             saved_next_in_instantiation_list;
+      copy_instance->instantiation_required = saved_instantiation_required;
       copy_instance->referencing_namespace = NULL;
       if (!overwrite) add_to_instantiations_required_list(copy_instance);
     }  /* if */
