@@ -1,5 +1,16 @@
 Version 3.6
 
+2/14/05  Searching for preinclude files
+
+When searching for a preinclude file, the front end would start the
+search with the directory of the primary source file.  This matches
+what is done by the Microsoft compiler, but the GNU compilers start
+the search with the current directory.  The GNU behavior seems more
+natural as the preinclude takes place before the processing of the
+primary source file, so we have changed the front end to use the GNU
+model.  This is done in all modes except Microsoft mode, in which we
+have retained our previous behavior.
+
 2/13/05  Microsoft property references: object evaluated only once
 
 The code generated for references to Microsoft properties (declared

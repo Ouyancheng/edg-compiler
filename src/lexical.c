@@ -3414,6 +3414,15 @@ list, we process the normal (non-macro-only) preincludes.
   }  /* if */
   if (next_preinclude_file != NULL) {
     file_name = next_preinclude_file->file_name;
+    if (put_dir_of_each_opened_source_file_on_incl_search_path &&
+        !microsoft_mode) {
+      /* Update the first entry of the include file search list that
+         contains the directory of the primary source file to refer to
+         the current directory instead.  This is not done in Microsoft
+         mode, because the Microsoft compiler uses the directory of the
+         primary source file even when processing preinclude files. */
+      change_primary_include_search_dir(current_directory_name);
+    }  /* if */
     open_file_and_push_input_stack(
                  strcpy(alloc_primary_file_scope_il(
                                    (sizeof_t)(strlen(file_name)+1)),
@@ -3426,6 +3435,15 @@ list, we process the normal (non-macro-only) preincludes.
                  /*is_implicit_include=*/FALSE,
                  /*is_include_next=*/FALSE);
     next_preinclude_file = next_preinclude_file->next;
+  } else if (preinclude_file_list != NULL ||
+             macro_preinclude_file_list != NULL) {
+    if (put_dir_of_each_opened_source_file_on_incl_search_path &&
+        !microsoft_mode) {
+      /* We're done processing preinclude files, and there was at least one
+         preinclude file.  Reset the search path to refer to the primary
+         source file's directory. */
+      change_primary_include_search_dir(dir_name_of_primary_source_file);
+    }  /* if */
   }  /* if */
 }  /* push_next_preinclude_file */
 
