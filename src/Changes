@@ -1,5 +1,12 @@
 Version 3.3
 
+7/15/03  Enabling GNU mode when Microsoft mode is the default
+
+In a version that supports both Microsoft and GNU modes and in which
+Microsoft mode was the default, the --gcc/--g++ command-line option was
+not sufficient to enable GNU mode.  It was also necessary to use the
+--no_microsoft_mode option.  This has been fixed.
+
 7/15/03  Call of placement delete with ABI_CHANGES_FOR_PLACEMENT_DELETE FALSE
 
 When ABI_CHANGES_FOR_PLACEMENT_DELETE is FALSE, placement delete is
