@@ -587,7 +587,7 @@ running them through walk_remap_func.
 #undef WALK_ENTRY_ROUTINE_NAME
 
 
-#if MAINTAIN_NEEDED_FLAG
+#if MAINTAIN_NEEDED_FLAGS
 
 void mark_as_needed(char             *entry_ptr,
                     an_il_entry_kind entry_kind)
@@ -598,7 +598,7 @@ references.
 {
 }  /* mark_as_needed */
 
-#endif /* MAINTAIN_NEEDED_FLAG */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 #endif /* IL_WALK_NEEDED */
 
