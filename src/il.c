@@ -4317,9 +4317,9 @@ Return a type that is the unqualified version of the type given by type.
 a_type_ptr make_field_selection_type(a_field_ptr           field,
                                      a_type_qualifier_set  qualifiers)
 /*
-Return the type based on the type of the specified field, with the
-indicated qualifiers added.  However, it the field was declared mutable,
-"const" in the qualifier set is ignored.
+Return a type based on the type of the specified field, with the indicated
+qualifiers added.  However, if the field was declared mutable, "const" in
+the qualifier set is ignored.
 */
 {
   /* The selected field has all the type qualifiers of both the field
