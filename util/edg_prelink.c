@@ -2159,7 +2159,8 @@ that line type.
           instantiation_dir_set = TRUE;
         }  /* if */
         pofp = alloc_pl_object_file();
-        pofp->file_name = pl_malloc_with_check(strlen(info) +
+        pofp->file_name = (char *)pl_malloc_with_check(
+					       strlen(info) +
 					       instantiation_dir_length +
 					       instantiation_suffix_length +
 					       extra_space);
