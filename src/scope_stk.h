@@ -316,6 +316,13 @@ typedef struct a_scope_stack_entry {
 			   a context in which source sequence entries should
 			   not be issued -- e.g. a template declaration, a
 			   a template instantiation, or a pragma. */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_bit_field	src_seq_entries_from_prototype_instantiation:1;
+			/* TRUE if source sequence entries from a prototype
+			   instantiations have been recorded in this scope
+			   stack entry.  This affects where these entries
+			   will be inserted in the enclosing scope's list. */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_bit_field	nested_instantiation:1;
                         /* TRUE for a template instantiation scope that

@@ -1,5 +1,20 @@
 Version 3.6
 
+12/8/04  C++-generating back end: Infinite loop on member specialization
+
+When TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE, the
+C++-generating back end sometimes ended up in an infinite loop.  This loop
+was due to the invalid structure of the list of source sequence entries
+for the specialization of a member template.  For example:
+
+  template<typename T> struct A { template<typename T> struct B; };
+  template<> template<typename U> struct A<int>::B {};
+
+In the example above, the source sequence entry list ended up listing the
+"end-of-construct" entry for the definition of A<int>::B before the entry
+of the definition itself (that in turned caused the infinite loop).  This
+is now fixed.
+
 12/7/04  Abort in inline_function_fixup_for_class in some configurations
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE

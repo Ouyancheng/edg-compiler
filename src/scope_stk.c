@@ -1767,8 +1767,8 @@ the scope being pushed.
   ssep->source_sequence_entries_disallowed =
                                        source_sequence_entries_disallowed;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  ssep->ss_list_instantiation_insert_point
-                                 = NULL;
+  ssep->src_seq_entries_from_prototype_instantiation = FALSE;
+  ssep->ss_list_instantiation_insert_point = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   ssep->source_sequence_list     = NULL;
   ssep->end_of_source_sequence_list = NULL;
@@ -5451,6 +5451,77 @@ first time, such symbols must be moved to the inactive list.
 }  /* wrap_up_symbols_with_no_scope */
 
 
+static void pop_scope_stack_entry(void)
+/*
+A helper function for pop_scope: The currently active scope has been fully
+processed and can be popped.  Reduce the scope stack depth, and update the
+new top-of-stack entry with information from the entry that has been popped.
+*/
+{
+  if (--depth_scope_stack >= 0) {
+    /* The stack is not empty, so do anything necessary to activate the
+       new top entry. */
+    a_scope_stack_entry_ptr  new_ssep = &scope_stack[depth_scope_stack];
+    a_scope_stack_entry_ptr  ssep = new_ssep+1;
+    a_memory_region_number   new_memory_region_number =
+                                                  ssep->prev_il_memory_region;
+
+    /* If the new memory region is not the same as the old, activate it. */
+    if (new_memory_region_number != ssep->il_memory_region) {
+      switch_il_region(new_memory_region_number);
+    }  /* if */
+    /* Restore state variables. */
+    inside_local_class = new_ssep->inside_local_class;
+    depth_innermost_function_scope = new_ssep->depth_innermost_function_scope;
+    depth_innermost_namespace_scope =
+                                    new_ssep->depth_innermost_namespace_scope;
+    innermost_function_scope =
+                   (depth_innermost_function_scope != NO_SCOPE_DEPTH) ?
+                         scope_stack[depth_innermost_function_scope].il_scope :
+                         NULL;
+    depth_template_declaration_scope =
+                                   new_ssep->depth_template_declaration_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed =
+                                 new_ssep->source_sequence_entries_disallowed;
+    if (ssep->source_sequence_list != NULL) {
+      if (new_ssep->end_of_source_sequence_list == NULL) {
+        new_ssep->source_sequence_list = ssep->source_sequence_list;
+      } else {
+        new_ssep->end_of_source_sequence_list->next =
+                                      ssep->source_sequence_list;
+        ssep->source_sequence_list->prev =
+                                      new_ssep->end_of_source_sequence_list;
+      }  /* if */
+      new_ssep->end_of_source_sequence_list =
+                                         ssep->end_of_source_sequence_list;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      /* Source sequence entries for real instantiations must be inserted
+         at a location determined by ss_list_instantiation_insert_point.
+         The entries produced for a prototype instantiation, however, should
+         just be inserted at the end of the current list.  To distinguish
+         entries coming from a prototype instantiation, we must mark the scope
+         stack entry appropriately.  Note that the "in_prototype_instantiation"
+         flag by itself is insufficient because the prototype instantiation
+         of a nested template may have caused another scope to be pushed also.
+         For example:
+           template<class T> struct A { template<class T> struct B; };
+           template<> template<class U> struct A<int>::B {};
+         Here a reactivation scope for A<int> is pushed between the
+         instantiation context scope and the actual prototype instantiation
+         scope. */
+      if (ssep->kind != (a_scope_kind)sck_instantiation_context &&
+          (ssep->src_seq_entries_from_prototype_instantiation ||
+           ssep->in_prototype_instantiation)) {
+        new_ssep->src_seq_entries_from_prototype_instantiation = TRUE;
+      }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+}  /* pop_scope_stack_entry */
+
+
 void pop_scope(void)
 /*
 End a name scope by popping an entry off the scope stack.
@@ -5458,7 +5529,7 @@ End a name scope by popping an entry off the scope stack.
 {
   a_scope_stack_entry_ptr  ssep, parent_ssep;
   a_scope_pointers_block_ptr pointers_block;
-  a_memory_region_number   old_memory_region_number, new_memory_region_number;
+  a_memory_region_number   old_memory_region_number;
   a_scope_kind             kind;
   an_extern_type_fixup_ptr etfp;
   a_scope_depth            scope_depth;
@@ -5862,6 +5933,7 @@ End a name scope by popping an entry off the scope stack.
         /* The prototype instantiation should not be moved away from the
            associated template. */
         !ssep->in_prototype_instantiation &&
+        !ssep->src_seq_entries_from_prototype_instantiation &&
         !ssep->microsoft_specialization_instantiation_scope) {
       insert_instantiation_src_seq_list(ssep);
     } else
@@ -5883,8 +5955,6 @@ End a name scope by popping an entry off the scope stack.
      stack.  Note that this could be different than the previous scope
      value in the scope stack entry. */
   depth_of_initial_lookup_scope = ssep->saved_depth_of_initial_lookup_scope;
-  /* Determine the memory region to restore for the outer scope. */
-  new_memory_region_number = ssep->prev_il_memory_region;
 #if IA64_ABI && NEED_NAME_MANGLING
   if (ssep->local_name_collision_table != NULL) {
     free_local_name_collision_table(ssep);
@@ -5897,43 +5967,7 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   /* Pop the stack. */
-  if (--depth_scope_stack >= 0) {
-    /* The stack is not empty, so do anything necessary to activate the
-       new top entry. */
-    a_scope_stack_entry_ptr  new_ssep = &scope_stack[depth_scope_stack];
-
-    /* If the new memory region is not the same as the old, activate it. */
-    if (new_memory_region_number != old_memory_region_number) {
-      switch_il_region(new_memory_region_number);
-    }  /* if */
-    /* Restore state variables. */
-    inside_local_class = new_ssep->inside_local_class;
-    depth_innermost_function_scope = new_ssep->depth_innermost_function_scope;
-    depth_innermost_namespace_scope =
-                                    new_ssep->depth_innermost_namespace_scope;
-    innermost_function_scope =
-                   (depth_innermost_function_scope != NO_SCOPE_DEPTH) ?
-                         scope_stack[depth_innermost_function_scope].il_scope :
-                         NULL;
-    depth_template_declaration_scope =
-                                   new_ssep->depth_template_declaration_scope;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    source_sequence_entries_disallowed =
-                                 new_ssep->source_sequence_entries_disallowed;
-    if (ssep->source_sequence_list != NULL) {
-      if (new_ssep->end_of_source_sequence_list == NULL) {
-        new_ssep->source_sequence_list = ssep->source_sequence_list;
-      } else {
-        new_ssep->end_of_source_sequence_list->next =
-                                      ssep->source_sequence_list;
-        ssep->source_sequence_list->prev =
-                                      new_ssep->end_of_source_sequence_list;
-      }  /* if */
-      new_ssep->end_of_source_sequence_list =
-                                         ssep->end_of_source_sequence_list;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  }  /* if */
+  pop_scope_stack_entry();
   if (C_dialect == C_dialect_cplusplus) {
     /* Keep track of the number of current classes and class reactivations.
        (If either count is non-zero name lookup is more involved.) */
