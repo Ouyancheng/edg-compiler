@@ -7326,7 +7326,7 @@ its subtree.
 
 static void dump_dynamic_init_prescan_temps(a_dynamic_init_ptr dip)
 /*
-Dump declarations for any tempories required for the dynamic initializer
+Dump declarations for any temporaries required for the dynamic initializer
 expression and its subtree.
 */
 {
