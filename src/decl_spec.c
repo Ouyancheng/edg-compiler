@@ -2362,12 +2362,11 @@ new expression and should therefore not be treated as a declaration.
             class_type->source_corresp.access =
                                  scope_stack[depth_scope_stack].current_access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && is_class_definition &&
+            if (microsoft_mode &&
                 parent->variant.class_struct_union.is_microsoft_interface) {
-              /* Interface types cannot contain class type definitions. */
-              pos_error(
-                   ec_microsoft_interface_cannot_have_nested_class_definition,
-                   &decl_start_pos);
+              /* Interface types cannot contain nested class types. */
+              pos_error(ec_microsoft_interface_cannot_have_nested_class,
+                        &decl_start_pos);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */

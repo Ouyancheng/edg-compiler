@@ -7,11 +7,10 @@ Interface class types are essentially struct types declared with the
 keyword "__interface" instead of "struct", and with the following additional
 limitations:
 
-  a)  An interface type cannot contain data members, constructor,
+  a)  An interface type cannot contain data members, constructors,
       destructors, member operator functions, friend declarations,
       private or protected access specifiers, member templates, member
-      typedefs, static member functions, or in-class class type
-      definitions.
+      typedefs, static member functions, or nested class types.
   b)  An interface type cannot inherit for non-interface types and
       cannot have virtual bases.
   c)  Interface type templates are not allowed.
@@ -20,18 +19,18 @@ limitations:
 Furthermore, interface types are always abstract (i.e., a complete object
 cannot have an interface type) and all their nonstatic member functions
 are implicitly pure virtual (although the "virtual" and "= 0" specifiers
-can be mention explicitly with no change in meaning).
+can be mentioned explicitly with no change in meaning).
 
 For example:
 
   __interface I1 {
-    void f() {}  // OK, but I1::f is pure virtual.
+    void f() {}      // OK, but I1::f is pure virtual.
   };
   __interface I2 {
-    struct N1;    // OK.  Definition must appear out-of-class.
-    struct N2 {}; // Error: No in-class class type definition.
-  private:        // Error: No "private" or "protected".
-    int  count;   // Error: No data members.
+    struct N1;       // Error: No nested types.
+    operator int();  // Error: No user-declared member operators.
+  private:           // Error: No "private" or "protected".
+    int  count;      // Error: No data members.
   };
 
 6/2/03   Microsoft compatibility: _INTEGRAL_MAX_BITS predefined macro

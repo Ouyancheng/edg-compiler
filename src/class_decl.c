@@ -6776,6 +6776,14 @@ otherwise these are NULL).
         rtsp->qualifiers != TQ_NONE) {
       pos_error(ec_bad_qualified_function_type, &locator->source_position);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Static member functions cannot appear in interface types. */
+    if (microsoft_mode &&
+        class_type->variant.class_struct_union.is_microsoft_interface) {
+      pos_error(ec_microsoft_interface_cannot_have_static_members,
+                &decl_info->decl_start_pos);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 
   /* If this is a user-defined conversion or an overloaded operator,
