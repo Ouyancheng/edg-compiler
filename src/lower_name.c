@@ -2951,7 +2951,11 @@ literals.
   for (tap = template_arg_list; tap != NULL; tap = tap->next) {
     if (is_type_templ_arg(tap)) {
       /* Type argument. */
-      mangled_encoding_for_type(tap->variant.type, mctl);
+      /* Avoid problems on weird case of missing type in Microsoft mode
+         prototype instantiations. */
+      if (tap->variant.type != NULL) {
+        mangled_encoding_for_type(tap->variant.type, mctl);
+      }  /* if */
     } else if (is_template_templ_arg(tap)) {
       /* A template template argument. */
       mangled_encoding_for_template_template_argument(tap, mctl);
