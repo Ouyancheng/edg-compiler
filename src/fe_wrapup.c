@@ -82,14 +82,14 @@ Do any processing required at the end of execution of the front end.
   }
 #endif /* CHECKING */
 
-  /* Pop the file declaration scope off the scope stack. */
-  pop_scope();
-
   if (C_dialect == C_dialect_cplusplus) {
     /* Determine whether any classes defined in this file require external
        linkage, and if so do the appropriate fixup. */
     check_class_linkage();
   }  /* if */
+
+  /* Pop the file declaration scope off the scope stack. */
+  pop_scope();
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Finish writing the IL file, if there is one. */
