@@ -7471,8 +7471,9 @@ this routine is called.
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gcc_mode &&
              is_class_struct_union_type(dest_type) &&
-             identical_types(f_skip_typerefs(source_type),
-                             f_skip_typerefs(dest_type))) {
+             f_identical_types(f_skip_typerefs(source_type),
+                               f_skip_typerefs(dest_type),
+                               ITF_NO_FLAGS)) {
     /* GNU C allows a do-nothing cast to a struct or union type. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (curr_expr_kind_is(ek_init_constant)) {
@@ -8186,8 +8187,9 @@ C-style casts and C++ functional-notation type conversions.
 #if GNU_EXTENSIONS_ALLOWED
         } else if (gcc_mode &&
                    is_class_struct_union_type(type_cast_to) &&
-                   identical_types(f_skip_typerefs(source_type),
-                                   f_skip_typerefs(type_cast_to))) {
+                   f_identical_types(f_skip_typerefs(source_type),
+                                     f_skip_typerefs(type_cast_to),
+                                     ITF_NO_FLAGS)) {
           /* GNU C allows a do-nothing cast to a struct or union type.
              The result does not change type (even if there is a cv-qualifier
              difference implied) and it is not forced to an rvalue. */
