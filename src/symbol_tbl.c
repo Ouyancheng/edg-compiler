@@ -3714,6 +3714,16 @@ indicated by class_type.
           (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
         scope_depth_to_skip = scope_depth - 2;
       }  /* if */
+    } else if (ssep->kind == sck_function_access) {
+      /* A function access scope.  See if class_type is on its
+         befriending list. */
+      scope_routine = ssep->assoc_routine;
+      if (on_befriending_list(scope_routine->befriending_classes,
+                              class_type)) {
+        /* We are inside a function that is a friend of class_type. */
+        have_member_privilege = TRUE;
+        break;
+      }  /* if */
     } else {
       check_assertion_str(ssep->kind == (a_scope_kind)sck_class_struct_union ||
                           ssep->kind == (a_scope_kind)sck_class_reactivation,
@@ -3869,6 +3879,16 @@ Programming Language", 2nd Edition.
           (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
           (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
         scope_depth_to_skip = scope_depth - 2;
+      }  /* if */
+    } else if (ssep->kind == sck_function_access) {
+      /* A function access scope.  See if class_type is on its
+         befriending list. */
+      scope_routine = ssep->assoc_routine;
+      if (on_befriending_list(scope_routine->befriending_classes,
+                              class_type)) {
+        /* We are inside a function that is a friend of class_type. */
+        have_protected_access = TRUE;
+        break;
       }  /* if */
     } else {
       check_assertion_str(ssep->kind == (a_scope_kind)sck_class_struct_union ||
@@ -4347,22 +4367,15 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
 }  /* alloc_access_error_descr */
 	
 
-static void free_access_error_descr_list(an_access_error_descr_ptr aedp)
+static void free_access_error_descr(an_access_error_descr_ptr aedp)
 /*
-Free the access error description entries pointed to by aedp.
-Put the freed entries on the available list to be reused.
+Free the access error description entry pointed to by aedp.
+Put the freed entry on the available list to be reused.
 */
 {
-  an_access_error_descr_ptr	last_ptr = aedp;
-  an_access_error_descr_ptr	next;
-  /* Find the last element of the list.  The available list will be linked
-     onto the end of the list passed by the caller. */
-  if (last_ptr != NULL) {
-    while ((next = last_ptr->next) != NULL) last_ptr = next;
-    last_ptr->next = avail_access_error_descrs;
-    avail_access_error_descrs = aedp;
-  }  /* if */
-}  /* free_access_error_descr_list */
+  aedp->next = avail_access_error_descrs;
+  avail_access_error_descrs = aedp;
+}  /* free_access_error_descr */
 
 
 void member_check_ambiguity_and_verify_access
@@ -4391,9 +4404,15 @@ the error is issued immediately.
   } else if (fundamental_symbol_of(sym)->kind !=
 	                            (a_symbol_kind)sk_overloaded_function &&
              !have_access_to_symbol(sym)) {
-    a_scope_stack_entry_ptr	ssep = &scope_stack[decl_scope_level];
+    a_boolean			defer_access_checks = FALSE;
+    a_scope_stack_entry_ptr	ssep;
+
+    if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+      ssep = &scope_stack[curr_deferred_access_scope];
+      defer_access_checks = ssep->defer_access_checks;
+    }  /* if */
     /* The symbol is not accessible. */
-    if (!ssep->defer_access_checks) {
+    if (!defer_access_checks) {
       issue_access_error(fundamental_symbol_of(sym),
                          &locator->source_position);
       locator->access_control_error_reported = TRUE;
@@ -4417,32 +4436,103 @@ the error is issued immediately.
 void perform_deferred_access_checks(void)
 /*
 Go through the list of deferred access checks and repeat the test.  If
-the symbol is still no accessible, issue an error.  Reset the flag in
-the scope stack that indicates that access checks should be deferred.
+the symbol is still not accessible, the entry may either stay on the
+list (if the defer_access_checks flag is still set) or an error may be
+issued.  The ability to retain failed checks on the list is needed because
+the deferred access checks need to be done in two phases.  First,
+member access is checked during declarator processing when the class
+reactivation scope has been pushed.  Later, after the entire
+function declaration has been processed, we need to check for friend
+access.
 */
 {
   a_scope_stack_entry_ptr	ssep;
 
-#if 0
-  /* This routine will need to be modified when namespaces are implemented. */
-#endif /* 0 */
-  ssep = &scope_stack[decl_scope_level];
-  if (ssep->defer_access_checks) {
+  check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[curr_deferred_access_scope];
+  if (ssep->deferred_access_checks != NULL) {
     an_access_error_descr_ptr	aedp = ssep->deferred_access_checks;
+    an_access_error_descr_ptr	new_head = NULL;
+    an_access_error_descr_ptr	new_tail = NULL;
+    an_access_error_descr_ptr	next_aedp;
+    a_boolean			remove = TRUE;
     if (aedp != NULL) {
-      for (; aedp != NULL; aedp = aedp->next) {
+      for (; aedp != NULL; aedp = next_aedp) {
+        next_aedp = aedp->next;
         if (!have_access_to_symbol(aedp->sym)) {
-          issue_access_error(fundamental_symbol_of(aedp->sym),
-                             &aedp->position);
+          /* The access check still failed. */
+          if (ssep->defer_access_checks) {
+            /* Keep the entry on the list. */
+            remove = FALSE;
+          } else {
+            issue_access_error(fundamental_symbol_of(aedp->sym),
+                               &aedp->position);
+          }  /* if */
+        }  /* if */
+        if (remove) {
+          free_access_error_descr(aedp);
+        } else {
+          /* If we are keeping the entry, add it to the new list. */
+          if (new_head == NULL) new_head = aedp;
+          if (new_tail != NULL) new_tail->next = aedp;
+          new_tail = aedp;
         }  /* if */
       }  /* for */
-      free_access_error_descr_list(aedp);
-      ssep->deferred_access_checks = NULL;
-      ssep->last_deferred_access_check = NULL;
+      ssep->deferred_access_checks = new_head;
+      ssep->last_deferred_access_check = new_tail;
     }  /* if */
-    ssep->defer_access_checks = FALSE;
   }  /* if */
 }  /* perform_deferred_access_checks */
+
+
+void perform_deferred_access_checks_for_function(a_routine_ptr rp)
+/*
+Push a function access scope and retry any failed access checks
+that were encountered while the function declaration was being 
+scanned.  This causes the accessibility to be reevaluated taking
+into account possible friendship relationships.  rp points to the
+routine entry of the function that was declared.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[curr_deferred_access_scope];
+  /* This routine is always called last, so we can reset this flag now. */
+  ssep->defer_access_checks = TRUE;
+  if (ssep->deferred_access_checks != NULL) {
+    if (ssep->deferred_access_checks != NULL) {
+      (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
+                       (a_type_ptr)NULL, rp, (a_symbol_ptr)NULL,
+                       (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+      perform_deferred_access_checks();
+      pop_scope();
+    }  /* if */
+  }  /* if */
+}  /* perform_deferred_access_checks_for_function */
+
+
+void f_discard_deferred_access_checks(void)
+/*
+Free any deferred access checks that may have been created and clear
+the list pointers.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[curr_deferred_access_scope];
+  if (ssep->deferred_access_checks != NULL) {
+    an_access_error_descr_ptr	aedp = ssep->deferred_access_checks;
+    an_access_error_descr_ptr	next_aedp;
+    for (; aedp != NULL; aedp = next_aedp) {
+      next_aedp = aedp->next;
+      free_access_error_descr(aedp);
+    }  /* for */
+    ssep->deferred_access_checks = NULL;
+    ssep->last_deferred_access_check = NULL;
+  }  /* if */
+}  /* f_discard_deferred_access_checks */
 
 
 void overload_check_ambiguity_and_verify_access(
@@ -6577,7 +6667,8 @@ function).  Access control only exists in C++.
 #define is_scope_kind_that_affects_access_control(kind)               \
    ((kind) == (a_scope_kind)sck_class_struct_union ||                 \
     (kind) == (a_scope_kind)sck_class_reactivation ||                 \
-    (kind) == (a_scope_kind)sck_function)
+    (kind) == (a_scope_kind)sck_function ||			      \
+    (kind) == (a_scope_kind)sck_function_access)
 
 
 /*
@@ -6616,14 +6707,14 @@ the class scope number; for the other cases, a new scope number is generated.
 assoc_type points to an associated type for the cases where that's
 meaningful (function prototype, class, class reactivation, and template
 instantiation (for class templates only) scopes); it must be NULL in other
-cases.  assoc_routine points to a routine for the function scope case; it
-must be NULL in other cases.  instance_symbol, template_symbol, and
-template_arg_list are non-NULL only when a template instantiation scope is
-being pushed; they represent, respectively, the symbol for the class or
-function being instantiated or the static data member being defined; the
-symbol identifying the template on which the instantiation or definition is
-based; and the template argument list the produces the specific version
-of the template.
+cases.  assoc_routine points to a routine for the function scope case and
+for function access scopes; it must be NULL in other cases.  instance_symbol,
+template_symbol, and template_arg_list are non-NULL only when a template
+instantiation scope is being pushed; they represent, respectively, the symbol
+for the class or function being instantiated or the static data member being
+defined; the symbol identifying the template on which the instantiation or
+definition is based; and the template argument list the produces the
+specific version of the template.
 */
 {
   a_scope_stack_entry_ptr ssep;
@@ -6781,6 +6872,8 @@ of the template.
   ssep->deferred_access_checks   = NULL;
   ssep->last_deferred_access_check
                                  = NULL;
+  ssep->saved_curr_deferred_access_scope
+				 = curr_deferred_access_scope;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -6951,6 +7044,19 @@ of the template.
          out to the file scope, and the file scope doesn't affect access
          control. */
       depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+    }  /* if */
+    /* Determine whether this scope affects whether access checks can
+       be deferred. */
+    if (kind == (a_scope_kind)sck_file) {
+      curr_deferred_access_scope = depth_scope_stack;
+    } else if (kind == (a_scope_kind)sck_template_declaration ||
+               kind == (a_scope_kind)sck_func_prototype ||
+               kind == (a_scope_kind)sck_function_access ||
+               kind == (a_scope_kind)sck_class_reactivation) {
+      /* The current deferred access scope is left unchanged. */
+    } else {
+      /* For all other scopes, access checks cannot be deferred. */
+      curr_deferred_access_scope = NO_SCOPE_DEPTH;
     }  /* if */
     /* Maintain the depth of a template declaration scope, if any. */
     if (kind == (a_scope_kind)sck_template_declaration) {
@@ -7742,7 +7848,8 @@ End a name scope by popping an entry off the scope stack.
     /* Issue diagnostics on any pragmas that are still on the pending list. */
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
-  check_assertion_str2(ssep->deferred_access_checks == NULL,
+  check_assertion_str2(ssep->defer_access_checks == FALSE &&
+                       ssep->deferred_access_checks == NULL,
                        "pop_scope:", "deferred access checks still on list");
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
@@ -7942,6 +8049,7 @@ End a name scope by popping an entry off the scope stack.
        control. */
     depth_of_innermost_scope_that_affects_access_control =
                                   ssep->next_scope_that_affects_access_control;
+    curr_deferred_access_scope = ssep->saved_curr_deferred_access_scope;
   }  /* if */
   /* Maintain the current declarative level.  It is the same as 
      depth_scope_stack except when struct/union field scopes are
@@ -8732,6 +8840,7 @@ of the front end.
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
   depth_template_declaration_scope = NO_SCOPE_DEPTH;
+  curr_deferred_access_scope = NO_SCOPE_DEPTH;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
   source_sequence_entries_disallowed = FALSE;

@@ -87,19 +87,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			/* If this bit is set decl_specifiers is being called
 			   for an old-style parameter declaration.  Some error
 			   checking is affected. */
-#define DSI_DEFER_ACCESS_CHECKS 0x4000
-			/* If this bit is set decl_specifiers sets the flag
-			   in the scope stack that indicates that access
-			   errors should not be issued, but rather should be
-			   recorded in a list pointed to by the scope stack
-			   entry.  This is used when processing file scope
-			   and namespace scope declarations for which
-			   access checking must be done in the effective
-			   scope of the thing being declared.  For example,
-			   a member function declaration such as
-			     A::B A::f(){}
-                           is allowed, even if A::B is an private type. */
-#define DSI_LAST DSI_DEFER_ACCESS_CHECKS
+#define DSI_LAST DSI_IS_OLD_STYLE_PARAM_DECL
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */

@@ -1796,10 +1796,12 @@ otherwise it is NULL.  The syntax is:
                    deactivated once the entire declarator has been scanned. */
                 push_class_reactivation_scope(member_parent_type);
                 class_scope_deactivation_required = TRUE;
-                /* Recheck any access errors that occurred while scanning
-                   the specifiers or the beginning of the declarator
-                   now that we know the class of the thing being declared. */
-                perform_deferred_access_checks();
+                if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+                  /* Recheck any access errors that occurred while scanning
+                     the specifiers or the beginning of the declarator
+                     now that we know the class of the thing being declared. */
+                  perform_deferred_access_checks();
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -2197,17 +2199,6 @@ function_lparen:
       *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
     }  /* if */
   }  /* if */
-  {
-    a_scope_stack_entry_ptr	ssep = &scope_stack[decl_scope_level];
-    /* If any access checks may have been deferred (and not yet rechecked),
-       check them now.  This will cause errors to be issued for access
-       errors on nonmember functions.  Member function tests will have
-       been handled earlier when the class reactivation scope was
-       pushed. */
-    if (ssep->defer_access_checks) {
-      perform_deferred_access_checks();
-    }  /* if */
-  }
   *p_complete_type = complete_type;
   *p_bottom_derived_type = bottom_derived_type;
 #if DEBUG

@@ -632,6 +632,12 @@ on a prior declaration.
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
   }  /* if */
+  if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+    /* Now that we know which function has been declared, recheck any
+       access errors that occurred while scanning the declaration. */
+    check_assertion(rp != NULL);
+    perform_deferred_access_checks_for_function(rp);
+  }  /* if */
   /* If a lint-style "argsused" or "varargs" comment appeared, record that in
      the function type.  That will suppress any warnings about unused
      parameters or variable arguments.  Note that this is done before calling

@@ -1864,6 +1864,10 @@ typedef struct a_scope_stack_entry {
 		last_deferred_access_check;
 			/* When defer_access_checks is TRUE, this points
 			   to the last element in a list of access checks. */
+  a_scope_depth	saved_curr_deferred_access_scope;
+			/* The value of curr_deferred_access_scope when
+			   this scope was pushed.  Used to restore the value
+			   when the scope is popped. */
 } a_scope_stack_entry;
 
 
@@ -1909,6 +1913,13 @@ EXTERN a_scope_depth
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;
 			   otherwise, NO_SCOPE_DEPTH. */
+EXTERN a_scope_depth
+		curr_deferred_access_scope;
+			/* Depth of the scope entry to be used to determine
+			   whether access checking should be deferred, and if
+			   so, the entry to which the deferred access checks
+			   should be attached.  Set to NO_SCOPE_DEPTH if
+			   access checking cannot be deferred in this scope. */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 EXTERN a_scope_depth
@@ -2121,6 +2132,10 @@ extern void member_check_ambiguity_and_verify_access
 
 extern void perform_deferred_access_checks(void);
 
+extern void perform_deferred_access_checks_for_function(a_routine_ptr rp);
+
+extern void f_discard_deferred_access_checks(void);
+
 extern void overload_check_ambiguity_and_verify_access(
                                            a_symbol_locator *locator,
                                            a_symbol_ptr     overloaded_symbol);
@@ -2147,6 +2162,47 @@ Return TRUE if access1 represents greater accessibility than access2.
 */
 #define is_more_accessible(access1, access2)    \
     ((int)(access1) < (int)(access2))
+
+/*
+Set the flag that specifies that access errors should be deferred and
+rechecked later.
+*/
+#define begin_deferral_of_access_checks()				\
+{									\
+  if (C_dialect == C_dialect_cplusplus) {				\
+    check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);	\
+    scope_stack[curr_deferred_access_scope].defer_access_checks = TRUE; \
+  }  /* if */								\
+}
+
+/*
+Clear the flag that specifies that access errors should be deferred.
+*/
+#define end_deferral_of_access_checks()					\
+{									\
+  if (C_dialect == C_dialect_cplusplus) {				\
+    check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);	\
+    scope_stack[curr_deferred_access_scope].defer_access_checks = FALSE;  \
+    if (scope_stack[curr_deferred_access_scope].			\
+                                           deferred_access_checks != NULL) { \
+      /* Only make this call if there are entries on the list. */	\
+      perform_deferred_access_checks();					\
+    }  /* if */								\
+  }  /* if */								\
+}
+
+/*
+Throw away any deferred access entries.
+*/
+#define discard_deferred_access_checks()				\
+{									\
+  check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);	\
+  if (scope_stack[curr_deferred_access_scope].			\
+                                           deferred_access_checks != NULL) { \
+    /* Only make this call if there are entries on the list. */	       	\
+    f_discard_deferred_access_checks();				\
+  }  /* if */								\
+}
 
 extern a_boolean uniform_access_of_overloaded_function(a_symbol_ptr  sym);
 

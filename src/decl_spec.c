@@ -1463,16 +1463,6 @@ Returns TRUE if there is an error in the specifiers.
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
-  if (input_flags & DSI_DEFER_ACCESS_CHECKS) {
-    /* We are processing a declaration for which access checking of
-       names that precede the declarator cannot be processed until
-       the declarator has been scanned. */
-#if 0
-    /* The following assertion will need to be revised when namespaces
-       are implemented. */
-#endif /* 0 */
-    scope_stack[decl_scope_level].defer_access_checks = TRUE;
-  }  /* if */
   num_specifiers = 0;
   /* Loop for each declaration specifier. */
   for (;;) {

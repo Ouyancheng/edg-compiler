@@ -1928,8 +1928,7 @@ of a function template.
               DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
-              DSI_DEFER_ACCESS_CHECKS;
+              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   di_flags = DI_REAL_DECLARATOR_ALLOWED |
              DI_QUALIFIED_NAME_ALLOWED |
              DI_PARENTHESIZED_INITIALIZER_ALLOWED |
@@ -1951,6 +1950,7 @@ of a function template.
     add_stop_token(tok_lbrace);
     add_stop_token(tok_colon);
     add_stop_token(tok_semicolon);
+    begin_deferral_of_access_checks();
   } else {
     add_stop_token(tok_end_of_source);
   }  /* if */
@@ -1983,6 +1983,10 @@ of a function template.
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_colon);
     remove_stop_token(tok_semicolon);
+    /* We can't reliably check accesses in template declarations.  We need to
+       wait until we have an instance. */
+    discard_deferred_access_checks();
+    end_deferral_of_access_checks();
   } else {
     remove_stop_token(tok_end_of_source);
     /* In the normal case the current token should be end_of_source,
@@ -5504,9 +5508,9 @@ assumed if the return type is omitted.
     a_source_sequence_entry_ptr  declarator_ssep;
 
     add_stop_token(tok_newline);
+    begin_deferral_of_access_checks();
     (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-			   DSI_TYPE_SPECIFIER_ALLOWED |
-                           DSI_DEFER_ACCESS_CHECKS),
+			   DSI_TYPE_SPECIFIER_ALLOWED),
                           &dso_flags, &storage_class, &type, &qualifiers);
     if (is_error_type(type) && !is_declarator_start()) {
       /* Error of some sort. */
@@ -5525,6 +5529,7 @@ assumed if the return type is omitted.
          empty source sequence entry.  How should this be handled? */
 #endif /* if 0 */
     }  /* if */
+    end_deferral_of_access_checks();
     remove_stop_token(tok_newline);
     /* Look up the identifier scanned in the declarator.  If the
        declarator contains a qualified name it will already have

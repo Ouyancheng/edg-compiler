@@ -2622,6 +2622,11 @@ skip_overloading:;
       /* Link the external symbol to the IL routine entry. */
       (*ext_sym)->variant.extern_symbol_descr->variant.routine = routine_ptr;
     }  /* if */
+    if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+      /* Now that we know which function has been declared, recheck any
+         access errors that occurred while scanning the declaration. */
+      perform_deferred_access_checks_for_function(routine_ptr);
+    }  /* if */
   }  /* if */
   /* Set the source correspondence, but leave it pointing at an outer-scope
      symbol if there is one. */
@@ -4402,6 +4407,7 @@ of local variables (and types, etc.) of functions and in blocks.
 #if ASM_FUNCTION_ALLOWED
   a_boolean                    is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
+  a_boolean		       access_checks_deferred = FALSE;
 
   db_enter(3, "declaration");
 
@@ -4497,7 +4503,8 @@ of local variables (and types, etc.) of functions and in blocks.
     /* This is a file scope or namespace scope declaration.  Indicate
        that access checking should be deferred until the declarator has
        been scanned. */
-    dsi_flags |= DSI_DEFER_ACCESS_CHECKS;
+    begin_deferral_of_access_checks();
+    access_checks_deferred = TRUE;
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
@@ -5361,6 +5368,13 @@ advance_past_final_token:
     }  /* if */
   }  /* if */
 return_point:
+  if (access_checks_deferred) {
+    /* We are processing a declaration for which access checks were
+       deferred.  Normally, any deferred checks will have already been
+       performed.  In error cases, they may not have been.  If any
+       remain, do them now. */
+    end_deferral_of_access_checks();
+  }  /* if */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
   remove_all_local_stop_tokens();
