@@ -2113,7 +2113,9 @@ as needed and prune the walk.
   a_boolean prune;
 
   if (in_secondary_trans_unit(ptr)) {
+#if MAINTAIN_NEEDED_FLAGS
     mark_as_needed(ptr, kind);
+#endif /* MAINTAIN_NEEDED_FLAGS */
     prune = TRUE;
   } else if (il_entry_prefix_of(ptr).il_walk_flag ==
                                                   flag_value_meaning_visited) {
@@ -2212,6 +2214,10 @@ do the termination test.
      this point -- the remap routine eliminates them. */
   check_assertion_str(!in_secondary_trans_unit(ptr),
          "rewrite_secondary_termination_test: remaining secondary IL pointer");
+  /* Note that this walk undoes the flip of il_walk_flag done in
+     mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed,
+     restoring the flag to the same value as in entries copied from
+     secondary translation units. */
   if (il_entry_prefix_of(ptr).il_walk_flag == flag_value_meaning_visited) {
     /* This entry has already been visited on this walk. */
     prune = TRUE;
