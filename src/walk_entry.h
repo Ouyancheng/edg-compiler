@@ -602,9 +602,9 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_handler_ptr ptr = (a_handler_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_handler_ptr, iek_handler);
-        /* The associated parameter, if any, will appear on the current scope.
-           Therefore, here we just remap the pointer but do not walk the
-           subtree. */
+        /* The associated parameter, if any, will appear on the variables
+           list of the current scope.  Therefore, here we just remap the
+           pointer but do not walk the subtree. */
         remap_ptr(ptr->parameter, a_variable_ptr, iek_variable);
         walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
@@ -754,7 +754,9 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #ifdef CFE
           case sck_block:
-            walk_ptr(ptr->variant.assoc_handler, a_handler_ptr, iek_handler);
+            /* Call remap_ptr on the handler entry since it is also on a list
+               pointed to from the try-block statement. */
+            remap_ptr(ptr->variant.assoc_handler, a_handler_ptr, iek_handler);
             /* Also see assoc_block below. */
             break;
           case sck_func_prototype:
