@@ -20,7 +20,8 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "decl_hdrs.h"
 
 #if HDRSTOP_RECOGNIZED
-/* Insert a marker in case headers are saved and restored. */
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
 #pragma hdrstop
 #endif /* HDRSTOP_RECOGNIZED */
 
