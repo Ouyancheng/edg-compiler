@@ -4497,7 +4497,9 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
 
   orig_operand = *operand;
   check_assertion(!is_reference_type(dest_type));
-  if (curr_expr_kind_is_const()) {
+  if (curr_expr_kind_is_const() ||
+      (is_constant_operand(operand) &&
+       !is_class_struct_union_type(dest_type))) {
     /* In a constant expression, cast the constant rather than building
        an expression tree.  Note that we don't use cast_operand or
        type_change_constant, because this conversion might be highly
