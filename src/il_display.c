@@ -2048,14 +2048,14 @@ Display the indicated switch clause.
 }  /* disp_switch_clause */
 
 
-static void disp_exception_specifications(an_exception_specification_ptr ptr)
+static void disp_exception_specification(an_exception_specification_ptr ptr)
 /*
 Display the indicated exception-specification entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_exception_specification);
   disp_ptr("type", (char *)ptr->type, iek_type);  
-}  /* disp_exception_specifications */
+}  /* disp_exception_specification */
 
 
 static void disp_handler(a_handler_ptr ptr)
