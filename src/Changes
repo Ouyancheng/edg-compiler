@@ -1,5 +1,14 @@
 Version 2.12
 
+11/9/92 Subscript reference through volatile pointer causes side effect
+
+A change was made to recognize the side effect in the following:
+
+  void foo2(volatile int * p) { *(p+1);}
+
+Formerly, a warning was issued because the expression appeared to be
+pointless.
+
 11/9/92 Error recovery on incompatible operands
 
 A change was made to avoid an internal error on

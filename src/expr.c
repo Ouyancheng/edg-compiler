@@ -175,6 +175,7 @@ Return TRUE if the (operation) node has side effects.
       has_side_effects = TRUE;
       break;
     case eok_indirect:
+    case eok_subscript:
       /* Causes a side effect if the type of the thing pointed to
          is volatile. */
       /* Note that we test the pointer operand's type, not the node type,
