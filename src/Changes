@@ -67,26 +67,6 @@ of the operator.  This has been fixed.
     operator, +(a, 1);  // internal error processing "a, 1"
   }
 
-4/8/97    Microsoft compatibility: overloaded operator functions favored
-          over built-in operators
-
-The MSVC++ compiler seems to favor use of overloaded operator functions
-over use of conversion functions and built-in operators.  That behavior
-is now duplicated in Microsoft-compatibility mode.
-
-  struct A {
-    operator char();
-  };
-  struct B {
-    operator char*();
-    int operator[](int);
-  };
-  int main() {
-    A len;
-    B ret;
-    ret[len];       // MSVC++ resolves to B::operator[]
-  }
-
 4/7/97    EH cleanup state determination at case label with fall-through
 
 In some cases, the exception handling cleanup state determined at a case
