@@ -1,5 +1,17 @@
 Version 2.43
 
+11/8/99  Using declaration of type name in presence of compatible tag name
+
+The front end now allows a using-declaration to import a typedef name that is
+also tag name in the scope containing the using-declaration, provided the two
+names refer to the same underlying type.  (This is similar to the constraints
+on a plain typedef.)
+
+  namespace A { struct x {}; }
+  namespace B { typedef A::x x; }
+  namespace A { using B::x; }  // Now OK: imported name "x" refers to the same
+                               // type as "struct x" in the current scope.
+
 11/5/99  Array new/delete for class with two-argument operator delete
 
 An array delete operation for a class that has no constructor or
