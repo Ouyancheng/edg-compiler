@@ -1,5 +1,10 @@
 Version 3.1
 
+11/15/02 GNU compatibility: Typo in name of built-in function
+
+The IL definition file misspelled the name of the GNU built-in function
+"__builtin_dwarf_cfa" as "__builtin_unwind_dwarf_cfa".  This is now fixed.
+
 11/14/02 Configuration option DEFAULT_GCC_COMPATIBILITY renamed and extended
 
 The new configuration option DEFAULT_GNU_COMPATIBILITY now controls whether

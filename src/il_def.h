@@ -6180,7 +6180,7 @@ enum a_builtin_function_kind_tag {
   bfk_fwrite,                   /* "__builtin_fwrite" */
   bfk_fprintf,                  /* "__builtin_fprintf" */
   bfk_unwind_init,              /* "__builtin_unwind_init" */
-  bfk_dwarf_cfa,                /* "__builtin_unwind_dwarf_cfa" */
+  bfk_dwarf_cfa,                /* "__builtin_dwarf_cfa" */
   bfk_dwarf_fp_regnum,          /* "__builtin_dwarf_fp_regnum" */
   bfk_init_dwarf_reg_size_table,
                                 /* "__builtin_init_dwarf_reg_size_table" */
@@ -6283,7 +6283,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_fwrite */                   "__builtin_fwrite",
   /* bfk_fprintf */                  "__builtin_fprintf",
   /* bfk_unwind_init */              "__builtin_unwind_init",
-  /* bfk_dwarf_cfa */                "__builtin_unwind_dwarf_cfa",
+  /* bfk_dwarf_cfa */                "__builtin_dwarf_cfa",
   /* bfk_dwarf_fp_regnum */          "__builtin_dwarf_fp_regnum",
   /* bfk_init_dwarf_reg_size_table */
                                      "__builtin_init_dwarf_reg_size_table",
