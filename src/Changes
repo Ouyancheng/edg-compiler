@@ -1,5 +1,12 @@
 Version 2.15
 
+3/19/93 Change of page size in internal documentation
+
+The page size in the LaTeX-form internal documentation has been changed;
+it's now wider and taller, so more fits on a page.  The document is
+also formatted in two-sided mode, since it's gotten too big to be
+printed one-sided.
+
 3/19/93 Rework of il_walk_flag and entry number prefix
 
 Several things relating to walking the IL tree and writing IL to/reading
