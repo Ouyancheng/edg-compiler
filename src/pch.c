@@ -1414,8 +1414,6 @@ would prevent generation of a precompiled header file, and if none exists,
 write out the precompiled header file.
 */
 {
-#define PCH_DECL_SEQ_THRESHOLD 1
-
   db_enter(2, "generate_precompiled_header");
   check_assertion(header_stop_position_pending);
   if (cannot_create_pch_file) {

@@ -725,6 +725,15 @@ may be overridden by a command line option.
 #endif /* ifndef DEFAULT_PREALLOCATED_PCH_MEM_SIZE */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
+/*
+The minimum number of declarations required in header files that qualify
+for precompilation.  In other words, if the header files preceding the
+header stop have fewer than PCH_DECL_SEQ_THRESHOLD declarations, creation
+of a precompiled header file will be suppressed.
+*/
+#ifndef PCH_DECL_SEQ_THRESHOLD
+#define PCH_DECL_SEQ_THRESHOLD 300
+#endif /* ifndef PCH_DECL_SEQ_THRESHOLD */
 
 /*
 The flags HOSTID and HOSTID2 can be set to host id numbers if the
