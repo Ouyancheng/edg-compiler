@@ -7402,6 +7402,10 @@ Note that the destructor, if any, is implicit and need not be put out.
     force_parens = TRUE;
     if (has_name_before_mangling(init_entity_type)) {
       gen_type(init_entity_type);
+    } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+      /* Zero initialization can't be put out as an old-style cast, so
+         drop cv-qualifiers on the type. */
+      gen_type(skip_typerefs(init_entity_type));
     } else {
       /* A type without a name, e.g., a cv-qualified class type.
          Use an old-style cast. */
