@@ -10545,7 +10545,6 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 }  /* add_to_macros_list */
 
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED
  
 void clear_function_body(a_routine_ptr  rp)
 /*
@@ -10575,7 +10574,6 @@ to an undefined state and free the associated memory region.
   free_memory_region(n);
 }  /* clear_function_body */
 
-#endif /* MAINTAIN_NEEDED_FLAGS || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
 
 static void eliminate_references_from_befriended_entities(
