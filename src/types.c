@@ -1869,7 +1869,7 @@ and 3.3.6 (pointer - pointer), 3.3.8 (relational operators), 3.3.9 (equality
 operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 */
 {
-  a_boolean  okay = FALSE, conversion_from_void_star;
+  a_boolean  okay = FALSE, conversion_from_void_star_in_C;
   a_type_ptr dest_type_pointed_to, source_type_pointed_to;
   a_type_ptr unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
 
@@ -1978,7 +1978,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            That's not quite what the ARM says, but it's what cfront does,
            and it makes sense. */
         okay = TRUE;
-      } else if ((conversion_from_void_star =
+      } else if ((conversion_from_void_star_in_C =
                    (C_dialect != C_dialect_cplusplus &&
                     !check_as_operands_not_conversion &&
                     is_void_type(unqual_source_type_pointed_to))) &&
@@ -1987,7 +1987,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* In C but not C++, a "void *" may be converted to a pointer to an
            object or incomplete type.  ANSI C 3.3.16.1 (assignment). */
         okay = TRUE;
-      } else if (conversion_from_void_star && !suppress_extensions) {
+      } else if (conversion_from_void_star_in_C && !suppress_extensions) {
         /* As an extension in C, we also allow a "void *" to be converted to
            a function pointer; a warning is issued. */
         okay = TRUE;
@@ -2284,6 +2284,11 @@ See conversion_possible.
   }  /* if */
 #endif /* DEBUG */
   *warning_suggested = ec_no_error;
+  /* If in strict ANSI mode and nonstandard constructs should be reported as
+     errors, disable extensions. */
+  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+    suppress_extensions = TRUE;
+  }  /* if */
   /* Drop any type qualifiers and typedefs on the two types. */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
