@@ -104,7 +104,10 @@ DEFAULT_TYPENAME_IS_ENABLED.  Because existing code does not make use
 of typename, "implicit typename" processing can be enabled for compatibility
 purposes.  Implicit typename is enabled by --implicit_typename and
 disabled by --no_implicit_typename; the default is established by
-DEFAULT_IMPLICIT_TYPENAME_ENABLED.
+DEFAULT_IMPLICIT_TYPENAME_ENABLED.  Recognition of the typename
+keyword and the implicit typename processing may both be enabled
+at the same time (in fact, this is the default).  This permits
+compilation of old code while accepting new code that uses typename.
 
 12/28/95  New predefined macro for array new and delete support
 
