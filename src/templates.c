@@ -15532,6 +15532,14 @@ instantiation request file.
          be defined anywhere else. */
       mip->add_to_request_file = TRUE;
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("instantiations")) {
+      fprintf(f_debug, "check_if_entity...: ");
+      db_symbol_name(tip->instance_sym);
+      fprintf(f_debug, ": instantiate=%d, add_to_request_file=%d\n",
+              instantiate, add_to_request_file);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* check_if_entity_should_be_automatically_instantiated */
 
@@ -16373,7 +16381,7 @@ to the definition list file.  The prelinker is responsible
 for adding the entries to the actual instantiation request file.
 */
 {
-  a_template_instance_ptr	tip;
+  a_master_instance_ptr		mip;
   FILE				*f_definition_list;
 
   check_assertion(definition_list_file_name != NULL);
@@ -16387,13 +16395,10 @@ for adding the entries to the actual instantiation request file.
      verify that the file was created by the front end, and is not
      a leftover definition list file created by the prelinker. */
   fputs(":add:\n", f_definition_list);
-  for (tip = instantiations_required; tip != NULL;
-       tip = tip->next_in_instantiation_list) {
+  for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
     /* Make sure the entity was actually instantiated before adding it to
        the request file.  It is possible for the add_to_request_file
        flag to be set for entities that cannot be instantiated. */
-    a_master_instance_ptr	mip;
-    mip = master_instance_of(tip);
     if (mip->add_to_request_file && mip->already_instantiated) {
       char	*name;
       name = get_mangled_name_of_instance(mip);
@@ -16401,6 +16406,15 @@ for adding the entries to the actual instantiation request file.
       fputs(name, f_definition_list);
       fputs("\n", f_definition_list);
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("instantiations")) {
+      fprintf(f_debug, "add_entities_to_request_file: ");
+      db_symbol_name(mip->instance->instance_sym);
+      fprintf(f_debug, ": add_to_request_file=%d, already_instantiat=%d\n",
+              mip->add_to_request_file, mip->already_instantiated);
+      db_sym(mip->instance->instance_sym);
+    }  /* if */
+#endif /* DEBUG */
   }  /* for */
   if (fclose(f_definition_list)) {
     str_catastrophe(ec_file_write_error, "definition list file");
@@ -16786,6 +16800,59 @@ that might be required.
   } while (entries_updated_during_instantiation_wrapup ||
            implicit_inclusion_done_during_instantiation_wrapup);
 }  /* do_any_needed_instantiations */
+
+
+void set_master_instance_for_new_canonical_routine(
+					a_routine_ptr	primary_routine,
+					a_routine_ptr	secondary_routine)
+/*
+primary_routine is a routine in the primary IL and is the new canonical
+entry.  secondary_routine is a routine in a secondary translation unit
+and was formerly the canonical entry.  Update the template instance for
+primary_routine so that it refers to the master instance entry that
+the template instance of secondary_routine refers to.
+*/
+{
+  a_symbol_ptr			primary_sym;
+  a_symbol_ptr			secondary_sym;
+  a_template_instance_ptr	primary_tip;
+  a_template_instance_ptr	secondary_tip;
+
+  primary_sym = (a_symbol_ptr)primary_routine->source_corresp.assoc_info;
+  secondary_sym = (a_symbol_ptr)secondary_routine->source_corresp.assoc_info;
+  primary_tip = primary_sym->variant.routine.instance_ptr;
+  secondary_tip = secondary_sym->variant.routine.instance_ptr;
+  check_assertion(primary_tip != NULL && secondary_tip != NULL);
+  check_assertion(secondary_tip->master_instance != NULL);
+  primary_tip->master_instance = secondary_tip->master_instance;
+}  /* set_master_instance_for_new_canonical_routine */
+
+
+void set_master_instance_for_new_canonical_variable(
+					a_variable_ptr	primary_variable,
+					a_variable_ptr	secondary_variable)
+/*
+primary_variable is a static data member in the primary IL and is the
+new canonical entry.  secondary_variable is a static data member in a
+secondary translation unit and was formerly the canonical entry.
+Update the template instance for primary_variable so that it refers to
+the master instance entry that the template instance of
+secondary_variable refers to.
+*/
+{
+  a_symbol_ptr			primary_sym;
+  a_symbol_ptr			secondary_sym;
+  a_template_instance_ptr	primary_tip;
+  a_template_instance_ptr	secondary_tip;
+
+  primary_sym = (a_symbol_ptr)primary_variable->source_corresp.assoc_info;
+  secondary_sym = (a_symbol_ptr)secondary_variable->source_corresp.assoc_info;
+  primary_tip = primary_sym->variant.static_data_member.instance_ptr;
+  secondary_tip = secondary_sym->variant.static_data_member.instance_ptr;
+  check_assertion(primary_tip != NULL && secondary_tip != NULL);
+  check_assertion(secondary_tip->master_instance != NULL);
+  primary_tip->master_instance = secondary_tip->master_instance;
+}  /* set_master_instance_for_new_canonical_entry */
 
 
 static void set_master_instance_information(void)

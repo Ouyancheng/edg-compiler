@@ -2135,6 +2135,54 @@ are not checked.
 }  /* establish_trans_unit_correspondences_for_class */
 
 
+static void set_master_instance_for_new_canonical_class(
+					a_type_ptr	primary_class,
+					a_type_ptr	secondary_class)
+/*
+primary_routine is a routine in the primary IL and is the new canonical
+entry.  secondary_routine is a routine in a secondary translation unit
+and was formerly the canonical entry.  Update the template instance for
+primary_routine so that it refers to the master instance entry that
+the template instance of secondary_routine refers to.
+*/
+{
+  a_scope_ptr  primary_scope = primary_class->
+                           variant.class_struct_union.extra_info->assoc_scope;
+  a_scope_ptr  secondary_scope = secondary_class->
+                           variant.class_struct_union.extra_info->assoc_scope;
+    
+  check_assertion(primary_class->variant.class_struct_union.is_template_class);
+  /* Go through the list of routines and set the master instance for the
+     routines of the primary scope class. */
+  {
+    a_routine_ptr  primary_routine = skip_generated_routine(
+                                                      primary_scope->routines);
+    a_routine_ptr  secondary_routine = skip_generated_routine(
+                                                    secondary_scope->routines);
+    for (; primary_routine != NULL && secondary_routine != NULL;
+         primary_routine = skip_generated_routine(primary_routine->next),
+         secondary_routine = skip_generated_routine(secondary_routine->next)) {
+      if (!primary_routine->compiler_generated) {
+        set_master_instance_for_new_canonical_routine(primary_routine,
+                                                      secondary_routine);
+      }  /* if */
+    }  /* for */
+  }
+  /* Go through the list of variables (static data members) and set the
+     master instance for the variables of the primary scope class. */
+  {
+    a_variable_ptr  primary_variable = primary_scope->variables;
+    a_variable_ptr  secondary_variable = secondary_scope->variables;
+    for (; primary_variable != NULL && secondary_variable != NULL;
+         primary_variable = primary_variable->next,
+         secondary_variable = secondary_variable->next) {
+      set_master_instance_for_new_canonical_variable(primary_variable,
+                                                     secondary_variable);
+    }  /* for */
+  }
+}  /* set_master_instance_for_new_canonical_class */
+
+
 void establish_class_instantiation_corresp(a_type_ptr  type)
 /*
 Establish correspondences for members of a class template instantiation.
@@ -2171,6 +2219,10 @@ type.
            for. */
       } else if ((a_type_ptr)trans_unit_corresp_pointer_of(sec) == type) {
         establish_trans_unit_correspondences_for_class(sec);
+        /* The master instance is found using the canonical entry.  We are
+           creating a new canonical entry, so we must make sure its master
+           instance pointer is set for the class members. */
+        set_master_instance_for_new_canonical_class(type, sec);
         break;
       }  /* if */
     }  /* for */
@@ -2650,6 +2702,10 @@ template.
                        sec = slep->symbol->variant.routine.ptr;
         check_assertion(in_secondary_trans_unit(sec));
         set_trans_unit_corresp(sec, prim);
+        /* The master instance is found using the canonical entry.  We are
+           creating a new canonical entry, so we must make sure its master
+           instance pointer is set. */
+        set_master_instance_for_new_canonical_routine(prim, sec);
       }  /* if */
     }  /* if */
   } else if (correspondence_checking_done) {

@@ -363,6 +363,14 @@ void set_instance_required(a_symbol_ptr				sym,
 
 extern void process_deferred_instantiation_requests(void);
 
+extern void set_master_instance_for_new_canonical_routine(
+					a_routine_ptr	primary_routine,
+					a_routine_ptr	secondary_routine);
+
+extern void set_master_instance_for_new_canonical_variable(
+					a_variable_ptr	primary_variable,
+					a_variable_ptr	secondary_variable);
+
 extern void instantiation_wrapup_setup(void);
 
 extern void instantiation_wrapup(void);
