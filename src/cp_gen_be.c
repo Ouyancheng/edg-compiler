@@ -5948,6 +5948,13 @@ declaration following this one is such a continuation.
       if (var->source_corresp.is_class_member) {
         /* A static data member definition.  Use no storage class. */
         storage_class = (a_storage_class)sc_unspecified;
+      } else if (storage_class == (a_storage_class)sc_unspecified &&
+                 il_header.source_language == sl_Cplusplus &&
+                 curr_function_scope == NULL &&
+                 is_const_qualified_type(var->type)) {
+        /* A const-qualified variable is "static" by default in C++.  Use an
+           explicit "extern". */
+        storage_class = (a_storage_class)sc_extern;
       }  /* if */
     } else if (is_specialization) {
       /* A specialization of a static data member is not a definition, but

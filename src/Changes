@@ -1,5 +1,13 @@
 Version 2.36
 
+4/30/97   C++-generating back end: "extern" on definition of const variable
+
+In C++, the definition of a variable with a const-qualified type is
+implicitly static.  To override that, the C++-generating back end now
+puts out "extern" on such a definition if necessary.
+
+ extern const int x[] = { 1 };
+
 4/30/96   Microsoft compatibility: diagnostic on inline member function
           that is referenced but undefined
 
