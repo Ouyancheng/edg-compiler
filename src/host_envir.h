@@ -1114,11 +1114,11 @@ The type of the buffer argument in fread/fwrite calls.  This is usually
 void* on ANSI compilers and char* on pcc compilers.  Sun C++ uses
 char* for some reason though.
 */
-#if __cplusplus && defined(__SUNPRO_CC)
+#if defined(__cplusplus) && defined(__SUNPRO_CC)
 typedef char *a_stdio_arg;
-#else /* !(__cplusplus && __defined(__SUNPRO_CC)) */
+#else /* !(defined(__cplusplus) && __defined(__SUNPRO_CC)) */
 typedef a_void_ptr a_stdio_arg;
-#endif /* (__cplusplus && __defined(__SUNPRO_CC)) */
+#endif /* defined(__cplusplus) && __defined(__SUNPRO_CC) */
 
 /*
 Determine whether the module ID routines are needed.  They are needed
