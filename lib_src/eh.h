@@ -214,7 +214,7 @@ typedef struct an_eh_region_descr {
 
 /* Definitions of the values in the flags field of the exception type
    specification entry. */
-typedef a_byte a_exception_type_specification_flag_set;
+typedef a_byte an_exception_type_specification_flag_set;
 #define ETS_NO_FLAGS		0x0
 			/* Value used when no flags are set. */
 #define ETS_IS_POINTER		0x01
@@ -243,7 +243,7 @@ typedef struct an_exception_type_specification {
 			   NULL if the entry has no associated type (for
 			   ellipsis entries or for empty throw specification
 			   lists). */
-  a_exception_type_specification_flag_set
+  an_exception_type_specification_flag_set
 		flags;
 			/* A collection of bits that specify how the
 			   catch entry is to be used.  See the
