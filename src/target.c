@@ -26,7 +26,7 @@ target.c -- Target configuration support
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void init_microsoft_sized_int_types()
+void init_microsoft_sized_int_types(void)
 /*
 Map __int8, __int16, __int32, and __int64 to the appropriate integer
 kinds.  Leave the variables set to ik_none if a match can't be found;
