@@ -1,5 +1,21 @@
 Version 2.34
 
+12/6/96  Abort with member template for operator=
+
+An abort has been fixed that could occur when a member template was
+declared for operator=.  Here's an example that failed when support for
+exception handling was enabled:
+
+  template <class X> struct auto_ptr {
+    template <class Y> auto_ptr& operator=(const auto_ptr<Y>& a);
+    auto_ptr& operator=(const auto_ptr& a);
+  };
+  struct A { };
+  struct B {
+    auto_ptr<A> c;
+  };                 // No longer aborts when generating copy assignment
+                     //   operator for class B
+
 12/5/96  extern "C" and implicit int
 
 The diagnostic message has been clarified for declarations like the
