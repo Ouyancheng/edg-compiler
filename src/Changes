@@ -43,6 +43,24 @@ namespaces, or rather, to support two different versions under
 control of the preprocessing option __EDG_RUNTIME_USES_NAMESPACES,
 which is defined by the front end.
 
+10/9/95  near/far memory attributes in Microsoft mode
+
+When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, the front end now supports
+near/far memory attributes.  They are supported in 16-bit Microsoft
+mode, which is a sub-mode of the normal Microsoft mode.  It can be
+enabled by --microsoft_16, or it can be made the default.  New
+command line options --far_code_pointers and --far_data_pointers
+can be used to control the default sizes of pointers.
+
+new and far are represented as type qualifiers.  They appear in the
+IL only when necessary to represent a non-default value.  The default
+values are indicated by the far_data_pointers and far_code_pointers
+fields in il_header.  Back ends that generate different code for near
+and far operations can look at the pointer sizes or can use the
+function is_far_type to determine the size of a type considering
+qualifiers and defaults (which is useful, for example, in determining
+the type of call to make to a function).
+
 10/9/95  Default name-linkage assigned to classes
 
 It used to be that a file-scope class was given internal name-linkage when
