@@ -252,20 +252,18 @@ this case and add it to the list for the current scope.
                 if ((scp = source_corresp_for_il_entry(entity,
                                                        kind)) != NULL) {
                   db_name(scp);
+                  if (kind == (an_il_entry_kind)iek_routine) {
+                    db_function_param_list(((a_routine_ptr)entity)->type);
+                  }  /* if */
                 } else {
                   fprintf(f_debug, "???");
                 }  /* if */
               }  /* if */
               fprintf(f_debug, " in ");
               db_scope(sp);
-              if (tag_hidden_by_nontag) fprintf(f_debug, ", use class-key");
               if (global_hidden_by_nonglobal) fprintf(f_debug, ", use \"::\"");
+              if (tag_hidden_by_nontag) fprintf(f_debug, ", use class-key");
               fprintf(f_debug, "\n");
-              if (kind == (an_il_entry_kind)iek_routine) {
-                fprintf(f_debug, "  type = ");
-                db_type(((a_routine_ptr)entity)->type);
-                fprintf(f_debug, "\n");
-              }  /* if */
             }  /* if */
           }  /* if */
 #endif /* DEBUG */
