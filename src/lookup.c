@@ -934,7 +934,13 @@ scope lookup.  options specifies the options being used for the lookup.
        the result of a constrained lookup (e.g., a tag lookup) which
        may not be applicable now.  Set the existing symbol to point to
        the new symbol. */
-    set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
+    if (is_function_or_template_symbol(new_sym)) {
+      curr_sym = merge_function_into_lookup_set(curr_sym, new_sym, locator,
+                                                qualified_lookup,
+                                                qualifier_namespace, options);
+    } else {
+      set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
+    }  /* if */
   } else if (already_in_lookup_set(curr_sym, new_sym)) {
     /* The symbol is already present -- nothing more to do. */
   } else {
