@@ -43,8 +43,9 @@ the base_class field of the a_vcall_offset_entry IL entry.
          manually enabled
 
 When the front end is run in non-C99 non-GNU C mode with compound
-literals explicit enabled, such literals were not lowered (because
-the C99 lowering phase was not run).  Now, it is and they are.
+literals explicitly enabled (e.g., with --compound_literals), such
+literals were not lowered (because the C99 lowering phase was not
+run).  Now, it is and they are.
 
 4/13/04  Incorrect fully-lowered EH code for almost-trivial constructor
          when NEW_CAN_BE_FOLDED_INTO_CTOR is FALSE
