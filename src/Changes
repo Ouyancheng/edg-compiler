@@ -1,5 +1,21 @@
 Version 2.34
 
+11/25/96 Overload resolution: comparison of non-bitwise class copy
+
+In overload resolution, a non-bitwise class copy that involves a
+derived-to-base conversion was not compared properly to another
+conversion involving a derived-to-base conversion.  Now fixed.
+
+  struct B {};
+  struct I: public B {
+    virtual int mbr(const B &) const;
+    int mbr(I) const;
+  };
+  struct D: public I {};
+  void fred(D* pd, const D & from) {
+    pd->mbr(from); // Was treated as ambiguous; now okay
+  }
+
 11/25/96 Default argument on operator()() declaration
 
 The function call operator is now permitted to have default arguments in

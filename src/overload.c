@@ -987,7 +987,9 @@ of a copy constructor with a nonconst reference for the input), set
 arg_match->match_level to aml_none.
 */
 {
-  if (arg_match->conversion.std.cast_base_class == NULL &&
+  a_base_class_ptr bcp = arg_match->conversion.std.cast_base_class;
+
+  if (bcp == NULL &&
       symbol_supplement_for_class(param_type)->
                                         construction_by_bitwise_copy_allowed) {
     /* This is a bitwise same-class copy. */
@@ -1025,6 +1027,9 @@ arg_match->match_level to aml_none.
         arg_match->match_level = aml_none;
       }  /* if */
     }  /* if */
+    /* Restore the base class value, which is clobbered by
+       conversion_to_class_possible. */
+    arg_match->conversion.std.cast_base_class = bcp;
   }  /* if */
 }  /* set_user_conversion_for_class_copy */
 
@@ -2050,7 +2055,13 @@ Compare two argument match summary entries and return
        better than the other in some cases. */
     /* They can only be compared if the user-defined part of the conversion
        (if any) is the same in both conversions. */
-    if (arg_match1->conversion.routine == arg_match2->conversion.routine) {
+    a_routine_ptr arg_routine1 = arg_match1->conversion.routine;
+    a_routine_ptr arg_routine2 = arg_match2->conversion.routine;
+    if (arg_match1->match_level != (an_arg_match_level)aml_user_conversion) {
+      /* Ignore routines indicated for copy constructors on class copies. */
+      arg_routine1 = arg_routine2 = NULL;
+    }  /* if */
+    if (arg_routine1 == arg_routine2) {
       /* A conversion involving a user-defined conversion is better than a
          conversion involving the same user-defined conversion followed by
          a nontrivial conversion, e.g.,
@@ -2059,7 +2070,7 @@ Compare two argument match summary entries and return
            A->int->float
          (see the commentary at the bottom of p. 317 of the ARM.)
       */
-      if (arg_match1->conversion.routine != NULL) {
+      if (arg_routine1 != NULL) {
         /* We have two conversions using the same user-defined conversion. */
         if (arg_match1->conversion.std.nontrivial_conversion !=
             arg_match2->conversion.std.nontrivial_conversion) {
@@ -6167,7 +6178,6 @@ because of an error.  This routine is used only in C++ mode.
            class into the destination class, or the source class has template
            conversion functions.  See if there is a conversion function that
            does the job. */
-        bcp = NULL;
         if (is_copy_initialization && 
             (identical_types(source_type, class_type) ||
              find_base_class_of(source_type, class_type) != NULL)) {
