@@ -370,7 +370,9 @@ from db_symbol.
 */
 {
   buffer[0] = '\0';
-  (void)str_class_qualifier(buffer, sym->class_of_which_a_member);
+  if (C_dialect == C_dialect_cplusplus) {
+    (void)str_class_qualifier(buffer, sym->class_of_which_a_member);
+  }  /* if */
   (void)sprintf(&buffer[strlen(buffer)], "%s", sym->header->identifier);
   return buffer;
 }  /* str_qualified_name */
