@@ -2426,7 +2426,10 @@ user-defined conversions.
             }  /* if */
           } else {
             /* The operation was successfully folded to a constant. */
-            local_constant.is_reinterpret_cast = is_reinterpret_cast;
+            /* Mark the constant as the result of a reinterpret_cast if it
+               is.  Don't clear the flag once it gets set (an implicit cast
+               after a reinterpret_cast still counts as a reinterpret_cast). */
+            local_constant.is_reinterpret_cast |= is_reinterpret_cast;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
             if (!(curr_expr_kind_is(ek_pp) ||
                   curr_expr_kind_is(ek_template_arg))) {
