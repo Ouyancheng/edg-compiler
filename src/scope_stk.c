@@ -123,7 +123,8 @@ Display one scope stack entry.
       if (ssep->il_scope == NULL) {
         fprintf(f_debug, "null IL scope");
       } else {
-        db_name(&ssep->il_scope->variant.routine.ptr->source_corresp);
+        db_name_full(&ssep->il_scope->variant.routine.ptr->source_corresp,
+                     iek_routine);
       }  /* if */
       break;
     case sck_file:
@@ -143,7 +144,7 @@ Display one scope stack entry.
         if (nsp == NULL) {
           fprintf(f_debug, "null assoc_namespace");
         } else {
-          db_name(&nsp->source_corresp);
+          db_name_full(&nsp->source_corresp, iek_namespace);
         }  /* if */
       }  /* if */
       break;
@@ -4570,7 +4571,7 @@ thrown away by the caller.
 #if DEBUG
   if (debug_level >= 1 || db_has_traced_name(routine, iek_routine)) {
     fprintf(f_debug, "Finishing function body processing for ");
-    db_name(&routine->source_corresp);
+    db_name_full(&routine->source_corresp, iek_routine);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -4639,7 +4640,7 @@ thrown away by the caller.
 #if DEBUG
     } else if (debug_level >= 3) {
       fprintf(f_debug, "Not calling mark_as_needed for \"");
-      db_name(&routine->source_corresp);
+      db_name_full(&routine->source_corresp, iek_routine);
       fprintf(f_debug, "\", storage class is %s\n",
               db_storage_class_names[(int)routine->storage_class]);
 #endif /* DEBUG */
@@ -4700,13 +4701,13 @@ End a name scope by popping an entry off the scope stack.
               (long)ssep->number, depth_scope_stack);
       if (curr_routine != NULL) {
         (void)fputs(", curr_routine = \"", f_debug);
-        db_name(&curr_routine->source_corresp);
+        db_name_full(&curr_routine->source_corresp, iek_routine);
         (void)fputc('"', f_debug);
       } else if ((kind == (a_scope_kind)sck_class_struct_union ||
                   kind == (a_scope_kind)sck_class_reactivation) &&
                  ssep->assoc_type != NULL) {
         (void)fputs(", class = \"", f_debug);
-        db_name(&ssep->assoc_type->source_corresp);
+        db_name_full(&ssep->assoc_type->source_corresp, iek_type);
         (void)fputc('"', f_debug);
       } else if ((kind == (a_scope_kind)sck_namespace ||
                   kind == (a_scope_kind)sck_namespace_reactivation ||
@@ -4715,7 +4716,8 @@ End a name scope by popping an entry off the scope stack.
                  ssep->il_scope->variant.assoc_namespace != NULL) {
         (void)fprintf(f_debug, ", namespace%s = \"",
                       kind == (a_scope_kind)sck_namespace ? "" : "-ext");
-        db_name(&ssep->il_scope->variant.assoc_namespace->source_corresp);
+        db_name_full(&ssep->il_scope->variant.assoc_namespace->source_corresp,
+                     iek_namespace);
         (void)fputc('"', f_debug);
       } else {
         fputs(", kind = ", f_debug);
