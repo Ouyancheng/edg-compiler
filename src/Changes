@@ -1,5 +1,34 @@
 Version 3.5
 
+9/7/04  Microsoft compatibility: Spurious correspondence error on in-class
+        specializations
+
+In Microsoft mode, when compiling multiple translation units simultaneously,
+the front end sometimes issued a spurious incompatibility error on class
+templates containing an in-class specialization of a member function template.
+(In-class specializations are a Microsoft extension.)  For example:
+
+  // File header.h
+  template<typename T> struct S {
+    template<typename U> static  void f() {}
+     template<> static  void f<void>() {}  // In-class specialization.
+  };
+  template<typename T> struct C {
+    C() { S<T>::f<T>(); }
+  };
+
+  // File g1.cpp:
+  #include "header.h"
+  void g1() { C<void> c; }
+
+  // File g2.cpp:
+  #include "header.h"
+  void g2() { C<void> c; }
+
+When files g1.cpp and g2.cpp were compiled simultaneous in Microsoft mode,
+an incompatibility error was previously issued for S<void>::f<void>().  This
+is now fixed: The code is now accepted without errors.
+
 9/3/04  Microsoft C++ compatibility: Type bool
 
 MSVC++ 7.0 and earlier treated "bool" as a predeclared typedef in global scope

@@ -1370,7 +1370,7 @@ always appear in the same order on the routines list of a class scope.)
 #endif /* NEED_NAME_MANGLING */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
-          (routine->is_template_function &&
+          (routine->is_template_function && !routine->is_specialized &&
            routine->template_arg_list != NULL))) {
     routine = routine->next;
   }  /* while */
@@ -3843,9 +3843,11 @@ considered "instantiated" when their bodies have been scanned.
 {
   if (trans_unit_corresp_of(routine) != NULL) {
     a_routine_ptr  canon = (a_routine_ptr)canonical_il_entry_of(routine);
-    if (canon->is_specialized) {
-      /* The canonical entry is specialized, but we're instantiating a
-         matching generic version. */
+    if (canon->is_specialized && !routine->is_specialized) {
+      /* The canonical entry is specialized, but we're instantiating a matching
+         generic version.  (Note that Microsoft in-class specializations can be
+         "instantiated" as the result of the enclosing class template being
+          instantiated; this should not result in a correspondence error.) */
       f_report_bad_trans_unit_corresp((char*)canon,
                                       &routine->source_corresp.decl_position);
     }  /* if */

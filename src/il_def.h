@@ -5448,7 +5448,7 @@ typedef struct a_type {
 			   nested-class-def placeholder typeref; the type
 			   entry for the associated typeref will be on the
 			   types list of the file scope or a namespace scope
-			   Enclosing the parent class and will have
+			   enclosing the parent class and will have
 			   is_placeholder_for_nested_class_def set to TRUE. */
       a_bit_field
 		originally_unnamed:1;
