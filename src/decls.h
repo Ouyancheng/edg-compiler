@@ -164,6 +164,10 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_boolean        at_file_scope,
                                        a_boolean        suppress_redecl_error);
 
+extern void decl_typedef(a_symbol_locator   *locator,
+                         a_type_ptr         type_ptr,
+                         a_symbol_ptr       *symbol_ptr);
+
 extern void declarator(a_boolean         real_declarator_allowed,
                        a_boolean         abstract_declarator_allowed,
 		       a_type_ptr        specifiers_type,
