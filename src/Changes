@@ -1,5 +1,14 @@
 Version 2.20
 
+10/4/93  Incorrect error output for types defined in template parameters
+
+The error position information provided when a type definition appears
+in a template parameter was not set correctly.  This could result in
+missing or incorrect error position information appearing in the
+error output.
+
+  template <struct A { } T> struct B;
+
 10/4/93  Spurious error on nested class in template instantiation
 
 A spurious error has been eliminated on cases in which (1) a nested class
