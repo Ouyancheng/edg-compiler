@@ -427,6 +427,12 @@ Flags to be set when using the KAI inliner.
 
 #else /* ifndef __hpux */
 
+#if defined(__APPLE__) && defined(__MACH__)
+/* Options for MacOS X (10.2) test version. */
+
+#include "defines_macosx.h"
+
+#else /* !(defined(__APPLE__) && defined(__MACH__)) */
 /* Options for UnixWare test version. */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
@@ -482,6 +488,7 @@ Flags to be set when using the KAI inliner.
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
 
+#endif /* defined(__APPLE__) && defined(__MACH__) */
 #endif /* ifdef __hpux */
 #endif /* ifdef __linux__ */
 #endif /* defined(_WIN32) */
