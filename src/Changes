@@ -1,5 +1,26 @@
 Version 2.34
 
+12/12/96 Reference to function initialized by overloaded function
+
+As in the similar pointer case, a reference to function can be initialized
+to an overloaded function name, and the function that matches the
+underlying type is selected.  This is now supported:
+
+  void f(int);
+  void f(float);
+  void (&r)(int) = f;
+
+12/12/96 Cast of overloaded function to reference type produces lvalue
+
+A cast of an overloaded function name to a reference-to-function type,
+which selects the appropriate function from the overload set, now
+produces an lvalue for the function.  Formerly, it produced an rvalue
+pointer to the function.
+
+  void f(int);
+  void f(float);
+  void (&r)(int) = (void (&)(int))f;
+
 12/12/96 Microsoft compatibility: binding reference to pointer when there
          are extra cv-qualifiers
 
