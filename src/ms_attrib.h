@@ -51,12 +51,10 @@ applies.
 			/* Applies to a typedef. */
 #define MSAT_ENUM		0x400
 			/* Applies to an enum. */
-#define MSAT_ARRAY		0x800
-			/* Applies to an array. */
 #define MSAT_ANY_TYPE	(MSAT_CLASS | MSAT_STRUCT | MSAT_UNION | \
                          MSAT_TYPEDEF | MSAT_ENUM)
 			/* Applies to any type. */
-#define MSAT_ANY		0x1000
+#define MSAT_ANY		0x800
 			/* Can be used with any target or as a standalone
 			   attribute. */
 
@@ -142,7 +140,8 @@ extern void ms_attrib_one_time_init(void);
 extern void ms_attrib_init(void);
 
 #if DEBUG
-unsigned long db_show_ms_attrib_space_used(unsigned long grand_total);
+extern void db_microsoft_attribute(an_ms_attribute_ptr	msap);
+extern unsigned long db_show_ms_attrib_space_used(unsigned long grand_total);
 #endif /* DEBUG */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

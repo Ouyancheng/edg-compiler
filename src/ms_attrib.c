@@ -369,6 +369,13 @@ are accepted.
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "id", /*is_unnamed=*/FALSE, NULL);
+  /* [implements] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "implements", MSAT_CLASS | MSAT_STRUCT);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "interfaces", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "dispinterfaces", /*is_unnamed=*/FALSE, NULL);
   /* [implements_category] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "implements_category", MSAT_METHOD);
@@ -1255,11 +1262,9 @@ declaration.
                                       last_token);
     /* Copy the string to IL memory. */
     attr->string = make_copy_of_token_string();
-    /* Add the attribute to the IL. */
-    add_to_ms_attributes_list(attr, decl_scope_level);
 #if DEBUG
     if (db_flag_is_set("msattr")) {
-      fprintf(f_debug, "Attribute string: %s\n", attr->string);
+      db_microsoft_attribute(attr);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
@@ -1310,7 +1315,9 @@ parameter declaration.
       if (attr_list == NULL) {
         attr_list = attr;
       } else {
+        /* The list is linked on both the next and next_in_block pointers. */
         attr_tail->next_in_block = attr;
+        attr_tail->next = attr;
       }  /* if */
       attr_tail = attr;
     } while (loop_token(tok_comma));
@@ -1335,17 +1342,22 @@ void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
 /*
 This routine is used to indicate that the list of Microsoft attributes
 specified by "attributes" should apply to the entity specified by "entity".
-The attributes must apply to the entity kind specified by "target".
+The attributes must apply to the entity kind specified by "target".  The
+entity is updated to reflect the attributes that apply, and the attributes
+are added to the appropriate IL list (either the scope list or a list
+in the param_type entry).
 */
 {
   an_ms_attribute_ptr		msap;
   an_ms_attribute_ptr		new_list = NULL;
   an_ms_attribute_ptr		new_tail = NULL;
   a_source_correspondence	*scp;
+  an_ms_attribute_ptr		next_msap;
 
   scp = source_corresp_for_il_entry(entity, kind);
   /* Check whether the attributes have the appropriate target. */
-  for (msap = *attributes; msap != NULL; msap = msap->next) {
+  for (msap = *attributes; msap != NULL; msap = next_msap) {
+    next_msap = msap->next;
     if ((msap->kind_descr->target & target) == 0 &&
         msap->kind_descr->target != MSAT_ANY) {
        if (msap->kind_descr->target == MSAT_STANDALONE) {
@@ -1371,6 +1383,10 @@ The attributes must apply to the entity kind specified by "target".
       /* Update the entity pointer in the attribute. */
       msap->entity.kind = (a_byte_il_entry_kind)kind;
       msap->entity.ptr = entity;
+      /* Except for parameter entries, add the attribute to the scope list. */
+      if (kind != (an_il_entry_kind)iek_param_type) {
+        add_to_ms_attributes_list(msap, decl_scope_level);
+      }  /* if */
     }  /* if */
   }  /* for */
   /* All entities except for param_type entries are expected to have
@@ -1392,15 +1408,21 @@ The attributes must apply to the entity kind specified by "target".
 void verify_standalone_attributes(an_ms_attribute_ptr	*attributes)
 /*
 This routine is used to verify that the list of Microsoft attributes
-specified by "attributes" contains only standalone attributes.
+specified by "attributes" contains only standalone attributes.  Valid
+attributes are added to the appropriate IL list.
 */
 {
   an_ms_attribute_ptr	msap;
+  an_ms_attribute_ptr	next_msap;
 
-  for (msap = *attributes; msap != NULL; msap = msap->next) {
+  for (msap = *attributes; msap != NULL; msap = next_msap) {
+    next_msap = msap->next;
     if (msap->kind_descr->target != MSAT_STANDALONE &&
         msap->kind_descr->target != MSAT_ANY) {
        pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
+    } else {
+      /* Add the attribute to the IL. */
+      add_to_ms_attributes_list(msap, decl_scope_level);
     }  /* if */
   }  /* for */
   /* Clear the attribute list pointer passed by the caller. */
@@ -1449,8 +1471,41 @@ arguments point to (like character strings) are shared.
   return result;
 }  /* duplicate_ms_attributes */
 
-
 #if DEBUG
+
+void db_microsoft_attribute(an_ms_attribute_ptr	msap)
+/*
+Display a Microsoft attribute entry, for debugging purposes.
+*/
+{
+  an_ms_attribute_arg_ptr	arg;
+  int				arg_number = 0;
+
+  fprintf(f_debug, "Microsoft attribute '%s' at %p (%lu/%d):\n",
+          msap->name == NULL ? "NULL" : msap->name,
+          msap, msap->position.seq, msap->position.column);
+  fprintf(f_debug, "  attribute string: %s\n", msap->string);
+  for (arg = msap->arg_list; arg != NULL; arg = arg->next) {
+    fprintf(f_debug, "  argument %d (%s): ", arg_number++, arg->param_name);
+    switch (arg->kind) {
+      case msaak_integer:
+        break;
+      case msaak_boolean:
+        break;
+      case msaak_string:
+        break;
+      case msaak_other:
+        fprintf(f_debug, "%s", arg->variant.other_string);
+        break;
+      case msaak_uuid:
+        break;
+      case msaak_enumeration:
+        break;
+    }  /* switch */
+    fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_microsoft_attribute */
+
 
 unsigned long db_show_ms_attrib_space_used(unsigned long grand_total)
 /*
