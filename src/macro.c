@@ -796,7 +796,7 @@ so a hanging delete is in effect).
     *paren_found = TRUE;
   } else if (allow_id &&
              is_id_char[*curr_char_loc-CHAR_MIN] &&
-             !isdigit(*curr_char_loc) &&
+             !isdigit((unsigned char)*curr_char_loc) &&
              /* Watch out for wide character constants and string literals. */
              (*curr_char_loc != 'L' || (*(curr_char_loc+1) != '"' &&
                                         *(curr_char_loc+1) != '\''))) {
@@ -2190,7 +2190,8 @@ constants (see end_of_cpp_string, start_of_white_space_in_cpp_string).
       /* Skip white space characters.  Newline ends the line (to be careful).
          All others are allowed without error -- this is after all inside
          a string, not in plain text of the macro definition. */
-      while (isspace(*curr_char_loc) && *curr_char_loc != '\n') {
+      while (isspace((unsigned char)*curr_char_loc) &&
+             *curr_char_loc != '\n') {
         curr_char_loc++;
       }  /* while */
       *any_white_space_skipped = (curr_char_loc !=
@@ -2254,7 +2255,7 @@ quote_process:
     /* If the token scanned is an identifier, see if it is a macro name. */
     if (curr_token == tok_identifier) {
       if (end_of_cpp_string != NULL &&
-          isdigit(*(start_of_curr_token-1))) {
+          isdigit((unsigned char)*(start_of_curr_token-1))) {
         /* cpp does not recognize the second part of "123abc" as matching 
            the parameter "abc" within a string, so we special-case that. */
       } else {

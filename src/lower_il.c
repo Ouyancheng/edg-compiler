@@ -6964,7 +6964,7 @@ static void change_non_id_characters(char *str)
 Change any non-identifier characters in the indicated string to underscores.
 */
 {
-  for (; *str != '\0'; str++) if (!isalnum(*str)) *str = '_';
+  for (; *str != '\0'; str++) if (!isalnum((unsigned char)*str)) *str = '_';
 }  /* change_non_id_characters */
 
 
