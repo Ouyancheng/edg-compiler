@@ -512,6 +512,7 @@ caution when modifying this routine.
                       is_real_class_symbol(instance_sym)) {
                     *effective_decl_level = depth_innermost_namespace_scope;
                   }  /* if */
+                  /*FALLTHROUGH*/
                 case sck_file:
                 case sck_namespace:
                 case sck_namespace_extension:

@@ -294,7 +294,6 @@ stmk_asm statement is returned to the caller.
 */
 {
   a_statement_ptr    stmt;
-  a_token_set_array  stop_tokens;
 
   db_enter(3, "scan_asm_function_body");
   stmt = alloc_statement((a_statement_kind)stmk_asm_func_body);
