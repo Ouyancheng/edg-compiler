@@ -279,7 +279,7 @@ caution when modifying this routine.
       tag_err = TRUE;
     } else {
       check_ambiguity_and_verify_access(&locator_for_curr_id);
-      if (is_tag_definition) {
+      if (is_tag_definition && any_deferred_access_checks()) {
         /* When defining a class member outside of its class definition
            using a qualified name, any access errors that may have been
            detected when scanning the qualified name should be suppressed.

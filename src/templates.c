@@ -4010,7 +4010,8 @@ instantiation.
     next_tok = next_token();
   }  /* if */
   is_definition = (next_tok == tok_colon || next_tok == tok_lbrace);
-  if (is_definition && locator_for_curr_id.is_qualified_name) {
+  if (is_definition && locator_for_curr_id.is_qualified_name &&
+      any_deferred_access_checks()) {
     /* When defining a class member outside of its class definition
        using a qualified name, any access errors that may have been
        detected when scanning the qualified name should be suppressed.
