@@ -695,6 +695,10 @@ extern a_statement_ptr insert_var_assignment_statement(
                                        an_expr_node_ptr       rvalue_expr,
                                        an_insert_location_ptr insert_location);
 
+#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+extern void rewrite_ucns_in_name(a_source_correspondence *source_corresp);
+#endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
+
 extern a_statement_ptr last_statement_in_block(
                                               a_statement_ptr block_statement);
 

@@ -2882,22 +2882,14 @@ block_statement, or NULL if there are no statements in the block.
   return last_statement;
 }  /* last_statement_in_block */
 
+#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
 
-static void lower_source_correspondence(
-                                       a_source_correspondence *source_corresp)
+void rewrite_ucns_in_name(a_source_correspondence *source_corresp)
 /*
-Do IL lowering of the indicated source correspondence.
+Rewrite any UCNs (universal character names, e.g., \uxxxx) in the name
+in the given source correspondence entry.
 */
 {
-  /* Track the source position for internal errors. */
-  if (source_corresp->decl_position.seq != 0) {
-    error_position = source_corresp->decl_position;
-  }  /* if */
-  if (source_corresp->name_linkage ==
-                                 (a_name_linkage_kind)nlk_cplusplus_external) {
-    source_corresp->name_linkage = (a_name_linkage_kind)nlk_external;
-  }  /* if */
-#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
   if (il_header.UCN_identifiers_used) {
     /* Rewrite the escape character in UCNs. */
     char *p;
@@ -2914,6 +2906,26 @@ Do IL lowering of the indicated source correspondence.
       }  /* while */
     }  /* if */
   }  /* if */
+}  /* rewrite_ucns_in_name */
+
+#endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
+
+static void lower_source_correspondence(
+                                       a_source_correspondence *source_corresp)
+/*
+Do IL lowering of the indicated source correspondence.
+*/
+{
+  /* Track the source position for internal errors. */
+  if (source_corresp->decl_position.seq != 0) {
+    error_position = source_corresp->decl_position;
+  }  /* if */
+  if (source_corresp->name_linkage ==
+                                 (a_name_linkage_kind)nlk_cplusplus_external) {
+    source_corresp->name_linkage = (a_name_linkage_kind)nlk_external;
+  }  /* if */
+#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+  rewrite_ucns_in_name(source_corresp);
 #endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
 }  /* lower_source_correspondence */
 
