@@ -812,6 +812,39 @@ the source position of the closing parenthesis of the call.
 }  /* scan_call_arguments */
 
 
+static void scan_dependent_parenthesized_initializer(a_dynamic_init_ptr *dip)
+/*
+Scan a parenthesized list of expressions that is the initializer of
+an entity of a template-dependent type.  Build a dynamic initialization
+entry for the initialization and return a pointer to it in *dip.
+On entry, the current token is the one following the opening parenthesis.
+On return, the current token is the one following the closing parenthesis.
+*/
+{
+  an_expr_node_ptr  arg_list;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  /* Scan the argument list. */
+  scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                      /*already_after_left_paren=*/TRUE,
+                      &arg_list, /*overloaded_function_case=*/FALSE,
+                      (an_arg_operand_ptr *)NULL, (a_source_position *)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Set the dynamic init entry to represent "constructor" initialization,
+     leaving the constructor pointer NULL. */
+  *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+  (*dip)->variant.constructor.ptr = NULL;
+  (*dip)->variant.constructor.args = arg_list;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* scan_dependent_parenthesized_initializer */
+
+
 void check_closing_paren_after_expr_list(void)
 /*
 Check for the required closing parenthesis after an expression list, and
@@ -5040,7 +5073,7 @@ specification allow a variable-sized array as the top type.
   a_symbol_ptr      proj_function_symbol;
   a_routine_ptr     ctor_routine, delete_routine = NULL;
   a_boolean         needs_initialization, trapped_left_paren;
-  a_boolean         zero_initialization;
+  a_boolean         zero_initialization, dependent_initialization;
   an_expr_node_ptr  arg_expr_list, init_arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
   an_arg_operand_ptr
@@ -5056,6 +5089,8 @@ specification allow a variable-sized array as the top type.
   a_boolean         saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
   an_opname_kind    opname_kind;
+  a_dynamic_init_ptr
+                    dip;
 
   db_enter(4, "scan_new_operator");
 
@@ -5426,6 +5461,7 @@ specification allow a variable-sized array as the top type.
      above. */
   needs_initialization = FALSE;
   zero_initialization = FALSE;
+  dependent_initialization = FALSE;
   ctor_routine = NULL;
   init_val_node = NULL;
   if (curr_token != tok_lparen) {
@@ -5514,6 +5550,14 @@ specification allow a variable-sized array as the top type.
       /* In the array case (an error), throw away the argument list. */
       if (array_new) init_arg_expr_list = NULL;
       needs_initialization = (ctor_routine != NULL);
+    } else if (is_template_param_type(new_type)) {
+      /* A "new" of a template-dependent type, in a prototype instantiation. */
+      scan_dependent_parenthesized_initializer(&dip);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      needs_initialization = TRUE;
+      dependent_initialization = TRUE;
     } else {
       /* Not a class with a constructor. */
       if (curr_token != tok_rparen) {
@@ -5553,7 +5597,6 @@ specification allow a variable-sized array as the top type.
   } else {
     an_expr_node_ptr            new_node;
     a_new_delete_supplement_ptr ndsp;
-    a_dynamic_init_ptr          dip;
 
     /* Use an enk_new_delete node to represent the "new". */
     new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
@@ -5600,6 +5643,9 @@ specification allow a variable-sized array as the top type.
       } else if (zero_initialization) {
         /* Zero-initialization. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else if (dependent_initialization) {
+        /* Template-dependent initialization (i.e., we don't know the
+           type).  dip is already set. */
       } else {
         /* Expression as initial value. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
@@ -7537,39 +7583,6 @@ one argument, return TRUE; otherwise, return FALSE.
 
   return one_arg;
 }  /* conversion_has_one_argument */
-
-
-static void scan_dependent_parenthesized_initializer(a_dynamic_init_ptr *dip)
-/*
-Scan a parenthesized list of expressions that is the initializer of
-an entity of a template-dependent type.  Build a dynamic initialization
-entry for the initialization and return a pointer to it in *dip.
-On entry, the current token is the one following the opening parenthesis.
-On return, the current token is the one following the closing parenthesis.
-*/
-{
-  an_expr_node_ptr  arg_list;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
-  /* Scan the argument list. */
-  scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                      /*already_after_left_paren=*/TRUE,
-                      &arg_list, /*overloaded_function_case=*/FALSE,
-                      (an_arg_operand_ptr *)NULL, (a_source_position *)NULL);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Set the dynamic init entry to represent "constructor" initialization,
-     leaving the constructor pointer NULL. */
-  *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-  (*dip)->variant.constructor.ptr = NULL;
-  (*dip)->variant.constructor.args = arg_list;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-}  /* scan_dependent_parenthesized_initializer */
 
 
 static void scan_functional_notation_type_conversion(
