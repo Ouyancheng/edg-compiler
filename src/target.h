@@ -264,8 +264,8 @@ and destructors may have to be changed.
 #define ASSIGNMENT_TO_THIS_ALLOWED TRUE
 
 /*
-Flag that is TRUE the class layout scheme used by AT&T's cfront should be
-duplicated.  The main issue is how the data sections for virtual base
+Flag that is TRUE if the class layout scheme used by AT&T's cfront should
+be duplicated.  The main issue is how the data sections for virtual base
 classes are put out.  The default behavior (when this flag is FALSE)
 produces a more efficient use of space.
 */
