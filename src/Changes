@@ -1,5 +1,13 @@
 Version 3.0
 
+4/10/02  C99 hex float constants when double and long double are the same
+
+The routines that handle C99 hex floating point constants did not support
+configurations in which long double was configured to be the same size
+as double.  This required setting LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C to
+TRUE on such systems.  These routines now support long double representations
+that are the same size as double.
+
 4/10/02  (*this) incorrectly viewed as dependent in prototype instantiation
 
 In prototype instantiations of functions (done in strict mode, not

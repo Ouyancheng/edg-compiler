@@ -931,7 +931,11 @@ specified by kind.
   } else if (kind == (a_float_kind)fk_float) {
     val = (mp->parts[0] >> 9) | ((exponent + 127) << 23);
     memcpy((char*)float_value, (char*)&val, sizeof(val));
-  } else if (kind == (a_float_kind)fk_double) {
+  } else if (kind == (a_float_kind)fk_double ||
+             (kind == (a_float_kind)fk_long_double &&
+              targ_ldbl_mant_dig == 53)) {
+    /* A double value or a long double that is being represented by a
+       double value. */
     /* On little endian systems, the most significant part of the
        number is stored in the second four bytes.  Note that when the
        long value is stored in memory, its byte order will be right for
@@ -1579,7 +1583,8 @@ Initialize static variables related to float_pt.c.
      bit layout of the floating point values.  Make sure the configuration
      is for one of the supported layouts. */
   check_assertion_str2(targ_ldbl_mant_dig == 64 ||
-                       targ_ldbl_mant_dig == 113,
+                       targ_ldbl_mant_dig == 113 ||
+                       targ_ldbl_mant_dig == 53,
                        "float_pt_init:",
                        "unsupported long double mantissa size");
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */

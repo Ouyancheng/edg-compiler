@@ -59,10 +59,6 @@ Definitions for Windows NT/95/98:
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST_DEFINED"
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 
-/* The Microsoft compiler uses the same size for double and long double. */
-#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C 1
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
-
 /* The EDG driver on NT does not support one instantiation per object mode. */
 #define ONE_INSTANTIATION_PER_OBJECT 0
 
