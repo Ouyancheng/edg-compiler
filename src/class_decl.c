@@ -7076,6 +7076,28 @@ skip_tag_scan:
 static void check_type_for_linkage_change(a_type_ptr type,
                                           int        *count);
 
+
+static void make_enum_type_externally_linked(a_type_ptr  type,
+                                             int         *count)
+/*
+This routine changes the linkage of type, an enum type, from internal to
+external.
+*/
+{
+  check_assertion(is_immediate_enum_type(type));
+  /* Mark the enum type externally linked. */
+  type->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+  if (type->source_corresp.class_of_which_a_member == NULL) {
+    /* Increment the count.  This lets the caller know how many types (enum
+       types and classes) were changed from internal to external linkage and
+       permits an early termination of this processing.  Note that the count
+       does not include nested types. */
+    (*count)++;
+  }  /* if */
+}  /* make_enum_type_externally_linked */
+
+
 static void make_class_externally_linked(a_type_ptr type,
                                          int        *count)
 /*
@@ -7215,16 +7237,15 @@ is nothing that prevents it from being changed to having external linkage.
 {
   a_boolean  is_external_linkage_candidate = FALSE;
 
-  if (tp->source_corresp.is_local_to_function) {
-    /* Local types are ignored, as are types contained within them. */
-#if 0
-    /* It's not clear whether this should be allowed.  If not, an internal
-       error is appropriate here. */
-#endif /* if 0 */
-  } else if (tp->source_corresp.name_linkage !=
+  check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
+  check_assertion(!tp->source_corresp.is_local_to_function);
+  if (tp->source_corresp.name_linkage !=
                                (a_name_linkage_kind)nlk_internal) {
-    /* Already marked as having external linkage or no linkage.  Only
-       classes with internal linkage may be changed. */
+    /* Already marked as having external linkage or else no linkage.  Only
+       classes and enum types with internal linkage may be changed. */
+  } else if (is_immediate_enum_type(tp)) {
+    /* A non-local enum type may become externally linked. */
+    is_external_linkage_candidate = TRUE;
   } else if (tp->variant.class_struct_union.extra_info->
                                                 template_arg_list == NULL) {
     /* Not a template class -- it may become externally linked. */
@@ -7299,12 +7320,15 @@ the change on the contained type.
       check_type_for_linkage_change(tp, count);
       check_type_for_linkage_change(pm_member_type(type), count);
     case tk_integer:
-      /* Check for an enum type that is a member of a class. */
+      /* Check for an enum type.  If it a member of a class, its class should
+         be made externally linked, too. */
       if (type->variant.integer.enum_type) {
         tp = type->source_corresp.class_of_which_a_member;
         if (tp != NULL) {
           /* Nested enum -- change the parent's linkage first. */
           check_type_for_linkage_change(tp, count);
+        } else if (is_candidate_for_linkage_change(type)) {
+          make_enum_type_externally_linked(type, count);
         }  /* if */
       }  /* if */
       break;
@@ -7391,13 +7415,14 @@ this routine goes on to determine whether they must be made external
 because they were used in declaring an external function or variable.
 */
 {
-  int                          num_internally_linked_classes, count;
-  a_scope_ptr                  scope = il_header.primary_scope;
-  a_type_ptr                   tp;
-  a_routine_ptr                rp;
-  a_variable_ptr               vp;
-  a_boolean                    external;
-  a_boolean                    any_candidates_for_linkage_change = FALSE;
+  int             num_internally_linked_types, count;
+  a_scope_ptr     scope = il_header.primary_scope;
+  a_type_ptr      tp;
+  a_routine_ptr   rp;
+  a_variable_ptr  vp;
+  a_boolean       external;
+  a_boolean       any_candidates_for_linkage_change = FALSE;
+  a_symbol_ptr    sym;             
 
   db_enter(3, "check_class_linkage");
   /* Search for classes by making a pass over all the types associated with
@@ -7415,12 +7440,15 @@ because they were used in declaring an external function or variable.
              (Template classes that should not have external linkage have been
              screened out by is_candidate_for_linkage_change. */
           external = TRUE;
-        } else if (symbol_supplement_for_class(tp)->force_external_linkage) {
-          /* Type has been used in a context that requires it to have
-             external linkage. */
-          external = TRUE;
         } else {
-          external = class_members_force_external_linkage(tp);
+          sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+          if (sym->force_external_linkage) {
+            /* Type has been used in a context that requires it to have
+               external linkage. */
+            external = TRUE;
+          } else {
+            external = class_members_force_external_linkage(tp);
+          }  /* if */
         }  /* if */
         if (external) {
           /* Make the class externally linked and propagate this external
@@ -7435,6 +7463,16 @@ because they were used in declaring an external function or variable.
           any_candidates_for_linkage_change = TRUE;
         }  /* if */
       }  /* if */
+    } else if (is_immediate_enum_type(tp)) {
+      if (is_candidate_for_linkage_change(tp)) {
+        sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+        if (sym != NULL && sym->force_external_linkage) {
+          int dummy_count = 0;
+          make_enum_type_externally_linked(tp, &dummy_count);
+        } else {
+          any_candidates_for_linkage_change = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
   if (any_candidates_for_linkage_change) {
@@ -7445,17 +7483,20 @@ because they were used in declaring an external function or variable.
        entries to get an accurate count.  We keep track of the actual number
        of internally linked classes that remain so that we can stop looking
        at routines and variables as soon as possible. */
-    num_internally_linked_classes = 0;
+    num_internally_linked_types = 0;
     for (tp = scope->types; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp) && is_candidate_for_linkage_change(tp)) {
-        num_internally_linked_classes++;
+      if (is_immediate_class_type(tp) || is_immediate_enum_type(tp)) {
+        if (is_candidate_for_linkage_change(tp)) {
+          num_internally_linked_types++;
+        }  /* if */
       }  /* if */
     }  /* for */
-    if (num_internally_linked_classes > 0) {
-      /* There is at least one internally linked class.  Make a pass over all
-         the variables defined at file scope to determine whether the
-         declaration of an externally linked variable entails a reference to
-         a class that is still marked as internally linked. */
+    if (num_internally_linked_types > 0) {
+      /* There is at least one internally linked class or enum type.  Make a
+         pass over all the variables defined at file scope to determine
+         whether the declaration of an externally linked variable entails a
+         reference to a class or enum type that is still marked as internally
+         linked. */
       for (vp = scope->variables; vp != NULL; vp = vp->next) {
         if (vp->storage_class != (a_storage_class)sc_static) {
           /* This is an externally linked variable.  Check its type. */
@@ -7465,15 +7506,15 @@ because they were used in declaring an external function or variable.
              that were changed to externally linked.  Adjust the number of
              internally linked classes remaining.  When it gets down to zero
              we can bail out. */
-          num_internally_linked_classes -= count;
-          if (num_internally_linked_classes < 1) break;
+          num_internally_linked_types -= count;
+          if (num_internally_linked_types < 1) break;
         }  /* if */
       }  /* for */
     }  /* if */
-    if (num_internally_linked_classes > 0) {
-      /* There is still at least one internally linked class.  Make a pass
-         over the file scope routine entries similar to the one made for
-         variables. */
+    if (num_internally_linked_types > 0) {
+      /* There is still at least one internally linked class or enum type.
+         Make a pass over the file scope routine entries similar to the one
+         made for variables. */
       for (rp = scope->routines; rp != NULL; rp = rp->next) {
         if (rp->storage_class != (a_storage_class)sc_static) {
           /* This is an externally linked routine.  Check its type. */
@@ -7481,8 +7522,8 @@ because they were used in declaring an external function or variable.
           check_type_for_linkage_change(rp->type, &count);
           /* Again, we can bail out when the number of internally linked
              classes is reduced to zero. */
-          num_internally_linked_classes -= count;
-          if (num_internally_linked_classes < 1) break;
+          num_internally_linked_types -= count;
+          if (num_internally_linked_types < 1) break;
         }  /* if */
       }  /* for */
     }  /* if */
