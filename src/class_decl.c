@@ -4617,26 +4617,31 @@ shares virtual function info.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean is_microsoft_IUnknown_type(a_type_ptr  type)
+static a_boolean is_microsoft_interface_struct(a_type_ptr  type)
 /*
-Check whether the given class type is called IUnknown and has the uuid of
-the Microsoft COM base class IUnknown.
+Check whether the given class type is IUnknown or IDispatch.  These appear in
+Microsoft headers declared with the "struct" keyword, but they are implicitly
+treated as if declared with "__interface".  We identify these types using
+their "uuid" string.
 */
 {
   a_boolean  result = FALSE;
 
   check_assertion(is_immediate_class_type(type));
-  if (type->source_corresp.name != NULL &&
-      type->source_corresp.name[0] == 'I' &&  /* For speed. */
-      strcmp(type->source_corresp.name, "IUnknown") == 0) {
+  if (type->kind == (a_type_kind)tk_struct &&
+      type->source_corresp.name != NULL &&
+      type->source_corresp.name[0] == 'I') {
     char  *uuid_str = type->variant.class_struct_union.extra_info->uuid_string;
     if (uuid_str != NULL &&
-        strcmp(uuid_str, "00000000-0000-0000-c000-000000000046") == 0) {
+        ((strcmp(type->source_corresp.name, "IUnknown") == 0 &&
+          strcmp(uuid_str, "00000000-0000-0000-c000-000000000046") == 0) ||
+         (strcmp(type->source_corresp.name, "IDispatch") == 0 &&
+          strcmp(uuid_str, "00020400-0000-0000-c000-000000000046") == 0))) {
       result = TRUE;
     }  /* if */
   }  /* if */
   return result;
-}  /* is_microsoft_IUnknown_type */
+}  /* is_microsoft_interface_struct */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -4909,7 +4914,7 @@ or struct definition.  The syntax is
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (interface_definition &&
           !base_class_type->variant.class_struct_union.is_interface &&
-          !is_microsoft_IUnknown_type(base_class_type)) {
+          !is_microsoft_interface_struct(base_class_type)) {
         error(ec_interface_must_derive_from_interface);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
