@@ -464,6 +464,9 @@ Print the contents of a region description entry.
       fprintf(__f_debug, "  flags: ");
       if (ehrdp->flags & RDF_INDIRECT) fprintf(__f_debug, " indirect");
       if (ehrdp->flags & RDF_NEW_ALLOCATION) fprintf(__f_debug, " new");
+      if (ehrdp->flags & RDF_BASE_CLASS_SUBOBJECT) {
+        fprintf(__f_debug, " subobject");
+      }  /* if */
     }  /* if */
     fprintf(__f_debug, "  destr/delete=%p\n",
             (void*)ehrdp->destructor_or_delete_routine);
@@ -588,8 +591,13 @@ requires cleanup.
         __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
                     /*delete_flag=*/FALSE, /*unused_arg=*/0);
       } else {
-        /* Not an array.  Just destroy the object. */
-        (dtor_ptr)(obj_addr, 2);
+        /* Not an array.  Just destroy the object.  If the object is a
+           complete object, pass in the value "2" to indicate that the
+	   object and any subobjects should be destroyed.  If the object
+           is itself a base class subobject, pass in the value "0"
+	   indicating that only the object (and not any subobjects)
+	   should be destroyed. */
+        (dtor_ptr)(obj_addr, (flags & RDF_BASE_CLASS_SUBOBJECT) ? 0 : 2);
       }  /* if */
     } else {
       /* A new allocation region.  Call the delete operator to free the

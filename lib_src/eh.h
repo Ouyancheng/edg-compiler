@@ -114,6 +114,12 @@ config.h file.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
 #endif /* 0 */
 
+#define RDF_BASE_CLASS_SUBOBJECT	0x40
+			/* TRUE if the object is a base class of some other
+			   object and therefore is not a complete object. */
+
+
+
 
 #define NULL_REGION_NUMBER ((a_region_number)-1)
 			/* The value used when there is no active EH

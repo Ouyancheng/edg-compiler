@@ -1,5 +1,15 @@
 Version 2.31
 
+11/27/95 Destructors for virtual bases called more than once
+
+When calling destructors, the EH runtime was always passing the
+"complete object" flag to the destructor.  This caused virtual
+base classes to be destroyed more than once in some cases.  The
+runtime needs additional information in order to provide the correct
+"complete object" flag to the destructor.  The front end and runtime
+have been modified to use a new flag (named RDF_BASE_CLASS_SUBOBJECT)
+to determine whether the "complete object" flag should be set.
+
 11/08/95 Destructors incorrectly called when pointers are thrown
 
 When a pointer to an object with a destructor was thrown, the destructor
