@@ -12721,9 +12721,11 @@ files can reference it.
 {
   sizeof_t name_len, prefix_len, module_id_len;
   char     *prefix = (is_variable ? (char *)"__STV__" : (char *)"__STF__");
-  char     *module_id = make_module_id();
+  char     *module_id;
   char     *name, *new_name, *ptr;
   char     buffer[50];
+  a_translation_unit_ptr
+           tup;
 
   name = scp->name;
 #if CHECKING
@@ -12783,6 +12785,12 @@ files can reference it.
   }  /* if */
   name_len = strlen(name);
   prefix_len = strlen(prefix);
+  /* Get the module id for the translation unit which this source
+     correspondence is part of.  For a source correspondence with no
+     associated symbol, use the current translation unit. */
+  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
+                                    curr_translation_unit;
+  module_id = *tup->module_id_ptr;
   module_id_len = strlen(module_id);
   new_name = alloc_lowered_name_string(prefix_len + name_len + module_id_len +
                                        3);
