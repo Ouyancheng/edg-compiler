@@ -494,22 +494,19 @@ case of inserting an if-equivalent into the middle of an expression.
 
 static void enclose_routine_in_if(a_scope_ptr      scope,
                                   an_expr_node_ptr if_node,
-                                  a_statement_ptr  *p_block_stmt,
                                   a_variable_ptr   return_var)
 /*
 Add an "if" statement around the entire body of the routine whose scope is
 pointed to by scope.  if_node is the expression to be tested in the "if".
-*block_stmt is set to point to the block statement that is made as the
-dependent statement of the "if".  return_var is the variable to be returned
-if a "return" statement must be generated, or NULL if no value needs
-to be returned.
+return_var is the variable to be returned if a "return" statement must be
+generated, or NULL if no value needs to be returned.
 */
 {
   a_statement_ptr if_stmt, block_stmt, stmt, prev_stmt;
 
   if_stmt = alloc_statement((a_statement_kind)stmk_if);
   if_stmt->expr = if_node;
-  if_stmt->variant.if_stmt.then_statement = *p_block_stmt = block_stmt =
+  if_stmt->variant.if_stmt.then_statement = block_stmt =
                                  alloc_statement((a_statement_kind)stmk_block);
   /* Make the "if" the top-level statement in the routine, and put the
      original code under the "if". */
@@ -4421,6 +4418,16 @@ constructor scope, and also lower the user code.
   an_insert_location insert_location;
   a_source_position  saved_error_position, saved_code_pos;
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+  a_type_ptr         class_type =
+                          ctor_routine->source_corresp.class_of_which_a_member;
+  a_class_type_supplement_ptr
+                     ctsp = class_type->variant.class_struct_union.extra_info;
+  a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
+  a_variable_ptr     this_param_var = scope->variant.routine.parameters;
+  an_expr_node_ptr   if_node;
+  a_variable_ptr     cond_var;
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -4443,29 +4450,23 @@ constructor scope, and also lower the user code.
          if (this != NULL || (this = new-rout(size)) != NULL)
        The entire rest of the routine (both wrapper code and user code)
        is placed in the dependent statement of the "if". */
-    a_variable_ptr     this_param_var = scope->variant.routine.parameters;
-    a_type_ptr         class_type, int_type;
+    /* Ordering issue: we want to do the call of make_delete_region_table_entry
+       before any region table entries have been created for anything else,
+       but we don't want to enclose the whole routine in an "if" until the
+       user code has been lowered, because we want cleanup code emitted
+       on the return at the end of the user code.  So we do everything
+       short of inserting the "if" and do that at the end. */
+    a_type_ptr         int_type;
     an_expr_node_ptr   size_node, call_node, assign_node;
-    an_expr_node_ptr   new_compare_node, if_node, this_param_node;
+    an_expr_node_ptr   new_compare_node, this_param_node;
     an_expr_node_ptr   null_constant_node, this_compare_node;
-    a_statement_ptr    block_stmt;
     a_constant         null_constant;
-    a_class_type_supplement_ptr
-                       ctsp;
-    a_routine_ptr      new_routine;
-    a_variable_ptr     cond_var;
-    an_init_pos_descr  ipd;
-    a_cleanup_region_number
-                       new_cleanup_region_number;
 
-    /* Make "new-rout(size)". */
-    class_type = ctor_routine->source_corresp.class_of_which_a_member;
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    new_routine = ctsp->assoc_operator_new_routine;
     /* If there is no default new routine for the class, do not put out
        the code.  This happens if the class has a class-specific new but
        not one that takes a single argument. */
     if (new_routine != NULL) {
+      /* Make "new-rout(size)". */
       size_node = node_for_integer_constant((long)class_type->size,
                                             targ_size_t_int_kind);
       call_node = make_call_node(new_routine, size_node,
@@ -4478,6 +4479,9 @@ constructor scope, and also lower the user code.
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);
       if (exceptions_enabled) {
+        an_insert_location      expr_insert_location;
+        a_cleanup_region_number new_cleanup_region_number;
+        an_init_pos_descr       ipd;
         /* Exceptions are enabled.  Record the allocation so it can
            be freed if a throw occurs while this routine is running. */
         /* "this = new_rout(size)" is turned into
@@ -4487,23 +4491,23 @@ constructor scope, and also lower the user code.
         assign_node->next = this_param_node;
         assign_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                          this_param_node->type, assign_node);
-        set_expr_insert_location(this_param_node, &insert_location);
+        set_expr_insert_location(this_param_node, &expr_insert_location);
         /* Make a conditional flag variable that is set to nonzero if the
            allocation is done. */
         cond_var = 
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
         /* Set the conditional_flag  variable to nonzero.  The code to
            initialize it to zero is inserted later in this routine. */
-        set_conditional_flag_var(cond_var, &insert_location);
+        set_conditional_flag_var(cond_var, &expr_insert_location);
         /* Add the cleanup region table entry. */
         set_var_indirect_init_pos_descr(this_param_var, &ipd);
         make_delete_region_table_entry(&ipd,
                                        ctsp->assoc_operator_delete_routine,
                                        cond_var,
                                        &new_cleanup_region_number,
-                                       &insert_location);
+                                       &expr_insert_location);
         /* Set the region number to the delete cleanup entry. */
-        set_eh_curr_region(new_cleanup_region_number, &insert_location);
+        set_eh_curr_region(new_cleanup_region_number, &expr_insert_location);
       }  /* if */
       /* Make "(this = new_rout(size)) != NULL". */
       make_zero_of_proper_type(this_param_var->type, &null_constant);
@@ -4522,18 +4526,7 @@ constructor scope, and also lower the user code.
       this_compare_node->next = new_compare_node;
       if_node = make_operator_node((an_expr_operator_kind)eok_lor,
                                    int_type, this_compare_node);
-      /* Make "if (this != NULL || (this = new-rout(size)) != NULL)". */
-      enclose_routine_in_if(scope, if_node, &block_stmt, this_param_var);
-      if (exceptions_enabled) {
-        /* Initialize the conditional flag to zero.  This must be done after
-           enclose_routine_in_if is called so that the initialization is
-           done at the right place (i.e., outside the "if"). */
-        set_block_start_insert_location(scope->assoc_block, &insert_location);
-        init_conditional_flag_var(cond_var,
-                                  /*follows_an_exec_statement=*/FALSE,
-                                  &insert_location);
-      }  /* if */
-      set_block_start_insert_location(block_stmt, &insert_location);
+      /* The "if" statement is inserted later. */
     }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
     /* Add the wrapper code at the start of the routine. */
@@ -4543,7 +4536,35 @@ constructor scope, and also lower the user code.
   /* Lower the user code in the constructor. */
   lower_statement_list(user_code_stmts, &last_statement);
 
-  /* Clear the list of constructor inits. */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  /* Again, if an assignment to "this" was done, the wrapper code is
+     not generated. */
+  if (!ctor_routine->assignment_to_this_done)
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  /* Don't insert code here. */
+  {
+    if (new_routine != NULL) {
+      /* Insert an "if" around the whole routine, specifically
+         "if (this != NULL || (this = new-rout(size)) != NULL)".
+         As mentioned above, this must be done after the user code is
+         lowered. */
+      enclose_routine_in_if(scope, if_node, this_param_var);
+      if (exceptions_enabled) {
+        /* Initialize the conditional flag to zero.  This must be done after
+           enclose_routine_in_if is called so that the initialization is
+           done at the right place (i.e., outside the "if"). */
+        set_block_start_insert_location(scope->assoc_block, &insert_location);
+        init_conditional_flag_var(cond_var,
+                                  /*follows_an_exec_statement=*/FALSE,
+                                  &insert_location);
+      }  /* if */
+    }  /* if */
+  }
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+  /* Clear the list of constructor inits (it can't be cleared by
+     add_constructor_wrapper_code because that routine can be called
+     more than once when assignments to "this" are present). */
   scope->variant.routine.constructor_inits = NULL;
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
@@ -5051,8 +5072,7 @@ destructor scope, and also lower the user code.
     call_stmt = make_call_statement(delete_routine, this_param_node);
     insert_statement(call_stmt, &insert_location2);
   }
-  { a_statement_ptr  block_stmt;
-    an_expr_node_ptr this_param_node, null_constant_node, if_node;
+  { an_expr_node_ptr this_param_node, null_constant_node, if_node;
     a_constant       null_constant;
 
     /* Make and add "if (this != NULL)" around the entire routine body.
@@ -5066,7 +5086,7 @@ destructor scope, and also lower the user code.
     if_node = make_operator_node((an_expr_operator_kind)eok_pne,
                                  int_type, this_param_node);
     /* Make the "if" statement. */
-    enclose_routine_in_if(scope, if_node, &block_stmt, (a_variable_ptr)NULL);
+    enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
   }
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
