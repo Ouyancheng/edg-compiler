@@ -1820,6 +1820,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->assoc_scope                 = NULL_region_number;
   rp->storage_class               = (a_storage_class)sc_unspecified;
   rp->special_kind                = (a_special_function_kind)sfk_none;
+  rp->opname_or_builtin.opname_kind
+                                  = (an_opname_kind) onk_none;
 #if GNU_EXTENSIONS_ALLOWED
   rp->opname_or_builtin.builtin_function_kind 
                                   = (a_builtin_function_kind)bfk_none;
