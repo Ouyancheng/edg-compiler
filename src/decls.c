@@ -4228,7 +4228,7 @@ cross-reference output describing this declaration.
       /* Since the type may have various run-time dependencies, put out a
          statement indicating where in the executable stream this declaration
          appears.  */
-      if (struct_stmt_stack == NULL) {
+      if (depth_stmt_stack < 0) {
         /* Some (unlikely) error situations can cause us to get here outside a
            function scope: for such cases we cannot actually add a statement
            (there is no active statement stack). */
