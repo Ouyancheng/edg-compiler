@@ -1286,13 +1286,16 @@ except for casts to ambiguous or inaccessible base classes.
           /* Cast the constant by changing its type.  In a nonconstant
              context, reduce any error to a warning and leave the
              conversion to be done at runtime. */
-          copy_constant(&operand->variant.constant, &local_constant);
-          type_change_constant(&local_constant, new_type, is_implicit_cast,
-                               curr_expr_kind_is_const(),
-                               &did_not_fold, &operand->position);
+          did_not_fold = TRUE;
+          if (curr_expr_is_evaluated()) {
+            copy_constant(&operand->variant.constant, &local_constant);
+            type_change_constant(&local_constant, new_type, is_implicit_cast,
+                                 curr_expr_kind_is_const(),
+                                 &did_not_fold, &operand->position);
+          }  /* if */
           if (did_not_fold) {
             /* Cast of a constant did not fold. */
-            if (curr_expr_kind_is_const()) {
+            if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
               error_in_operand(ec_expr_not_constant, operand);
             } else if (il_identical_types(operand->type, new_type)) {
               /* If the new type is identical to the old type, just put the
@@ -1444,7 +1447,7 @@ in C++ mode.
     }  /* if */
     if (did_not_fold) {
       /* The cast could not be folded to a constant. */
-      if (curr_expr_kind_is_const()) {
+      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
         /* The cast must fold to a constant in a constant expression. */
         error_in_operand(ec_expr_not_constant, operand);
       } else {
@@ -2739,7 +2742,7 @@ if possible.
       }  /* if */
     }  /* if */
     if (did_not_fold) {
-      if (curr_expr_kind_is_const()) {
+      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
         /* An operation on constants could not be folded.  For example,
            a pointer comparison between pointers that aren't in the
            same object can't be represented as a constant.  In a

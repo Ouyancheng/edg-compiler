@@ -1831,7 +1831,7 @@ in *result.
                            &did_not_fold);
     }  /* if */
     if (did_not_fold) {
-      if (curr_expr_kind_is_const()) {
+      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
         /* The operation must fold to a constant in a constant expression. */
         /* The only case where it won't is if the field is a bit field,
            so use that for a clearer error message. */
@@ -3224,7 +3224,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                           &did_not_fold, &start_position);
         }  /* if */
         if (did_not_fold) {
-          if (curr_expr_kind_is_const()) {
+          if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
             /* A constant operation could not be folded in a constant
                expression. */
             pos_error(ec_expr_not_constant, &start_position);
