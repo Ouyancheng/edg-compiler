@@ -514,8 +514,11 @@ Otherwise, type's correspondence should be set to *record.
 {
   if (*record == NULL) {
     *record = type;
-    trans_unit_corresp_pointer_of(type) = (char*)type;
+    if (in_secondary_trans_unit(type)) {
+      trans_unit_corresp_pointer_of(type) = (char*)type;
+    }  /* if */
   } else {
+    check_assertion(in_secondary_trans_unit(type));
     trans_unit_corresp_pointer_of(type) = (char*)*record;
   }  /* if */
 }  /* set_builtin_type_corresp */
