@@ -15,6 +15,10 @@ pch.c -- Precompiled header processing.
 
 #include "basics.h"
 #include "pch.h"
+#include "decls.h"
+#include "statements.h"
+#include "symbol_ref.h"
+#include "macro.h"
 #include "mem_manage.h"
 #include "version.h"
 
@@ -385,8 +389,6 @@ Allocate and initialize a precompiled header event record.
     case pchek_pp_directive:
       pep->variant.ppd_kind = ppd_not_valid;
       break;
-    case pchek_sequence_marker:
-      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -409,10 +411,6 @@ file.
   a_pch_event_ptr	pep;
 
   db_enter(4, "add_pch_event");
-#if 0
-#else
-  if (kind == pchek_sequence_marker) goto done;
-#endif
   pep = alloc_pch_event(kind);
   if (kind == pchek_pp_directive) {
     pep->variant.ppd_kind = ppd_kind;
@@ -435,10 +433,6 @@ file.
             pep->position.seq, pep->position.column);
   }  /* if */
 #endif /* DEBUG */
-#if 0
-#else
-done:
-#endif
   db_exit();
 }  /* add_pch_event */
 
@@ -502,8 +496,6 @@ Display a PCH event for debugging purposes.
     case pchek_pp_directive:
       fprintf(f_debug, ", ppd_kind: %s",
               pp_directive_kind_names[(int)pep->variant.ppd_kind]);
-      break;
-    case pchek_sequence_marker:
       break;
     default:
       unexpected_condition();
@@ -629,8 +621,6 @@ Write a list of precompiled header events to the PCH output file.
       case pchek_pp_directive:
         pch_write_value(pep->variant.ppd_kind);
         break;
-      case pchek_sequence_marker:
-        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -667,8 +657,6 @@ is encountered.
       case pchek_pp_directive:
         pch_read_value(pep->variant.ppd_kind);
         break;
-      case pchek_sequence_marker:
-        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -697,9 +685,6 @@ Return TRUE if two PCH events are equivalent.
         break;
       case pchek_pp_directive:
         result = pep1->variant.ppd_kind == pep2->variant.ppd_kind;
-        break;
-      case pchek_sequence_marker:
-        result = TRUE;
         break;
       default:
         unexpected_condition();
@@ -1094,6 +1079,45 @@ current point.
 }  /* write_precompiled_header_file */
 
 
+void generate_precompiled_header(void)
+/*
+Processing has reached the "header stop" point.  Check for conditions that
+would prevent generation of a precompiled header file, and if none exists,
+write out the precompiled header file.
+*/
+{
+#define PCH_DECL_SEQ_THRESHOLD 0
+
+  if (using_a_pch_file) {
+    /* We are using input obtained from a precompiled header, don't
+       try to generate a new one. */
+  } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+    /* Don't save the header files if we are not currently at file scope. */
+  } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
+    /* Nor if we are in the midst of a macro definition or a #if construct. */
+  } else if (total_errors > 0 && total_warnings > 0) {
+    /* Nor if there have been diagnostics. */
+  } else if (def_external_linkage.is_explicit) {
+    /* Nor if we are in the middle of a linkage specifier block. */
+  } else {
+    /* The state justifies creating a precompiled header. */
+    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+    check_assertion(depth_stmt_stack == -1);
+    /* Be sure there the overhead in generating a precompiled header is
+       justified "quantitatively". */
+    if (curr_ise->include_history == NULL) {
+      /* There haven't been any include files. */
+    } else if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
+      /* There haven't been enough declarations to justify writing out and
+         restoring the header information. */
+    } else {
+      /* Okay -- go ahead and do it. */
+      write_precompiled_header_file();
+    }  /* if */
+  }  /* if */
+}  /* generate_precompiled_header */
+
+
 static a_boolean id_string_matches(void)
 /*
 Make sure that the ID string in the candidate PCH file matches the current
@@ -1245,8 +1269,6 @@ pch file.  Return a pointer to the last matching event.
         break;
       case pchek_pp_directive:
         is_define = event.variant.ppd_kind == ppd_define;
-        break;
-      case pchek_sequence_marker:
         break;
       default:
         unexpected_condition();
@@ -1544,6 +1566,7 @@ Initialize variables used by the precompiled header routines.
   pch_event_list_tail = NULL;
   building_pch_prefix = FALSE;
   header_stop_source_position = null_source_position;
+  pragma_hdrstop_found = FALSE;
   pos_of_last_event_from_pch = null_source_position;
   using_a_pch_file = FALSE;
 #if DEBUG

@@ -34,10 +34,6 @@ typedef enum /* a_pch_event_kind */ {
 			/* Command line option information. */
   pchek_pp_directive,
 			/* A preprocessing directive. */
-  pchek_sequence_marker,
-			/* A sequence point at which the events must
-			   match.  For example, #include directives are
-			   bracketed by sequence markers. */
   pchek_last		/* Must be last. */
 } a_pch_event_kind;
 
@@ -50,7 +46,6 @@ EXTERN char	*pch_event_kind_names[(int)pchek_last+1]
 = { "none",
     "command_line",
     "pp_directive",
-    "sequence_marker",
     "last"
   }
 #endif /* VAR_INITIALIZERS */
@@ -191,6 +186,12 @@ EXTERN a_source_position
 			   reached the implied header stop point. */
 
 EXTERN a_boolean
+		pragma_hdrstop_found;
+			/* TRUE is a #pragma hdrstop was encountered
+			   during the prefix prescan.  This disables
+			   the recognition of subsequent events. */
+
+EXTERN a_boolean
 		using_a_pch_file;
 			/* TRUE if this compilation makes use of a
 			   precompiled header file. */
@@ -229,7 +230,7 @@ void add_command_line_pch_event(a_pch_event_kind	kind,
 
 extern void precompiled_header_processing(void);
 
-extern void write_precompiled_header_file(void);
+extern void generate_precompiled_header(void);
 
 extern void pch_init(void);
 

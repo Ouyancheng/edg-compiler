@@ -1145,6 +1145,13 @@ Scan and process a #pragma directive.
         set_ifg_state(IFG_STATE_ONCE);
         curr_ise->include_history->pragma_once = TRUE;
 	processed = TRUE;
+      } else if (curr_id_is("hdrstop")) {
+        /* If we are generating a precompiled header file, this marks the
+           end of the tokens that comprise the precompiled header.
+           Write the precompiled header now, if possible. */
+        generate_precompiled_header();
+        while (get_token() != tok_newline);
+        processed = TRUE;
       } else {
         /* Look for a matching pragma identifier in the pragma descriptions
            list.  If any pragma need to be added in where the pragma is
@@ -1247,27 +1254,28 @@ building_pch_prefix flag so that normal compilation processing will
 begin.
 */
 {
+  a_boolean	is_pragma_hdrstop;
+
+  /* Bypass the directive keyword. */
+  (void)get_token();
+  /* See if this is the special header stop pragma. */
+  is_pragma_hdrstop = kind == ppd_pragma && curr_id_is("hdrstop");
   if (using_a_pch_file) {
     /* Skip to the end of this directive. */
     while (get_token() != tok_newline);
-    if (cmp_source_positions(*pos, pos_of_last_event_from_pch) == 0) {
+    /* Actually, both conditions should be TRUE when a pragma hdrstop
+       is found. */
+    if (is_pragma_hdrstop ||
+        cmp_source_positions(*pos, pos_of_last_event_from_pch) == 0) {
       building_pch_prefix = FALSE;
     }  /* if */
+  } else if (pragma_hdrstop_found) {
+    /* We previously encountered a pragma hdrstop, disregard any
+       additional events. */
   } else {
-    /* Bypass the directive keyword. */
-    (void)get_token();
     convert_pp_directive_to_string();
-    if (kind == ppd_include) {
-      /* Add a sequence point marker before and after include directives. */
-      add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
-                    &null_source_position);
-    }  /* if */
     add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
-    if (kind == ppd_include) {
-      /* Add a sequence point marker before and after include directives. */
-      add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
-                    &null_source_position);
-    }  /* if */
+    if (is_pragma_hdrstop) pragma_hdrstop_found = TRUE;
   }  /* if */
 }  /* pch_prefix_processing_for_pp_directive */
 
