@@ -21,7 +21,7 @@ compile correctly.  Now fixed.
     int j = (int){(i, i)};
   }
 
-9/9/04  Named address space qualifiers and "?" operator
+9/9/04  Embedded C: Named address space qualifiers and "?" operator
 
 The processing for the "?" operator on pointers did not correctly
 handle named address space qualifiers (from Embedded C) on the
