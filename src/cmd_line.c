@@ -868,6 +868,14 @@ Initialize the option information table.
                          "ignore_std",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_parse_function_templates,
+                         "parse_function_templates",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_parse_function_templates,
+                         "no_parse_function_templates",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1300,6 +1308,10 @@ by a command line option.
     if (!option_kind_used[(int)optk_dependent_name_processing]) {
       do_dependent_name_processing = FALSE;
     }  /* if */
+    if (!option_kind_used[(int)optk_parse_function_templates]) {
+      nonclass_prototype_instantiations = FALSE;
+      prototype_instantiations_in_il = FALSE;
+    }  /* if */
     if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
       nonstandard_using_decl_allowed = FALSE;
     }  /* if */
@@ -1411,6 +1423,10 @@ optk_cfront_3_0_mode.
   }  /* if */
   if (!(option_kind_used[(int)optk_dependent_name_processing])) {
     do_dependent_name_processing = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_parse_function_templates]) {
+    nonclass_prototype_instantiations = FALSE;
+    prototype_instantiations_in_il = FALSE;
   }  /* if */
   /* Set flags that cannot be overridden by command line options. */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
@@ -1586,6 +1602,10 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   if (option_kind_used[(int)optk_dependent_name_processing]) {
     command_line_error(ec_cl_dep_name_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_parse_function_templates]) {
+    command_line_error(
+                     ec_cl_parse_function_templates_option_only_in_cplusplus);
   }  /* if */
   if (option_kind_used[(int)optk_ignore_namespace_std]) {
     command_line_error(ec_cl_ignore_std_option_only_in_cplusplus);
@@ -1912,6 +1932,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       /* If dependent name processing was not explicitly set by a command line
          option, set it now. */
       do_dependent_name_processing = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_parse_function_templates])) {
+      /* If prototype instantiation of nonclasses was not explicitly set by a
+         command line option, set it now. */
+      nonclass_prototype_instantiations = TRUE;
     }  /* if */
     if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
       /* If nonstandard using-decl was not explicitly set by a command line
@@ -2792,6 +2817,10 @@ enable_microsoft_mode:
            alias for the global namespace. */
         ignore_std_namespace = opt_value;
         break;
+      case optk_parse_function_templates:
+        /* Enable prototype instantiation of nonclass templates. */
+        nonclass_prototype_instantiations = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2845,11 +2874,11 @@ enable_microsoft_mode:
     import_dir_name = ".";
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do nonclass prototype instantiations when dependent name processing
-     is being done. */
-  nonclass_prototype_instantiations = do_dependent_name_processing;
-  /* Do argument dependent lookup when doing dependent name processing. */
   if (do_dependent_name_processing) {
+    /* Do nonclass prototype instantiations when dependent name processing
+       is being done. */
+    nonclass_prototype_instantiations = TRUE;
+    /* Do argument dependent lookup when doing dependent name processing. */
     arg_dependent_lookup_enabled = TRUE;
     implicit_typename_enabled = FALSE;
   }  /* if */

@@ -191,6 +191,7 @@ typedef enum /*an_option_kind*/ {
   optk_sun_mode,
   optk_dependent_name_processing,
   optk_ignore_namespace_std,
+  optk_parse_function_templates,
   optk_last		/* Must be last. */
 } an_option_kind;
 
