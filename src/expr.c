@@ -12075,7 +12075,7 @@ Return the constant in *constant.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* There is no point in recording the constant expression for a nontype
-     template argument, because it can differ from one instantion point to
+     template argument, because it can differ from one instantiation point to
      another, and we can record only one expression. */
   constant->expr = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
