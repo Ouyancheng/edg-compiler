@@ -1,5 +1,21 @@
 Version 2.29
 
+5/23/95  New-style casts
+
+The new-style casts are now implemented:
+
+  static_cast<type-id>(expr)
+  reinterpret_cast<type-id>(expr)
+  const_cast<type-id>(expr)
+
+There is no separate command-line option for disabling these, as it was
+judged that these keywords are unlikely to show up in existing code.
+
+No IL changes were required for these.  However, we have delayed
+implementing reinterpret_cast between pointers to members of unrelated
+classes because that would require an IL change.  That conversion will
+be implemented in the next release.
+
 5/23/95  More efficient mechanism for recording array sizes in runtime
 
 When an array is allocated by the new operator, the runtime needs to
