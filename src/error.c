@@ -39,6 +39,13 @@ EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                                          a_const_void_ptr));
 #endif /* ifndef STDLIB_H_INCLUDED */
 
+#if defined(__SUNPRO_CC) && __BSD__
+/* Sun C++ on SunOS 4.1.3 uses const char * as the first argument of
+   bsearch. */
+typedef const char * a_bsearch_arg_type;
+#else /* !(defined(__SUNPRO_CC) && __BSD__) */
+typedef a_const_void_ptr a_bsearch_arg_type;
+#endif /* defined(__SUNPRO_CC) && __BSD__ */
 
 /*
 Constants, structures and static variables used to format diagnostic
@@ -2788,8 +2795,8 @@ If the tag cannot be found return TRUE, otherwise return FALSE.
   ete_to_find.tag = tag;
   /* Look up the enumeration code in the error_info table. */
   etep_found = (an_error_tag_entry_ptr)
-                    bsearch((a_const_void_ptr)&ete_to_find,
-                            (a_const_void_ptr)error_tags,
+                    bsearch((a_bsearch_arg_type)&ete_to_find,
+                            (a_bsearch_arg_type)error_tags,
                             size_t_arg(NUMBER_OF_ERROR_TAGS),
                             sizeof(an_error_tag_entry),
                             compare_tag_info);
