@@ -12627,6 +12627,11 @@ C++ to C, so that a C back end can handle it without change.
     curr_object_lifetime = saved_curr_object_lifetime;
     innermost_function_scope = saved_innermost_function_scope;
     il_lowering_underway = FALSE;
+#if DO_C99_IL_LOWERING
+  } else if (c99_il_lowering_needed()) {
+    scope = il_header.region_scope_entry[region_number];
+    lower_c99_il_memory_region(scope);
+#endif /* DO_C99_IL_LOWERING */
   }  /* if */
   db_exit();
 }  /* lower_il_memory_region */
