@@ -2885,6 +2885,15 @@ not be TRUE.
               /* Be sure the qualifiers on rout_type_ptp are retained. */
               comp_type_ptp->qualifiers = rout_type_ptp->qualifiers;
             }  /* if */
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+            /* Preserve the name that is associated with the routine type. */
+            comp_type_ptp->name = rout_type_ptp->name;
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            /* Preserve the source-range information that was recorded for
+               the routine type. */
+            comp_type_ptp->decl_pos_info = rout_type_ptp->decl_pos_info;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             *rout_type_ptp = *comp_type_ptp;
             rout_type_ptp->next = next_rout_type_ptp;
           }  /* for */

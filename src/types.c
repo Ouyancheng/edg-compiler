@@ -4686,24 +4686,6 @@ preference is given to the first.
           if (!return_type2_as_comp_type) goto make_new_comp_type;
         }  /* if */
       }  /* if */
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-      if (ptp1->name == ptp2->name) {
-        /* The names are identical, so it doesn't affect which is used for
-           composite type formation.  (Note that a pointer comparison can be
-           used instead of strcmp, since the entries point to symbol header
-           identifiers.) */
-      } else {
-        /* Preserve the name that is associated with one or the other of the
-           parameters; if both have names, preference is given to ptp1. */
-        if (ptp1->name != NULL) {
-          return_type2_as_comp_type = FALSE;
-          if (!return_type1_as_comp_type) goto make_new_comp_type;
-        } else if (ptp2->name != NULL) {
-          return_type1_as_comp_type = FALSE;
-          if (!return_type2_as_comp_type) goto make_new_comp_type;
-        }  /* if */
-      }  /* if */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
       /* Form the composite of the two types. */
       tp = composite_parameter_type(ptp1->type, ptp2->type);
       /* Compare the two parameter types against their composite type.  Stop
@@ -4792,15 +4774,6 @@ make_new_comp_type:
           new_ptp->qualifiers = ptp1->qualifiers;
         }  /* if */
       }  /* if */
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-      /* Preserve the name that is associated with one or the other of the
-         parameters, using that of ptp1 when both have names. */
-      if (ptp1->name != NULL) {
-        new_ptp->name = ptp1->name;
-      } else if (ptp2 != NULL) {
-        new_ptp->name = ptp2->name;
-      }  /* if */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
       /* Add the parameter type entry to the end of the list. */
       if (rtsp->param_type_list == NULL) {
         rtsp->param_type_list = new_ptp;
@@ -6218,9 +6191,10 @@ make_new_type:
           }  /* if */
         }  /* if */
         /* Recompute the value of the flag, if necessary. */
-        new_ptp->type_involves_deduced_template_param = (ptp->type == tp)
-                        ? ptp->type_involves_deduced_template_param
-                        : is_or_contains_deduced_template_param(new_ptp->type);
+        new_ptp->type_involves_deduced_template_param =
+                     ((ptp->type == tp) ?
+                        ptp->type_involves_deduced_template_param :
+                        is_or_contains_deduced_template_param(new_ptp->type));
         /* Add the new param type entry to the param types list. */
         if (prev_ptp == NULL) {
           new_type->variant.routine.extra_info->param_type_list = new_ptp;

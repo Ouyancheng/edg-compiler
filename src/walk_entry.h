@@ -613,6 +613,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_string_ptr(ptr->name, iek_id_name, 0);
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
         walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
+                 iek_decl_position_supplement);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }
       break;
     case iek_routine_type_supplement:

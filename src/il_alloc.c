@@ -557,6 +557,9 @@ at file scope.
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   ptp->default_arg_expr = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  ptp->decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_exit();
   return ptp;

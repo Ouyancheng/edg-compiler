@@ -756,6 +756,16 @@ Display a_param_type entry.
     (void)printf("\n");
   }  /* if */
 #endif /* ifdef CFE */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (ptr->decl_pos_info != NULL) {
+    disp_source_range("identifier_range",
+                      &ptr->decl_pos_info->identifier_range);
+    disp_source_range("specifiers_range",
+                      &ptr->decl_pos_info->specifiers_range);
+    disp_source_range("declarator_range",
+                      &ptr->decl_pos_info->declarator_range);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_param_type */
 
 #ifdef CFE

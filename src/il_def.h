@@ -2095,6 +2095,13 @@ typedef struct a_param_type {
 			   call when the actual argument corresponding to
 			   this parameter is omitted (C++ only). */
 #endif /* ifdef CIL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_decl_position_supplement_ptr
+		decl_pos_info;
+			/* Points to a block containing additional source
+			   position information about the parameter
+			   declaration.  May be NULL. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_param_type;
 
 

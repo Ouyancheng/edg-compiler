@@ -1257,6 +1257,18 @@ issue an error if a default argument expression is encountered.
           ptp->name = param_locator.symbol_header->identifier;
         }  /* if */
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        {
+        /* Update source range information in the param-type entry. */
+        a_decl_position_supplement_ptr  dpsp;
+
+        dpsp = alloc_decl_position_supplement(in_file_scope(ptp));
+        dpsp->identifier_range = local_decl_pos_block.identifier_range;
+        dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
+        dpsp->declarator_range = local_decl_pos_block.declarator_range;
+        ptp->decl_pos_info = dpsp;
+        }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (remove_qualifiers_from_param_types) {
           /* Record the top-level type qualifiers that were declared for this
              parameter and then removed. */
