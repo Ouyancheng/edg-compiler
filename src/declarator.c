@@ -1298,8 +1298,8 @@ declaration.
         a_type_qualifier_set qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
         an_attribute_ptr     attributes = NULL;
-#if GNU_EXTENSIONS_ALLOWED
         an_attribute_ptr     *last_attribute = &attributes;
+#if GNU_EXTENSIONS_ALLOWED
         an_attribute_ptr     ap;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         a_decl_flag_set      dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
