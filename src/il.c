@@ -7217,7 +7217,7 @@ to it.
     check_assertion(depth_innermost_ss_list_scope != NO_SCOPE_DEPTH);
     scope_depth = depth_innermost_ss_list_scope;
   }  /* if */
-  /* Copy the adderss of the available list. */
+  /* Copy the address of the available list. */
   avail_list_ptr = &scope_stack[scope_depth].source_sequence_avail_list;
   if (*avail_list_ptr != NULL) {
     ssep = *avail_list_ptr;
