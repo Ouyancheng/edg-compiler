@@ -358,9 +358,18 @@ source position of the specified inheritance kind is returned in
                     /* Do error checking on the string. */
                     if (is_valid_GUID_string(str, length)) {
                       decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
-                      (void)memcpy(decl_modifiers->uuid_string, str,
-                                   size_t_arg(length));
-                      decl_modifiers->uuid_string[length] = '\0';
+                      /* Copy the string, lower-casing hex letters so that
+                         strcmp can be used to compare strings. */
+                      { char     *src = str;
+                        char     *dst = decl_modifiers->uuid_string;
+                        sizeof_t count = length;
+                        for (; count != 0; count--) {
+                          char ch = *src++;
+                          if (isalpha((unsigned char)ch)) ch = tolower(ch);
+                          *dst++ = ch;
+                        }  /* for */
+                        *dst = '\0';
+                      }
                     } else {
                       error(ec_bad_uuid_string);
                       *err = TRUE;
@@ -551,24 +560,11 @@ inheritance_kind_pos are pointers to source positions used for diagnostics.
     if (ctsp->uuid_string != NULL) {
       /* Issue an error if __declspec(uuid(...)) strings are present and
          they aren't identical. */
-      /* The comparison must ignore case, e.g., hex "C" versus "c". */
-      char *p1 = ctsp->uuid_string;
-      char *p2 = decl_modifiers->uuid_string;
-      for (;;) {
-        char c1 = *p1;
-        char c2 = *p2;
-        if (isalpha((unsigned char)c1)) c1 = tolower(c1);
-        if (isalpha((unsigned char)c2)) c2 = tolower(c2);
-        if (c1 != c2) {
-          pos_diagnostic(es_discretionary_error,
-                         ec_decl_modifiers_incompatible_with_previous_decl,
-                         err_pos);
-          break;
-        }  /* if */
-        if (c1 == '\0') break;
-        p1++;
-        p2++;
-      }  /* for */
+      if (strcmp(ctsp->uuid_string, decl_modifiers->uuid_string) != 0) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_decl_modifiers_incompatible_with_previous_decl,
+                       err_pos);
+      }  /* if */
     } else {
       ctsp->uuid_string = decl_modifiers->uuid_string;
     }  /* if */
