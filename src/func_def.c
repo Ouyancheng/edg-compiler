@@ -661,7 +661,9 @@ a new symbol is created and entered in the symbol table.
     /* A top-level type qualifier may have been stripped off.  The type
        qualifier has been recorded in the param type entry; make sure it
        corresponds to the parameter variable's type qualifier. */
-    check_assertion(ptp->qualifiers == get_type_qualifiers(param_id->type));
+    if (!function_instantiation) {
+      check_assertion(ptp->qualifiers == get_type_qualifiers(param_id->type));
+    }  /* if */
   }  /* if */
 #endif /* CHECKING */
   db_exit();
