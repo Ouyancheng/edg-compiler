@@ -249,7 +249,7 @@ type is legal.
   a_type_ptr              temp_type, prev_temp_type, tp;
   a_boolean               err = FALSE;
   a_type_kind             tkind;
-  a_boolean               array_of_incomp_struct_or_union = FALSE;
+  a_boolean               array_of_incomp_class_or_enum = FALSE;
   a_boolean               is_member_function_typedef = FALSE;
   a_type_ptr              mft_class_type, mft_rout_type;
   a_symbol_ptr            mft_sym;
@@ -321,11 +321,12 @@ type is legal.
           tp = underlying_array_element_type(temp_type);
           if (tp != NULL) {
             tp = skip_typerefs(tp);
-            if (is_immediate_class_type(tp) && is_incomplete_type(tp)) {
-              /* This is an array of array ... of incomplete class type.  A
-                 diagnostic may be issued (see below), but this is done only
-                 when the class is the immediate element type. */
-              array_of_incomp_struct_or_union = TRUE;
+            if (is_incomplete_type(tp) &&
+                (is_immediate_class_type(tp) || is_immediate_enum_type(tp))) {
+              /* This is an array of array ... of incomplete class or enum
+                 type.  A diagnostic may be issued (see below), but this is
+                 done only when the class is the immediate element type. */
+              array_of_incomp_class_or_enum = TRUE;
             }  /* if */
           }  /* if */
         } else if (is_ptr_to_member_type(temp_type) &&
@@ -343,7 +344,7 @@ type is legal.
                completed before the array is actually used.  Add the array
                type to a list of array types to be fixed up when the
                class/struct/union declaration is completed. */
-            array_of_incomp_struct_or_union = TRUE;
+            array_of_incomp_class_or_enum = TRUE;
             if (strict_ansi_mode) {
               diagnostic(strict_ansi_error_severity,
                          ec_array_of_incomplete_type);
@@ -352,6 +353,20 @@ type is legal.
           } else if (is_abstract_class_type(temp_type)) {
             error(ec_array_of_abstract_class);
             err = TRUE;
+          }  /* if */
+        } else if (is_immediate_enum_type(temp_type)) {
+          if (is_incomplete_type(temp_type)) {
+            /* As an extension (in both C and C++ modes), allow an array of
+               incomplete class type.  Obviously, the element type has to be
+               completed before the array is actually used.  Add the array
+               type to a list of array types to be fixed up when the
+               class/struct/union declaration is completed. */
+            array_of_incomp_class_or_enum = TRUE;
+            if (strict_ansi_mode) {
+              diagnostic(strict_ansi_error_severity,
+                         ec_array_of_incomplete_type);
+              if (strict_ansi_error_severity == es_error) err = TRUE;
+            }  /* if */
           }  /* if */
         } else {
           /* Element type is not okay.  Select a specific error message. */
@@ -520,7 +535,7 @@ type is legal.
           tkind != (a_type_kind)tk_routine /* For speed. */ &&
           (tkind == (a_type_kind)tk_pointer ||
            tkind == (a_type_kind)tk_ptr_to_member ||
-           array_of_incomp_struct_or_union ||
+           array_of_incomp_class_or_enum ||
            is_object_type(new_type_ptr) || is_function_type(new_type_ptr) ||
            is_error_type(new_type_ptr))) {
         while (tkind == (a_type_kind)tk_array ||
