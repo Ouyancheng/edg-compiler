@@ -4492,10 +4492,12 @@ to a fixed-point operand).
 */
 {
 #if FIXED_POINT_ALLOWED
-  if (fixed_point_enabled && is_fixed_point_type(type)) {
+  if (fixed_point_enabled && is_fixed_point_type(type) &&
+      op != (an_expr_operator_kind)eok_question) {
     /* Fixed-point arithmetic does not promote the operands to a
        common type if the result has fixed-point type (as opposed
-       to floating-point type). */
+       to floating-point type).  But the "?" Operator gets the usual
+       handling of converting the operands to the result type. */
     adjust_fixed_point_binary_operands(operand_1, operand_2, op);
   } else
 #endif /* FIXED_POINT_ALLOWED */
