@@ -11,6 +11,20 @@ of the class template.
   template <int I> struct A { void f(); };
   template <unsigned int I> void A<I>::f(){}
 
+5/17/00  Cast of class rvalue to reference-to-nonconst no longer accepted
+         in default mode
+
+A cast of an rvalue of class type to a reference to nonconst is no
+longer accepted in default mode.  It continues to be accepted in cfront,
+Microsoft, and Sun modes, and it continues not to be accepted in strict
+mode.
+
+  struct A {};
+  A f();
+  int main () {
+    static_cast<A&>(f());  // No longer accepted in default mode
+  }
+
 5/17/00  Cast of class rvalue to reference-to-const type accepted
 
 An rvalue of class type can now be cast to a reference-to-const type
