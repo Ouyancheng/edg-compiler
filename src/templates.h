@@ -34,7 +34,7 @@ extern a_boolean matches_template_type
                                    a_type_ptr          templ_type,
                                    a_template_arg_ptr  *templ_arg_list,
                                    a_boolean           allow_conversion,
-                                   a_boolean           *conversion_required);
+                                   a_base_class_ptr   *base_class_conv_needed);
 
 extern a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
                                            a_template_arg_ptr  *templ_arg_list,

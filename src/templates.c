@@ -1164,7 +1164,7 @@ matches a class type from the parameter list of a template function.
                                       templ_tap->variant.type,
                                       templ_arg_list,
                                       /*allow_conversion=*/FALSE,
-                                      (a_boolean *)NULL);
+                                      (a_base_class_ptr*)NULL);
       } else if (templ_tap->variant.constant->kind ==
                                   (a_constant_repr_kind)ck_template_param) {
         match = matches_template_type(
@@ -1172,7 +1172,7 @@ matches a class type from the parameter list of a template function.
                                   templ_tap->variant.constant->type,
                                   templ_arg_list,
                                   /*allow_conversion=*/FALSE,
-                                  (a_boolean *)NULL);
+                                  (a_base_class_ptr*)NULL);
       } else {
         match = eq_constants(tap->variant.constant,
                              templ_tap->variant.constant);
@@ -1189,7 +1189,7 @@ a_boolean matches_template_type(a_type_ptr         type,
                                 a_type_ptr         templ_type,
                                 a_template_arg_ptr *templ_arg_list,
 				a_boolean          allow_conversion,
-                                a_boolean          *conversion_required)
+                                a_base_class_ptr   *base_class_conv_needed)
 /*
 Compare type and templ_type.  The latter is from a parameter list of a
 function template (function params, not template params).  If the types are
@@ -1199,10 +1199,10 @@ parameter, as represented in the template argument list.  Otherwise, return
 FALSE.  When for the nth template parameter, the nth template arg has not
 yet been created, extend the template argument list to include n entries.
 allow_conversion specifies that a conversion from Derived<T> to Base<T>
-may be done if needed.  The value pointed to by conversion_required is
-set to TRUE if such a conversion is needed; otherwise it is set to FALSE.
-conversion_required may be NULL if the caller does not need to know
-whether a conversion was performed.
+may be done if needed.  The value pointed to by base_class_conv_needed
+is set to point to the base class description if such a conversion
+is required; otherwise it is set to NULL.  base_class_conv_needed may
+be NULL if the caller does not need to know whether a conversion was performed.
 */
 {
   a_boolean                      match = FALSE;
@@ -1212,7 +1212,7 @@ whether a conversion was performed.
   a_template_arg_ptr             tap, prev_tap;
 
   db_enter(5, "matches_template_type");
-  if (conversion_required != NULL) *conversion_required = FALSE;
+  if (base_class_conv_needed != NULL) *base_class_conv_needed = NULL;
   if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
@@ -1305,7 +1305,7 @@ whether a conversion was performed.
           /* Members have different names -- no match. */
         } else if (matches_template_type(tp, ttp, templ_arg_list,
                                          /*allow_conversion=*/FALSE,
-                                         (a_boolean *)NULL)) {
+                                         (a_base_class_ptr*)NULL)) {
           /* Members have the same names and the parent classes "match". */
           match = TRUE;
         }  /* if */
@@ -1328,7 +1328,9 @@ whether a conversion was performed.
                                                            templ_type,
                                                            templ_arg_list);
               if (match) {
-                if (conversion_required != NULL) *conversion_required = TRUE;
+                if (base_class_conv_needed != NULL) {
+                  *base_class_conv_needed = bcp;
+                }  /* if */
                 break;
               }  /* if */
               bcp = bcp->next;
@@ -1344,7 +1346,7 @@ whether a conversion was performed.
             ttp = templ_type->variant.typeref.type;
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           /*allow_conversion=*/FALSE,
-                                          (a_boolean *)NULL);
+                                          (a_base_class_ptr*)NULL);
           }  /* if */
           break;
         case tk_array:
@@ -1358,7 +1360,7 @@ whether a conversion was performed.
             ttp = templ_type->variant.array.element_type;
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           /*allow_conversion=*/FALSE,
-                                          (a_boolean *)NULL);
+                                          (a_base_class_ptr*)NULL);
           }  /* if */
           break;
         case tk_pointer:
@@ -1372,7 +1374,7 @@ whether a conversion was performed.
             ttp = templ_type->variant.pointer.type;
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           /*allow_conversion=*/FALSE,
-                                          (a_boolean *)NULL);
+                                          (a_base_class_ptr*)NULL);
           }  /* if */
           break;
         case tk_ptr_to_member:
@@ -1382,12 +1384,12 @@ whether a conversion was performed.
           ttp = templ_type->variant.ptr_to_member.type;
           if (matches_template_type(tp, ttp, templ_arg_list,
                                     /*allow_conversion=*/FALSE,
-                                    (a_boolean *)NULL)) {
+                                    (a_base_class_ptr*)NULL)) {
             tp = type->variant.ptr_to_member.class_of_which_a_member;
             ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
             match = (matches_template_type(tp, ttp, templ_arg_list,
                                            /*allow_conversion=*/FALSE,
-                                           (a_boolean *)NULL));
+                                           (a_base_class_ptr*)NULL));
           }  /* if */
           break;
         case tk_routine:
@@ -1398,7 +1400,7 @@ whether a conversion was performed.
           ttp = templ_type->variant.routine.return_type;
           if (matches_template_type(tp, ttp, templ_arg_list,
                                     /*allow_conversion=*/FALSE,
-                                    (a_boolean *)NULL) &&
+                                    (a_base_class_ptr*)NULL) &&
               (type->variant.routine.extra_info->has_ellipsis ==
                   templ_type->variant.routine.extra_info->has_ellipsis)) {
             /* Return type and ellipsis are okay.  Check the param types. */
@@ -1415,7 +1417,7 @@ whether a conversion was performed.
               ttp = tptp->type;
               if (!matches_template_type(tp, ttp, templ_arg_list,
                                          /*allow_conversion=*/FALSE,
-                                         (a_boolean *)NULL)) {
+                                         (a_base_class_ptr*)NULL)) {
                 /* The first param type for which there is a mismatch causes
                    a mismatch for the entire type.  No need to keep looping. */
                 break;
@@ -1754,7 +1756,7 @@ get_next_sym:;
   if (!matches_template_type(curr_type->variant.routine.return_type,
                              templ_rout_type->variant.routine.return_type,
                              templ_arg_list, /*allow_conversion=*/FALSE,
-                                         (a_boolean *)NULL)) {
+                             (a_base_class_ptr*)NULL)) {
     goto done;
   } else {
     /* The routine type for curr_type can be accommodated to the template
@@ -1764,7 +1766,7 @@ get_next_sym:;
     for (; other_ptp != NULL; other_ptp = other_ptp->next) {
       if (!matches_template_type(ptp->type, other_ptp->type,
                                  templ_arg_list, /*allow_conversion=*/FALSE,
-                                         (a_boolean *)NULL)) {
+                                 (a_base_class_ptr*)NULL)) {
         goto done;
       }  /* if */
       ptp = ptp->next;

@@ -1784,7 +1784,7 @@ evaluated (but not checked to see if the match is good enough).
   a_routine_type_supplement_ptr
                      rtsp;
   a_type_ptr         param_type, arg_type;
-  a_boolean          conversion_required;
+  a_base_class_ptr   base_class_conv_needed;
   an_arg_match_summary_ptr
                      arg_match;
   a_boolean          type_qualifiers_added;
@@ -1895,12 +1895,12 @@ evaluated (but not checked to see if the match is good enough).
          in normal mode but not in strict ANSI mode. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
                                  /*allow_conversion=*/!strict_ansi_mode,
-                                 &conversion_required)) {
+                                 &base_class_conv_needed)) {
         /* Mismatch. */
         goto done;
       }  /* if */
       /* The argument can be made to match. */
-      if (conversion_required) {
+      if (base_class_conv_needed != NULL) {
         /* The extension allowing a standard conversion of a derived class to
            a base class was used. */
         arg_match->match_level = aml_std_conversion;
