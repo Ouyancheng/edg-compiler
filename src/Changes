@@ -1,9 +1,9 @@
 Version 2.30
 
-6/4/95   C++-generating back end: extern "C" on routine definitions
+6/4/95   C++-generating back end: extern "C" on definitions
 
-The C++-generating back end now puts out extern "C" on routine definitions
-as well as declarations.
+The C++-generating back end now puts out extern "C" on variable and
+routine definitions as well as declarations.
 
 6/2/95   Tracking class type uses that require a complete type
 
