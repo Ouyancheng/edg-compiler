@@ -1161,14 +1161,8 @@ issuing an error on an incomplete type.
       } else {
         if (is_incomplete_type(vp_type)) {
           /* Incomplete type is an error. */
-          if (symbol_ptr->is_error) {
-            /* Don't put out an error on a bad type if an error has already
-               been put out on the variable -- this improves error recovery
-               in certain cases. */
-          } else {
-            pos_error(ec_incomplete_type_not_allowed, source_pos);
-            *incomplete_type_error_reported = TRUE;
-          }  /* if */
+          pos_error(ec_incomplete_type_not_allowed, source_pos);
+          *incomplete_type_error_reported = TRUE;
         } else {
           /* Catch-all error. */
           pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
