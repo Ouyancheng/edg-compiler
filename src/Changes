@@ -1,5 +1,17 @@
 Version 2.41
 
+2/25/99  Microsoft compatibility: old-style concatenation macros
+
+MSVC++ (up to version 6.0, so far) allows the use of old-style
+concatenation macros.  In Microsoft compatibility mode, we now allow
+them too.
+
+  #define SELF(x)x
+  #define CONCAT_BAD(a,b) SELF(a)SELF(b)
+  #define DECLARE_BAD(PRIM) \
+      int CONCAT_BAD(e_,PRIM) ;
+  DECLARE_BAD(foo_bad)  // Accepted (nonstandard)
+
 2/25/99  Friend functions: no injection on declaration, special lookup
 
 Functions declared in friend declarations in classes are no longer
