@@ -3502,6 +3502,48 @@ Copy a constant entry from "from" to "to".
 }  /* copy_constant */
 
 
+void explode_string_initializer(a_constant_ptr con)
+/*
+If the indicated initializer constant is a string literal constant,
+explode the string into an aggregate initializer for the individual
+characters.  The constant is updated in place.
+*/
+{
+  if (con->kind == (a_constant_repr_kind)ck_string) {
+    a_targ_size_t  i;
+    a_targ_size_t  len = con->variant.string.length;
+    char           *str = con->variant.string.value;
+    a_boolean      is_wide = !is_char_array_type(con->type);
+
+    set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+    for (i = 0; i < len; i += (is_wide ? targ_sizeof_wchar_t : 1)) {
+      a_constant     char_val;
+      a_constant_ptr char_con;
+
+      /* Make a constant for one character of the string. */
+      if (!is_wide) {
+        set_integer_constant(&char_val, (a_host_large_integer)str[i],
+                             (an_integer_kind)ik_char);
+      } else {
+        /* Wide string case. */
+        unsigned long val = extract_wide_char_from_string(str+i);
+        set_unsigned_integer_constant(&char_val,
+                                      (a_host_large_unsigned)val,
+                                      targ_wchar_t_int_kind);
+      }  /* if */
+      char_con = alloc_unshared_constant(&char_val);
+      /* Add the constant to the aggregate list. */
+      if (con->variant.aggregate.first_constant == NULL) {
+        con->variant.aggregate.first_constant = char_con;
+      } else {
+        con->variant.aggregate.last_constant->next = char_con;
+      }  /* if */
+      con->variant.aggregate.last_constant = char_con;
+    }  /* for */
+  }  /* if */
+}  /* explode_string_initializer */
+
+
 static an_expr_node_ptr gather_initializer_expressions(a_constant_ptr con)
 /*
 Gather any expressions with side effects in the initializer constant con
@@ -3596,14 +3638,22 @@ that expression.
     unexpected_condition();
 #endif /* CHECKING */
   } else {
-    an_expr_node_ptr   expr;
-    a_dynamic_init_ptr dip =
-                       alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
     /* Other constants.  Change to a ck_dynamic_init. */
+    an_expr_node_ptr   expr;
+    a_dynamic_init_ptr dip;
+
+    /* You can't make an expression with array type, so if the constant
+       is a string literal break it into individual characters and
+       change the first one to a ck_dynamic_init. */
+    if (con->kind == (a_constant_repr_kind)ck_string) {
+      explode_string_initializer(con);     
+      con = con->variant.aggregate.first_constant;
+    }  /* if */
     expr = alloc_node_for_constant(con);
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = expr;
     set_constant_kind(con, (a_constant_repr_kind)ck_dynamic_init);
     con->variant.dynamic_init = dip;
-    dip->variant.expression = expr;
     expr_ptr = &dip->variant.expression;
   }  /* if */
   return expr_ptr;
