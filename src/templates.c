@@ -14721,9 +14721,9 @@ caller.
       /* Make a copy of the template argument list. */
       templ_arg_list = copy_template_arg_list(rout_ptr->template_arg_list);
       instance_sym = find_template_function(
-                                      template_sym, &templ_arg_list,
-                                      rout_ptr->expl_template_arg_list_used,
-                                      &null_source_position);
+                              template_sym, &templ_arg_list,
+                              (a_boolean)rout_ptr->expl_template_arg_list_used,
+                              &null_source_position);
       result_tip = instance_sym->variant.routine.instance_ptr;
     } else {
      /* A member function of a class template or a static data member of a
