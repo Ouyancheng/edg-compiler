@@ -1377,11 +1377,22 @@ by id_linkage.
   a_boolean     is_namespace_member_def = FALSE;
 
   db_enter(4, "find_linked_symbol");
-  if (qualifier_namespace_ptr(*locator) != NULL &&
-      locator->specific_symbol != NULL) {
+  if (locator->specific_symbol != NULL &&
+      (qualifier_namespace_ptr(*locator) != NULL ||
+       locator->is_file_scope_qualified_name)) {
+    /* The declarator is a namespace-qualified or a global-scope-qualified
+       name.  If the latter, it must be a friend declaration; if it's not a
+       friend declaration, it is supposed to be a definition. */
+    if (!is_friend_decl) is_namespace_member_def = TRUE;
+    check_assertion(!locator->is_file_scope_qualified_name || is_friend_decl);
     other_decl = locator->specific_symbol;
-    reduce_projection_symbol_to_fundamental_symbol(other_decl);
-    is_namespace_member_def = !is_friend_decl;
+    /* If the name, looked up as a member of the specified scope, turns out
+       to be a namespace projection, it must have been pulled into the
+       scope via a using declaration or a using directive.  In either case it
+       is not a valid declarator -- ignore it. */
+    if (other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+      other_decl = NULL;
+    }  /* if */
   } else {
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
         (is_friend_decl &&
@@ -2847,7 +2858,7 @@ position of the identifier.
 }  /* set_name_linkage */
 
 
-static a_symbol_ptr namespace_member_redecl_sym(
+static a_symbol_ptr qualified_name_redecl_sym(
                                a_symbol_locator   *locator,
                                a_type_ptr         type_ptr,
                                a_scope_depth      *effective_decl_level,
@@ -2857,31 +2868,36 @@ static a_symbol_ptr namespace_member_redecl_sym(
                                a_symbol_ptr       *overload_symbol,
                                a_boolean          *namespace_reactivated)
 /*
-This routine is called from decl_variable and decl_routine for cases in which
-a namespace-qualified identifier is being defined -- *locator should point to
-a specific symbol as well as to a namespace parent.  effective_decl_level
-will have computed by the caller.  type_ptr is the declared type, used for
-looking up symbols in an overload set.  os_definition is usually TRUE; it may
-be FALSE when is_friend_decl is TRUE, the latter being set if this
-declaration appears as a friend function declaration.  When the symbol is a
-member of an overloaded function set, *overload_symbol is returned with a
-pointer to the sk_overloaded_function symbol.  *linkage is returned with a
-value reflecting the linkage of the original symbol.  *namespace_reactivated
-is returned TRUE when the caller needs to pop the namespace scope, which
-for friend declarations is a namespace-reactivation scope and for other
-declarations is a namespace-extension scope.
+This routine is called from decl_variable and decl_routine for either of two
+cases: (1) when is_friend_decl is FALSE, a namespace-qualified identifier is
+being redeclared outside of the namespace of which it is a member -- this
+will be a definition in a well-formed program; and (2) when is_friend_decl
+is TRUE, a namespace- or file-scope-qualified name is being declared in a
+friend declaration.  *locator will point to a specific symbol, as well as to
+a namespace parent in most cases.  effective_decl_level will have computed
+by the caller.  type_ptr is the declared type, used for looking up symbols
+in an overload set.  is_definition is usually TRUE unless is_friend_decl is
+TRUE.  When the symbol is a member of an overloaded function set,
+*overload_symbol is returned with a pointer to the sk_overloaded_function
+symbol.  *linkage is returned with a value reflecting the linkage of the
+original symbol.  *namespace_reactivated is returned TRUE when the caller
+needs to pop the namespace scope, which for friend declarations is a
+namespace-reactivation scope and for other declarations is a
+namespace-extension scope.
 */
 {
   a_symbol_ptr     linked_symbol, prior_decl;
   a_boolean        err = FALSE;
   a_storage_class  storage_class;
+  a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
 
-  db_enter(3, "namespace_member_redecl_sym");
+  db_enter(3, "qualified_name_redecl_sym");
+  check_assertion(nsp != NULL || is_friend_decl);
   if (!is_definition && !is_friend_decl) {
     /* Improper use of a qualified name in a declarator (WP 8.3). */
     error(ec_qualified_name_not_allowed);
     err = TRUE;
-  } else if (is_definition &&
+  } else if (is_definition && nsp != NULL &&
              !namespace_is_enclosed_by_scope(locator->specific_symbol,
                                         &scope_stack[*effective_decl_level])) {
     /* This declaration appears within a namespace scope in which the name
@@ -2892,19 +2908,27 @@ declarations is a namespace-extension scope.
     err = TRUE;
   } else {
     /* This is a valid location for such a declaration. */
-    /* It's assumed to be a definition of a namespace member appearing
-       in a scope other than that of the namespace to which it belongs, so
-       extend the original namespace scope. */
-    a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
-    /* Push a namespace-reactivation scope scope for friend declarations
-       (the scope is "read-only" -- no injections allowed), and a
-       namespace-extension scope otherwise. */
-    if (is_friend_decl) {
-      push_namespace_reactivation_scope(nsp);
+    if (nsp != NULL) {
+      if (is_friend_decl) {
+        /* Push a namespace-reactivation scope scope for friend declarations
+           (the scope is "read-only" -- no injections allowed), and a
+           namespace-extension scope otherwise. */
+        push_namespace_reactivation_scope(nsp);
+      } else {
+        /* This is a definition of a namespace member appearing
+           in a scope other than that of the namespace to which it belongs, so
+           extend the original namespace scope. */
+        push_namespace_extension_scope(nsp);
+      }  /* if */
+      *namespace_reactivated = TRUE;
     } else {
-      push_namespace_extension_scope(nsp);
+      check_assertion(locator->is_file_scope_qualified_name && is_friend_decl);
+      if (strict_ansi_mode) {
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_nonstd_global_qualifier_on_friend_decl,
+                       &pos_curr_token);
+      }  /* if */
     }  /* if */
-    *namespace_reactivated = TRUE;
     /* Look up the name. */
     linked_symbol = find_linked_symbol(locator, depth_scope_stack,
                                        type_ptr, /*is_main=*/FALSE,
@@ -2912,6 +2936,8 @@ declarations is a namespace-extension scope.
                                        /*is_function_template=*/FALSE,
                                        &prior_decl, overload_symbol);
     if (linked_symbol != NULL) {
+      /* A linked symbol was found -- set the storage class and and linkage
+         appropriately. */
       if (linked_symbol->kind == (a_symbol_kind)sk_routine) {
         storage_class = linked_symbol->variant.routine.ptr->storage_class;
       } else {
@@ -2924,19 +2950,63 @@ declarations is a namespace-extension scope.
       }  /* if */
       *effective_decl_level = depth_scope_stack;
     } else {
-      /* The lookup failed. */
-      a_symbol_ptr  sym = fundamental_symbol_of(locator->specific_symbol);
-      pos_sy_error(sym->kind == (a_symbol_kind)sk_overloaded_function ?
-                      ec_overloaded_function_incompatible_type :
-                      ec_not_compatible_with_previous_decl,
-                   &locator->source_position, locator->specific_symbol);
-      err = TRUE;
-      if (is_friend_decl) {
-        pop_namespace_reactivation_scope();
-      } else {
-        pop_namespace_extension_scope();
+      /* The lookup failed.  Issue the right error. */
+      a_symbol_ptr  sym = locator->specific_symbol;
+      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* The qualified name referred to an overloaded function.  We want
+           to issue the appropriate error after disregarding namespace
+           projection symbols, which indicate names pulled into the scope
+           with a using declaration or a using directive. */
+        a_symbol_ptr  overload_sym = sym, temp;
+        sym = NULL;
+        for (temp = overload_sym->variant.overloaded_function.symbols;
+             temp != NULL;
+             temp = temp->next) {
+          if (temp->kind == (a_symbol_kind)sk_routine) {
+            if (sym == NULL) {
+              /* This is the first symbol in the overload set that is not
+                 a projection symbol. */
+              sym = temp;
+            } else {
+              /* This is the second -- it's okay to issue a diagnostic for
+                 an overloaded function. */
+              sym = overload_sym;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
       }  /* if */
-      *namespace_reactivated = FALSE;
+      if (sym == NULL || sym->kind == (a_symbol_kind)sk_namespace_projection) {
+        /* There's no entry directly declared in the specified scope. */
+        if (nsp != NULL) {
+          /* Namespace scope. */
+          pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
+                         locator->symbol_header->identifier,
+                         (a_symbol_ptr)nsp->source_corresp.assoc_info);
+        } else {
+          /* File scope. */
+          pos_st_error(ec_name_not_found_in_file_scope,
+                       &locator->source_position,
+                       locator->symbol_header->identifier);
+        }  /* if */
+      } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* Overloaded function case. */
+        pos_sy_error(ec_overloaded_function_incompatible_type,
+                     &locator->source_position, sym);
+      } else {
+        /* Everything else. */
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &locator->source_position, sym);
+      }  /* if */
+      err = TRUE;
+      if (nsp != NULL) {
+        if (is_friend_decl) {
+          pop_namespace_reactivation_scope();
+        } else {
+          pop_namespace_extension_scope();
+        }  /* if */
+        *namespace_reactivated = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) {
@@ -2948,7 +3018,7 @@ declarations is a namespace-extension scope.
   }  /* if */
   db_exit();
   return linked_symbol;
-}  /* namespace_member_redecl_sym */
+}  /* qualified_name_redecl_sym */
 
 
 #if !DECL_MODIFIERS_IN_USE
@@ -3015,12 +3085,12 @@ cross-reference output describing this declaration.
     /* This identifier is a namespace-qualified name that was previously
        declared.  Be sure this is a valid scope in which to define it
        (7.3.1.4). */
-    linked_symbol = namespace_member_redecl_sym(locator, type_ptr,
-                                                &effective_decl_level,
-                                                is_variable_def,
-                                                /*is_friend_decl=*/FALSE,
-                                                &linkage, &homonym_symbol,
-                                                &namespace_reactivated);
+    linked_symbol = qualified_name_redecl_sym(locator, type_ptr,
+                                              &effective_decl_level,
+                                              is_variable_def,
+                                              /*is_friend_decl=*/FALSE,
+                                              &linkage, &homonym_symbol,
+                                              &namespace_reactivated);
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -3434,17 +3504,20 @@ on for use in generating cross-reference output describing this declaration.
     linked_symbol = NULL;
     sym = *symbol_ptr;
   } else if (!C_mode() && locator->specific_symbol != NULL &&
-             qualifier_namespace_ptr(*locator) != NULL) {
+             (qualifier_namespace_ptr(*locator) != NULL ||
+              locator->is_file_scope_qualified_name)) {
     /* This identifier is a namespace-qualified name that was previously
-       declared.  Be sure this is a valid scope in which to define it
-       (7.3.1.4). */
+       declared, or else a file-scope qualified name (friend declarations
+       only).  Do the appropriate checking, including overload resolution.
+       Furthermore, for definitions of namespace-qualified names, be sure
+       this is a valid scope for the definition (7.3.1.4). */
     /* Look up the name. */
-    linked_symbol = namespace_member_redecl_sym(locator, type_ptr,
-                                                &effective_decl_level,
-                                                is_function_def,
-                                                is_friend_decl, &linkage,
-                                                &homonym_symbol,
-                                                &namespace_reactivated);
+    linked_symbol = qualified_name_redecl_sym(locator, type_ptr,
+                                              &effective_decl_level,
+                                              is_function_def,
+                                              is_friend_decl, &linkage,
+                                              &homonym_symbol,
+                                              &namespace_reactivated);
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -5929,7 +6002,7 @@ block.
   } else if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
     /* Save the identifier's locator before bypassing it. */
     locator = locator_for_curr_id;
-    /* Issue an error if this is not a simle identifer name. */
+    /* Issue an error if this is not a simple identifier name. */
     if (locator.is_qualified_name) {
       error(ec_qualified_name_not_allowed);
       set_to_error_locator(locator);
