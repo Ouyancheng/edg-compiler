@@ -6156,6 +6156,7 @@ Lower comparison of two pointers to members.
     /* Pointer-to-data-member comparison: turns into integer comparison. */
     if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
       op2_node = op1_node->next;
+      op1->next = NULL;
       op1_node = integral_promote_pm_node(op1_node);
       expr->variant.operation.operands = op1_node;
       op2_node = integral_promote_pm_node(op2_node);
