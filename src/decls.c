@@ -10891,7 +10891,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    is_linkage_spec_decl = FALSE;
   a_boolean                    restore_name_linkage = FALSE;
   a_decl_pos_block             decl_pos_block;
-  a_boolean                    microsoft_out_of_class_redecl = FALSE;
+  a_boolean                    out_of_class_redecl = FALSE;
 
   db_enter(3, "declaration");
 
@@ -11546,14 +11546,23 @@ continue_with_declaration:
          like it could be part of a function-definition, go scan that.
          A very special case are Microsoft out-of-class member redeclarations
          (that are not definitions); they are handled by the code for out-of-
-         class definitions. */
-      microsoft_out_of_class_redecl = microsoft_mode &&
-                                                  locator.is_class_member &&
-                                                  curr_token == tok_semicolon;
-      if ((function_definition_allowed || microsoft_out_of_class_redecl) &&
+         class definitions.  GNU C++ has a similar construct for
+         specializations. */
+      if (locator.is_class_member && curr_token == tok_semicolon) {
+        if (microsoft_mode) {
+          out_of_class_redecl = TRUE;
+        } else if (gpp_mode) {
+          a_type_ptr  pt = locator.parent.class_type;
+          if (pt->variant.class_struct_union.is_template_class &&
+              !pt->variant.class_struct_union.is_nonreal_class) {
+            out_of_class_redecl = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if ((function_definition_allowed || out_of_class_redecl) &&
           is_function) {
         if (local_storage_class != (a_storage_class)sc_typedef &&
-            (curr_token != tok_semicolon || microsoft_out_of_class_redecl) &&
+            (curr_token != tok_semicolon || out_of_class_redecl) &&
             curr_token != tok_comma &&
             curr_token != tok_assign &&
 #if GNU_EXTENSIONS_ALLOWED
@@ -11623,12 +11632,11 @@ continue_with_declaration:
           }  /* if */
           check_assertion(curr_token == tok_rbrace ||
                           curr_token == tok_end_of_source ||
-                          microsoft_out_of_class_redecl ||
+                          out_of_class_redecl ||
                           total_errors != 0);
           /* Right brace is expected, except for the Microsoft extension that
              allows a nondefining out-of-class member declaration. */
-          final_token = microsoft_out_of_class_redecl ? tok_semicolon :
-                                                        tok_rbrace;
+          final_token = out_of_class_redecl ? tok_semicolon : tok_rbrace;
           goto advance_past_final_token;
 #if ASM_FUNCTION_ALLOWED
         } else if (declared_storage_class == (a_storage_class)sc_asm) {

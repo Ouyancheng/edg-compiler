@@ -1689,11 +1689,13 @@ member declaration (allowed in Microsoft mode only).
                  &symbol_ptr, &linkage, &old_type, &ext_sym, decl_pos_block);
   }  /* if */
   /* Now scan the function body, except if we're dealing with the special
-     Microsoft extension case that allows a nondefining out-of-class
+     Microsoft and GNU extension case that allows a nondefining out-of-class
      member declaration. */
-  if (curr_token == tok_semicolon && microsoft_mode &&
+  if (curr_token == tok_semicolon && (microsoft_mode || gpp_mode) &&
       locator->is_class_member) {
     /* There is no definition. */
+    check_assertion(!gpp_mode ||
+                    symbol_ptr->variant.routine.ptr->is_specialized);
   } else {
     routine_ptr = symbol_ptr->variant.routine.ptr;
     flags = SFB_NO_FLAGS;
