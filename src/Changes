@@ -32,9 +32,11 @@ another type at the end of that list: unsigned long long.
 That extra type has now been removed, but that causes a strange
 behavior, i.e., that a constant that could be represented as
 an unsigned long long but not as a long long is considered to be
-an error.  Therefore we issue the error only in strict C99 mode.
-In non-strict C99 mode, a warning is issued and the type
-is taken to be unsigned long long, as before.
+an error.  We've chosen to issue a warning (even in strict
+mode) and treat the constant as unsigned long long, as before.
+This is an interim solution until the C committe rules on this,
+and desirable because both Perennial and Plum Hall have tests
+with such constants, so errors are disruptive right now.
 
 12/18/03 Possible incorrect memory reuse when using precompiled headers
 

@@ -377,14 +377,17 @@ ll_check:
          integral types larger than long long). */
       kind = (an_integer_kind)ik_unsigned_long_long;
       goto kind_established;
-    } else if (c99_mode && !strict_ansi_mode &&
+    } else if (c99_mode &&
                le_max_integer_value_of_kind(
                                      &number, /*is_signed=*/FALSE,
                                      (an_integer_kind)ik_unsigned_long_long)) {
-      /* In non-strict C99 mode, give the kind of constant described above
+      /* In C99 mode, give the kind of constant described above
          unsigned long long type, with a warning.  Note that if the
          implementation has extended integer types beyond unsigned long long
-         this test should be eliminated. */
+         this test should be eliminated.  This should be an error in
+         strict mode, but both Plum Hall and Perennial have constants
+         like this; a warning counts as a "diagnostic" so it's a
+         reasonable compromise until the C committee rules on it. */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       warning(ec_c99_constant_in_unsigned_long_long_range);
       kind = (an_integer_kind)ik_unsigned_long_long;
