@@ -1706,6 +1706,26 @@ will be put out when they are encountered when generating the parameter types.
 }  /* bypass_prototyped_param_src_seq_entries */
 
 
+static void gen_default_arg_expr(a_param_type_ptr param)
+/*
+Output the default argument expression, if any, for the indicated
+parameter.
+*/
+{
+  if (param->default_arg_expr != NULL) {
+    write_tok_str(" = ");
+    if (param->passed_via_copy_constructor) {
+      /* For a default argument for a parameter passed via a copy constructor,
+         the default argument expression is an address. */
+      gen_lvalue(param->default_arg_expr);
+    } else {
+      gen_initializer_expr(param->default_arg_expr, param->type,
+                           /*need_parens=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* gen_default_arg_expr */
+
+
 static void gen_function_declarator_with_scope(a_type_ptr  type,
                                                a_scope_ptr scope)
 /*
@@ -1797,11 +1817,7 @@ is non-NULL, in which case that is the function scope.
                                      (a_src_seq_secondary_decl_ptr)NULL);
         }  /* if */
         /* Put out a default argument expression if there is one. */
-        if (param->default_arg_expr != NULL) {
-          write_tok_str(" = ");
-          gen_initializer_expr(param->default_arg_expr, param->type,
-                               /*need_parens=*/TRUE);
-        }  /* if */
+        gen_default_arg_expr(param);
         param = param->next;
         if (param == NULL) break;
         /* There are more parameters, so output a separator and keep
@@ -2682,6 +2698,11 @@ precedence confusion.
     /* A temporary initialization with the address of the temporary used as
        the node value.  Just put out the underlying value. */
     gen_temp_init(node);
+    processed = TRUE;
+  } else if (kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* Ignore an enk_object_lifetime; the thing underneath is processed as
+       an lvalue. */
+    gen_lvalue(node->variant.object_lifetime.expr);
     processed = TRUE;
   }  /* if */
   if (!processed) {
