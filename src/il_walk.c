@@ -355,7 +355,7 @@ as needed.
            Note that walking the routine and its subtree will not
            automatically walk the body. */
         a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-        if (rout->defined) {
+        if (rout->defined && mem_region_table[rout->assoc_scope] != NULL) {
           a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
           check_assertion_str(scope != NULL,
               "prune_needed_flag_il_walk: needed routine scope not in memory");
