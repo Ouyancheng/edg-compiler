@@ -1620,6 +1620,37 @@ Routine to be called by the il_to_str routines to output a name.
 }  /* gen_name_reference */
 
 
+static void bypass_prototype_scope_type_src_seq_entries(void)
+/*
+Advance past any source sequence entries for types declared or defined
+in a function declarator.  Mark those types so that their definitions
+will be put out when they are encountered when generating the parameter types.
+*/
+{
+  a_type_ptr                   type;
+  a_src_seq_secondary_decl_ptr sec_decl;
+  a_boolean                    is_definition;
+
+  while (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
+    /* In C mode, we know all the types will be in the prototype scope,
+       so it's easy to find the end of the list.  In C++, there can be
+       declarations that appear in the function declarator but get entered
+       in the file scope.  To skip those, we just skip non-autonomous tag
+       declarations.  Of course, some of the types we skip might be from
+       whatever follows the function declaration, but they would just get
+       skipped in this same way, so it's harmless to skip them now. */
+    if (il_header.source_language == sl_Cplusplus) {
+      if (is_autonomous_decl(type, sec_decl)) break;
+    } else {
+      if (!type->declared_in_function_prototype) break;
+    }  /* if */
+    /* A type in the function declarator.  Skip over it and mark it for later
+       processing. */
+    skip_type_and_delay_definition(type, is_definition);
+  }  /* while */
+}  /* bypass_prototype_scope_type_src_seq_entries */
+
+
 static void bypass_prototyped_param_src_seq_entries(void)
 /*
 Advance past any source sequence entries that are associated with parameter
@@ -1641,8 +1672,11 @@ will be put out when they are encountered when generating the parameter types.
       break;
     } else {
       /* Anything else should be a type declared or defined in the parameter
-         list. */
+         list (and in the prototype scope, in C). */
       if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
+        check_assertion_str(il_header.source_language == sl_Cplusplus ||
+                            type->declared_in_function_prototype,
+                      "bypass_prototyped_param_...: not prototype scope type");
         /* Skip past the source sequence entries for the type and mark the
            definition as delayed. */
         skip_type_and_delay_definition(type, is_definition);
@@ -1703,10 +1737,7 @@ is non-NULL, in which case that is the function scope.
       if (scope == NULL) {
         /* This is not a definition.  Advance past the source sequence
            entries for types declared or defined in the function declarator. */
-        /* Note that we might be processing some types here that aren't
-           part of the function declarator, but that's okay, because they
-           would just get skipped like this anyway. */
-        skip_embedded_declarations();
+        bypass_prototype_scope_type_src_seq_entries();
       } else {
         /* This is a definition.  Advance past the source sequence entries for
            the parameters and any types declared or defined in the
