@@ -40,20 +40,6 @@ static a_type_ptr il_signed_int_type;
 static a_type_ptr il_error_type;
 static a_type_ptr il_void_type;
 
-/*
-Array pointed to by the based_type_array field of a_type entries.  Holds
-pointers to types based on the type entry.  The elements of the array hold
-the following types:
-*/
-#define BTA_POINTER 0		/* Pointer to the type. */
-#define BTA_REFERENCE 1		/* Reference to the type. */
-#define BTA_CONST 2		/* Const-qualified version of the type. */
-#define BTA_VOLATILE 3		/* Volatile-qualified version of the type. */
-#define BTA_CONST_VOLATILE 4	/* Const-volatile-qualified version of the
-				   type. */
-typedef a_type_ptr a_based_type_array[5];
-typedef a_type_ptr *a_based_type_array_ptr;
-
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -1997,12 +1983,12 @@ Make or find a type entry for an void type, and return a pointer to it.
 }  /* void_type */
 
 
-static a_type_ptr *get_based_type(a_type_ptr base_type,
-                                  int        element_num)
+static a_type_ptr *get_based_type(a_type_ptr                     base_type,
+                                  a_based_type_array_element_num element_num)
 /*
 Fetch and return a pointer to an element of the based_type_array pointed
 to by the type entry identified by base_type.  element_num indicates the
-element number (e.g., BTA_POINTER), and therefore the particular based
+element number (e.g., bta_pointer), and therefore the particular based
 type that is sought.  Allocate the based_type_array if needed (it is not
 allocated until it is needed).  The based_type_array is used to hold
 pointers to types based on the base type, so that only one copy of
@@ -2019,15 +2005,13 @@ type if necessary.
 #if DEBUG
   num_get_based_type_calls++;
 #endif /* DEBUG */
-  btap = (a_based_type_array_ptr)base_type->based_type_array;
+  btap = base_type->based_type_array;
   if (btap == NULL) {
     /* No based type array yet; allocate it. */
-    /* Note that the space is allocated in front end memory, since the back
-       end doesn't care about it. */
-    btap = (a_based_type_array_ptr)alloc_fe(sizeof(a_based_type_array));
+    btap = (a_based_type_array_ptr)alloc_il(sizeof(a_based_type_array));
     /* Depending on NULL represented as zero bits here. */
     memzero((char *)btap, sizeof(a_based_type_array));
-    base_type->based_type_array = (char *)btap;
+    base_type->based_type_array = btap;
 #if DEBUG
     num_based_type_arrays_allocated++;
 #endif /* DEBUG */
@@ -2054,7 +2038,7 @@ an existing entry if possible.
   /* See if a pointer type for the type pointed to has already been allocated.
      If one was allocated, a pointer to it is stored in the based_type_array
      for the base type, and the pointer type can be reused. */
-  btaep = get_based_type(type_pointed_to, BTA_POINTER);
+  btaep = get_based_type(type_pointed_to, bta_pointer);
   ptr = *btaep;
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one.  If the entry is a pointer
@@ -2089,7 +2073,7 @@ an existing entry if possible.
      allocated.  If one was allocated, a pointer to it is stored in the
      based_type_array for the base type, and the reference type can be
      reused. */
-  btaep = get_based_type(type_pointed_to, BTA_REFERENCE);
+  btaep = get_based_type(type_pointed_to, bta_reference);
   ptr = *btaep;
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one.  If the entry is a reference
@@ -2138,12 +2122,12 @@ they are not already present.
     /* Determine the proper element number in the based type array. */
     if (is_const) {
       if (is_volatile) {
-        element_num = BTA_CONST_VOLATILE;
+        element_num = bta_const_volatile;
       } else {
-        element_num = BTA_CONST;
+        element_num = bta_const;
       }  /* if */
     } else {
-      element_num = BTA_VOLATILE;
+      element_num = bta_volatile;
     }  /* if */
     btaep = get_based_type(base_type, element_num);
     ptr = *btaep;
@@ -2816,14 +2800,6 @@ Display and return the amount of space used for various IL tables.
   grand_total += total;                                               \
 }  /* write_one */
 
-/* Write one line for an item allocated in front end storage. */
-#define write_one_fe(name, counter, type)                             \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu (FE storage)\n", name, num,   \
-                   size, total);                                      \
-  grand_total += total;                                               \
-}  /* write_one_fe */
-
   write_one("constant", num_constants_allocated, a_constant);
   write_one("String literal text", string_literal_text_space_allocated, char);
   write_one("param type", num_param_types_allocated, a_param_type);
@@ -2853,8 +2829,8 @@ Display and return the amount of space used for various IL tables.
                                           num_get_based_type_calls);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "... that allocate a type", "", "",
                                           num_costly_get_based_type_calls);
-  write_one_fe("based type array", num_based_type_arrays_allocated,
-               a_based_type_array);
+  write_one("based type array", num_based_type_arrays_allocated,
+            a_based_type_array);
   
   
   fputc('\n', f_debug);

@@ -785,6 +785,25 @@ typedef struct a_bound_info_entry {
 } a_bound_info_entry;
 #endif /* ifdef FIL */
 
+/*
+Array pointed to by the based_type_array field of a_type entries.  Holds
+pointers to types based on the type entry.  The elements of the array hold
+the following types:
+*/
+typedef enum {
+  /* An enum is just used to assign sequential values to the element
+     numbers. */
+  bta_pointer,			/* Pointer to the type. */
+  bta_reference,		/* Reference to the type. */
+  bta_const,			/* Const-qualified version of the type. */
+  bta_volatile,			/* Volatile-qualified version of the type. */
+  bta_const_volatile,		/* Const-volatile-qualified version of the
+				   type. */
+  bta_last
+} a_based_type_array_element_num;
+typedef a_type_ptr a_based_type_array[(int)bta_last];
+typedef a_type_ptr *a_based_type_array_ptr;
+
 typedef struct a_type {
   /* Description of a type. */
   /* The source_corresp field must be first. */
@@ -796,12 +815,12 @@ typedef struct a_type {
                         /* Pointer to the next type declared in the same
                            scope, NULL if this type is the last in the
                            scope. */
-  char		*based_type_array;
+  a_based_type_array_ptr
+		based_type_array;
 			/* Pointer to an array that holds pointers to types
 			   based on this one, e.g., pointer-to-this-one,
 			   const-this-one, used to find those types for
-			   reuse.  Usable only within the front end
-			   (hence the char * type). */
+			   reuse.  NULL until needed. */
   a_targ_size_t
                 size;
                         /* sizeof() for this type, or 0 if the type is
