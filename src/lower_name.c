@@ -38,6 +38,9 @@ static sizeof_t mangled_function_name(a_routine_ptr routine,
                                       char          *store_at);
 static sizeof_t mangled_member_variable_name(a_variable_ptr variable,
                                              char           *store_at);
+static char *mangled_expr_operator_name(an_expr_operator_kind op);
+static sizeof_t mangled_encoding_for_expression(an_expr_node_ptr expr,
+                                                char             *store_at);
 
 
 static sizeof_t digits_to_represent(unsigned long value)
@@ -601,6 +604,12 @@ used to encode constants as part of the mangled names of template classes.
                               store_at);
           if (store_at != NULL) store_at += literal_length;
           break;
+        case tpck_expression:
+          /* An expression involving template parameters. */
+          literal_length = mangled_encoding_for_expression(
+                                      con->variant.template_param.variant.expr,
+                                      store_at);
+          break;
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");
@@ -615,6 +624,113 @@ used to encode constants as part of the mangled names of template classes.
   }  /* switch */
   return literal_length;
 }  /* literal_representation */
+
+
+static sizeof_t mangled_encoding_for_constant(a_constant_ptr con,
+                                              char           *store_at)
+/*
+Put out the mangled encoding for a constant at *store_at if store_at != NULL,
+and (always) return the length of the mangled form.
+*/
+{
+  sizeof_t mangled_form_length = 0, section_length;
+
+  /* Representation is something like
+       XCiL15   <-- integer constant 5
+            ^-- Literal constant representation.
+           ^--- Length of literal constant.
+          ^---- L indicates literal constant; c indicates address
+                of variable, etc.
+        ^^----- Type of constant, with "const" added.
+       ^------- X indicates beginning of constant.
+     If the constant is a template parameter constant, skip the "XC" and
+     the type.
+  */
+  if (con->kind != (a_constant_repr_kind)ck_template_param) {
+    mangled_form_length += 2;
+    if (store_at != NULL) {
+      *store_at++ = 'X';
+      *store_at++ = 'C';
+    }  /* if */
+    /* Put out the constant type. */
+    section_length = mangled_encoding_for_type(con->type, store_at);
+    mangled_form_length += section_length;
+    if (store_at != NULL) store_at += section_length;
+  }  /* if */
+  /* Put out the literal representation for the constant. */
+  section_length = literal_representation(con, store_at);
+  mangled_form_length += section_length;
+  if (store_at != NULL) store_at += section_length;
+  return mangled_form_length;
+}  /* mangled_encoding_for_constant */
+
+
+static sizeof_t mangled_encoding_for_expression(an_expr_node_ptr expr,
+                                                char             *store_at)
+/*
+Place a mangled representation of the expression pointed to by expr at
+*store_at if store_at != NULL, and (always) return the length of the mangled
+form.  These expressions come up in ck_template_param expressions as
+template arguments, and as dimensions of arrays in template signatures.
+*/
+{
+  sizeof_t         mangled_expr_length, section_length;
+  char             *operation_name;
+  an_expr_node_ptr operand;
+  unsigned long    num_operands;
+
+  switch (expr->kind) {
+    case enk_constant:
+      mangled_expr_length = mangled_encoding_for_constant(
+                                                        expr->variant.constant,
+                                                        store_at);
+      break;
+    case enk_operation:
+      /* Operation.  Output has the form
+           Opl2Z1_Z2_  <-- "Z1 + Z2", where Z1/Z2 are nontype template
+                           parameters.
+                  ^^^----- Second operand.
+               ^^^-------- First operand.
+              ^----------- Count of operands.
+            ^^------------ Operation, using same encoding as for operator
+                           function names.
+           ^-------------- "O" for operation.
+      */
+      /* Put out the "O". */
+      mangled_expr_length = 1;
+      if (store_at != NULL) *store_at++ = 'O';
+      /* Get the operator name and put it out. */
+      operation_name= mangled_expr_operator_name(expr->variant.operation.kind);
+      section_length = strlen(operation_name);
+      mangled_expr_length += section_length;
+      if (store_at != NULL) {
+        (void)strcpy(store_at, operation_name);
+        store_at += section_length;
+      }  /* if */
+      /* Put out the count of operands. */
+      for (num_operands = 0, operand = expr->variant.operation.operands;
+           operand != NULL;
+           num_operands++, operand = operand->next) {}
+      section_length = digits_to_represent(num_operands);
+      mangled_expr_length += section_length;
+      if (store_at != NULL) {
+        (void)sprintf(store_at, "%lu", (unsigned long)num_operands);
+        store_at += section_length;
+      }  /* if */
+      /* Put out the operands. */
+      for (operand = expr->variant.operation.operands;
+           operand != NULL;
+           operand = operand->next) {
+        section_length = mangled_encoding_for_expression(operand, store_at);
+        mangled_expr_length += section_length;
+        if (store_at != NULL) store_at += section_length;
+      }  /* for */
+      break;
+    default:
+      unexpected_condition_str("mangled_encoding_for_expression: bad kind");
+  }  /* switch */
+  return mangled_expr_length;
+}  /* mangled_encoding_for_expression */
 
 
 /*
@@ -751,9 +867,8 @@ and (always) return the length of the output.
 */
 {
   sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
-  sizeof_t           literal_length, type_length;
+  sizeof_t           con_length, type_length;
   a_template_arg_ptr tap;
-  a_constant_ptr     con;
   int                pass;
 
   /* The mangled form of template arguments is something like
@@ -788,31 +903,15 @@ and (always) return the length of the output.
           store_at += type_length;
         }  /* if */
       } else {
-        /* Constant argument.  Representation is something like
-             XCiL15   <-- integer constant 5
-                  ^-- Literal constant representation.
-                 ^--- Length of literal constant.
-                ^---- L indicates literal constant; c indicates address
-                      of variable, etc.
-              ^^----- Type of template argument, with "const" added.
-             ^------- X indicates beginning of constant argument.
-        */
-        con = tap->variant.constant;
+        /* Constant argument. */
         if (pass == 1) {
-          arg_length = 2; /* "XC" */
-          arg_length += mangled_encoding_for_type(con->type, (char *)NULL);
-          literal_length = literal_representation(con, (char *)NULL);
-          arg_length += literal_length;
+          arg_length = mangled_encoding_for_constant(tap->variant.constant,
+                                                     (char *)NULL);
         } else {
-          mangled_name_length += 2;
-          *store_at++ = 'X';
-          *store_at++ = 'C';
-          type_length = mangled_encoding_for_type(con->type, store_at);
-          mangled_name_length += type_length;
-          store_at += type_length;
-          literal_length = literal_representation(con, store_at);
-          mangled_name_length += literal_length;
-          store_at += literal_length;
+          con_length = mangled_encoding_for_constant(tap->variant.constant,
+                                                     store_at);
+          mangled_name_length += con_length;
+          store_at += con_length;
         }  /* if */
       }  /* if */
       if (pass == 1) total_arg_length += arg_length;
@@ -1417,17 +1516,34 @@ See ARM 7.2.1c for name encoding.
       case tk_array:
         /* Put out the array size, an underscore, and then the element type,
            i.e., int[10] is put out as A10_i. */
-        check_assertion(!type->variant.array.is_variable_size_array);
-        section_length =
-           digits_to_represent((unsigned long)type->variant.array.
-                                               variant.number_of_elements) + 1;
-        mangled_name_length += section_length;
-        if (store_at != NULL) {
-          (void)sprintf(store_at, "%lu_",
-                        (unsigned long)type->
+        if (type->variant.array.is_variable_size_array) {
+          /* Variable size arrays are possible when putting out function
+             prototypes.  For that case the prefix is "A_". */
+          check_assertion(distinct_mangling_for_templates);
+          mangled_name_length++;
+          if (store_at != NULL) *store_at++ = '_';
+          /* Put out an encoding for the expression. */
+          section_length = mangled_encoding_for_expression(
+                                type->variant.array.variant.element_count_expr,
+                                store_at);
+          mangled_name_length += section_length;
+          if (store_at != NULL) store_at += section_length;
+        } else {
+          /* Put out the (constant) number of elements. */
+          section_length =
+             digits_to_represent((unsigned long)type->variant.array.
+                                                   variant.number_of_elements);
+          mangled_name_length += section_length;
+          if (store_at != NULL) {
+            (void)sprintf(store_at, "%lu",
+                          (unsigned long)type->
                                      variant.array.variant.number_of_elements);
-          store_at += section_length;
+            store_at += section_length;
+          }  /* if */
         }  /* if */
+        mangled_name_length++;
+        if (store_at != NULL) *store_at++ = '_';
+        /* Put out the element type. */
         mangled_name_length +=
             mangled_encoding_for_type(type->variant.array.element_type,
                                       store_at);
@@ -1444,137 +1560,137 @@ have_whole_mangled_name:
 static char *mangled_operator_name(an_opname_kind kind)
 /*
 Return the string used to indicate the indicated operator name in mangled
-names.
+names.  The string does not have the leading "__" used in some cases.
 */
 {
   char *name;
 
   switch (kind) {
     case onk_new:               /* "new" */
-      name = "__nw";
+      name = "nw";
       break;
     case onk_delete:            /* "delete" */
-      name = "__dl";
+      name = "dl";
       break;
     case onk_array_new:         /* "new[]" */
-      name = "__nwa";
+      name = "nwa";
       break;
     case onk_array_delete:      /* "delete[]" */
-      name = "__dla";
+      name = "dla";
       break;
     case onk_plus:              /* "+" */
-      name = "__pl";
+      name = "pl";
       break;
     case onk_minus:             /* "-" */
-      name = "__mi";
+      name = "mi";
       break;
     case onk_star:              /* "*" */
-      name = "__ml";
+      name = "ml";
       break;
     case onk_divide:            /* "/" */
-      name = "__dv";
+      name = "dv";
       break;
     case onk_remainder:         /* "%" */
-      name = "__md";
+      name = "md";
       break;
     case onk_excl_or:           /* "^" */
-      name = "__er";
+      name = "er";
       break;
     case onk_ampersand:         /* "&" */
-      name = "__ad";
+      name = "ad";
       break;
     case onk_or:                /* "|" */
-      name = "__or";
+      name = "or";
       break;
     case onk_compl:             /* "~" */
-      name = "__co";
+      name = "co";
       break;
     case onk_not:               /* "!" */
-      name = "__nt";
+      name = "nt";
       break;
     case onk_assign:            /* "=" */
-      name = "__as";
+      name = "as";
       break;
     case onk_lt:                /* "<" */
-      name = "__lt";
+      name = "lt";
       break;
     case onk_gt:                /* ">" */
-      name = "__gt";
+      name = "gt";
       break;
     case onk_plus_assign:       /* "+=" */
-      name = "__apl";
+      name = "apl";
       break;
     case onk_minus_assign:      /* "-=" */
-      name = "__ami";
+      name = "ami";
       break;
     case onk_times_assign:      /* "*=" */
-      name = "__amu";
+      name = "amu";
       break;
     case onk_divide_assign:     /* "/=" */
-      name = "__adv";
+      name = "adv";
       break;
     case onk_remainder_assign:  /* "%=" */
-      name = "__amd";
+      name = "amd";
       break;
     case onk_excl_or_assign:    /* "^=" */
-      name = "__aer";
+      name = "aer";
       break;
     case onk_and_assign:        /* "&=" */
-      name = "__aad";
+      name = "aad";
       break;
     case onk_or_assign:         /* "|=" */
-      name = "__aor";
+      name = "aor";
       break;
     case onk_shift_left:        /* "<<" */
-      name = "__ls";
+      name = "ls";
       break;
     case onk_shift_right:       /* ">>" */
-      name = "__rs";
+      name = "rs";
       break;
     case onk_shift_right_assign:/* ">>=" */
-      name = "__ars";
+      name = "ars";
       break;
     case onk_shift_left_assign: /* "<<=" */
-      name = "__als";
+      name = "als";
       break;
     case onk_eq:                /* "==" */
-      name = "__eq";
+      name = "eq";
       break;
     case onk_ne:                /* "!=" */
-      name = "__ne";
+      name = "ne";
       break;
     case onk_le:                /* "<=" */
-      name = "__le";
+      name = "le";
       break;
     case onk_ge:                /* ">=" */
-      name = "__ge";
+      name = "ge";
       break;
     case onk_and_and:           /* "&&" */
-      name = "__aa";
+      name = "aa";
       break;
     case onk_or_or:             /* "||" */
-      name = "__oo";
+      name = "oo";
       break;
     case onk_plus_plus:         /* "++" */
-      name = "__pp";
+      name = "pp";
       break;
     case onk_minus_minus:       /* "--" */
-      name = "__mm";
+      name = "mm";
       break;
     case onk_comma:             /* "," */
-      name = "__cm";
+      name = "cm";
       break;
     case onk_arrow_star:        /* "->*" */
-      name = "__rm";
+      name = "rm";
       break;
     case onk_arrow:             /* "->" */
-      name = "__rf";
+      name = "rf";
       break;
     case onk_function_call:     /* "()" */
-      name = "__cl";
+      name = "cl";
       break;
     case onk_subscript:         /* "[]" */
-      name = "__vc";
+      name = "vc";
       break;
 #if CHECKING
     default:
@@ -1583,6 +1699,113 @@ names.
   }  /* switch */
   return name;
 }  /* mangled_operator_name */
+
+
+static char *mangled_expr_operator_name(an_expr_operator_kind op)
+/*
+Return the string used to mangle the indicated expression operator.
+This routine only needs to handle the operators that can be used in
+expressions on nontype template parameters in function signatures.
+*/
+{
+  char           *name = NULL;
+  an_opname_kind opkind;
+
+  switch (op) {
+    case eok_inegate:
+    case eok_fnegate:
+      opkind = onk_minus;
+      break;
+    case eok_not:
+      opkind = onk_not;
+      break;
+    case eok_cast:
+    case eok_base_class_cast:
+    case eok_derived_class_cast:
+    case eok_pm_base_class_cast:
+    case eok_pm_derived_class_cast:
+    case eok_bool_cast:
+      name = "cs";
+      break;
+    case eok_complement:
+      opkind = onk_compl;
+      break;
+    case eok_iadd:
+    case eok_fadd:
+      opkind = onk_plus;
+      break;
+    case eok_isubtract:
+    case eok_fsubtract:
+      opkind = onk_minus;
+      break;
+    case eok_imultiply:
+    case eok_fmultiply:
+      opkind = onk_star;
+      break;
+    case eok_idivide:
+    case eok_fdivide:
+      opkind = onk_divide;
+      break;
+    case eok_ieq:
+    case eok_feq:
+      opkind = onk_eq;
+      break;
+    case eok_ine:
+    case eok_fne:
+      opkind = onk_ne;
+      break;
+    case eok_igt:
+    case eok_fgt:
+      opkind = onk_gt;
+      break;
+    case eok_ilt:
+    case eok_flt:
+      opkind = onk_lt;
+      break;
+    case eok_ige:
+    case eok_fge:
+      opkind = onk_ge;
+      break;
+    case eok_ile:
+    case eok_fle:
+      opkind = onk_le;
+      break;
+    case eok_remainder:
+      opkind = onk_remainder;
+      break;
+    case eok_shiftl:
+      opkind = onk_shift_left;
+      break;
+    case eok_shiftr:
+      opkind = onk_shift_right;
+      break;
+    case eok_and:
+      opkind = onk_ampersand;
+      break;
+    case eok_or:
+      opkind = onk_or;
+      break;
+    case eok_xor:
+      opkind = onk_excl_or;
+      break;
+    case eok_land:
+      opkind = onk_and_and;
+      break;
+    case eok_lor:
+      opkind = onk_or_or;
+      break;
+    case eok_question:
+      opkind = onk_question;
+      break;
+    default:
+      unexpected_condition_str("mangled_expr_operator_name: bad operator");
+  }  /* switch */
+  if (name == NULL) {
+    /* Convert opkind to a name. */
+    name = mangled_operator_name(opkind);
+  }  /* if */
+  return name;
+}  /* mangled_expr_operator_name */
 
 
 static sizeof_t mangled_function_name(a_routine_ptr routine,
@@ -1599,7 +1822,7 @@ types; just put out the base encoded name.
   sizeof_t   mangled_name_length, section_length;
   char       *name;
   a_type_ptr conversion_type, routine_type;
-  a_boolean  is_member, mangle_as_template;
+  a_boolean  is_member, mangle_as_template, add_leading_underscores = FALSE;
   a_boolean  is_specialization = FALSE, is_template_specialization = FALSE;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
@@ -1662,15 +1885,16 @@ types; just put out the base encoded name.
 #endif /* CHECKING */
   } else {
     /* Use a special name for the routine. */
+    add_leading_underscores = TRUE;
     switch (routine->special_kind) {
       case sfk_constructor:
-        name = "__ct";
+        name = "ct";
         break;
       case sfk_destructor:
-        name = "__dt";
+        name = "dt";
         break;
       case sfk_conversion:
-        name = "__op";
+        name = "op";
         /* Type signature is put out below. */
         break;
       case sfk_operator:
@@ -1685,7 +1909,12 @@ types; just put out the base encoded name.
   /* Copy the name. */
   section_length = strlen(name);
   mangled_name_length += section_length;
+  if (add_leading_underscores) mangled_name_length += 2;  
   if (store_at != NULL) {
+    if (add_leading_underscores) {
+      *store_at++ = '_';
+      *store_at++ = '_';
+    }  /* if */
     (void)memcpy(store_at, name, size_t_arg(section_length));
     store_at += section_length;
   }  /* if */
