@@ -867,10 +867,10 @@ typedef struct a_routine_type_supplement {
 			/* For functions with old-style param declarations
 			   (i.e., for which prototyped is FALSE), TRUE if the
 			   param list has been scanned.  This allows one to
-			   distinguish between old-style param lists that are
-			   NULL because the parameters have yet to be scanned
-			   and those that are NULL because there are no
-			   parameters.  For front-end use only. */
+			   tell when param_type_list is NULL because there
+			   are no parameters and when it is NULL because the
+			   parameters have not been scanned yet.  For front
+			   end use only. */
   unsigned int  lint_argsused_flag:1;
                         /* TRUE if this function declaration is subject
                            to a lint-style "argsused" flag, indicating that
