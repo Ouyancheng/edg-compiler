@@ -942,7 +942,6 @@ variable lists.
 
   db_enter(4, "write_saved_variables");
   for (i = 0; i < num_of_saved_variable_lists; ++i) {
-    psvp = saved_variable_array_list[i];
     for (psvp = saved_variable_array_list[i];
          psvp->var_address != NULL;
          psvp++) {
@@ -979,7 +978,6 @@ variable lists.
   db_enter(4, "read_saved_variables");
   check_file_section_id(pfs_saved_variables);
   for (i = 0; i < num_of_saved_variable_lists; ++i) {
-    psvp = saved_variable_array_list[i];
     for (psvp = saved_variable_array_list[i];
          psvp->var_address != NULL;
          psvp++) {
@@ -1907,7 +1905,7 @@ from the PCH file) to reflect the information loaded from the file.
 {
   a_source_file_ptr	orig_sfp;
 
-  db_enter(0, "pch_fixup_part_1");
+  db_enter(3, "pch_fixup_part_1");
   orig_sfp = il_header_from_pch.primary_source_file;
   /* Make the source file pointer for the file that created the
      precompiled header file the first child file of the new source
@@ -1942,7 +1940,7 @@ is created when the primary source file is reopened between the two fixups.
   a_source_file_ptr	sfp;
   a_source_file_ptr	orig_sfp;
 
-  db_enter(0, "pch_fixup_part_2");
+  db_enter(3, "pch_fixup_part_2");
   building_pch_prefix = FALSE;
   next_event_resumes_compilation = FALSE;
   sfp = il_header.primary_source_file;
