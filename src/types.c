@@ -5022,7 +5022,6 @@ its parameters?).
       case tk_union:
         /* Any code for the general class/struct/union case should go
 	   here. */
-check_enclosing_classes:
         /* Conditional traversal of contained types. */
         if (flags & TTT_TEMPLATE_ARGS) {
           for (tap = type_ptr->variant.class_struct_union.extra_info->
@@ -5037,6 +5036,7 @@ check_enclosing_classes:
               }  /* if */
             }  /* if */
           }  /* for */
+check_enclosing_classes:
           if (!status && type_ptr->source_corresp.is_class_member) {
             tp = type_ptr->source_corresp.parent.class_type;
             status = traverse_type_tree(tp, func, flags);
