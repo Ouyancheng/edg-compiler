@@ -1288,7 +1288,9 @@ If not, *failed is set.
             set_statement_creation_insert_location(&sub_insert_location);
             expand_statement_inline(statement->variant.if_stmt.then_statement,
                                     &sub_insert_location, inlinable, failed);
-            then_stmt = sub_insert_location.variant.stmt;
+            if (!*failed) {
+              then_stmt = sub_insert_location.variant.stmt;
+            }  /* if */
           }  /* if */
           if (!result_is_then) {
             if (statement->variant.if_stmt.else_statement != NULL) {
@@ -1297,25 +1299,30 @@ If not, *failed is set.
               expand_statement_inline(
                                      statement->variant.if_stmt.else_statement,
                                      &sub_insert_location, inlinable, failed);
-              else_stmt = sub_insert_location.variant.stmt;
+              if (!*failed) {
+                else_stmt = sub_insert_location.variant.stmt;
+              }  /* if */
             } else {
               else_stmt = NULL;
             }  /* if */
           }  /* if */
-          if (result_is_then) {
-            /* The result is the "then" statement. */
-            insert_statement(then_stmt, insert_location);
-          } else if (result_is_else) {
-            /* The result is the "else" statement. */
-            if (else_stmt != NULL) {
-              insert_statement(else_stmt, insert_location);
+          if (!*failed) {
+            if (result_is_then) {
+              /* The result is the "then" statement. */
+              insert_statement(then_stmt, insert_location);
+            } else if (result_is_else) {
+              /* The result is the "else" statement. */
+              if (else_stmt != NULL) {
+                insert_statement(else_stmt, insert_location);
+              }  /* if */
+            } else {
+              /* Insert an "if" statement. */
+              new_statement = copy_inlined_statement(statement,
+                                                     insert_location);
+              new_statement->expr = stmt_expr;
+              new_statement->variant.if_stmt.then_statement = then_stmt;
+              new_statement->variant.if_stmt.else_statement = else_stmt;
             }  /* if */
-          } else {
-            /* Insert an "if" statement. */
-            new_statement = copy_inlined_statement(statement, insert_location);
-            new_statement->expr = stmt_expr;
-            new_statement->variant.if_stmt.then_statement = then_stmt;
-            new_statement->variant.if_stmt.else_statement = else_stmt;
           }  /* if */
         }  /* if */
         break;
@@ -1410,6 +1417,7 @@ If not, *failed is set.
         set_statement_creation_insert_location(&sub_insert_location);
         expand_statement_inline(statement->variant.loop_statement,
                                 &sub_insert_location, inlinable, failed);
+        if (*failed) break;
         stmt = sub_insert_location.variant.stmt;
         /* Copy the "while" statement. */
         new_statement = copy_inlined_statement(statement, insert_location);
@@ -1428,11 +1436,13 @@ If not, *failed is set.
           expand_statement_inline(statement->variant.for_loop.extra_info->
                                                                 initialization,
                                   &sub_insert_location, inlinable, failed);
+          if (*failed) break;
           init_stmt = sub_insert_location.variant.stmt;
           /* Copy the dependent statement. */
           set_statement_creation_insert_location(&sub_insert_location);
           expand_statement_inline(statement->variant.for_loop.statement,
                                   &sub_insert_location, inlinable, failed);
+          if (*failed) break;
           stmt = sub_insert_location.variant.stmt;
           /* Copy the increment expression. */
           increment_expr = statement->variant.for_loop.extra_info->increment;

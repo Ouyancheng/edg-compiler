@@ -1,5 +1,20 @@
 Version 3.1
 
+6/27/02  Abort on inlining in GNU C mode
+
+An abort while doing inlining in GNU C mode has been corrected.  The
+abort came about when it is first determined that inlining cannot be
+done for the dependent statement of an "if".
+
+  int i, j;
+  extern inline void set_close_on_exec(unsigned int fd, int flag) {
+    if (flag) switch(i) { case 1: j = 4; break; case 2: j = 2; break; }
+  }
+  long sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
+    set_close_on_exec(fd, 1);
+    return 4;
+  }
+
 6/26/02  Abort on definition of function previously misdeclared in a namespace
 
 The front end used to abort when processing the definition of a function that
