@@ -886,7 +886,6 @@ to indicate whether the class/struct/union is actually defined.
                declared or in a scope enclosing the original scope. */
             pos_sy_error(ec_specific_def_must_be_global,
                          &tag_position, tag_sym);
-            error_tag_sym = tag_sym;
             tag_sym = NULL;
             set_to_named_error_locator(locator);
             err = TRUE;
