@@ -1,6 +1,23 @@
 Version 2.06
 
-5/3/92  Support for access declarations of overloaded functions
+5/5/92   Support for member arrays requiring assignment operator functions
+         in generated assignment operator functions.
+
+Formerly, the following gave an internal error:
+
+  struct A {
+    A operator=(const A&);
+  };
+  struct B {
+   A a[5][7];  // B::operator= must call A::operator= for each element.
+  };
+  main ()
+  {
+    B b, c;
+    b = c;
+  }
+
+5/3/92   Support for access declarations of overloaded functions
 
 Prior to this change, compiling a program that contained an access
 adjustment of an overloaded function resulted in an internal error (in
