@@ -1,5 +1,23 @@
 Version 2.38
 
+11/19/97  C++-generating back end, Microsoft compatibility: no qualified name
+          on reference to member within class definition
+
+As described in Changes entries for 7/8/97 and 8/12/97, the C++-generating
+back end in Microsoft mode is not supposed to put out a qualified name using
+a class name while still inside the definition of that class (because MSVC++
+does not accept such references).  The case of multi-level qualification
+was not handled correctly, and has now been fixed.
+
+  struct A {
+    struct B {
+      typedef int I;
+    };
+    struct C {
+      void f(B::I); // Was put out as A::B::I, not accepted by MSVC++
+    };
+  };
+
 11/18/97  Option to put out "long double" as "double" in generated C
 
 The type "long double" has been put out as "double" when generating
