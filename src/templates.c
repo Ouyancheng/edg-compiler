@@ -4871,7 +4871,6 @@ instantiation.
     }  /* if */
     if (err) {
       sym = NULL;
-      locator.specific_symbol = NULL;
       suppress_redecl_error = TRUE;
       set_to_named_error_locator(locator);
     }  /* if */
@@ -4956,7 +4955,6 @@ instantiation.
     }  /* if */
     if (err) {
       sym = NULL;
-      locator.specific_symbol = NULL;
       suppress_redecl_error = TRUE;
       set_to_named_error_locator(locator);
     }  /* if */
