@@ -103,6 +103,7 @@ Char types:
    for the host.  That's not required; it's just the most common case,
    and doing it this way makes it less likely that this configuration
    will be done wrong. */
+#ifndef TARG_HAS_SIGNED_CHARS
 #if CHAR_MIN == 0
 #define TARG_HAS_SIGNED_CHARS FALSE
 #else /* CHAR_MIN != 0 */
@@ -110,6 +111,7 @@ Char types:
 #endif /* CHAR_MIN == 0 */
 			/* Default value, used to initialize global variable
 			   targ_has_signed_chars. */
+#endif /* !defined(TARG_HAS_SIGNED_CHARS) */
 
 /*
 Special characters:
