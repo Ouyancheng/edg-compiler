@@ -28,6 +28,7 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #include "debug.h"
 #include "folding.h"
 #include "cmd_line.h"
+#include "expr.h"
 #include "exprutil.h"
 #include "const_ints.h"
 
@@ -2971,7 +2972,9 @@ arrays with class elements.
   elem_type = new_delete_base_type_from_operation_type(ndsp->type);
   ptr_elem_type = make_pointer_type(elem_type);
   /* Build the node for the address of the array (entity_node). */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
+#if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+??=error -- NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE wrong
+#endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
   if (ndsp->routine == NULL) {
     /* The __vec_new routine should do the allocation of the array (the normal
        case).  The entity_node is therefore a NULL pointer. */
@@ -2984,7 +2987,6 @@ arrays with class elements.
     lower_expr_list(ndsp->arg, 0, FALSE);
     preserve_size_node = FALSE;
   } else {
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
     /* The allocation is not standard and must be done before calling
        the __vec_new routine.  This happens for something like
          A *p = new (x, y, z) A[3];
@@ -3009,9 +3011,7 @@ arrays with class elements.
     entity_node = var_rvalue_expr(temp_var);
     /* The size node is used in the "new" call, so it cannot be destroyed. */
     preserve_size_node = TRUE;
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
   }  /* if */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   /* Here, we have entity_node pointing to an expression for the address
      of the entity. */
   /* Make a node for the number of elements in the array. */
@@ -3132,17 +3132,13 @@ arrays with class elements.
   /* Construct the call of __vec_new. */
   vec_new_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine,
                                    dtor_routine);
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
   if (ndsp->routine != NULL) {
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
     /* Build a comma node that encloses the allocation call and the
        __vec_new call.  See comment above. */
     assign_node->next = vec_new_node;
     vec_new_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                       vec_new_node->type, assign_node);
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
   }  /* if */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
      to the right pointer type. */
   change_to_cast(expr, vec_new_node, expr->type);
@@ -3186,30 +3182,6 @@ i.e., arrays with class elements.
   /* Overwrite the original node with the __vec_delete call. */
   overwrite_node(expr, vec_delete_node);
 }  /* lower_array_delete */
-
-
-static a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type)
-/*
-type is the base type underlying an array type involved in a new or delete.
-Return TRUE if the new or delete operation requires special handling.
-Special handling means the __vec_new and __vec_delete routines must be
-called, so that constructors and destructors will be called, and so 
-that the size of the array is recorded for use at the time of the delete
-of the array pointer.
-*/
-{
-  a_boolean                     special = FALSE;
-  a_class_symbol_supplement_ptr cssp;
-
-  /* Only types with a constructor or destructor require special handling. */
-  if (is_class_struct_union_type(type)) {
-    cssp = symbol_supplement_for_class(type);
-    if (cssp->constructor != NULL || cssp->destructor != NULL) {
-      special = TRUE;
-    }  /* if */
-  }  /* if */
-  return special;
-}  /* new_or_delete_type_requires_array_handling */
 
 
 static void lower_new(an_expr_node_ptr expr)
