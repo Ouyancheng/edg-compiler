@@ -2697,12 +2697,13 @@ for exact pointer equality.
                                      type_2->variant.routine.return_type,
                                      flags) &&
               param_types_are_compatible(type_1, type_2, flags) &&
-              ((rtsp1->implicit_this_param_type == NULL) ?
+              ((flags & TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE) ||
+               ((rtsp1->implicit_this_param_type == NULL) ?
                   (rtsp2->implicit_this_param_type == NULL) :
                   (rtsp2->implicit_this_param_type != NULL &&
                    f_types_are_compatible(rtsp1->implicit_this_param_type,
                                           rtsp2->implicit_this_param_type,
-                                          flags))) &&
+                                          flags)))) &&
               (ignore_calling_conventions ||
                (routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
@@ -2718,10 +2719,17 @@ for exact pointer equality.
         case tk_ptr_to_member:
           /* Pointer-to-member types are compatible if they refer to the same
              class type and their member types are compatible. */
-          compat = (f_types_are_compatible(pm_class_type(type_1),
-                                           pm_class_type(type_2), flags) &&
-                    f_types_are_compatible(pm_member_type(type_1),
-                                           pm_member_type(type_2), flags));
+          if (flags & TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE) {
+            flags |= TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE;
+          }  /* if */
+          if (f_types_are_compatible(pm_member_type(type_1),
+                                     pm_member_type(type_2), flags)) {
+            if ((flags & TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE) ||
+                f_types_are_compatible(pm_class_type(type_1),
+                                       pm_class_type(type_2), flags)) {
+              compat = TRUE;
+            }  /* if */
+          }  /* if */
           break;
         case tk_template_param:
           /* Template parameter types are considered to be compatible if

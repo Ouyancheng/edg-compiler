@@ -375,6 +375,18 @@ Bit flags for calls of f_types_are_compatible et al.
 			   This flag is used in Microsoft-bugs mode only,
 			   to deal with a bug in checking for overriding
 			   virtual functions. */
+#define TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE 0x40
+			/* Two pointer-to-member types are deemed compatible
+			   as long as the member-types match -- no check
+			   should be done for the class-types.  This flag is
+			   used in Microsoft-bugs mode only, to deal with a
+			   bug in redeclaration of static data members. */
+#define TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE 0x80
+			/* Two function types are deemed compatible even if
+			   the implicit-this-param types do not match.
+			   This flag is used in Microsoft-bugs mode only, to
+			   deal with a bug in redeclaration of static data
+			   members. */
 
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;

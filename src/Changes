@@ -1,5 +1,17 @@
 Version 2.39
 
+5/11/98   Microsoft compatibility: static data member redeclaration
+
+In Microsoft-bugs mode, rules of pointer-to-member compatibility are
+relaxed on the out-of-class definition of a static data member.  Here's
+an example:
+
+  class A {
+    static int A::* p;
+  };
+  class B;
+  int B::* A::p;        // Only a warning in Microsoft bugs mode
+
 5/10/98   Namespace-qualified name should be accepted following "typename"
 
 When the "typename" keyword was added to the language, the name following

@@ -5159,6 +5159,7 @@ the symbol and its linkage (which is always "none").
   a_boolean                err = FALSE;
   a_symbol_ptr             sym;
   a_symbol_reference_kind  srk_flags;
+  a_boolean                incompatible_ptr_to_member_class_types = FALSE;
 
   db_enter(3, "define_static_data_member");
   /* This routine is called after a qualified name has been seen, but be sure
@@ -5181,17 +5182,32 @@ the symbol and its linkage (which is always "none").
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
-    } else if (!types_are_redecl_compatible(type_ptr, var->type)) {
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
-      err = TRUE;
     } else if (!namespace_is_enclosed_by_scope(sym,
                                            &scope_stack[depth_scope_stack])) {
       /* This static data member is being defined in a scope that does not
          enclose the scope in which the parent class was defined. */
       sym_error(ec_bad_scope_for_definition, sym);
       err = TRUE;
-    } else {
+    } else if (!types_are_redecl_compatible(type_ptr, var->type)) {
+      /* Types are not compatible. */
+      if (microsoft_bugs &&
+          f_types_are_compatible(type_ptr, var->type,
+                                 TCF_REDECLARATION |
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                 TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE)) {
+        /* The incompatibility amounts to some difference in the class type
+           specified in a pointer to member type that is part of the type of
+           the static data member.  This is allowed in Microsoft-bugs mode. */
+        pos_sy_warning(ec_not_compatible_with_previous_decl,
+                       &locator->source_position, sym);
+        incompatible_ptr_to_member_class_types = TRUE;
+      } else {
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &locator->source_position, sym);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!err) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Since this is the defining declaration of the static data member,
          record the type.  Note that this has to be done before composite
@@ -5199,8 +5215,36 @@ the symbol and its linkage (which is always "none").
       check_assertion(var->declared_type == NULL);
       var->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* The type of the variable should be the composite of the two types. */
-      var->type = composite_type(type_ptr, var->type);
+      if (incompatible_ptr_to_member_class_types) {
+        /* Microsoft bug -- leave the static data member type (or for
+           incomplete arrays the underlying array element type) as it was
+           originally declared. */
+        if (is_array_type(var->type)) {
+          a_type_ptr     array_type, new_type;
+
+          check_assertion(is_array_type(type_ptr));
+          array_type = skip_typerefs(var->type);
+          if (array_type->size == 0) {
+            /* The static data member was originally declared as an array
+               of unknown size.  Make a copy of the original type, using
+               the size from the current type.  (We have to do it this way
+               instead of calling composite_type because the two type are not
+               actually compatible.) */
+            new_type = alloc_type((a_type_kind)tk_array);
+            copy_type(array_type, new_type);
+            new_type->variant.array.variant.number_of_elements =
+                       skip_typerefs(type_ptr)->
+                              variant.array.variant.number_of_elements;
+            set_type_size(new_type);
+            /* Update the variable entry to point to the new type. */
+            var->type = new_type;
+          }  /* if */            
+        }  /* if */
+      } else {
+        /* The type of the variable should be the composite of the two
+           types. */
+        var->type = composite_type(type_ptr, var->type);
+      }  /* if */
       /* Ordinarily a static data member will have been given a storage class
          of sc_extern; promote it to sc_unspecified, now that the definition
          has been seen.  (In cfront mode the storage class is promoted from
