@@ -1384,7 +1384,7 @@ Enter the standard predeclared functions for GCC.
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/FALSE);
 #if LONG_LONG_ALLOWED
-  enter_gnu_builtin_function((a_builtin_function_kind)bfk_popcountl,
+  enter_gnu_builtin_function((a_builtin_function_kind)bfk_popcountll,
 			     int_type,
 			     unsigned_long_long_type,
 			     (a_type_ptr)NULL,
