@@ -2974,6 +2974,7 @@ primary IL.
               }
               break;
             case iek_template_arg:
+            case iek_class_list_entry:
               break;
             default:
               err = TRUE;
