@@ -1788,7 +1788,7 @@ declared_type points to a type that should be recorded in the entry.
         fputs("\"\n", f_debug);
       }  /* if */
 #endif /* if DEBUG */
-      sym->variant.routine.instance_ptr->partial_instantiation = ssep;;
+      sym->variant.routine.instance_ptr->partial_instantiation = ssep;
     } else
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     /* Do not insert code here. */
