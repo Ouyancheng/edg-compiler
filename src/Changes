@@ -1,5 +1,11 @@
 Version 2.29
 
+4/20/95  Setting autonomous_primary_tag_decl flag in template class
+
+If source sequence lists are being generated, autonomous_primary_tag_decl
+is always set to TRUE for a class created from a template instantiation,
+regardless of the kind of reference that triggers the instantiation.
+
 4/19/94  Parsing "overload" declarations inside a class definition
 
 A bug has been fixed in parsing a declaration involving the "overload"
