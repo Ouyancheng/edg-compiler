@@ -162,9 +162,11 @@ the "#" the current token (at least logically).
     } else if (curr_id_is("error")) {
       /* #error directive. */
       kind = ppd_error;
+#if IDENT_DIRECTIVE_AND_PRAGMA
     } else if (curr_id_is("ident")) {
       /* #ident directive. */
       kind = ppd_ident;
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if ALIAS_DIRECTIVE
     } else if (curr_id_is("alias")) {
       /* #alias directive. */
