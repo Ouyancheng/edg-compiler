@@ -7170,7 +7170,9 @@ that follows.
   } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
                            DSO_DECLARES_SOMETHING |
                            DSO_ELABORATED_TYPE_SPECIFIER)) &&
-             is_class_struct_union_type(type) && curr_token == tok_semicolon) {
+             is_class_struct_union_type(type) &&
+             (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0 &&
+             curr_token == tok_semicolon) {
     /* The argument is something like class A<int>.  Note that this also
        permits the class to be a nested class within a template class.  All
        of the remaining processing is done in class_specifier. */
