@@ -4505,14 +4505,14 @@ for handling virtual bases and functions.
     /* Issue a diagnostic if the offset assigned to any base class is too
        large. */
     check_base_class_offsets(&lob);
-  }  /* if */
 #if IA64_ABI
-  /* Limit the emulation of a strange GNU ABI bug to relatively safe
-     cases. */
-  if (emulate_gnu_abi_bugs) {
-    reposition_gnu_disconnected_virtual_bases(&lob);
-  }  /* if */
+    /* Limit the emulation of a strange GNU ABI bug to relatively safe
+       cases. */
+    if (emulate_gnu_abi_bugs) {
+      reposition_gnu_disconnected_virtual_bases(&lob);
+    }  /* if */
 #endif /* IA64_ABI */
+  }  /* if */
   /* Record the overall size and alignment in the class's type entry. */
   class_type->size = lob.byte_offset;
   class_type->alignment = lob.alignment;
