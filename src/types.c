@@ -3494,12 +3494,44 @@ conversions (constructors and conversion functions).
 }  /* expl_conversion_possible */
 
 
+static a_type_ptr composite_parameter_type(a_type_ptr  type1,
+                                           a_type_ptr  type2)
+/*
+type1 and type2 are types pointed to by corresponding param_type entries of
+routine types already known to be compatible with each other.  Determine the
+composite of the two parameter types and return a pointer to it.  Note: one
+of the types passed in may be returned as the composite type; if either
+could be returned as the composite type, preference is given to the first.
+*/
+{
+  a_type_ptr  tp;
+
+  if (C_mode() && !type_qualifiers_match(type1, type2)) {
+    /* One tricky case that comes up is
+          int f(int);
+          int f(const int);
+       X3J11 has said that the composite of those parameter types is the
+       composite of the unqualified types (interpretation 13).  We use that
+       rule only when the qualifiers are different, so that the composite of
+          int f(const int, int);
+          int f(const int, const int);
+       still has "const int" in the first parameter. */
+    tp = composite_type(make_unqualified_type(type1),
+                        make_unqualified_type(type2));
+  } else {
+    tp = composite_type(type1, type2);
+  }  /* if */
+  return tp;
+}  /* composite_parameter_type */
+
+
 static a_type_ptr composite_routine_type(a_type_ptr  rout_type1,
                                          a_type_ptr  rout_type2)
 /*
 Determine the composite type based on routine types rout_type1 and rout_type2
 and return a pointer to it.  Note: one of the types passed in may be returned
-as the composite type.
+as the composite type; if either could be returned as the composite type,
+preference is given to the first.
 */
 {
   a_type_ptr                     comp_type;
@@ -3599,22 +3631,7 @@ as the composite type.
         }  /* if */
       }  /* if */
       /* Form the composite of the two types. */
-      if (C_mode() && !type_qualifiers_match(ptp1->type, ptp2->type)) {
-        /* One tricky case that comes up is
-              int f(int);
-              int f(const int);
-           X3J11 has said that the composite of those parameter types is the
-           composite of the unqualified types (interpretation 13).  We use
-           that rule only when the qualifiers are different, so that the
-           composite of
-              int f(const int, int);
-              int f(const int, const int);
-           still has "const int" in the first parameter. */
-        tp = composite_type(make_unqualified_type(ptp1->type),
-                            make_unqualified_type(ptp2->type));
-      } else {
-        tp = composite_type(ptp1->type, ptp2->type);
-      }  /* if */
+      tp = composite_parameter_type(ptp1->type, ptp2->type);
       /* Compare the two parameter types against their composite type.  Stop
          if it is no longer true that one or the other of the original routine
          types can can serve as the composite type. */
@@ -3665,7 +3682,8 @@ make_new_comp_type:
          construct. */
       new_ptp = make_param_type(ptp2 == NULL ?
                                   ptp1->type :
-                                  composite_type(ptp1->type, ptp2->type),
+                                  composite_parameter_type(ptp1->type,
+                                                           ptp2->type),
                                 &null_source_position);
       if (!C_mode()) {
         /* Form the composite of the C++ default argument expressions; it's
@@ -3691,6 +3709,15 @@ make_new_comp_type:
         if (ptp1->passed_via_copy_constructor) {
           check_assertion(ptp2 == NULL || ptp2->passed_via_copy_constructor);
           new_ptp->passed_via_copy_constructor = TRUE;
+        }  /* if */
+        if (ptp1->qualifiers != TQ_NONE) {
+          /* If the "qualifiers" carried around by the two param_type entries
+             are not identical, then one or the other should be empty. */
+          check_assertion(ptp2 == NULL || ptp2->qualifiers == TQ_NONE ||
+                          ptp2->qualifiers == ptp1->qualifiers);
+          new_ptp->qualifiers = ptp1->qualifiers;
+        } else if (ptp2 != NULL) {
+          new_ptp->qualifiers = ptp2->qualifiers;
         }  /* if */
       }  /* if */
       /* Add the parameter type entry to the end of the list. */
@@ -3720,6 +3747,16 @@ make_new_comp_type:
         rtsp->exception_specification = rtsp1->exception_specification;
       } else {
         rtsp->exception_specification = rtsp2->exception_specification;
+      }  /* if */
+      /* In C++ mode routine types will be created with a default routine
+         name linkage of nlk_cplusplus_external.  If either rout_type1 or
+         rout_type2 has a different value, use it (giving preference to the
+         rout_type1). This assumes routine name linkages of compatible routine
+         types are effectively interchangeable. */
+      if (rtsp1->routine_name_linkage != default_routine_name_linkage) {
+        rtsp->routine_name_linkage = rtsp1->routine_name_linkage;
+      } else {
+        rtsp->routine_name_linkage = rtsp2->routine_name_linkage;
       }  /* if */
     }  /* if */
   }  /* if */
