@@ -1747,6 +1747,9 @@ error code.
     case ec_decl_hides_function_parameter:
       m = "declaration of %sq hides function parameter";
       break;
+    case ec_nonconst_ref_init_from_rvalue:
+      m = "initial value of reference to non-const must be an lvalue";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

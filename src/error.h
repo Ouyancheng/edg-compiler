@@ -500,7 +500,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_template_declaration,
   ec_bad_nontype_template_arg,
   ec_init_needing_temp_not_allowed,
-  ec_decl_hides_function_parameter
+  ec_decl_hides_function_parameter,
+  ec_nonconst_ref_init_from_rvalue
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
