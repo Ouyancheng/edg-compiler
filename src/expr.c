@@ -12491,6 +12491,48 @@ returned instead of the unqualified function name.
 }  /* make_function_name_operand */
 
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void mark_operand_as_gnu_extension(an_operand  *op)
+/*
+The given operand (an expression or a constant) should be marked as having
+been annotated in the source with the GNU keyword __extension__.
+*/
+{
+  an_expr_node_ptr  expr;
+
+  switch (op->kind) {
+    case ok_error:
+      /* Ignore this expression. */
+      break;
+    case ok_expression:
+      op->variant.expression->marked_as_gnu_extension = TRUE;
+      break;
+    case ok_constant:
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      expr = op->variant.constant.expr;
+      if (expr == NULL) {
+        /* Create a constant expression to record the extension flag. */
+        a_memory_region_number  region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        a_constant_ptr  con = fs_constant(op->variant.constant.kind);
+        copy_constant(&op->variant.constant, con);
+        expr = alloc_expr_node((an_expr_node_kind)enk_constant);
+        expr->type = con->type;
+        expr->variant.constant = con;
+        op->variant.constant.expr = expr;
+        switch_back_to_original_region(region_to_switch_back_to);
+      }  /* if */
+      expr->marked_as_gnu_extension = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* mark_operand_as_gnu_extension */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
@@ -12511,6 +12553,10 @@ see expr.h).
   an_operand        local_result, local_bound_function_selector;
   a_token_kind      ntoken;
   a_ref_entry_ptr   saved_ref_list, selector_ref_entry_list, last_rep;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean         marked_as_gnu_extension = 
+                               (local_options & EOPT_MARKED_AS_GNU_EXTENSION);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_expr_full");
 #if DEBUG
@@ -12519,11 +12565,13 @@ see expr.h).
   }  /* if */
 #endif /* DEBUG */
 
-  if (gcc_mode && curr_token == tok_extension) {
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode && !marked_as_gnu_extension && curr_token == tok_extension) {
     /* Ignore the GNU C __extension__ annotation. */
     (void)get_token();
-    /* FIXME: should we record that we've seen this? In a SSE? */
+    marked_as_gnu_extension = TRUE;
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
@@ -13108,6 +13156,12 @@ bad_start_of_primary:
 
   copy_operand(&local_result, result);
 
+#if GNU_EXTENSIONS_ALLOWED
+  if (marked_as_gnu_extension) {
+    mark_operand_as_gnu_extension(result);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
   /* At this point, curr_expr_ref_entries is a list of all the ref entries
      generated in the expression.  There is also a list attached to result,
      of entries for which the reference kind may be affected by context.
@@ -13215,14 +13269,16 @@ is TRUE if this is the expression in a switch statement.
 }  /* scan_integer_expression */
 
 
-an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop)
+an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
+                                      a_boolean marked_as_gnu_extension)
 /*
 Scan a "void expression," i.e., one whose value is discarded.  This is
 used for expression statements, the increment expression of a "for", etc.
 repeated_in_loop is TRUE for an expression repeated in a loop (e.g.,
 the increment of a "for").  This routine is not used for constant
 or not-evaluated expressions.  This routine should only be used to
-scan full expressions.
+scan full expressions.  If marked_as_gnu_extension is TRUE, the upcoming
+expression was preceded by the GNU __extension__ keyword.
 */
 {
   an_expr_node_ptr    expression;
@@ -13236,7 +13292,9 @@ scan full expressions.
                   /*force_object_lifetime=*/repeated_in_loop,
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  scan_expr(&result, PREC_LOWEST,
+            marked_as_gnu_extension ? EOPT_MARKED_AS_GNU_EXTENSION
+                                    : EOPT_NO_OPTIONS);
   simplify_void_operand(&result);
   expression = make_node_from_void_expression_operand(&result);
   expression = wrap_up_full_expression(expression);

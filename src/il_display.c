@@ -570,6 +570,11 @@ Display the indicated source correspondence entry.
   if (scp->member_of_unknown_base) {
     disp_boolean("  member_of_unknown_base", TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+  if (scp->marked_as_gnu_extension) {
+    disp_boolean("marked_as_gnu_extension", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
@@ -2566,6 +2571,11 @@ Display the indicated expression node.
   if (ptr->void_expression_lvalue) {
     disp_boolean("void_expression_lvalue", TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->marked_as_gnu_extension) {
+    disp_boolean("marked_as_gnu_extension", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -4326,6 +4336,11 @@ Display the indicated source sequence secondary declaration entry.
     disp_boolean("compiler_generated_forward_decl", TRUE);
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  if (sssdp->marked_as_gnu_extension) {
+    disp_boolean("marked_as_gnu_extension", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_src_seq_secondary_decl */
 
 

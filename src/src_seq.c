@@ -1811,6 +1811,11 @@ in the secondary source sequence entry that need to be set.
         sssdp->is_partial_instantiation = TRUE;
       }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+      if (flags & SSSD_MARKED_AS_GNU_EXTENSION) {
+        sssdp->marked_as_gnu_extension = TRUE;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   return sssdp;

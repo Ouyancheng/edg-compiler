@@ -1548,6 +1548,7 @@ member declaration (allowed in Microsoft mode only).
         declaration(/*function_definition_allowed=*/FALSE, 
                     /*is_old_style_param_decl=*/TRUE,
                     /*is_top_level_declaration=*/FALSE, 
+                    /*marked_as_gnu_extension=*/FALSE, 
                     func_info->param_id_list, (a_source_range *)NULL);
       }  /* while */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

@@ -270,10 +270,11 @@ extern void check_main_function(a_func_info_block_ptr  func_info,
 extern void declaration(a_boolean       function_definition_allowed,
                         a_boolean       is_old_style_param_decl,
                         a_boolean       is_top_level_declaration,
+                        a_boolean       marked_as_gnu_extension,
                         a_param_id_ptr  param_id_list,
                         a_source_range  *linkage_spec_range_ptr);
 
-extern void local_declaration(void);
+extern void local_declaration(a_boolean  marked_as_gnu_extension);
 
 EXTERN a_boolean
 		next_token_is_top_level_decl_start;

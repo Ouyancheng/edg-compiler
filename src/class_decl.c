@@ -8486,11 +8486,12 @@ respectively.
         } else {
           /* The field has an incomplete array type, and it's a member of a
              struct or class.  This can sometimes be okay -- in Microsoft
-             mode (both C and C++) and, as long as it's not the first named
-             field, in C99 mode.  As an extension, this is supported in
-             other C modes (except in strict C89 mode). */
+             mode (both C and C++), GNU C mode, and, as long as it's not the
+             first named field, in C99 mode.  As an extension, this is
+             supported in other C modes (except in strict C89 mode). */
           if ((!class_state->is_first_field &&
                class_state->any_named_fields) ||
+              gcc_mode ||
               microsoft_mode) {
             /* A further restriction is that the incomplete array has to be
                the last field in the struct or class.  This can't always be
@@ -10668,6 +10669,7 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean            marked_as_gnu_extension = FALSE;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -10690,10 +10692,16 @@ the IL, the template header is passed via template_decl.
   }  /* if */
   /* First scan the declaration specifiers.  In C++ the specifiers may be
      omitted, e.g., for a function member with implicit type. */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode && curr_token == tok_extension) {
+    marked_as_gnu_extension = TRUE;
+    (void)get_token();
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &qualifiers, &decl_info.decl_modifiers,
-                        &decl_info.decl_pos_block);
+                        &member_type, &qualifiers, marked_as_gnu_extension,
+                        &decl_info.decl_modifiers,  &decl_info.decl_pos_block);
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
@@ -12080,7 +12088,7 @@ classes.
     if (curr_token == tok_rbrace) {
       /* A member list is optional in C++.  In C mode issue an error and add
          a dummy field to reduce error recovery problems down the line. */
-      if (C_mode()) {
+      if (C_mode() && !gcc_mode) {
         error(ec_exp_declaration);
         add_error_field(class_type, &class_state.end_of_field_list);
       }  /* if */

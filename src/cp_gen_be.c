@@ -2524,6 +2524,11 @@ or enum.
     save_source_sequence_scan_state(&saved_state);
     curr_source_sequence_entry = type->source_corresp.source_sequence_entry;
     sublist_parent_source_sequence_entry = NULL;  /* Arbitrary. */
+#if GNU_EXTENSIONS_ALLOWED
+    if (type->source_corresp.marked_as_gnu_extension) {
+      write_tok_str("__extension__ ");
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Put out the definition. */
     if (type->kind == (a_type_kind)tk_enum) {
       gen_enum_definition(type);
@@ -3462,6 +3467,11 @@ declaration following this one is such a continuation.
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&field->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED
+  if (field->source_corresp.marked_as_gnu_extension) {
+    write_tok_str("__extension__ ");
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (field->get_property_name != NULL ||
       field->put_property_name != NULL) {
@@ -4021,6 +4031,9 @@ this one is such a continuation.
   a_boolean                    need_extern_C_closing_brace = FALSE;
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr               assoc_template;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                     marked_as_gnu_extension = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
@@ -4033,6 +4046,9 @@ this one is such a continuation.
       type = ss_entry_ptr(sec_decl, a_type_ptr);
     }  /* if */
     friend_decl = sec_decl->friend_decl;
+#if GNU_EXTENSIONS_ALLOWED
+    marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
@@ -4046,6 +4062,9 @@ this one is such a continuation.
     is_definition = TRUE;
     /* A definition of a class is never a friend declaration. */
     friend_decl = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+    marked_as_gnu_extension = type->source_corresp.marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = FALSE;
     if (is_immediate_class_type(type)) {
       /* See if the "template<>" specialization prefix should be put out. */
@@ -4073,6 +4092,11 @@ this one is such a continuation.
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED
+    if (marked_as_gnu_extension) {
+      write_tok_str("__extension__ ");
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     check_assertion(!is_immediate_class_type(type) ||
                     !type->variant.class_struct_union.is_template_class ||
                     type->variant.class_struct_union.extra_info
@@ -5502,6 +5526,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       expr = constant->expr;
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (expr->marked_as_gnu_extension) {
+    write_tok_str("__extension__ "); 
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (expr->void_expression_lvalue) {
     /* The void_expression_lvalue flag indicates that the expression
@@ -8066,6 +8095,9 @@ declaration following this one is such a continuation.
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr	       assoc_template;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                     marked_as_gnu_extension = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
@@ -8080,6 +8112,9 @@ declaration following this one is such a continuation.
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     var_type = sec_decl->declared_type;
+#if GNU_EXTENSIONS_ALLOWED
+    marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
@@ -8092,6 +8127,9 @@ declaration following this one is such a continuation.
     }  /* if */
     is_definition = TRUE;
     var_type = var->declared_type;
+#if GNU_EXTENSIONS_ALLOWED
+    marked_as_gnu_extension = var->source_corresp.marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = FALSE;
     /* See if the "template<>" specialization prefix should be put out. */
     if (var->is_specialized) {
@@ -8111,6 +8149,11 @@ declaration following this one is such a continuation.
      mode for the member. */
   if (!suppress_specifiers) {
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED
+    if (marked_as_gnu_extension) {
+      write_tok_str("__extension__ ");
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   check_assertion(!var->is_template_static_data_member ||
                   var->assoc_template != NULL);
@@ -8575,6 +8618,9 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     out_of_class_redecl = FALSE;
   a_template_decl_ptr           template_decl = NULL;
   a_template_ptr		assoc_template;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                     marked_as_gnu_extension = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -8594,6 +8640,9 @@ TRUE if the declaration following this one is such a continuation.
     rout_type = sec_decl->declared_type;
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
+#if GNU_EXTENSIONS_ALLOWED
+    marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
       assoc_template = ss_entry_ptr(curr_source_sequence_entry,
@@ -8606,6 +8655,9 @@ TRUE if the declaration following this one is such a continuation.
     rout_type = rout->declared_type;
     is_definition = TRUE;
     friend_decl = rout->defined_in_friend_decl;
+#if GNU_EXTENSIONS_ALLOWED
+    marked_as_gnu_extension = rout->source_corresp.marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = FALSE;
     /* See if the "template<>" specialization prefix should be put out. */
     if (rout->is_specialized) {
@@ -8645,6 +8697,11 @@ TRUE if the declaration following this one is such a continuation.
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&rout->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED
+    if (marked_as_gnu_extension) {
+      write_tok_str("__extension__ ");
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   check_assertion(!rout->is_template_function ||
                   rout->is_prototype_instantiation ||

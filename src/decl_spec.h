@@ -76,13 +76,15 @@ extern void typename_specifier(a_type_ptr            *type_ptr,
 
 extern a_boolean is_constructor_decl(a_type_ptr  class_type);
 
-extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
-				 a_decl_flag_set             *output_flags,
-				 a_storage_class             *storage_class,
-				 a_type_ptr                  *type_ptr,
-                                 a_type_qualifier_set        *qualifiers,
-                                 a_decl_modifiers_block_ptr  decl_modifiers,
-                                 a_decl_pos_block_ptr        decl_pos_block);
+extern a_boolean decl_specifiers(
+                          a_decl_flag_set             input_flags,
+                          a_decl_flag_set             *output_flags,
+                          a_storage_class             *storage_class,
+                          a_type_ptr                  *type_ptr,
+                          a_type_qualifier_set        *qualifiers,
+                          a_boolean                   marked_as_gnu_extension,
+                          a_decl_modifiers_block_ptr  decl_modifiers,
+                          a_decl_pos_block_ptr        decl_pos_block);
 
 extern void set_name_linkage_for_type(a_type_ptr  tp);
 

@@ -1536,6 +1536,7 @@ static a_boolean class_specifier(a_boolean         vacuous_decl_allowed,
                                  a_boolean         is_ref_within_new_expr,
 				 a_boolean         is_explicit_instantiation,
                                  a_boolean         is_template_specialization,
+                                 a_boolean         marked_as_gnu_extension,
                                  a_type_ptr        *type_ptr,
                                  a_boolean         *declares_something,
                                  a_boolean         *defines_something,
@@ -2222,9 +2223,19 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
        symbol supplement will already have been set for definitions, if
        appropriate. */
     if (!is_class_definition) {
+      an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
+#if GNU_EXTENSIONS_ALLOWED
+      if (marked_as_gnu_extension) {
+        flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       (void)set_src_seq_secondary_decl_fields((char *)class_type,
-                                              (a_type_ptr)NULL,
-                                              SSSD_FIRST_DECLARATION);
+                                              (a_type_ptr)NULL, flags);
+#if GNU_EXTENSIONS_ALLOWED
+    } else {
+      class_type->source_corresp.marked_as_gnu_extension =
+                                                      marked_as_gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
@@ -2309,9 +2320,14 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
            or this is the first visible declaration of a previously
            invisible symbol.  Set the first_declaration flag in the
            associated source-sequence secondary declaration entry. */
+        an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
+#if GNU_EXTENSIONS_ALLOWED
+        if (marked_as_gnu_extension) {
+          flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         (void)set_src_seq_secondary_decl_fields((char *)class_type,
-                                                (a_type_ptr)NULL,
-                                                SSSD_FIRST_DECLARATION);
+                                                (a_type_ptr)NULL, flags);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
@@ -4217,6 +4233,7 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_storage_class            *storage_class,
                           a_type_ptr                 *type_ptr,
                           a_type_qualifier_set       *qualifiers,
+                          a_boolean                  marked_as_gnu_extension,
                           a_decl_modifiers_block_ptr decl_modifiers,
                           a_decl_pos_block_ptr       decl_pos_block)
 /*
@@ -4353,6 +4370,11 @@ Returns TRUE if there is an error in the specifiers.
   *type_ptr = NULL;
   *qualifiers = TQ_NONE;
   clear_decl_modifiers_block(decl_modifiers);
+#if GNU_EXTENSIONS_ALLOWED
+  if (marked_as_gnu_extension) {
+    decl_modifiers->marked_as_gnu_extension = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
@@ -5222,6 +5244,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
+                          marked_as_gnu_extension,
                           type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
@@ -5243,6 +5266,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
+                          marked_as_gnu_extension,
                           &dummy_type, &dummy_flag, &dummy_flag,
                           decl_pos_block);
           }  /* if */

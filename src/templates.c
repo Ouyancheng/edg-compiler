@@ -7020,7 +7020,8 @@ information.
   }  /* if */
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
-                        &qualifiers, decl_modifiers, decl_pos_block);
+                        &qualifiers, /*marked_as_gnu_extension=*/FALSE,
+			decl_modifiers, decl_pos_block);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -10687,8 +10688,9 @@ depends on a template parameter type, return TRUE in *template_dependent
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
-                         &dso_flags, &param_storage_class, param_type_ptr,
-                         &qualifiers, &decl_modifiers, &decl_pos_block);
+			&dso_flags, &param_storage_class, param_type_ptr,
+			&qualifiers, /*marked_as_gnu_extension=*/FALSE,
+			&decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
@@ -13785,6 +13787,7 @@ that follows.
                                   ? DSI_IS_MEMBER_DECLARATION
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
+                        /*marked_as_gnu_extension=*/FALSE,
                         &decl_modifiers, &decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
@@ -17942,6 +17945,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
                         &dso_flags, &storage_class, &type, &qualifiers,
+                        /*marked_as_gnu_extension=*/FALSE,
                         &decl_modifiers, &decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */

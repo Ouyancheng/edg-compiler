@@ -1131,6 +1131,11 @@ typedef struct a_decl_modifiers_block {
 			   directly to the declaration (e.g., extern "C" A x;
 			   but not extern "C" { A x; }).  Not copied into
 			   the IL. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field  marked_as_gnu_extension:1;
+			/* TRUE if the declaration was preceded by the GNU
+			   keyword __extension__. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   char		*uuid_string;
 			/* Pointer to a string representing the argument of

@@ -159,6 +159,9 @@ typedef unsigned int an_sssd_flag_set;
 			/* If this bit is set, set is_partial_instantiation
 			   in the secondary-decl entry. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+#define SSSD_MARKED_AS_GNU_EXTENSION ((an_sssd_flag_set)0x80)
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
                                              char              *il_entry_ptr,

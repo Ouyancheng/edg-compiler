@@ -4239,13 +4239,24 @@ cross-reference output describing this declaration.
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
+    an_sssd_flag_set              flags = SSSD_NO_FLAGS;
+#if GNU_EXTENSIONS_ALLOWED
+    if (decl_modifiers->marked_as_gnu_extension) {
+      flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)variable_ptr, declared_type,
-                                        SSSD_NO_FLAGS, decl_pos_block);
+                                        flags, decl_pos_block);
   } else {
-    /* The defining declaration of the variable.  Record the type.  */
+    /* The defining declaration of the variable.  Record the type. */
     if (variable_ptr->declared_type == NULL) {
       variable_ptr->declared_type = declared_type;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (decl_modifiers->marked_as_gnu_extension) {
+      variable_ptr->source_corresp.marked_as_gnu_extension = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (c99_mode) {
@@ -5568,6 +5579,11 @@ skip_overloading:;
       check_assertion(!is_friend_decl || locator->is_error);
       routine_ptr->defined_outside_of_parent = TRUE;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (decl_modifiers->marked_as_gnu_extension) {
+      routine_ptr->source_corresp.marked_as_gnu_extension = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (!is_function_def || func_info->is_movable_member_or_friend_def) {
     /* Set the type in the secondary declaration entry. */
@@ -5593,6 +5609,11 @@ skip_overloading:;
     if (is_friend_decl) flags |= SSSD_FRIEND_DECL;
     if (func_info->is_implicit_declaration) flags |= SSSD_IMPLICIT_DECL;
     if (first_decl) flags |= SSSD_FIRST_DECLARATION;
+#if GNU_EXTENSIONS_ALLOWED
+    if (decl_modifiers->marked_as_gnu_extension) {
+      flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)routine_ptr, declared_type,
                                         flags, decl_pos_block);
   }  /* if */
@@ -7202,8 +7223,9 @@ In C++ mode an error is issued if a type definition appears in a type-name
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-			&storage_class, type_ptr, &qualifiers,
-                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
+                        &storage_class, type_ptr, &qualifiers,
+                        /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
+			(a_decl_pos_block_ptr)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -7312,7 +7334,8 @@ within this routine if is_parenthesized comes in FALSE.
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
-                        &decl_modifiers, &decl_pos_block);
+                        /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
+			&decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -7430,7 +7453,8 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
-                        &decl_modifiers, &decl_pos_block);
+                        /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
+			&decl_pos_block);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7506,7 +7530,8 @@ is no parent.
     clear_decl_pos_block(&decl_pos_block);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
-                          &decl_modifiers, &decl_pos_block);
+                          /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
+			  &decl_pos_block);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -7838,7 +7863,8 @@ specifier is restored.
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
       declaration(function_definition_allowed, is_old_style_param_decl,
-                  /*is_top_level_declaration=*/FALSE, param_id_list,
+                  /*is_top_level_declaration=*/FALSE,
+                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
                   (a_source_range *)NULL);
     }  /* while */
     /* Restore the default linkage to the value it had before the declaration
@@ -7873,8 +7899,8 @@ specifier is restored.
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
       declaration(function_definition_allowed, is_old_style_param_decl,
-                  is_top_level_declaration, param_id_list,
-                  &linkage_spec_range);
+                  is_top_level_declaration, /*marked_as_gnu_extension=*/FALSE,
+                  param_id_list, &linkage_spec_range);
       /* pop_name_linkage will already have been called in declaration
          (before advancing past the end of the declaration, because there
          is a dependency in precompiled header processing on the state
@@ -7979,7 +8005,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
-                              &qualifiers, &decl_modifiers, &decl_pos_block);
+                              &qualifiers, /*marked_as_gnu_extension=*/FALSE,
+                              &decl_modifiers, &decl_pos_block);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -8339,7 +8366,8 @@ Return a pointer to the variable that is declared.
               DSI_IS_CONDITION_DECL;
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers, &decl_modifiers, &decl_pos_block);
+                        &qualifiers, /*marked_as_gnu_extension=*/FALSE,
+                        &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &decl_pos);
@@ -8822,6 +8850,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         declaration(/*function_definition_allowed=*/TRUE,
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE,
+                    /*marked_as_gnu_extension=*/FALSE,
                     (a_param_id_ptr)NULL, (a_source_range *)NULL);
       }  /* while */
       remove_stop_token(tok_rbrace);
@@ -9592,6 +9621,7 @@ diagnostics.
 void declaration(a_boolean       function_definition_allowed,
                  a_boolean       is_old_style_param_decl,
                  a_boolean       is_top_level_declaration,
+                 a_boolean       marked_as_gnu_extension,
                  a_param_id_ptr  param_id_list,
                  a_source_range  *linkage_spec_range_ptr)
 /*
@@ -9678,10 +9708,10 @@ of local variables (and types, etc.) of functions and in blocks.
 
   db_enter(3, "declaration");
 
-  if (gcc_mode && curr_token == tok_extension) {
+  if (gcc_mode && !marked_as_gnu_extension && curr_token == tok_extension) {
     /* Ignore the GNU C __extension__ annotation. */
     (void)get_token();
-    /* FIXME: should we record that we've seen this? In a SSE? */
+    marked_as_gnu_extension = TRUE;
   }  /* if */
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
@@ -9876,8 +9906,8 @@ continue_with_declaration:
   clear_decl_pos_block(&decl_pos_block);
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &qualifiers, &decl_modifiers,
-                        &decl_pos_block);
+                        &type_ptr, &qualifiers, marked_as_gnu_extension,
+                        &decl_modifiers, &decl_pos_block);
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
   if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
@@ -10923,7 +10953,7 @@ return_point:
 }  /* declaration */
 
 
-void local_declaration(void)
+void local_declaration(a_boolean  marked_as_gnu_extension)
 /*
 Scan a block-level declaration.
 */
@@ -10931,6 +10961,7 @@ Scan a block-level declaration.
   declaration(/*function_definition_allowed=*/FALSE,
               /*is_old_style_param_decl=*/FALSE,
               /*is_top_level_declaration=*/FALSE,
+              marked_as_gnu_extension,
               (a_param_id_ptr)NULL, (a_source_range *)NULL);
 }  /* local_declaration */
 
@@ -10981,6 +11012,7 @@ In C++, however, the declaration list is optional (3.4):
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE,
+                  /*marked_as_gnu_extension=*/FALSE,
                   (a_param_id_ptr)NULL, (a_source_range *)NULL);
     } /* while */
   }  /* if */
@@ -11010,6 +11042,7 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
     declaration(/*function_definition_allowed=*/TRUE,
                 /*is_old_style_param_decl=*/FALSE,
                 /*is_top_level_declaration=*/FALSE,
+                /*marked_as_gnu_extension=*/FALSE,
                 (a_param_id_ptr)NULL, (a_source_range *)NULL);
   }  /* if */
 }  /* scan_implicitly_included_template_definition_file */

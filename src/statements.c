@@ -131,7 +131,8 @@ Set var to indicate that the associated code is unreachable.
 /*
 Declarations needed because of forward references:
 */
-static void statement(a_boolean is_dependent_statement);
+static void statement(a_boolean is_dependent_statement,
+                      a_boolean marked_as_gnu_extension);
 
 
 static void check_lint_notreached_state(void)
@@ -1689,10 +1690,11 @@ declarations.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void decl_statement(void)
+static void decl_statement(a_boolean  marked_as_gnu_extension)
 /*
 Unless one is already active, put out an stmk_decl statement to mark the
-start of a sequence of declarations.
+start of a sequence of declarations.  If marked_as_gnu_extension is TRUE,
+the __extension__ keyword was scanned just before the upcoming declaration.
 */
 {
   a_struct_stmt_stack_entry_ptr  sssep;
@@ -1756,7 +1758,7 @@ start of a sequence of declarations.
 #endif /* if DEBUG */
   }  /* if */
   /* Now process the declaration. */
-  local_declaration();
+  local_declaration(marked_as_gnu_extension);
   if (!source_sequence_entries_disallowed) {
     /* Update the source sequence entry pointer, if required. */
     if (sp->source_sequence_entry != NULL) {
@@ -1856,7 +1858,8 @@ the current function scope.
 
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#define decl_statement() local_declaration()
+#define decl_statement(marked_as_gnu_extension)                       \
+  local_declaration(marked_as_gnu_extension)
 #define wrapup_decl_statement()                    /* Nothing */
 #define stmt_update_source_sequence_list(sp)       /* Nothing */
 
@@ -3082,7 +3085,8 @@ a local scope.
     block_added = TRUE;
   }  /* if */
   /* Now process the dependent statement itself. */
-  statement(/*is_dependent_statement=*/TRUE);
+  statement(/*is_dependent_statement=*/TRUE,
+            /*marked_as_gnu_extension=*/FALSE);
   if (block_added) {
     finish_block_statement(block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3920,7 +3924,7 @@ found:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void expression_statement(void)
+static void expression_statement(a_boolean  marked_as_gnu_extension)
 /*
 Scan an expression statement.
 */
@@ -3934,7 +3938,8 @@ Scan an expression statement.
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Scan the expression. */
-  expr = scan_void_expression(/*repeated_in_loop=*/FALSE);
+  expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
+                              marked_as_gnu_extension);
   sp->expr = expr;
   /* If the expression is a throw expression or the call of a function that
      is known not to return, the code following is unreachable. */
@@ -4016,7 +4021,7 @@ statement.
         start_for_init_block(sssep->statement);
       }  /* if */
     }  /* if */
-    decl_statement();
+    decl_statement(/*marked_as_gnu_extension=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     sssep = &struct_stmt_stack[depth_stmt_stack];
     if (sssep->curr_decl_statement != NULL) {
@@ -4033,7 +4038,8 @@ statement.
     wrapup_decl_statement();
   } else {
     /* Scan an expression.  It may be omitted. */
-    if (curr_token != tok_semicolon) expression_statement();
+    if (curr_token != tok_semicolon) expression_statement(
+                                           /*marked_as_gnu_extension=*/FALSE);
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
   /* Restore the for_init flag to its default value. */
@@ -4106,7 +4112,8 @@ either an expression statement or a declaration statement.
     saved_flag = suppress_used_before_set_warnings;
     suppress_used_before_set_warnings = TRUE;
     sp->variant.for_loop.extra_info->increment =
-                               scan_void_expression(/*repeated_in_loop=*/TRUE);
+                      scan_void_expression(/*repeated_in_loop=*/TRUE,
+                                           /*marked_as_gnu_extension=*/FALSE);
     /* Restore the global variable. */
     suppress_used_before_set_warnings = saved_flag;
   }  /* if */
@@ -5606,11 +5613,13 @@ Scan a default case label definition.  The syntax is:
 }  /* default_label */
 
 
-static void statement(a_boolean is_dependent_statement)
+static void statement(a_boolean is_dependent_statement,
+                      a_boolean marked_as_gnu_extension)
 /*
 Scan a statement.  Add it to the current statement sequence.
 is_dependent_statement is TRUE if the statement is a dependent
-statement (of an "if", etc.).
+statement (of an "if", etc.).  If marked_as_gnu_extension is TRUE,
+this statement was preceded by the GNU keyword __extension__.
 */
 {
   a_label_ptr      label;
@@ -5842,6 +5851,10 @@ expr_statement:
          is not a statement but rather something that can appear
          intermixed with statements within a compound-statement.
          See compound_statement. */
+      if (!marked_as_gnu_extension && curr_token == tok_extension) {
+        marked_as_gnu_extension = TRUE;
+        (void)get_token();
+      }  /* if */
       if (!C_mode() &&
           (curr_token == tok_using || curr_token == tok_namespace ||
            is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) {
@@ -5851,7 +5864,7 @@ expr_statement:
              declaration. */
           error(ec_dependent_stmt_is_declaration);
         }  /* if */
-        decl_statement();
+        decl_statement(marked_as_gnu_extension);
       } else if (C_mode() &&
                  (is_dependent_statement || prev_was_label) &&
                  is_decl_start(/*expr_context=*/TRUE,
@@ -5874,12 +5887,12 @@ expr_statement:
           /* A labeled declaration in pre-C99 C. */
           error(ec_labeled_declaration);
         }  /* if */
-        decl_statement();
+        decl_statement(marked_as_gnu_extension);
       } else {
         /* An expression-statement. */
         add_stop_token(tok_semicolon);
         check_for_unreachable_code();
-        expression_statement();
+        expression_statement(marked_as_gnu_extension);
         (void)required_token(tok_semicolon, ec_exp_semicolon);
         remove_stop_token(tok_semicolon);
       }  /* if */
@@ -6004,12 +6017,18 @@ branching into it is disallowed).
     if (!C_mode()) {
       /* In C++ mode, where declarations can be interspersed with
          executable statements, statement() handles declarations, too. */
-      statement(/*is_dependent_statement=*/FALSE);
+      statement(/*is_dependent_statement=*/FALSE,
+                /*marked_as_gnu_extension=*/FALSE);
     } else {
       /* In C mode the declarations are expected to appear first.  Note that
          label statements may look like the start of a declaration, so we
          have to check for ident followed by ":".  In C99 mode, declarations
          may be interspersed with statements. */
+      a_boolean  marked_as_gnu_extension = FALSE;
+      if (curr_token == tok_extension) {
+        marked_as_gnu_extension = TRUE;
+        (void)get_token();
+      }  /* if */
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&
           is_decl_start(/*expr_context=*/TRUE,
                         /*real_declarator_allowed=*/TRUE)) {
@@ -6026,12 +6045,12 @@ branching into it is disallowed).
           if (at_function_level && pos_curr_token.column == 1) break;
         }  /* if */
         (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
-        decl_statement();
+        decl_statement(marked_as_gnu_extension);
       } else {
         wrapup_decl_statement();
         /* Scan a statement. */
         any_statements = TRUE;
-        statement(/*is_dependent_statement=*/FALSE);
+        statement(/*is_dependent_statement=*/FALSE, marked_as_gnu_extension);
       }  /* if */
     }  /* if */
   }  /* while */

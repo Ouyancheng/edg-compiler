@@ -55,6 +55,9 @@ expr.h -- Declarations related to expression parsing.
 			   in that form, so that it has a chance to be
 			   rewritten in the "put" form.  By default, it will
 			   be rewritten to the "get" form. */
+#define EOPT_MARKED_AS_GNU_EXTENSION 0x40
+			/* The caller of scan_expr scanned over the GNU keyword
+			   __extension__. */
 #define EOPT_NO_OPTIONS 0
 typedef int a_local_expr_options_set;
 
@@ -72,7 +75,9 @@ extern a_boolean is_expr_start_token(a_token_kind tok);
 
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
-extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop);
+extern an_expr_node_ptr scan_void_expression(
+                                           a_boolean repeated_in_loop,
+                                           a_boolean marked_as_gnu_extension);
 
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
 

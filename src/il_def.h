@@ -790,6 +790,11 @@ typedef struct a_src_seq_secondary_decl {
 			   template argument of a specialization inserted to
 			   represent a template instantiation). */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	marked_as_gnu_extension:1;
+			/* TRUE if the corresponding declaration was preceded
+			   by the GNU keyword __extension__. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
@@ -1125,6 +1130,13 @@ typedef struct a_source_correspondence {
 			   front end assigns a member to the first dependent
 			   base) or the name could come from a base class
 			   of the dependent base. */
+#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	marked_as_gnu_extension:1;
+			/* TRUE if the primary declaration was preceded by the
+			   GNU keyword __extension__.  (For other declarations
+			   a similar flag is present in the corresponding
+			   secondary source sequence entry.) */
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
@@ -6420,6 +6432,11 @@ typedef struct an_expr_node {
 			   or by an explicit cast to void.  In spite of the
 			   name, the expression does not necessarily have
 			   void type.  Always FALSE in C. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	marked_as_gnu_extension:1;
+			/* TRUE if the expression was preceded by the GNU
+			   keyword __extension__. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
