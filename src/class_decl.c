@@ -1147,8 +1147,8 @@ when the enclosing class is instantiated.
            instantiation of the function appears inside a function body,
            but that will never be the right place to which to anchor the
            definition.) */
-        f_move_src_seq_list(ssep, ssep, &scope_stack[depth_scope_stack],
-                            insert_point, &scope_stack[scope_depth]);
+        f_move_src_seq_list(ssep, ssep, depth_scope_stack,
+                            insert_point, scope_depth);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1301,8 +1301,7 @@ nested class.
           tip = rfp->symbol->variant.routine.instance_ptr;
           check_assertion(tip != NULL && tip->partial_instantiation != NULL);
           ssep = tip->partial_instantiation;
-          insert_src_seq_list(ssep, ssep, &scope_stack[scope_depth],
-                              insert_point);
+          insert_src_seq_list(ssep, ssep, scope_depth, insert_point);
           rfp->symbol->variant.routine.ptr->
                          source_corresp.source_sequence_entry = ssep;
         }  /* if */
@@ -1354,7 +1353,7 @@ nested class.
               if (pid->source_sequence_entry != NULL) {
                 check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
                                                   (an_il_entry_kind)iek_none);
-                remove_from_source_sequence_list(pid->source_sequence_entry);
+                remove_from_src_seq_list(pid->source_sequence_entry);
                 pid->source_sequence_entry = NULL;
               }  /* if */
             }  /* for */
@@ -1412,8 +1411,8 @@ nested class.
                                         (an_il_entry_kind)iek_routine);
             ssep = rp->source_corresp.source_sequence_entry;
             if (insert_point != NULL || scope_depth != depth_scope_stack) {
-              f_move_src_seq_list(ssep, ssep, &scope_stack[depth_scope_stack],
-                                  insert_point, &scope_stack[scope_depth]);
+              f_move_src_seq_list(ssep, ssep, depth_scope_stack,
+                                  insert_point, scope_depth);
             }  /* if */
             /* Assure that instantiations triggered within the body of the
                relocated function are recorded in the source-sequence list
@@ -4786,7 +4785,7 @@ of the function, and again overloading is a possibility.
            prototype instantiations.  However, friend declarations are not
            processed at all: there is no routine entry, so there can be no
            source sequence entry. */
-        remove_from_source_sequence_list(func_info->declarator_ssep);
+        remove_from_src_seq_list(func_info->declarator_ssep);
         func_info->declarator_ssep = NULL;
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -54,7 +54,7 @@ extern void f_update_source_sequence_list(char                    *entity_ptr,
 /* Macro interface to f_update_source_sequence_list when there may be an
    empty source-sequence entry on the list that needs to be filled in. */
 #define update_source_sequence_list(entity_ptr, kind, old_ssep)          \
-{ if (old_ssep != NULL || !source_sequence_entries_disallowed) {         \
+{ if ((old_ssep) != NULL || !source_sequence_entries_disallowed) {       \
     f_update_source_sequence_list((entity_ptr), (kind), (old_ssep));     \
   }  /* if */                                                            \
 }  /* update_source_sequence_list */
@@ -77,7 +77,7 @@ extern void add_end_of_construct_source_sequence_entry(
 
 extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_source_sequence_entry_ptr  tail,
-                                a_scope_stack_entry_ptr      scope_stack_ptr,
+                                a_scope_depth                scope_depth,
                                 a_source_sequence_entry_ptr  insert_point);
 
 extern void reset_ss_list_instantiation_insert_point(void);
@@ -98,21 +98,19 @@ extern void add_source_sequence_entry_for_partial_instantiation(
 
 extern void f_move_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_source_sequence_entry_ptr  tail,
-                                a_scope_stack_entry_ptr      source_sse_ptr,
+                                a_scope_depth                source_depth,
                                 a_source_sequence_entry_ptr  insert_point,
-                                a_scope_stack_entry_ptr      target_sse_ptr);
+                                a_scope_depth                target_depth);
 
 #define move_src_seq_list(head, tail, insert_point)			\
-  f_move_src_seq_list((head), (tail),					\
-                      &scope_stack[depth_scope_stack],			\
-                      (insert_point),					\
-                      &scope_stack[depth_scope_stack])
+  f_move_src_seq_list((head), (tail), depth_scope_stack,		\
+                      (insert_point), depth_scope_stack)		\
 
 #define move_src_seq_entry(ssep, insert_point)				\
   move_src_seq_list((ssep), (ssep), (insert_point))
   
 extern void insert_instantiation_src_seq_list(
-                             a_scope_stack_entry_ptr  curr_scope_stack_ptr);
+                                    a_scope_stack_entry_ptr  scope_stack_ptr);
 
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -122,12 +120,11 @@ extern void check_for_and_remove_redundant_secondary_decl_ss_entry(
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
-extern void f_remove_from_source_sequence_list(
-                                a_source_sequence_entry_ptr ssep,
-                                a_scope_stack_entry_ptr     scope_stack_ptr);
+extern void f_remove_from_src_seq_list(a_source_sequence_entry_ptr ssep,
+                                       a_scope_depth               depth);
 
-#define remove_from_source_sequence_list(ssep)                          \
-  f_remove_from_source_sequence_list(ssep, &scope_stack[depth_scope_stack])
+#define remove_from_src_seq_list(ssep)                                 \
+  f_remove_from_src_seq_list((ssep), depth_scope_stack)
 
 extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
                                                                char *entity);

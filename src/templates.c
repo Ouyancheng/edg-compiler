@@ -13332,7 +13332,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     done_with_func_info(func_info);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (declarator_ssep != NULL) {
-      remove_from_source_sequence_list(declarator_ssep);
+      remove_from_src_seq_list(declarator_ssep);
       declarator_ssep = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -13452,7 +13452,7 @@ done:;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!is_pragma) {
     if (ssep != NULL && ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
-      remove_from_source_sequence_list(ssep);
+      remove_from_src_seq_list(ssep);
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

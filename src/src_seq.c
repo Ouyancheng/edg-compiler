@@ -576,7 +576,7 @@ from the list of which it's a sublist, returning a pointer to head and
 updating list_ptr and end_of_list_ptr if appropriate.
 */
 {
-  db_enter(4, "unlink_src_seq_entries");
+  db_enter(4, "f_unlink_src_seq_entries");
   if (head->prev == NULL) {
     /* head is also the start of the containing list. */
     check_assertion(list_ptr != NULL && *list_ptr == head);
@@ -596,7 +596,7 @@ updating list_ptr and end_of_list_ptr if appropriate.
   head->prev = NULL;
   db_exit();
   return head;
-}  /* unlink_src_seq_entries */
+}  /* f_unlink_src_seq_entries */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -606,9 +606,9 @@ updating list_ptr and end_of_list_ptr if appropriate.
    list belongs.  (If the list does not belong to the scope stack, call
    f_unlink_src_seq_entries directly.) */
 #define unlink_src_seq_entries(head, tail, scope_stack_ptr)		\
-  f_unlink_src_seq_entries(head, tail,					\
-                           &scope_stack_ptr->source_sequence_list,	\
-                           &scope_stack_ptr->end_of_source_sequence_list)
+  f_unlink_src_seq_entries((head), (tail),			      	\
+                           &(scope_stack_ptr)->source_sequence_list,	\
+                           &(scope_stack_ptr)->end_of_source_sequence_list)
 
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
@@ -617,10 +617,26 @@ updating list_ptr and end_of_list_ptr if appropriate.
    to which the list belongs.  (If the list does not belong to the scope
    stack, call f_unlink_src_seq_entries directly.) */
 #define unlink_src_seq_entry(ssep, scope_stack_ptr)			\
-  f_unlink_src_seq_entries(ssep, ssep,					\
-                           &scope_stack_ptr->source_sequence_list,	\
-                           &scope_stack_ptr->end_of_source_sequence_list)
+  f_unlink_src_seq_entries((ssep), (ssep),				\
+                           &(scope_stack_ptr)->source_sequence_list,	\
+                           &(scope_stack_ptr)->end_of_source_sequence_list)
 
+
+/* Macro to call unlink_src_seq_entries.  head and tail are source sequence
+   entry pointers that specify a sublist of a list of source sequence entries,
+   and il_scope points to the scope entry to which the list belongs. */
+#define unlink_il_scope_src_seq_entries(head, tail, il_scope)           \
+  f_unlink_src_seq_entries((head), (tail),                              \
+                           &(il_scope)->source_sequence_list,           \
+                           (a_source_sequence_entry_ptr *)NULL);
+
+/* Macro to call unlink_src_seq_entries when there is only one entry to
+   unlink (not a list).  il_scope points to the scope entry to which the
+   list belongs. */
+#define unlink_il_scope_src_seq_entry(ssep, il_scope)                   \
+  f_unlink_src_seq_entries((ssep), (ssep),                              \
+                           &(il_scope)->source_sequence_list,           \
+                           (a_source_sequence_entry_ptr *)NULL);
 
 void add_source_sequence_entry_to_list(a_source_sequence_entry_ptr  new_ssep)
 /*
@@ -943,30 +959,42 @@ sequence list.
 
 void insert_src_seq_list(a_source_sequence_entry_ptr  head,
                          a_source_sequence_entry_ptr  tail,
-                         a_scope_stack_entry_ptr      insert_scope_stack_ptr,
+                         a_scope_depth                scope_depth,
                          a_source_sequence_entry_ptr  insert_before)
 /*
 Insert the source sequence list defined by head and tail (respectively, the
 start and end of the list, which may still be embedded in another list) into
-the source sequence list of the specified scope stack entry.  If insert_before
-is NULL, append the list to the end; otherwise, insert it immediatedly before
-insert_before.
+the source sequence list of the specified scope stack depth.  When
+scope_depth is NO_SCOPE_DEPTH, insert the entries into the list associated
+with the file IL scope.  If insert_before is NULL, append the list to the
+end; otherwise, insert it immediatedly before insert_before.
 */
 {
   a_source_sequence_entry_ptr  insert_after;
+  a_scope_stack_entry_ptr      scope_stack_ptr;
+  a_scope_ptr                  il_scope;
 
+  if (scope_depth != NO_SCOPE_DEPTH) {
+    /* Use the list of a scope stack entry. */
+    scope_stack_ptr = &scope_stack[scope_depth];
+    il_scope = NULL;
+  } else {
+    /* Use the list of the IL scope for the file scope. */
+    il_scope = il_header.primary_scope;
+    scope_stack_ptr = NULL;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
     a_source_sequence_entry_ptr  after_tail = tail->next;
 
     fprintf(f_debug, "inserting %s ss list for ",
             insert_before == NULL ? "at end of" : "into");
-    if (insert_scope_stack_ptr != NULL &&
-        insert_scope_stack_ptr->il_scope != NULL) {
-      db_scope(insert_scope_stack_ptr->il_scope);
+    if (scope_stack_ptr != NULL &&
+        scope_stack_ptr->il_scope != NULL) {
+      db_scope(scope_stack_ptr->il_scope);
     } else {
-      (void)db_scope_kind(insert_scope_stack_ptr->kind);
-      fprintf(f_debug, " scope %d", (int)insert_scope_stack_ptr->number);
+      (void)db_scope_kind(scope_stack_ptr->kind);
+      fprintf(f_debug, " scope %d", (int)scope_stack_ptr->number);
     }  /* if */
     fputs("\n", f_debug);
     if (insert_before != NULL) {
@@ -978,19 +1006,24 @@ insert_before.
     tail->next = after_tail;
   }  /* if */
 #endif /* DEBUG */
-  if (insert_before != NULL) {
-    insert_after = insert_before->prev;
+  if (insert_before == NULL) {
+    check_assertion(scope_stack_ptr != NULL);
+    insert_after = scope_stack_ptr->end_of_source_sequence_list;
   } else {
-    insert_after = insert_scope_stack_ptr->end_of_source_sequence_list;
+    insert_after = insert_before->prev;
   }  /* if */
   if (insert_after == NULL) {
-    insert_scope_stack_ptr->source_sequence_list = head;
+    if (scope_stack_ptr != NULL) {
+      scope_stack_ptr->source_sequence_list = head;
+    } else {
+      il_scope->source_sequence_list = head;
+    }  /* if */
   } else {
     insert_after->next = head;
   }  /* if */
   head->prev = insert_after;
   if (insert_before == NULL) {
-    insert_scope_stack_ptr->end_of_source_sequence_list = tail;
+    scope_stack_ptr->end_of_source_sequence_list = tail;
   } else {
     insert_before->prev = tail;
   }  /* if */
@@ -998,13 +1031,14 @@ insert_before.
 }  /* insert_src_seq_list */
 
 
-void f_remove_from_source_sequence_list(
-                            a_source_sequence_entry_ptr  ssep,
-                            a_scope_stack_entry_ptr      scope_stack_ptr)
+void f_remove_from_src_seq_list(a_source_sequence_entry_ptr  ssep,
+                                a_scope_depth                depth)
 /*
 Remove the source sequence entry pointed to by ssep from the list belonging
-to the indicated scope stack entry and place it on the appropriate available
-list (depending on the memory region in which it was allocated).
+to the scope stack entry at the indicated depth (or, if depth is
+NO_SCOPE_DEPTH, to the list of the IL scope of the file scope) and place it
+on the appropriate available list (depending on the memory region in which
+it was allocated).
 
 (Note: this routine does not handle "sublists" on the function scope source
 sequence list.  That is not a problem as long as it is not called after
@@ -1013,20 +1047,27 @@ fixup_function_scope_source_sequence_list has been called.)
 {
   a_source_sequence_entry_ptr  *avail_list_ptr;
 
-  db_enter(4, "f_remove_from_source_sequence_list");
+  db_enter(4, "f_remove_from_src_seq_list");
   /* Entries allocated in the file scope memory region may be on the list of
      the file scope itself or on a side list of a function scope. */
-  check_assertion(scope_stack_ptr != NULL);
+  if (depth == NO_SCOPE_DEPTH) {
+    a_scope_ptr  il_scope = il_header.primary_scope;
+
+    (void)unlink_il_scope_src_seq_entry(ssep, il_scope);
+  } else {
+    a_scope_stack_entry_ptr  scope_stack_ptr = &scope_stack[depth];
+
 #if DEBUG
-  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-    fputs("removing from source sequence list for ", f_debug);
-    db_scope(scope_stack_ptr->il_scope);
-    fputs(":\n  ", f_debug);
-    db_source_sequence_entry(ssep);
-  }  /* if */
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      fputs("removing from source sequence list for ", f_debug);
+      db_scope(scope_stack_ptr->il_scope);
+      fputs(":\n  ", f_debug);
+      db_source_sequence_entry(ssep);
+    }  /* if */
 #endif /* DEBUG */
-  /* Remove the entry from its list. */
-  (void)unlink_src_seq_entry(ssep, scope_stack_ptr);
+    /* Remove the entry from its list. */
+    (void)unlink_src_seq_entry(ssep, scope_stack_ptr);
+  }  /* if */
   /* Add it to the head of the available list. */
   if (in_file_scope(ssep)) {
     avail_list_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE].
@@ -1039,7 +1080,7 @@ fixup_function_scope_source_sequence_list has been called.)
   ssep->next = *avail_list_ptr;
   *avail_list_ptr = ssep;
   db_exit();
-}  /* f_remove_from_source_sequence_list */
+}  /* f_remove_from_src_seq_list */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -1063,7 +1104,7 @@ void check_for_and_remove_redundant_secondary_decl_ss_entry(
                      (an_il_entry_kind)iek_src_seq_secondary_decl) {
       sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
       if (sssdp->entity.ptr == (char *)class_type) {
-        remove_from_source_sequence_list(ssep);
+        remove_from_src_seq_list(ssep);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1113,15 +1154,15 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
 }  /* scope_depth_for_class_ss_list */
 
 
-static a_scope_stack_entry_ptr find_instantiation_insert_scope(
+static a_scope_depth find_instantiation_insert_scope(
                                      a_scope_stack_entry_ptr      curr_sse_ptr,
                                      a_source_sequence_entry_ptr  ssep)
 /*
 Find the scope stack entry in which a template instantiation (represented by
 a list of source sequence entries) should be inserted.  curr_sse_ptr is a
 pointer to the current scope stack entry, and ssep represents the template
-instantiation that is to be added.  Return a pointer to the scope stack
-entry in which the insertion should occur.
+instantiation that is to be added.  Return the scope depth in which the
+insertion should occur.
 
 Ordinarily, the insert point is in a namespace scope at a location preceding
 the reference that triggered the instantiation.  For instance,
@@ -1172,7 +1213,7 @@ uncompleted class type, the instantiation cannot be moved beyond the
 innermost such class.
 */
 {
-  a_scope_stack_entry_ptr       sse_ptr, insert_sse_ptr = NULL;
+  a_scope_depth                 insert_scope_depth = NO_SCOPE_DEPTH;
   a_type_ptr                    entity_type, parent_class;
   an_il_entry_kind              entity_kind;
   char                          *entity_ptr;
@@ -1284,7 +1325,7 @@ innermost such class.
        ref_scope_depth--) {
     if (parent_scope_depth != NO_SCOPE_DEPTH &&
         ref_scope_depth <= parent_scope_depth) {
-      insert_sse_ptr = &scope_stack[parent_scope_depth];
+      insert_scope_depth = parent_scope_depth;
       break;
     }  /* if */
     if (scope_stack[ref_scope_depth].kind ==
@@ -1292,7 +1333,8 @@ innermost such class.
       break;
     }  /* if */
   }  /* for */
-  if (insert_sse_ptr == NULL && ref_scope_depth != NO_SCOPE_DEPTH) {
+  if (insert_scope_depth == NO_SCOPE_DEPTH &&
+      ref_scope_depth != NO_SCOPE_DEPTH) {
     template_arg_list = NULL;
     switch (entity_kind) {
       case iek_type:
@@ -1319,7 +1361,7 @@ innermost such class.
    for (; ref_scope_depth > NO_SCOPE_DEPTH; ref_scope_depth--) {
       if (parent_scope_depth != NO_SCOPE_DEPTH &&
           ref_scope_depth <= parent_scope_depth) {
-        insert_sse_ptr = &scope_stack[parent_scope_depth];
+        insert_scope_depth = parent_scope_depth;
         break;
       }  /* if */
       if (scope_stack[ref_scope_depth].kind ==
@@ -1349,96 +1391,108 @@ innermost such class.
              template_args_involve_specific_class_type(template_arg_list,
                                                        class_type,
                                                        members_only))) {
-          insert_sse_ptr = &scope_stack[ref_scope_depth];
+          insert_scope_depth = ref_scope_depth;
           break;
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
-  if (insert_sse_ptr == NULL) {
-    for (sse_ptr = curr_sse_ptr;
-         sse_ptr != NULL;
-         sse_ptr = previous_scope_of(sse_ptr)) {
-      if (sse_ptr->kind == (a_scope_kind)sck_file ||
-                 sse_ptr->kind == (a_scope_kind)sck_namespace ||
+  if (insert_scope_depth == NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr  sse_ptr = curr_sse_ptr;
+
+    for (; sse_ptr != NULL; sse_ptr = previous_scope_of(sse_ptr)) {
+      if (sse_ptr->kind == (a_scope_kind)sck_file) {
+        /* Insert it into the file scope. */
+        insert_scope_depth = DEPTH_OF_FILE_SCOPE;
+      } else if (sse_ptr->kind == (a_scope_kind)sck_namespace ||
                  (sse_ptr->kind == (a_scope_kind)sck_namespace_extension &&
                   sse_ptr->explicitly_declared_namespace_extension)) {
         /* This is the file scope or a namespace scope that corresponds to an
            actual source construct. */
-        insert_sse_ptr = sse_ptr;
+        if (sse_ptr == &scope_stack[depth_innermost_namespace_scope]) {
+          insert_scope_depth = depth_innermost_namespace_scope;
+        } else {
+          for (insert_scope_depth = DEPTH_OF_FILE_SCOPE + 1;;
+               insert_scope_depth++) {
+            if (sse_ptr == &scope_stack[insert_scope_depth]) break;
+            check_assertion(insert_scope_depth != depth_scope_stack);
+          }  /* for */
+        }  /* if */
         break;
       }  /* if */
     }  /* for */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-    if (insert_sse_ptr != NULL) {
-      a_source_sequence_entry_ptr  insert_point;
+    a_source_sequence_entry_ptr  insert_point;
 
-      insert_point = insert_sse_ptr->ss_list_instantiation_insert_point;
-      fprintf(f_debug, "insert point found: %s list for ",
-                       insert_point == NULL ? "at end of" : "in");
-      db_scope_stack_entry_at_depth(insert_sse_ptr - scope_stack);
-      if (insert_point != NULL) {
-        fputs(" prior to:\n  ", f_debug);
-        db_source_sequence_entry(insert_point);
-      } else {
-        fputs("\n", f_debug);
-      }  /* if */
+    insert_point = scope_stack[insert_scope_depth].
+                                  ss_list_instantiation_insert_point;
+    fprintf(f_debug, "insert point found: %s list for ",
+                     insert_point == NULL ? "at end of" : "in");
+    db_scope_stack_entry_at_depth(insert_scope_depth);
+    if (insert_point != NULL) {
+      fputs(" prior to:\n  ", f_debug);
+      db_source_sequence_entry(insert_point);
+    } else {
+      fputs("\n", f_debug);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return insert_sse_ptr;
+  return insert_scope_depth;
 }  /* find_instantiation_insert_scope */
 
 
 void f_move_src_seq_list(a_source_sequence_entry_ptr  head,
                          a_source_sequence_entry_ptr  tail,
-                         a_scope_stack_entry_ptr      source_sse_ptr,
+                         a_scope_depth                source_depth,
                          a_source_sequence_entry_ptr  insert_point,
-                         a_scope_stack_entry_ptr      target_sse_ptr)
+                         a_scope_depth                target_depth)
 /*
 Unlink a linked list of source sequence entries, starting with head and
 ending with tail, from the source sequence list of the scope stack entry
-pointed to by source_sse_ptr, and then insert them into the source sequence
-list pointed to by target_sse_ptr, a point immediately preceding the
-entry pointed to by insert point; if insert_point is null, add them to
-to the end of the list.
+at source_depth, and then insert them into the source sequence list of the
+scope stack entry at target_depth at a point immediately preceding the entry
+pointed to by insert point; if insert_point is null, add them to to the end
+of the list.
 */
 {
-  (void)unlink_src_seq_entries(head, tail, source_sse_ptr);
-  insert_src_seq_list(head, tail, target_sse_ptr, insert_point);
+  check_assertion(source_depth != NO_SCOPE_DEPTH &&
+                  target_depth != NO_SCOPE_DEPTH);
+  (void)unlink_src_seq_entries(head, tail, &scope_stack[source_depth]);
+  insert_src_seq_list(head, tail, target_depth, insert_point);
 }  /* f_move_src_seq_list */
 
-  
-void insert_instantiation_src_seq_list(
-                               a_scope_stack_entry_ptr  curr_scope_stack_ptr)
+
+void insert_instantiation_src_seq_list(a_scope_stack_entry_ptr scope_stack_ptr)
 /*
 Remove the source sequence list from the specified scope stack entry and
 insert it at the appropriate place in another scope.
 */
 {
-  a_source_sequence_entry_ptr  head, tail, insert_before, insert_after;
-  a_scope_stack_entry_ptr      insert_scope_stack_ptr;
+  a_source_sequence_entry_ptr  head, tail, insert_before, insert_after, ssep;
+  a_scope_depth                depth;
   a_source_correspondence      *scp;
 
-  head = curr_scope_stack_ptr->source_sequence_list;
-  tail = curr_scope_stack_ptr->end_of_source_sequence_list;
-  curr_scope_stack_ptr->source_sequence_list = NULL;
-  curr_scope_stack_ptr->end_of_source_sequence_list = NULL;
-  check_assertion(curr_scope_stack_ptr->kind ==
+  check_assertion(scope_stack_ptr->kind ==
                               (a_scope_kind)sck_template_instantiation &&
-                  curr_scope_stack_ptr->instance_sym != NULL);
-  scp = source_corresp_entry_for_symbol(curr_scope_stack_ptr->instance_sym);
-  insert_scope_stack_ptr = find_instantiation_insert_scope(
-                                                 curr_scope_stack_ptr,
-                                                 scp->source_sequence_entry);
-  insert_before = insert_scope_stack_ptr->ss_list_instantiation_insert_point;
+                  scope_stack_ptr->instance_sym != NULL);
+  /* Remove the entire source sequence list associated with the scope stack
+     entry. */
+  head = scope_stack_ptr->source_sequence_list;
+  tail = scope_stack_ptr->end_of_source_sequence_list;
+  scope_stack_ptr->source_sequence_list = NULL;
+  scope_stack_ptr->end_of_source_sequence_list = NULL;
+  /* Find the list to insert in into. */
+  scp = source_corresp_entry_for_symbol(scope_stack_ptr->instance_sym);
+  ssep = scp->source_sequence_entry;
+  depth = find_instantiation_insert_scope(scope_stack_ptr, ssep);
+  insert_before = scope_stack[depth].ss_list_instantiation_insert_point;
   if (insert_before != NULL) {
     insert_after = insert_before->prev;
   } else {
-    insert_after = insert_scope_stack_ptr->end_of_source_sequence_list;
+    insert_after = scope_stack[depth].end_of_source_sequence_list;
   }  /* if */
   if (insert_after != NULL) {
     /* Often a secondary-source sequence entry for a partial instantiation
@@ -1461,14 +1515,11 @@ insert it at the appropriate place in another scope.
         } else {
           unneeded = FALSE;
         }  /* if */
-        if (unneeded) {
-          f_remove_from_source_sequence_list(insert_after,
-                                             insert_scope_stack_ptr);
-        }  /* if */
+        if (unneeded) f_remove_from_src_seq_list(insert_after, depth);
       }  /* if */
     }  /* if */
   }  /* if */
-  insert_src_seq_list(head, tail, insert_scope_stack_ptr, insert_before);
+  insert_src_seq_list(head, tail, depth, insert_before);
 }  /* insert_instantiation_src_seq_list */
 
 
@@ -1510,7 +1561,6 @@ declared_type points to a type that should be recorded in the entry.
   a_source_correspondence       *scp;
   a_source_sequence_entry_ptr   ssep;
   a_memory_region_number        region_to_switch_back_to;
-  a_scope_stack_entry_ptr       insert_scope_stack_ptr;
 
   if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
     /* Turn on the generation of source sequence entries. */
@@ -1569,12 +1619,13 @@ declared_type points to a type that should be recorded in the entry.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     /* Do not insert code here. */
     {
+      a_scope_depth  depth;
+
       /* Add the entry to the appropriate source sequence list. */
-      insert_scope_stack_ptr = find_instantiation_insert_scope(
-                                            &scope_stack[depth_scope_stack],
-                                            ssep);
-      insert_src_seq_list(ssep, ssep, insert_scope_stack_ptr,
-                          insert_scope_stack_ptr->
+      depth = find_instantiation_insert_scope(&scope_stack[depth_scope_stack],
+                                              ssep);
+      insert_src_seq_list(ssep, ssep, depth,
+                          scope_stack[depth].
                                    ss_list_instantiation_insert_point);
       if (scp->source_sequence_entry == NULL) {
         scp->source_sequence_entry = ssep;
@@ -2000,24 +2051,10 @@ the source sequence entry that follows the entry or entries removed.
     /* Link around ssep and return its successor in the list. */
     file_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
     next_ssep = ssep->next;
-    if (file_scope->source_sequence_list == NULL) {
-      f_remove_from_source_sequence_list(
-                              ssep,
-                              &scope_stack[depth_innermost_namespace_scope]);
-    } else {
-      if (ssep->prev == NULL) {
-        file_scope->source_sequence_list = ssep->next;
-      } else {
-        ssep->prev->next = ssep->next;
-      }  /* if */
-      if (ssep->next != NULL) {
-        ssep->next->prev = ssep->prev;
-      }  /* if */
-      check_assertion(in_file_scope(ssep));
-      ssep->next = scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list;
-      scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list = ssep;
-      ssep->prev = NULL;
-    }  /* if */
+    f_remove_from_src_seq_list(ssep,
+                               file_scope->source_sequence_list == NULL ?
+                                 depth_innermost_namespace_scope :
+                                 NO_SCOPE_DEPTH);
   }  /* if */
   db_exit();
   return next_ssep;

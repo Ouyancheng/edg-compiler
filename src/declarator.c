@@ -1327,7 +1327,7 @@ issue an error if a default argument expression is encountered.
              sequence entry for the param id should be eliminated in that
              case, too. */
           if (param_ssep != NULL) {
-            remove_from_source_sequence_list(param_ssep);
+            remove_from_src_seq_list(param_ssep);
             param_ssep = NULL;
           }  /* if */
         } else if (param_ssep == NULL) {

@@ -7499,7 +7499,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
      list, remove it now. */
   if (namespace_ssep != NULL &&
       namespace_ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
-    remove_from_source_sequence_list(namespace_ssep);
+    remove_from_src_seq_list(namespace_ssep);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
@@ -8455,7 +8455,7 @@ continue_with_declaration:
         }  /* if */
 #endif /* DEBUG */
         /* Append the list to the list for the current scope. */
-        insert_src_seq_list(head, tail, &scope_stack[depth_scope_stack],
+        insert_src_seq_list(head, tail, depth_scope_stack,
                             (a_source_sequence_entry_ptr)NULL);
         /* Just to be neat. */
         func_info.prototype_scope_ss_list = NULL;
