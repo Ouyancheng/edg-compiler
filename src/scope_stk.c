@@ -1529,8 +1529,16 @@ the scope being pushed.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
-  if (kind == (a_scope_kind)sck_template_declaration ||
-      kind == (a_scope_kind)sck_pragma) {
+  if (kind == (a_scope_kind)sck_template_declaration) {
+    if (!prototype_instantiations_in_il) {
+      /* Source sequence entries are generated in template declaration scopes
+         when prototype instantiations are passed in the IL (prototype
+         instantiations for default template arguments are done in
+         template declaration scopes). */
+      ssep->source_sequence_entries_disallowed =
+        source_sequence_entries_disallowed = TRUE;
+    }  /* if */
+  } else if (kind == (a_scope_kind)sck_pragma) {
     ssep->source_sequence_entries_disallowed =
       source_sequence_entries_disallowed = TRUE;
   } else if (kind == (a_scope_kind)sck_template_instantiation) {
@@ -1540,19 +1548,12 @@ the scope being pushed.
          entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
     } else if (ssep->in_prototype_instantiation) {
-#if 0
-      /* FIXME - remove when prototype instantiations in the IL are fully
-         supported. */
-#else
-      if (!nonclass_prototype_instantiations) {
-#endif
-        /* Source sequence entries are generated for prototype instantiations,
-           but are placed that is not part of the IL proper. */
+      if (!prototype_instantiations_in_il) {
+        /* Source sequence entries are normally not generated during a
+           prototype instantiation.  (When they are, they are placed on a list
+           that is not part of the IL proper.) */
         source_sequence_entries_disallowed = TRUE;
-#if 0
-#else
       }  /* if */
-#endif
     } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
                                     source_sequence_entries_disallowed) {
       check_assertion(source_sequence_entries_disallowed == TRUE);
