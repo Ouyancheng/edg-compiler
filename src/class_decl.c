@@ -3591,11 +3591,16 @@ pointed to by cssp.
     a_base_class_ptr     base_class;
     an_access_specifier  base_class_access;
     a_symbol_ptr         new_sym;
+    a_boolean            ambiguous;
+    a_boolean            access_adj;
 
     check_assertion(symbol_supplement_for_class(class_type) == cssp);
     base_class = orig_sym->variant.projection.extra_info->
                                                  fundamental_base_class;
     base_class_access = preferred_derivation_of(base_class)->access;
+    ambiguous = orig_sym->variant.projection.ambiguous;
+    access_adj = (orig_sym->variant.projection.access_adjustment_made ||
+                  orig_sym->variant.projection.intervening_access_adjustment);
     /* Go through the members of the overload set. */
     sym = sym->variant.overloaded_function.symbols;
     for (; sym != NULL; sym = sym->next) {
@@ -3603,12 +3608,12 @@ pointed to by cssp.
          the symbol table or put on the class scope entry's symbol list.
          Note also that the setting of the ambiguous flag in the overload
          symbol is copied into each new symbol. */
-      a_boolean  ambiguous = orig_sym->variant.projection.ambiguous;
       new_sym = make_projection_symbol(sym, class_type, base_class,
                                        (a_derivation_step_ptr)NULL, ambiguous);
       new_sym->variant.projection.access =
                                       compute_access(access_for_symbol(sym),
                                                      base_class_access);
+      new_sym->variant.projection.intervening_access_adjustment = access_adj;
       /* Add the new projection symbol to the conversion list. */
       add_to_conversion_list(new_sym, cssp);
     }  /* for */
