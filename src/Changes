@@ -1,5 +1,54 @@
 Version 2.39
 
+3/18/98   Generated overloaded bitwise operator=
+
+When the user declares an operator=, but not one that can serve as the
+default copy assignment operator, in a class that allows bitwise
+assignment, a generated default operator= is added to the overload set.
+If that function is selected by overload resolution, an assignment is
+generated rather than a call.  The code that generates the assignment
+had a bug involving cv-qualifiers, which caused an abort in the
+C-generating back end for the following example:
+
+  struct A {
+    A& operator=(const int& ci);
+    A next();
+    operator void*() const;
+  };
+  void foo( A& bar, A& p ) {
+    while (p = bar.next()) {}
+  }
+
+That is now fixed.  Also, the code generated did not return an lvalue
+for the assignment, with the consequence that the following (valid)
+program was rejected:
+
+  struct A { int operator=(int); };
+  int main () {
+    A a, b;
+    (a = b) = b;
+  }
+
+It is now accepted.
+
+3/18/98   Microsoft compatibility: not allowing call of non-const function
+          on const object
+
+The anachronism of allowing a non-const function to be called for
+a const object, which has been allowed in Microsoft mode (see
+Changes entry of 3/22/96), is no longer allowed when microsoft_version
+is greater than or equal to 1000.  MSVC++ 4.2 and 5.0 (correctly) reject
+the following program:
+
+  struct A {
+    void f();
+  };
+  int main () {
+    const A a;
+    a.f();
+    return 0;
+  }
+
 3/17/98   C++-generating back end: fewer parentheses around lvalues
 
 The C++-generating back end has been changed so that fewer unnecessary

@@ -1675,7 +1675,7 @@ with a const selector is enabled, allow that kind of mismatch here.
                             /*try_user_conversions=*/FALSE, match_summary);
   match_summary->is_match_for_this_param = TRUE;
   if (match_summary->match_level == aml_none &&
-      (cfront_2_1_mode || microsoft_mode)) {
+      (cfront_2_1_mode || (microsoft_mode && microsoft_version < 1000))) {
     /* No match.  Try the anachronism of calling a function that
        does not require a const "this" with a const selector.  See also
        set_up_for_conversion_function_call. */
@@ -6255,20 +6255,25 @@ functions could still apply).
             param = routine_type->variant.routine.extra_info->param_type_list;
             if (bitwise_assignment) {
               /* For the bitwise operator= case, generate an assignment instead
-                 of a call. */
-              an_expr_node_ptr assign_node;
-              an_expr_node_ptr lhs_node =
-                               make_node_from_operand(bound_function_selector);
-              an_expr_node_ptr rhs_node =
-                          node_for_arg_of_overloaded_function_call(arg_operand,
-                                                                   arg_match,
-                                                                   param);
-              rhs_node = add_indirection_to_node(rhs_node);
+                 of a call.  The assignment returns an lvalue. */
+              a_type_ptr       result_type= function_symbol->parent.class_type;
+              an_expr_node_ptr assign_node, lhs_node, rhs_node;
+
+              /* Cast the source operand to the right type. */
+              prep_assignment_operand(&arg_operand->operand,
+                                      result_type,
+                                      ec_incompatible_param,
+                                      operator_position);
+              rhs_node = make_node_from_operand(&arg_operand->operand);
+              lhs_node = make_node_from_operand(bound_function_selector);
               lhs_node->next = rhs_node;
               assign_node = make_operator_node(
                                             (an_expr_operator_kind)eok_sassign,
-                                            rhs_node->type, lhs_node);
-              make_expression_operand(assign_node, assign_node->type, result);
+                                            lhs_node->type, lhs_node);
+              assign_node->variant.operation.
+                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
+              make_expression_operand(assign_node, result_type, result);
+              result->state = (an_operand_state)os_lvalue;
               /* Note that reference_to_implicitly_invoked_function is not
                  called. */
             } else {
