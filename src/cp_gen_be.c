@@ -254,6 +254,7 @@ static void gen_type(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_pragma(void);
+static void gen_macro(void);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
@@ -2213,6 +2214,9 @@ is the one associated with the definition of the class.
       case iek_pragma:
         gen_pragma();
         break;
+      case iek_macro:
+        gen_macro();
+        break;
       case iek_src_seq_secondary_decl:
         /* A secondary declaration, i.e., a declaration of something that
            is also defined/declared elsewhere. */
@@ -3828,6 +3832,7 @@ is the one associated with the pragma.
     check_assertion_str(pp->pragma_text != NULL,
                         "gen_pragma: NULL pragma_text");
     write_str(pp->pragma_text);
+    enable_line_wrapping();
     end_output_line();
   }  /* if */
 }  /* gen_pragma */
@@ -3869,9 +3874,13 @@ is the one associated with the macro.
 
   /* Advance past the source sequence entry for the macro. */
   adv_curr_source_sequence_entry();
+  end_output_line_if_begun();
   set_output_position(&mp->source_corresp.decl_position);
+  disable_line_wrapping();
   /* Write the macro string. */
   write_str(mp->text);
+  enable_line_wrapping();
+  end_output_line();
 }  /* gen_macro */
 
 
@@ -3938,6 +3947,9 @@ on the list, or NULL if the list is empty.
       } else if (ss_entry_kind(curr_source_sequence_entry) == iek_pragma) {
         /* A pragma in executable code. */
         gen_pragma();
+      } else if (ss_entry_kind(curr_source_sequence_entry) == iek_macro) {
+        /* A macro in executable code. */
+        gen_macro();
       } else {
         /* We don't know what this next thing is.  Leave it alone and
            go on. */
@@ -5040,11 +5052,11 @@ sequence entry.
     case iek_pragma:
       gen_pragma();
       break;
-    case iek_template:
-      gen_template();
-      break;
     case iek_macro:
       gen_macro();
+      break;
+    case iek_template:
+      gen_template();
       break;
     default:
       unexpected_condition_str(
