@@ -1,5 +1,26 @@
 Version 2.42
 
+7/22/99  Compound literals
+
+Compound literals, a C9X feature, are now accepted.  They look like a
+cast whose source expression is a brace-enclosed initializer, e.g.,
+
+  int *p = (int []){1, 2, 3}
+
+The above creates an unnamed lvalue that is an array of three ints, and
+initializes it with the indicated values.  p is initialized with the
+address of the first element of the array.
+
+This feature is off by default.  See COMPOUND_LITERAL_ENABLING_POSSIBLE,
+DEFAULT_COMPOUND_LITERALS_ALLOWED, and the command-line options
+--compound_literals and --no_compound_literals.
+
+If COMPOUND_LITERAL_ENABLING_POSSIBLE is set to TRUE, some back end
+changes will be required (unless you are using the C-generating
+or C++-generating back end): compound literals are represented by
+enk_temp_init expression nodes, which are not otherwise used in C IL
+(IL CHANGE).
+
 7/21/99  Allow template overloading when only return types differ
 
 The front end now accepts the declaration of two function templates that only
