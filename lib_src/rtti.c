@@ -123,6 +123,7 @@ The access_flags string was retained for backward compatibility.
       do {
         void*		     new_ptr = NULL;
         a_type_info_impl_ptr test_info = bcsp->type_info;
+	a_boolean            is_accessible;
 	if (ptr != NULL) {
 	  /* Adjust the pointer by the offset provided in the base class
 	     specification. */
@@ -130,7 +131,21 @@ The access_flags string was retained for backward compatibility.
 	}  /* if */
         /* This is not the base class we are looking for.  Look at the
            base classes of this base class. */
-        if (test_info->base_class_entries != NULL) {
+        if (use_access_flags) {
+          /* When using access strings, a base class further up in the
+             derivation tree may be accessible even if this class is not.
+             Always call the derived_to_base_conversion routine and let
+             it check the access flag.  This is done by setting the
+	     is_accessible flag to TRUE at this level. */
+          is_accessible = TRUE;
+        } else {
+          /* When using the newer access flags in the base class entry
+             (instead of the access flag string) don't look into 
+             inaccessible or ambiguous bases. */
+          is_accessible = ((bcsp->flags & BCS_PUBLIC) != 0) &&
+                          ((bcsp->flags & BCS_AMBIGUOUS) == 0);
+        }  /* if */
+        if (test_info->base_class_entries != NULL && is_accessible) {
           /* This base class has its own bases.  Call this routine
              recursively. */
 	  void* local_new_ptr;
@@ -289,6 +304,44 @@ execption.
   /* Return the address of the user type_info. */
   return (void*)&tiip->user_type_info;
 }  /* __get_typeid */
+
+
+#if DEBUG
+EXTERN_C void __db_type_info(type_info& info)
+/*
+Display debugging information about type information.
+*/
+{
+  /* Convert the user type_info pointer to a_info_impl_ptr. */
+  a_type_info_impl_ptr	tiip = (a_type_info_impl_ptr)&info;
+  fprintf(stderr, "Type information for: %s\n",
+          tiip->name == NULL ? "<NULL>" : tiip->name);
+  fprintf(stderr, "  unique_id: %p\n", (void*)tiip->unique_id);
+  fprintf(stderr, "  dtor addr: %p\n", (void*)tiip->destructor);
+  if (tiip->base_class_entries != NULL) {
+    a_base_class_spec_ptr	bcsp;
+    fprintf(stderr, "  base classes:\n");
+    for (bcsp = tiip->base_class_entries;; bcsp++) {
+      char	*name = bcsp->type_info->name;
+      fprintf(stderr, "    name=%s\n", name == NULL ? "<NULL>" : name);
+      fprintf(stderr, "    offset=%0ld\n", (long)bcsp->offset);
+      fprintf(stderr, "    flags:");
+      if (bcsp->flags & BCS_VIRTUAL) fprintf(stderr, " virtual");
+      if (bcsp->flags & BCS_LAST) fprintf(stderr, " last");
+      if (bcsp->flags & BCS_PUBLIC) fprintf(stderr, " public");
+      if (bcsp->flags & BCS_AMBIGUOUS) fprintf(stderr, " ambiguous");
+      fprintf(stderr, "\n");
+      if (bcsp->flags & BCS_LAST) break;
+    }  /* for */
+    /* Now display the full type information for the base classes. */
+    fprintf(stderr, "\n");
+    for (bcsp = tiip->base_class_entries;; bcsp++) {
+      __db_type_info(bcsp->type_info->user_type_info);
+      if (bcsp->flags & BCS_LAST) break;
+    }  /* for */
+  }  /* if */
+}  /* __db_type_info */
+#endif /* DEBUG */
 
 
 #endif /* ABI_CHANGES_FOR_RTTI */
