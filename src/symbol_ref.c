@@ -63,7 +63,7 @@ should only be called if cross-reference information is being generated
 
   if (!output_control_block_has_been_set_up) {
     /* Set octl so that it can be passed into the il_to_str routines to tell
-       them how to output to write a string to the xref file. */
+       them how to write a string to the xref file. */
     clear_il_to_str_output_control_block(&octl);
     octl.output_str = write_string_to_xref_file;
     output_control_block_has_been_set_up = TRUE;
