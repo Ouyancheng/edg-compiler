@@ -241,7 +241,13 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
          something.  It might also call a constructor, etc.  In C99
          mode, enk_temp_init is used for compound literals, which
          can be considered not to be side effects. */
-      if (!c99_mode) has_side_effects = TRUE;
+      if (!c99_mode) {
+        has_side_effects = TRUE;
+      } else {
+        has_side_effects = dynamic_init_has_side_effects(
+                                               node->variant.init.dynamic_init,
+                                               &suppress);
+      }  /* if */
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
