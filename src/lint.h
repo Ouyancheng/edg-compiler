@@ -83,9 +83,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_not_enough_preallocated_memory)*/
 /*lint -esym(769,ec_program_entity_too_large_for_pch)*/
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-#if !ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
+#if !BACK_END_IS_C_GEN_BE || !ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
 /*lint -esym(769,ec_double_for_long_double)*/
-#endif /* !ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
+#endif /* !BACK_END_IS_C_GEN_BE || !ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 /*lint -esym(769,ec_different_return_type_on_virtual_function_override)*/
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
