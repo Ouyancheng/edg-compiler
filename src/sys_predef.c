@@ -59,6 +59,22 @@ Linux using the gcc/g++ header files.
 #endif /* ifdef __linux */
 
 
+#if 0 /* Not needed in default version, but perhaps useful to some. */
+static void enter_predefined_type(a_type_ptr type,
+                                  char       *name)
+/*
+Enter a predefined type.
+*/
+{
+  a_symbol_ptr sym_ptr;
+
+  sym_ptr = full_enter_symbol(name, (sizeof_t)(strlen(name)),
+                              (a_symbol_kind)sk_type, NO_SCOPE_DEPTH);
+  sym_ptr->variant.type = type;
+  set_source_corresp(&type->source_corresp, sym_ptr);
+}  /* enter_predefined_type */
+#endif /* 0 */  
+
 void enter_system_specific_predefined_macros_and_assertions(void)
 /*
 Define system-specific predefined macros and builtin #assert predicates
@@ -83,6 +99,11 @@ Define system-specific predefined macros and builtin #assert predicates
 #ifdef __linux__
   enter_linux_predefined_macros();
 #endif /* ifdef __linux__ */
+#if 0
+  /* An example of entering a predefined type: */
+  enter_predefined_type(integer_type((an_integer_kind)ik_long_long),
+                        "__long_long");
+#endif /* 0 */
 }  /* enter_system_specific_predefined_macros_and_assertions */
 
 
