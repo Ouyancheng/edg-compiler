@@ -37,7 +37,7 @@ This is now fixed.
          selectany variables
 
 In Microsoft mode, when compiling multiple translation units simultaneously,
-the front end diagnosed as an error  multiple definitions of a variable 
+the front end diagnosed as an error multiple definitions of a variable 
 declared with __declspec(selectany).  For example:
 
   // File 1:
