@@ -881,20 +881,6 @@ pointer transformation should be done.
 }  /* function_transformation_needed_on_reference_init */
 
 
-static a_boolean is_identity_enum_promotion(a_type_ptr type,
-                                            a_type_ptr promoted_type)
-/*
-Return TRUE if the promotion from type to promoted_type is the promotion of
-an enum type to the integral type with the same representation.
-*/
-{
-  a_boolean is_identity_enum = (is_enum_type(type) &&
-                     f_skip_typerefs(type)->variant.integer.int_kind ==
-                     f_skip_typerefs(promoted_type)->variant.integer.int_kind);
-  return is_identity_enum;
-}  /* is_identity_enum_promotion */
-
-
 static void determine_arg_match_level(
                                an_operand           *arg_operand,
                                a_type_ptr           arg_type,
@@ -929,7 +915,6 @@ is TRUE.
   an_operand        implicit_arg_operand;
   a_type_ptr        orig_param_type = param_type;
   a_type_ptr        unqual_arg_type, unqual_param_type;
-  a_type_ptr        promoted_arg_type;
 
   db_enter(4, "determine_arg_match_level");
   clear_arg_match_summary(arg_summary);
@@ -1154,16 +1139,9 @@ is TRUE.
     /* Try a match involving promotions.  This is case [2] in the ARM.
        Promotions are the default argument promotions (integral promotions
        and float --> double). */
-    promoted_arg_type = default_argument_promotion(unqual_arg_type);
-    if (types_are_compatible(promoted_arg_type, unqual_param_type)) {
-      if (any_cfront_mode() &&
-          is_identity_enum_promotion(unqual_arg_type, promoted_arg_type)) {
-        /* In cfront mode, promoting an enum to the same integral type does
-           not count as a promotion. */
-        arg_summary->match_level = aml_exact;
-      } else {
-        arg_summary->match_level = aml_promotion;
-      }  /* if */
+    if (types_are_compatible(default_argument_promotion(unqual_arg_type),
+                             unqual_param_type)) {
+      arg_summary->match_level = aml_promotion;
       goto have_level;
     }  /* if */
     /* Try a match involving standard conversions.  This is case [3] in
@@ -4176,8 +4154,9 @@ match, promotion, etc.) for the operand.
                                 operand_type_after_integral_promotion(operand);
         if (!types_are_compatible(promoted_type, operand_type)) {
           /* The type gets changed by promotion, so the cost is a promotion. */
-          if (any_cfront_mode() && 
-              is_identity_enum_promotion(operand_type, promoted_type)) {
+          if (any_cfront_mode() && is_enum_type(operand_type) &&
+              f_skip_typerefs(operand_type)->variant.integer.int_kind ==
+              f_skip_typerefs(promoted_type)->variant.integer.int_kind) {
             /* In cfront mode promotion of an enum to the same integral type
                doesn't count as a promotion. */
             /* match_level = aml_exact -- already set. */
