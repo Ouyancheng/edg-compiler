@@ -783,6 +783,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                           a_field_ptr, iek_field);
             }  /* if */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            /* Record whether a template is actually being used. */
+            if (ptr->variant.class_struct_union.is_template_class &&
+                !ptr->variant.class_struct_union.is_nonreal_class) {
+              il_header.templates_used = TRUE;
+            }  /* if */
             /* Handle the class type supplement inline, because we need
                to have a pointer to the class to decide whether or not to
                process definition-related fields. */
@@ -967,6 +972,12 @@ the file scope, do not process it (but record an orphan in the latter case).
           a_type_ptr rout_type = ptr->type;
           rout_type = skip_typerefs(rout_type);
           definition_needed_if_class(rout_type->variant.routine.return_type);
+        }  /* if */
+        /* If this is a function generated from a template, we have used a
+           template (and we may not be able to accurately remove unneeded
+           entities). */
+        if (ptr->is_template_function && !ptr->is_prototype_instantiation) {
+          il_header.templates_used = TRUE;
         }  /* if */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* No processing of befriending_classes for the "needed" sweep. */

@@ -3984,11 +3984,11 @@ been completed.
     rp->defined = saved_defined;
   }  /* for */
 #if BACK_END_IS_CP_GEN_BE
-  if (scope->templates != NULL) {
-    /* The very presence of templates in the IL means pruning the IL of
-       apparently unneeded entries must be suppressed.  This is because an
-       IL entry may be needed by an instantiation of a template without the
-       front end being able to tell. */
+  if (il_header.templates_used) {
+    /* The use of templates in the IL means pruning the IL of apparently
+       unneeded entries must be suppressed.  This is because an IL entry
+       may be needed by an instantiation of a template without the front
+       end being able to tell. */
     okay_to_eliminate_unneeded_il_entries = FALSE;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */

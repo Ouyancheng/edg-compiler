@@ -4544,6 +4544,7 @@ Display the IL for the file scope in human-readable form.
 #endif /* NEAR_AND_FAR_ALLOWED */
   disp_boolean("UCN_identifiers_used",
                (a_boolean)il_header.UCN_identifiers_used);
+  disp_boolean("templates_used", (a_boolean)il_header.templates_used);
 #if ONE_INSTANTIATION_PER_OBJECT
   if (il_header.instantiation_dir_name != NULL) {
     disp_string_ptr("instantiation_dir_name",
