@@ -1,5 +1,12 @@
 Version 2.23
 
+4/27/94  IL lowering generation of initk_zero for nonstatic variables
+
+IL lowering now sets the initialization of a nonstatic variable to
+initk_zero only if the variable is partially initialized by a
+nonconstant aggregate.  If it is fully initialized, the zeroing is
+not needed.
+
 4/27/94  Return value optimization
 
 The front end now does return value optimization.  That is,
