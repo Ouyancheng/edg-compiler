@@ -2778,6 +2778,7 @@ Extract the wide character value and return it.
   return wc;
 }  /* extract_wide_char_from_string */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static char *normalize_dir_name(char *dir_name)
 /*
@@ -2870,7 +2871,7 @@ comparision.
         same_file_identifiers(start1, start2)) {
       match = TRUE;
     }  /* if */
-#endif /* CAN_COMPARE_FILE_IDENTIFIERS */
+#endif CAN_COMPARE_FILE_IDENTIFIERS
     /* If equality has not been determined by the code above, compare the
        directory names now. */
     if (!match) {
@@ -2912,6 +2913,7 @@ they are the same.
   return result;
 }  /* compare_dir_names */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void host_envir_one_time_init(void)
 /*
