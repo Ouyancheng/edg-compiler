@@ -399,6 +399,13 @@ typedef struct a_source_range {
 			/* Ending source position of a range of text. */
 } a_source_range;
 
+
+/*
+The type "pointer-to-source-sequence-entry" is defined even if the
+underlying type is not, since interfaces will use it.
+*/
+typedef struct a_source_sequence_entry *a_source_sequence_entry_ptr;
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /*
 A structure containing a kind and a generic pointer to some entity.  Before
@@ -422,7 +429,6 @@ list for each class-struct-union scope.  Each entry on the list points to
 the entity represented, and when that entity is a declared entity or a
 statement, it has a pointer back to its source sequence entry.
 */
-typedef struct a_source_sequence_entry *a_source_sequence_entry_ptr;
 typedef struct a_source_sequence_entry {
   a_source_sequence_entry_ptr
 		next;

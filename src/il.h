@@ -588,6 +588,7 @@ entry.
 #if DEBUG
 extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
 extern void db_source_sequence_list(a_source_sequence_entry_ptr  ssep);
+extern void db_ss_list_for_scope(a_scope_ptr  sp);
 #endif /* DEBUG */
 
 extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);
@@ -598,19 +599,23 @@ extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
 extern a_comment_ptr alloc_comment(void);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
-/* Make sure a_decl_seq_info is declared before using it in a parameter
-   list. */
-typedef struct a_decl_seq_info a_decl_seq_info_dummy_typedef;
-
 extern void update_source_sequence_list(char                 *entity_ptr,
                                         an_il_entry_kind     kind,
                                         a_source_position    *pos,
-                                        struct a_decl_seq_info *decl_seq_info);
+                                        a_source_sequence_entry_ptr old_ssep);
 
 extern void make_proxy_ptr_source_sequence_entry(
                                              a_source_sequence_entry_ptr ssep);
 
 extern a_source_sequence_entry_ptr add_source_sequence_entry_for_routine(void);
+
+extern a_source_sequence_entry_ptr add_empty_source_sequence_entry(
+                                                   a_boolean  alloc_in_fs,
+                                                   a_boolean  proxy_allowed);
+
+extern void remove_from_source_sequence_list(
+                                     a_source_sequence_entry_ptr  *ssep_ptr,
+                                     a_type_ptr                   class_type);
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
