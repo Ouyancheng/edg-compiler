@@ -25,7 +25,7 @@ overload.c -- Expression processing overload resolution.
 #include "templates.h"
 #include "cmd_line.h"
 #include "types.h"
-#include "folding.c"
+#include "folding.h"
 
 /* Forward declarations required because of out-of-order references. */
 static void prep_conversion_operand(an_operand        *source_operand,
