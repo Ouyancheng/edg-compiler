@@ -5319,6 +5319,17 @@ precedence confusion and need_parens is TRUE.
          lvalue. */
       form_unknown_function_constant(constant, &octl);
       processed = TRUE;
+    } else if (tpkind == (a_template_param_constant_kind)tpck_cast) {
+      /* In some cases, a do-nothing tpck_cast is used to make it clear
+         that a constant is template-dependent.  Drop such a cast. */
+        a_constant_ptr sub_con =
+                             constant->variant.template_param.variant.constant;
+      if (constant->type == sub_con->type) {
+        if (sub_con->kind == (a_constant_repr_kind)ck_address) {
+          form_lvalue_address_constant(sub_con, /*need_parens=*/TRUE, &octl);
+          processed = TRUE;
+        }  /* if */
+      }  /* if */
     } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
       /* A tpck_uuidof constant represents the address of the Microsoft
          __uuidof.  Drop the "&" to make an lvalue. */
