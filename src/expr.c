@@ -15687,7 +15687,15 @@ copy-initialization ("="-form).
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (gnu_mode) {
+    /* GNU C and C++ allow more than the standard allows. */
+    scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
+                                               /*will_cast=*/FALSE,
+                                               PREC_LOWEST,
+                                               &result);
+  } else {
+    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  }  /* if */
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
                            (a_conv_descr_ptr)NULL,

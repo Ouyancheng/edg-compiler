@@ -1,5 +1,14 @@
 Version 3.3
 
+7/17/03  GNU C++ compatibility: static data member initializer relaxation
+
+The in-class initializers for static data members in GNU C++ mode are
+now allowed to contain some constructs not allowed by the standard.
+
+  struct A {
+    static const int x = 1.0 ? 0 : 0;  // Now accepted in g++ mode
+  };
+
 7/17/03  GNU predefined vararg primitives in C- and C++-generating back ends
 
 A new configuration macro GCC_BUILTIN_VARARGS_IN_GENERATED_CODE can be set
