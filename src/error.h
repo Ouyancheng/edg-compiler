@@ -260,8 +260,11 @@ extern void pos_st_warning(an_error_code     error_code,
                            char              *error_string);
 extern void pos_warning(an_error_code     error_code,
                         a_source_position *error_pos);
+#if 0
+/* This routine is not currently used by the compiler. */
 extern void str_warning(an_error_code error_code,
                         char          *error_string);
+#endif /* 0 */
 extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
