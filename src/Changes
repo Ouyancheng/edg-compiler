@@ -6,8 +6,7 @@ A bug with string literal concatenation has been fixed.  The following
 printed "hello" previously:
 
   #define HELLO "hello"
-  void main()
-  {
+  main() {
     printf("%s\n", HELLO " there");
   }
 
