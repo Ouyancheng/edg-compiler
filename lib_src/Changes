@@ -1,5 +1,13 @@
 Version 2.31
 
+11/08/95 Destructors incorrectly called when pointers are thrown
+
+When a pointer to an object with a destructor was thrown, the destructor
+for the object was incorrectly being called to destroy the temporary
+object created by the runtime.  The destructor should not have been
+called because the temporary created by the runtime was only a pointer
+and not an actual object.  This has been fixed.
+
 10/12/95 Linux automatically sets USE_SYSTEM_JMP_BUF_DEFINITION
 
 USE_SYSTEM_JMP_BUF_DEFINITION is set to TRUE by default when compiled
