@@ -661,6 +661,40 @@ there is additional processing to be done.
         scope_depth = DEPTH_OF_FILE_SCOPE;
         /* Force a change to the file-scope memory region, if needed. */
         in_fs_memory = TRUE;
+      } else {
+        /* Make sure that this scope is one to which a pragma can be
+           attached.  If the current scope has no associated IL scope,
+           find the nearest enclosing scope with an associated IL scope. */
+        a_scope_stack_entry_ptr	ssep = scope_stack_entry_for(scope_depth);
+        a_boolean		done = FALSE;
+        for (; !done; ssep = previous_scope_of(ssep)) {
+          check_assertion(ssep != NULL);
+          switch (ssep->kind) {
+            /* Scopes for which a pragma entry may be added to the IL. */
+            case sck_file:
+            case sck_func_prototype:
+            case sck_block:
+            case sck_namespace:
+            case sck_namespace_extension:
+            case sck_class_struct_union:
+            case sck_function:
+              done = TRUE;
+              /* Convert the scope stack entry back to a scope depth. */
+              scope_depth = scope_depth_of(ssep);
+              break;
+            /* Scopes for which a pragma entry may not be added to the IL. */
+            case sck_condition:
+            case sck_function_access:
+            case sck_pragma:
+            case sck_template_instantiation:
+            case sck_template_declaration:
+            case sck_class_reactivation:
+            case sck_namespace_reactivation:
+              break;
+            default:
+              unexpected_condition_str("add_pragma_to_il: bad scope kind");
+          }  /* switch */
+        }  /* for */
       }  /* if */
     } else if (entity_kind == (an_il_entry_kind)iek_statement) {
       /* Pragmas bound to statements are in local memory and are attached to

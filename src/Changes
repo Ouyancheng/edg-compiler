@@ -1,5 +1,13 @@
 Version 2.34
 
+11/19/96 Internal error when immediate pragma added to scope with no IL scope
+
+If an immediate pragma appeared in a front end scope with no associated
+IL scope (e.g., a template declaration scope), and that pragma was added
+to the IL, an internal error would result.  This has been fixed by adding
+the IL pragma entry to the nearest enclosing scope with an associated
+IL scope.
+
 11/6/96  Checking exception specifications on assignment and initialization
 
 An error is now issued on an assignment or initialization involving
