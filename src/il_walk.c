@@ -205,6 +205,20 @@ Process the indicated constant entry.
 }  /* walk_constant */
 
 
+static void walk_based_type_array(a_based_type_array_ptr ptr)
+/*
+Process the indicated based type array.
+*/
+{
+  int element_num;
+
+  for (element_num = 0; element_num < (int)bta_last; element_num++) {
+    walk_ptr(*ptr, a_type_ptr, iek_type);
+    ptr++;
+  }  /* for */
+}  /* walk_based_type_array */
+
+
 static void walk_type(a_type_ptr ptr)
 /*
 Process the indicated type entry.
@@ -212,7 +226,8 @@ Process the indicated type entry.
 {
   walk_source_corresp(ptr->source_corresp);
   remap_next_ptr(ptr->next, a_type_ptr, iek_type);
-  walk_ptr(ptr->assoc_pointer_type, a_type_ptr, iek_type);
+  walk_ptr(ptr->based_type_array, a_based_type_array_ptr,
+           iek_based_type_array);
   switch (ptr->kind) {
     case tk_error:
     case tk_unknown:
@@ -339,7 +354,7 @@ and the entry pointer is to an entry in the file scope, just return
          in the file scope, just return. */
       if (!walking_file_scope && in_file_scope(entry_ptr)) goto end_of_routine;
       /* See if this entry has been reached already, and if so, don't process
-         it or its subtree.  This is indicated by the assoc_info field of the
+         it or its subtree.  This is indicated by the il_walk_flag field of the
          source_correspondence entry, for those entries that have one.  Note
          that only the declarative entries have potential recursion, so it's
          only there that this trick is necessary.  For other entries, only
@@ -392,6 +407,7 @@ and the entry pointer is to an entry in the file scope, just return
           break;
         case iek_source_file:
         case iek_routine_type_supplement:
+        case iek_based_type_array:
         case iek_expr_node:
 #ifdef CFE
         case iek_switch_clause:
@@ -434,6 +450,8 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_param_type:    s = "param type";              break;
         case iek_routine_type_supplement:
                                 s = "routine type supplement"; break;
+        case iek_based_type_array:
+                                s = "based type array";        break;
         case iek_type:          s = "type";                    break;
         case iek_variable:      s = "variable";                break;
         case iek_routine:       s = "routine";                 break;
@@ -511,6 +529,9 @@ and the entry pointer is to an entry in the file scope, just return
 #endif /* ifdef CFE */
           remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
         }
+        break;
+      case iek_based_type_array:
+        walk_based_type_array((a_based_type_array_ptr)entry_ptr);
         break;
       case iek_type:
         walk_type((a_type_ptr)entry_ptr);

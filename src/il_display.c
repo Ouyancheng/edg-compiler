@@ -587,6 +587,8 @@ kind entry_kind.
         case iek_param_type:    s = "param-type";              break;
         case iek_routine_type_supplement:
                                 s = "routine-type-supplement"; break;
+        case iek_based_type_array:
+                                s = "based type array";        break;
         case iek_type:          s = "type";                    break;
         case iek_variable:      s = "variable";                break;
         case iek_routine:       s = "routine";                 break;
@@ -1029,6 +1031,33 @@ Display the indicated dimension bound information entry.
 
 #endif /* ifdef FFE */
 
+
+static void disp_based_type_array(a_based_type_array_ptr ptr)
+/*
+Display the indicated based type array.
+*/
+{
+  disp_ptr("based_type_array", (char *)ptr, iek_based_type_entry);
+  if (ptr != NULL) {
+    int  element_num;
+    char *elem_name;
+    for (element_num = 0; element_num < (int)bta_last; element_num++) {
+      if (ptr[element_num] != NULL) {
+        switch (element_num) {
+          case bta_pointer:          elem_name = "pointer"; break;
+          case bta_const:            elem_name = "const"; break;
+          case bta_volatile:         elem_name = "volatile"; break;
+          case bta_const_volatile:   elem_name = "const volatile"; break;
+          case bta_file_scope_copy:  elem_name = "file scope copy"; break;
+          default:                   elem_name = "**BAD BASED TYPE**"; break;
+        }  /* switch */
+        disp_ptr(elem_name, (char *)&ptr[element_num], iek_type);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* disp_based_type_array */
+
+
 static void disp_type(a_type_ptr ptr)
 /*
 Display the indicated type entry.
@@ -1036,7 +1065,7 @@ Display the indicated type entry.
 {
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_type);
-  disp_ptr("assoc_pointer_type", (char *)ptr->assoc_pointer_type, iek_type);
+  disp_based_type_array(ptr->based_type_array);
   disp_unsigned_long("size", (unsigned long)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   disp_name("kind");
@@ -2032,6 +2061,7 @@ This routine is called during IL walking.
   /* Do not display entries that are displayed at the point of use. */
   switch (entry_kind) {
     case iek_routine_type_supplement:
+    case iek_based_type_array:
     case iek_block:
 #ifdef FFE
     case iek_internal_complex_value:
