@@ -453,9 +453,6 @@ typedef struct a_context {
 EXTERN a_context_ptr
 		curr_context;
 			/* Current (bottom) end of the context chain. */
-EXTERN a_context_ptr
-		file_scope_context;
-			/* The context for the file scope. */
 
 EXTERN a_return_memo_ptr
 		return_memo_list;
@@ -739,8 +736,6 @@ extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 extern void lower_constant(a_constant_ptr constant);
 
 extern void add_indirection_to_cctor_param_type(a_param_type_ptr ptp);
-
-extern void lower_type(a_type_ptr type);
 
 extern void lower_os_type(a_type_ptr type);
 

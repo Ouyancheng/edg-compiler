@@ -250,6 +250,7 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      an_expr_operator_kind op,
                                      a_type_ptr            type,
                                      an_expr_node_ptr      operand);
+static void lower_type(a_type_ptr type);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_variable(a_variable_ptr variable);
 static void lower_field_list(a_type_ptr class_type);
@@ -4843,7 +4844,7 @@ indicated routine should be dropped.
 }  /* should_drop_const_on_this_param_variable */
 
 
-void lower_type(a_type_ptr type)
+static void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
 */
@@ -8895,7 +8896,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
 }  /* gen_goto_cleanup_actions */
 
 
-void push_scopeless_compound_stmt(a_statement_ptr stmt)
+static void push_scopeless_compound_stmt(a_statement_ptr stmt)
 /*
 We are entering the indicated statement (a compound statement without
 an associated scope).  Add an entry for it on the front of the list of
@@ -11647,7 +11648,7 @@ C++ to C, so that a C back end can handle it without change.
                        (unsigned long)region_number);
     }  /* if */
 #endif /* DEBUG */
-    curr_context = file_scope_context = NULL;
+    curr_context = NULL;
     innermost_function_scope = NULL;
     curr_object_lifetime = il_header.primary_scope->lifetime;
     promoted_local_static_variable_inits = NULL;
@@ -11669,7 +11670,6 @@ C++ to C, so that a C back end can handle it without change.
        context above the function context. */
     push_context(&context, il_header.primary_scope,
                  (an_object_lifetime_ptr)NULL);
-    file_scope_context = curr_context;
     /* Create definitions for virtual function tables.  This must be done
        early when virtual function information is still available.  It must
        be done before name mangling because the original names of nested
