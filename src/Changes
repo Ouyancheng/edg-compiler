@@ -1,5 +1,17 @@
 Version 3.5
 
+6/18/04  Incompletely-lowered code for bool compound assignment with
+         imaginary operand
+
+The lowering process for C99 compound assignments with a bool left
+operand and an imaginary right operand produced incompletely-lowered
+IL that still contained an imaginary zero constant.  Now fixed.
+
+  _Bool g3;
+  int main() {
+    g3 *= (_Imaginary long double)0.0;
+  }
+
 6/18/04  Zero-valued const variable as null pointer constant in conversions
          for built-in operators
 

@@ -978,6 +978,29 @@ Transform the given complex cast expression into a function call
   }  /* if */
 }  /* lower_c99_complex_cast */
 
+
+void post_lower_c99_bool_cast(an_expr_node_ptr expr)
+/*
+Called after transform_bool_cast to check for and do any additional
+lowering on the "!= 0" comparison generated, e.g., for complex values.
+*/
+{
+  check_assertion(is_operation_node(expr));
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
+    /* Do further lowering for complex != 0. */
+    /* Lower the complex zero constant. */
+    lower_c99_expr(expr->variant.operation.operands->next,
+                   /*used_as_lvalue=*/FALSE);
+    lower_c99_xne(expr);
+  } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
+             is_imaginary_type(expr->variant.operation.operands->next->type)) {
+    /* Do further lowering for imaginary != 0. */
+    /* Lower the imaginary zero constant. */
+    lower_c99_expr(expr->variant.operation.operands->next,
+                   /*used_as_lvalue=*/FALSE);
+  }  /* if */
+}  /* post_lower_c99_bool_cast */
+
 #endif /* LOWER_COMPLEX */
 
 static void lower_c99_cast(an_expr_node_ptr  expr)
@@ -987,25 +1010,7 @@ Transform the given cast expression into a function call (compatible with C89).
 {
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_bool_cast) {
     /* Change a cast to bool to a "!= 0" test. */
-    transform_bool_cast(expr);
-#if LOWER_COMPLEX
-    if (is_operation_node(expr) &&
-        expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
-      /* Do further lowering for complex != 0. */
-      /* Lower the complex zero constant. */
-      lower_c99_expr(expr->variant.operation.operands->next,
-                     /*used_as_lvalue=*/FALSE);
-      lower_c99_xne(expr);
-    } else if (is_operation_node(expr) &&
-               expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
-               is_imaginary_type(
-                               expr->variant.operation.operands->next->type)) {
-      /* Do further lowering for imaginary != 0. */
-      /* Lower the imaginary zero constant. */
-      lower_c99_expr(expr->variant.operation.operands->next,
-                     /*used_as_lvalue=*/FALSE);
-    }  /* if */
-#endif /* LOWER_COMPLEX */
+    lower_bool_cast(expr);
 #if LOWER_COMPLEX
   } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
     if (is_nonreal_floating_type(expr->type) ||

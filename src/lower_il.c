@@ -9153,7 +9153,7 @@ already), do nothing.
 }  /* change_result_type_of_operator_returning_bool */
 
 
-void transform_bool_cast(an_expr_node_ptr expr)
+static void transform_bool_cast(an_expr_node_ptr expr)
 /*
 Transform an eok_bool_cast operation into a comparison with zero.
 Note that this just generates the comparison; it does not lower it if
@@ -9179,7 +9179,7 @@ that is necessary.  See lower_bool_cast.
 }  /* transform_bool_cast */
 
 
-static void lower_bool_cast(an_expr_node_ptr expr)
+void lower_bool_cast(an_expr_node_ptr expr)
 /*
 Lower an eok_bool_cast node, which converts an operand to bool.
 */
@@ -9189,7 +9189,12 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   /* Note that the result type may still be "bool" here; if so, a cast will
      be inserted later.  The type will be "int" if adjust_bool_operation_types
      has discovered this case can be optimized. */
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pmne) {
+  if (C_mode()) {
+#if LOWER_COMPLEX
+    /* Do additional lowering for the complex and imaginary cases. */
+    post_lower_c99_bool_cast(expr);
+#endif /* LOWER_COMPLEX */
+  } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pmne) {
     /* For the pointer-to-member case, the comparison must be lowered. */
     an_expr_node_ptr  zero_node = expr->variant.operation.operands->next;
     mark_as_not_visited(zero_node->variant.constant);
@@ -9399,7 +9404,7 @@ assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
   /* Add a cast to bool and lower it. */
   ne_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
                                dest_type, op_node);
-  transform_bool_cast(ne_node);
+  lower_bool_cast(ne_node);
   ne_node->type = integer_type((an_integer_kind)ik_int);
   if (temp_var == NULL) {
     /* Change the original expression to an assignment:

@@ -1012,7 +1012,7 @@ extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
 
 extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);
 
-extern void transform_bool_cast(an_expr_node_ptr expr);
+extern void lower_bool_cast(an_expr_node_ptr expr);
 
 extern void lower_bool_incr_decr(an_expr_node_ptr expr);
 
