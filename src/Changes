@@ -1,5 +1,25 @@
 Version 2.46
 
+11/8/01  Incorrect error on template boolean expression when "bool" is not
+         a keyword
+
+Certain boolean expressions in template contexts were not processed
+correctly when "bool" is not a keyword in C++ mode (--no_bool option).
+As a consequence, some incorrect errors were issued.  This has been
+corrected.
+
+  struct decimalBase {
+    enum {maxwidth=31};
+    enum {maxbytes=16};
+  } ;
+  template <unsigned int w,int p=0>
+  struct decimal: public decimalBase {
+    enum {width=(w>decimalBase::maxwidth)?
+                decimalBase::maxwidth:w};
+    enum {precision=(p<0)?0:(p>width)?width:p};  // Error here
+  };
+
+
 11/8/01  Inconsistent optimization of empty base classes
 
 The empty base class layout optimization (Changes entry of 8/9/99) was

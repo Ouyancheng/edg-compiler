@@ -5482,6 +5482,8 @@ it happens in prototype instantiations.  op is the generic operator to
 be used (e.g., eok_add, not eok_iadd).
 */
 {
+  a_type_ptr result_type = type_of_unknown_templ_param_nontype;
+
   if (curr_expr_kind_is_const()) {
     do_generic_operand_transformations(operand_1);
     do_generic_operand_transformations(operand_2);
@@ -5528,13 +5530,19 @@ be used (e.g., eok_add, not eok_iadd).
       default:;
         /* Other operators are unchanged. */
     }  /* switch */
+    /* For operators like ==, we know the result type even if we do not
+       know the operand types.  (But we only know this if we are in a
+       constant expression, because otherwise the operator might be
+       overloaded.) */
+    if (is_operator_returning_bool(op)) {
+      result_type = boolean_result_type();
+    }  /* if */
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand_1, operator_takes_lvalue_operand(op));
     prep_generic_operand(operand_2, /*lvalue_expected=*/FALSE);
   }  /* if */
-  do_binary_operation(op, operand_1, operand_2,
-                      type_of_unknown_templ_param_nontype,
+  do_binary_operation(op, operand_1, operand_2, result_type,
                       result, operator_position);
 }  /* template_binary_operation */
 
@@ -5631,6 +5639,8 @@ it happens in prototype instantiations.  op is the generic operator to
 be used (e.g., eok_negate, not eok_inegate).
 */
 {
+  a_type_ptr result_type = type_of_unknown_templ_param_nontype;
+
   if (curr_expr_kind_is_const()) {
     do_generic_operand_transformations(operand);
     check_assertion_str(is_constant_operand(operand) ||
@@ -5642,6 +5652,13 @@ be used (e.g., eok_negate, not eok_inegate).
        there is one. */
     if (op == (an_expr_operator_kind)eok_negate) {
       op = (an_expr_operator_kind)eok_inegate;
+    }  /* if */
+    /* For operators like "!", we know the result type even if we do not
+       know the operand types.  (But we only know this if we are in a
+       constant expression, because otherwise the operator might be
+       overloaded.) */
+    if (is_operator_returning_bool(op)) {
+      result_type = boolean_result_type();
     }  /* if */
   } else {
     /* The current expression is not a constant expression. */
@@ -5664,8 +5681,7 @@ be used (e.g., eok_negate, not eok_inegate).
     }  /* if */
   } else {
     /* Normal case. */
-    do_unary_operation(op, operand,
-                       type_of_unknown_templ_param_nontype,
+    do_unary_operation(op, operand, result_type,
                        result, start_position);
   }  /* if */
 }  /* template_unary_operation */
@@ -8485,6 +8501,9 @@ If validate_only is TRUE, no conversions or normalizations are performed.
     if (is_ptr_to_member_type(operand->type)) {
       /* Pointer to member type is okay. */
       okay = TRUE;
+    } else if (is_template_param_type(operand->type)) {
+      /* Template parameter types are okay. */
+      okay = TRUE;
     } else {
       /* Check that the operand is a scalar. */
       okay = check_scalar_operand(operand);
@@ -8507,27 +8526,33 @@ If validate_only is TRUE, no conversions or normalizations are performed.
         case ok_constant:
           /* The expression is constant.  Make a standard integer 0 or 1
              constant. */
-          if (!constant_bool_value_known_at_compile_time(
-                                                 &operand->variant.constant)) {
-            /* The value of this constant is not known until link time
-               and therefore this has to be left as an expression. */
-            expr = alloc_node_for_constant(&operand->variant.constant);
-            norm_expr = normalize_boolean_controlling_expr(expr);
-            if (operand->variant.constant.kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-              /* For a template parameter constant, make a ck_template_param
-                 expression constant as the result. */
-              make_template_param_expr_constant_operand(norm_expr, operand);
+          { a_constant_ptr con = &operand->variant.constant;
+            if (!constant_bool_value_known_at_compile_time(con)) {
+              /* The value of this constant is not known until link time
+                 and therefore this has to be left as an expression. */
+              if (con->kind == (a_constant_repr_kind)ck_template_param &&
+                  con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+                expr = con->variant.template_param.variant.expr;
+              } else {
+                expr = alloc_node_for_constant(con);
+              }  /* if */
+              norm_expr = normalize_boolean_controlling_expr(expr);
+              if (con->kind == (a_constant_repr_kind)ck_template_param) {
+                /* For a template parameter constant, make a ck_template_param
+                   expression constant as the result. */
+                make_template_param_expr_constant_operand(norm_expr, operand);
+              } else {
+                make_expression_operand(norm_expr, norm_expr->type, operand);
+              }  /* if */
             } else {
-              make_expression_operand(norm_expr, norm_expr->type, operand);
-            }  /* if */
-          } else {
-            /* Normal case (constant bool value is known at compile time). */
-            make_integer_constant_operand(operand,
+              /* Normal case (constant bool value is known at compile time). */
+              make_integer_constant_operand(operand,
                        (a_host_large_integer)(!op_is_false_constant(operand)));
-            operand->variant.constant.null_pointer_constant_ruled_out =
+              con->null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
-          }  /* if */
+            }  /* if */
+          }
           break;
         default:
           unexpected_condition_str(
