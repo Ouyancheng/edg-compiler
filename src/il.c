@@ -32,6 +32,7 @@ il.c -- Construction of intermediate language trees.
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if !STANDALONE_UTILITY_PROGRAM
+#include "func_def.h"
 #include "pch.h"
 #include "templates.h"
 #if DEBUG
