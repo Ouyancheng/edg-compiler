@@ -2863,6 +2863,23 @@ declaration following this one is such a continuation.
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&field->source_corresp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (field->get_property_name != NULL ||
+      field->put_property_name != NULL) {
+    /* This field is declared with __declspec(property(...)). */
+    write_tok_str("__declspec(property(");
+    if (field->get_property_name != NULL) {
+      write_tok_str("get=");
+      write_tok_str(field->get_property_name);
+      if (field->put_property_name != NULL) write_tok_ch(',');
+    }  /* if */
+    if (field->put_property_name != NULL) {
+      write_tok_str("put=");
+      write_tok_str(field->put_property_name);
+    }  /* if */
+    write_tok_str("))");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
      bit fields and anonymous union fields. */
