@@ -2752,9 +2752,11 @@ void form_constant(a_constant_ptr                        constant,
                    a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
 /*
-Output the indicated constant.  If need_parens is TRUE, parentheses are
-placed around the constant if there's any possibility of precedence
-confusion.  Do the output in the way described by octl.
+Output the indicated constant.  If an expression node corresponding to the
+operation that resulted in the constant is available, output the expression
+instead of just the result of the operation.  If need_parens is TRUE,
+parentheses are placed around the constant if there's any possibility of
+precedence confusion.  Do the output in the way described by octl.
 */
 {
   a_constant_repr_kind kind = constant->kind;
@@ -2783,7 +2785,8 @@ confusion.  Do the output in the way described by octl.
     }  /* if */
 #endif /* CHECKING */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  } else if (constant->expr != NULL && octl->output_expression != NULL) {
+  } else if (constant_should_be_put_out_as_expr(constant) &&
+             octl->output_expression != NULL) {
     /* An expression was recorded for this constant.  Output that expression
        rather than the folded constant. */
     octl->output_expression(constant->expr);

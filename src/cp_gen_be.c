@@ -1946,38 +1946,14 @@ declaration.
 }  /* gen_friend_function_decl_name */
 
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-/* Return TRUE if the given constant has associated information about
-   the expression it came from and should be put out in expression
-   form.  Don't be fooled by enumeration constants, which also have a
-   non-NULL expression pointer if they were given an explicit value in
-   their definitions, but shouldn't be put out in expression form. */
-#define constant_should_be_put_out_as_expr(constant) \
-  ((constant)->expr != NULL && !is_enum_constant(constant))
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-
-
 static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens)
 /*
 Output the indicated constant.  If need_parens is TRUE, parentheses are
 placed around the constant if there's any possibility of precedence confusion.
-If an expression node corresponding to the operation that resulted in the
-constant is available, output the expression instead of just the result of the
-operation.
 */
 {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  /* Put out the expression for constants that come from constant
-     expressions. */
-  if (constant_should_be_put_out_as_expr(constant)) {
-    gen_expr(constant->expr, need_parens);
-  } else {
-    form_constant(constant, need_parens, &octl);
-  }  /*if */
-#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   form_constant(constant, need_parens, &octl);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 }  /* gen_constant */
 
 
