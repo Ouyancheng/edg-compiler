@@ -3130,9 +3130,7 @@ operation is a pointer-to-member (see ARM 5.3).
                                         result);
           /* Change the kind in the reference entries to address-taken. */
           change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
-        } else if (is_constant_operand(&operand) &&
-                   operand.variant.constant.kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
+        } else if (is_template_param_constant_operand(&operand) &&
                    operand.variant.constant.variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
           /* Something like &T::x, where T is a template parameter.
@@ -3272,46 +3270,13 @@ See section 3.3.3.2 of the standard.
 }  /* scan_indirection_operator */
 
 
-static a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
-/*
-Return TRUE if type is a bad type for an operand of an expression in
-a template argument.  Usually, this means a type that is not integral or
-enum.
-*/
-{
-  a_boolean is_bad_type;
-
-  if (is_integral_or_enum_type(type)) {
-    is_bad_type = FALSE;
-#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
-  } else if (!strict_ansi_mode && is_floating_type(type)) {
-    /* Floating point operations are allowed as an extension, but not in
-       strict mode. */
-    is_bad_type = FALSE;
-#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
-  } else if (is_error_type(type)) {
-    is_bad_type = FALSE;
-  } else {
-    is_bad_type = TRUE;
-  }  /* if */
-  return is_bad_type;
-}  /* is_bad_type_for_template_arg_operand */
-
-
 static void diagnose_bad_template_arg_operation(a_source_position *err_pos)
 /*
 Issue a diagnostic about an operation at the indicated source position
 that is invalid within a template argument expression.
 */
 {
-  an_error_code err_code = ec_non_integral_operation_in_templ_arg;
-
-#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
-  /* Floating point operations are allowed as an extension, but not in
-     strict mode. */
-  if (!strict_ansi_mode) err_code = ec_non_arith_operation_in_templ_arg;
-#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
-  pos_error(err_code, err_pos);
+  pos_error(ec_non_integral_operation_in_templ_arg, err_pos);
 }  /* diagnose_bad_template_arg_operation */
 
 
@@ -3328,9 +3293,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   an_expr_operator_kind op;
   a_source_position     start_position;
   a_type_ptr            result_type;
-  a_boolean             did_not_fold, template_constant;
   a_boolean             do_promotion, processed = FALSE;
-  a_constant            result_constant;
 
   db_enter(4, "scan_arith_prefix_operator");
 
@@ -3342,8 +3305,46 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   (void)get_token();
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      is_bad_type_for_template_arg_operand(operand.type)) {
+  /* Determine the operator. */
+  switch (save_token) {
+    case tok_plus:
+      /* op does not need to be set -- see below. */
+      break;
+    case tok_not:
+      op = (an_expr_operator_kind)eok_not;
+      break;
+    case tok_minus:
+      if (is_floating_type(operand.type)) {
+        op = (an_expr_operator_kind)eok_fnegate;
+      } else {
+        op = (an_expr_operator_kind)eok_inegate;
+      }  /* if */
+      break;
+    case tok_compl:
+      op = (an_expr_operator_kind)eok_complement;
+      break;
+    default:
+      unexpected_condition_str("scan_arith_prefix_operator: bad operator");
+  }  /* switch */
+  if (is_template_param_type(operand.type)) {
+    /* The operand has a template parameter type, so we cannot
+       check its type.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(&operand));
+    do_unary_operation(op, save_token, &operand,
+                       type_of_unknown_templ_param_constant,
+                       result, &start_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             is_bad_type_for_template_arg_operand(operand.type)
+#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+             /* Allow negation of a floating point constant. */
+             && !(save_token == tok_minus &&
+                  is_floating_type(operand.type) &&
+                  is_constant_operand(&operand))
+#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
+                                                               ) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&start_position);
     make_error_operand(result);
@@ -3368,7 +3369,6 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     do_promotion = TRUE;
     switch (save_token) {
       case tok_plus:
-        /* op does not need to be set -- see below. */
         if (C_dialect == C_dialect_cplusplus &&
             is_pointer_type(operand.type)) {
           /* In C++, the operand may be a pointer (ARM 5.3). */
@@ -3379,26 +3379,17 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         break;
       case tok_not:
         (void)check_boolean_controlling_expr(&operand);
-        op = (an_expr_operator_kind)eok_not;
         do_promotion = FALSE;
         result_type = boolean_result_type();
         break;
       case tok_minus:
         (void)check_arithmetic_or_enum_operand(&operand);
-        if (is_floating_type(operand.type)) {
-          op = (an_expr_operator_kind)eok_fnegate;
-        } else {
-          op = (an_expr_operator_kind)eok_inegate;
-        }  /* if */
         break;
       case tok_compl:
         (void)check_integral_or_enum_operand(&operand);
-        op = (an_expr_operator_kind)eok_complement;
         break;
-#if CHECKING
       default:
-        internal_error("scan_arith_prefix_operator: bad operator");
-#endif /* CHECKING */
+        unexpected_condition_str("scan_arith_prefix_operator: bad operator");
     }  /* switch */
 
     if (do_promotion) {
@@ -3406,51 +3397,9 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       promote_operand(&operand);
       result_type = operand.type;
     }  /* if */
-    if (is_error_operand(&operand)) {
-      make_error_operand(result);
-    } else {
-      if (save_token == tok_plus) {
-        /* The result of a unary plus is the promoted operand. */
-        copy_operand(&operand, result);
-      } else {
-        /* Other operators (not unary "+"). */
-        did_not_fold = TRUE;
-        template_constant = FALSE;
-        if (is_constant_operand(&operand)) {
-          /* Fold the operation if the operand is constant.  In a nonconstant
-             context, reduce any error to a warning and leave the operation
-             to be done at runtime. */
-          unary_operation(op, &operand.variant.constant,
-                          result_type, &result_constant,
-                          curr_expr_kind_is_const(),
-                          curr_expr_is_evaluated(),
-                          &did_not_fold, &template_constant, &start_position);
-        }  /* if */
-        if (did_not_fold) {
-          if (!template_constant && curr_expr_kind_is_const() &&
-              curr_expr_is_evaluated()) {
-            /* A constant operation could not be folded in a constant
-               expression. */
-            pos_error(ec_expr_not_constant, &start_position);
-            make_error_operand(result);
-          } else {
-            /* The operation could not be folded to a constant, so build
-               an expression node. */
-            build_unary_result_operand(&operand, op, result_type, result);
-            if (template_constant) {
-              /* For an expression based on a template parameter, scanned
-                 during the prototype instantiation, make a ck_template_param
-                 constant for the result. */
-              make_template_param_expr_constant_operand(
-                                       make_node_from_operand(result), result);
-            }  /* if */
-          }  /* if */
-        } else {
-          /* The operation was folded to a constant. */
-          make_constant_operand(&result_constant, result);
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    /* Build the IL for the operation. */
+    do_unary_operation(op, save_token, &operand, result_type, result,
+                       &start_position);
   }  /* if */
 
   set_operand_position(result, &start_position, &operand.end_position,
@@ -7393,9 +7342,23 @@ be of integral type.  See section 3.3.5 of the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2));
+    op = which_binary_operator(save_token,
+                               integer_type((an_integer_kind)ik_int));
+    do_binary_operation(op, operand_1, &operand_2,
+                        type_of_unknown_templ_param_constant,
+                        result, &operator_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -7487,9 +7450,23 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2));
+    op = which_binary_operator(save_token,
+                               integer_type((an_integer_kind)ik_int));
+    do_binary_operation(op, operand_1, &operand_2,
+                        type_of_unknown_templ_param_constant,
+                        result, &operator_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -7675,9 +7652,23 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2));
+    op = which_binary_operator(save_token,
+                               integer_type((an_integer_kind)ik_int));
+    do_binary_operation(op, operand_1, &operand_2,
+                        type_of_unknown_templ_param_constant,
+                        result, &operator_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -7847,9 +7838,23 @@ standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2));
+    op = which_binary_operator(save_token,
+                               integer_type((an_integer_kind)ik_int));
+    do_binary_operation(op, operand_1, &operand_2,
+                        type_of_unknown_templ_param_constant,
+                        result, &operator_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -7992,9 +7997,23 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2));
+    op = which_binary_operator(save_token,
+                               integer_type((an_integer_kind)ik_int));
+    do_binary_operation(op, operand_1, &operand_2,
+                        type_of_unknown_templ_param_constant,
+                        result, &operator_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -8137,9 +8156,23 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   (void)get_token();
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2));
+    op = which_binary_operator(save_token,
+                               integer_type((an_integer_kind)ik_int));
+    do_binary_operation(op, operand_1, &operand_2,
+                        type_of_unknown_templ_param_constant,
+                        result, &operator_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -8300,9 +8333,23 @@ standard.
   /* Restore the evaluated flag as it was on entry. */
   expr_stack->evaluated = saved_evaluated;
 
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2));
+    op = which_binary_operator(save_token,
+                               integer_type((an_integer_kind)ik_int));
+    do_binary_operation(op, operand_1, &operand_2,
+                        type_of_unknown_templ_param_constant,
+                        result, &operator_position);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -8660,12 +8707,23 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                            saved_inside_conditional_expression;
   expr_stack->evaluated = saved_evaluated;
 
-  /* Check the operands for compatibility.  Both must be arithmetic,
-     both compatible struct/union types, both void, or both pointers. */
-  if (curr_expr_kind_is(ek_template_arg) &&
-      (is_bad_type_for_template_arg_operand(operand_1->type) ||
-       is_bad_type_for_template_arg_operand(operand_2.type) ||
-       is_bad_type_for_template_arg_operand(operand_3.type))) {
+  if (is_template_param_type(operand_1->type) ||
+      is_template_param_type(operand_2.type) ||
+      is_template_param_type(operand_3.type)) {
+    /* If any operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression under a
+       ck_template_param constant. */
+    check_assertion(curr_expr_kind_is_const() &&
+                    is_constant_operand(operand_1) &&
+                    is_constant_operand(&operand_2) &&
+                    is_constant_operand(&operand_3));
+    do_question_operation(operand_1, &operand_2, &operand_3,
+                          type_of_unknown_templ_param_constant, result);
+    processed = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg) &&
+             (is_bad_type_for_template_arg_operand(operand_1->type) ||
+              is_bad_type_for_template_arg_operand(operand_2.type) ||
+              is_bad_type_for_template_arg_operand(operand_3.type))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
@@ -8934,6 +8992,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   if (err || is_error_operand(operand_1)) {
     make_error_operand(result);
+  } else if (processed) {
+    /* Already processed. */
   } else if (operand_1_is_const &&
              /* In constant expressions we must always fold. */
              (curr_expr_kind_is_const() ||
@@ -8982,24 +9042,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     } else {
       operation_type = result_type;
     }  /* if */
-    /* Make an operator node with the first part of the expression. */
-    build_unary_result_operand(operand_1,
-                               (an_expr_operator_kind)eok_question,
-                               operation_type, result);
-    /* Now link the other two operands from this one. */
-    result->variant.expression->variant.operation.operands->next =
-                                            make_node_from_operand(&operand_2);
-    result->variant.expression->variant.operation.operands->next->next =
-                                            make_node_from_operand(&operand_3);
-    if (is_constant_operand(operand_1) &&
-        operand_1->variant.constant.kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-      /* For an expression based on a template parameter, scanned
-         during the prototype instantiation, make a ck_template_param
-         constant for the result. */
-      make_template_param_expr_constant_operand(make_node_from_operand(result),
-                                                result);
-    }  /* if */
+    do_question_operation(operand_1, &operand_2, &operand_3, operation_type,
+                          result);
     /* The result is an lvalue in C++ if the second and third operands are. */
     if (result_is_an_lvalue) {
       result->state = (an_operand_state)os_lvalue;

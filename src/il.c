@@ -6867,6 +6867,224 @@ and return a pointer to it.
 }  /* node_for_integer_constant */
 
 
+a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
+/*
+Return TRUE if type is a bad type for an operand of an expression in
+a template argument, i.e., it is not integral or enum.
+*/
+{
+  a_boolean is_bad_type;
+
+  if (is_integral_or_enum_type(type)) {
+    is_bad_type = FALSE;
+  } else if (is_error_type(type)) {
+    is_bad_type = FALSE;
+  } else {
+    is_bad_type = TRUE;
+  }  /* if */
+  return is_bad_type;
+}  /* is_bad_type_for_template_arg_operand */
+
+
+static a_type_ptr type_of_copied_template_expr(an_expr_node_ptr expr,
+                                               a_constant       *constant,
+                                               a_constant_ptr   alloc_con)
+/*
+expr/constant/alloc_con represent a copied template parameter expression
+in the form used in copy_template_param_expr and its subroutines.  Return
+the type of the expression, stripped of typerefs.
+*/
+{
+  a_type_ptr type;
+
+  if (expr != NULL) {
+    type = expr->type;
+  } else if (alloc_con != NULL) {
+    type = alloc_con->type;
+  } else {
+    check_assertion(constant != NULL);
+    type = constant->type;
+  }  /* if */
+  type = skip_typerefs(type);
+  return type;
+}  /* type_of_copied_template_expr */
+
+
+static void cast_copied_template_param_expr(an_expr_node_ptr  *expr,
+                                            a_constant        *constant,
+                                            a_constant_ptr    *alloc_con,
+                                            a_type_ptr        new_type,
+                                            a_source_position *source_pos)
+/*
+expr/constant/alloc_con represent a copied template parameter expression
+in the form used in copy_template_param_expr and its subroutines.  Cast
+the expression to the type new_type, if necessary.  *expr, *alloc_con, and
+the constant pointed to by constant are updated as needed.  *source_pos
+gives the source position for errors.
+*/
+{
+  a_type_ptr curr_type;
+  a_boolean  did_not_fold;
+
+  curr_type = type_of_copied_template_expr(*expr, constant, *alloc_con);
+  if (!identical_types(curr_type, new_type)) {
+    /* Casting is required. */
+    if (*expr != NULL) {
+      /* There is already an expression, so add a cast to it. */
+      *expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
+                                 *expr);
+      (*expr)->variant.operation.compiler_generated = TRUE;
+    } else {
+      if (*alloc_con != NULL) {
+        /* Drop back from an allocated to an unallocated copy of the
+           constant. */
+        copy_constant(*alloc_con, constant);
+        *alloc_con = NULL;
+      }  /* if */
+      /* Cast the constant to the new type. */
+      type_change_constant(constant, new_type,
+                           /*is_implicit_cast=*/TRUE,
+                           /*constant_context=*/TRUE,
+                           /*evaluated_context=*/TRUE,
+                           /*fold_constant_addr_exprs=*/TRUE,
+                           /*is_reinterpret_cast=*/FALSE,
+                           &did_not_fold,
+                           source_pos);
+      check_assertion(!did_not_fold);
+    }  /* if */
+  }  /* if */
+}  /* cast_copied_template_param_expr */
+
+
+static void do_conversions_on_operands_of_copied_template_expr(
+                                         an_expr_operator_kind op,
+                                         an_expr_node_ptr      *operand_1,
+                                         a_constant            *constant_1,
+                                         a_constant_ptr        *alloc_con_1,
+                                         a_boolean             op_2_present,
+                                         an_expr_node_ptr      *operand_2,
+                                         a_constant            *constant_2,
+                                         a_constant_ptr        *alloc_con_2,
+                                         a_boolean             op_3_present,
+                                         an_expr_node_ptr      *operand_3,
+                                         a_constant            *constant_3,
+                                         a_constant_ptr        *alloc_con_3,
+                                         a_source_position     *source_pos,
+                                         a_type_ptr            *operation_type,
+                                         a_boolean             *copy_error)
+/*
+Subroutine for copy_template_param_expr.  An operation involving template
+parameter constants is being processed.  Its operator is op, and its
+operands are *operand_1, *operand_2, and *operand_3.  op_2_present
+and op_3_present indicate the presence of operands after the first.
+If a given operand is available only as a constant, *operand_n is NULL
+and the corresponding parameters alloc_con_n and constant_n point to
+an allocated or unallocated copy of the constant.  *operation_type
+indicates the operation type; it is updated on return.  If there is
+some error (e.g., an operand type is not integral), *copy_error is set
+to TRUE.  *source_pos gives the source position for errors.
+*/
+{
+  a_type_ptr type_1, type_2, type_3;
+  a_type_ptr result_type = *operation_type, promoted_type_2;
+  a_boolean  do_promotion, do_usual_arith_conversions;
+
+  type_1 = type_of_copied_template_expr(*operand_1, constant_1, *alloc_con_1);
+  if (op_2_present) {
+    type_2 = type_of_copied_template_expr(*operand_2, constant_2,
+                                          *alloc_con_2);
+    if (op_3_present) {
+      type_3 = type_of_copied_template_expr(*operand_3, constant_3,
+                                            *alloc_con_3);
+    }  /* if */
+  }  /* if */
+  if (is_bad_type_for_template_arg_operand(type_1) ||
+      (op_2_present && is_bad_type_for_template_arg_operand(type_2)) ||
+      (op_3_present && is_bad_type_for_template_arg_operand(type_3))) {
+    /* At least one of the operands has an invalid type, e.g., a pointer
+       type.  Deduction fails. */
+    *copy_error = TRUE;
+  } else if (!op_2_present) {
+    /* One-operand operation. */
+    /* Determine whether the integral promotions should be done for this
+       operation. */
+    switch (op) {
+      case eok_inegate:
+      case eok_complement:
+        do_promotion = TRUE;
+        break;
+      case eok_not:
+        do_promotion = FALSE;
+        break;
+      default:
+        unexpected_condition_str2(
+                         "do_conversions_on_operands_of_copied_template_expr:",
+                         "bad unary operator");
+    }  /* switch */
+    if (do_promotion) {
+      result_type = type_after_integral_promotion(type_1);
+      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                      result_type, source_pos);
+    }  /* if */
+  } else if (!op_3_present) {
+    /* Two-operand operation. */
+    do_usual_arith_conversions = do_promotion = FALSE;
+    switch (op) {
+      case eok_imultiply:
+      case eok_idivide:
+      case eok_iadd:
+      case eok_isubtract:
+      case eok_igt:
+      case eok_ilt:
+      case eok_ige:
+      case eok_ile:
+      case eok_ieq:
+      case eok_ine:
+      case eok_and:
+      case eok_or:
+      case eok_xor:
+        do_usual_arith_conversions = TRUE;
+        break;
+      case eok_shiftl:
+      case eok_shiftr:
+        do_promotion = TRUE;
+        break;
+      default:
+        unexpected_condition_str2(
+                         "do_conversions_on_operands_of_copied_template_expr:",
+                         "bad binary operator");
+    }  /* switch */
+    if (do_usual_arith_conversions) {
+      result_type = usual_arithmetic_conversions(type_1, type_2);
+      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                      result_type, source_pos);
+      cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
+                                      result_type, source_pos);
+    } else if (do_promotion) {
+      result_type = type_after_integral_promotion(type_1);
+      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                      result_type, source_pos);
+      promoted_type_2 = type_after_integral_promotion(type_2);
+      cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
+                                      promoted_type_2, source_pos);
+    }  /* if */
+  } else {
+    /* Three-operand operation, i.e., "?" */
+    check_assertion(op == (an_expr_operator_kind)eok_question);
+    /* If the operands have the same type, use that type.  Otherwise, do
+       the usual arithmetic conversions. */
+    if (!types_are_compatible(type_2, type_3)) {
+      result_type = usual_arithmetic_conversions(type_2, type_3);
+      cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
+                                      result_type, source_pos);
+      cast_copied_template_param_expr(operand_3, constant_3, alloc_con_3,
+                                      result_type, source_pos);
+    }  /* if */
+  }  /* if */
+  *operation_type = result_type;        
+}  /* do_conversions_on_operands_of_copied_template_expr */
+
+
 /* Forward declaration needed because of mutual recursion. */
 static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
@@ -6876,6 +7094,30 @@ static a_constant_ptr copy_template_param_con(
                                   a_source_position        *source_pos,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant);
+
+
+static an_expr_node_ptr alloc_copied_template_param_expr(
+                                                    an_expr_node_ptr expr,
+                                                    a_constant       *constant,
+                                                    a_constant_ptr   alloc_con)
+/*
+Return a pointer to an expression for a copied template parameter expression.
+If expr is non-NULL, the expression already exists and the value of expr
+is returned.  Otherwise, an expression for a constant must be created
+and a pointer to that returned.  If alloc_con is non-NULL, it is a pointer
+to an already-allocated constant; otherwise, constant points to the
+(unallocated) constant value.
+*/
+{
+  if (expr == NULL) {
+    if (alloc_con != NULL) {
+      expr = alloc_node_for_allocated_constant(alloc_con);
+    } else {
+      expr = alloc_node_for_constant(constant);
+    }  /* if */
+  }  /* if */
+  return expr;
+}  /* alloc_copied_template_param_expr */
 
 
 static an_expr_node_ptr copy_template_param_expr(
@@ -6928,6 +7170,7 @@ return NULL.
         a_constant       constant_1, constant_2, constant_3;
         a_constant_ptr   alloc_con_1, alloc_con_2 = NULL, alloc_con_3 = NULL;
         a_boolean        folded_to_constant = FALSE;
+        a_type_ptr       operation_type = expr->type;
 
         /* Do substitution on the operands. */
         new_operand_1 = copy_template_param_expr(operand_1,
@@ -6956,13 +7199,22 @@ return NULL.
                                                      &alloc_con_3);
           }  /* if */
         }  /* if */
+        /* Do the usual arithmetic conversion or the like on the operands
+           after substitution. */
+        do_conversions_on_operands_of_copied_template_expr(
+                  op,
+                  &new_operand_1, &constant_1, &alloc_con_1,
+                  operand_2 != NULL, &new_operand_2, &constant_2, &alloc_con_2,
+                  operand_3 != NULL, &new_operand_3, &constant_3, &alloc_con_3,
+                  source_pos, &operation_type,
+                  copy_error);
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
             new_operand_3 == NULL) {
           /* All the operands are constant. */
-          if (alloc_con_1 != NULL) constant_1 = *alloc_con_1;
-          if (alloc_con_2 != NULL) constant_2 = *alloc_con_2;
-          if (alloc_con_3 != NULL) constant_3 = *alloc_con_3;
+          if (alloc_con_1 != NULL) copy_constant(alloc_con_1, &constant_1);
+          if (alloc_con_2 != NULL) copy_constant(alloc_con_2, &constant_2);
+          if (alloc_con_3 != NULL) copy_constant(alloc_con_3, &constant_3);
           /* Do not fold if any of the constants is still a
              template parameter constant. */
           if (constant_1.kind != (a_constant_repr_kind)ck_template_param &&
@@ -6992,7 +7244,7 @@ return NULL.
               } else {
                 /* Two-operand operation. */
                 binary_operation(op, &constant_1, &constant_2,
-                                 expr->type, constant,
+                                 operation_type, constant,
                                  /*constant_context=*/TRUE,
                                  /*evaluated_context=*/TRUE,
                                  &did_not_fold,
@@ -7003,7 +7255,7 @@ return NULL.
               }  /* if */
             } else {
               /* One-operand operation. */
-              unary_operation(op, &constant_1, expr->type, constant,
+              unary_operation(op, &constant_1, operation_type, constant,
                               /*constant_context=*/TRUE,
                               /*evaluated_context=*/TRUE,
                               &did_not_fold,
@@ -7019,30 +7271,14 @@ return NULL.
              an expression is needed. */
           /* Allocate the node for each operand if it has not been
              allocated yet. */
-          if (new_operand_1 == NULL) {
-            if (alloc_con_1 != NULL) {
-              new_operand_1 = alloc_node_for_allocated_constant(alloc_con_1);
-            } else {
-              new_operand_1 = alloc_node_for_constant(&constant_1);
-            }  /* if */
-          }  /* if */
+          new_operand_1 = alloc_copied_template_param_expr(
+                                      new_operand_1, &constant_1, alloc_con_1);
           if (operand_2 != NULL) {
-            if (new_operand_2 == NULL) {
-              if (alloc_con_2 != NULL) {
-                new_operand_2 = alloc_node_for_allocated_constant(alloc_con_2);
-              } else {
-                new_operand_2 = alloc_node_for_constant(&constant_2);
-              }  /* if */
-            }  /* if */
+            new_operand_2 = alloc_copied_template_param_expr(
+                                      new_operand_2, &constant_2, alloc_con_2);
             if (operand_3 != NULL) {
-              if (new_operand_3 == NULL) {
-                if (alloc_con_3 != NULL) {
-                  new_operand_3 =
-                                alloc_node_for_allocated_constant(alloc_con_3);
-                } else {
-                  new_operand_3 = alloc_node_for_constant(&constant_3);
-                }  /* if */
-              }  /* if */
+              new_operand_3 = alloc_copied_template_param_expr(
+                                      new_operand_3, &constant_3, alloc_con_3);
             }  /* if */
           }  /* if */
           /* Link the operand expressions together and create a new
@@ -7051,7 +7287,7 @@ return NULL.
           if (new_operand_2 != NULL) {
             new_operand_2->next = new_operand_3;
           }  /* if */
-          expr_copy = make_operator_node(op, expr->type, new_operand_1);
+          expr_copy = make_operator_node(op, operation_type, new_operand_1);
         }  /* if */
       }
       break;

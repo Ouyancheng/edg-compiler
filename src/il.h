@@ -581,6 +581,8 @@ extern an_expr_node_ptr alloc_node_for_allocated_constant(
 extern an_expr_node_ptr node_for_integer_constant(long            value,
                                                   an_integer_kind kind);
 
+extern a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type);
+
 extern a_constant_ptr copy_template_param_con_with_substitution(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,

@@ -561,6 +561,14 @@ Macro that is TRUE if the operand is a constant operand.
 	((operand)->kind == (an_operand_kind)ok_constant)
 
 /*
+Macro that is TRUE if the operand is a ck_template_param constant operand.
+*/
+#define is_template_param_constant_operand(operand)			\
+	(is_constant_operand(operand) &&                                \
+	 (operand)->variant.constant.kind ==                            \
+                                (a_constant_repr_kind)ck_template_param)
+
+/*
 Macro that is TRUE if the operand is an indefinite function operand.
 */
 #define is_indefinite_function_operand(operand)				\
@@ -692,6 +700,9 @@ extern void conv_lvalue_to_rvalue(an_operand *operand);
 
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 					           an_operand *operand_2);
+
+extern a_type_ptr usual_arithmetic_conversions(a_type_ptr operand_1_type,
+                                               a_type_ptr operand_2_type);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
@@ -948,6 +959,19 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        a_type_ptr            type_for_result,
 			        an_operand            *result,
 			        a_source_position     *operator_position);
+
+extern void do_unary_operation(an_expr_operator_kind op,
+                               a_token_kind          op_token,
+                               an_operand            *operand,
+                               a_type_ptr            result_type,
+                               an_operand            *result,
+                               a_source_position     *start_position);
+
+extern void do_question_operation(an_operand *operand_1,
+                                  an_operand *operand_2,
+                                  an_operand *operand_3,
+                                  a_type_ptr result_type,
+                                  an_operand *result);
 
 extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 

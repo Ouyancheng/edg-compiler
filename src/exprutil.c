@@ -2866,7 +2866,7 @@ on "operand_1" and "operand_2", with result type "type".
 }  /* build_binary_result_operand */
 
 
-/* Type predicates used by determine_arithmetic_conversions. */
+/* Type predicates used by determine_arithmetic_conversions_full. */
 
 #define is_long_double(fkind)                                         \
   ((fkind) == (a_float_kind)fk_long_double)
@@ -2895,32 +2895,39 @@ on "operand_1" and "operand_2", with result type "type".
   ((ikind) == (an_integer_kind)ik_unsigned_int)
 
 
-a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
-					    an_operand *operand_2)
+static a_type_ptr determine_arithmetic_conversions_full(
+                                                 an_operand *operand_1,
+                                                 a_type_ptr operand_1_type,
+                                                 an_operand *operand_2,
+                                                 a_type_ptr operand_2_type)
 /*
 Determine the "usual arithmetic conversions" on the operands to make them
 compatible, and return the type of the result.  Note that this routine assumes
 that the type is arithmetic, and does not actually change the result type.
-See section 3.2.1.5 of the standard.  In C++, when wchar_t is a keyword,
-wchar_t is represented by one of the normal integral types and obeys
-the same conversion rules as its underlying type.  Likewise for bool.
-The operands can be lvalues or rvalues.
+See section 6.1.2.5 of the ISO C89 standard.  In C++, when wchar_t is a
+keyword, wchar_t is represented by one of the normal integral types and
+obeys the same conversion rules as its underlying type.  Likewise for bool.
+The operands can be lvalues or rvalues.  If operand_1 is available only
+as a type, operand_1 == NULL and operand_1_type indicates the type.
+Likewise for operand_2/operand_2_type.
 */
 {
-  a_type_ptr      type_1;
-  a_type_ptr      type_2;
+  a_type_ptr      type_1 = (operand_1 != NULL) ? operand_1->type :
+                                                 operand_1_type;
+  a_type_ptr      type_2 = (operand_2 != NULL) ? operand_2->type :
+                                                 operand_2_type;
   a_type_ptr      result_type;
   a_float_kind    fkind_1, fkind_2;
   an_integer_kind ikind_1, ikind_2;
 
-  db_enter(4, "determine_arithmetic_conversions");
+  db_enter(4, "determine_arithmetic_conversions_full");
 
-  if (is_error_type(operand_1->type) || is_error_type(operand_2->type)) {
+  if (is_error_type(type_1) || is_error_type(type_2)) {
     result_type = error_type();
   } else {
     /* Get past possible typerefs. */
-    type_1 = skip_typerefs(operand_1->type);
-    type_2 = skip_typerefs(operand_2->type);
+    type_1 = skip_typerefs(type_1);
+    type_2 = skip_typerefs(type_2);
 
     fkind_1 = is_floating_type(type_1) ? type_1->variant.float_kind :
                                          (a_float_kind)fk_last;
@@ -2947,9 +2954,17 @@ The operands can be lvalues or rvalues.
     } else {
       /* Neither operand had type float; do the integral promotions on both
 	 operands and try to get the result type from that. */
-      type_1 = operand_type_after_integral_promotion(operand_1);
+      if (operand_1 != NULL) {
+        type_1 = operand_type_after_integral_promotion(operand_1);
+      } else {
+        type_1 = type_after_integral_promotion(type_1);
+      }  /* if */
       type_1 = skip_typerefs(type_1);
-      type_2 = operand_type_after_integral_promotion(operand_2);
+      if (operand_2 != NULL) {
+        type_2 = operand_type_after_integral_promotion(operand_2);
+      } else {
+        type_2 = type_after_integral_promotion(type_2);
+      }  /* if */
       type_2 = skip_typerefs(type_2);
 
       ikind_1 = is_integral_or_enum_type(type_1) ?
@@ -3034,7 +3049,46 @@ done:;
 
   db_exit();
   return result_type;
+}  /* determine_arithmetic_conversions_full */
+
+
+a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
+                                            an_operand *operand_2)
+/*
+Determine the "usual arithmetic conversions" on the operands to make them
+compatible, and return the type of the result.  This is an interface to
+determine_arithmetic_conversions_full for a simple case; see the header
+comment of that routine for details.
+*/
+{
+  a_type_ptr result_type;
+
+  result_type = determine_arithmetic_conversions_full(operand_1,
+                                                      (a_type_ptr)NULL,
+                                                      operand_2,
+                                                      (a_type_ptr)NULL);
+  return result_type;
 }  /* determine_arithmetic_conversions */
+
+
+a_type_ptr usual_arithmetic_conversions(a_type_ptr operand_1_type,
+                                        a_type_ptr operand_2_type)
+/*
+Determine the "usual arithmetic conversions" on the indicated operand
+types to make them compatible, and return the type of the result.  This
+is an interface to determine_arithmetic_conversions_full for a simple
+case; see the header comment of that routine for details.
+*/
+{
+  a_type_ptr result_type;
+
+  result_type = determine_arithmetic_conversions_full((an_operand *)NULL,
+                                                      operand_1_type,
+                                                      (an_operand *)NULL,
+                                                      operand_2_type);
+  return result_type;
+}  /* usual_arithmetic_conversions */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -4078,11 +4132,11 @@ void do_binary_operation(an_expr_operator_kind op,
 			 an_operand            *result,
 			 a_source_position     *operator_position)
 /*
-Perform a binary operation on 2 operands yielding a result.  operator
+Perform a binary operation on 2 operands yielding a result.  op
 indicates the operation, and operand_1 and operand_2 are the operands.
 result_type indicates the type of result; the result is placed in
 *result.  If the operands are constant, the operation will be folded
-if possible.
+if possible.  operator_position indicates the operator position.
 */
 {
   a_boolean did_not_fold, template_constant;
@@ -4166,6 +4220,102 @@ if possible.
   }  /* if */
   result->state = (an_operand_state)os_rvalue;
 }  /* do_binary_operation */
+
+
+void do_unary_operation(an_expr_operator_kind op,
+                        a_token_kind          op_token,
+                        an_operand            *operand,
+                        a_type_ptr            result_type,
+                        an_operand            *result,
+                        a_source_position     *start_position)
+/*
+Perform a unary operation on one operand yielding a result.  op
+indicates the operation (and op_token the associated token), and
+operand is the operand.  result_type indicates the type of result; the
+result is placed in *result.  If the operand is constant, the operation
+will be folded if possible.  start_position indicates the operator
+position.
+*/
+{
+  a_boolean  did_not_fold, template_constant;
+  a_constant result_constant;
+
+  if (is_error_operand(operand)) {
+    make_error_operand(result);
+  } else {
+    if (op_token == tok_plus) {
+      /* The result of a unary plus is the promoted operand. */
+      copy_operand(operand, result);
+    } else {
+      /* Other operators (not unary "+"). */
+      did_not_fold = TRUE;
+      template_constant = FALSE;
+      if (is_constant_operand(operand)) {
+        /* Fold the operation if the operand is constant.  In a nonconstant
+           context, reduce any error to a warning and leave the operation
+           to be done at runtime. */
+        unary_operation(op, &operand->variant.constant,
+                        result_type, &result_constant,
+                        curr_expr_kind_is_const(),
+                        curr_expr_is_evaluated(),
+                        &did_not_fold, &template_constant, start_position);
+      }  /* if */
+      if (did_not_fold) {
+        if (!template_constant && curr_expr_kind_is_const() &&
+            curr_expr_is_evaluated()) {
+          /* A constant operation could not be folded in a constant
+             expression. */
+          pos_error(ec_expr_not_constant, start_position);
+          make_error_operand(result);
+        } else {
+          /* The operation could not be folded to a constant, so build
+             an expression node. */
+          build_unary_result_operand(operand, op, result_type, result);
+          if (template_constant) {
+            /* For an expression based on a template parameter, scanned
+               during the prototype instantiation, make a ck_template_param
+               constant for the result. */
+            make_template_param_expr_constant_operand(
+                                       make_node_from_operand(result), result);
+          }  /* if */
+        }  /* if */
+      } else {
+        /* The operation was folded to a constant. */
+        make_constant_operand(&result_constant, result);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* do_unary_operation */
+
+
+void do_question_operation(an_operand *operand_1,
+                           an_operand *operand_2,
+                           an_operand *operand_3,
+                           a_type_ptr result_type,
+                           an_operand *result)
+/*
+Build an operand for a "?" operation.  operand_1, operand_2, and operand_3
+are the operands.  result_type is the result type.  The operand is built
+in *result.  Constant operations are not folded.
+*/
+{
+  /* Make an operator node with the first part of the expression. */
+  build_unary_result_operand(operand_1,
+                             (an_expr_operator_kind)eok_question,
+                             result_type, result);
+  /* Now link the other two operands from this one. */
+  result->variant.expression->variant.operation.operands->next =
+                                             make_node_from_operand(operand_2);
+  result->variant.expression->variant.operation.operands->next->next =
+                                             make_node_from_operand(operand_3);
+  if (is_template_param_constant_operand(operand_1)) {
+    /* For an expression based on a template parameter, scanned
+       during the prototype instantiation, make a ck_template_param
+       constant for the result. */
+    make_template_param_expr_constant_operand(make_node_from_operand(result),
+                                              result);
+  }  /* if */
+}  /* do_question_operation */
 
 
 void add_reference_indirection(an_operand *result)

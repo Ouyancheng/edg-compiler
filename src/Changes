@@ -1,5 +1,21 @@
 Version 2.42
 
+7/19/99  Operands with template type in template argument expressions
+
+Some problems with dealing with operands of template-based type in
+operations in template arguments have been corrected.
+
+  template <int n> struct AA {
+    int aa[n];
+  };
+  template <class T> struct A {
+    AA<T::n + 3> a;  // Now accepted
+  };
+  struct B {
+    static const int n = 5;
+  };
+  A<B> x;
+
 7/19/99  Assertion failure with nested block-extern declarations that have
          internal linkage
 
