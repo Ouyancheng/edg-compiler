@@ -1656,6 +1656,7 @@ issued a similar error).  Return FALSE if there is some error.
   a_boolean                  okay = TRUE;
   a_boolean                  is_routine;
   an_error_severity          severity;
+  a_symbol_ptr               sym;
 
   esdp = ext_sym->variant.extern_symbol_descr;
   old_type = esdp->type;
@@ -1707,7 +1708,6 @@ issued a similar error).  Return FALSE if there is some error.
              Determine whether there's an intervening declaration that hides
              an original at file scope by looping through the symbol list.
              Since this only happens in C mode it is pretty straightforward. */
-          a_symbol_ptr  sym;
           a_boolean     non_file_scope_decl_found = FALSE;
           a_boolean     file_scope_decl_found = FALSE;
 
@@ -1797,6 +1797,30 @@ issued a similar error).  Return FALSE if there is some error.
             goto issue_diagnostic;
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode && is_routine && C_mode()) {
+        if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+          sym = NULL;
+        } else {
+          for (sym = ext_sym->header->symbol; sym != NULL; sym = sym->next) {
+            if (sym->kind == (a_symbol_kind)sk_routine &&
+                sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        if (sym != NULL) {
+          /* The current declaration is a block extern declaration and
+             there has been a file-scope declaration of a function with the
+             same name.  Don't reset the external symbol. */
+        } else {
+          /* Force "abandonment" of the IL entry associated with the external
+             routine. */
+          esdp->variant.routine.ptr->superseded_external = TRUE;
+          esdp->variant.routine.ptr = NULL;
+        }  /* if */
+        okay = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       severity = es_error;
       /* Record an error type as the external symbol's type, to avoid
@@ -2693,6 +2717,17 @@ describing this declaration.
                type. */
             *old_type = routine_ptr->type;
             if (is_function_def) routine_ptr->type = type_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (microsoft_mode && C_mode()) {
+            /* In Microsoft C mode "anything goes" as far as function
+               redeclarations are concerned. */
+            pos_sy_warning(ec_not_compatible_with_previous_decl,
+                           &locator->source_position, linked_symbol);
+            *old_type = routine_ptr->type;
+            if (is_function_def || !old_decl_has_body) {
+              routine_ptr->type = type_ptr;
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* Issue an error on incompatible declarations. */
             pos_sy_error(ec_not_compatible_with_previous_decl,
