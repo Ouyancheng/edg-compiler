@@ -211,7 +211,7 @@ static void prescan_until_closing_paren(a_disambig_state_ptr  state,
 /*
 Get tokens, and optionally cache them, until we encounter an unmatched
 right parenthesis (that matches a left parenthesis that we have already
-scanned.
+scanned).
 */
 {
   int	paren_count = 0;
