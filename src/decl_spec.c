@@ -1028,6 +1028,13 @@ to indicate whether an enumeration is actually defined.
         mark_declared(tag_sym, &locator.source_position);
       }  /* if */
     } else {
+      /* Unnamed enum.  Create a symbol to represent it. */
+      tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,
+                                        &pos_curr_token);
+      set_source_corresp(&(enum_type->source_corresp), tag_sym);
+      enum_type->source_corresp.name = NULL;
+      tag_sym->class_of_which_a_member = class_of_which_a_member;
+      tag_sym->variant.type = enum_type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (curr_token == tok_lbrace) {
         /* An unnamed enum type.  mark_defined can't be called to put out a
