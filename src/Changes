@@ -942,6 +942,8 @@ temporaries, has been corrected.
 In C++ (except in cfront compatibility mode) top-level const and volatile
 qualifiers are removed from function parameter types (see WP 8.3.5 para 3).
 They still constitute part of the type of the parameter variable, however.
+Note that this has an effect on the mangled names of functions, and
+therefore may cause some binary-compatibility problems.
 
 1/16/95  Default argument on declaration of operator delete()
 
