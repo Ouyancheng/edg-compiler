@@ -2733,10 +2733,8 @@ are created by a new expression (in which case sym is NULL).  In both cases
           }  /* if */
           pos_sy_diagnostic(severity, code, &sym->decl_position, sym);
         } else {
-          /* New object -- there's no name to display.  Again, just issue
-             a warning (until the language definition is clearer about this
-             kind of case). */
-          warning(ec_unnamed_object_with_uninitialized_field);
+          /* New object -- there's no name to display. (C++ only.) */
+          error(ec_unnamed_object_with_uninitialized_field);
         }  /* if */
       }  /* if */
     }  /* if */
