@@ -877,11 +877,11 @@ fit in the indicated type.
         nibble_in_part = 0;
         if (part >= MANTISSA_PARTS) too_many_digits = TRUE;
       }  /* if */
-      /* If this character precedes the decimal point, update the implied
-         exponent. */
-      if (!after_decimal) exponent += 4;
       any_digits = TRUE;
     }  /* if */
+    /* If this character precedes the decimal point, update the implied
+       exponent. */
+    if (!after_decimal) exponent += 4;
   }  /* for */
   /* Check for the presence of an exponent. */
   if (*str == 'p' || *str == 'P') {
