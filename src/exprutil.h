@@ -564,6 +564,13 @@ extern void make_sym_for_member_operand(a_symbol_ptr      member_sym,
                                         an_xref_entry_ptr xep,
                                         an_operand        *operand);
 
+extern void make_template_param_expr_constant_operand(
+                                              an_operand            *operand_1,
+                                              an_operand            *operand_2,
+                                              an_expr_operator_kind op,
+                                              a_type_ptr            type,
+                                              an_operand            *result);
+
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
 extern void extract_constant_from_operand(an_operand     *operand,
