@@ -824,7 +824,7 @@ source file's compilation.
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   if (C_dialect == C_dialect_cplusplus) {
-    a_boolean need_std = namespaces_enabled;
+    a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
 #if RUNTIME_USES_NAMESPACES
     need_std = TRUE;
 #endif /* RUNTIME_USES_NAMESPACES */
