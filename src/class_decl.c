@@ -4092,11 +4092,13 @@ class, struct, or union.
     member_sym->class_of_which_a_member = class_type;
     member_sym->variant.field.ptr = field;
     set_source_corresp(&(field->source_corresp), member_sym);
-    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
-                              &locator->source_position, ssep);
   }  /* if */
   field->source_corresp.class_of_which_a_member = class_type;
   field->source_corresp.access = access;
+  if (member_sym != NULL) {
+    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
+                              &locator->source_position, ssep);
+  }  /* if */
   /* Add the field to the temporary list for this class/struct/union. */
   if (*end_of_list == NULL) {
     class_type->variant.class_struct_union.field_list = field;
@@ -5754,9 +5756,7 @@ back down to find A<T>::B).
 
 a_boolean scan_class_definition(a_type_ptr    class_type,
                                 a_scope_depth effective_decl_level,
-                                a_boolean     is_local_class,
-                                a_boolean     is_prototype_instantiation)
-
+                                a_boolean     is_local_class)
 /*
 Scan the body of a class definition, including the base classes list.
 */
@@ -5788,18 +5788,16 @@ Scan the body of a class definition, including the base classes list.
      This amounts to scanning the declarative sections (i.e., no function
      bodies or default arg expressions) and issuing such syntax errors as can
      be detected. */
-  is_template_instantiation = is_prototype_instantiation ||
-                              (scope_stack[depth_scope_stack].kind ==
+  is_template_instantiation = (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
-  if (is_prototype_instantiation) {
+  if (cssp->is_prototype_instantiation) {
     /* This is a prototype instantiation, so the resulting class is "nonreal"
        (i.e., based on template arguments that include the dummy types and
        constants of template parameters rather than real types and constants).
        Note that for nested classes the flag is set later. */
     is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
-    cssp->is_prototype_instantiation = TRUE;
   }  /* if */
   /* A copy constructor need not be generated if construction by bitwise
      copy is equivalent.  When a class is being defined, set the flag to
@@ -6883,7 +6881,8 @@ next_declaration:
            int f(struct f p) {struct f{int a;};  ... }
          we may assume the type entry has already been entered on the types
          list. */
-    } else if (is_prototype_instantiation) {
+    } else if (cssp->is_prototype_instantiation &&
+               tag_sym->class_of_which_a_member == NULL) {
       /* The type entries created for a class template are not added to the
          types list. */
     } else if (scope_stack[effective_decl_level].kind ==
@@ -7407,8 +7406,7 @@ skip_tag_scan:
   }  /* if */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
-                              is_local_class,
-                              /*is_prototype_instantiation=*/FALSE)) {
+                              is_local_class)) {
       *defines_something = TRUE;
     } else {
       err = TRUE;
