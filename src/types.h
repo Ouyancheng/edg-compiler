@@ -274,14 +274,46 @@ extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
 extern a_type_ptr con_complete_object_type(a_constant_ptr constant);
 extern a_type_ptr node_complete_object_type(an_expr_node_ptr node,
                                             a_boolean        call_case);
+
+/*
+Bit vector used to pass flags into f_identical_types.
+*/
+typedef unsigned int an_itf_flag_set;
+
+#define ITF_NO_FLAGS 0x0
+
+#define ITF_IL_IDENTICAL 0x01
+			/* If il_identical is TRUE, check only that the
+			   types are identical from the point of view
+			   of the IL.  Basically, two types are
+			   IL-identical if no cast is needed to assign
+			   a value of one type to an entity of the
+			   other type.  This routine should never be
+			   called directly; it's meant to be called
+			   only by the macros identical_types and
+			   il_identical_types, which do the initial
+			   test for exact pointer equality. */
+
+#define ITF_UNKNOWN_IMPLICIT_THIS_TYPE 0x02
+			/* TRUE if the implicit this parameter may not
+			   be known yet.  When this flag is set, a
+			   NULL implicit this parameter type is
+			   ignored (i.e., no attempt is made to match
+			   it with the template type). */
+
 #define identical_types(t1, t2) \
-  ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/FALSE))
+  ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
 #define il_identical_types(t1, t2) \
-  ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/TRUE))
+  ((t1) == (t2) || f_identical_types((t1), (t2), ITF_IL_IDENTICAL))
+#define unknown_implicit_this_identical_types(t1, t2) \
+  ((t1) == (t2) || f_identical_types((t1), (t2), \
+                                     ITF_UNKNOWN_IMPLICIT_THIS_TYPE))
+
 /* Compare one level of two array types. */
-extern a_boolean f_identical_types(a_type_ptr type_1,
-                                   a_type_ptr type_2,
-                                   a_boolean  il_identical);
+extern a_boolean f_identical_types(a_type_ptr      type_1,
+                                   a_type_ptr      type_2,
+                                   an_itf_flag_set flags);
+
 extern a_boolean integral_types_the_same_except_for_signedness(
                                                             a_type_ptr type_1,
                                                             a_type_ptr type_2);

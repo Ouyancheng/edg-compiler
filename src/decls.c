@@ -1538,7 +1538,8 @@ by id_linkage.
           if (other_decl->kind == (a_symbol_kind)sk_function_template) {
             /* Look for a match on the list of instantiations. */
             a_symbol_ptr sym;
-            sym = matching_template_function(other_decl, type);
+            sym = matching_template_function(other_decl, type,
+                                             /*is_decl_context=*/TRUE);
             if (sym != NULL) {
               /* Found a match. */
               linked_symbol = other_decl = sym;
@@ -4540,7 +4541,8 @@ is not a template declaration scope.
           a_symbol_ptr        dummy;
 
           if (is_match_for_function_template(sym, tp, &templ_arg_list, &dummy,
-                                             templ_param_list)) {
+                                             templ_param_list,
+                                             /*is_decl_context=*/TRUE)) {
             sym_error(ec_template_instance_already_used,
                       (a_symbol_ptr)rp->source_corresp.assoc_info);
           }  /* if */

@@ -2425,7 +2425,7 @@ matches a class type from the parameter list of a template function.
                                       templ_tap->variant.type,
                                       templ_arg_list,
                                       templ_param_list,
-                                      /*allow_conversion=*/FALSE,
+                                      MTT_NO_FLAGS,
                                       (a_base_class_ptr*)NULL);
       } else {
         /* A nontype template parameter. */
@@ -2446,7 +2446,7 @@ a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
 				a_template_param_ptr templ_param_list,
-				a_boolean            allow_conversion,
+				an_mtt_flag_set      flags,
                                 a_base_class_ptr     *base_class_conv_needed)
 /*
 Compare type and templ_type.  The latter is from a parameter list of a
@@ -2456,12 +2456,13 @@ return TRUE if the type is consistent with other uses of that template
 parameter, as represented in the template argument list.  Otherwise, return
 FALSE.  When for the nth template parameter, the nth template arg has not
 yet been created, extend the template argument list to include n entries.
-allow_conversion specifies that a conversion from Derived<T> to Base<T>
-may be done if needed.  The value pointed to by base_class_conv_needed
-is set to point to the base class description if such a conversion
-is required; otherwise it is set to NULL.  base_class_conv_needed may
-be NULL if the caller does not need to know whether a conversion was
-performed.  templ_param_list points to the template parameter list.
+flags specifies a set of options used to control how the type matching
+is done.  See the MTT flag definitions in templates.h.  The value pointed
+to by base_class_conv_needed is set to point to the base class description
+if such a conversion is required; otherwise it is set to NULL.
+base_class_conv_needed may be NULL if the caller does not need to know
+whether a conversion was performed.  templ_param_list points to the
+template parameter list.
 */
 {
   a_boolean                      match = FALSE;
@@ -2469,9 +2470,14 @@ performed.  templ_param_list points to the template parameter list.
   a_param_type_ptr               ptp, tptp;
   a_template_arg_ptr             tap;
   a_symbol_ptr                   sym, templ_sym;
+  an_mtt_flag_set		 new_flags;
 
   db_enter(5, "matches_template_type");
   if (base_class_conv_needed != NULL) *base_class_conv_needed = NULL;
+  /* When this routine calls itself recursively, the recursive calls
+     should not allow conversions or the special unknown implicit
+     this parameter checks. */
+  new_flags = MTT_NO_FLAGS;
   templ_type = skip_typedefs(templ_type);
   if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
@@ -2573,7 +2579,7 @@ performed.  templ_param_list points to the template parameter list.
               if (ttp != NULL) {
                 if (matches_template_type(tp, ttp, templ_arg_list,
   				          templ_param_list,
-                                          /*allow_conversion=*/FALSE,
+                                          new_flags,
                                           (a_base_class_ptr*)NULL)) {
                   /* Members have the same names and the parent classes
                      "match".  This will handle cases like T::B. */
@@ -2585,7 +2591,7 @@ performed.  templ_param_list points to the template parameter list.
                 ttp = templ_type->source_corresp.parent.class_type;
                 if (matches_template_type(tp, ttp, templ_arg_list,
   				          templ_param_list,
-                                          /*allow_conversion=*/FALSE,
+                                          new_flags,
                                           (a_base_class_ptr*)NULL)) {
                   /* Members have the same names and the parent classes
                      "match".  This will handle cases like A<T>::B. */
@@ -2636,7 +2642,7 @@ performed.  templ_param_list points to the template parameter list.
             ttp = templ_type->source_corresp.parent.class_type;
             if (matches_template_type(tp, ttp, templ_arg_list,
                                       templ_param_list,
-                                      /*allow_conversion=*/FALSE,
+                                      new_flags,
                                       (a_base_class_ptr*)NULL)) {
               /* Members have the same names and the parent classes "match". */
               match = TRUE;
@@ -2654,7 +2660,7 @@ performed.  templ_param_list points to the template parameter list.
             match = matches_template_type_for_class_type(type, templ_type,
                                                          templ_arg_list,
                                                          templ_param_list);
-            if (!match && allow_conversion) {
+            if (!match && (flags & MTT_ALLOW_CONVERSION != 0)) {
               a_base_class_ptr	bcp;
               /* See if the type matches a base class type of actual argument
                  type.  This is allows a Derived<T> to be passed to a function
@@ -2684,7 +2690,7 @@ performed.  templ_param_list points to the template parameter list.
               ttp = templ_type->variant.typeref.type;
               match = matches_template_type(tp, ttp, templ_arg_list,
                                             templ_param_list,
-                                            /*allow_conversion=*/FALSE,
+                                            new_flags,
                                             (a_base_class_ptr*)NULL);
             }  /* if */
             break;
@@ -2723,7 +2729,7 @@ performed.  templ_param_list points to the template parameter list.
               ttp = templ_type->variant.array.element_type;
               match = matches_template_type(tp, ttp, templ_arg_list,
                                             templ_param_list,
-                                            /*allow_conversion=*/FALSE,
+                                            new_flags,
                                             (a_base_class_ptr*)NULL);
             }  /* if */
             break;
@@ -2738,7 +2744,7 @@ performed.  templ_param_list points to the template parameter list.
               ttp = templ_type->variant.pointer.type;
               match = matches_template_type(tp, ttp, templ_arg_list,
                                             templ_param_list,
-                                            /*allow_conversion=*/FALSE,
+                                            new_flags,
                                             (a_base_class_ptr*)NULL);
             }  /* if */
             break;
@@ -2749,13 +2755,13 @@ performed.  templ_param_list points to the template parameter list.
             ttp = templ_type->variant.ptr_to_member.type;
             if (matches_template_type(tp, ttp, templ_arg_list,
                                       templ_param_list,
-                                      /*allow_conversion=*/FALSE,
+                                      new_flags,
                                       (a_base_class_ptr*)NULL)) {
               tp = type->variant.ptr_to_member.class_of_which_a_member;
               ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
               match = (matches_template_type(tp, ttp, templ_arg_list,
                                              templ_param_list,
-                                             /*allow_conversion=*/FALSE,
+                                             new_flags,
                                              (a_base_class_ptr*)NULL));
             }  /* if */
             break;
@@ -2767,7 +2773,7 @@ performed.  templ_param_list points to the template parameter list.
             ttp = templ_type->variant.routine.return_type;
             if (matches_template_type(tp, ttp, templ_arg_list,
                                       templ_param_list,
-                                      /*allow_conversion=*/FALSE,
+                                      new_flags,
                                       (a_base_class_ptr*)NULL) &&
                 (type->variant.routine.extra_info->has_ellipsis ==
                     templ_type->variant.routine.extra_info->has_ellipsis)) {
@@ -2785,7 +2791,7 @@ performed.  templ_param_list points to the template parameter list.
                 ttp = tptp->type;
                 if (!matches_template_type(tp, ttp, templ_arg_list,
                                            templ_param_list,
-                                           /*allow_conversion=*/FALSE,
+                                           new_flags,
                                            (a_base_class_ptr*)NULL)) {
                   /* The first param type for which there is a mismatch causes
                      a mismatch for the entire type.  No need to keep
@@ -2804,14 +2810,18 @@ performed.  templ_param_list points to the template parameter list.
                                                      implicit_this_param_type;
                 if (tp == NULL || ttp == NULL) {
                   /* One or both of the types does not have an implicit
-                     this parameter.  This is okay if they are both NULL. */
-                  match = tp == ttp;
+                     this parameter.  This is okay if they are both NULL. 
+                     It is also okay if the type has no implicit this type
+                     and the unknown implicit this type flag was passed in. */
+                  match = tp == ttp ||
+                          (tp == NULL &&
+                           (flags & MTT_UNKNOWN_IMPLICIT_THIS_TYPE) != 0);
                 } else {
                   /* They both have implicit this parameters, make sure the
                      types match. */
                   match = matches_template_type(tp, ttp, templ_arg_list,
                                                 templ_param_list,
-                                                /*allow_conversion=*/FALSE,
+                                                new_flags,
                                                 (a_base_class_ptr*)NULL);
                 }  /* if */
               }  /* if */
@@ -2849,7 +2859,7 @@ may have been deduced.
 
   db_enter(5, "tentatively_matches_template_type");
   result = matches_template_type(type, templ_type, &templ_arg_list,
-                                 templ_param_list, /*allow_conversion=*/FALSE,
+                                 templ_param_list, MTT_NO_FLAGS,
                                  (a_base_class_ptr*)NULL);
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   db_exit();
@@ -3418,7 +3428,8 @@ a_boolean is_match_for_function_template(a_symbol_ptr         templ_sym,
                                          a_type_ptr           curr_type,
                                          a_template_arg_ptr   *templ_arg_list,
                                          a_symbol_ptr         *instance_sym,
-                                         a_template_param_ptr templ_param_list)
+                                         a_template_param_ptr templ_param_list,
+					 a_boolean	      is_decl_context)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If such a template
@@ -3426,6 +3437,11 @@ function exists, return its symbol.  Otherwise, try to generate a template
 arg list to serve as the basis for creating one.  If either a symbol can
 be found or a template arg list can be created, return TRUE; otherwise,
 return FALSE.
+
+is_decl_context is TRUE if this routine is called to match a declaration with
+a template instance.  In such cases it is not known whether or not the
+function has an implicit this parameter type, so the implicit this
+type should not be used in the matching process.
 */
 {
   a_boolean                         match = FALSE;
@@ -3478,12 +3494,6 @@ return FALSE.
        This cannot be a match. */
     goto done;
   }  /* if */
-  if ((curr_rtsp->implicit_this_param_type != NULL) !=
-      (templ_rtsp->implicit_this_param_type != NULL)) {
-    /* One routine has an implicit this parameter and the other does not.
-       This cannot be a match. */
-    goto done;
-  }  /* if */
   /* Make a pass over the entries representing instantiations of the function
      template to see if any of them match the current type signature. */
   for (tip = tssp->variant.function.instantiations;
@@ -3492,13 +3502,24 @@ return FALSE.
     /* We used to skip entries that represent specific declarations.
        This is no longer done because these entries must be examined this
        routine is called during instantiation pragma processing. */
+    match = TRUE;
     sym = tip->instance_sym;
     rout_type = skip_typerefs(sym->variant.routine.ptr->type);
-    if (!identical_types(curr_type, rout_type)) continue;
+    if (is_decl_context) {
+      /* In declaration contexts we do not yet know whether the type
+         has an implicit this type.  Consequently, a NULL implicit this
+         type should be considered a match for a non-NULL one in the
+         routine we are matching with. */
+      match = unknown_implicit_this_identical_types(curr_type, rout_type);
+    } else {
+      /* In nondeclarative contexts, the implicit this parameter types must
+         match exactly. */
+      match = identical_types(curr_type, rout_type);
+    }  /* if */
+    if (!match) continue;
     /* Falling through to here means curr_type exactly matches the function
        type for sym.  Skip over the remaining processing and return sym to
        the caller. */
-    match = TRUE;
     *instance_sym = sym;
     goto done;
   }  /* for */
@@ -3509,7 +3530,8 @@ return FALSE.
      template arg list is returned; otherwise, NULL is returned. */
   if (matches_template_type(curr_type, templ_rout_type, 
                             templ_arg_list, templ_param_list,
-                            /*allow_conversion=*/FALSE,
+                            is_decl_context ? MTT_UNKNOWN_IMPLICIT_THIS_TYPE
+                                            : MTT_NO_FLAGS,
                             (a_base_class_ptr*)NULL)) {
     match = TRUE;
   }  /* if */
@@ -3533,12 +3555,18 @@ done:
 
 
 a_symbol_ptr matching_template_function(a_symbol_ptr        templ_sym,
-                                        a_type_ptr          curr_type)
+                                        a_type_ptr          curr_type,
+					a_boolean	    is_decl_context)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If no such template
 function exists, try to create one.  If the search/creation is successful
 return a pointer to the symbol; otherwise, return NULL.
+
+is_decl_context is TRUE if this routine is called to match a declaration with
+a template instance.  In such cases it is not known whether or not the
+function has an implicit this parameter type, so the implicit this
+type should not be used in the matching process.
 */
 {
   a_symbol_ptr          		sym;
@@ -3557,7 +3585,7 @@ return a pointer to the symbol; otherwise, return NULL.
   templ_param_list = tssp->cache.decl_info->parameters;
   if (is_match_for_function_template(templ_sym, curr_type,
                                      &templ_arg_list, &sym,
-                                     templ_param_list)) {
+                                     templ_param_list, is_decl_context)) {
     if (sym != NULL) {
       /* A match has been found -- just return a pointer to it. */
     } else {
@@ -3606,7 +3634,8 @@ the function instantiation entry and set all the pointers.
   } else {
     tp = skip_typerefs(rout_sym->variant.routine.ptr->type);
     if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym,
-                                       templ_param_list)) {
+                                       templ_param_list,
+				       /*is_decl_context=*/TRUE)) {
       /* A match has been found. */
 #if CHECKING
 #if 0
@@ -6876,7 +6905,8 @@ function returns FALSE if any error was detected.
         continue;
       }  /* if */
       /* Look for a match on the list of instantiations. */
-      sym_found = matching_template_function(lookup_sym, type);
+      sym_found = matching_template_function(lookup_sym, type,
+                                             /*is_decl_context=*/TRUE);
       if (sym_found != NULL) {
         if (any_found) {
           sym_error(ec_ambiguous_overloaded_function, orig_sym);
@@ -8680,7 +8710,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       }  /* if */
       /* Look for a match on the list of instantiations. */
       if (lookup_sym != NULL) {
-        sym_found = matching_template_function(lookup_sym, type);
+        sym_found = matching_template_function(lookup_sym, type,
+                                               /*is_decl_context=*/TRUE);
         if (sym_found != NULL) {
 	  if (any_found) {
 	    sym_error(ec_ambiguous_overloaded_function, orig_sym);

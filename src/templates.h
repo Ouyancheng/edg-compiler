@@ -44,12 +44,28 @@ extern a_type_ptr rescan_template_type_default_arg
 			              a_template_param_ptr param_ptr,
 				      a_template_arg_ptr   arg_list);
 
+/*
+Bit vector used to pass flags into matches_template_type.
+*/
+typedef unsigned int an_mtt_flag_set;
+
+#define MTT_NO_FLAGS 0x00
+#define MTT_ALLOW_CONVERSION 0x01
+			/* TRUE when a conversion from Derived<T>
+			   to Base<T> may be done if needed. */
+#define MTT_UNKNOWN_IMPLICIT_THIS_TYPE 0x02
+			/* TRUE if the implicit this parameter may not
+			   be known yet.  When this flag is set, a
+			   NULL implicit this parameter type is
+			   ignored (i.e., no attempt is made to match
+			   it with the template type). */
+
 extern
 a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
                                 a_template_param_ptr templ_param_list,
-				a_boolean            allow_conversion,
+				an_mtt_flag_set      flags,
                                 a_base_class_ptr     *base_class_conv_needed);
 
 extern
@@ -73,11 +89,13 @@ extern a_boolean is_match_for_function_template(
                                        a_type_ptr           curr_type,
                                        a_template_arg_ptr   *templ_arg_list,
                                        a_symbol_ptr         *instance_sym,
-                                       a_template_param_ptr templ_param_list);
+                                       a_template_param_ptr templ_param_list,
+                                       a_boolean	    is_decl_context);
 
 extern a_symbol_ptr matching_template_function
                                   (a_symbol_ptr        function_template_sym,
-                                   a_type_ptr          curr_type);
+                                   a_type_ptr          curr_type,
+				   a_boolean	       is_decl_context);
 
 extern void record_predeclared_template_function(
                                         a_symbol_ptr         templ_sym,

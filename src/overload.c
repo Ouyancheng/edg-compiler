@@ -178,7 +178,8 @@ NULL and *ambiguous TRUE.  See ARM 13.3, "Address of Overloaded Function".
         sym = fundamental_symbol_of(proj_sym);
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
-          instance_sym = matching_template_function(sym, dest_underlying_type);
+          instance_sym = matching_template_function(sym, dest_underlying_type,
+                                                    /*is_decl_context=*/FALSE);
           if (instance_sym != NULL) {
             /* Template match. */
             match_sym = instance_sym;
@@ -2390,7 +2391,7 @@ evaluated (but not checked to see if the match is good enough).
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
                                  tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                                 /*allow_conversion=*/TRUE,
+                                 MTT_ALLOW_CONVERSION,
                                  &base_class_conv_needed)) {
         /* Mismatch. */
         goto done;
@@ -2449,7 +2450,7 @@ evaluated (but not checked to see if the match is good enough).
     if (!matches_template_type(cfp->dest_type, return_type, &templ_arg_list,
                                tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                               /*allow_conversion=*/FALSE,
+                               MTT_NO_FLAGS,
                                (a_base_class_ptr *)NULL)) {
       /* Mismatch. */
       goto done;

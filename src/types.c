@@ -1892,27 +1892,31 @@ checking instead of equivalence checking).
 }  /* equiv_class_types */
 
 
-a_boolean f_identical_types(a_type_ptr type_1,
-                            a_type_ptr type_2,
-                            a_boolean  il_identical)
+a_boolean f_identical_types(a_type_ptr      type_1,
+                            a_type_ptr      type_2,
+                            an_itf_flag_set flags)
 /*
 Return TRUE if the two types are identical.  This includes separate copies
 of identical types, as well as the case where the pointers point to the
-same type.  If il_identical is TRUE, check only that the types are
-identical from the point of view of the IL.  Basically, two types are
-IL-identical if no cast is needed to assign a value of one type to an entity
-of the other type.  This routine should never be called directly; it's
-meant to be called only by the macros identical_types and il_identical_types,
-which do the initial test for exact pointer equality.
+same type.  flags is a set of options that control the way in which certain
+type comparisions are done.  See the defintion of the ITF flags in types.h
+for more information.
 */
 {
   register a_boolean            identical = FALSE;
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_symbol_ptr                  sym_1, sym_2;
+  a_boolean			il_identical;
+  a_boolean			unknown_implicit_this_type;
 
   db_enter(5, "f_identical_types");
 
+  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
+  unknown_implicit_this_type = (flags & ITF_UNKNOWN_IMPLICIT_THIS_TYPE) != 0;
+  /* Reset the unknown implicit this type flag so that it won't be passed
+     to recursive calls of this routine. */
+  flags &= ~ITF_UNKNOWN_IMPLICIT_THIS_TYPE;
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -1974,7 +1978,7 @@ which do the initial test for exact pointer equality.
                                         type_2->variant.pointer.is_reference) {
             identical = f_identical_types(type_1->variant.pointer.type,
                                           type_2->variant.pointer.type,
-                                          il_identical);
+                                          flags);
           }  /* if */
           break;
         case tk_array:
@@ -1982,7 +1986,7 @@ which do the initial test for exact pointer equality.
              must be identical. */
           if (f_identical_types(type_1->variant.array.element_type,
                                 type_2->variant.array.element_type,
-                                il_identical) &&
+                                flags) &&
               identical_array_type_level(type_1, type_2)) {
             identical = TRUE;
           }  /* if */
@@ -2000,49 +2004,71 @@ which do the initial test for exact pointer equality.
           }  /* if */
           break;
         case tk_routine:
-          /* For functions, the return types must be identical, the
-             parameter lists must be identical, and the implicit "this"
-             parameter type (if any) must be identical. */
-          rtsp1 = type_1->variant.routine.extra_info;
-          rtsp2 = type_2->variant.routine.extra_info;
-          if (f_identical_types(type_1->variant.routine.return_type,
-                                type_2->variant.routine.return_type,
-                                il_identical) &&
-              rtsp1->prototyped == rtsp2->prototyped &&
-              rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
-              routine_linkages_are_identical(rtsp1->routine_name_linkage,
-                                             rtsp2->routine_name_linkage) &&
-              ((rtsp1->implicit_this_param_type == NULL) ?
-                  (rtsp2->implicit_this_param_type == NULL) :
-                  (rtsp2->implicit_this_param_type != NULL &&
-                   f_identical_types(rtsp1->implicit_this_param_type,
-                                     rtsp2->implicit_this_param_type,
-                                     il_identical)))) {
-            /* Compare the types of the parameters on the two lists. */
-            for (list1 = rtsp1->param_type_list,
+          {
+            a_boolean	implicit_this_matches;
+            a_type_ptr	this1;
+            a_type_ptr	this2;
+            rtsp1 = type_1->variant.routine.extra_info;
+            rtsp2 = type_2->variant.routine.extra_info;
+            this1 = rtsp1->implicit_this_param_type;
+            this2 = rtsp2->implicit_this_param_type;
+            if (this1 == NULL && this2 == NULL) {
+              /* Both this parameter types are NULL -- they match. */
+              implicit_this_matches = TRUE;
+            } else if (this1 == NULL || this2 == NULL) {
+              /* One, but not both, of the this parameter types are NULL.
+                 This is considered a match if the flag is set that 
+                 indicates that we don't yet know whether the type has
+                 an implicit this parameter type. */
+              implicit_this_matches = unknown_implicit_this_type;
+            } else {
+              /* Both types are non-null, see if they are identical. */
+              implicit_this_matches = f_identical_types(this1, this2,
+                                                        flags);
+            }  /* if */
+            /* For functions, the return types must be identical, the
+               parameter lists must be identical, and the implicit "this"
+               parameter type (if any) must be identical. */
+            if (implicit_this_matches &&
+                f_identical_types(type_1->variant.routine.return_type,
+                                  type_2->variant.routine.return_type,
+                                  flags) &&
+                rtsp1->prototyped == rtsp2->prototyped &&
+                rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
+                routine_linkages_are_identical(rtsp1->routine_name_linkage,
+                                               rtsp2->routine_name_linkage)) {
+              /* So far they are identical, this flag will be reset if the
+                 parameter types don't match. */
+              identical = TRUE;
+              /* Compare the types of the parameters on the two lists. */
+              for (list1 = rtsp1->param_type_list,
                                                 list2 = rtsp2->param_type_list;
-                 list1 != NULL && list2 != NULL;
-                 list1 = list1->next, list2 = list2->next) {
-              if (!f_identical_types(list1->type, list2->type, il_identical)) {
-                /* The parameter types are not identical. */
-                goto funcs_not_identical;
+                   list1 != NULL && list2 != NULL;
+                   list1 = list1->next, list2 = list2->next) {
+                if (!f_identical_types(list1->type, list2->type,
+                                       flags)) {
+                  /* The parameter types are not identical. */
+                  identical = FALSE;
+                  break;
+                }  /* if */
+              }  /* for */
+              if (identical) {
+                /* The parameter lists are identical if they both ended
+                   together. */
+                identical = (list1 == NULL && list2 == NULL);
               }  /* if */
-            }  /* for */
-            /* The parameter lists are identical if they both ended
-               together. */
-            identical = (list1 == NULL && list2 == NULL);
-funcs_not_identical:;
-          }  /* if */
+            }  /* if */
+          }
           break;
         case tk_ptr_to_member:
           /* Pointer-to-member types are identical if they refer to the same
              class type and to the same member type. */
           identical = (f_identical_types(pm_class_type(type_1),
                                          pm_class_type(type_2),
-                                         il_identical) &&
+                                         flags) &&
                        f_identical_types(pm_member_type(type_1),
                                          pm_member_type(type_2),
-                                         il_identical));
+                                         flags));
           break;
         case tk_template_param:
           if (type_1->variant.template_param.kind ==
@@ -2450,7 +2476,7 @@ for exact pointer equality.
         case tk_template_param:
           /* Template parameter types are considered to be compatible if
              their positions in the template parameter list are the same. */
-          compat = f_identical_types(type_1, type_2, /*il_identical=*/FALSE);
+          compat = f_identical_types(type_1, type_2, ITF_NO_FLAGS);
           break;
 #if CHECKING
         default:

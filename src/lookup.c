@@ -2205,7 +2205,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
     /* See if the type specified matches the return type of the conversion
        function. */
     if (matches_template_type(result_type, return_type, &templ_arg_list,
-                              param_list, /*allow_conversion=*/FALSE,
+                              param_list, MTT_NO_FLAGS,
                               (a_base_class_ptr*)NULL)) {
       /* Do the wrapup processing to make sure that all of the parameters
          have been deduced. */
