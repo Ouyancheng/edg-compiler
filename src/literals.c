@@ -49,6 +49,9 @@ constants).  The number may have a "u" or "l" suffix, or both.
 {
   unsigned long temp = 0;
   a_boolean     has_u_suffix = FALSE, has_l_suffix = FALSE;
+#if LONG_LONG_ALLOWED
+  a_boolean     has_ll_suffix = FALSE;
+#endif /* LONG_LONG_ALLOWED */
   char          *temp_ptr;
   a_boolean     ovflo = FALSE;
   a_boolean     non_arith = (radix != 10);
@@ -56,34 +59,40 @@ constants).  The number may have a "u" or "l" suffix, or both.
   int           digit;
   an_integer_kind
 		kind;
-  /* The ULTRIX C compiler has trouble with the type of folded compile-time
-     unsigned expressions, so we use a variable for this value. */
-  unsigned long ULONG_MAX_div_10 = ULONG_MAX;
-  ULONG_MAX_div_10 /= (unsigned long)10;
+  unsigned long max_value, max_value_div_10;
+
+  /* Determine the maximum constant value to be dealt with. */
+#if LONG_LONG_ALLOWED
+  max_value = TARG_ULONG_LONG_MAX;
+#else /* !LONG_LONG_ALLOWED */
+  max_value = TARG_ULONG_MAX;
+#endif /* LONG_LONG_ALLOWED */
+  max_value_div_10 = max_value / 10;
 
   *err_code = ec_no_error;
   /* Locate and logically remove the suffix, if any.  The suffix is "u"
      for unsigned or "l" for long, or both, in upper or lower case. */
+#if LONG_LONG_ALLOWED
+  /* "ll" means long long, "ull" means unsigned long long. */
+#endif /* LONG_LONG_ALLOWED */
   if (real_end_pos >= start_of_curr_token) {
-    if (*real_end_pos == 'u' || *real_end_pos == 'U') {
-      has_u_suffix = TRUE;
-      real_end_pos--;
-      if (real_end_pos >= start_of_curr_token) {
-        if (*real_end_pos == 'l' || *real_end_pos == 'L') {
+    for (;;) {
+      if (*real_end_pos == 'u' || *real_end_pos == 'U') {
+        has_u_suffix = TRUE;
+        real_end_pos--;
+      } else if (*real_end_pos == 'l' || *real_end_pos == 'L') {
+        if (has_l_suffix) {
+          has_l_suffix = FALSE;
+          has_ll_suffix = TRUE;
+        } else {
           has_l_suffix = TRUE;
-          real_end_pos--;
         }  /* if */
+        real_end_pos--;
+      } else {
+        /* Not an "l" or "u"; exit loop. */
+        break;
       }  /* if */
-    } else if (*real_end_pos == 'l' || *real_end_pos == 'L') {
-      has_l_suffix = TRUE;
-      real_end_pos--;
-      if (real_end_pos >= start_of_curr_token) {
-        if (*real_end_pos == 'u' || *real_end_pos == 'U') {
-          has_u_suffix = TRUE;
-          real_end_pos--;
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
 
   /* Evaluate the literal as an unsigned long. */
@@ -94,10 +103,10 @@ constants).  The number may have a "u" or "l" suffix, or both.
          temp_ptr <= real_end_pos; temp_ptr++) {
       digit = *temp_ptr - '0';
       /* Multiply previous value by 10, checking for overflow. */
-      if (temp > ULONG_MAX_div_10) ovflo = TRUE;
+      if (temp > max_value_div_10) ovflo = TRUE;
       temp *= 10;
       /* Add in digit, checking for overflow. */
-      if (temp > ULONG_MAX-(unsigned long)digit) ovflo = TRUE;
+      if (temp > max_value-(unsigned long)digit) ovflo = TRUE;
       temp += digit;
     }  /* for */
   } else if (radix == 8) {
@@ -112,7 +121,7 @@ constants).  The number may have a "u" or "l" suffix, or both.
         goto wrapup;
       }  /* if */
       /* Multiply previous value by 8, checking for overflow. */
-      if (temp > ULONG_MAX>>3) ovflo = TRUE;
+      if (temp > max_value>>3) ovflo = TRUE;
       temp <<= 3;
       /* Or in digit. */
       temp |= digit;
@@ -123,7 +132,7 @@ constants).  The number may have a "u" or "l" suffix, or both.
          temp_ptr <= real_end_pos; temp_ptr++) {
       digit = hexvalue(*temp_ptr);
       /* Multiply previous value by 16, checking for overflow. */
-      if (temp > ULONG_MAX>>4) ovflo = TRUE;
+      if (temp > max_value>>4) ovflo = TRUE;
       temp <<= 4;
       /* Or in digit. */
       temp |= digit;
@@ -133,8 +142,49 @@ constants).  The number may have a "u" or "l" suffix, or both.
      3.1.3.2.  In pcc compatibility mode, overflow is ignored, and
      the constant is either int or long (see K&R, reference manual section,
      2.4.1 and 2.4.2). */
-  if (C_dialect == C_dialect_pcc && !has_u_suffix) {
+  /* Since the "u" suffix does not exist in pcc C, treat constants with
+     that suffix according to the ANSI rules. */
+#if LONG_LONG_ALLOWED
+  /* Likewise for "ll". */
+#endif /* LONG_LONG_ALLOWED */
+  if (C_dialect == C_dialect_pcc && !has_u_suffix && !has_ll_suffix) {
     /* Non-ANSI (pcc) checking. */
+    if (has_l_suffix) {
+      /* An explicit "L" suffix makes the constant long. */
+      kind = (an_integer_kind)ik_long;
+    } else if (radix == 10 && temp <= TARG_INT_MAX) {
+      /* A decimal constant that is no larger than the largest signed int
+         is an int. */
+      kind = (an_integer_kind)ik_int;
+    } else if (radix != 10 && temp <= TARG_UINT_MAX) {
+      /* A hexadecimal or octal constant that is no larger than the largest
+         unsigned int is treated as an int (there are no unsigned int
+         constants in K&R/pcc). */
+      kind = (an_integer_kind)ik_int;
+    } else if (temp <= TARG_ULONG_MAX) {
+      /* A constant that is no larger than the largest unsigned long is
+         treated as a long (there are no unsigned long constants in
+         K&R/pcc). */
+      kind = (an_integer_kind)ik_long;
+      /* A decimal constant that is greater than TARG_LONG_MAX is considered
+         a long, but tagged as non-arithmetic because the source looks
+         positive but the internal value is negative.  This helps in
+         avoiding an error when converting the smallest integer. */
+      if (radix == 10 && temp > TARG_LONG_MAX) non_arith = TRUE;
+#if LONG_LONG_ALLOWED
+    } else if (temp <= TARG_ULONG_LONG_MAX) {
+      /* long long. */
+      kind = (an_integer_kind)ik_long_long;
+      /* A value that is larger than LONG_LONG_MAX is tagged as
+         non-arithmetic because the source looks positive but the internal
+         value is negative.  This helps in avoiding an error when
+         converting the smallest integer. */
+      if (temp > TARG_LONG_LONG_MAX) non_arith = TRUE;
+#endif /* LONG_LONG_ALLOWED */
+    } else {
+      /* Doesn't fit in target integers. */
+      ovflo = TRUE;
+    }  /* if */
     if (ovflo) {
       /* A warning is generated for overflow, but the overflow is then
          ignored.  The conversions above produce the same value that pcc
@@ -143,44 +193,44 @@ constants).  The number may have a "u" or "l" suffix, or both.
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       warning(ec_integer_too_large);
       ovflo = FALSE;
-    }  /* if */
-    if (has_l_suffix) {
-      /* An explicit "L" suffix makes the constant long. */
-      kind = (an_integer_kind)ik_long;
-    } else if (radix == 10 && temp <= TARG_INT_MAX) {
-      /* A decimal constant that is no larger than the largest signed int
-        is an int. */
-      kind = (an_integer_kind)ik_int;
-    } else if (radix != 10 && temp <= TARG_UINT_MAX) {
-      /* A hexadecimal or octal constant that is no larger than the largest
-         unsigned int is treated as an int (there are no unsigned int
-         constants in K&R/pcc). */
-      kind = (an_integer_kind)ik_int;
-    } else {
-      /* Anything else is a long. */
-      kind = (an_integer_kind)ik_long;
-      /* A value that is larger than LONG_MAX is tagged as non-arithmetic
-         because the source looks positive but the internal value is negative.
-         This helps in avoiding an error when converting the smallest
-         integer. */
-      if (temp > TARG_LONG_MAX) non_arith = TRUE;
+#if 0
+      /* Do truncation for case where host long > target long? */
+#endif
     }  /* if */
   } else if (!ovflo) {
     /* ANSI C constant checking. */
-    if (!has_l_suffix && !has_u_suffix && temp <= TARG_INT_MAX) {
+#if LONG_LONG_ALLOWED
+    if (has_ll_suffix) goto ll_check;
+#endif /* LONG_LONG_ALLOWED */
+    if (has_l_suffix) goto l_check;
+    if (!has_u_suffix && temp <= TARG_INT_MAX) {
       kind = (an_integer_kind)ik_int;
-    } else if (!has_l_suffix &&
-               (has_u_suffix || radix != 10) &&
-               temp <= TARG_UINT_MAX) {
+      goto kind_established;
+    } else if ((has_u_suffix || radix != 10) && temp <= TARG_UINT_MAX) {
       kind = (an_integer_kind)ik_unsigned_int;
-    } else if (!has_u_suffix && temp <= TARG_LONG_MAX) {
+      goto kind_established;
+    }  /* if */
+l_check:
+    if (!has_u_suffix && temp <= TARG_LONG_MAX) {
       kind = (an_integer_kind)ik_long;
+      goto kind_established;
     } else if (temp <= TARG_ULONG_MAX) {
       kind = (an_integer_kind)ik_unsigned_long;
-    } else {
-      /* Doesn't fit in target integers. */
-      ovflo = TRUE;
+      goto kind_established;
     }  /* if */
+#if LONG_LONG_ALLOWED
+ll_check:
+    if (!has_u_suffix && temp <= TARG_LONG_LONG_MAX) {
+      kind = (an_integer_kind)ik_long_long;
+      goto kind_established;
+    } else if (temp <= TARG_ULONG_LONG_MAX) {
+      kind = (an_integer_kind)ik_unsigned_long_long;
+      goto kind_established;
+    }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+    /* Doesn't fit in target integers. */
+    ovflo = TRUE;
+kind_established:;
   }  /* if */
   if (ovflo) {
     *err_pos = start_of_curr_token;
