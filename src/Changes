@@ -43,6 +43,10 @@ A bug was introduced in version 2.33 that in Microsoft compatibility mode
 caused spurious warnings to be issued on friend function declarations.
 Now fixed.
 
+  struct S {
+    friend void f();   // Spurious warning no longer issued
+  };
+
 12/4/96  Microsoft compatibility: single line __asm blocks terminated by brace
 
 If a single line __asm block was followed, on the same line, with a right
