@@ -1,4 +1,4 @@
-Version 2.32
+Version 2.32, June 26, 1996
 
 5/6/96  Revised nothrow new implementation
 
@@ -12,6 +12,7 @@ no argument and returning a std::nothrow", instead of the desired
 interpretation of passing an std::nothrow object to the new routine.
 
 We now define std::nothrow as an object of type std::nothrow_t.
+
 -------------------------------------------------------------------------------
 Version 2.31, January 19, 1996
 
