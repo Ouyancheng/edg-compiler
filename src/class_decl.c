@@ -7371,40 +7371,41 @@ because they were used in declaring an external function or variable.
         num_internally_linked_classes++;
       }  /* if */
     }  /* for */
-  }  /* if */
-  if (num_internally_linked_classes > 0) {
-    /* There is at least one internally linked class.  Make a pass over all
-       the variables defined at file scope to determine whether the
-       declaration of an externally linked variable entails a reference to
-       a class that is still marked as internally linked. */
-    for (vp = scope->variables; vp != NULL; vp = vp->next) {
-      if (vp->storage_class != (a_storage_class)sc_static) {
-        /* This is an externally linked variable.  Check its type. */
-        count = 0;
-        check_type_for_linkage_change(vp->type, &count);
-        /* "count" is returned as the number of internally linked classes
-           that were changed to externally linked.  Adjust the number of
-           internally linked classes remaining.  When it gets down to zero
-           we can bail out. */
-        num_internally_linked_classes -= count;
-        if (num_internally_linked_classes < 1) break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  if (num_internally_linked_classes > 0) {
-    /* There is still at least one internally linked class.  Make a pass over
-       the file scope routine entries similar to the one made for variables. */
-    for (rp = scope->routines; rp != NULL; rp = rp->next) {
-      if (rp->storage_class != (a_storage_class)sc_static) {
-        /* This is an externally linked routine.  Check its type. */
-        count = 0;
-        check_type_for_linkage_change(rp->type, &count);
-        /* Again, we can bail out when the number of internally linked classes
-           is reduced to zero. */
-        num_internally_linked_classes -= count;
-        if (num_internally_linked_classes < 1) break;
-      }  /* if */
-    }  /* for */
+    if (num_internally_linked_classes > 0) {
+      /* There is at least one internally linked class.  Make a pass over all
+         the variables defined at file scope to determine whether the
+         declaration of an externally linked variable entails a reference to
+         a class that is still marked as internally linked. */
+      for (vp = scope->variables; vp != NULL; vp = vp->next) {
+        if (vp->storage_class != (a_storage_class)sc_static) {
+          /* This is an externally linked variable.  Check its type. */
+          count = 0;
+          check_type_for_linkage_change(vp->type, &count);
+          /* "count" is returned as the number of internally linked classes
+             that were changed to externally linked.  Adjust the number of
+             internally linked classes remaining.  When it gets down to zero
+             we can bail out. */
+          num_internally_linked_classes -= count;
+          if (num_internally_linked_classes < 1) break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (num_internally_linked_classes > 0) {
+      /* There is still at least one internally linked class.  Make a pass
+         over the file scope routine entries similar to the one made for
+         variables. */
+      for (rp = scope->routines; rp != NULL; rp = rp->next) {
+        if (rp->storage_class != (a_storage_class)sc_static) {
+          /* This is an externally linked routine.  Check its type. */
+          count = 0;
+          check_type_for_linkage_change(rp->type, &count);
+          /* Again, we can bail out when the number of internally linked
+             classes is reduced to zero. */
+          num_internally_linked_classes -= count;
+          if (num_internally_linked_classes < 1) break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* check_class_linkage */
