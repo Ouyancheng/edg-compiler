@@ -4359,8 +4359,8 @@ See also 3.6.6.4.
   if (depth_stmt_stack > 0 &&
       struct_stmt_stack[0].kind == ssk_try_block &&
       struct_stmt_stack[1].is_catch_clause) {
-    /* This is a return statement inside a handler of function try block. */
-    pos_error(ec_return_statement_not_allowed, &return_pos);
+    /* This is a return statement inside a handler of a function try block. */
+    pos_error(ec_return_from_function_try_block_handler, &return_pos);
     discard_curr_construct_pragmas();
     sp = NULL;
     routine_type = error_type();
