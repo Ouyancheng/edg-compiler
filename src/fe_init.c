@@ -413,6 +413,9 @@ unit, in case multiple source files are allowed.
     il_lower_one_time_init();
   }  /* if */
 #endif /* DO_IL_LOWERING */
+#if NEED_NAME_MANGLING
+  name_lower_one_time_init();
+#endif /* NEED_NAME_MANGLING */
 }  /* fe_one_time_init */
 
 

@@ -51,6 +51,8 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
 
 extern void do_all_name_mangling(void);
 
+extern void name_lower_one_time_init(void);
+
 extern void name_lower_init(void);
 
 #endif /* NEED_NAME_MANGLING */

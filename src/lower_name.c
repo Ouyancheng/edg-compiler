@@ -2141,6 +2141,27 @@ and that is after normal name mangling has been done.
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
+
+void name_lower_one_time_init(void)
+/*
+Do one-time initialization of variables related to name mangling.  (Variables
+that need to be reinitialized with each new translation unit are handled in
+name_lower_init.)
+*/
+{
+  /* Save variables from lower_il.h and lower_il.c that are needed for
+     precompiled headers */
+  if (exceptions_enabled && precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(unnamed_class_name_seed),
+      pch_saved_var_array_elem(unnamed_enum_name_seed),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* eh_lower_one_time_init */
+
+
 void name_lower_init(void)
 /*
 Initialize static variables related to name mangling.  This is done as a
