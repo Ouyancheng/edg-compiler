@@ -1111,24 +1111,24 @@ caution when modifying this routine.
                                                 ec_rtti_in_embedded_cplusplus);
             free_pending_pragma_list(ppp);
           } else {
-#if !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
-            /* The pragma is not required (e.g., when the C++ generating back
-               end is in use). */
-            tag_sym = type_info_sym;
-#else /* PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
+            if (!pragma_defined_type_info_is_required) {
+              /* The pragma is not required (e.g., when the C++ generating
+                 back end is in use). */
+              tag_sym = type_info_sym;
+            } else {
 #if ABI_CHANGES_FOR_RTTI
-            if (type_info_sym->decl_scope == NO_SCOPE_DEPTH) {
-              /* Not yet explicitly redeclared. */
-              /* Run-time support for RTTI declares type_info, so consider the
-                 name to be reserved. */
-              pos_st_error(ec_conflicts_with_predeclared_type_info,
-                           &locator_for_curr_id.source_position,
-                           (char *)(type_info_in_namespace_std
+              if (type_info_sym->decl_scope == NO_SCOPE_DEPTH) {
+                /* Not yet explicitly redeclared. */
+                /* Run-time support for RTTI declares type_info, so consider
+                   the name to be reserved. */
+                pos_st_error(ec_conflicts_with_predeclared_type_info,
+                             &locator_for_curr_id.source_position,
+                             (char *)(type_info_in_namespace_std
                                             ? "std::type_info" : "type_info"));
-            }  /* if */
-            tag_sym = type_info_sym;
+              }  /* if */
+              tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
-#endif /* !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
+            }  /* if */
           }  /* if */
         }  /* if */
         if (tag_sym == type_info_sym &&

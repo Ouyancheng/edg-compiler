@@ -443,12 +443,8 @@ Flag that is TRUE if GNU C builtin operators should be accepted in support of
 <stdarg.h> and <varargs.h>.
 */
 #ifndef GCC_BUILTIN_VARARGS
-#ifdef __linux__
 #define GCC_BUILTIN_VARARGS TRUE
-#else /* !__linux__ */
-#define GCC_BUILTIN_VARARGS FALSE
-#endif /* __linux__ */
-#endif /* ifndef GCC_MINOR_VERSION */
+#endif /* ifndef GCC_BUILTIN_VARARGS */
 
 /*
 Flag that is TRUE if asm expressions target a processor of an x86 family.

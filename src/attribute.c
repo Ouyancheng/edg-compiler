@@ -597,12 +597,9 @@ attribute, set *kind to ak_last.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       if (gnu_visibility_attribute_enabled) break;
-      /*FALLTHROUGH*/
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-    case ak_unused:
-      if (C_mode()) break;
       *kind = (an_attribute_kind)ak_last;
       break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     default:
       break;
   }  /* switch */
@@ -792,14 +789,16 @@ function returns the address of the last attribute.
 }  /* scan_attribute_list */
 
 
-an_attribute_ptr scan_attributes(void)
+an_attribute_ptr f_scan_attributes(a_token_sequence_number  *last_token)
 /*
 Scan an (optional) series of attributes.  Each has the form:
 
   __attribute__ (( attribute-list [opt] ))
 
 This function returns a list of all of the attributes in the order
-that they appeared.  
+that they appeared.  If last_token is non-NULL, *last_token is set
+to the sequence number of the final right parenthesis (used for
+template processing).
 */
 {
   an_attribute_ptr  attributes = NULL;
@@ -823,6 +822,9 @@ that they appeared.
     }  /* if */
     /* There should now be two right parens. */
     (void)required_token(tok_rparen, ec_exp_rparen);
+    if (last_token != NULL) {
+      *last_token = curr_token_sequence_number;
+    }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   }  /* while */

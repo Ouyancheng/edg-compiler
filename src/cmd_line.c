@@ -2417,6 +2417,10 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
        GCC_BUILTIN_VARARGS is TRUE). */
     pass_stdarg_references_to_generated_code = FALSE;
   }  /* if */
+  if (!(option_kind_used[(int)optk_restrict])) {
+    /* Enable the use of __restrict__ in GNU mode. */
+    restrict_enabled = TRUE;
+  }  /* if */
   /* Enable // comments. */
   end_of_line_comments_allowed = TRUE;
   /* Enable recognition of digraphs. */
@@ -2456,6 +2460,14 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        GCC_BUILTIN_VARARGS is TRUE). */
     pass_stdarg_references_to_generated_code = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_exception_handling]) {
+    /* Enable exceptions by default in GNU C++ mode. */
+    exceptions_enabled = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_restrict])) {
+    /* Enable the use of __restrict__ in GNU mode. */
+    restrict_enabled = TRUE;
+  }  /* if */
   /* Enable // comments. */
   end_of_line_comments_allowed = TRUE;
   /* Enable recognition of digraphs. */
@@ -2466,6 +2478,11 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
   null_chars_allowed_in_source = TRUE;
+  /* GNU C++ doesn't look unqualified names up in dependent base classes. */
+  force_dependent_name_rules_for_base_class_lookup = TRUE;
+  /* We will presumably want to pick std::type_info from the GNU headers.
+     In that case, we cannot expect an EDG-specific pragma. */
+  pragma_defined_type_info_is_required = FALSE;
 }  /* check_and_set_gpp_mode_options */
 
 

@@ -1185,7 +1185,7 @@ look like an integer).  It may have a leading "-" sign.
   temp = strtod_interface(str);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   if (errno == ERANGE) {
-    if (gcc_mode) {
+    if (gnu_mode) {
       errno = 0;
     } else if (temp != 0.0 || microsoft_mode) {
       /* Do not give an error on cases that involve partial loss of

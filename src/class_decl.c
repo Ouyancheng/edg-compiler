@@ -12136,7 +12136,7 @@ classes.
   a_class_symbol_supplement_ptr    cssp;
   a_routine_fixup_ptr              saved_routine_fixup;
   a_template_symbol_supplement_ptr class_tssp;
-  a_token_sequence_number          token_number_of_closing_brace;
+  a_token_sequence_number          last_token_number_of_definition;
   a_class_def_state                class_state;
   a_boolean                        skip_semicolon_check;
   a_type_ptr                       dummy_type;
@@ -12552,12 +12552,12 @@ next_declaration:
        is called. */
     process_curr_token_pragmas();
     /* Check for and ignore the closing brace. */
-    token_number_of_closing_brace = curr_token_sequence_number;  
+    last_token_number_of_definition = curr_token_sequence_number;
     (void)required_token(tok_rbrace, ec_exp_rbrace);
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode) {
+    if (gnu_mode && curr_token == tok_attribute) {
       /* Process attributes that apply to this class. */
-      attributes = scan_attributes();
+      attributes = f_scan_attributes(&last_token_number_of_definition);
       apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -12732,7 +12732,7 @@ next_declaration:
              defined outside of the enclosing class, cache_segment will be
              NULL. */
           tssp->cache_segment->last_token_number =
-                                                 token_number_of_closing_brace;
+                                              last_token_number_of_definition;
         }  /* if */
         if (curr_token != tok_semicolon) {
           /* If the token following the closing brace of the class is not 

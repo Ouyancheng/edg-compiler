@@ -10930,6 +10930,31 @@ declaration of a partial specialization declared outside of its class.
         /* Advance past the '}'. */
         (void)get_token();
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      if (gnu_mode && curr_token == tok_attribute) {
+        decr_token_set_array_element(stop_tokens, tok_rbrace);
+        /* Cache the __atribute__ token and the next token (which should be
+           a left parenthesis).  Then scan (and cache) through the matching
+           right parenthesis. */
+        cache_curr_token(definition_token_cache);
+        (void)get_token_to_be_cached();
+        cache_curr_token(definition_token_cache);
+        (void)get_token_to_be_cached();
+        incr_token_set_array_element(stop_tokens, tok_rparen);
+        cache_token_stream(definition_token_cache, stop_tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        decl_state->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Now cache the ")" (unless we didn't find one). */
+        if (curr_token == tok_rparen) {
+          cache_curr_token(definition_token_cache);
+          /* Save the token number of the last token of the definition. */
+          last_token_number = curr_token_sequence_number;
+          /* Advance past the ')'. */
+          (void)get_token();
+        }  /* if */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Add an end-of-source token to the end of the token cache to assure
        that we don't scan past the end of the cache in the actual scan. */
