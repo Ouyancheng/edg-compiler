@@ -626,10 +626,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier();
     if (abstract_declarator_allowed) {
-      if (
-#if 0
-          cfront_compatibility_mode &&
-#endif
+      if (cfront_compatibility_mode &&
           is_top_level &&
           curr_token == tok_rparen) {
         /* Cfront handles declarations like
