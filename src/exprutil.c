@@ -4593,9 +4593,27 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
     /* Non-constant expression.  Generate a cast expression. */
     prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
     if (!il_identical_types(operand->type, dest_type)) {
-      an_expr_node_ptr expr = make_node_from_operand(operand);
-      expr = make_operator_node(op, dest_type, expr);
-      if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
+      an_expr_node_ptr expr, opexpr = make_node_from_operand(operand);
+      if (!is_class_struct_union_type(dest_type) ||
+          op != (an_expr_operator_kind)eok_cast) {
+        /* Cast to a non-class type.  Render as eok_cast operator or the
+           like. */
+        expr = make_operator_node(op, dest_type, opexpr);
+        if (is_implicit_cast) {
+          expr->variant.operation.compiler_generated = TRUE;
+        }  /* if */
+      } else {
+        /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
+        a_dynamic_init_ptr dip;
+        expr = create_expr_temporary(dest_type, /*result_is_addr=*/FALSE,
+                                     &orig_operand.position);
+        dip = expr->variant.init.dynamic_init;
+        /* A dik_constructor with a NULL constructor is used for generic
+           construction. */
+        set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
+        dip->variant.constructor.ptr = NULL;
+        dip->variant.constructor.args = opexpr;
+      }  /* if */
       make_expression_operand(expr, dest_type, operand);
     }  /* if */
   }  /* if */
