@@ -243,6 +243,8 @@ caution when modifying this routine.
             /* This is a template parameter during a prototype instantiation.
                Don't issue an error.  This will be checked during real
                instantiations. */
+          } else if (is_template_class_symbol(tag_sym)) {
+            /* Caller will issue the diagnostic. */
           } else {
             pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
                            &locator_for_curr_id.source_position,
