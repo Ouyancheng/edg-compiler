@@ -2028,27 +2028,43 @@ this is not allowed, an error will be issued by the caller.
 }  /* symbols_may_coexist_in_curr_scope */
 
 
-static a_boolean is_redeclared_template_param(a_symbol_ptr   sym)
+static a_boolean is_redeclared_template_param(a_symbol_ptr      sym,
+                                              an_error_severity *severity)
 /*
 Look through the template parameters associated with the innermost
 instantiation scope for a symbol whose header matches the header of sym.
-Return TRUE if a match is found.
+Return TRUE if a match is found.  Return in *severity the error
+severity to be used for the diagnostic when TRUE is returned.
 */
 {
   a_template_param_ptr		tpp;
   a_boolean			result = FALSE;
   a_scope_stack_entry_ptr	ssep;
 
-  ssep = &scope_stack[depth_innermost_instantiation_scope];
-  tpp = ssep->template_decl_info->parameters;
-  check_assertion(tpp != NULL);
-  while (tpp != NULL && !result) {
-    a_symbol_ptr  param_symbol = tpp->param_symbol;
-    if (param_symbol->header == sym->header) {
-      result = TRUE;
-    }  /* if */
-    tpp = tpp->next;
-  }  /* while */
+  /* If the current scope is the one in which the template parameters are
+     considered to be declared, then a redeclaration is an error.  Otherwise,
+     the severity depends on the mode. */
+  *severity = scope_stack[depth_scope_stack].template_param_decl_scope
+                                      ? es_error : strict_ansi_error_severity;
+  for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+       ssep != NULL; ssep = previous_scope_of(ssep)) {
+    /* Only look at template instantiation scopes. */
+    if (ssep->kind != (a_scope_kind)sck_template_instantiation) continue;
+    tpp = ssep->template_decl_info->parameters;
+    check_assertion(tpp != NULL);
+    while (tpp != NULL && !result) {
+      a_symbol_ptr  param_symbol = tpp->param_symbol;
+      if (param_symbol->header == sym->header) {
+        result = TRUE;
+      }  /* if */
+      tpp = tpp->next;
+    }  /* while */
+    /* The parameter was declared in this scope.  Exit the loop. */
+    if (result) break;
+    /* Only redeclarations of the innermost instantiation scope are
+       always errors. */
+    *severity = strict_ansi_error_severity;
+  }  /* for */
   return result;
 }  /* is_redeclared_template_param */
 
@@ -2261,10 +2277,10 @@ symbol must be added to the inactive list.
             depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
             sym_name_space_kind == nsk_other &&
             sym_ptr->kind != (a_symbol_kind)sk_undefined) {
-          if (is_redeclared_template_param(sym_ptr)) {
-            if (!suppress_error &&
-                (scope_stack[scope_depth].template_param_decl_scope ||
-                 strict_ansi_mode)) {
+          an_error_severity severity;
+          if (!suppress_error &&
+              is_redeclared_template_param(sym_ptr, &severity)) {
+            if (severity == es_error) {
               /* A template parameter name has been reused in the first scope
                  associated with the instantiation that affects the
                  declarative level (or in a scope nested within that scope,

@@ -590,6 +590,13 @@ typedef struct a_scope_stack_entry {
 			   use_nonstandard_for_init_scope is TRUE. */
 } a_scope_stack_entry;
 
+/*
+Given a scope depth, return a pointer to the scope stack entry or
+a NULL pointer if the scope depth is NO_SCOPE_DEPTH.
+*/
+#define scope_stack_entry_for(depth)					\
+  ((depth) == NO_SCOPE_DEPTH ? NULL : &scope_stack[(depth)])
+
 
 /*
 Given a pointer a scope stack entry, return the address of the associated
