@@ -1066,11 +1066,9 @@ consistent with that of the previous declaration.
            if this is a redeclaration of what may be a library new or delete
            routine: the relaxation is to ease the upgrading of old code. */
         severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
-      } else if (gpp_mode && gnu_version < 30000) {
-        /* In very early GNU C++ modes, dropping a throw specifier was not
-           diagnosed if the earlier declaration came from a system header.
-           (The converse incompatibility of adding a specifier is not
-           diagnosed even in later versions; see above.) */
+      } else if (gpp_mode) {
+        /* In GNU C++ modes, dropping a throw specifier is not diagnosed if
+           the earlier declaration came from a system header. */
         severity = pos_adjusted_severity(severity, prev_decl);
       }  /* if */
       pos_sy_diagnostic(severity,
