@@ -469,10 +469,10 @@ of a class template is not.  (The point is that "generated" routines do not
 always appear in the same order on the routines list of a class scope.)
 */
 {
-  while (routine != NULL && 
+  while (routine != NULL && (
 #if NEED_NAME_MANGLING
          /* Some routines are generated as part of prelowering. */
-         (routine->source_corresp.name_has_been_mangled ||
+         routine->source_corresp.name_has_been_mangled ||
 #endif /* NEED_NAME_MANGLING */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
@@ -495,9 +495,11 @@ always appear in the same order on the types list of a class scope.)
 {
   a_type_ptr  result = type;
 
-  while (result != NULL &&
+  while (result != NULL && (
+#if NEED_NAME_MANGLING
          /* Some types are generated as part of prelowering. */
-         (result->source_corresp.name_has_been_mangled ||
+         result->source_corresp.name_has_been_mangled ||
+#endif /* NEED_NAME_MANGLING */
           /* Nonprototype instantiations can differ from one translation unit
              to another. */
           (is_immediate_class_type(result) &&
