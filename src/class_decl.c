@@ -11537,9 +11537,18 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
         }  /* if */
         /* Loop through the entire overload set of operator new symbols. */
         for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+          an_exception_specification_ptr  esp;
+
           fund_sym = fundamental_symbol_of(sym);
           /* Ignore function templates. */
           if (fund_sym->kind == (a_symbol_kind)sk_function_template) continue;
+          /* Ignore functions that promise not to throw any exceptions. */
+          esp = routine_symbol_type(fund_sym)
+                        ->variant.routine.extra_info->exception_specification;
+          if (esp != NULL && esp->exception_specification_type_list == NULL) {
+            /* Empty throw() specification. */
+            continue;
+          }  /* if */
           del_sym = find_corresponding_operator_delete_sym(
                                                      fund_sym, class_type,
                                                      /*template_okay=*/TRUE,
