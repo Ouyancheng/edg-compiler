@@ -1,5 +1,12 @@
 Version 2.21
 
+12/10/93 Lowering of destructor routine types in calls
+
+In cases where a virtual destructor was called between the point
+where the destructor was declared and the point where it was defined,
+the function pointer used in the virtual call would not have the
+implicit extra "int" argument.  That is now corrected.
+
 12/10/93 Spurious "class may not have a template argument list" error
 
 A bug has been fixed that caused a spurious error in the following example:
