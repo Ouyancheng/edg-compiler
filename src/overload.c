@@ -6243,9 +6243,10 @@ destruction, if fill_in_dtor is TRUE) and return a pointer to
 it in *dip (or return *dip == NULL for an error).  If
 p_temp_init_node is non-NULL, create an enk_temp_init node (for the
 address of a temporary) pointing to that dynamic initialization entry,
-and return a pointer to it in *p_temp_init_node.  dest_type is allowed
-to be a class having no constructors at all.  The initialization
-represented is an "=" initialization, i.e.,
+and return a pointer to it in *p_temp_init_node.  An error node is
+returned for an error.  dest_type is allowed to be a class having
+no constructors at all.  The initialization represented is an "="
+initialization, i.e.,
 
   dest_type var = source_operand;
 
@@ -6376,11 +6377,17 @@ happen only in C++ mode.
      already. */
   if (p_temp_init_node != NULL) {
     if (temp_init_node == NULL) {
-      temp_init_node = alloc_temp_init_node(dest_type, dip,
-                                            /*result_is_addr=*/TRUE);
+      if (dip == NULL) {
+        /* Some error.  Return an error node. */
+        temp_init_node = error_node();
+      } else {
+        temp_init_node = alloc_temp_init_node(dest_type, dip,
+                                              /*result_is_addr=*/TRUE);
+      }  /* if */
     } else {
       /* Existing enk_temp_init; make sure we get the address of the
-         temporary instead of its value. */
+         temporary instead of its value.  Note that in this case dip
+         is the dynamic init pointer extracted from that node. */
       if (!temp_init_node->variant.init.result_is_addr) {
         temp_init_node->variant.init.result_is_addr = TRUE;
         temp_init_node->type = make_pointer_type(temp_init_node->type);

@@ -1,5 +1,24 @@
 Version 2.29
 
+3/25/95  Abort in strict mode after user error related to nonconst constructor
+
+An abort on the following in strict mode has been corrected:
+
+  struct A {
+    A();
+    A(A&);   // Note nonconst
+    A operator+(A);
+  };
+  A f(A);
+  A f(A a, A b) {return a + b;}
+  void bar(A a)
+  {
+    f(f(f(a)));
+  }
+
+This is another existing bug exposed by the change in 2.28 to disallow using
+a nonconst copy constructor to copy rvalues.
+
 3/24/95  Handling of invalid PCH directory
 
 Formerly, if an invalid directory name was specified as the argument to
