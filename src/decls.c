@@ -7475,7 +7475,8 @@ continue_with_declaration:
           done_with_func_info(func_info);
           /* The presence of a final '}' will already have been checked for. */
           check_assertion(curr_token == tok_rbrace ||
-                          curr_token == tok_end_of_source);
+                          curr_token == tok_end_of_source ||
+                          total_errors != 0);
           goto advance_past_final_token;
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
