@@ -1959,7 +1959,7 @@ to it.
 }  /* alloc_object_lifetime */
 
 
-a_namespace_ptr alloc_namespace(void)
+a_namespace_ptr alloc_namespace(a_boolean  is_alias)
 /*
 Allocate a namespace entry, initialize its fields, and return a pointer to
 it.  The entry is allocated in the file scope memory region.
@@ -1972,8 +1972,13 @@ it.  The entry is allocated in the file scope memory region.
 #if DEBUG
   num_namespaces_allocated++;
 #endif /* DEBUG */
-  nsp->next        = NULL;
-  nsp->assoc_scope = NULL;
+  nsp->next = NULL;
+  nsp->is_namespace_alias = is_alias;
+  if (is_alias) {
+    nsp->variant.assoc_namespace = NULL;
+  } else {
+    nsp->variant.assoc_scope = NULL;
+  }  /* if */
   db_exit();
   return nsp;
 }  /* alloc_namespace */

@@ -2940,7 +2940,12 @@ Display the indicated namespace entry.
 {
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_namespace);
-  disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
+  if (ptr->is_namespace_alias) {
+    disp_boolean("is_namespace_alias", TRUE);
+    disp_ptr("assoc_namespace", (char *)ptr->assoc_namespace, iek_namespace);
+  } else {
+    disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
+  }  /* if */
 }  /* disp_namespace */
 
 

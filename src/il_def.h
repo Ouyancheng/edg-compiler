@@ -870,9 +870,21 @@ typedef struct a_namespace {
 		next;
 			/* Next in a linked list of namespace declarations;
 			   NULL for the last on the list. */
-  a_scope_ptr	assoc_scope;
+  a_byte_boolean
+		is_namespace_alias;
+			/* TRUE when the name is a namespace alias. */
+  union {
+    /* When is_namespace_alias == FALSE: */
+    a_scope_ptr	assoc_scope;
 			/* Pointer to the scope entry corresponding to this
 			   namespace; should never be NULL. */
+    /* When is_namespace_alias == TRUE: */
+    a_namespace_ptr
+		assoc_namespace;
+			/* Pointer to the namespace entry (which may itself
+			   be an alias) for which this entry is an alias;
+			   should never be NULL. */
+  } variant;
 } a_namespace;
 
 

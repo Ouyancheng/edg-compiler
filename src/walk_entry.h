@@ -1228,7 +1228,12 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_namespace_ptr ptr = (a_namespace_ptr)entry_ptr;
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_namespace_ptr, iek_namespace);
-        walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+        if (ptr->is_namespace_alias) {
+          walk_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
+                   iek_namespace);
+        } else {
+          walk_ptr(ptr->variant.assoc_scope, a_scope_ptr, iek_scope);
+        }  /* if */
       }
       break;
     case iek_dynamic_init:
