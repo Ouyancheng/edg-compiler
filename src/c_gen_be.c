@@ -3723,14 +3723,21 @@ the "routine" is a block.
     }  /* if */
 #endif /* DO_IL_LOWERING */
     if (call_this_module_init) {
-      end_output_line_if_begun();
-      /* Generate a call of the file-scope initialization routine. */
-      /* See also the C++-specific processing in c_gen_be that will call
-         the init routine. */
-      write_str(C_GEN_BE_INIT_ROUTINE_NAME_PREFIX);
-      write_str(module_init_id);
-      write_tok_str("();");
-      file_scope_init_routine_called = TRUE;
+      /* Don't call the initialization routine if it won't be generated
+         because it is empty.  The initialization routine is needed only for
+         file-scope variables, and they have all been processed before
+         the first routine is processed, so we know by now whether the
+         initialization routine is needed. */
+      if (f_file_scope_inits != NULL) {
+        end_output_line_if_begun();
+        /* Generate a call of the file-scope initialization routine. */
+        /* See also the C++-specific processing in c_gen_be that will call
+           the init routine. */
+        write_str(C_GEN_BE_INIT_ROUTINE_NAME_PREFIX);
+        write_str(module_init_id);
+        write_tok_str("();");
+        file_scope_init_routine_called = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_main) {
@@ -5946,10 +5953,9 @@ Generate C from the intermediate language.
   dump_scope_routines(scope, /*dump_defn=*/TRUE);
 
 #if !C_GEN_BE_GENERATES_ANSI_C
-  { a_boolean missing_call_of_init_routine = FALSE;
-    /* Generate the routine called to do file-scope dynamic initializations.
-       The routine is always generated when generating K&R C, but it's
-       usually empty. */
+  if (f_file_scope_inits != NULL || file_scope_init_routine_called) {
+    a_boolean missing_call_of_init_routine = FALSE;
+    /* Generate the routine called to do file-scope dynamic initializations. */
     end_output_line_if_begun();
     write_str(C_GEN_BE_INIT_ROUTINE_NAME_PREFIX);
     write_str(module_init_id);
@@ -6011,7 +6017,7 @@ Generate C from the intermediate language.
       }  /* if */
 #endif /* USE_INIT_SECTION_IN_GENERATED_C */
     }  /* if */
-  }
+  }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if USE_INIT_SECTION_IN_GENERATED_C
   if (startup_routine_name != NULL) {
