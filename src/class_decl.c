@@ -4274,9 +4274,10 @@ specified by decl_scope_level.
 }  /* check_anonymous_union_symbols */
 
 
-static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
-                                         a_decl_flag_set  dso_flags,
-                                         a_boolean        *is_nonstd)
+static a_boolean is_anonymous_union_decl(a_type_ptr        member_type,
+                                         a_decl_flag_set   dso_flags,
+                                         a_boolean         *is_nonstd,
+                                         a_source_position *error_pos)
 /*
 A declaration has appeared in which there is no declarator.  Return TRUE if
 it is an anonymous union declaration.  If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
@@ -4348,7 +4349,10 @@ also set *is_nonstd to TRUE.
         *is_nonstd = TRUE;
         if (strict_ansi_mode) {
           /* Issue a diagnostic that this is an extension. */
-          diagnostic(strict_ansi_error_severity, ec_nonstd_unnamed_field);
+          pos_diagnostic(strict_ansi_error_severity, 
+                         C_mode() ? ec_nonstd_unnamed_field :
+                                    ec_nonstd_unnamed_member,
+                         error_pos);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5716,7 +5720,8 @@ Scan the body of a class definition, including the base classes list.
           /* Check first whether this is an anonymous union declaration. */
           if (member_storage_class == (a_storage_class)sc_unspecified &&
               is_anonymous_union_decl(member_type, dso_flags,
-                                      &is_nonstd_anonymous_union)) {
+                                      &is_nonstd_anonymous_union,
+                                      &pos_curr_token)) {
             /* A C++ anonymous union -- "union { int i, j; };" */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
             /* It might also be an anonymous-union-like construct in C or

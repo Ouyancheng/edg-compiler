@@ -667,6 +667,7 @@ ec_param_type_ref_array_of_unknown_bound;;"parameter type involves reference to 
 ec_ptr_to_member_cast_to_ptr_to_function;;"pointer-to-member-function cast to pointer to function"
 ec_no_named_fields;;"struct or union must declare at least one named field"
 ec_nonstd_unnamed_field;;"nonstandard unnamed field"
+ec_nonstd_unnamed_member;;"nonstandard unnamed member"
 
 ###############################################################################
 #                                                             \  ___  /       #
