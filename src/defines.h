@@ -104,7 +104,9 @@ Flags to be set when using the KAI inliner.
 #define DEFAULT_SVR4_C_MODE 0
 #define PRAGMA_WEAK_ALLOWED 1
 #define USER_CONTROL_OF_STRUCT_PACKING 1
+#ifndef MAINTAIN_NEEDED_FLAGS
 #define MAINTAIN_NEEDED_FLAGS 1
+#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
