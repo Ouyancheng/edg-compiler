@@ -766,7 +766,8 @@ and call a subroutine for class members.
 
 
 /*
-Options for normal_id_lookup, represented as a bit set:
+Options for normal_id_lookup, scope_qualified_id_lookup, etc.,
+represented as a bit set:
 */
 typedef int an_id_lookup_options_set;
 #define IDL_MUST_BE_CLASS 0x1	/* The symbol must be a class, struct, or
@@ -776,28 +777,34 @@ typedef int an_id_lookup_options_set;
 #define IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x4
 				/* Suppress the check for ambiguity and
 				   the access control check. */
+#define IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL 0x8
+				/* It's okay to return an sk_projection symbol.
+				   Ordinarily, such symbols are reduced to
+				   the original symbol they reference. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
 
+
+/*
+If symbol is a projection symbol, change it to the original symbol pointed
+to by the projection.
+*/
+#define reduce_projection_symbol_to_original_symbol(symbol)           \
+{ if ((symbol)->kind == (a_symbol_kind)sk_projection) {               \
+    (symbol) = (symbol)->variant.projection.extra_info->original_symbol;\
+  }  /* if */                                                         \
+}  /* reduce_projection_symbol_to_original_symbol */
+
+
 extern a_symbol_ptr projection_in_class(a_symbol_ptr orig_sym,
                                         a_type_ptr   class_type);
 
-/*
-Options for scope_qualified_id_lookup, represented as a bit set:
-*/
-typedef int a_qualified_id_lookup_options_set;
-#define QIDL_MUST_BE_CLASS 0x1	/* The symbol must be a class, struct, or
-				   union name, or a typedef of one of those. */
-#define QIDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x2
-				/* Suppress the ambiguity check and access
-				   control. */
-#define QIDL_NO_OPTIONS 0	/* No special options. */
 extern a_symbol_ptr scope_qualified_id_lookup(
-                                a_symbol_locator                  *locator,
-                                a_scope_number                    scope_number,
-                                a_qualified_id_lookup_options_set options);
+                                         a_symbol_locator         *locator,
+                                         a_scope_number           scope_number,
+                                         an_id_lookup_options_set options);
 
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
