@@ -1758,6 +1758,7 @@ or enum.
        and the kind used on the initial declaration is the important one.
        If this is the initial declaration, put out the proper original kind. */
     if (il_header.source_language == sl_Cplusplus &&
+        type->kind != (a_type_kind)tk_enum &&
         !type->declaration_put_out) {
       tag_kind_str =
          tag_kind(type->variant.class_struct_union.extra_info->orig_type_kind);
