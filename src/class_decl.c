@@ -228,11 +228,13 @@ associated with it, to their respective available-lists.
 {
   free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
   rfp->def_arg_expr_fixup_list = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (rfp->preserve_param_id_list) {
     /* Clear the param_id_list field of rfp->func_info so that the list won't
        be deallocated by done_with_func_info. */
     rfp->func_info.param_id_list = NULL;
   }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   done_with_func_info(rfp->func_info);
   rfp->next = avail_routine_fixup;
   avail_routine_fixup = rfp;
@@ -10197,7 +10199,9 @@ to be returned to the caller.
     a_symbol_locator                  locator;
     a_type_ptr                        local_type;
     a_func_info_block                 func_info;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     a_boolean                         preserve_param_id_list = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -10579,9 +10583,13 @@ to be returned to the caller.
            scanned). */
         curr_routine_fixup->symbol = rout_sym;
         curr_routine_fixup->func_info = func_info;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
         curr_routine_fixup->preserve_param_id_list = preserve_param_id_list;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
         if (preserve_param_id_list) { func_info.param_id_list = NULL; }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         done_with_func_info(func_info);
       }  /* if */
       if (curr_token == tok_assign) {
