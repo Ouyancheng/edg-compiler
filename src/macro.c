@@ -1081,7 +1081,9 @@ length of the stringized version.
     } else {
       /* If the current character is a " or ' at the start of a token,
          then this token is a character constant or string literal. */
-      if (start_of_token && (ch == '"' || ch == '\'')) {
+      if (start_of_token &&
+          (ch == '"' || ch == '\'' ||
+           (ch == 'L' && (p[1] == '"' || p[1] == '\'')))) {
         /* Start of character constant or string literal. */
         within_char_literal = TRUE;
       }  /* if */
