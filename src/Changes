@@ -10,7 +10,10 @@ and long).  This had been the behavior in strict/issue-errors mode only.
 
 A remark is now issued for cases where a printf/scanf argument is
 interchangeable with but not compatible with the required type (e.g.,
-unsigned long vs. long).
+unsigned long vs. long).  A warning is no longer issued for a pointer
+of any type passed for an integer formatting specifier of the right
+type (e.g., %lx) in non-strict mode.  A warning is no longer issued for
+a pointer of any type passed for a %p formatting specifier.
 
 4/25/94  New file target.c
 

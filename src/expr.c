@@ -882,7 +882,7 @@ format string (they are updated on return).
 */
 {
   a_type_ptr required_type, eff_required_type, eff_argument_type;
-  a_boolean  indirect;
+  a_boolean  indirect, ptr_argument;
 
   /* Find the next formatting specifier in the string. */
   required_type = next_printf_scanf_arg_type(is_scanf, fmt_string_ptr,
@@ -912,8 +912,21 @@ format string (they are updated on return).
         eff_argument_type = type_pointed_to(eff_argument_type);
         eff_required_type = type_pointed_to(eff_required_type);
       }  /* if */
+      /* Drop type qualifiers. */
+      eff_argument_type = skip_typerefs(eff_argument_type);
+      eff_required_type = skip_typerefs(eff_required_type);
+      ptr_argument = is_pointer_type(eff_argument_type);
       if (types_are_compatible(eff_required_type, eff_argument_type)) {
         /* The types are exactly the same. */
+      } else if (ptr_argument && is_pointer_type(eff_required_type)) {
+        /* Allow any pointer type for %p. */
+      } else if (!strict_ansi_mode && ptr_argument &&
+                 is_integral_type(eff_required_type) &&
+                 eff_required_type->size == eff_argument_type->size &&
+                 eff_required_type->alignment == eff_argument_type->alignment){
+        /* Allow a pointer to be passed where an integral type is expected
+           as long as the integral type is the right size.   This accommodates
+           lots of code that prints pointers using %lx. */
       } else if (interchangeable_types(eff_required_type, eff_argument_type)) {
         /* The types are not exactly the same, but they are interchangeable. */
         pos_remark(ec_printf_arg_mismatch, &argument_operand->position);
