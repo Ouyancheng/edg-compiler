@@ -1,5 +1,19 @@
 Version 2.36
 
+4/28/97   Microsoft compatibility: support for "inheritance kinds" to allow
+          different pointer-to-member representations
+
+In Microsoft-compatibility mode a class declaration may now specify an
+"inheritance kind" (single, multiple, or virtual), which is recorded in the
+inheritance_kind field of a_class_type_supplement.  For instance:
+
+  class __single_inheritance X;
+  int X::* pmx;
+
+This information is recorded in the IL to enable an implementation to
+control the representation of pointer-to-member objects for Microsoft ABI
+compatibility.
+
 4/25/97   Expansion of __FILE__ as header name
 
 When the macro __FILE__ is expanded in a context that requires a header
