@@ -476,7 +476,7 @@ issue it at *err_pos;
       if (offset == 0 && base_object(constant_1) == NULL) {
         /* Preserve a NULL pointer. */
       } else {
-        if (dsp->base_class->is_virtual) {
+        if (dsp->base_class->any_virtual_steps_in_derivation) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a whole object of the derived class type. */
           *did_not_fold = TRUE;
@@ -538,7 +538,7 @@ needed).
     /* Preserve a NULL pointer. */
   } else {
 #if CHECKING
-    if (dsp->base_class->is_virtual) {
+    if (dsp->base_class->any_virtual_steps_in_derivation) {
       internal_error("fold_a_derived_class_cast: virtual base class");
     }  /* if */
 #endif /* CHECKING */
@@ -576,7 +576,7 @@ is an error, it is issued at *err_pos;
     /* The cast is ambiguous. */
     pos_error(ec_ambiguous_derived_class, err_pos);
     set_error_constant(result);
-  } else if (bcp->is_virtual) {
+  } else if (bcp->any_virtual_steps_in_derivation) {
     /* The base class is a virtual base of the derived class. */
     pos_error(ec_derived_class_from_virtual_base, err_pos);
     set_error_constant(result);
