@@ -1798,7 +1798,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
     case iek_source_sequence_entry:
       {
         a_source_sequence_entry_ptr ptr =

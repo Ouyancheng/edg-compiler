@@ -552,35 +552,29 @@ kept.  If function_local is TRUE, this list is local to a function that
 is being kept, and all entries should be marked to be kept.
 */
 {
-  a_source_sequence_entry_ptr  ssep;
-  a_src_seq_secondary_decl_ptr sec_decl;
-  char                         *entry_ptr;
-  a_boolean                    keep_in_il;
+  a_source_sequence_entry_ptr ssep;
+  a_boolean                   keep_in_il;
 
   for (ssep = sslist; ssep != NULL; ssep = ssep->next) {
-    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      /* This is a secondary declaration. */
-      sec_decl = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      entry_ptr = sec_decl->entity.ptr;
-    } else {
-      /* This is a primary declaration. */
-      sec_decl = NULL;
-      entry_ptr = ssep->entity.ptr;
-    }  /* if */
     if (function_local) {
       /* Keep all function-local source sequence entries. */
       keep_in_il = TRUE;
-      il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
     } else {
+      char *entry_ptr;
+      if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        /* This is a secondary declaration. */
+        entry_ptr = sec_decl->entity.ptr;
+      } else {
+        /* This is a primary declaration. */
+        entry_ptr = ssep->entity.ptr;
+      }  /* if */
       /* See if the associated IL entity is marked with keep_in_il. */
       keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
     }  /* if */
     /* Mark the source sequence entry the right way (and the secondary
        declaration entry too, if there is one). */
-    il_entry_prefix_of(ssep).keep_in_il = keep_in_il;
-    if (sec_decl != NULL) {
-      il_entry_prefix_of(sec_decl).keep_in_il = keep_in_il;
-    }  /* if */
+    if (keep_in_il) {
+      walk_tree_and_set_keep_in_il(ssep, iek_source_sequence_entry);
   }  /* for */
 }  /* set_keep_in_il_on_sslist */
 
