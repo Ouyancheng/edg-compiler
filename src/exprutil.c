@@ -4865,7 +4865,7 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
       }  /* if */
       make_template_param_cast_constant(&orig_constant,
                                         &operand->variant.constant,
-                                        con_dest_type);
+                                        con_dest_type, !is_implicit_cast);
       operand->type = dest_type;
     }  /* if */
   } else {
@@ -5534,7 +5534,7 @@ issue an error.
     a_constant constant_copy;
     copy_constant(&constant, &constant_copy);
     make_template_param_cast_constant(&constant_copy, &constant,
-                                      constant.type);
+                                      constant.type, /*is_explicit=*/FALSE);
   }  /* if */
   make_constant_operand(&constant, result);
   result->position = *position;

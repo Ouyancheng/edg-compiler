@@ -731,6 +731,9 @@ Display the indicated constant entry.
   if (ptr->implicit_cast) {
     disp_boolean("implicit_cast", TRUE);
   }  /* if */
+  if (ptr->explicit_cast_applied) {
+    disp_boolean("explicit_cast_applied", TRUE);
+  }  /* if */
   if (ptr->is_reinterpret_cast) {
     disp_boolean("is_reinterpret_cast", TRUE);
   }  /* if */

@@ -1678,6 +1678,12 @@ typedef struct a_constant {
                            despite the name, this cast is not necessarily
                            implicit in the source; it might be an explicit
                            cast. */
+  a_bit_field  explicit_cast_applied:1;
+			/* This is only set for tpck_cast constructs (see
+			   the template_param variant below) when an explicit
+			   cast was used in the source to convert value
+			   indicated by the representation to the type
+			   indicated above. */
   a_bit_field	is_reinterpret_cast:1;
 			/* If this is TRUE, implicit_cast will also be
 			   TRUE, and the cast was a reinterpret_cast in

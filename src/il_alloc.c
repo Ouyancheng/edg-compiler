@@ -546,6 +546,7 @@ associated variant fields to default values.
   cp->expr           = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   cp->implicit_cast  = FALSE;
+  cp->explicit_cast_applied = FALSE;
   cp->is_reinterpret_cast = FALSE;
   cp->non_arithmetic = FALSE;
   cp->is_simple_zero = FALSE;

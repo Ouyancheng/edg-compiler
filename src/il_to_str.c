@@ -2881,7 +2881,8 @@ precedence confusion.  Do the output in the way described by octl.
         }  /* if */
       } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
                  constant->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_cast) {
+                                 (a_template_param_constant_kind)tpck_cast &&
+                 constant->explicit_cast_applied) {
         need_cast = TRUE;
       }  /* if */
       if (need_cast) {

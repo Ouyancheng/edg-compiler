@@ -66,10 +66,12 @@ constant is an address that is not known until link time.)
 
 void make_template_param_cast_constant(a_constant  *old_constant,
                                        a_constant  *new_constant,
-                                       a_type_ptr  new_type)
+                                       a_type_ptr  new_type,
+                                       a_boolean   is_explicit)
 /*
 Make, in *new_constant, a ck_template_param/tpck_cast constant that
-represents *old_constant cast to the type new_type.
+represents *old_constant cast to the type new_type.  is_explicit is set
+to TRUE if the cast actually appeared in the source.
 */
 {
   a_constant_ptr old_cp = alloc_shareable_constant(old_constant);
@@ -1229,7 +1231,8 @@ to the constant is maintained, by adding a cast if necessary.
         is_template_dependent_type(new_type)))) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a special tpck_cast constant. */
-    make_template_param_cast_constant(constant, &new_constant, new_type);
+    make_template_param_cast_constant(constant, &new_constant, new_type,
+                                      !is_implicit_cast);
     goto exit;
   }  /* if */
   if (is_bool_type(new_type)) {
