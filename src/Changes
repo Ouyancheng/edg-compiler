@@ -18,10 +18,10 @@ because this processing depends on prototype instantiation processing,
 duplicate messages in function bodies are suppressed only when doing
 prototype instantiations of functions.
 
-4/28/00  Internal error when a qualified file scope declaration find an
+4/28/00  Internal error when a qualified file scope declaration finds an
          overload set in an unnamed namespace
 
-The front end used to abort the processing of a qualified file scope
+The front end used to abort while processing a qualified file scope
 declaration if a lookup of the declared name found an overloaded set of
 functions in an unnamed namespace.
 
