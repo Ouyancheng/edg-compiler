@@ -1052,6 +1052,37 @@ Display the name for the indicated storage class.
 }  /* disp_storage_class_name */
 
 
+static void disp_initializer(an_init_kind        kind,
+                             an_initializer_ptr  ptr)
+/*
+Display the indicated init kind and initializer.
+*/
+{
+  disp_name("init_kind");
+  switch (ptr->init_kind) {
+    case initk_none:
+      (void)printf ("initk_none\n");
+      break;
+    case initk_static:
+      (void)printf("initk_static\n");
+      disp_ptr("constant", (char *)ptr->constant, iek_constant);
+      break;
+    case initk_dynamic:
+      (void)printf("initk_dynamic\n");
+      disp_ptr("dynamic", (char *)ptr->dynamic, iek_dynamic_init);
+      break;
+    case initk_zero:
+      (void)printf ("initk_zero\n");
+      break;
+    case initk_function_local:
+      (void)printf ("initk_function_local\n");
+      break;
+    default:
+      (void)printf("**BAD INITIALIZATION KIND**\n");
+  }  /* switch */
+}  /* disp_initializer */
+
+
 static void disp_variable(a_variable_ptr ptr)
 /*
 Display the indicated variable.
@@ -1119,28 +1150,7 @@ Display the indicated variable.
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
-  disp_name("init_kind");
-  switch (ptr->init_kind) {
-    case initk_none:
-      (void)printf ("initk_none\n");
-      break;
-    case initk_static:
-      (void)printf("initk_static\n");
-      disp_ptr("constant", (char *)ptr->initializer.constant, iek_constant);
-      break;
-    case initk_dynamic:
-      (void)printf("initk_dynamic\n");
-      disp_ptr("dynamic", (char *)ptr->initializer.dynamic, iek_dynamic_init);
-      break;
-    case initk_zero:
-      (void)printf ("initk_zero\n");
-      break;
-    case initk_function_local:
-      (void)printf ("initk_function_local\n");
-      break;
-    default:
-      (void)printf("**BAD INITIALIZATION KIND**\n");
-  }  /* switch */
+  disp_initializer(ptr->init_kind, ptr->initializer);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2692,19 +2702,7 @@ Display the indicated local_static_variable_init entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_local_static_variable_init);
   disp_ptr("variable", (char *)ptr->variable, iek_variable);
-  disp_name("init_kind");
-  switch (ptr->init_kind) {
-    case initk_static:
-      (void)printf("initk_static\n");
-      disp_ptr("constant", (char *)ptr->initializer.constant, iek_constant);
-      break;
-    case initk_dynamic:
-      (void)printf("initk_dynamic\n");
-      disp_ptr("dynamic", (char *)ptr->initializer.dynamic, iek_dynamic_init);
-      break;
-    default:
-      (void)printf("**BAD INITIALIZATION KIND**\n");
-  }  /* switch */
+  disp_initializer(ptr->init_kind, ptr->initializer);
 }  /* disp_local_static_variable_init */
 
 
