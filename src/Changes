@@ -19,16 +19,14 @@ not pointer) following a conversion function.
 Dropping type qualifiers when binding a reference now disqualifies
 an argument match in overload resolution (previously, it would get an
 error later if that alternative was selected, but might cause an
-ambiguity before then).  In cfront mode, dropping qualifiers is
-now allowed both in overload resolution and in the actual binding
-of the reference.  A temporary is used in that case.
+ambiguity before then).
 
   void f(char&);
   void f(short);
   main()
   {
     const char ch = 'c';
-    f(ch);  // f(short) in normal mode, f(char &) in cfront mode
+    f(ch);  // f(short)
   }
 
 2/12/95  Implicit conversions to pointer-to-member types to match

@@ -841,6 +841,7 @@ static void determine_arg_match_level(
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
                                a_boolean            try_user_conversions,
+                               a_boolean            is_match_for_this_param,
                                an_arg_match_summary *arg_summary)
 /*
 Determine how well an actual argument matches a formal parameter with type
@@ -851,7 +852,9 @@ only be used for selector operands, i.e., those being matched up with
 a "this" parameter).  arg_summary is set to indicate the level of match.
 This is used in resolving overloaded function calls.  See ARM 13.2.
 User-defined conversions will be attempted only if try_user_conversions
-is TRUE; it must be FALSE if arg_type is non-NULL.
+is TRUE; it must be FALSE if arg_type is non-NULL.  This match is being
+done for the "this" parameter of a function if is_match_for_this_param
+is TRUE.
 */
 {
   an_operand        *orig_arg_operand;
@@ -869,6 +872,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   db_enter(4, "determine_arg_match_level");
   clear_arg_match_summary(arg_summary);
   arg_summary->param_type = param_type;
+  arg_summary->is_match_for_this_param = is_match_for_this_param;
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
     arg_type = arg_operand->type;
@@ -946,9 +950,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* There are some type qualifiers on the argument type that do not
          appear on the parameter type, so some type qualifiers are being
          dropped. */
-      /* cfront allows this kind of thing as an anachronism; a temporary
-         will be used. */
-      if (!any_cfront_mode()) ref_type_qualifiers_dropped = TRUE;
+      ref_type_qualifiers_dropped = TRUE;
     } else {
       /* Some type qualifiers are being added.  That's okay, but it may
          be a tie-breaker later. */
@@ -1232,6 +1234,7 @@ class or a derived class thereof (except for error cases).
        suppressed. */
     clear_arg_match_summary(this_match_summary);
     this_match_summary->match_level = aml_exact;
+    this_match_summary->is_match_for_this_param = TRUE;
   } else {
     /* Get the "this" parameter type. */
     this_param_type = implicit_this_param_type_of(routine_type);
@@ -1271,6 +1274,7 @@ class or a derived class thereof (except for error cases).
     determine_arg_match_level((an_operand *)NULL, ptr_selector_type,
                               this_param_type,
                               /*try_user_conversions=*/FALSE,
+                              /*is_match_for_this_param=*/TRUE,
                               this_match_summary);
     if (cfront_2_1_mode &&
         this_match_summary->match_level == aml_none) {
@@ -1287,6 +1291,7 @@ class or a derived class thereof (except for error cases).
       determine_arg_match_level((an_operand *)NULL, ptr_selector_type,
                                 const_this_param_type,
                                 /*try_user_conversions=*/FALSE,
+                                /*is_match_for_this_param=*/TRUE,
                                 this_match_summary);
       if (this_match_summary->match_level != aml_none) {
         /* Anachronism -- calling non-const function with const object. */
@@ -1294,7 +1299,6 @@ class or a derived class thereof (except for error cases).
       }  /* if */
     }  /* if */
   }  /* if */
-  this_match_summary->is_match_for_this_param = TRUE;
   db_exit();
 }  /* selector_match_with_this_param */
 
@@ -1497,6 +1501,7 @@ argument matches.
           determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
                                     param->type,
                                     try_user_conversions,
+                                    /*is_match_for_this_param=*/FALSE,
                                     arg_match);
           /* If no match is possible, go on to the next function. */
           if (arg_match->match_level == aml_none) goto reject_function;
@@ -1521,7 +1526,6 @@ argument matches.
         /* We have a selector. */
         /* Put a match entry for it on the front of the match list. */
         this_match = alloc_arg_match_summary();
-        this_match->is_match_for_this_param = TRUE;
         this_match->next = this_match_next = arg_match_list;
         arg_match_list = this_match;
         if (!function_is_nonstatic_member_function) {
@@ -1530,6 +1534,7 @@ argument matches.
              but we still need a match entry for it.  It counts as an
              exact match. */
           this_match->match_level = aml_exact;
+          this_match->is_match_for_this_param = TRUE;
         } else {
           /* The function requires a selector, and we have one. */
           if (implicit_selector_type != NULL) {
@@ -1539,8 +1544,8 @@ argument matches.
                                       implicit_selector_type,
                                       rtsp->implicit_this_param_type,
                                       /*try_user_conversions=*/FALSE,
+                                      /*is_match_for_this_param=*/TRUE,
                                       this_match);
-            this_match->is_match_for_this_param = TRUE;
             /* Set the "next" pointer again, because it is cleared by
                determine_arg_match_level. */
             this_match->next = this_match_next;
@@ -6514,12 +6519,10 @@ initializer has previously been found to be acceptable, and
         /* In a constant context (e.g., a nontype template argument),
            a temporary or conversion is not allowed. */
         error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
-      } else if (dropping_qualifiers && !any_cfront_mode()) {
+      } else if (dropping_qualifiers) {
         /* Type qualifiers were dropped (and otherwise the type is okay).
            Note that testing this early means that an implicit conversion
            cannot be used to drop the qualifiers. */
-        /* This test is skipped in cfront mode because cfront allows
-           the use of a temporary in this case. */
         error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
