@@ -18385,7 +18385,7 @@ access errors that were detected.  options is a bit set of option flags.
   if (ssep->kind != (a_scope_kind)sck_file &&
       ssep->kind != (a_scope_kind)sck_namespace &&
       ssep->kind != (a_scope_kind)sck_namespace_extension &&
-      !(ssep->kind == (a_scope_kind)sck_class_struct_union ||
+      !(ssep->kind == (a_scope_kind)sck_class_struct_union &&
         extern_template)) {
     error(ec_explicit_instantiation_not_in_namespace_scope);
     flush_tokens();
