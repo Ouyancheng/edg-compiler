@@ -101,6 +101,9 @@ typedef int an_id_lookup_options_set;
 				/* Causes curr_scope_id_lookup to consider
 				   projection symbols (but not synthesized
 				   namespace projections). */
+#define IDL_SKIP_CLASS_SCOPES 0x200
+				/* Causes class and class reactivation scopes
+				   to be ignored. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -2798,6 +2801,7 @@ extern a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
 extern a_symbol_ptr opname_function_symbol(an_opname_kind kind);
 
 extern a_symbol_list_entry_ptr nonmember_operator_function_lookup(
+                                 an_opname_kind kind,
                                  a_type_ptr	type_1,
                                  a_type_ptr     type_2);
 

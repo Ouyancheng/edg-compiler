@@ -7225,6 +7225,8 @@ C and C++.
   a_boolean               must_be_tag   = (options & IDL_MUST_BE_TAG);
   a_boolean		  skip_curr_function_scope =
                                       (options & IDL_SKIP_CURR_FUNCTION_SCOPE);
+  a_boolean		  skip_class_scopes = 
+                                      (options & IDL_SKIP_CLASS_SCOPES);
   a_boolean		  is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
   a_boolean		  first_scope;
   a_boolean               must_be_type_name;
@@ -7239,6 +7241,7 @@ C and C++.
   a_boolean		  skip_first_class_reactivation_scope = FALSE;
   a_boolean		  any_nonreal_bases = FALSE;
   a_type_ptr		  class_with_nonreal_base;
+  a_boolean		  force_slow_lookup = FALSE;
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -7306,10 +7309,11 @@ C and C++.
       }  /* if */
     }  /* if */
 #endif /* CHECKING */
+    force_slow_lookup = skip_curr_function_scope || skip_class_scopes;
     if (C_dialect != C_dialect_cplusplus ||
         ((inactive_symbol_list == NULL ||
           !ssep->inactive_symbols_may_be_visible) &&
-         !ssep->slow_lookup_required)) {
+         !ssep->slow_lookup_required && !force_slow_lookup)) {
       /* Fast algorithm: just search the active symbol list. */
 #if DEBUG
       num_fast_id_lookups++;
@@ -7357,6 +7361,11 @@ C and C++.
                mode.  Cfront ignores the innermost class reactivation
                scope when processing friend functions. */
             skip_first_class_reactivation_scope = FALSE;
+            goto next_scope;
+          }  /* if */
+          if (kind == (a_scope_kind)sck_class_reactivation &&
+              skip_class_scopes) {
+            /* This is a class scope and we are skipping class scopes. */
             goto next_scope;
           }  /* if */
           /* Look on the inactive list for a symbol from this reactivated
@@ -7417,6 +7426,11 @@ C and C++.
 	  /* We have found a pragma scope -- ignore symbols in this scope. */
           skip_symbols_from_this_scope();
 	  goto next_scope;
+        } else if (kind == (a_scope_kind)sck_class_struct_union &&
+                   skip_class_scopes) {
+          /* This is a class scope and we are skipping class scopes. */
+          skip_symbols_from_this_scope();
+          goto next_scope;
         } else {
           /* Not a class reactivation or a template instantiation,
              i.e., normal scope.  Search through any symbols on the front
@@ -8106,10 +8120,7 @@ a projection symbol is needed to check for ambiguity and access).
   symhdr = opname_symbol_table[kind];
   if (symhdr != NULL) {
     /* Yes.  Look for one in the desired class. */
-    clear_locator(&locator, &pos_curr_token);
-    locator.symbol_header = symhdr;
-    locator.is_operator_name = TRUE;
-    locator.variant.opname = kind;
+    make_opname_locator(kind, &locator, &pos_curr_token);
     if (class_qualified_id_lookup(&locator, class_type,
                                   (IDL_NO_OPTIONS |
                                    IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) != NULL) {
@@ -8150,11 +8161,112 @@ be found.
 
 
 a_symbol_list_entry_ptr nonmember_operator_function_lookup(
+                                 an_opname_kind kind,
                                  a_type_ptr	type_1,
                                  a_type_ptr     type_2)
 /*
+Look up the set of operator function symbols that will be used to produce
+a list of candidate functions for a given overloaded operator.
+This routine performs the lookup described in [over.match.oper].
+Specifically, it produces the set of nonmember candidates by doing
+a normal lookup (but excluding member functions) and combining the
+result of that lookup with a lookup in the namespaces of the classes
+pointed to by type_1 and type_2 including the namespaces of their base
+classes.  For unary operators, type_2 will be NULL.
 */
 {
+  a_namespace_list_entry_ptr	nlep_1;
+  a_namespace_list_entry_ptr	nlep_2 = NULL;
+  a_symbol_header_ptr		sym_hdr;
+  a_symbol_list_entry_ptr	symbol_list = NULL;
+
+  db_enter(4, "nonmember_operator_function_lookup");
+  /* Get a pointer to the namespace list associated with each class. */
+  nlep_1 = symbol_supplement_for_class(type_1)->operator_lookup_namespaces;
+  if (type_2 != NULL) {
+    nlep_2 = symbol_supplement_for_class(type_2)->operator_lookup_namespaces;
+  }  /* if */
+  /* See if there are any functions for this operator. */
+  sym_hdr = opname_symbol_table[kind];
+  if (sym_hdr != NULL) {
+    int pass;
+    for (pass = 0; pass < 2; pass++) {
+      /* Look at active symbols on the first pass, inactive symbols on the
+         second pass. */
+      a_symbol_ptr	sym;
+      sym = pass == 0 ? sym_hdr->symbol : sym_hdr->inactive_symbols;
+      for (; sym != NULL; sym = sym->next) {
+        a_namespace_ptr	nsp;
+        a_namespace_list_entry_ptr	nlep;
+        /* Ignore member function symbols. */
+        if (sym->is_class_member) continue;
+        /* Ignore symbols that are not functions or function templates. */
+        if (!is_function_symbol(sym) ||
+            sym->kind != (a_symbol_kind)sk_function_template) continue;
+        /* Get the namespace associated with this function. */
+        nsp = sym->parent.namespace_ptr;
+        /* See if the namespace of this function is on the namespace list of
+           either of the operands.  Note that a NULL namespace pointer
+           still needs to be searched for.  There can be a list entry that
+           points to a NULL namespace. */
+        /* Look on the list associated with the first type. */
+        for (nlep = nlep_1; nlep != NULL; nlep = nlep->next) {
+          if (nlep->ptr == nsp) break;
+        }  /* for */
+        if (nlep == NULL) {
+          /* The namespace was not found on the first list, look on the
+             list associated with the second type. */
+          for (nlep = nlep_2; nlep != NULL; nlep = nlep->next) {
+            if (nlep->ptr == nsp) break;
+          }  /* for */
+        }  /* if */
+        if (nlep != NULL) {
+          /* The namespace was found on one of the lists.  Create a symbol
+             list entry that points to this symbol and add it so the list. */
+          a_symbol_list_entry_ptr	slep;
+          slep = alloc_symbol_list_entry();
+          slep->symbol = sym;
+          /* Add the new entry to the front of the list. */
+          slep->next = symbol_list;
+          symbol_list = slep;
+        }  /* if */
+      }  /* for */
+    }  /* for */
+    { /* Now do a normal lookup of the operator function.  See if the
+         symbol that is looked up is on the list that has already been
+         built.  If not, add it. */
+      a_symbol_locator	locator;
+      a_symbol_ptr	sym;
+      make_opname_locator(kind, &locator, &pos_curr_token);
+      sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
+      if (sym != NULL) {
+        a_symbol_list_entry_ptr	slep;
+        /* See if this symbol is already on the list. */
+        for (slep = symbol_list; slep != NULL; slep = slep->next) {
+          if (slep->symbol == sym) break;
+        }  /* for */
+        if (slep == NULL) {
+          /* The symbol is not on the list -- add it. */
+          slep = alloc_symbol_list_entry();
+          slep->symbol = sym;
+          /* Add the new entry to the front of the list. */
+          slep->next = symbol_list;
+          symbol_list = slep;
+        }  /* if */
+      }  /* if */
+    }
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 5 || db_flag_is_set("nonmem_operator_lookup")) {
+    a_symbol_list_entry_ptr	slep;
+    fprintf(f_debug, "Operator functions found:\n");
+    for (slep = symbol_list; slep != NULL; slep = slep->next) {
+      db_symbol(slep->symbol, "", 4);
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return symbol_list;
 }  /* nonmember_operator_function_lookup */
 
 
