@@ -3308,7 +3308,7 @@ NULL.
       rout_ptr = sym->variant.extern_symbol_descr->variant.routine.ptr;
       if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
-           a reference in, say, a sizeof operation doesn't count.*/
+           a reference in, say, a sizeof operation doesn't count. */
         if ((rout_ptr->storage_class == (a_storage_class)sc_static ||
              is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) &&
              !routine_defined(rout_ptr)) {
