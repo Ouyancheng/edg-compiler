@@ -6315,7 +6315,7 @@ virtual function tables to be used during construction of subobjects.
         base_class = NULL;
         derived_class = cvp->variant.derived_class;
       } else 
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
       /* Do not insert code here. */
       {
         base_class = cvp->variant.base_class;
