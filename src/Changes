@@ -1,5 +1,17 @@
 Version 2.34
 
+11/4/96  Spurious error on redeclaration of file scope template with the
+         same name as a macro
+
+Versions 2.32 and 2.33 issued a spurious redefinition error when a class
+template was redeclared using a name that is also a macro name and the macro
+was defined after the original declaration of the template.  This has been
+fixed.
+
+  template < class T > class A;
+  #define A A
+  template < class T > class A { };
+
 11/4/96  Support for covariant return type on overriding virtual function
 
 When ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN (in host_envir.h) is
