@@ -7,8 +7,8 @@ function template sometimes had its defined_in_friend_decl flag set (which
 cannot be correct since in-class specializations cannot be friend definitions).
 This is now fixed.
 
-9/9/04  Embedded C: Incorrect results on little-endian systems using
-        simulated integers
+9/19/04  Embedded C: Incorrect results on little-endian systems using
+         simulated integers
 
 Conversions of values to and from fixed-point did not work properly on
 little-endian systems when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE.
@@ -16,7 +16,7 @@ Now fixed.
 
   _Accum a = 1;
 
-9/10/04 C++-generating back end: missing parentheses around comma expression
+9/10/04  C++-generating back end: missing parentheses around comma expression
 
 The C++-generating back end failed to put a set of parentheses around
 a comma expression when it is the sole expression in a C99 compound
@@ -28,7 +28,7 @@ compile correctly.  Now fixed.
     int j = (int){(i, i)};
   }
 
-9/9/04  Embedded C: Named address space qualifiers and "?" operator
+9/9/04   Embedded C: Named address space qualifiers and "?" operator
 
 The processing for the "?" operator on pointers did not correctly
 handle named address space qualifiers (from Embedded C) on the
@@ -43,8 +43,8 @@ a bit set.  Now fixed.
     pa = x ? pa : pb;
   }
 
-9/8/04  Embedded C: incorrect result when fixed-point rounding produces
-        overflow
+9/8/04   Embedded C: incorrect result when fixed-point rounding produces
+         overflow
 
 An incorrect result was produced if the rounding of a fixed-point value
 to the nearest representable value for the destination type resulted
@@ -54,8 +54,8 @@ in an overflow.  Now fixed.
     unsigned short _Fract f = 1.0r;
   }
 
-9/8/04  C++-generating back end: Microsoft compilers and qualifiers on
-        virtual base class initializers
+9/8/04   C++-generating back end: Microsoft compilers and qualifiers on
+         virtual base class initializers
 
 MSVC++ 6.0 issues errors when the initializer for a virtual base class is
 specified using a qualified name.  The C++-generating back end has been
@@ -70,8 +70,8 @@ example,
     T(): N::S() { }  // Now generates "T(): S() { }" for MSVC++ 6.0
   };
 
-9/8/04  Abort when preprocessing directive appears between an identifier
-        and a "<"
+9/8/04   Abort when preprocessing directive appears between an identifier
+         and a "<"
 
 An abort could occur while caching or flushing tokens if an identifier
 and a "<" are separated by a preprocessing directive.  Now fixed.
@@ -80,7 +80,7 @@ and a "<" are separated by a preprocessing directive.  Now fixed.
   # define X x 
   <T> 
 
-9/8/04  Warning eliminated on division by zero in unevaluated code
+9/8/04   Warning eliminated on division by zero in unevaluated code
 
 A warning is no longer issued for a division by zero in a context
 like the following:
@@ -104,7 +104,7 @@ case to force folding of constant expressions even when they
 don't look constant in the IL, as in the above, but it has
 potential utility for a number of other issues in the future.
 
-9/7/04  Microsoft compatibility: For-init scope
+9/7/04   Microsoft compatibility: For-init scope
 
 MSVC++ 7.0 and earlier always use a nonstandard for-init scope.  I.e.,
 variables declared in a for-init construct are visible after the end of
@@ -123,8 +123,8 @@ previous MSVC++ versions apply.  For example:
 The front end has been updated to match the behavior of the MSVC++ 7.1
 compiler when microsoft_version >= 1310.
 
-9/7/04  Microsoft compatibility: Spurious correspondence error on in-class
-        specializations
+9/7/04   Microsoft compatibility: Spurious correspondence error on in-class
+         specializations
 
 In Microsoft mode, when compiling multiple translation units simultaneously,
 the front end sometimes issued a spurious incompatibility error on class
@@ -152,7 +152,7 @@ When files g1.cpp and g2.cpp were compiled simultaneous in Microsoft mode,
 an incompatibility error was previously issued for S<void>::f<void>().  This
 is now fixed: The code is now accepted without errors.
 
-9/3/04  Microsoft C++ compatibility: Type bool
+9/3/04   Microsoft C++ compatibility: Type bool
 
 MSVC++ 7.0 and earlier treated "bool" as a predeclared typedef in global scope
 and the EDG front end emulated this behavior in all Microsoft C++ modes.
@@ -164,7 +164,7 @@ For example:
     typedef int *bool;  // Previously accepted in all Microsoft C++ modes.
   }                     // Now only accepted with microsoft_version < 1310.
 
-9/2/04  Microsoft compatibility: Checking UUIDs across translation units
+9/2/04   Microsoft compatibility: Checking UUIDs across translation units
 
 In Microsoft mode, when compiling multiple translation units simultaneously,
 the front end previously always issued an error if a type appeared in two
@@ -181,7 +181,7 @@ For example:
 This relaxation is possible because this sort of difference does not affect
 the generated code.
 
-9/2/04  C- and C++-generating back ends: UPC THREADS constants
+9/2/04   C- and C++-generating back ends: UPC THREADS constants
 
 The C- and C++-generating back ends did not consider the possibility that a
 multiple of the UPC THREADS constant may appear next to operators of higher
@@ -194,13 +194,13 @@ parentheses.  For example:
 
 This is now fixed.
 
-9/2/04  IL display of UPC forall statement
+9/2/04   IL display of UPC forall statement
 
 The IL display utility now displays UPC forall statements in a form distinct
 from standard "for" statements.
 
-9/1/04  C++-generating back end: qualified references to injected class
-        names that are class template instances
+9/1/04   C++-generating back end: qualified references to injected class
+         names that are class template instances
 
 Under some circumstances, the C++-generating back end used an unqualified
 name when referring to an injected class name that is an instance of a
@@ -216,7 +216,7 @@ accept this form of reference.  Now fixed.  For example:
   };
   using namespace N;
 
-9/1/04  GNU/Microsoft compatibility: Flexible array member initializers
+9/1/04   GNU/Microsoft compatibility: Flexible array member initializers
 
 In Microsoft modes and in GNU C mode, the front end now accepts aggregate
 initializers for flexible array members.  A variable entry with such an
@@ -251,7 +251,7 @@ accepted in Microsoft modes (see Changes entry of 4/11/95).  This support has
 been extended to include indirect flexible array members and to mark the
 variable and aggregate constant entries as explained above.
 
-9/1/04  Incorrect IL for lowered lvalue "?" involving bit fields
+9/1/04   Incorrect IL for lowered lvalue "?" involving bit fields
 
 The lowered code for a compound assignment to bool involving
 a "?" operation and bit fields as the destination was not
