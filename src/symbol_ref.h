@@ -101,7 +101,9 @@ address of a const and taking the address of a nonconst object).
 			   parameter. */
 #define SRK_INITIALIZATION 0x800
 			/* Or'ed with SRK_DEFINITION to indicate an explicit
-			   or implicit variable initialization. */
+			   or implicit variable initialization.  In addition,
+			   may be or'ed with SRK_REFERENCE to indicate an
+			   explicit reference in a mem-initializer list. */
 #define SRK_CONST_ADDRESS_TAKEN 0x1000
 			/* Or'ed with SRK_ADDRESS_TAKEN to indicate an
 			   address taken in a way that can't modify the object
