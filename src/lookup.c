@@ -124,6 +124,21 @@ locator.  In the case of an ambiguity, return NULL.
 }  /* find_nested_type_symbol */
 
 
+a_scope_number scope_depth_for_synth_namespace_symbol(void)
+/*
+Determine the depth at which a synthesized namespace symbol for the
+current context should be entered or found.  This is usually the file scope,
+but for template instantiations is the nearest instantiation scope.
+*/
+{
+  a_scope_depth	depth;
+
+  depth = depth_innermost_instantiation_scope;
+  if (depth == NO_SCOPE_DEPTH) depth = DEPTH_OF_FILE_SCOPE;
+  return depth;
+}  /* scope_depth_for_synth_namespace_symbo */
+
+
 static
 a_symbol_ptr find_synthesized_projection_symbol(
                               a_symbol_locator          *locator,
@@ -156,9 +171,15 @@ the options being used for the lookup.
                                       = (options & IDL_MUST_BE_NAMESPACE) != 0;
     a_boolean		tentative_type_lookup
                                   = (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
-    a_scope_number	scope_number = scope_stack[depth_scope_stack].number;
+    a_scope_number	scope_number = NO_SCOPE_NUMBER;
+    a_scope_depth	scope_depth;
     a_boolean		instantiation_context_lookup =
                                     (options & IDL_INSTANTIATION_CONTEXT) != 0;
+    /* Synthesized namespace symbols are entered into the file scope, except
+       for those referenced from template instantiations, which are entered
+       in the template instantiation scope. */
+    scope_depth = scope_depth_for_synth_namespace_symbol();
+    scope_number = scope_stack[scope_depth].number;
     /* Loop through the list of other symbols.  Look for symbols marked
        as synthesized namespace projection symbols. */
     for (sym = sym_hdr->other_symbols; sym != NULL; sym = sym->next) {

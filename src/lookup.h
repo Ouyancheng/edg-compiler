@@ -183,6 +183,7 @@ reused later.
 		IDL_INSTANTIATION_CONTEXT |				\
                 IDL_TENTATIVE_TYPE_LOOKUP |				\
 		IDL_IS_EXPR_CONTEXT |					\
+		IDL_SKIP_CLASS_SCOPES |					\
                 IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
 
 
@@ -211,6 +212,8 @@ reused later.
              : f_get_effective_decl_seq())
 
 extern a_decl_sequence_number f_get_effective_decl_seq(void);
+
+extern a_scope_number scope_depth_for_synth_namespace_symbol(void);
 
 extern
 a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,

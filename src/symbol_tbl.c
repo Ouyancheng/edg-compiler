@@ -4034,10 +4034,13 @@ the options being used for the lookup.
   a_symbol_header_ptr		sym_hdr;
   a_scope_pointers_block_ptr	pointers_block;
   a_boolean			can_be_reused;
+  a_scope_depth			scope_depth;
 
+
+  scope_depth = scope_depth_for_synth_namespace_symbol();
   sym_ptr = make_namespace_projection_symbol(fund_sym,
                                              &location->source_position,
-                                             depth_scope_stack);
+                                             scope_depth);
   sym_ptr->is_error = location->is_error;
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
@@ -4052,7 +4055,7 @@ the options being used for the lookup.
   if (qualified_lookup) {
     pointers_block = pointers_block_for_namespace(qualifier_namespace);
   } else {
-    pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
+    pointers_block = assoc_pointers_block_of(&scope_stack[scope_depth]);
   }  /* if */
   sym_ptr->next_in_scope = pointers_block->synth_namespace_projection_symbols;
   pointers_block->synth_namespace_projection_symbols = sym_ptr;
@@ -4397,22 +4400,22 @@ the file scope is used.
     /* The existing symbol is not an sk_overloaded_function symbol
        (i.e., it's a simple function symbol of some kind). */
     if (!use_namespace) {
-      /* Find the scope stack entry associated with this declaration.
-         depth_scope_stack is used instead of decl_scope_level because
-         the previous "declaration" may actually be a synthesized 
-         namespace projection symbol that can be created in any scope,
-         not just a declarative scope. */
-      ssep = &scope_stack[depth_scope_stack];
-      /* If the scope stack entry for the overloaded function is not that of
-         the current scope (e.g., when a friend declaration refers to a 
-         function at file scope), find the correct one. */
-      while (ssep->number != other_sym->decl_scope) {
-#if CHECKING
-        if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) {
-          internal_error("enter_overloaded_symbol: scope stack overrun error");
+      if (other_sym->synthesized_namespace_projection) {
+        /* When looking for a synthesized namespace symbol, look in the
+           scope in which the symbol was entered. */
+        a_scope_depth	scope_depth;
+        scope_depth = scope_depth_for_synth_namespace_symbol();
+        ssep = scope_stack_entry_for(scope_depth);
+      } else {
+        /* Find the scope stack entry associated with this declaration. */
+        ssep = &scope_stack[decl_scope_level];
+        /* If the scope stack entry for the overloaded function is not that of
+           the current scope (e.g., when a friend declaration refers to a 
+           function at file scope), find the correct one. */
+        while (ssep->number != other_sym->decl_scope) {
+          check_assertion(ssep != &scope_stack[DEPTH_OF_FILE_SCOPE]);
+          --ssep;
         }  /* if */
-#endif /* CHECKING */
-        --ssep;
       }  /* if */
       pointers_block = assoc_pointers_block_of(ssep);
     } else {
