@@ -1231,9 +1231,6 @@ when the enclosing class is instantiated.
      declaration, not a definition. */
   rp->defined = TRUE;
   ((a_symbol_ptr)rp->source_corresp.assoc_info)->defined = TRUE;
-  if (rp->storage_class == (a_storage_class)sc_extern) {
-    rp->storage_class = (a_storage_class)sc_unspecified;
-  }  /* if */
   rp->defined_in_friend_decl = TRUE;
   /* Let get_token know about the cache. */
   rescan_cached_tokens(&rfp->function_body_token_cache);
@@ -1478,9 +1475,6 @@ nested class.
           /* Normal case. */
           a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
 
-          if (rp->storage_class == (a_storage_class)sc_extern) {
-            rp->storage_class = (a_storage_class)sc_unspecified;
-          }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

@@ -616,6 +616,11 @@ and for the instantiation of template functions.
   } else {
     class_type = NULL;
   }  /* if */
+  /* Change the storage class to indicate that the function has a definition
+     now.  An sc_static storage class is left alone. */
+  if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
+    rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+  }  /* if */
   rout_type = skip_typerefs(rout_ptr->type);
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,
