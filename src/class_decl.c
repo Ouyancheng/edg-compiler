@@ -890,6 +890,22 @@ done:
 }  /* corresponding_base_class */
 
 
+static a_boolean is_within_unreal_instantiation(a_type_ptr  class_type)
+/*
+Return TRUE if class_type is itself a "prototype instantiation" of a
+class template or is nested within such a class.
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+
+  while (class_type->source_corresp.class_of_which_a_member != NULL) {
+    class_type = class_type->source_corresp.class_of_which_a_member;
+  }  /* while */
+  cssp = symbol_supplement_for_class(class_type);
+  return (cssp->class_template != NULL && !cssp->is_real_instantiation);
+}  /* is_within_unreal_instantiation */
+
+
 static a_boolean overriding_virtual_function_lists_correspond(
                                     an_overriding_virtual_function_ptr  list1,
                                     an_overriding_virtual_function_ptr  list2)
@@ -2871,22 +2887,6 @@ without it.
   }  /* for */
   return sym;
 }  /* member_function_redecl_sym */
-
-
-static a_boolean is_within_unreal_instantiation(a_type_ptr  class_type)
-/*
-Return TRUE if class_type is itself a "prototype instantiation" of a
-class template or is nested within such a class.
-*/
-{
-  a_class_symbol_supplement_ptr  cssp;
-
-  while (class_type->source_corresp.class_of_which_a_member != NULL) {
-    class_type = class_type->source_corresp.class_of_which_a_member;
-  }  /* while */
-  cssp = symbol_supplement_for_class(class_type);
-  return (cssp->class_template != NULL && !cssp->is_real_instantiation);
-}  /* is_within_unreal_instantiation */
 
 
 static a_symbol_ptr decl_friend_function(a_symbol_locator    *locator,
