@@ -4529,7 +4529,7 @@ declaration.
         if (!types_are_redecl_compatible(type_ptr, *old_type)) {
           an_error_severity  severity = es_none;
 
-          if (gcc_mode) {
+          if (gcc_mode && gnu_version < 30000) {
             a_type_ptr  orig_type = skip_typerefs(*old_type);
             a_type_ptr  redecl_type = skip_typerefs(type_ptr);
             if (types_are_redecl_compatible(redecl_type, orig_type)) {
@@ -12058,10 +12058,10 @@ continue_with_declaration:
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!has_explicit_type_specifier && !is_constructor_or_destructor &&
 #if GNU_EXTENSIONS_ALLOWED
-          /* "typedef foo = 3;" is a GNU C extension, not a use of
+          /* "typedef foo = 3;" is an old GNU C extension, not a use of
              implicit int (this extension is not present in the GNU C++
-             compiler). */
-          !(gcc_mode && curr_token == tok_assign && 
+             compiler, nor in newer GNU C compilers). */
+          !(gcc_mode && gnu_version < 30100 && curr_token == tok_assign && 
             local_storage_class == (a_storage_class)sc_typedef) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
           !locator.is_error &&
@@ -12429,12 +12429,15 @@ continue_with_declaration:
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
 #if GNU_EXTENSIONS_ALLOWED
-        if (gcc_mode && !has_explicit_type_specifier &&
+        if (gcc_mode && gnu_version < 30100 && !has_explicit_type_specifier &&
             local_storage_class == (a_storage_class)sc_typedef) {
-          /* In GNU C (but not in GNU C++) a typedef can be defined with
+          /* In early versions of GNU C (but not in GNU C++) a typedef can be
+             defined with
                  typedef <type_name> = <expr> ;
              where the type of the given expression becomes the type of
-             the give type name. */
+             the given type name.  (GNU C 3.1 and GNU C 3.2 crash on such
+             constructs and later versions report a normal error: We therefore
+             only emulate this feature when gnu_version < 30100.) */
           typedef_initializer(symbol_ptr);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           decl_pos_block.var_init_range.end = curr_construct_end_position;
