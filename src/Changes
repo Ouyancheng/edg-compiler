@@ -79,7 +79,7 @@ and a discretionary error otherwise).
 
 10/23/03 GNU mode: Parameter attribute "unused" outside function definitions
 
-In GNU modes the front end issues an error if the attribute "unused" appeared
+In GNU modes the front end issued an error if the attribute "unused" appeared
 on a parameter declaration that was not part of a function definition.  Now,
 such attributes are simply ignored.
 

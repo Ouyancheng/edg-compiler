@@ -2033,7 +2033,7 @@ for a parameter.
         break;
       case ak_unused:
         /* These attributes are ignored by GNU C when not appearing as part of
-           a function definition. */
+           a function definition.  We extend that behavior to GNU C++ mode. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
