@@ -58,7 +58,7 @@ This is now emulated when GNU_X86_ASM_EXTENSIONS_ALLOWED is TRUE.
 
 The front end aborted on use of a leading "::" in an expression
 in a #if.  "::" is meaningless in preprocessing expressions
-because there are no identifiers in such expressions.  Fixed (and
+because there are no identifiers in such expressions.  Fixed (an
 error is issued).
 
   #if ::x  // Aborted
