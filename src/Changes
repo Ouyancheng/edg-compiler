@@ -1,5 +1,11 @@
 Version 2.37
 
+6/24/97   lower_il.c doesn't compile with CHECKING off
+
+A fragment of code in lower_il.c wasn't standard C when CHECKING is
+set to FALSE, and therefore might not compile with some C compilers.
+Now fixed.
+
 6/23/97   Microsoft compatibility: allow omission of decl-specifiers
 
 A warning is now issued (instead of an error) in Microsoft compatibility
