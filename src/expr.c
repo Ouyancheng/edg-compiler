@@ -4301,12 +4301,14 @@ accordingly.  Set *err to TRUE if there is an error.
          complex arguments.  Otherwise, if either is long double, use long
          double.  Otherwise, one must be double and the other float, so use
          double. */
+#if C99_IL_EXTENSIONS_SUPPORTED
       if (is_complex_type(*arg_type)) {
         /* Error will be reported later. */
       } else if (is_complex_type(new_type)) {
         /* Error will be reported later. */
         *arg_type = new_type;
       } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       if ((*arg_type)->variant.float_kind == (a_float_kind)fk_long_double) {
         /* Okay. */
       } else if (new_type->variant.float_kind ==

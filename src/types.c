@@ -345,6 +345,7 @@ type.
   return(is_nonreal_floating(tp));
 }  /* is_nonreal_floating_type */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean is_imaginary_type(a_type_ptr tp)
 /*
@@ -355,6 +356,8 @@ Return TRUE if the given type is an imaginary floating type.
   return(is_imaginary(tp));
 }  /* is_imaginary_type */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean is_complex_type(a_type_ptr tp)
 /*
@@ -365,6 +368,7 @@ Return TRUE if the given type is a complex floating type.
   return(is_complex(tp));
 }  /* is_complex_type */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
 /*
