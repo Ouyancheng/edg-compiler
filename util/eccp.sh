@@ -366,6 +366,9 @@ do
       feoptions=$feoptions" "$1;
       instantiation_mode_specified=1
       ;;
+    -T)
+#     Supress automatic template instantiation processing
+      feoptions=$feoptions" "$1;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
       ;;
@@ -493,7 +496,7 @@ do
       had_old_ii_file=1
       ii_tmp_file=/usr/tmp/$$edgII
       sed -e "1,1 d" $ii_file_name >$ii_tmp_file
-      ii_option="-T $ii_tmp_file"
+      ii_option="-F $ii_tmp_file"
     fi
   fi
   if [ -z "$CPFE" ]
