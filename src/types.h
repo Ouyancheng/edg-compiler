@@ -433,7 +433,7 @@ Bit flags for calls of f_types_are_compatible et al.
 			   the corresponding component of the second type
 			   (only applies to enum and struct/union types). */
 #define TCF_NO_DEFAULT_ARG_PROMOTIONS 0x200
-			/* The second type has an unprototype parameter list
+			/* The second type has an unprototyped parameter list
 			   (i.e., from an old-style function definition).
 			   Compare the parameter types without the usual
 			   default promotions.  (Used in GNU C mode.) */
