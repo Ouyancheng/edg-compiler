@@ -18,21 +18,11 @@ fe_init.h -- Declarations relating to fe_init.c (having to do with
 #ifndef FE_INIT_H
 #define FE_INIT_H 1
 
-#ifndef SYMBOL_TBL_H
-#include "symbol_tbl.h"
-#endif /* ifndef SYMBOL_TBL_H */
-
-
 /* Initialize front end: */
 extern void fe_one_time_init(void);
 extern void fe_init_part_1(void);
 extern void fe_init_for_pch_prefix_scan(void);
 extern void fe_init_part_2(void);
-
-extern a_symbol_ptr enter_predef_macro(char      *repl_text,
-			               char      *macro_name,
-				       a_boolean cannot_be_redefined);
-
 
 #endif /* ifndef FE_INIT_H */
 
