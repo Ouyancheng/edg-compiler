@@ -24,6 +24,7 @@ Externals for debugging.
 */
 extern a_boolean proc_debug_option(char *debug_option);
 
+/* See the macro db_flag_is_set for a good way to call debug_flag_is_set. */
 extern a_boolean debug_flag_is_set(char *name);
 
 /* Prints the headers for a given category of data structures (e.g.,
