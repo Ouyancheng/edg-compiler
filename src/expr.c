@@ -6371,9 +6371,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   } else if (C_dialect == C_dialect_cplusplus) {
     if (types_are_compatible(operand_2.type, operand_3.type)) {
       /* In C++, if the types are the same the result has that type.
-         This is tested again later on the types after lvalue --> rvalue
-         transformation. */
-      types_are_the_same = TRUE;
+         This is tested again later; the test here prevents a search for
+         conversions from class types to builtin types if the two operands
+         have the same class type. */
     } else {
       /* Check for cases where the operands are classes. */
       a_boolean operand_2_is_class =is_class_struct_union_type(operand_2.type);
@@ -6402,37 +6402,44 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                          &operator_position,
                                          result, &processed);
           /* processed TRUE means an error has been detected. */
-          if (processed) {
-            err = TRUE;
-          } else if (types_are_compatible(operand_2.type, operand_3.type)) {
-            /* Check again for the types being the same after doing the
-               conversions. */
-            types_are_the_same = TRUE;
-          }  /* if */
+          if (processed) err = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
   if (!processed) {
+    /* Do array --> pointer and function --> pointer transformations. */
+    expr_stack->evaluated = expr2_evaluated;
+    do_operand_transformations(&operand_2,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+    expr_stack->evaluated = expr3_evaluated;
+    do_operand_transformations(&operand_3,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+    expr_stack->evaluated = saved_evaluated;
     result_type = operand_2.type;  /* Assume. */
+    if (!C_mode()) {
+      /* See if the operand types are the same in C++ mode. */
+      types_are_the_same = types_are_compatible(operand_2.type,
+                                                operand_3.type);
+    }  /* if */
     /* Note that at this point types_are_the_same is TRUE if the mode is
-       C++ and the operand types are exactly the same before any
-       transformations like lvalue --> rvalue. */
+       C++ and the operand types are exactly the same before the
+       lvalue --> rvalue transformation. */
     if (types_are_the_same &&
         is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) {
       /* In C++, if the types are the same and the second and third operands
          are lvalues they are left as lvalues. */
       result_is_an_lvalue = TRUE;
     } else {
-      /* Convert the operands to rvalues (etc.). */
+      /* Convert the operands to rvalues. */
       expr_stack->evaluated = expr2_evaluated;
-      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
+      conv_lvalue_to_rvalue(&operand_2);
       expr_stack->evaluated = expr3_evaluated;
-      do_operand_transformations(&operand_3, TOPT_NO_OPTIONS);
+      conv_lvalue_to_rvalue(&operand_3);
       expr_stack->evaluated = saved_evaluated;
       if (!C_mode() && !types_are_the_same) {
         /* Determine whether the types are the same after the
-           transformations. */
+           transformation. */
         if (types_are_compatible(operand_2.type, operand_3.type)) {
           types_are_the_same = TRUE;
         }  /* if */
