@@ -4895,6 +4895,7 @@ instantiation.
                                  sym->is_class_member &&
                                  (!decl_state->is_member_decl ||
                                   decl_state->is_template_friend) &&
+                                 !locator.is_template_id &&
                                  tssp != NULL;
   }  /* if */
   /* See if the class being declared has the same name as one of its
@@ -4906,14 +4907,22 @@ instantiation.
   if (!locator.is_qualified_name && sym != NULL) {
     /* Unless this is a friend declaration, an unqualified name must refer
        to a name from the current scope. */
-    check_assertion(sym->is_error || decl_state->is_template_friend ||
-                    sym->decl_scope ==
-                         scope_stack[decl_state->effective_decl_level].number);
+    a_scope_number	decl_scope_number;
+    decl_scope_number = scope_stack[decl_state->effective_decl_level].number;
+    if (sym->decl_scope != decl_scope_number) {
+      if (decl_state->is_template_friend) {
+        /* A scope mismatch is okay in a friend declaration. */
+      } else if (sym->is_error) {
+        /* Some other error occurred. */
+      } else {
+        pos_sy_error(ec_bad_scope_for_redeclaration,
+                     &locator.source_position, sym);
+        sym = NULL;
+        suppress_redecl_error = TRUE;
+        set_to_named_error_locator(locator);
+      }  /* if */
+    }  /* if */
   } else if (locator.is_qualified_name && sym != NULL) {
-#if 0
-    /* Class qualified name checks need to be added here for member
-       templates. */
-#endif /* 0 */
     a_scope_stack_entry_ptr	ssep =
                                 &scope_stack[decl_state->effective_decl_level];
     a_namespace_ptr		nsp;
@@ -7811,6 +7820,9 @@ are either the specialization of a template or a template declaration.
         decl_state.decl_scope_err = TRUE;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (decl_state.is_full_specialization) {
+    /* The entity being declared is a full specialization. */
     full_specialization(&decl_state);
   } else {
     /* The entity being declared is a template. */
