@@ -434,9 +434,6 @@ for unions and aggregates at that level).
        array of char is initialized by a string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
-#if 0
-    check_for_opening_brace(&brace_flag);
-#endif /* if 0 */
     if (curr_token == tok_string_literal && is_string_type(local_type)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string.  Handle this case specially. */
@@ -640,9 +637,6 @@ for unions and aggregates at that level).
        brace-enclosed) value. */
     a_dynamic_init  local_di;
 
-#if 0
-    check_for_opening_brace(&brace_flag);
-#endif /* if 0 */
     scan_initializer_of_simple_object(/*nonconst_allowed=*/
                                             (C_dialect == C_dialect_cplusplus),
                                       local_type, &local_di);
