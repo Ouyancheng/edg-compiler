@@ -6892,7 +6892,6 @@ operator should be created.  No routine body is generated at this time.
   a_symbol_locator          locator;
   a_func_info_block         func_info;
   a_source_position         *class_decl_pos;
-  a_type_qualifier_set      qualifiers = TQ_CONST;
 
   db_enter(3, "generate_special_function");
   /* Allocate and initialize the routine type entry for the function. */
@@ -6918,9 +6917,7 @@ operator should be created.  No routine body is generated at this time.
     }  /* if */
   }  /* if */
   extra_info->param_type_list = ptp;
-  extra_info->implicit_this_param_type =
-                            make_qualified_type(make_pointer_type(class_type),
-                                                qualifiers);
+  extra_info->implicit_this_param_type = make_pointer_type(class_type);
   extra_info->prototyped = TRUE;
   /* Check whether the routine needs special support for returning a class
      object by value.  This call should be superfluous; it is included just
@@ -8255,7 +8252,7 @@ the function is a nonstatic member of class_type.
 
 */
 {
-  a_type_ptr  rout_type;
+  a_type_ptr  rout_type, tp;
 
   if (is_definition) {
     /* Not legal to define a function with a typedef type. */
@@ -8271,10 +8268,7 @@ the function is a nonstatic member of class_type.
           Be sure the implicit this-param type is filled in, since that's
           the only way a nonstatic member function is distinguished from a
           static member function. */
-       a_type_ptr tp;
-
        tp = make_pointer_type(class_type);
-       tp = make_qualified_type(tp, TQ_CONST);
        rout_type->variant.routine.extra_info->implicit_this_param_type = tp;
      } else if (any_cfront_mode()) {
        /* Just in case this is a copy of the weird cfront-compatibility
