@@ -5945,6 +5945,50 @@ directly.  *con_pos will be set to indicate the simple constant.
     set_init_con_pos(simple_con, con_pos);
   }  /* if */
 }  /* split_constant_if_repeated */
+  
+
+static void explode_string_initializer(an_init_con_pos *con_pos)
+/*
+If the indicated initializer constant position is on a string literal
+constant, explode the string into an aggregate initializer for the
+individual characters.  *con_pos will be set to indicate the aggregate.
+*/
+{
+  a_constant_ptr con = con_pos->ptr;
+
+  if (con->kind == (a_constant_repr_kind)ck_string) {
+    a_targ_size_t  i;
+    a_targ_size_t  len = con->variant.string.length;
+    char           *str = con->variant.string.value;
+    a_boolean      is_wide = !is_char_array_type(con->type);
+
+    set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+    for (i = 0; i < len; i += (is_wide ? targ_sizeof_wchar_t : 1)) {
+      a_constant     char_val;
+      a_constant_ptr char_con;
+
+      /* Make a constant for one character of the string. */
+      if (!is_wide) {
+        set_integer_constant(&char_val, (a_host_large_integer)str[i],
+                             (an_integer_kind)ik_char);
+      } else {
+        /* Wide string case. */
+        unsigned long val = extract_wide_char_from_string(str+i);
+        set_unsigned_integer_constant(&char_val,
+                                      (a_host_large_unsigned)val,
+                                      targ_wchar_t_int_kind);
+      }  /* if */
+      char_con = alloc_unshared_constant(&char_val);
+      /* Add the constant to the aggregate list. */
+      if (con->variant.aggregate.first_constant == NULL) {
+        con->variant.aggregate.first_constant = char_con;
+      } else {
+        con->variant.aggregate.last_constant->next = char_con;
+      }  /* if */
+      con->variant.aggregate.last_constant = char_con;
+    }  /* for */
+  }  /* if */
+}  /* explode_string_initializer */
 
 
 static void find_designator_insert_point(a_constant_ptr  desig_con,
@@ -6188,6 +6232,13 @@ have already had their designated initializers lowered.
        that is needed. */
     while (con.ptr != NULL &&
            con.ptr->kind != (a_constant_repr_kind)ck_designator) {
+      if (earlier_con.ptr != NULL) {
+        /* If merging old and new values, rewrite string constants as
+           aggregate initializers to allow operation at the character
+           level. */
+        explode_string_initializer(&con);
+        explode_string_initializer(&earlier_con);
+      }  /* if */
       if (con.ptr->kind == (a_constant_repr_kind)ck_aggregate) {
         /* Process a sub-aggregate. */
         a_constant_ptr superseded_con = earlier_con.ptr;

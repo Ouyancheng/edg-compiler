@@ -1,5 +1,19 @@
 Version 2.46
 
+5/21/01  Abort on C99 designated initializer on string and aggregate that
+         doubly initialize same character
+
+The lowering for C99 designated initializers aborted while attempting
+to lower an initializer that initializes the same spot twice, once
+with a string literal and once with an aggregate or individual
+characters.  Now fixed.
+
+  struct H {
+   char I[6];
+   int J;
+  };
+  struct H m[] = { { { "foo" }, 1 }, [0] = { .I[0] = 'b' } };
+
 5/21/01  Name linkage strings and character conversions
 
 The front end now converts the strings in the array name_linkage_kind_names
