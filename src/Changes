@@ -1,5 +1,16 @@
 Version 2.23
 
+4/28/94  Generating "const" in ANSI C output
+
+The C-generating back end has been changed so that it will generate
+"const" in types when generating ANSI C.  Formerly, it was always
+commented out.  Generating "const" is a bit tricky, since the "const"
+must be turned off on variables for which some initialization code
+has been rendered as normal executable code (e.g., an assignment
+statement).  Also, several bugs in maintaining type qualifiers were
+exposed and fixed: notably, in add_indirection_to_node and
+scan_function_call.
+
 4/28/94  Diagnostic on branching over an initialization
 
 By default a warning is now issued instead of an error for branching
