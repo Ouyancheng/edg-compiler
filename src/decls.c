@@ -4826,14 +4826,6 @@ the symbol and its linkage (which is always "none").
 }  /* define_static_data_member */
 
 
-/* Return TRUE if the namespace entry indicated by nsp is namespace "std". */
-#define is_namespace_std(nsp)                                           \
-  ((nsp) != NULL && !nsp->is_namespace_alias &&                         \
-   nsp->source_corresp.parent.namespace_ptr == NULL &&                  \
-   strcmp(((a_symbol_ptr)(nsp)->source_corresp.assoc_info)->            \
-                                    header->identifier, "std") == 0)
-
-
 void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,
@@ -5018,9 +5010,9 @@ return a pointer to it in *symbol_ptr.
   /* Issue a diagnostic if size_t is declared in a way inconsistent with
      the target configuration. */
   if (!is_error_type(type_ptr) &&
-      strcmp(sym->header->identifier, "size_t") == 0 &&
       (decl_scope_level == DEPTH_OF_FILE_SCOPE ||
-       (nsp != NULL && is_namespace_std(nsp)))) {
+       nsp == symbol_for_namespace_std->variant.namespace_info.ptr) &&
+      strcmp(sym->header->identifier, "size_t") == 0) {
     /* "size_t" declared at file scope or in namespace "std". */
     if (!is_integral_type(type_ptr) ||
         skip_typerefs(type_ptr)->variant.integer.int_kind !=
@@ -6700,8 +6692,6 @@ caller.
             set_namespace_membership(ns_sym, &nsp->source_corresp,
                                      (a_namespace_ptr)NULL);
             ns_sym->variant.namespace_info.ptr = nsp;
-            ns_sym->variant.namespace_info.extra_info =
-                                         alloc_namespace_symbol_supplement();
             add_to_namespaces_list(nsp);
             record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION,
                                       ns_sym, &locator.source_position,
@@ -6742,10 +6732,19 @@ caller.
     /* Namespace definition. */
     if (required_token(tok_lbrace, ec_exp_lbrace)) {
       if (ns_sym == NULL) {
-        /* Create a namespace symbol. */
-        ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
-                              depth_scope_stack,
-                              /*suppress_redecl_error=*/TRUE);
+        if (locator.symbol_header == symbol_for_namespace_std->header &&
+            depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+          /* This is the initial explicit declaration of namespace "std".
+             Reuse the predeclared symbol. */
+          ns_sym = symbol_for_namespace_std;
+          enter_symbol_for_namespace_std(&locator);
+          srk_flags |= SRK_DEFINITION;
+        } else {
+          /* Create a namespace symbol. */
+          ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
+                                depth_scope_stack,
+                                /*suppress_redecl_error=*/TRUE);
+        }  /* if */
       }  /* if */
       if (ns_sym->variant.namespace_info.ptr == NULL) {
         /* Original definition -- allocate the namespace entry. */
@@ -6755,8 +6754,6 @@ caller.
         set_namespace_membership(ns_sym, &nsp->source_corresp,
                                  (a_namespace_ptr)NULL);
         ns_sym->variant.namespace_info.ptr = nsp;
-        ns_sym->variant.namespace_info.extra_info =
-                                       alloc_namespace_symbol_supplement();
         /* Set a flag indicating that this namespace is itself an unnamed
            namespace or is enclosed by an unnamed namespace. */
         if (is_unnamed_namespace ||
@@ -6806,7 +6803,7 @@ caller.
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                    skip_namespace_aliases(nsp));
       }  /* if */
-      record_symbol_declaration(srk_flags, ns_sym, &namespace_pos,
+      record_symbol_declaration(srk_flags, ns_sym, &locator.source_position,
                                 namespace_ssep);
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);

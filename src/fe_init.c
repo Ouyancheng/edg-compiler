@@ -817,6 +817,10 @@ source file's compilation.
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   if (C_dialect == C_dialect_cplusplus) {
+    /* Predeclare namespace "std" and create a symbol for it.  Note that
+       the symbol is not actually added to the symbol table until namespace
+       "std" is explicitly declared. */
+    make_symbol_for_namespace_std();
     /* Add symbols for ::operator new and ::operator delete to the symbol
        table.  This is delayed till now (rather than done with other symbol
        table initialization) because routine entries are also created. */
@@ -826,6 +830,8 @@ source file's compilation.
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
     make_global_operator_new_or_delete_symbol(
                                            (an_opname_kind)onk_array_delete);
+    /* Enter other predeclared symbols, as required by the implementation. */
+    enter_system_specific_predeclared_symbols();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && C_mode()) {

@@ -2117,9 +2117,6 @@ a_template_cache_segment_ptr alloc_template_cache_segment(
 
 extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
-extern a_namespace_symbol_supplement_ptr
-                                   alloc_namespace_symbol_supplement(void);
-
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
 
 extern
@@ -2224,6 +2221,17 @@ extern a_symbol_ptr full_enter_symbol(char          *identifier,
 
 extern void make_symbol_for_type_of_type_info(void);
 
+EXTERN a_symbol_ptr
+		symbol_for_namespace_std;
+			/* Symbol for namespace "std", which is predeclared
+			   by the front end (but not entered into the symbol
+			   table until a user declaration is encountered).
+			   C++ only. */
+
+extern void make_symbol_for_namespace_std(void);
+
+extern void enter_symbol_for_namespace_std(a_symbol_locator  *locator);
+
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 			    a_symbol_kind sym_kind);
 
@@ -2275,6 +2283,13 @@ extern a_symbol_ptr find_corresponding_operator_delete_sym(
                                                   a_boolean    template_okay,
                                                   a_boolean    *ambiguous,
                                                   a_symbol_ptr *overload_sym);
+
+extern a_symbol_ptr make_predeclared_function_symbol(
+                                              a_symbol_locator  *locator,
+                                              a_type_ptr        return_type,
+                                              a_type_ptr        param1_type,
+                                              a_type_ptr        param2_type,
+                                              a_type_ptr        param3_type);
 
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 
