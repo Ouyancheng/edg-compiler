@@ -122,8 +122,6 @@ Do the processing required to complete the file scope IL.  This is
 called both for secondary translation units (is_primary_translation_unit
 is FALSE) and for primary translation units (is_primary_translation_unit
 is TRUE).
-
-This routine does all of the processing except for popping the file scope.
 */
 {
   a_scope_ptr	il_scope;
@@ -138,6 +136,23 @@ This routine does all of the processing except for popping the file scope.
                &curr_translation_unit->file_scope_pointers_block,
                /*is_namespace_wrapup=*/TRUE);
   wrapup_namespace_scopes(il_scope);
+
+  /* Pop the file scope. */
+  pop_scope();
+}  /* file_scope_il_wrapup_part_1 */
+
+
+static void file_scope_il_wrapup_part_2(void)
+/*
+Do the final wrapup processing on a translation unit.
+*/
+{
+  a_scope_ptr	il_scope;
+
+  il_scope = curr_translation_unit->primary_scope;
+
+  /* Reactivate the file scope. */
+  push_file_scope(/*is_reactivation=*/TRUE);
 
   if (!C_mode()) {
     /* Go through the fixup list for based-type entries and remove entities
@@ -170,23 +185,6 @@ This routine does all of the processing except for popping the file scope.
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
-  /* Pop the file scope. */
-  pop_scope();
-}  /* file_scope_il_wrapup_part_1 */
-
-
-static void file_scope_il_wrapup_part_2(void)
-/*
-Do the final wrapup processing on a translation unit.
-*/
-{
-  a_scope_ptr	il_scope;
-
-  il_scope = curr_translation_unit->primary_scope;
-
-  /* Reactivate the file scope. */
-  push_file_scope(/*is_reactivation=*/TRUE);
-
 #if MAINTAIN_NEEDED_FLAGS
   /* Set the "needed" flag in defined variables with external linkage --
      both in the file scope and in each of the namespace scopes. */
