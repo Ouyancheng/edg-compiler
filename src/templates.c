@@ -3256,8 +3256,8 @@ included in the search.
        internal) as the template itself has. */
     class_type->source_corresp.name_linkage =
                              tssp->variant.class_template.name_linkage;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+    if (microsoft_mode or_near_and_far_enabled()) {
       a_symbol_ptr	prototype_template_prototype_sym;
       a_type_ptr	prototype_type;
       /* Update the Microsoft decl modifier information for this class based
@@ -3277,19 +3277,23 @@ included in the search.
 
         clear_extended_decl_info_block(extended_decl_info);
         prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
         extended_decl_info.decl_modifiers.flags =
                                     prototype_ctsp->decl_modifiers;
         extended_decl_info.decl_modifiers.uuid_string =
                                     prototype_ctsp->uuid_string;
-        extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
         extended_decl_info.inheritance_kind = prototype_ctsp->inheritance_kind;
         extended_decl_info.inheritance_kind_pos = pos;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+        extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
+#endif /* NEAR_AND_FAR_ALLOWED */
         update_extended_decl_info_for_class(class_type,
                                             /*is_class_definition=*/TRUE,
                                             &extended_decl_info, &pos);
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
@@ -10000,13 +10004,13 @@ the declaration token cache.
   if (curr_token == tok_class || curr_token == tok_struct ||
       curr_token == tok_union) {
     (void)get_token();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      /* Skip over any Microsoft extended decl modifiers that may be present
-         such as __single_inheritance. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+    if (microsoft_mode or_near_and_far_enabled()) {
+      /* Skip over any extended decl modifiers that may be present such as
+         near/far or __single_inheritance. */
       prescan_decl_modifiers();
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     /* Use "is expr context" to suppress diagnostics on invalid template
        references. */
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
