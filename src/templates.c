@@ -1803,9 +1803,9 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
     /* Advance past the end-of-source token. */
     (void)get_token();
     if (curr_token == tok_lbrace ||
-        (curr_token == tok_colon && sym != NULL &&
+        (curr_token == tok_colon && *sym != NULL &&
          is_constructor_symbol(*sym))) {
-      if (!err) {
+      if (*sym != NULL) {
         if ((*sym)->defined) {
           err = TRUE;
           pos_sy_error(ec_already_defined, &locator.source_position, *sym);
