@@ -714,6 +714,7 @@ ec_bad_ident_string;;"invalid source file identifier string"
 ec_template_friend_definition_not_allowed;;"a template cannot be defined in a friend declaration"
 ec_asm_not_allowed;;"\"asm\" is not allowed"
 ec_bad_asm_function_def;;"\"asm\" must be used with a function definition"
+ec_nonstd_asm_function;;"\"asm\" function is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

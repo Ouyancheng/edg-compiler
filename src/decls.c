@@ -5295,6 +5295,11 @@ continue_with_declaration:
           set_to_named_error_locator(locator);
         } else {
           func_info.is_asm_function = TRUE;
+          /* Issue a diagnositic about using a nonstandard feature. */
+          if (strict_ansi_mode) {
+            pos_diagnostic(strict_ansi_error_severity, ec_nonstd_asm_function,
+                           &decl_start_pos);
+          }  /* if */
         }  /* if */
       } else
 #endif /* ASM_FUNCTION_ALLOWED */
