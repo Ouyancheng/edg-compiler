@@ -1526,8 +1526,8 @@ Syntax:
         /* The types are compatible.  No cast is required; if there's a
            difference between the types, it's just a const/non-const
            difference. */
-        /* Issue any needed warning (e.g., anachronism of calling a non-const
-           function with a const selector). */
+        /* Issue any needed warning (e.g., cfront anachronism of calling
+           a non-const function with a const selector). */
         issue_warning_from_arg_match_summary(&this_match_summary,
                                              &bound_function_selector->
                                                                      position);
