@@ -605,8 +605,10 @@ handle_non_autonomous_tag:
             /* In C++, a non-autonomous tag can't easily be separated from the
                context within which it is defined, so when a non-autonomous
                tag is marked to be kept, also mark the containing
-               declaration, whose source sequence entry is next on the list. */
-            if (!ptr->autonomous_primary_tag_decl &&
+               declaration, whose source sequence entry is next on the list.
+               If the tag is not complete yet, the autonomous flag is not
+               checked. */
+            if (ptr->size != 0 && !ptr->autonomous_primary_tag_decl &&
                 il_header.source_language == sl_Cplusplus) {
               a_source_sequence_entry_ptr ssep =
                                      ptr->source_corresp.source_sequence_entry;
