@@ -277,7 +277,7 @@ hiding.
   a_namespace_ptr   nsp;
   a_boolean         tag_hidden_by_nontag, global_hidden_by_nonglobal;
 
-  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+  if (depth_scope_stack == depth_innermost_namespace_scope &&
       sym_ptr->is_class_member) {
     /* Ignore member definitions outside the class definition. */
   } else if (sym_ptr->kind == (a_symbol_kind)sk_parameter) {
