@@ -35,6 +35,7 @@ Argument strings for fopen.
 #define FOPEN_MODE_FOR_UPDATE "w+"
 #define FOPEN_MODE_FOR_BINARY_WRITE "wb"
 #define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
+#define FOPEN_MODE_FOR_BINARY_READ "rb"
 #else /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 #if __ANSIC__ || __MSDOS__
 /* ANSI C allows binary modes.  So does MS-DOS. */
@@ -43,6 +44,7 @@ Argument strings for fopen.
 #define FOPEN_MODE_FOR_UPDATE "w+"
 #define FOPEN_MODE_FOR_BINARY_WRITE "wb"
 #define FOPEN_MODE_FOR_BINARY_UPDATE "w+b"
+#define FOPEN_MODE_FOR_BINARY_READ "rb"
 #else /* !(__ANSIC__ || __MSDOS__) */
 /* Assume UNIX (binary and text files the same). */
 #define FOPEN_MODE_FOR_READ "r"
@@ -50,6 +52,7 @@ Argument strings for fopen.
 #define FOPEN_MODE_FOR_UPDATE "w+"
 #define FOPEN_MODE_FOR_BINARY_WRITE "w"
 #define FOPEN_MODE_FOR_BINARY_UPDATE "w+"
+#define FOPEN_MODE_FOR_BINARY_READ "r"
 #endif /* __ANSIC__  || __MSDOS__ */
 #endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 
@@ -899,7 +902,7 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
     if (is_regular && time != NULL) *time = buf.st_mtime;
   } else {
     /* If the file doesn't exist, set the time to zero just to be neat. */
-    *time = 0;
+    if (time != NULL) *time = 0;
   }  /* if */
   return is_regular;
 }  /* get_file_modification_time */
@@ -1067,6 +1070,35 @@ should be opened in update mode so it can be read as well as written.
 
   return(temp_file);
 }  /* open_output_file */
+
+
+FILE *open_input_file(char          *file_name,
+                      a_boolean     binary_file)
+/*
+Open the given file as an input file, and return a pointer to the
+file block, or NULL if the file cannot be opened.  binary_file is TRUE if
+the file should be opened as a binary file instead of a text file.
+If the file can be opened and is a regular file, return the FILE pointer,
+otherwise return NULL.
+*/
+{
+  FILE *temp_file;
+  char *mode;
+
+#if DEBUG
+  if (debug_level >= 2) {
+    fprintf(f_debug, "About to open input file %s\n", file_name);
+  }  /* if */
+#endif /* DEBUG */
+  if (!is_regular_file(file_name)) {
+    temp_file = NULL;
+  } else {
+    mode = binary_file ? FOPEN_MODE_FOR_BINARY_READ :
+                         FOPEN_MODE_FOR_READ;
+    temp_file = fopen(file_name, mode);
+  }  /* if */
+  return(temp_file);
+}  /* open_input_file */
 
 
 void reopen_error_output_file(char          *file_name,
