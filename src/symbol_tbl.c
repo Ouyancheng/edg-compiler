@@ -2076,6 +2076,7 @@ static
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                             a_symbol_ptr  new_sym,
                                             a_symbol_ptr  *insert_sym,
+                                            a_scope_depth scope_depth,
 					    a_boolean	  suppress_error)
 /*
 old_sym is a symbol that is already in the symbol table.  new_sym is
@@ -2102,6 +2103,14 @@ this is not allowed, an error will be issued by the caller.
     /* The old symbol was created for an undefined symbol that
        was referenced.  A new symbol can always coexist with
        an undefined one. */
+    err = FALSE;
+  } else if (scope_stack[scope_depth].in_prototype_instantiation &&
+             scope_stack[scope_depth].kind ==
+                                 (a_scope_kind)sck_template_instantiation) {
+    /* This must be a template friend declaration during prototype
+       instantiation.  The symbol in injected into the template instantiation
+       scope, and overloading is not performed at time point.  Let the two
+       symbols coexist. */
     err = FALSE;
   } else if (!C_mode() && is_tag_symbol(fundamental_symbol_of(new_sym))) {
     /* New symbol is a tag symbol. */
@@ -2459,7 +2468,7 @@ symbol must be added to the inactive list.
                             (old_sym_ptr, sym_ptr,
                              set_insert_after ? &insert_after :
                                                 (a_symbol_ptr*)NULL,
-                             suppress_error)) {
+                             scope_depth, suppress_error)) {
               /* Error, this identifier has already been declared. */
               if (!suppress_error) {
                 if (!C_mode() && is_type_symbol(sym_ptr) &&

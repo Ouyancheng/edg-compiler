@@ -1,5 +1,15 @@
 Version 2.36
 
+6/6/97    Spurious error on overloaded friend template functions
+
+A spurious error is no longer issued during the initial scan of a template
+with overloaded friend function templates, such as:
+
+  template <class T> class X {
+    template <class T2> friend X<T2> func(const X<T2>&);
+    template <class T3, class T4> friend T3 func(T3, T4);
+  };
+
 6/5/97    Spurious error on namespace template instance friend declaration
           when guiding declarations are disabled
 
