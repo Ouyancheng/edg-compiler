@@ -1776,10 +1776,10 @@ the length of the name.
        4abcd
      or
        8abcd__ef  (this for base class "abcd" in "ef")
-     Note that if the base class is virtual, the first step of the derivation
-     is always virtual.
+     For virtual base classes, or nonvirtual base classes within virtual
+     base classes, the first step is directly to the virtual base class.
   */
-  dsp = bcp->derivation;
+  dsp = cast_derivation_path_of(bcp);
   /* Determine the length. */
   name_length = mangled_derivation_name(dsp, (char *)NULL);
   digits = digits_to_represent((unsigned long)name_length);
