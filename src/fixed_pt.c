@@ -27,6 +27,8 @@ for a production version.
 
 #if FIXED_POINT_ALLOWED
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 #include "folding.h"
 
 void fxp_init_value(a_fixed_point_value  *value)
@@ -51,53 +53,6 @@ Return TRUE if and only if the given fixed-point value is zero.
   return (cmp_integer_values(value, /*op_1_signed=*/FALSE,
                              &zero, /*op_2_signed=*/FALSE) == 0);
 }  /* fxp_value_is_zero */
-
-
-static void conv_integer_value_to_long_double_value(
-                                           an_integer_value         *ival,
-                                           a_boolean                is_signed,
-                                           an_internal_float_value  *fval,
-                                           a_boolean                *err)
-/*
-Convert the integer value in *ival to a floating-point value (of type long
-double) in *fval.  Set *err to TRUE if this does not work.
-
-(The conversion is done through a conversion to string representation: It may
-not be exact.  This routine is used for processing the representation of
-fixed-point values as implicitly scaled integer values.)
-*/
-{
-  char	*str;
-
-  str = str_for_integer_value(ival, is_signed);
-  fp_string_to_float((a_float_kind)fk_long_double, str, fval, err);
-}  /* conv_integer_value_to_long_double_value */
-
-
-static void construct_fxp_scale_factor(a_fixed_point_type_descr  *fxp_descr,
-                                       an_internal_float_value   *fp_scale)
-/*
-Construct a long double scaling factor 2^F where F is the number of fractional
-bits in the fixed-point type represented by fxp_descr.  Place the result in
-fp_scale.
-*/
-{
-  int               fract_bits;
-  an_integer_value  int_scale;  
-  a_boolean         err = FALSE;
-
-  fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
-                                                   [(int)fxp_descr->precision]
-                                                   [fxp_descr->is_fract_type];
-  /* Shift the value "1" fract_bits to the left and convert the result to
-     type "long double" using a string as an intermediate representation. */
-  set_integer_value(&int_scale, (a_host_large_integer)1);
-  shift_left_integer_value(&int_scale, fract_bits, &err);
-  check_assertion(!err);
-  conv_integer_value_to_long_double_value(&int_scale, /*is_signed=*/FALSE,
-                                          fp_scale, &err);
-  check_assertion(!err);
-}  /* construct_fxp_scale_factor */
 
 
 static int value_bits_for_fixed_point(a_fixed_point_type_descr	*fxp_descr)
@@ -904,6 +859,54 @@ an_integer_value.
   }  /* if */
 }  /* fxp_string_to_fixed_point */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static void conv_integer_value_to_long_double_value(
+                                           an_integer_value         *ival,
+                                           a_boolean                is_signed,
+                                           an_internal_float_value  *fval,
+                                           a_boolean                *err)
+/*
+Convert the integer value in *ival to a floating-point value (of type long
+double) in *fval.  Set *err to TRUE if this does not work.
+
+(The conversion is done through a conversion to string representation: It may
+not be exact.  This routine is used for processing the representation of
+fixed-point values as implicitly scaled integer values.)
+*/
+{
+  char	*str;
+
+  str = str_for_integer_value(ival, is_signed);
+  fp_string_to_float((a_float_kind)fk_long_double, str, fval, err);
+}  /* conv_integer_value_to_long_double_value */
+
+
+static void construct_fxp_scale_factor(a_fixed_point_type_descr  *fxp_descr,
+                                       an_internal_float_value   *fp_scale)
+/*
+Construct a long double scaling factor 2^F where F is the number of fractional
+bits in the fixed-point type represented by fxp_descr.  Place the result in
+fp_scale.
+*/
+{
+  int               fract_bits;
+  an_integer_value  int_scale;  
+  a_boolean         err = FALSE;
+
+  fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
+                                                   [(int)fxp_descr->precision]
+                                                   [fxp_descr->is_fract_type];
+  /* Shift the value "1" fract_bits to the left and convert the result to
+     type "long double" using a string as an intermediate representation. */
+  set_integer_value(&int_scale, (a_host_large_integer)1);
+  shift_left_integer_value(&int_scale, fract_bits, &err);
+  check_assertion(!err);
+  conv_integer_value_to_long_double_value(&int_scale, /*is_signed=*/FALSE,
+                                          fp_scale, &err);
+  check_assertion(!err);
+}  /* construct_fxp_scale_factor */
+
 
 char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
                     a_fixed_point_value       *value)
@@ -958,6 +961,7 @@ an_integer_value and may produce slightly inaccurate results.)
 #undef BUF_LENGTH
 }  /* fxp_to_string */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static void conv_fixed_point_to_long_double(
 				a_fixed_point_value		*fxp_value,
@@ -1200,6 +1204,8 @@ assumes a_fixed_point_value is a synonym for an_integer_value.)
   return (a_constant_hash_value)
          value_of_integer_value(value, /*is_signed=*/TRUE, &ovflo);
 }  /* fxp_hash */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #endif /* FIXED_POINT_ALLOWED */
 
