@@ -954,6 +954,42 @@ needs to be generated to establish that handle, insert the code at
 }  /* make_handle_for_entity */
 
 
+static a_constant_ptr make_handle_constant(a_handle *handle)
+/*
+Make a constant for the indicated handle (description of the location of
+a variable) and return a pointer to the constant.
+*/
+{
+  a_constant_ptr handle_con;
+
+#if DO_FULL_PORTABLE_EH_LOWERING
+  /* Portable scheme: the number is the index in the object address table
+     or the array table. */
+  handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant_with_overflow_check(handle_con,
+                                                    (unsigned long)*handle,
+                                                    targ_var_handle_int_kind);
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* Non-portable scheme -- can use a ck_stack_offset for the offset of
+     a variable. */
+  if (handle->variable != NULL) {
+    handle_con = alloc_constant((a_constant_repr_kind)ck_stack_offset);
+    handle_con->type = integer_type(targ_var_handle_int_kind);
+    handle_con->variant.stack_offset.variable = handle->variable;
+    handle_con->variant.stack_offset.offset = handle->offset;
+  } else {
+    /* No variable, so this is a simple constant (e.g., an index into the
+       array table). */
+    handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
+    set_unsigned_integer_constant_with_overflow_check(handle_con,
+                                                 (unsigned long)handle->offset,
+                                                 targ_var_handle_int_kind);
+  }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  return handle_con;
+}  /* make_handle_constant */
+
+
 /*
 Pointer to the array_descr struct type (used as a supplement to
 the region description entry to represent an array object for exception
@@ -1017,24 +1053,23 @@ static a_constant_ptr
 
 
 static void make_array_table_entry(an_init_pos_descr_ptr ipdp,
-                                   a_handle              *handle,
-                                   an_insert_location    *insert_location)
+                                   a_handle              *handle)
 /*
 Add an entry to the array table (creating the table and its associated
 variable if necessary) for the object whose position is given by ipdp.
-Return a handle (identifying information for the region table) for
-the object in *handle.  Also insert (at *insert_location) initialization
-code to initialize for the handle if necessary.  This routine
-can also be called for non-arrays in cases where an array table entry
-is needed to provide information not included in the region description
-entry (for example, for a new-allocation record in a case where the
-delete routine requires a second parameter giving the size; the size
-is not available in the region description entry).
+The handle (identifying information for the region table) for
+the object is provided in *handle; it is modified appropriately
+on return.  This routine can also be called for non-arrays in cases
+where an array table entry is needed to provide information not
+included in the region description entry (for example, for a
+new-allocation record in a case where the delete routine requires a
+second parameter giving the size; the size is not available in the
+region description entry).
 */
 {
-  a_handle_number  handle_offset, entry_number;
+  a_handle_number  entry_number;
   a_targ_ptrdiff_t elem_count;
-  a_constant_ptr   index_con, elem_size_con, size_con, aggr_con;
+  a_constant_ptr   handle_con, elem_size_con, size_con, aggr_con;
   a_type_ptr       elem_type;
 
   /* Make the variable for the array table if it has not yet been made. */
@@ -1045,20 +1080,11 @@ is not available in the region description entry).
                                                    /*in_function_scope=*/TRUE,
                                                    &array_table_aggr_con);
   }  /* if */
-  /* Make the handle for the entity, which describes its address. */
-  make_handle_for_entity(ipdp, handle, insert_location);
   /* Make the aggregate constant for the entry in the array table.  It consists
      of the handle offset, the size of each element, and the number of
      elements. */
-#if DO_FULL_PORTABLE_EH_LOWERING
-  handle_offset = *handle;
-#else /* !DO_FULL_PORTABLE_EH_LOWERING */
-  handle_offset = handle->offset;
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  index_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant_with_overflow_check(index_con,
-                                                    handle_offset,
-                                                    targ_var_handle_int_kind);
+  /* Make the handle constant. */
+  handle_con = make_handle_constant(handle);
   /* For the element size: note that the init_pos_descr has the type of an
      element, not of the whole array.  For non-arrays, the type is of
      course as expected. */
@@ -1078,20 +1104,22 @@ is not available in the region description entry).
   }  /* if */
   set_integer_constant(size_con, (long)elem_count, (an_integer_kind)ik_long);
   /* Link the constants together and make an aggregate constant. */
-  index_con->next = elem_size_con;
+  handle_con->next = elem_size_con;
   elem_size_con->next = size_con;
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  aggr_con->variant.aggregate.first_constant = index_con;
+  aggr_con->variant.aggregate.first_constant = handle_con;
   aggr_con->variant.aggregate.last_constant = size_con;
   /* Add the aggregate as an element of the object address table array. */
   entry_number = add_elem_to_array_var(aggr_con, array_table_var,
                                        array_table_aggr_con);
+  /* Adjust the handle to refer to the index into the array table in place
+     of the original object. */
 #if DO_FULL_PORTABLE_EH_LOWERING
   *handle = entry_number;
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  handle->variable = NULL;
   handle->offset = entry_number;
-  /* Note that the other fields are left as they were set by
-     make_handle_for_entity. */
+  /* Set the flag that indicates this object is an array. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* make_array_table_entry */
 
@@ -1302,31 +1330,8 @@ the aggregate constant.
                                  /*set_address_taken_flag=*/TRUE);
     implicit_cast(dtor_con, ptr_func_type);
   }  /* if */
-  /* Make the handle. */
-#if DO_FULL_PORTABLE_EH_LOWERING
-  /* Portable scheme: the number is the index in the object address table
-     or the array table. */
-  handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant_with_overflow_check(handle_con,
-                                                    (unsigned long)*handle,
-                                                    targ_var_handle_int_kind);
-#else /* !DO_FULL_PORTABLE_EH_LOWERING */
-  /* Non-portable scheme -- can use a ck_stack_offset for the offset of
-     a variable. */
-  if (handle->variable != NULL) {
-    handle_con = alloc_constant((a_constant_repr_kind)ck_stack_offset);
-    handle_con->type = integer_type(targ_var_handle_int_kind);
-    handle_con->variant.stack_offset.variable = handle->variable;
-    handle_con->variant.stack_offset.offset = handle->offset;
-  } else {
-    /* No variable, so this is a simple constant (e.g., an index into the
-       array table). */
-    handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
-    set_unsigned_integer_constant_with_overflow_check(handle_con,
-                                                 (unsigned long)handle->offset,
-                                                 targ_var_handle_int_kind);
-  }  /* if */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  /* Make the handle constant. */
+  handle_con = make_handle_constant(handle);
   /* Make the next region index number.  NOTE that next_region_number_constant
      expects the constant to be the third one on the list. */
   next_con = alloc_constant((a_constant_repr_kind)ck_integer);
@@ -1376,6 +1381,11 @@ to the aggregate constant for the region table entry.
   a_constant_ptr  region_table_entry;
   a_boolean       need_array_info = FALSE;
 
+  /* Make the handle for the entity. */
+  make_handle_for_entity(ipdp, &handle, insert_location);
+#if !DO_FULL_PORTABLE_EH_LOWERING
+  flags_value |= handle.flags;
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* See if we need array information on the entity. */
   if (ipdp->whole_array) {
     need_array_info = TRUE;
@@ -1391,16 +1401,10 @@ to the aggregate constant for the region table entry.
   }  /* if */
   if (need_array_info) {
     /* We need an entry in the array table. */
-    make_array_table_entry(ipdp, &handle, insert_location);
+    make_array_table_entry(ipdp, &handle);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
-  } else {
-    /* Non-array. */
-    make_handle_for_entity(ipdp, &handle, insert_location);
   }  /* if */
-#if !DO_FULL_PORTABLE_EH_LOWERING
-  flags_value |= handle.flags;
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   if (conditional_flag_var != NULL) {
     /* This entry needs a conditional flag.  More on this below. */
     /* The object address table entry must be initialized when the conditional
