@@ -7206,14 +7206,21 @@ is not necessarily the canonical entry for the template being declared.
       }  /* if */
     }  /* for */
   }  /* if */
-  if (arg_dependent_lookup_enabled && sym->is_invisible &&
-      idlb.is_friend_decl) {
-    a_scope_stack_entry_ptr ssep = &scope_stack[orig_decl_level];
-
-    check_assertion(!sym->is_class_member || sym->is_error);
-    check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
-    add_friend_function_to_lookup_list_for_class(sym, ssep->il_scope->
-                                                        variant.assoc_type);
+  /* If this symbol might not be found because it is invisible, add it
+     to the friend list for the class. */
+  if (arg_dependent_lookup_enabled && idlb.is_friend_decl) {
+    a_boolean	add_to_friend_list = FALSE;
+    if (sym->is_invisible) add_to_friend_list = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (sym->is_microsoft_invisible_operator) add_to_friend_list = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (add_to_friend_list) {
+      a_scope_stack_entry_ptr ssep = &scope_stack[orig_decl_level];
+      check_assertion(!sym->is_class_member || sym->is_error);
+      check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
+      add_friend_function_to_lookup_list_for_class(sym, ssep->il_scope->
+                                                           variant.assoc_type);
+    }  /* if */
   }  /* if */
   /* Restore the scope stack. */
   if (idlb.namespace_reactivated)  {

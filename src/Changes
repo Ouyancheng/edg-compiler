@@ -1,5 +1,22 @@
 Version 3.5
 
+7/29/04  Microsoft compatibility: template friend lookup regression
+
+A change made in version 3.4 (see 3/10/04 Changes entry) introduced a
+regression that caused friend templates to be ignored by
+argument-dependent lookup in Microsoft mode in certain cases.  Now
+fixed.
+
+  template <class T> struct B {};
+  struct A {
+    template<class T> friend void operator<<(B<T>&, A) {}
+  };
+  int main() {
+    A a;
+    B<char> b;
+    b << a;  // spurious "no operator << matches these operands" error
+ }
+
 7/29/04  GNU compatibility: Attributes on class templates
 
 In GNU mode, the front end did not accept attributes appearing immediately
