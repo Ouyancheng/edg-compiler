@@ -476,6 +476,7 @@ extern void make_field_operand(a_field_ptr field,
 extern void make_function_call(an_expr_node_ptr function_node,
                                a_type_ptr       function_type,
                                a_boolean        is_virtual,
+                               a_boolean        new_or_delete_call_for_array,
                                an_operand       *result);
 
 extern void assemble_function_call(an_operand       *function_operand,
