@@ -631,6 +631,8 @@ must be -1 for that case.
     aaehi.number_of_elements     = number_of_elements;
     aaehi.element_size           = element_size;
     aaehi.destructor		 = dtor;
+    aaehi.delete_routine	 = delete_routine;
+    aaehi.is_two_arg		 = is_two_arg;
 #endif /* EXCEPTION_HANDLING */
     /* Determine the number of elements in the array, if unknown. */
     if (number_of_elements == -1) {
