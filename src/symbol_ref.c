@@ -917,7 +917,7 @@ projection symbol.
           a_boolean                suppress_warning = FALSE;
 
           if (!suppress_warning && !C_mode()) {
-            /* In C++ don't put out a warning if the variable of of class
+            /* In C++ don't put out a warning if the variable of class
                type (or array of class type) and the class has no fields. */
             a_type_ptr  tp = vp->type;
             if (is_array_type(tp)) tp = underlying_array_element_type(tp);

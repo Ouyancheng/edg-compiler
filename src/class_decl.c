@@ -1753,7 +1753,7 @@ more work needs to be done.
       /* bcp2 is a direct base class of bcp1->type, so bcp1 may be used as a
          disambiguator to find the corresponding base class of class_type. */
     } else {
-      /* Compute the disambiguator by traversing the derivation of of bcp2. */
+      /* Compute the disambiguator by traversing the derivation of bcp2. */
       step = bcp2->derivation->path;
       for (; step->base_class != bcp2; step = step->next) {
         disambiguator = corresponding_base_class(step->base_class,

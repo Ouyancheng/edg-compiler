@@ -4350,7 +4350,7 @@ Dump out an initializer for part of a variable.  The variable being
 initialized is "variable"; the piece of it being initialized has type
 "type", and gets the value indicated by "constant" (constant may be
 NULL to indicate initialization to zero); and outer_level_pos points
-to a list of of entries that describes the location of this
+to a list of entries that describes the location of this
 initialization within the overall variable (it is the history of
 the recursive calls of this routine that got us to this point).
 If *gen_assignments is TRUE, assignment statements rather than constants
