@@ -1,5 +1,11 @@
 Version 3.4
 
+1/8/04   C/C++-generating back end: system header flag on line directives
+
+When generating code for gcc/g++, old-style line directives are now emitted by
+default, and the system header flag is included on the line directive if the
+source file was found in a system include directory.
+
 1/7/04   C++-generating back end: Microsoft-specific declaration modifiers in
          explicit instantiation directives
 

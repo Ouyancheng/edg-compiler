@@ -1344,6 +1344,13 @@ Write a #line directive for the indicated line number and file.
     (void)write_file_name(curr_output_file->file_name, f_C_output,
                           process_escapes);
     (void)putc('"', f_C_output);
+    if (gen_old_style_line_dirs && gcc_is_generated_code_target &&
+        new_output_file->from_system_include_dir) {
+      /* When generating code to be compiled by g++, include the system header
+         flag on the line directive if the source is from a system include. */
+      (void)putc(' ', f_C_output);
+      (void)putc('3', f_C_output);
+    }  /* if */
   }  /* if */
   (void)putc('\n', f_C_output);
   curr_output_column = 0;
