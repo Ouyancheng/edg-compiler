@@ -4950,6 +4950,13 @@ specified by decl_scope_level.
       ctsp->anonymous_union_object.storage_class =
                         assoc_object_sym->variant.variable.ptr->storage_class;
     }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+    /* If any hidden name entries were entered in the scope of the anonymous
+       union, they can be discarded.  Hidden name entries will be recomputed
+       for the scope to which the anonymous union member symbols are
+       promoted. */
+    ctsp->assoc_scope->hidden_names = NULL;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   /* Get the list of symbols that are to be either promoted (i.e., reused
      in the new scope) or cloned. */
@@ -5041,6 +5048,11 @@ specified by decl_scope_level.
            of a variable anonymous union should be (i.e., should remain)
            public. */
         sym->variant.field.ptr->source_corresp.access = assoc_object_access;
+#if RECORD_HIDDEN_NAMES_IN_IL
+        /* Determine whether a hidden name entry needs to be entered for
+           name being promoted. */
+        if (!C_mode()) check_for_defeatable_name_hiding(sym);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         if (apo_sym == NULL) {
           sym->variant.field.anonymous_parent_object = assoc_object_sym;
         } else if (reuse_symbol) {
@@ -5119,6 +5131,11 @@ specified by decl_scope_level.
         tp->source_corresp.access = assoc_object_access;
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+#if RECORD_HIDDEN_NAMES_IN_IL
+        /* Determine whether a hidden name entry needs to be entered for
+           name being promoted. */
+        check_for_defeatable_name_hiding(sym);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         break;
       case sk_constant:
         /* An enum constant. */
@@ -5134,6 +5151,11 @@ specified by decl_scope_level.
         sym->variant.constant->source_corresp.access = assoc_object_access;
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+#if RECORD_HIDDEN_NAMES_IN_IL
+        /* Determine whether a hidden name entry needs to be entered for
+           name being promoted. */
+        check_for_defeatable_name_hiding(sym);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         break;
       case sk_static_data_member:
         /* Must be an error, since unions cannot have static data members,
