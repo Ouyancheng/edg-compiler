@@ -4442,6 +4442,11 @@ otherwise it is NULL.  The syntax is:
             }  /* if */
           }  /* if */
         }  /* if */
+        if (err) {
+         /* An error occured while scanning the identifier -- use an error
+            locator. */
+         set_to_error_locator(locator_for_curr_id);
+        }  /* if */
         /* Save information on the identifier to be declared. */
         *locator = locator_for_curr_id;
         (void)get_token();
@@ -4757,6 +4762,63 @@ function_lparen:
 }  /* declarator */
 
 
+static a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind)
+/*
+The current token is an identifier.  If it is a tag of the indicated kind,
+do ambiguity and access control checking and return a pointer to the tag
+symbol.  Otherwise, return NULL.
+*/
+{
+  a_symbol_ptr assoc_symbol;
+
+  /* Look up the current token.  Note that a qualified name is not allowed. */ 
+  assoc_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
+  if (assoc_symbol != NULL) {
+    if (assoc_symbol->kind != tag_kind) {
+      /* A tag, but the wrong kind of tag (e.g., struct when union is
+         required). */
+      assoc_symbol = NULL;
+    } else {
+      if (locator_for_curr_id.is_semivisible_nested_type) {
+        /* The symbol in the locator is a nested class that is not visible
+           according to the ARM lookup rules but is returned in support of the
+           nested class anachronism (ARM 18.3.5).  Issue an anachronism
+           diagnostic. */
+        sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
+                       locator_for_curr_id.specific_symbol);
+      }  /* if */
+      /* Do ambiguity and access control checking on the member. */
+      check_ambiguity_and_verify_access(&locator_for_curr_id);
+    }  /* if */
+  }  /* if */
+  return assoc_symbol;
+}  /* curr_tag_symbol */
+
+
+static a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
+/*
+The current token is an identifier.  If it represents a tag of the indicated
+kind from the current scope, return a pointer to the corresponding symbol.
+Otherwise, return NULL.
+*/
+{
+  a_symbol_ptr    sym = symbol_list_from_locator(locator_for_curr_id);
+  a_scope_number  scope_number;
+
+  /* Look for a symbol in the current scope for which the kind matches that
+     of the scope level specified by the caller. */
+  scope_number = scope_stack[decl_scope_level].number;
+  for (; sym != NULL; sym = sym->next) {
+    if (sym->decl_scope == scope_number && sym->kind == kind) {
+      /* Found it. */
+      break;
+    }  /* if */
+  }  /* for */
+  return sym;
+}  /* curr_scope_tag_symbol */
+
+
+
 a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                            a_symbol_locator  *locator,
                            a_boolean         check_for_vacuous_decl,
@@ -4772,33 +4834,42 @@ is an error, return NULL.
 {
   a_symbol_ptr      tag_sym = NULL;
   a_token_kind      next_tok;
-  an_identifier_options_set
-		    gid_options;
-  a_boolean         err;
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
-  /* Look for a tag symbol for the current identifier.  Qualified names
-     are not allowed (coalesce_and_lookup_generalize_identifier checks
-     for this).  If this is a template class reference, a symbol for the
-     template class will be returned even if this requires the creation
-     of a new class symbol. */
-  gid_options = GID_DISALLOW_QUALIFIED_NAME;
-  tag_sym = coalesce_and_lookup_generalized_identifier(gid_options,
-                                                       ilm_tag_declaration,
-						       &err);
-  /* Save the symbol locator for this identifier before doing the
-     get_token. */
-  *locator = locator_for_curr_id;
-  if (err) {
-    /* An error occurred while scanning the tag name -- return a NULL pointer
-       instead of the error symbol. */
+  /* Find a declaration of this tag in the current scope.  (We only look
+     in the current scope for now, but we may have to do a complete lookup
+     later.) */
+  if (C_dialect == C_dialect_cplusplus &&
+      curr_token == tok_identifier && next_token() == tok_lt) {
+    a_symbol_ptr  templ_sym;
+    a_boolean     err;
+    templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+      tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
+                                                  &err);
+    } else {
+      /* Don't prejudice subsequent lookups. */
+      locator_for_curr_id.specific_symbol = NULL;
+    }  /* if */
+  }  /* if */
+  if (curr_token == tok_colon_colon || 
+      curr_token == tok_class_qualifier || next_token() == tok_colon_colon) {
+    a_boolean     err;
+    /* This looks like a qualified name, which is not allowed here. */
+    error(ec_qualified_name_not_allowed);
+    (void)coalesce_and_lookup_qualified_name
+                         (GID_NO_OPTIONS, (a_class_qualifier_ptr)NULL, &err);
+    set_to_error_locator(*locator);
     tag_sym = NULL;
+  } else if (tag_sym != NULL) {
+    /* Tag symbol is a template class reference. */
+    *tag_resolution = FALSE;
   } else {
-    a_boolean is_curr_scope_tag;
-    is_curr_scope_tag =
-          tag_sym != NULL && tag_sym->decl_scope ==
-                                      scope_stack[decl_scope_level].number;  
+    tag_sym = curr_scope_tag_symbol(tag_kind);
+    /* Save the symbol locator for this identifier before doing the
+       get_token. */
+    *locator = locator_for_curr_id;
     next_tok = next_token();
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
@@ -4809,8 +4880,7 @@ is an error, return NULL.
       /* Note that we had to check the is_ref_within_new_expr flag because
          a colon has a different meaning in an expression context than
          in a declaration context (namely, it may belong to a ?: operator). */
-     /* Is this a tag declared in the current scope? */
-      if (is_curr_scope_tag) {
+      if (tag_sym != NULL) {
         /* The tag has already appeared in the current scope. */
         if (is_incomplete_type(type_symbol_type(tag_sym))) {
           /* Resolution of a previous incomplete declaration. */
@@ -4819,20 +4889,10 @@ is an error, return NULL.
           /* Redeclaration of a tag that has already been defined.  Set
              tag_sym to NULL and let enter_symbol issue an error. */
           tag_sym = NULL;
-          locator_for_curr_id.specific_symbol = NULL;
         }  /* if */
-      } else {
-        /* Probably a local definition of a name also used in an
-           outer scope.  This could also be a file scope definition of
-           a name that is also used in a nested class when the
-           non-nested class anachronism is being allowed.  In either case,
-           this is handled by the caller when we return a NULL symbol. */
-        tag_sym = NULL;
-        locator_for_curr_id.specific_symbol = NULL;
       }  /* if */
-    } else if (!is_curr_scope_tag) {
-      /* This is not a definition of the tag (e.g., struct S;) and this is
-         the first appearance of the tag in the current scope.  This
+    } else if (tag_sym == NULL) {
+      /* This is the first appearance of the tag in the current scope.  This
          is not its definition, so it is either a reference to an existing
          tag or a declaration of a new (incomplete) tag. */
       /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").
@@ -4845,7 +4905,10 @@ is an error, return NULL.
            to force the creation of a new symbol in the current scope. */
       } else {
         /* This may be a reference to an existing tag from a containing
-           scope or a base class. */
+           scope or a base class.  This can be ascertained by doing a full
+           lookup of the tag name (before, it was done just for the current
+           scope). */
+        tag_sym = curr_tag_symbol(tag_kind);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at

@@ -542,7 +542,8 @@ not specifically allow this syntax, but it is supported by cfront.
   if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
       is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL, &err) &&
       curr_token == tok_class_qualifier) {
-    if (curr_class_qualifier.class_type == ssep->assoc_type) {
+    if (curr_class_qualifier.class_type == ssep->assoc_type &&
+        curr_class_qualifier.has_global_qualifier == FALSE) {
       is_member_id = TRUE;
       /* Skip to the token after the qualifier (the identifier). */
       get_token();

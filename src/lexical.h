@@ -200,8 +200,6 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_tag,		/* Find only tag names. */
   ilm_tentative_type,	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
 			   to do the lookup. */
-  ilm_tag_declaration	/* Special mode that searches for tags and does not
-			   create projection symbols. */
 } an_identifier_lookup_mode;
 
 
@@ -1059,6 +1057,19 @@ extern a_boolean f_get_opname(void);
   ((curr_token == tok_operator) ? f_get_opname() : FALSE)
 /* Test for ":: new" and ":: delete". */
 extern a_boolean is_global_new_or_delete(void);
+
+
+/*
+Check whether the a symbol represents a class template and if so,
+call the routine to scan the argument list.  Otherwise just return the
+original symbol.
+*/
+#define check_for_class_template(sym, options, err)			      \
+    (((sym) != NULL && 							      \
+      (sym)->kind == (a_symbol_kind)sk_class_template) ?		      \
+           coalesce_template_class_reference(sym, options,		      \
+                                             err) : sym)
+
 
 extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,

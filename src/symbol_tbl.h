@@ -52,11 +52,6 @@ typedef int an_id_lookup_options_set;
 				   is a type name -- a typedef or tag symbol
 				   (class, struct, union, or enum) -- but
 				   return NULL instead. */
-#define IDL_DO_NOT_MAKE_PROJECTION 0x10
-				/* If the symbol found is a projection from
-				   a base class, do not actually create the
-				   symbol to represent that projection under
-				   any cirumstances.  Return NULL instead. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
