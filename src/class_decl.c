@@ -6599,7 +6599,7 @@ completed (C++ only).
   if (C_dialect == C_dialect_cplusplus) {
     /* Record the scope number used for the corresponding prototype
        instantiation, if any. */
-    if (is_template_instantiation && !is_nonreal_instantiation) {
+    if (cssp->is_instance && !is_nonreal_instantiation) {
       /* Find the prototype instantiation symbol associated with this
          real instantiation. */
       corresp_prototype_tag_sym = cssp->corresp_prototype_sym;
