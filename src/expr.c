@@ -11828,7 +11828,7 @@ variable:
                 rep = NULL;
               } else {
                 /* The identifier is const and has a known constant value. */
-                make_constant_operand(con_val, result);
+                make_constant_variable_operand(con_val, var_ptr, result);
                 /* The value of the variable is used. */
                 change_ref_kinds(rep, SRK_USE);
               }  /* if */

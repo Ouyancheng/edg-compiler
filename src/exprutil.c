@@ -5898,6 +5898,24 @@ reference entry, or is NULL if none is needed.
 }  /* make_lvalue_variable_operand */
 
 
+void make_constant_variable_operand(a_constant *constant,
+                                    a_variable *var,
+                                    an_operand *operand)
+/*
+Same as make_constant_operand, but the new constant operand points to an
+expression for the given variable when RECORD_CONSTANT_EXPRESSIONS_IN_IL
+is TRUE.
+*/
+{
+  make_constant_operand(constant, operand);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  operand->variant.constant.expr =
+                              expr_to_record_for_variable(var,
+                                                          /*is_lvalue=*/FALSE);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+}  /* make_constant_variable_operand */
+
+
 a_constant_ptr var_constant_value(a_variable_ptr var)
 /*
 If the variable var has a constant initial value, return a pointer to it;

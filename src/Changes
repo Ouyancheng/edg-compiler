@@ -1,5 +1,21 @@
 Version 2.46
 
+2/22/01  Constant expression for local constant variable not recorded in IL
+
+Even when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the front end used to
+not record a reference to a local constant variable in constants that were
+constructed from such a reference.
+
+  void f(int k) {
+    int const ic = 12;
+    switch (k) {
+      case ic:  // Constant for case label did not point to an expression
+        break;  // representing a reference to the variable "ic".
+    }
+  }
+
+This is now fixed.
+
 2/20/01  Spurious error in member partial specialization declaration
 
 If a partially specialized class is declared in a class template,
