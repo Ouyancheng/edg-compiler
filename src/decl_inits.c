@@ -474,10 +474,10 @@ routine is called in C++ mode only.
           array_type->variant.array.variant.number_of_elements - curr_element;
   if (number_of_uninitialized_elements > 0) {
     /* There are one or more uninitialized elements. */
-    element_type = skip_typerefs(array_element_type(array_type));
+    element_type = f_skip_typerefs(array_element_type(array_type));
     if (is_array_type(element_type)) {
       a_type_ptr  tp = element_type;
-      element_type = skip_typerefs(underlying_array_element_type(tp));
+      element_type = f_skip_typerefs(underlying_array_element_type(tp));
       number_of_uninitialized_elements *=
                                     array_element_count(tp, element_type);
     }  /* if */
@@ -597,7 +597,7 @@ routine is called in C++ mode only.
       tp = skip_typerefs(init_context->field->type);
       if (is_array_type(tp)) {
         array_type = tp;
-        tp = skip_typerefs(underlying_array_element_type(tp));
+        tp = f_skip_typerefs(underlying_array_element_type(tp));
       } else {
         array_type = NULL;
       }  /* if */
@@ -1041,7 +1041,10 @@ this function points to a tree that includes a dynamic-init entry.
                  type). */
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            internal_error("get_initializer: can't initialize 0-size member");
+            /* Do not add code here. */
+            {
+              internal_error("get_initializer: can't init 0-size member");
+            }  /* if */
           }  /* if */
 #endif /* CHECKING */
         }  /* if */
@@ -2231,7 +2234,7 @@ the default constructor (if one exists) is called.
     is_const = is_const_qualified_type(var->type);
     tp = var_type = skip_typerefs(var->type);
     if (is_array_type(tp)) {
-      tp = skip_typerefs(underlying_array_element_type(tp));
+      tp = f_skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
     if (is_class_struct_union_type(tp)) {
       cssp = symbol_supplement_for_class(tp);
@@ -2793,7 +2796,7 @@ initialized.  These are addressed in the course of the processing.
             /* Arrays can be default-initialized if the expression-list is
                omitted. */
             array_type = init_type;
-            init_type = skip_typerefs(
+            init_type = f_skip_typerefs(
                              underlying_array_element_type(init_type));
           }  /* if */
           /* Only one member of a union or an anonymous union subobject is
@@ -3256,7 +3259,7 @@ scan_paren:
       tp = skip_typerefs(tp);
       if (is_array_type(tp)) {
         array_type = tp;
-        tp = skip_typerefs(underlying_array_element_type(tp));
+        tp = f_skip_typerefs(underlying_array_element_type(tp));
       }  /* if */
       object_class_type = tp;
       if (is_class_struct_union_type(tp)) {
