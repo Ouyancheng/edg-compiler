@@ -481,6 +481,20 @@ typedef struct a_src_seq_secondary_decl {
 			/* Entry identifying the kind of entity (type,
 			   function, static data member, etc.) for which this
 			   is the secondary declaration. */
+  a_byte_boolean
+		autonomous_tag_decl;
+			/* If entity refers to a type entry representing a
+			   class, struct, union, or enum, this flag is TRUE if
+			   the declaration it corresponds to is not part
+			   of the declaration of another entity -- i.e., the
+			   case of a vacuous declaration:
+			     class A;             // autonomous 2ndary decl
+			     class A { int i; };  // autonomous primary decl
+			     class B { int i; };  // autonomous primary decl
+			     class B;             // autonomous 2ndary decl
+			   The source sequence entries for the first and
+			   fourth of these class declarations will have the
+			   flag set. */
 } a_src_seq_secondary_decl;
 
 
@@ -2199,6 +2213,20 @@ typedef struct a_type {
 			   a type is required and should be put out at the
 			   first opportunity. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      unsigned int
+		autonomous_primary_tag_decl:1;
+			/* TRUE if this type entry represents a class, struct,
+			   union, or enum and its the primary source sequence
+			   entry refers to a declaration (usually the
+			   definition) that is not part of the declaration of
+			   another entity.  For instance,
+			     class A { int i; };    // An "autonomous" decl
+                             class B { int i; } b;  // Not "autonomous"
+			   The flag would be set TRUE for A but not for B
+			   since the latter's definition is part of the
+			   declaration of variable b. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings();
 #if DO_IL_LOWERING
   a_variable_ptr
