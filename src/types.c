@@ -776,6 +776,11 @@ step on the derivation list serves to confirm the match.
     internal_error("corresponding_base_class: bad disambiguator");
   }  /* if */
 #endif /* CHECKING */
+  if (base_class->derived_class == new_class) {
+    /* base_class is already a base class of new_class.  Just return it. */
+    new_base_class = base_class;
+    goto done;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     fputs("looking in \"", f_debug);
@@ -784,11 +789,6 @@ step on the derivation list serves to confirm the match.
     db_base_class(base_class, FALSE);
   }  /* if */
 #endif /* DEBUG */
-  if (base_class->derived_class == new_class) {
-    /* base_class is already a base class of new_class.  Just return it. */
-    new_base_class = base_class;
-    goto done;
-  }  /* if */
   /* Look for a match among the base classes of new_class. */
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     /* The first requirement of a match is that the type of the matching
@@ -826,10 +826,11 @@ step on the derivation list serves to confirm the match.
             goto done;
           }  /* if */
         } else {
-          /* Find the immediate predecessor in bcp's derivation path. */
-          for (step = bcp->derivation;
-               step->next->next != NULL;
-               step = step->next);
+          /* Find the immediate predecessor in bcp's derivation path.  Note
+             that bcp is nonvirtual, so we don't need to worry about multiple
+             paths in looking for its immediate predecessor. */
+          step = bcp->derivation->path;
+          for (; step->next->next != NULL; step = step->next);
           if (step->base_class->type == base_class->derived_class) {
             /* If bcp is ambiguous use the disambiguator to determine
                whether we have a match.  It that will be the immediate
@@ -852,16 +853,18 @@ step on the derivation list serves to confirm the match.
            list.  Check the derivations to resolve the ambiguity. */
         if (disambiguator != NULL) {
           if (!bcp->direct) {
-            /* Find the immediate predecessor in bcp's derivation path. */
-            for (step = bcp->derivation;
-                 step->next->next != NULL;
-                 step = step->next);
+            /* Find the immediate predecessor in bcp's derivation path.  Note
+               that bcp is nonvirtual, so we don't need to worry about multiple
+               paths in looking for its immediate predecessor. */
+            step = bcp->derivation->path;
+            for (; step->next->next != NULL; step = step->next);
             if (step->base_class == disambiguator) {
               new_base_class = bcp;
               goto done;
             }  /* if */
           }  /* if */
-        } else if (equivalent_paths(bcp->derivation, base_class->derivation)) {
+        } else if (equivalent_paths(bcp->derivation->path,
+                   base_class->derivation->path)) {
           new_base_class = bcp;
           goto done;
         } else {
@@ -869,10 +872,10 @@ step on the derivation list serves to confirm the match.
              for cases where the paths are congruent once we move far
              enough along bcp's derivation -- for instance, if the derivation
              of bcp is A==>B==>C and the derivation of base_class is B==>C. */
-          for (step = bcp->derivation; step != NULL; step = step->next) {
+          for (step = bcp->derivation->path; step != NULL; step = step->next) {
             if (step->base_class->type ==
-                                 base_class->derivation->base_class->type &&
-                congruent_paths(step, base_class->derivation)) {
+                          base_class->derivation->path->base_class->type &&
+                congruent_paths(step, base_class->derivation->path)) {
               new_base_class = bcp;
               goto done;
             }  /* if */
@@ -903,7 +906,7 @@ step on the derivation list serves to confirm the match.
 #endif /* CHECKING */
 done:
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 && base_class->derived_class != new_class) {
     fputs("found base class: ", f_debug);
     db_base_class(new_base_class, FALSE);
   }  /* if */
