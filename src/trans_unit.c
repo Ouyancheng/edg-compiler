@@ -664,7 +664,9 @@ One-time initialization for trans_unit variables.
       pch_saved_var_array_elem(curr_translation_unit),
       pch_saved_var_array_elem(translation_units),
       pch_saved_var_array_elem(translation_units_tail),
+#if DEBUG
       pch_saved_var_array_elem(num_trans_unit_corresps_allocated),
+#endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
