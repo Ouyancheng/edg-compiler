@@ -2155,7 +2155,7 @@ error code.
       m = "strict ANSI mode is incompatible with cfront mode";
       break;
     case ec_cl_missing_source_file_name:
-      m = "missing source_file name";
+      m = "missing source file name";
       break;
     case ec_cl_output_file_incompatible_with_multiple_inputs:
       m =
