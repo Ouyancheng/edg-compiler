@@ -3755,50 +3755,6 @@ pointers to members).
 }  /* impl_ptr_to_member_conversion */
 
 
-static a_boolean impl_enum_conversion(a_type_ptr            source_type,
-                                      a_type_ptr            dest_type,
-                                      a_std_conv_descr_ptr  std_conv)
-/*
-Return TRUE if it's okay to implicitly convert something of type source_type
-(any type) to something of type dest_type (an enum type).  If the conversion
-is possible, *std_conv is filled out to describe the conversion.  In
-particular, if the conversion is suspect and should be flagged with a
-warning, the warning_suggested field is set to an appropriate error code.
-*/
-{
-  a_type_ptr source_enum_type;
-  a_boolean  okay = FALSE;
-
-   if (is_integral_or_enum(source_type) ||
-             (C_mode() && is_floating(source_type))) {
-    /* Attempting to convert from integral, enum, or floating type to enum
-       type. */
-    if (is_floating(source_type)) {
-      source_enum_type = NULL;
-    } else {
-      source_enum_type = underlying_enum_type(source_type);
-    }  /* if */
-    if (source_enum_type != NULL &&
-        identical_types(source_enum_type, dest_type)) {
-      okay = TRUE;
-    } else {
-      /* Conversion of one enum type to another, or conversion of an
-         arithmetic non-enum type to an enum. */
-      if (C_mode() || cfront_2_1_mode) {
-        /* Mixed integral/enum types allowed in C with a warning. */
-        /* Integral --> enum allowed in cfront 2.1 mode, with a
-           warning.  cfront 2.1 also allows floats to be converted to
-           enums, but it doesn't seem necessary to duplicate that
-           behavior. */
-        okay = TRUE;
-        std_conv->warning_suggested = ec_mixed_enum_type;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return okay;
-}  /* impl_enum_conversion */
-
-
 a_boolean impl_conversion_possible(a_type_ptr           source_type,
                                    a_boolean            source_is_constant,
                                    a_constant           *source_constant,
@@ -3838,7 +3794,7 @@ See conversion_possible.
 */
 {
   a_boolean  okay = FALSE;
-  a_type_ptr dest_enum_type;
+  a_type_ptr dest_enum_type, source_enum_type;
 
   db_enter(5, "impl_conversion_possible");
 #if DEBUG
@@ -3890,23 +3846,38 @@ See conversion_possible.
       /* No type change. */
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (is_enum(dest_type)) {
-      /* Conversion to an enum type. */
-      okay = impl_enum_conversion(source_type, dest_type, std_conv);
+    } else if (!C_mode() && is_enum(dest_type)) {
+      /* Conversion to an enum type in C++.  We already know this is not
+         a conversion of an enum type to itself, so this is an error case:
+         you can't convert other types to enum implicitly. */
+      if (cfront_2_1_mode && is_integral_or_enum(source_type)) {
+        /* cfront 2.1 allows conversion of integral or other enum types to
+           an enum, with a warning.  (It also allows floating point types
+           to be converted to an enum, but it doesn't seem necessary to
+           duplicate that behavior.) */
+        okay = TRUE;
+        std_conv->warning_suggested = ec_mixed_enum_type;
+      }  /* if */
     } else if (is_arithmetic_or_enum(source_type)) {
-      /* Arithmetic or enum --> arithmetic or enum.  Okay. */
+      /* Arithmetic or enum --> arithmetic (including enum in C). */
       okay = TRUE;
-      /* Check for conversion of an arithmetic/enum type to an enumerated
-         type in C, which may be invalid or call for a warning. */
-      if (C_mode() && is_integral_or_enum(dest_type)) {
-        dest_enum_type = underlying_enum_type(dest_type);
+      if (C_mode()) {
+        /* In C, check for conversion of one enumerated type to another,
+           or conversion of an arithmetic non-enum type to an enum.
+           C++ cases of converting to an enum were handled above. */
+        dest_enum_type = NULL;
+        if (is_integral_or_enum(dest_type)) {
+          dest_enum_type = underlying_enum_type(dest_type);
+        }  /* if */
         if (dest_enum_type != NULL) {
-          /* Conversion to an enum type. */
-          if (identical_types(source_type, dest_enum_type)) {
-            /* No type change. */
-            std_conv->nontrivial_conversion = FALSE;
-          } else {
-            okay = impl_enum_conversion(source_type, dest_enum_type, std_conv);
+          /* Conversion is to an enum type. */
+          source_enum_type = NULL;
+          if (is_integral_or_enum(source_type)) {
+            source_enum_type = underlying_enum_type(source_type);
+          }  /* if */
+          if (source_enum_type != dest_enum_type) {
+            /* Warn on mixing different enums, or non-enums and enums. */
+            std_conv->warning_suggested = ec_mixed_enum_type;
           }  /* if */
         }  /* if */
       }  /* if */
