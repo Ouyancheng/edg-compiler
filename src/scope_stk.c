@@ -489,7 +489,7 @@ function-local entities in the IA-64 ABI.
           break;
         case sk_type:
           sym->variant.type.discriminator =
-                          sep->symbol->variant.enumeration.discriminator+1;
+                            sep->symbol->variant.type.discriminator+1;
           break;
         default:
           unexpected_condition();
