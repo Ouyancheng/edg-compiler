@@ -86,6 +86,15 @@ represented as a bit set:
 #define IDL_MUST_BE_CLASS     0x1000
 				/* The symbol must be a class, struct, union,
                                    or a typedef of one of those. */
+#define IDL_MEMBER_FUNCTION_LOOKUP 0x2000
+				/* For a class-qualified lookup, indicates that
+				   a special lookup to find a previous
+				   declaration of a member function should be
+				   done.  This lookup will not create a
+				   projection symbol, and only considers
+				   existing projection symbols that refer
+				   to functions introduced by
+				   using-declarations. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

@@ -2181,6 +2181,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    add_to_active_list;
   a_boolean    is_proxy_or_nonreal_class_lookup = FALSE;
   a_boolean    any_nonreal_base_classes = FALSE;
+  a_boolean    is_member_function_lookup =
+                                        (options & IDL_MEMBER_FUNCTION_LOOKUP);
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
@@ -2295,6 +2297,16 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
              to a nonreal member of a base class.  Ignore this symbol
              when not using implicit-typename, if it is a type when a nontype
              is expected or vice-versa. */
+          } else if (is_member_function_lookup &&
+                     !(is_function_or_template_symbol(sym) ||
+                      (sym->kind == (a_symbol_kind)sk_projection &&
+                       sym->variant.projection.is_using_decl &&
+                       is_function_or_template_symbol(fund_sym)))) {
+            /* We are doing a special "member function" lookup and the symbol
+               found is not a member function or a using-declaration created
+               projection symbol to a member function. */
+            sym = NULL;
+            break;
           } else {
             /* Found an acceptable symbol. */
             goto end_lookup;
@@ -2324,16 +2336,19 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         sym = cssp->destructor;
         goto end_lookup;
       }  /* if */
-      /* The name was not found.  Try looking for a member symbol that can
-         be projected into the class. */
-      determine_projected_symbol_insert_location(locator,
-                                                 class_type,
-                                                 &add_to_active_list,
-                                                 &insert_sym);
-      (void)find_projected_symbol(class_type, locator, options,
-                                  /*tentative_type_lookup=*/FALSE,
-                                  add_to_active_list, insert_sym, &sym,
-                                  /*can_create_nonreal=*/TRUE);
+      if (!is_member_function_lookup) {
+        /* The name was not found.  Try looking for a member symbol that can
+           be projected into the class.  When doing a special "member
+           function" lookup, projection symbols are not created. */
+        determine_projected_symbol_insert_location(locator,
+                                                   class_type,
+                                                   &add_to_active_list,
+                                                   &insert_sym);
+        (void)find_projected_symbol(class_type, locator, options,
+                                    /*tentative_type_lookup=*/FALSE,
+                                    add_to_active_list, insert_sym, &sym,
+                                    /*can_create_nonreal=*/TRUE);
+      }  /* if */
     }  /* if */
 end_lookup:
     locator->specific_symbol = sym;
