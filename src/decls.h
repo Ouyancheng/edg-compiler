@@ -198,10 +198,20 @@ typedef int a_decl_flag_set;
 			   appeared in the declaration, so that if it turns
 			   out to be a member function, it is a static member
 			   function. */
-#define DI_QUALIFIED_NAME_DISALLOWED 0x8
+#define DI_QUALIFIED_NAME_ALLOWED 0x8
 			/* If this bit is set it a qualified name is not
 			   in the declarator (e.g., for a formal parameter or
 			   a typedef declaration). */
+#define DI_PARENTHESIZED_INITIALIZER_ALLOWED 0x10
+			/* If this bit is set a declarator may be followed
+			   by an initializer using the "(expr-list)"
+			   notation (ARM 8.4). */
+/* Constants defining bits in the output bit vector used in calls to
+   declarator. */
+#define DO_NO_OUTPUT_FLAGS 0x0
+#define DO_PARENTHESIZED_INITIALIZER 0x1
+			/* If this bit was set the declarator appears to be
+			   followed by a parenthesized initializer. */
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
 #define DSI_NO_INPUT_FLAGS 0x0
@@ -274,6 +284,7 @@ typedef int a_decl_flag_set;
                            keyword friend). */
 
 extern void declarator(a_decl_flag_set   input_flags,
+                       a_decl_flag_set   *output_flags,
 		       a_type_ptr        specifiers_type,
                        a_type_ptr        member_parent_type,
                        a_symbol_locator  *locator,
