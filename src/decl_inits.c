@@ -519,7 +519,11 @@ for unions and aggregates at that level).
 #endif /* CHECKING */
     }  /* switch */
     /* If there was an initial opening brace, check for and skip the
-       closing brace now. */
+       closing brace now.  Check also for an extra comma (required in C++
+       per ARM 8.4, offered in C along with the extension that permits
+       brace-enclosed initializers on non-aggregate variables in the first
+       place). */
+    if (brace_flag && curr_token == tok_comma) (void)get_token();
     check_for_matching_closing_brace(brace_flag);
   }  /* if */
   /* If the return value constant was not allocated (because of an error),
@@ -912,7 +916,11 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       }  /* if */
     } else {
       /* If an extra opening brace was ignored earlier, ignore the matching
-         closing brace now. */
+         closing brace now.  Check also for an extra comma (required in C++
+         per ARM 8.4, offered in C along with the extension that permits
+         brace-enclosed initializers on non-aggregate variables in the first
+         place). */
+      if (brace_flag && curr_token == tok_comma) (void)get_token();
       check_for_matching_closing_brace(brace_flag);
     }  /* if */
   }  /* if */
