@@ -1515,7 +1515,8 @@ Syntax:
   a_symbol_ptr      overloaded_function_symbol = NULL;
   a_symbol_ptr      function_symbol, member_function_symbol;
   a_boolean         overloaded_function_case = FALSE;
-  a_source_position call_position;
+  a_boolean         vacuous_destructor_case = FALSE;
+  a_source_position call_position, open_paren_position;
   an_arg_match_summary
                     this_match_summary;
   an_arg_operand_ptr
@@ -1525,9 +1526,19 @@ Syntax:
   db_enter(4, "scan_function_call");
 
   call_position = operand->position;
+  open_paren_position = pos_curr_token;
   if (is_const_expr_kind(expression_kind)) {
     /* Routine calls not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
+  } else if (is_expression_operand(operand) &&
+             is_operation_node(operand->variant.expression) &&
+             operand->variant.expression->variant.operation.kind ==
+                          (an_expr_operator_kind)eok_vacuous_destructor_call) {
+    /* This operand was generated from a vacuous destructor call, e.g.,
+       p->int::~int().
+    */
+    vacuous_destructor_case = TRUE;
+    /* routine = NULL; -- already set. */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand->type) &&
@@ -1636,6 +1647,12 @@ Syntax:
     } else {
       routine_type = routine_symbol_type(function_symbol);
     }  /* if */
+  } else if (vacuous_destructor_case) {
+    /* A vacuous destructor call.  The argument list should have no
+       arguments. */
+    if (argument_list != NULL) {
+      pos_error(ec_too_many_arguments, &open_paren_position);
+    }  /* if */
   } else {
     /* Non-overloaded function case. */
     if (operand->bound_function && routine_type != NULL) {
@@ -1669,9 +1686,14 @@ Syntax:
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Build the call node and an operand for it. */
-  assemble_function_call(operand, bound_function_selector, argument_list,
-                         result);
+  if (vacuous_destructor_case) {
+    /* Vacuous destructor case; leave the original operand alone. */
+    copy_operand(operand, result);
+  } else {
+    /* Build the call node and an operand for it. */
+    assemble_function_call(operand, bound_function_selector, argument_list,
+                           result);
+  }  /* if */
   copy_source_position(call_position, error_position);
 
   db_exit();
@@ -1944,7 +1966,11 @@ bound with the function in *bound_function_selector.
   an_xref_entry_ptr     xep;
   a_routine_ptr         routine_ptr;
   a_boolean             is_qualified_name;
+  a_boolean             is_vacuous_destructor_reference = FALSE;
   a_source_position     member_position, qualified_member_position;
+  an_identifier_options_set
+                        gid_flags;
+  a_type_ptr            dtor_type;
 
   db_enter(4, "scan_field_selection_operator");
 
@@ -2024,107 +2050,159 @@ bound with the function in *bound_function_selector.
   /* Scan the second operand. */
   (void)get_token();
   /* See if an identifier (or equivalent) is next. */
-  if (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS |
-                                      GID_DTOR_RECOGNIZED)) {
+  gid_flags = GID_DTOR_RECOGNIZED;
+  if (C_dialect == C_dialect_cplusplus) {
+    /* In C++, explicit calls of destructors are allowed for simple types
+       and classes without destructors.  For example, p->int::~int(). */
+    gid_flags |= GID_VACUOUS_DTOR_RECOGNIZED;
+    if (err || !is_class_struct_union_type(class_struct_union_type)) {
+      /* If the first operand is not a class, the vacuous destructor calls
+         can be things like p->~int(). */
+      gid_flags |= GID_DTOR_MUST_BE_NONCLASS;
+    }  /* if */
+  }  /* if */
+  if (is_generalized_identifier_start(gid_flags | GID_DEFER_ACCESS_ERRORS)) {
     found_id = TRUE;
     member_sym = NULL;
     /* See if the name following the operator is a C++ qualified name, as
        in "p->A::x". */
-    is_qualified_name = coalesce_and_lookup_qualified_name
-                          (GID_DTOR_RECOGNIZED | GID_DISALLOW_GLOBAL_QUALIFIER,
-                           ilm_normal, &err);
+    is_qualified_name = coalesce_and_lookup_qualified_name(
+                                               gid_flags |
+                                                 GID_DISALLOW_GLOBAL_QUALIFIER,
+                                               ilm_normal, &err);
     /* If the member is something like "A::x", member_position will give
        the position of the "x" and qualified_member_position will give the
        position of the "A". */
     member_position = locator_for_curr_id.source_position;
     qualified_member_position = pos_curr_token;
-    /* Further checking beyond the fact that this is an identifier is not
-       possible if there was an error in the first operand. */
-    if (operand_1_is_complete_class) {
-      if (is_qualified_name) {
-        /* There was a qualified member name, as in "p->A::x".  "A" in the
-           preceding must be the class pointed to by p or a base class
-           thereof, i.e., "A::x" must be a member of the class of the
-           first operand or of one of its base classes. */
-        if (is_error_locator(locator_for_curr_id)) {
-          /* There was an error in the qualified name. */
-          err = TRUE;
+    if (locator_for_curr_id.is_vacuous_destructor_reference) {
+      /* We have something like p->int::~int, a reference to a vacuous
+         destructor. */
+      is_vacuous_destructor_reference = TRUE;
+      need_operand_1_type_check = FALSE;
+      /* Watch out for error cases like p->int::~float. */
+      if (is_error_locator(locator_for_curr_id)) err = TRUE;
+      if (!err) {
+        /* Check that the type of the thing named on the right side
+           is the same as the type of the left side, or a base class. */
+        dtor_type = locator_for_curr_id.qualifier_class_type;
+        dtor_type = skip_typerefs(dtor_type);
+        if (types_are_compatible(class_struct_union_type, dtor_type) ||
+            (is_class_struct_union_type(dtor_type) &&
+             operand_1_is_complete_class &&
+             is_same_class_or_base_class_thereof(class_struct_union_type,
+                                                 dtor_type))) {
+          /* Okay. */
         } else {
-          projection_member_sym = locator_for_curr_id.specific_symbol;
-          member_sym = fundamental_symbol_of(projection_member_sym);
-          /* Make sure the name is a member of the class indicated by the
-             left-hand side, or one of its base classes. */
-          if (!is_same_class_or_base_class_thereof(class_struct_union_type,
-                                                   projection_member_sym->
-                                                    class_of_which_a_member)) {
-            pos_ty_error(ec_name_not_member_of_class_or_base_classes,
-                         &qualified_member_position, class_struct_union_type);
+          /* This is an error case like
+               float *p;
+               p->int::~int();
+          */
+          pos_error(ec_vacuous_destructor_name_mismatch,
+                    &qualified_member_position);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Not a vacuous destructor case, i.e., normal case. */
+      /* Further checking beyond the fact that this is an identifier is not
+         possible if there was an error in the first operand. */
+      if (operand_1_is_complete_class) {
+        if (is_qualified_name) {
+          /* There was a qualified member name, as in "p->A::x".  "A" in the
+             preceding must be the class pointed to by p or a base class
+             thereof, i.e., "A::x" must be a member of the class of the
+             first operand or of one of its base classes. */
+          if (is_error_locator(locator_for_curr_id)) {
+            /* There was an error in the qualified name. */
             err = TRUE;
+          } else {
+            projection_member_sym = locator_for_curr_id.specific_symbol;
+            member_sym = fundamental_symbol_of(projection_member_sym);
+            /* Make sure the name is a member of the class indicated by the
+               left-hand side, or one of its base classes. */
+            if (!is_same_class_or_base_class_thereof(class_struct_union_type,
+                                                     projection_member_sym->
+                                                    class_of_which_a_member)) {
+              pos_ty_error(ec_name_not_member_of_class_or_base_classes,
+                           &qualified_member_position,
+                           class_struct_union_type);
+              err = TRUE;
+            }  /* if */
+          }  /* if */
+        } else {
+          /* Normal case: not qualified member name. */
+          /* Look up this identifier in the scope of the class, struct, or
+             union. */
+          member_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                                 class_struct_union_type,
+                                                 IDL_NO_OPTIONS);
+          if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
+            /* This is a case like p->~A where the class has no destructor.
+               This is a vacuous destructor case if the types match.
+               Note that we do not allow ~A to be in a base class of the
+               class pointed to by p, because destructor names are not
+               inherited. */
+            a_symbol_ptr class_sym =
+              (a_symbol_ptr)class_struct_union_type->source_corresp.assoc_info;
+            if (destructor_name_matches_class_name(class_sym)) {
+              is_vacuous_destructor_reference = TRUE;
+              locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
+              dtor_type = class_struct_union_type;
+              locator_for_curr_id.qualifier_class_type = dtor_type;
+            }  /* if */
           }  /* if */
         }  /* if */
-      } else {
-        /* Normal case: not qualified member name. */
-        /* Handle destructor names ("~A") and operator names ("operator+"). */
-        if (get_destructor_name()) {
-          /* The name is a destructor name. */
-        } else if (get_opname()) {
-          /* The name is an operator name. */
-        }  /* if */
-        /* Look up this identifier in the scope of the class, struct, or
-           union. */
-        member_sym = class_qualified_id_lookup(&locator_for_curr_id,
-                                               class_struct_union_type,
-                                               IDL_NO_OPTIONS);
       }  /* if */
-    }  /* if */
-    /* If the field was not found, in pcc mode, look for any field with
-       that name.  If there's only one (or several with the same offsets),
-       cast the left-side variable to the right struct/union type and do
-       the selection with the found field. */
-    if (member_sym == NULL && C_dialect == C_dialect_pcc &&
-        /* Avoid the "rvalue . field" case. */
-        (is_arrow_operator || is_an_lvalue(operand_1))) {
-      a_symbol_ptr other_field_sym = other_field_with_same_name();
-      if (other_field_sym != NULL) {
-        /* We found a field we can use. */
-        member_sym = other_field_sym;
-        make_locator_for_symbol(member_sym, &locator_for_curr_id);
-        if (is_arrow_operator) {
-          /* "->" operator. */
-          warning(ec_old_fashioned_ptr_field_selection);
+      /* If the field was not found in pcc mode, look for any field with
+         that name.  If there's only one (or several with the same offsets),
+         cast the left-side variable to the right struct/union type and do
+         the selection with the found field. */
+      if (member_sym == NULL && C_dialect == C_dialect_pcc &&
+          /* Avoid the "rvalue . field" case. */
+          (is_arrow_operator || is_an_lvalue(operand_1))) {
+        a_symbol_ptr other_field_sym = other_field_with_same_name();
+        if (other_field_sym != NULL) {
+          /* We found a field we can use. */
+          member_sym = other_field_sym;
+          make_locator_for_symbol(member_sym, &locator_for_curr_id);
+          if (is_arrow_operator) {
+            /* "->" operator. */
+            warning(ec_old_fashioned_ptr_field_selection);
+          } else {
+            /* "." operator.  Convert the lvalue to an rvalue pointer, then
+               use "->" instead.  Note that the test above has ensured that
+               operand_1 here is an lvalue. */
+            warning(ec_old_fashioned_field_selection);
+            take_address_of_lvalue(operand_1, expression_kind);
+            is_arrow_operator = TRUE;
+          }  /* if */
+          /* Cast the pointer to a pointer to the proper struct or union. */
+          orig_class_struct_union_type = member_sym->class_of_which_a_member;
+          class_struct_union_type =skip_typerefs(orig_class_struct_union_type);
+          operand_1_is_complete_class = TRUE;
+          cast_operand(make_pointer_type(class_struct_union_type),
+                       operand_1, expression_kind,
+                       /*is_implicit_cast=*/FALSE);
+          /* Mark the struct or union type as referenced, since a field
+             therein has been referenced. */
+          orig_class_struct_union_type->source_corresp.referenced = TRUE;
+        }  /* if */
+      }  /* if */
+      if (member_sym == NULL && !is_vacuous_destructor_reference) {
+        /* The identifier is not a member of the operand_1 class, struct,
+           or union. */
+        if (!operand_1_is_complete_class) {
+          /* An error will be produced below because the first operand is
+             not (a pointer to) a class, so do not issue an error here. */
         } else {
-          /* "." operator.  Convert the lvalue to an rvalue pointer, then
-             use "->" instead.  Note that the test above has ensured that
-             operand_1 here is an lvalue. */
-          warning(ec_old_fashioned_field_selection);
-          take_address_of_lvalue(operand_1, expression_kind);
-          is_arrow_operator = TRUE;
-        }  /* if */
-        /* Cast the pointer to a pointer to the proper struct or union. */
-        orig_class_struct_union_type = member_sym->class_of_which_a_member;
-        class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
-        operand_1_is_complete_class = TRUE;
-        cast_operand(make_pointer_type(class_struct_union_type),
-                     operand_1, expression_kind,
-                     /*is_implicit_cast=*/FALSE);
-        /* Mark the struct or union type as referenced, since a field
-           therein has been referenced. */
-        orig_class_struct_union_type->source_corresp.referenced = TRUE;
-      }  /* if */
-    }  /* if */
-    if (member_sym == NULL) {
-      /* The identifier is not a member of the operand_1 class, struct,
-         or union. */
-      if (!operand_1_is_complete_class) {
-        /* An error will be produced below because the first operand is
-           not (a pointer to) a class, so do not issue an error here. */
-      } else {
-        pos_stsy_error(ec_not_a_member, &error_position,
-                       locator_for_curr_id.symbol_header->identifier,
-                       (a_symbol_ptr)class_struct_union_type->
+          pos_stsy_error(ec_not_a_member, &error_position,
+                         locator_for_curr_id.symbol_header->identifier,
+                         (a_symbol_ptr)class_struct_union_type->
                                                     source_corresp.assoc_info);
+        }  /* if */
+        err = TRUE;
       }  /* if */
-      err = TRUE;
     }  /* if */
   } else {
     /* The identifier is not present; error. */
@@ -2157,6 +2235,39 @@ bound with the function in *bound_function_selector.
        if there was an error in the first operand, make an error operand out
        of the result. */
     make_error_operand(result);
+  } else if (is_vacuous_destructor_reference) {
+    an_expr_node_ptr node;
+    /* A reference to a destructor for a class or simple type that does not
+       have one, e.g., p->int::~int(). */
+    if (!is_arrow_operator && is_an_lvalue(operand_1)) {
+      /* "." operator.  Convert the lvalue to an rvalue pointer, then
+         use "->" instead. */
+      take_address_of_lvalue(operand_1, expression_kind);
+      is_arrow_operator = TRUE;
+    }  /* if */
+    if (operand_1_is_complete_class && class_struct_union_type != dtor_type) {
+      /* Cast to a base class in a case like
+           struct A {};
+           struct B : public A {};
+           B *p;
+           p->A::~A();
+      */
+      a_base_class_ptr bcp =
+                        find_base_class_of(class_struct_union_type, dtor_type);
+      check_assertion(bcp != NULL);
+      base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
+                              /*check_cast_access=*/TRUE,
+                              expression_kind);
+    }  /* if */
+    /* Make an eok_vacuous_destructor_call node and an operand for it.
+       This is a pretty weird representation for this case, but it's a pretty
+       weird case.  scan_function_call checks for this construct. */
+    node = make_node_from_operand(operand_1);
+    node = make_operator_node(
+                            (an_expr_operator_kind)eok_vacuous_destructor_call,
+                            void_type(),
+                            node);
+    make_expression_operand(node, node->type, result);
   } else {
     /* Record that the field was referenced, for cross-reference (etc.)
        purposes. */
@@ -2293,7 +2404,7 @@ nonstatic_member_function:
   /* The position of the operand is the start position of the selection
      except when the operand is a bound function, in which case it's the
      position of the function name. */
-  if (result->bound_function) {
+  if (result->bound_function || is_vacuous_destructor_reference) {
     result->position = member_position;
   } else {
     result->position = operand_1->position;
