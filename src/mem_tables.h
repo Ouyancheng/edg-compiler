@@ -93,11 +93,13 @@ typedef struct an_il_entry_prefix {
 			/* Flipped between 0 and 1 to indicate entries that
 			   have been visited on a given walk through an IL
 			   tree. */
-#if DO_IL_LOWERING
   a_bit_field	il_lowering_flag:1;
 			/* Flipped from 0 to 1 by IL lowering to indicate
 			   IL entries that have been visited. */
-#endif /* DO_IL_LOWERING */
+			/* This is not conditional on DO_IL_LOWERING because
+			   is it also used by trans_copy.c to mark entries
+			   that should be merged into their primary translation
+			   unit counterparts. */
 #if MAINTAIN_NEEDED_FLAGS
   a_bit_field	keep_in_il:1;
 			/* TRUE if the entry should be kept in the IL tree
@@ -122,7 +124,7 @@ typedef struct an_il_entry_prefix {
      other sizes will work too.) */
 #define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
          /*lint --e(506)*/                                             \
-         (4 + ((DO_IL_LOWERING != 0)?1:0) + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
+         (5 + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
 #if EDG_MSDOS
   /* Under MS-DOS compilers this bit field is probably bigger than
      an "int", so use "unsigned long". */
@@ -144,12 +146,13 @@ typedef struct an_il_entry_prefix {
 Macro used by clear_il_entry_prefix to clear the IL lowering flag in
 an IL entry prefix only if it exists.
 */
-#if DO_IL_LOWERING
+/*
+This is not conditional on DO_IL_LOWERING because is it also used
+by trans_copy.c to mark entries that should be merged into their
+primary translation unit counterparts.
+*/
 #define clear_il_lowering_flag(epp)                                   \
   (epp->il_lowering_flag = initial_value_for_il_lowering_flag)
-#else /* !DO_IL_LOWERING */
-#define clear_il_lowering_flag(epp) /* Nothing */
-#endif /* DO_IL_LOWERING */
 
 
 /*

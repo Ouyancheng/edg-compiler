@@ -51,15 +51,14 @@ EXTERN an_orphaned_il_entry_list
 			   individual orphaned file scope IL entries. */
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
-#if DO_IL_LOWERING
 /*
 If IL lowering is to be done, IL entry prefixes have a flag that indicates
 whether or not IL lowering has visited them yet.  This is the initial
 value for that flag when it is cleared.
 */
+/* Not conditional because it's also used by trans_copy.c. */
 EXTERN a_boolean
 		initial_value_for_il_lowering_flag;
-#endif /* DO_IL_LOWERING */
 
 /*
 The default "routine name linkage" is the value to which the

@@ -12401,9 +12401,8 @@ in il_init.)
   register_trans_unit_variable(curr_cx_limited_range_state);
   register_trans_unit_variable(curr_object_lifetime);
   register_trans_unit_variable(okay_to_eliminate_unneeded_il_entries);
-#if DO_IL_LOWERING
+  /* Not conditional because it's also used by trans_copy.c: */
   register_trans_unit_variable(initial_value_for_il_lowering_flag);
-#endif /* DO_IL_LOWERING */
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
@@ -12431,9 +12430,8 @@ need initialization for every (primary and secondary) translation unit.
      secondary translation units). */
   okay_to_eliminate_unneeded_il_entries = is_primary_translation_unit ?
                                              remove_unneeded_entities : FALSE;
-#if DO_IL_LOWERING
+  /* Not conditional because it's also used by trans_copy.c: */
   initial_value_for_il_lowering_flag = 0;
-#endif /* DO_IL_LOWERING */
 #if ONE_INSTANTIATION_PER_OBJECT
   needed_flag_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
