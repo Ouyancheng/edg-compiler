@@ -1,5 +1,23 @@
 Version 2.37
 
+6/27/97   Internal error on break statement within dependent statement
+          in catch clause (cfront mode only)
+
+In cfront mode, an internal error (in connection with object-lifetime
+processing) could occur when a break statement appeared as the dependent
+statement of an if statement within a catch clause; it was necessary that
+the dependent statement not appear within braces.  Now fixed.  Here's an
+example:
+
+  void f() {
+    for(;;) {
+      try { /* ... */ }
+      catch (int x) {
+        if (x == 0) break;     // cfront-mode internal error is now fixed
+      }
+    }
+  }
+
 6/26/97   Internal error when template qualified destructor name does not
           match the left operand of "." or "->" operator
 

@@ -2097,6 +2097,8 @@ current structured statement.
              object lifetime in the ssk_switch entry, too -- it's used in
              add_switch_clause. */
           sssep[-1].curr_block_object_lifetime = olp;
+        } else if (sssep->depth_of_assoc_scope == NO_SCOPE_DEPTH) {
+          /* Cfront dependent statement. */
         } else if (scope != NULL && scope->kind == (a_scope_kind)sck_block &&
                    scope->variant.assoc_handler != NULL) {
           /* This block represents the compound statement immediately within a
