@@ -7194,7 +7194,7 @@ be put out.
     if (f_xref_info != NULL) {
       /* If writing cross-reference information, write an entry for this
          declaration. */
-      write_xref_entry(srk_declaration, sym_ptr, source_position);
+      write_xref_entry(srk_definition, sym_ptr, source_position);
     }  /* if */
     /* Put the decl_position in the symbol. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
