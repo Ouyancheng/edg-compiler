@@ -85,11 +85,11 @@ profiling version) will not be done.
 #endif /* !defined(sun) && USE_ATEXIT == 0 */
 
 
-#ifdef sun
+#if defined(sun) && USE_ATEXIT == 0
 /* Used to register a function to be called by exit to do wrapup
    processing. */
 extern "C" void on_exit(void (*)(), char *);
-#endif /* sun */
+#endif /* defined(sun) && USE_ATEXIT == 0 */
 
 
 void __call_ctors()
@@ -146,11 +146,11 @@ call the static initializer functions.
 
   /* Establish that the termination routines should be called when exit()
      is called or when main() returns normally. */
-#ifdef sun
-  on_exit(__call_dtors, (char *)NULL);
-#elif USE_ATEXIT
+#if USE_ATEXIT
   atexit(__call_dtors);
-#endif /* sun */
+#elif defined(sun)
+  on_exit(__call_dtors, (char *)NULL);
+#endif /* USE_ATEXIT */
 }  /* __call_ctors */
 
 

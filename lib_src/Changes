@@ -1,4 +1,12 @@
-Version 2.21, December 21, 1993
+Version 2.22
+
+2/4/94    Selection of on_exit vs. atexit
+
+The code used to select the routine to be used to invoke the static
+destructors when exit has been called to more easily accommodate
+Solaris 2.0, which uses atexit instead of on_exit.
+
+-------------------------------------------------------------------------------Version 2.21, December 21, 1993
 
 11/17/93  Changed __head to eliminate multiple definitions
 
