@@ -871,7 +871,7 @@ will already have been done.
 */
 {
   a_type_ptr           class_type = lob->class_type;
-  a_field_ptr          field, prev_field, next_field;
+  a_field_ptr          field;
   a_targ_size_t        local_byte_offset;
   int                  local_bit_offset, count;
   an_access_specifier  access;
@@ -882,13 +882,10 @@ will already have been done.
   for (count = 1; count >= 0; count--) {
     access = count ? (an_access_specifier)as_protected :
                      (an_access_specifier)as_private;
-    prev_field = NULL;
     /* Traverse the field list. */
     for (field = class_type->variant.class_struct_union.field_list;
          field != NULL;
-         field = next_field) {
-      /* Save a pointer to the next field, since field may be removed. */
-      next_field = field->next;
+         field = field->next) {
       if (field->source_corresp.access == access) {
 #if CHECKING
         if (field->bit_offset != 0) {
@@ -925,20 +922,7 @@ will already have been done.
           lob->byte_offset = local_byte_offset;
           lob->bit_offset = local_bit_offset;
         }  /* if */
-        if (field->source_corresp.assoc_info == NULL) {
-          /* No symbol created for this field, so it must be unnamed.  Remove
-             it from the field list. */
-          if (prev_field == NULL) {
-            class_type->variant.class_struct_union.field_list = next_field;
-          } else {
-            prev_field->next = next_field;
-          }  /* if */
-          field = NULL;
-        }  /* if */
       }  /* if */
-      /* If the current field was not removed from the field list, remember it
-         for the next iteration of the loop. */
-      if (field != NULL) prev_field = field;
     }  /* for */
   }  /* for */
   db_exit();
