@@ -821,15 +821,17 @@ Demangle the parameter list beginning at ptr and output the demangled form.
 Return a pointer to the character position following what was demangled.
 */
 {
-  char     *p = ptr;
-  char     *param_pos[10];
-  unsigned long curr_param_num, param_num, nreps;
+  char      *p = ptr;
+  char      *param_pos[10];
+  unsigned  long curr_param_num, param_num, nreps;
+  a_boolean any_params = FALSE;
 
   write_id_ch('(');
   if (*p == 'v') {
     /* Void parameter list. */
     p++;
   } else {
+    any_params = TRUE;
     /* Loop for each parameter. */
     for (curr_param_num = 1;; curr_param_num++) {
       if (err_in_id) break;  /* Avoid infinite loops on errors. */
@@ -874,6 +876,7 @@ Return a pointer to the character position following what was demangled.
   }  /* if */
   if (*p == 'e') {
     /* Ellipsis. */
+    if (any_params) write_id_str(", ");
     write_id_str("...");
     p++;
   }  /* if */
