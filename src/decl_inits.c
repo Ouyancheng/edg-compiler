@@ -889,7 +889,7 @@ ref field of a class object (or an array of same) remains uninitialized.
       nonconst_allowed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
-      /* A Microsoft extension permits a nonconstant intializer in the
+      /* A Microsoft extension permits a nonconstant initializer in the
          aggregate initialization of an automatic variable. */
       nonconst_allowed = !static_lifetime;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
