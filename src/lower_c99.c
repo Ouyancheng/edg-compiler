@@ -485,10 +485,9 @@ called routine (op@) are rout_name and xop_routine, respectively.
                                           lhs_copy);
   xop_call = add_c99_lowered_cast_if_necessary(xop_call, expr->type);
   lhs->next = xop_call;
-  assignment =  make_operator_node(which_binary_operator(
-                                                   tok_assign, 
-                                                   type_pointed_to(lhs->type)),
-                                   lhs->type, lhs);
+  assignment =  make_operator_node(which_binary_operator(tok_assign, 
+                                                         expr->type),
+                                   expr->type, lhs);
   if (lhs_for_init != NULL) {
     /* Add a comma expression to force the initialization of the temporary
        before any part of the compound assignment is evaluated. */
