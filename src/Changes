@@ -17,7 +17,7 @@ For example:
     void B::f() {  // Selective overrider syntax (Microsoft mode).
       d();         // Previously a spurious error.
     }
-  }
+  };
 
 This is now fixed.
 
