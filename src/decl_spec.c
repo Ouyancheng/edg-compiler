@@ -889,6 +889,15 @@ to indicate whether the class/struct/union is actually defined.
             tag_sym = NULL;
             set_to_named_error_locator(locator);
             err = TRUE;
+          } else if (tag_sym->is_class_member &&
+                     tag_sym->decl_scope == ssep->number) {
+            /* This is a vacuous declaration of a nested class of a
+               class template such as:
+	         template <class T> struct A {
+		   struct B;
+		   struct B;
+                 };
+               Don't consider this to be a specialization. */
           } else {
             cssp->is_specific_template_def = TRUE;
             is_template_specific_decl = TRUE;
