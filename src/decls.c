@@ -3815,6 +3815,21 @@ not be TRUE.
       } else {
         /* type_ptr must be preserved. */
         comp_type = composite_type(type_ptr, rout_type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* This must be the defining declaration of the function, so record
+           the type as it appears in the current declaration -- i.e., before
+           it is merged with comp_type if comp_type is different. */
+        check_assertion(routine_ptr->declared_type == NULL);
+        if (comp_type == type_ptr) {
+          /* type_ptr will not be modified. */
+          routine_ptr->declared_type = type_ptr;
+        } else {
+           /* type_ptr will be modified, so copy it first. */
+          routine_ptr->declared_type = alloc_type((a_type_kind)tk_routine);
+          copy_routine_type_with_param_types(type_ptr,
+                                             routine_ptr->declared_type);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         routine_ptr->type = rout_type = type_ptr;
       }  /* if */
       /* If rout_type is not what was returned, copy the composite
@@ -4082,8 +4097,28 @@ generating cross-reference output describing this declaration.
   }  /* if */
   if (redeclaration) {
     if (linked_symbol->kind == (a_symbol_kind)sk_variable && !is_function) {
-      if (C_dialect == C_dialect_cplusplus && linked_symbol->defined &&
-          is_variable_def) {
+      if (C_mode() && linked_symbol->defined) {
+        if (linked_symbol->variant.variable.ptr->init_kind !=
+                                               (an_init_kind)initk_none) {
+          /* The variable was initialized on a prior declaration, so this
+             cannot be a tentative definition. */
+          if (srk_flags & SRK_TENTATIVE_DEF) {
+            srk_flags &= ~(SRK_TENTATIVE_DEF | SRK_DEFINITION);
+            check_assertion(srk_flags & SRK_DECLARATION);
+            is_variable_def = FALSE;
+          }  /* if */
+        } else {
+          /* The variable must have been marked "defined" as a result of a
+             previous tentative definition.  If the current declaration is
+             a primary declaration and not another tentative definition,
+             clear the defined flag to avoid spurious redefinition errors. */
+          if (is_variable_def && !(srk_flags & SRK_TENTATIVE_DEF)) {
+            linked_symbol->defined = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (linked_symbol->defined && is_variable_def &&
+          (!C_mode() || !(srk_flags & SRK_TENTATIVE_DEF))) {
         /* Variable has already been defined.  Issue an error here and
            suppress an error when the symbol is entered. */
         pos_sy_error(ec_already_defined, &locator->source_position,
@@ -4370,16 +4405,6 @@ skip_overloading:;
                                                     variant.variable.used) {
         sym->variant.variable.used = TRUE;
       }  /* if */
-      /* If this looked like a tentative definition to the caller (C-mode
-         only), see if the variable was initialized at the previous
-         declaration.  If so, this is not a tentative definition. */
-      if (sym->defined && (srk_flags & SRK_TENTATIVE_DEF)) {
-        if (variable_ptr->init_kind != (an_init_kind)initk_none) {
-          srk_flags &= ~(SRK_TENTATIVE_DEF | SRK_DEFINITION);
-          check_assertion(srk_flags & SRK_DECLARATION);
-          is_variable_def = FALSE;
-        }  /* if */
-      }  /* if */
       /* Move the variable entry to the end of the variables list if this is
          its definition. */
       if (srk_flags & SRK_DEFINITION) {
@@ -4633,11 +4658,13 @@ skip_overloading:;
      is declared in a local scope and a sublist is generated). */
   if (is_function) {
     if (is_function_def) {
-      /* The defining declaration of the function.  Record the type as it
-         actually appeared in the current declaration (i.e., before
-         composite type was called). */
-      check_assertion(routine_ptr->declared_type == NULL);
-      routine_ptr->declared_type = declared_type;
+      /* The defining declaration of the function.  The type as it actually
+         appeared in the current declaration may already have been set in
+         reconcile_routine_types. */
+      if (routine_ptr->declared_type == NULL) {
+        check_assertion(type_ptr == declared_type);
+        routine_ptr->declared_type = type_ptr;
+      }  /* if */
     } else {
       /* A function declaration but not a definition.  Set the type in the
          secondary declaration entry. */
@@ -5161,13 +5188,6 @@ on a prior declaration.
     rp = sym->variant.routine.ptr;
     type_ptr->variant.routine.extra_info->implicit_this_param_type =
            (*old_type)->variant.routine.extra_info->implicit_this_param_type;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Since this is the defining declaration of the member function, record
-       the type.  Note that this has to be done before composite type is
-       called. */
-    check_assertion(rp->declared_type == NULL);
-    rp->declared_type = type_ptr;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
@@ -9562,8 +9582,13 @@ specified (rather than defaulted to "int").
                         &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* The following check cannot be done, since the type may end up being
+     copied. */
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!is_member_function_def &&
       storage_class == (a_storage_class)sc_unspecified &&
       routine_ptr->source_corresp.name != NULL &&
@@ -9878,6 +9903,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
           set_source_corresp(&(handler->parameter->source_corresp), sym);
           record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                                     &sym->decl_position, declarator_ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          sym->variant.variable.ptr->declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           mark_variable_value_set(sym);
         }  /* if */
         /* A handler parameter is initialized by the run-time when the
