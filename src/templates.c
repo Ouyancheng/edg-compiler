@@ -16995,6 +16995,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   a_master_instance_ptr		   mip = NULL;
   a_boolean			   defer_inline;
   a_boolean			   defer_instantiation = FALSE;
+                                   /* Not used in certain configurations. */
+                                   /*lint -esym(550,defer_instantiation)*/
   a_boolean			   use_master_instance;
 
   db_enter(5, "update_instantiation_required_flag");
