@@ -751,6 +751,7 @@ ec_bad_storage_class_on_condition_decl;;"invalid storage class for condition dec
 ec_array_type_not_allowed;;"an array type is not allowed here"
 ec_exp_assign;;"expected an \"=\""
 ec_exp_declarator_in_condition_decl;;"expected a declarator in condition declaration"
+ec_redeclaration_of_condition_decl_name;;"%sq, declared in condition, may not be redeclared in this scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
