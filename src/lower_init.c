@@ -1290,8 +1290,10 @@ NULL until then.
 static a_routine_ptr
 		vec_new_routine,
 		vec_new_eh_routine,
+		array_new_routine,
 		vec_cctor_routine,
-		vec_delete_routine;
+		vec_delete_routine,
+		array_delete_routine;
 
 
 static an_expr_node_ptr num_elem_node_from_count(
@@ -1350,64 +1352,141 @@ type of the array pointed to by ptr_type, and return a pointer to it.
 }  /* size_elem_node_from_pointer_type */
 
 
+static an_expr_node_ptr expr_for_pointer_to_routine(a_routine_ptr routine)
+/*
+Build and return an expression node for the address of the indicated routine.
+If the routine pointer is NULL, build an expression that is a null function
+pointer and return that.  In either case, the node is cast to a generic
+function pointer type.
+*/
+{
+  an_expr_node_ptr expr;
+  a_type_ptr       gen_func_ptr_type = make_vptp_type();
+  a_constant       null_constant;
+
+  if (routine != NULL) {
+    expr = function_addr_expr(routine, /*set_address_taken_flag=*/TRUE);
+    /* Cast the function pointer to the generic function type. */
+    expr = add_cast_if_necessary(expr, gen_func_ptr_type);
+  } else {
+    /* No routine; use 0 cast to the right function pointer type. */
+    make_zero_of_proper_type(gen_func_ptr_type, &null_constant);
+    expr = alloc_node_for_constant(&null_constant);
+  }  /* if */
+  return expr;
+}  /* expr_for_pointer_to_routine */
+
+
+static a_boolean is_two_argument_delete(a_routine_ptr delete_routine)
+/*
+Return TRUE if the indicated delete routine is of the two-argument form.
+*/
+{
+  a_boolean                     is_two_arg;
+  a_routine_type_supplement_ptr delete_routine_rtsp =
+                                        f_skip_typerefs(delete_routine->type)->
+                                                    variant.routine.extra_info;
+  a_param_type_ptr              param1 = delete_routine_rtsp->param_type_list;
+
+  check_assertion(param1 != NULL);
+  is_two_arg = (param1->next != NULL);
+  return is_two_arg;
+}  /* is_two_argument_delete */
+
+
 static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
+                                          a_type_ptr       entity_type,
                                           an_expr_node_ptr num_elem_node,
                                           a_routine_ptr    ctor_routine,
-                                          a_routine_ptr    dtor_routine)
+                                          a_routine_ptr    dtor_routine,
+                                          a_routine_ptr    new_routine,
+                                          a_routine_ptr    delete_routine)
 /*
-Make a call to a runtime routine (__vec_new) that will allocate an array
-and call a constructor for each element of the array.  entity_node gives
-the address of the array (for cases where the array is already
-allocated).  num_elem_node gives (as an expression) the number of
-elements in the array.  ctor_routine is the constructor routine to be
-called, or NULL if no constructor is to be called.  dtor_routine
-is the destructor routine to be called -- this is non-NULL only if
-there is a destructor and is used only if exceptions are enabled
-(in that case, it may be necessary to destroy array elements that
-were created if a throw occurs halfway through the initialization of
-the array); the runtime routine __vec_new_eh is called in that case.
-A pointer to the expression created is returned.
+Make a call to a runtime routine (__vec_new or __array_new) that will
+allocate an array and call a constructor for each element of the
+array.  entity_node gives the address of the array (for cases where
+the array is already allocated).  entity_node == NULL if the
+runtime routine is supposed to do the allocation.  entity_type
+gives the type of the pointer to the entity.  num_elem_node gives (as
+an expression) the number of elements in the array.  ctor_routine is
+the constructor routine to be called, or NULL if no constructor is to
+be called.  dtor_routine is the destructor routine to be called --
+this is non-NULL only if there is a destructor and is used only if
+exceptions are enabled (in that case, it may be necessary to destroy
+array elements that were created if a throw occurs halfway through
+the initialization of the array); the runtime routine __vec_new_eh is
+called in that case.  If new_routine is non-NULL, it points to an
+"operator new[]" routine to be used to do the allocation; if it is
+null, the default routine is used.  If delete_routine is non-NULL, it
+points to an "operator delete[]" routine to be used to free the
+storage if an exception is thrown before initialization is completed;
+if it is NULL, the default routine is used.  The runtime routine
+__array_new is called for cases that require a special new or delete
+routine.  A pointer to the expression created is returned.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
-  an_expr_node_ptr func_addr_node;
+  an_expr_node_ptr ctor_addr_node, dtor_addr_node;
+  an_expr_node_ptr new_addr_node, delete_addr_node, is_two_arg_node;
   a_constant       null_constant;
-  a_type_ptr       gen_func_ptr_type;
 
   /* Build a constant node for the size of the array elements. */
-  size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
-  gen_func_ptr_type = make_vptp_type();
-  if (ctor_routine != NULL) {
-    func_addr_node = function_addr_expr(ctor_routine,
-                                        /*set_address_taken_flag=*/TRUE);
-    /* Cast the function pointer to the generic function type. */
-    func_addr_node = add_cast_if_necessary(func_addr_node, gen_func_ptr_type);
+  size_elem_node = size_elem_node_from_pointer_type(entity_type);
+  /* Build an expression for the address of the constructor. */
+  ctor_addr_node = expr_for_pointer_to_routine(ctor_routine);
+  if (new_routine == NULL && delete_routine == NULL) {
+    /* Normal case.  The call looks like
+         __vec_new   (entity_node, num_elems, size_elem, ctor_routine)
+         __vec_new_eh(entity_node, num_elems, size_elem, ctor_routine,
+                                                         dtor_routine)
+    */
+    if (entity_node == NULL) {
+      /* If the runtime routine is supposed to do the allocation, pass a
+         null pointer to the routine. */
+      make_zero_of_proper_type(void_star_type(), &null_constant);
+      entity_node = alloc_node_for_constant(&null_constant);
+    }  /* if */
+    arg_expr_list = entity_node;
+    entity_node->next = num_elem_node;
+    num_elem_node->next = size_elem_node;
+    size_elem_node->next = ctor_addr_node;
+    if (exceptions_enabled && dtor_routine != NULL) {
+      /* __vec_new_eh call, with destructor. */
+      dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+      ctor_addr_node->next = dtor_addr_node;
+      call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
+                                         void_star_type(), arg_expr_list);
+    } else {
+      /* __vec_new call, without destructor. */
+      call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
+                                         void_star_type(), arg_expr_list);
+    }  /* if */
   } else {
-    /* No constructor routine to call; use 0 cast to the right function
-       pointer type. */
-    make_zero_of_proper_type(gen_func_ptr_type, &null_constant);
-    func_addr_node = alloc_node_for_constant(&null_constant);
-  }  /* if */
-  /* The call looks like
-       __vec_new   (entity_node, num_elems, size_elem, ctor_routine)
-       __vec_new_eh(entity_node, num_elems, size_elem, ctor_routine,
-                                                       dtor_routine)
-  */
-  arg_expr_list = entity_node;
-  entity_node->next = num_elem_node;
-  num_elem_node->next = size_elem_node;
-  size_elem_node->next = func_addr_node;
-  if (exceptions_enabled && dtor_routine != NULL) {
-    /* __vec_new_eh call, with destructor. */
-    an_expr_node_ptr dtor_addr_node = function_addr_expr(dtor_routine,
-                                              /*set_address_taken_flag=*/TRUE);
-    dtor_addr_node = add_cast_if_necessary(dtor_addr_node, gen_func_ptr_type);
-    func_addr_node->next = dtor_addr_node;
-    call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
-                                       void_star_type(), arg_expr_list);
-  } else {
-    /* __vec_new call, without destructor. */
-    call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
+    /* A special new or delete routine must be used.  The call looks like
+         __array_new(num_elems, size_elem, ctor_routine,
+                     dtor_routine, new_routine, delete_routine, is_two_arg)
+       The dtor_routine and delete_routine are always NULL when exceptions
+       are disabled.  is_two_arg is 1 if the delete routine has two arguments
+       and 0 otherwise. */
+    /* When initializing an array that is not dynamically allocated,
+       dtor_routine can be non-NULL even if exceptions are disabled. */
+    dtor_addr_node = expr_for_pointer_to_routine(exceptions_enabled ?
+                                                            dtor_routine :
+                                                            (a_routine *)NULL);
+    new_addr_node = expr_for_pointer_to_routine(new_routine);
+    delete_addr_node = expr_for_pointer_to_routine(delete_routine);
+    is_two_arg_node = node_for_integer_constant(
+                           (delete_routine != NULL &&
+                             is_two_argument_delete(delete_routine)) ? 1L : 0L,
+                           (an_integer_kind)ik_int);
+    arg_expr_list = num_elem_node;
+    num_elem_node->next = size_elem_node;
+    size_elem_node->next = ctor_addr_node;
+    ctor_addr_node->next = dtor_addr_node;
+    dtor_addr_node->next = new_addr_node;
+    new_addr_node->next = delete_addr_node;
+    delete_addr_node->next = is_two_arg_node;
+    call_node = make_runtime_rout_call("__array_new", &array_new_routine,
                                        void_star_type(), arg_expr_list);
   }  /* if */
   return call_node;
@@ -1418,55 +1497,70 @@ static an_expr_node_ptr make_vec_delete_call(
                                           an_expr_node_ptr entity_node,
                                           a_targ_ptrdiff_t array_element_count,
                                           a_routine_ptr    dtor_routine,
+                                          a_routine_ptr    delete_routine,
                                           a_boolean        free_storage)
 /*
-Make a call to a runtime routine (__vec_delete) that will call a
-destructor for each element of an array and then deallocate the array.
-entity_node gives the address of the array.  array_element_count is the
-number of elements in the array, or -1 for a variable-length array.
-dtor_routine is the destructor routine to be called, or NULL if no
-destructor is to be called.  free_storage is TRUE if the storage for the
-array is to be freed.  A pointer to the expression created is returned.
+Make a call to a runtime routine (__vec_delete or __array_delete)
+that will call a destructor for each element of an array and then
+deallocate the array.  entity_node gives the address of the array.
+array_element_count is the number of elements in the array, or -1 for
+a variable-length array.  dtor_routine is the destructor routine to
+be called, or NULL if no destructor is to be called.  delete_routine
+is the delete routine to be called, or NULL if the normal delete
+routine should be called.  free_storage is TRUE if the storage for
+the array is to be freed.  A pointer to the expression created is
+returned.  When delete_routine is non-zero, __array_delete is called
+instead of __vec_delete.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, num_elem_node, size_elem_node;
-  an_expr_node_ptr func_addr_node, free_storage_node;
-  a_constant       null_constant;
-  a_type_ptr       gen_func_ptr_type;
+  an_expr_node_ptr dtor_addr_node, delete_addr_node, free_storage_node;
+  an_expr_node_ptr is_two_arg_node;
 
   /* Build a constant node for the number of array elements. */
   num_elem_node = num_elem_node_from_count(array_element_count);
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
-  /* Build the "free_storage" argument: 1 to free storage, 0 otherwise. */
-  free_storage_node = node_for_integer_constant(free_storage ? 1L : 0L,
-                                                (an_integer_kind)ik_int);
-  gen_func_ptr_type = make_vptp_type();
-  if (dtor_routine != NULL) {
-    func_addr_node = function_addr_expr(dtor_routine,
-                                        /*set_address_taken_flag=*/TRUE);
-    /* Cast the function pointer to the generic function type. */
-    func_addr_node = add_cast_if_necessary(func_addr_node, gen_func_ptr_type);
-  } else {
-    /* No destructor routine to call; use 0 cast to the right function
-       pointer type. */
-    make_zero_of_proper_type(gen_func_ptr_type, &null_constant);
-    func_addr_node = alloc_node_for_constant(&null_constant);
-  }  /* if */
-  /* The call looks like
-       __vec_delete(entity_node, num_elems, size_elem, dtor_routine,
-                    free_storage, 0)
-     The final argument is never used.  It's there for cfront compatibility.
-  */
-  arg_expr_list = entity_node;
-  entity_node->next = num_elem_node;
-  num_elem_node->next = size_elem_node;
-  size_elem_node->next = func_addr_node;
-  func_addr_node->next = free_storage_node;
-  free_storage_node->next = node_for_integer_constant(0L,
+  /* Build an expression for the address of the destructor. */
+  dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+  if (delete_routine == NULL) {
+    /* The call looks like
+         __vec_delete(entity_node, num_elems, size_elem, dtor_routine,
+                      free_storage, 0)
+       The final argument is never used.  It's there for cfront compatibility.
+    */
+    /* Build the "free_storage" argument: 1 to free storage, 0 otherwise. */
+    free_storage_node = node_for_integer_constant(free_storage ? 1L : 0L,
+                                                  (an_integer_kind)ik_int);
+    arg_expr_list = entity_node;
+    entity_node->next = num_elem_node;
+    num_elem_node->next = size_elem_node;
+    size_elem_node->next = dtor_addr_node;
+    dtor_addr_node->next = free_storage_node;
+    free_storage_node->next = node_for_integer_constant(0L,
                                                       (an_integer_kind)ik_int);
-  call_node = make_runtime_rout_call("__vec_delete", &vec_delete_routine,
-                                     void_type(), arg_expr_list);
+    call_node = make_runtime_rout_call("__vec_delete", &vec_delete_routine,
+                                       void_type(), arg_expr_list);
+  } else {
+    /* There's a special delete routine, so use the call
+       __array_delete(entity_node, num_elems, size_elem, dtor_routine,
+                      delete_routine, is_two_arg)
+       is_two_arg is 1 to indicate that the delete routine is a 2-argument
+       routine, 0 otherwise.
+    */
+    delete_addr_node = expr_for_pointer_to_routine(delete_routine);
+    is_two_arg_node = node_for_integer_constant(
+                              is_two_argument_delete(delete_routine) ? 1L : 0L,
+                              (an_integer_kind)ik_int);
+    arg_expr_list = entity_node;
+    entity_node->next = num_elem_node;
+    num_elem_node->next = size_elem_node;
+    size_elem_node->next = dtor_addr_node;
+    dtor_addr_node->next = delete_addr_node;
+    delete_addr_node->next = is_two_arg_node;
+    call_node = make_runtime_rout_call("__array_delete", &array_delete_routine,
+                                       void_type(), arg_expr_list);
+  }  /* if */
   return call_node;
 }  /* make_vec_delete_call */
 
@@ -1492,11 +1586,8 @@ A pointer to the expression created is returned.
   num_elem_node = num_elem_node_from_count(array_element_count);
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
-  /* Build a node for the address of the copy constructor. */
-  func_addr_node = function_addr_expr(cctor_routine,
-                                      /*set_address_taken_flag=*/TRUE);
-  /* Cast the function pointer to the generic function type. */
-  func_addr_node = add_cast_if_necessary(func_addr_node, make_vptp_type());
+  /* Build an expression for the address of the copy constructor. */
+  func_addr_node = expr_for_pointer_to_routine(cctor_routine);
   /* The call looks like
        __vec_cctor(entity_node, num_elems, size_elem, cctor_routine,
                    source_node)
@@ -1622,7 +1713,9 @@ generated parameters of constructors and destructors are also removed.
 This is used to generate a version of a constructor or destructor that
 can be called with just a "this" parameter, or of a copy constructor
 that can be called with just a "this" parameter and a source pointer.
-The routine must have a "this" parameter.
+The routine must have a "this" parameter.  If the original routine has
+no default arguments, no wrapper routine is created; the original
+routine is returned.
 */
 {
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
@@ -1817,8 +1910,10 @@ in default_version_of_routine).
     /* Normal constructor case. */
     /* Build a constant node for the number of array elements. */
     num_elem_node = num_elem_node_from_count(array_element_count);
-    call_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine,
-                                  dip->destructor);
+    call_node = make_vec_new_call(entity_node, entity_node->type,
+                                  num_elem_node,
+                                  ctor_routine, dip->destructor,
+                                  (a_routine *)NULL, (a_routine *)NULL);
   }  /* if */
   /* Make a statement containing the call. */
   call_stmt = alloc_expr_statement(call_node);
@@ -1859,7 +1954,8 @@ because of the make_destruction_routine case.
        it automatically. */
     /* Generate the __vec_delete call. */
     call_node = make_vec_delete_call(entity_node, ipdp->array_element_count,
-                                   dtor_routine, /*free_storage=*/FALSE);
+                                     dtor_routine, (a_routine *)NULL,
+                                     /*free_storage=*/FALSE);
     /* Make a statement containing the call. */
     call_stmt = alloc_expr_statement(call_node);
     set_stmt_pos_to_code_pos_for_lowering(call_stmt);
@@ -3205,6 +3301,7 @@ arrays with class elements.
 {
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
   a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
+  a_routine_ptr               new_routine = ndsp->routine;
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
   an_expr_node_ptr            entity_node, new_node, temp_var_node;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
@@ -3213,24 +3310,29 @@ arrays with class elements.
   a_boolean                   preserve_size_node;
   a_targ_size_t               elem_size;
   an_expr_node_ptr            size_node, constant_node, nonconstant_node;
-  a_constant                  size_constant, null_constant;
+  a_constant                  size_constant;
   a_targ_size_t               con_for_size;
   a_boolean                   ovflo;
-  a_routine_ptr               ctor_routine, dtor_routine;
+  a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
+  an_insert_location          insert_location;
 
   /* Get the array element type. */
   array_type = skip_typerefs(ndsp->type);
   elem_type = new_delete_base_type_from_operation_type(ndsp->type);
   ptr_elem_type = make_pointer_type(elem_type);
+  set_expr_creation_insert_location(&insert_location);
   /* Build the node for the address of the array (entity_node). */
 #if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
  #error -- NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE wrong
 #endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
-  if (ndsp->routine == NULL) {
-    /* The __vec_new routine should do the allocation of the array (the normal
-       case).  The entity_node is therefore a NULL pointer. */
-    make_zero_of_proper_type(ptr_elem_type, &null_constant);
-    entity_node = alloc_node_for_constant(&null_constant);
+  if (!ndsp->placement_new) {
+    /* This is a normal (not placement) new, the usual case.  The __vec_new
+       routine should do the allocation of the array. */
+    /* Note that new_routine might be non-NULL here, if the allocation
+       requires a non-default "operator new[]" i.e., a class-specific one.
+       __array_new will be called, and is given a pointer to the allocation
+       routine to use. */
+    entity_node = NULL;  /* Allocate in __vec_new. */
     /* Lower "arg" even though it is usually ignored.  It is used when the
        array size is nonconstant.  Note that it is not necessary to lower
        this as an argument list because it will not be used directly as
@@ -3238,8 +3340,8 @@ arrays with class elements.
     lower_expr_list(ndsp->arg, 0, 0);
     preserve_size_node = FALSE;
   } else {
-    /* The allocation is not standard and must be done before calling
-       the __vec_new routine.  This happens for something like
+    /* This is a placement new, so the allocation must be done before
+       calling the __vec_new routine.  This happens for something like
          A *p = new (x, y, z) A[3];
        The "new" call is assigned to a temporary, and entity_node uses
        the temporary, as in
@@ -3249,18 +3351,22 @@ arrays with class elements.
        may contain the assignment to a temporary needed to make a reusable
        copy of the size expression.  */
     /* Make the "new" call. */
-    lower_arg_expr_list(ndsp->arg, ndsp->routine->type,
+    check_assertion_str(new_routine != NULL,
+                       "lower_array_new: placement new with null new_routine");
+    lower_arg_expr_list(ndsp->arg, new_routine->type,
                         (a_param_type_ptr)NULL);
-    new_node = make_call_node(ndsp->routine, ndsp->arg,
+    new_node = make_call_node(new_routine, ndsp->arg,
                               /*honor_virtual=*/FALSE,
                               (an_insert_location *)NULL);
+    new_routine = NULL;  /* Allocation done outside of __vec_new. */
     /* Make "temp = (type *)new-call(...)". */
     temp_var = make_lowered_temporary(ptr_elem_type);
     temp_var_node = var_lvalue_expr(temp_var);
     temp_var_node->next = add_cast_if_necessary(new_node, ptr_elem_type);
     assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                      ptr_elem_type, temp_var_node);
-    /* The comma node is built at the end of this routine. */
+    /* Start the insert list with the assignment. */
+    insert_expr(assign_node, &insert_location);
     entity_node = var_rvalue_expr(temp_var);
     /* The size node is used in the "new" call, so it cannot be destroyed. */
     preserve_size_node = TRUE;
@@ -3382,16 +3488,20 @@ arrays with class elements.
     ctor_routine = NULL;
     dtor_routine = NULL;
   }  /* if */
-  /* Construct the call of __vec_new. */
-  vec_new_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine,
-                                   dtor_routine);
-  if (ndsp->routine != NULL) {
-    /* Build a comma node that encloses the allocation call and the
-       __vec_new call.  See comment above. */
-    assign_node->next = vec_new_node;
-    vec_new_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                      vec_new_node->type, assign_node);
+  if (ndsp->freeing_of_storage_on_exception != NULL) {
+    /* The allocated storage must be freed if an exception is thrown before
+       the storage is allocated. */
+    delete_routine = ndsp->freeing_of_storage_on_exception->destructor;
+  } else {
+    /* No deletion on throw. */
+    delete_routine = NULL;
   }  /* if */
+  /* Construct the call of __vec_new or __array_new. */
+  vec_new_node = make_vec_new_call(entity_node, ptr_elem_type, num_elem_node,
+                                   ctor_routine, dtor_routine,
+                                   new_routine, delete_routine);
+  insert_expr(vec_new_node, &insert_location);
+  vec_new_node = insert_location.variant.expr;
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
      to the right pointer type. */
   change_to_cast(expr, vec_new_node, expr->type);
@@ -3408,13 +3518,12 @@ i.e., arrays with class elements.
 {
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
   a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
+  a_routine_ptr               delete_routine = ndsp->routine;
   a_routine_ptr               dtor_routine;
-  an_expr_node_ptr            vec_delete_node;
+  an_expr_node_ptr            ptr_node = ndsp->arg, vec_delete_node;
 
-  /* Lower "arg"; do it as a list in case the delete routine is the
-     two-argument version.  Drop the second argument if present. */
-  lower_expr_list(ndsp->arg, 0, 0);
-  ndsp->arg->next = NULL;
+  /* Lower "arg". */
+  lower_expr(ptr_node, /*is_lvalue=*/FALSE);
   if (dip != NULL) {
     /* A destructor must be called. */
     /* Get a pointer to the dynamic init entry that applies to the array
@@ -3428,14 +3537,91 @@ i.e., arrays with class elements.
        done along with the deallocation. */
     dtor_routine = NULL;
   }  /* if */
-  vec_delete_node = make_vec_delete_call(ndsp->arg,
+  vec_delete_node = make_vec_delete_call(ptr_node,
                                          /*array_element_count=*/
                                                           (a_targ_ptrdiff_t)-1,
                                          dtor_routine,
+                                         delete_routine,
                                          /*free_storage=*/TRUE);
   /* Overwrite the original node with the __vec_delete call. */
   overwrite_node(expr, vec_delete_node);
 }  /* lower_array_delete */
+
+
+static void set_up_freeing_of_storage_on_exception(
+                                  a_new_delete_supplement_ptr ndsp,
+                                  an_init_pos_descr_ptr       ipdp,
+                                  an_insert_location          *insert_location)
+/*
+ndsp points to the new/delete supplement for a "new".  If necessary, set
+up to ensure that the storage allocated will be freed if an exception is
+thrown before the initialization of the entity is completed.  ipdp
+describes the location of the allocated storage.  Any code required is
+inserted at *insert_location.
+*/
+{
+  a_dynamic_init_ptr dyn_init_to_free_storage =
+                                         ndsp->freeing_of_storage_on_exception;
+
+  if (dyn_init_to_free_storage != NULL) {
+    /* The storage for this "new" is supposed to be freed if an exception
+       is thrown before the initialization is completed.  The fact
+       that this pointer is non-NULL means exceptions are enabled. */
+    a_destructible_entity_descr_ptr dedp =
+                           dyn_init_to_free_storage->destructible_entity_descr;
+    if (dedp == NULL) {
+      /* When lowering the file-scope initialization routine, in long
+         lifetime temporaries mode, this entry can be in the global static
+         lifetime, which was never passed through begin_object_lifetime,
+         so do the initialization on this entry now. */
+      initial_processing_on_destructible_initialization(
+                                                      dyn_init_to_free_storage,
+                                                      insert_location);
+      dedp = dyn_init_to_free_storage->destructible_entity_descr;
+    }  /* if */
+    copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
+    if (dedp->conditional_flag_var != NULL) {
+      /* Set the conditional flag variable to nonzero. */
+      set_conditional_flag_var(dedp->conditional_flag_var, insert_location);
+    }  /* if */
+    dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
+#if GENERATE_EH_TABLES
+    /* Make a cleanup region table entry to get the storage freed if
+       a throw occurs before the entity is initialized. */
+    make_dyn_init_region_table_entry(dyn_init_to_free_storage,
+                                     curr_context->latest_initialization,
+                                     insert_location);
+#endif /* GENERATE_EH_TABLES */
+    /* Set the cleanup state to the delete cleanup entry. */
+    set_curr_cleanup_state(dyn_init_to_free_storage, insert_location);
+    curr_context->latest_initialization = dyn_init_to_free_storage;
+  }  /* if */
+}  /* set_up_freeing_of_storage_on_exception */
+
+
+static void turn_off_freeing_of_storage_on_exception(
+                                  a_new_delete_supplement_ptr ndsp,
+                                  an_insert_location          *insert_location)
+/*
+ndsp points to the new/delete supplement for a "new".  We're now at a
+location after the initialization related to the "new" has been done,
+so do the second part of the processing begun by
+set_up_freeing_of_storage_on_exception.  Any code required is inserted
+at *insert_location.
+*/
+{
+  a_dynamic_init_ptr dyn_init_to_free_storage =
+                                         ndsp->freeing_of_storage_on_exception;
+
+  if (dyn_init_to_free_storage != NULL) {
+    a_destructible_entity_descr_ptr dedp =
+                           dyn_init_to_free_storage->destructible_entity_descr;
+    if (dedp->conditional_flag_var != NULL) {
+      reset_conditional_flag_var(dedp->conditional_flag_var,
+                                 insert_location);
+    }  /* if */
+  }  /* if */
+}  /* turn_off_freeing_of_storage_on_exception */
 
 
 static void lower_new(an_expr_node_ptr expr)
@@ -3453,7 +3639,6 @@ The subtree of the node has not yet been lowered.
   a_constant                  null_constant;
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
-  a_dynamic_init_ptr          dyn_init_to_free_storage;
   
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
@@ -3534,58 +3719,18 @@ The subtree of the node has not yet been lowered.
          type so that it is an array if necessary. */
       set_var_indirect_init_pos_descr(temp_var, &ipd);
       ipd.base_type = ndsp->type;
-      dyn_init_to_free_storage = ndsp->freeing_of_storage_on_exception;
-      if (dyn_init_to_free_storage != NULL) {
-        /* The storage for this "new" is supposed to be freed if an exception
-           is thrown before the initialization is completed.  The fact
-           that this pointer is non-NULL means exceptions are enabled. */
-        a_destructible_entity_descr_ptr dedp =
-                           dyn_init_to_free_storage->destructible_entity_descr;
-        if (dedp == NULL) {
-          /* When lowering the file-scope initialization routine, in long
-             lifetime temporaries mode, this entry can be in the global static
-             lifetime, which was never passed through begin_object_lifetime,
-             so do the initialization on this entry now. */
-          initial_processing_on_destructible_initialization(
-                                                      dyn_init_to_free_storage,
-                                                      &insert_location);
-          dedp = dyn_init_to_free_storage->destructible_entity_descr;
-        }  /* if */
-        copy_init_pos_descr(&ipd, &dedp->init_pos_descr);
-        if (dedp->conditional_flag_var != NULL) {
-          /* Set the conditional flag variable to nonzero. */
-          set_conditional_flag_var(dedp->conditional_flag_var,
-                                   &insert_location);
-        }  /* if */
-        dedp->cleanup_state_to_set_when_starting_destruction =
-                                                            curr_cleanup_state;
-#if GENERATE_EH_TABLES
-        /* Make a cleanup region table entry to get the storage freed if
-           a throw occurs before the entity is initialized. */
-        make_dyn_init_region_table_entry(dyn_init_to_free_storage,
-                                         curr_context->latest_initialization,
-                                         &insert_location);
-#endif /* GENERATE_EH_TABLES */
-        /* Set the cleanup state to the delete cleanup entry. */
-        set_curr_cleanup_state(dyn_init_to_free_storage,
-                               &insert_location);
-        curr_context->latest_initialization = dyn_init_to_free_storage;
-      }  /* if */
+      /* If exceptions are enabled, and if necessary, set up to free the
+         storage allocated if an exception is thrown before the storage
+         is initialized. */
+      set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
                          &insert_location, (a_boolean *)NULL);
-#if GENERATE_EH_TABLES
-      if (dyn_init_to_free_storage != NULL) {
-        /* While the initialization was being done, if an exception was
-           thrown the storage would have been freed.  Now, the initialization
-           is complete, so clear the flag to suppress the deletion. */
-        reset_conditional_flag_var(dyn_init_to_free_storage->
-                               destructible_entity_descr->conditional_flag_var,
-                                   &insert_location);
-      }  /* if */
-#endif /* GENERATE_EH_TABLES */
+      /* Now that the entity is initialized, turn off the freeing on
+         exception. */
+      turn_off_freeing_of_storage_on_exception(ndsp, &insert_location);
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
          and its third is another NULL constant of the right type. */
@@ -3665,6 +3810,39 @@ it is called as a virtual function, which involves some special tricks.
 }  /* make_dtor_call_for_delete */
 
 
+static an_expr_node_ptr make_delete_call(a_routine_ptr    delete_routine,
+                                         a_type_ptr       delete_type,
+                                         an_expr_node_ptr arg_node)
+/*
+Create an expression for a call of the delete routine indicated by
+delete_routine, with arg_node as the argument.  Return a pointer to
+the call expression.
+*/
+{
+  an_expr_node_ptr call_node, second_arg_node;
+
+  /* Cast the argument to "void *", which is what the delete routine
+     expects. */
+  arg_node = add_cast_if_necessary(arg_node, void_star_type());
+  /* If the delete routine is one with two arguments, pass the size
+     of the entity as the second argument. */
+  second_arg_node = NULL;
+  if (is_two_argument_delete(delete_routine)) {
+    /* Two-argument form.  Add a second argument of type size_t that
+       indicates the (static) size of the object. */
+    second_arg_node = node_for_integer_constant(
+                                    (long)(f_skip_typerefs(delete_type)->size),
+                                    targ_size_t_int_kind);
+    arg_node->next = second_arg_node;
+  }  /* if */
+  /* Make the call. */
+  call_node = make_call_node(delete_routine, arg_node,
+                             /*honor_virtual=*/FALSE,
+                             (an_insert_location *)NULL);
+  return call_node;
+}  /* make_delete_call */
+
+
 static void lower_delete(an_expr_node_ptr expr)
 /*
 Do IL lowering of an enk_new_delete expression node for a "delete".
@@ -3675,7 +3853,6 @@ The subtree of the node has not yet been lowered.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init;
   a_type_ptr                  base_type;
   an_expr_node_ptr            ptr_node = ndsp->arg, call_node, dtor_call_node;
-  an_expr_node_ptr            second_arg_node;
   a_routine_ptr               delete_routine = ndsp->routine;
 
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
@@ -3703,14 +3880,8 @@ The subtree of the node has not yet been lowered.
     overwrite_node(expr, dtor_call_node);
   } else {
     /* Non-array case, or array case that does not require special handling. */
-    /* Lower "arg"; do it as a list in case the delete routine is the
-       two-argument version. */
-    lower_arg_expr_list(ptr_node, delete_routine->type,
-                        (a_param_type_ptr)NULL);
-    /* Break off the second argument if there is one; it will be reattached
-       later after ptr_node has been messed with. */
-    second_arg_node = ptr_node->next;
-    ptr_node->next = NULL;
+    /* Lower "arg". */
+    lower_expr(ptr_node, /*is_lvalue=*/FALSE);
     if (dip != NULL) {
       /* A destructor must be called before the delete routine, e.g.,
            struct A { ~A(); void operator delete(void *); } *p;
@@ -3728,14 +3899,8 @@ The subtree of the node has not yet been lowered.
       /* The comma node is built later in this routine. */
     }  /* if */
     /* Make the "delete" call.  It is not necessary to test for non-NULL;
-       the delete routine does that.  Cast the argument to "void *", which
-       is what the delete routine expects. */
-    ptr_node = add_cast_if_necessary(ptr_node, void_star_type());
-    /* Reattach the second operand to delete is there is one. */
-    ptr_node->next = second_arg_node;
-    call_node = make_call_node(delete_routine, ptr_node,
-                               /*honor_virtual=*/FALSE,
-                               (an_insert_location *)NULL);
+       the delete routine does that. */
+    call_node = make_delete_call(delete_routine, ndsp->type, ptr_node);
     if (dip != NULL) {
       /* Finish the destructor case by building the comma node. */
       dtor_call_node->next = call_node;
@@ -5284,8 +5449,10 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(vec_cctor_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
       pch_saved_var_array_elem(vec_delete_routine),
-      pch_saved_var_array_elem(vec_new_eh_routine),
+      pch_saved_var_array_elem(array_delete_routine),
       pch_saved_var_array_elem(vec_new_routine),
+      pch_saved_var_array_elem(vec_new_eh_routine),
+      pch_saved_var_array_elem(array_new_routine),
       pch_saved_var_array_elem(needed_destruction_type),
       pch_saved_var_array_elem(needed_destruction_object_field),
       pch_saved_var_array_terminating_elem()
@@ -5306,8 +5473,9 @@ of the front end.
   /* Variable in lower_init.h: */
   processing_file_scope_init_routine = FALSE;
   /* Static variables in lower_init.c: */
-  vec_new_routine = vec_new_eh_routine = vec_cctor_routine =
-                                                     vec_delete_routine = NULL;
+  vec_new_routine = vec_new_eh_routine = NULL;
+  array_new_routine = vec_cctor_routine = NULL;
+  vec_delete_routine = array_delete_routine = NULL;
   record_needed_destruction_routine = NULL;
   needed_destruction_type = NULL;
   file_scope_init_routine = NULL;

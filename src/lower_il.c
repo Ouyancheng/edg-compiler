@@ -354,7 +354,9 @@ expression node.  This is a special and tricky mode, and should only be
 used at the top of an expression tree, since it may change the type of
 the node (and it wouldn't be possible to change the types of parent comma
 and question-mark nodes).  The expression must have type void
-or an assignable type.  In the assignable case, this routine changes the
+or an assignable type.  In the assignable case, the value of the
+original expression is saved in a temporary and then fetched after
+the inserted code has been executed.  Since this changes the
 expression tree, so this routine should only be called when it is known
 that an insertion will be made.
 */
@@ -6753,6 +6755,17 @@ If insert_location == NULL, no initialization code is generated.
   check_assertion_str(dip->destructible_entity_descr == NULL,
   "initial_processing_on_destr...: destructible entity descr already present");
   dip->destructible_entity_descr = alloc_destructible_entity_descr();
+  if (dip->is_freeing_of_storage_on_exception) {
+    a_routine_ptr delete_routine = dip->destructor;
+    if (delete_routine->opname_kind == (an_opname_kind)onk_array_delete &&
+        delete_routine->source_corresp.class_of_which_a_member != NULL) {
+      /* A class-specific "operator delete[]" is handled by calling
+         __array_new, so the freeing on exception is no longer visible at
+         this level. */
+      remove_from_destruction_list(dip);
+      goto end_of_routine;
+    }  /* if */
+  }  /* if */
   if (dip->inside_conditional_expression
 #if GENERATE_EH_TABLES
       || (exceptions_enabled &&
@@ -6782,6 +6795,7 @@ If insert_location == NULL, no initialization code is generated.
                                 insert_location);
     }  /* if */
   }  /* if */
+end_of_routine:;
 }  /* initial_processing_on_destructible_initialization */
 
 
