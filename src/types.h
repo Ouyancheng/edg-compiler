@@ -96,7 +96,12 @@ extern a_type_ptr find_bottom_of_type(a_type_ptr type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);
 extern a_type_ptr pm_class_type(a_type_ptr pm_type);
-extern a_type_ptr underlying_type_of_derived_type(a_type_ptr type);
+extern a_type_ptr f_underlying_type_of_derived_type(
+                                              a_type_ptr  type,
+                                              a_boolean   *p_is_derived_type);
+#define underlying_type_of_derived_type(tp)                       \
+  f_underlying_type_of_derived_type((tp), (a_boolean*)NULL)
+
 #if BACK_END_IS_CP_GEN_BE
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
 #endif /* BACK_END_IS_CP_GEN_BE */

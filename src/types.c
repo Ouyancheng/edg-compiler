@@ -880,12 +880,18 @@ pm_type is a pointer-to-member type.  Return the class type pointed to.
 }  /* pm_class_type */
 
 
-a_type_ptr underlying_type_of_derived_type(a_type_ptr type)
+a_type_ptr f_underlying_type_of_derived_type(a_type_ptr  type,
+                                             a_boolean   *p_is_derived_type)
 /*
 If type is a derived type, return the type from which it is derived.
-Otherwise, return NULL.
+Otherwise, return NULL.  If p_is_derived_type is non-NULL, *p_is_derived_type
+is set to TRUE if the given type is a derived type.  This allows the caller to
+distinguish non-derived types from partially constructed derived types, both
+of which result in a NULL return value.
 */
 {
+  a_boolean  is_derived = TRUE;
+
   switch (type->kind) {
     case tk_pointer:  /* Includes C++ reference too. */
       type = type_pointed_to(type);
@@ -904,8 +910,12 @@ Otherwise, return NULL.
       break;
     default:
       type = NULL;
+      is_derived = FALSE;
       break;
   }  /* switch */
+  if (p_is_derived_type != NULL) {
+    *p_is_derived_type = is_derived;
+  }  /* if */
   return type;
 }  /* underlying_type_of_derived_type */
 

@@ -358,29 +358,13 @@ decl-specifier (e.g., "array [1] of NULL").
   if (type->size == 0) {
     /* If the size is zero, the type may not yet be fully constructed. */
     a_type_ptr  underlying_type = type;
+    a_boolean   is_derived_type;
     do {
-      switch (underlying_type->kind) {
-        case tk_pointer:  /* Includes C++ reference too. */
-          underlying_type = type_pointed_to(underlying_type);
-          break;
-        case tk_ptr_to_member:
-          underlying_type = pm_member_type(underlying_type);
-          break;
-        case tk_array:
-          underlying_type = array_element_type(underlying_type);
-          break;
-        case tk_routine:
-          underlying_type = underlying_type->variant.routine.return_type;
-          break;
-        case tk_typeref:
-          underlying_type = underlying_type->variant.typeref.type;
-          break;
-        default:
-          goto done;
-      }  /* switch */
+      underlying_type = f_underlying_type_of_derived_type(underlying_type,
+                                                          &is_derived_type);
     } while (underlying_type != NULL);
 done:
-    result = (underlying_type == NULL);
+    result = (is_derived_type && underlying_type == NULL);
   }  /* if */
   return result;
 }  /* is_partial_type */
