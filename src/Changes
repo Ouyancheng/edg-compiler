@@ -1,5 +1,11 @@
 Version 2.46
 
+2/27/01  More information in il_to_str output of some constants
+
+The il_to_str routines now put out more information on ck_dynamic_init
+and ck_init_repeat constants.  These constants are output output in
+debugging output.
+
 2/22/01  Constant expression for local constant variable not recorded in IL
 
 Even when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the front end used to

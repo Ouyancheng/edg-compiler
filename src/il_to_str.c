@@ -2916,6 +2916,177 @@ K&R/pcc mode) determined by fkind.
 }  /* form_float_constant */
 
 
+static void form_expression(an_expr_node_ptr                      expr,
+                            an_il_to_str_output_control_block_ptr octl);
+
+
+static void form_dynamic_init(a_dynamic_init_ptr                    dip,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+Output the indicated dynamic initialization.  Do the output in the way
+described by octl.  This is used only for non-compilable output (e.g.,
+for debug output).
+*/
+{
+  switch (dip->kind) {
+    case dik_none:
+      octl->output_str("<no-init>");
+      break;
+    case dik_zero:
+      octl->output_str("<zero-init>");
+      break;
+    case dik_bitwise_copy:
+      octl->output_str("<bitwise-copy>");
+      break;
+    case dik_constant:
+    case dik_nonconstant_aggregate:
+      form_constant(dip->variant.constant, /*need_parens=*/TRUE, octl);
+      break;
+    case dik_call_returning_class_via_cctor:
+      octl->output_str("call returning class: ");
+      /*FALLTHROUGH*/
+    case dik_expression:
+      form_expression(dip->variant.expression, octl);
+      break;
+    case dik_constructor:
+      octl->output_str("<constructor-call>");
+      break;
+    default:
+      unexpected_condition_str("form_dynamic_init: bad kind");
+  }  /* switch */
+}  /* form_dynamic_init */
+
+
+static void form_expression(an_expr_node_ptr                      expr,
+                            an_il_to_str_output_control_block_ptr octl)
+/*
+Output the indicated expression.  Do the output in the way described by
+octl.  This is used only for non-compilable output (e.g., for debug output),
+and it doesn't have to provide detailed information on every expression.
+*/
+{
+  switch (expr->kind) {
+    case enk_error:
+      octl->output_str("<error>");
+      break;
+    case enk_operation:
+#if DEBUG
+      { an_expr_node_ptr operand = expr->variant.operation.operands;
+        char *op_str = db_operator_names[expr->variant.operation.kind];
+        an_expr_operator_kind op = expr->variant.operation.kind;
+        octl->output_str("(");
+        if (op == (an_expr_operator_kind)eok_call ||
+            op == (an_expr_operator_kind)eok_virtual_call ||
+            op == (an_expr_operator_kind)eok_pm_call) {
+          /* Calls. */
+          form_expression(operand, octl);
+          octl->output_str("(");
+          while ((operand = operand->next) != NULL) {
+            form_expression(operand, octl);
+            if (operand->next != NULL) octl->output_str(", ");
+          }  /* while */
+          octl->output_str(")");
+        } else if (op == (an_expr_operator_kind)eok_subscript) {
+          /* Subscripting. */
+          form_expression(operand, octl);
+          octl->output_str("[");
+          form_expression(operand->next, octl);
+          octl->output_str("]");
+        } else if (op == (an_expr_operator_kind)eok_cast ||
+                   op == (an_expr_operator_kind)eok_bool_cast ||
+                   op == (an_expr_operator_kind)eok_base_class_cast ||
+                   op == (an_expr_operator_kind)eok_derived_class_cast ||
+                   op == (an_expr_operator_kind)eok_pm_base_class_cast ||
+                   op == (an_expr_operator_kind)eok_pm_derived_class_cast ||
+                   op == (an_expr_operator_kind)eok_lvalue_cast) {
+          /* Casts. */
+          octl->output_str("(");
+          form_type(expr->type, octl);
+          octl->output_str(")");
+          form_expression(operand, octl);
+        } else if (operand->next == NULL) {
+          /* Unary operators. */
+          octl->output_str(op_str);
+          octl->output_str(" ");
+          form_expression(operand, octl);
+        } else if (operand->next->next == NULL) {
+          /* Binary operators. */
+          form_expression(operand, octl);
+          octl->output_str(" ");
+          octl->output_str(op_str);
+          octl->output_str(" ");
+          form_expression(operand->next, octl);
+        } else {
+          /* Other operators, e.g., "?".  Use generic form. */
+          octl->output_str(op_str);
+          octl->output_str("(");
+          while (operand != NULL) {
+            form_expression(operand, octl);
+            if (operand->next != NULL) octl->output_str(", ");
+            operand = operand->next;
+          }  /* while */
+          octl->output_str(")");
+        }  /* if */
+        octl->output_str(")");
+      }
+#else /* !DEBUG */
+      octl->output_str("<operation>");
+#endif /* DEBUG */
+      break;
+    case enk_constant:
+      form_constant(expr->variant.constant, /*need_parens=*/TRUE, octl);
+      break;
+    case enk_variable:
+      form_name(&expr->variant.variable->source_corresp,
+                (an_il_entry_kind)iek_variable, octl);
+      break;
+    case enk_variable_address:
+      octl->output_str("(&");
+      form_name(&expr->variant.variable->source_corresp,
+                (an_il_entry_kind)iek_variable, octl);
+      octl->output_str(")");
+      break;
+    case enk_routine_address:
+      octl->output_str("(&");
+      form_name(&expr->variant.routine->source_corresp,
+                (an_il_entry_kind)iek_routine, octl);
+      octl->output_str(")");
+      break;
+    case enk_field:
+      form_name(&expr->variant.field->source_corresp,
+                (an_il_entry_kind)iek_field, octl);
+      break;
+    case enk_temp_init:
+      octl->output_str("temp-init(");
+      form_dynamic_init(expr->variant.init.dynamic_init, octl);
+      octl->output_str(")");
+      break;
+    default:
+      octl->output_str("<expression>");
+      break;
+  }  /* switch */
+}  /* form_expression */
+
+
+static void form_dynamic_init_constant(
+                                a_constant_ptr                        constant,
+                                an_il_to_str_output_control_block_ptr octl)
+/*
+Output the indicated ck_dynamic_init constant.  Do the output in the way
+described by octl.  This is used only for non-compilable output (e.g.,
+for debug output).
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  check_assertion(!octl->gen_compilable_code &&
+                  constant->kind == (a_constant_repr_kind)ck_dynamic_init);
+  octl->output_str("dynamic-init: ");
+  dip = constant->variant.dynamic_init;
+  form_dynamic_init(dip, octl);
+}  /* form_dynamic_init_constant */
+
+
 void form_constant(a_constant_ptr                        constant,
                    a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
@@ -3236,8 +3407,7 @@ precedence confusion.  Do the output in the way described by octl.
       break;
 #endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
-      check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<dynamic-init-constant>");
+      form_dynamic_init_constant(constant, octl);
       break;
 #endif /* ifdef CFE */
     case ck_aggregate:
@@ -3255,7 +3425,13 @@ precedence confusion.  Do the output in the way described by octl.
       break;
     case ck_init_repeat:
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<init-repeat-constant>");
+      octl->output_str("<");
+      form_unsigned_num(
+             (a_host_large_unsigned)constant->variant.init_repeat.count, octl);
+      octl->output_str(" repetitions of ");
+      form_constant(constant->variant.init_repeat.constant,
+                    /*need_parens=*/FALSE, octl);
+      octl->output_str(">");
       break;
 #ifdef CFE
     case ck_template_param:
