@@ -1,5 +1,13 @@
 Version 2.32
 
+4/23/96 Bug in generating source-sequence lists for template instances
+
+A bug has been fixed in putting out source-sequence entries for
+instantiations of templates that were namespace members -- the entries
+were sometimes appearing in the wrong place in the list.  (The problem only
+appeared if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE.)
+
 4/22/96 IL CHANGE: elimination of class-instantiation placeholder for
         "partially instantiated" template class
 
