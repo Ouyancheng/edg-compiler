@@ -16,7 +16,9 @@ This is the version for Linux.
 */
 
 #define __ANSIC__ 1
+#ifndef COMPILE_MULTIPLE_SOURCE_FILES
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
+#endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_LONG 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
