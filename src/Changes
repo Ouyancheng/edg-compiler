@@ -1,5 +1,12 @@
 Version 2.44
 
+2/16/00  Compilation problem with C++-generating back end,
+         MAINTAIN_NEEDED_FLAGS set to FALSE
+
+A problem when compiling lower_name.c as part of a configuration
+that uses the C++-generating back end with MAINTAIN_NEEDED_FLAGS
+set to FALSE has been corrected.
+
 2/11/00  Incorrect lookup in certain instantiations within namespaces
 
 When using templates in namespaces, a lookup bug could cause the wrong

@@ -819,10 +819,26 @@ would be less common.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
+Flag that is TRUE if name mangling is needed.  Automatically TRUE if
+IL lowering is used or if automatic template instantiation is selected.
+*/
+#if DO_IL_LOWERING || AUTOMATIC_TEMPLATE_INSTANTIATION
+#define NEED_NAME_MANGLING TRUE  /* Do not change this. */
+#else /* !DO_IL_LOWERING ... */
+#ifndef NEED_NAME_MANGLING
+#define NEED_NAME_MANGLING FALSE
+#endif /* ifndef NEED_NAME_MANGLING */
+#endif /* DO_IL_LOWERING ... */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION && !NEED_NAME_MANGLING
+ #error -- Name mangling code is needed if automatic instantiation is allowed.
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && !NEED_NAME_MANGLING */
+
+/*
 Flag that is TRUE to enable support for processing of orphaned file scope
 IL entries.  This is needed if IL lowering or IL walking is to be done.
 */
-#if DO_IL_LOWERING || IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
+#if DO_IL_LOWERING || IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || \
+    NEED_NAME_MANGLING
 #define ORPHAN_PROCESSING_NEEDED TRUE /* Do not change this. */
 #else /* !(DO_IL_LOWERING || ...) */
 #ifndef ORPHAN_PROCESSING_NEEDED
@@ -843,21 +859,6 @@ and also if the C-generating back end is being used.
 #define SCOPE_ORPHANED_LIST_PROCESSING_NEEDED FALSE
 #endif /* ifndef SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #endif /* ORPHAN_PROCESSING_NEEDED ... */
-
-/*
-Flag that is TRUE if name mangling is needed.  Automatically TRUE if
-IL lowering is used or if automatic template instantiation is selected.
-*/
-#if DO_IL_LOWERING || AUTOMATIC_TEMPLATE_INSTANTIATION
-#define NEED_NAME_MANGLING TRUE  /* Do not change this. */
-#else /* !DO_IL_LOWERING ... */
-#ifndef NEED_NAME_MANGLING
-#define NEED_NAME_MANGLING FALSE
-#endif /* ifndef NEED_NAME_MANGLING */
-#endif /* DO_IL_LOWERING ... */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION && !NEED_NAME_MANGLING
- #error -- Name mangling code is needed if automatic instantiation is allowed.
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && !NEED_NAME_MANGLING */
 
 /*
 Flag that is TRUE if minimal inlining should be done during IL lowering.
