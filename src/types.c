@@ -2589,7 +2589,8 @@ can be NULL if the caller does not need this flag returned.
 static
 a_boolean qualification_conversion_possible(a_type_ptr source_type,
 					    a_type_ptr dest_type,
-					    a_boolean  *p_qualifiers_added)
+					    a_boolean  *p_qualifiers_added,
+                                            a_boolean  ignore_underlying_type)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
@@ -2615,6 +2616,9 @@ provided that:
 If any qualifiers are added, the flag pointed to by p_qualifiers_added
 is set to TRUE.  Otherwise it is set to FALSE.  p_qualifiers_added
 can be NULL if the caller does not need this flag returned.
+
+If ignore_underlying_type is TRUE, return TRUE once we've reached the
+underlying type of either source_type or dest_type.
 */
 {
   a_boolean   same;
@@ -2656,8 +2660,14 @@ can be NULL if the caller does not need this flag returned.
 	dest_type = pm_member_type(dest_type);
 	source_type = pm_member_type(source_type);
       } else {
-	/* For other types, the underlying types must be the same. */
-	same = types_are_compatible(dest_type, source_type);
+        if (ignore_underlying_type) {
+          /* We've reached the underlying type of one or the other of
+             the types.  In this mode, that is counted as a match. */
+          same = TRUE;
+        } else {
+          /* For other types, the underlying types must be the same. */
+          same = types_are_compatible(dest_type, source_type);
+        }  /* if */
         break;
       }  /* if */
     }  /* if */
@@ -2672,10 +2682,19 @@ can be NULL if the caller does not need this flag returned.
 a_boolean cast_removes_qualifiers(a_type_ptr	source_type,
 				  a_type_ptr	dest_type)
 /*
-Return TRUE if a cast from source_type to dest_type is a cast to
-the same type but with fewer qualifiers.  source_type and dest_type
-are expected to both be pointers, both be references, or both be
-pointers-to-member, otherwise we return FALSE.
+Return TRUE if a cast from source_type to dest_type is a cast
+that, by the rules in the WP [expr.const.cast], casts away const.
+
+A cast removes constness if for the first MAX(N,M) levels of pointers,
+there is an implicit conversion from the first type to the second type.
+Note that the types beyond MAX(N,M) are completely ignored, including
+the underlying type pointed to.
+
+	T1 ... * cvN * cv3 * cv2 * cv1 * 
+	T2 ... * cvM * cv3 * cv2 * cv1 *
+
+If the conversion does not "cast away const" by this definition, return
+FALSE.
 */
 {
   a_boolean	qualifiers_added;
@@ -2696,18 +2715,13 @@ pointers-to-member, otherwise we return FALSE.
     check_further = FALSE;
   }  /* if */
   if (check_further) {
-    /* We want to see if source_type is the same as dest_type but with
-       additional qualifiers.  We test this by seeing if a qualification
-       conversion in the opposite direction is possible.  In other words,
-       if a qualification conversion from T1 to T2 is possible, then T2
-       must be a more qualified version of T1 (or the same as T1, in which
-       case qualifiers_added is FALSE). */
-    if (qualification_conversion_possible(dest_type, source_type,
-        &qualifiers_added)) {
-      /* When qualification_conversion_possible returns TRUE, qualifiers may
-         have been added, or the two types could have been the same.
-         If the types are the same, qualifiers_added will be FALSE. */
-      result = qualifiers_added;
+    /* There must be an implicit conversion from the source_type to the
+       dest_type (according to the description above), otherwise we
+       are casting away constness. */
+    if (!qualification_conversion_possible(source_type, dest_type,
+                                           &qualifiers_added,
+                                           /*ignore_underlying_type=*/TRUE)) {
+      result = TRUE;
    }  /* if */
   }  /* if */
   return result;
@@ -2905,9 +2919,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 	   between incompatible pointer types, with a warning. */
         okay = TRUE;
         std_conv->warning_suggested = default_warning_code;
-      } else if (qualification_conversion_possible(source_type_pointed_to,
-						   dest_type_pointed_to,
-						   &qualifiers_added)) {
+      } else if (qualification_conversion_possible
+                                     (source_type_pointed_to,
+				      dest_type_pointed_to,
+				      &qualifiers_added,
+                                      /*ignore_underlying_type=*/FALSE)) {
         /* Allow conversion between pointers where type qualifiers are
            being added at levels other than the first, e.g.,
            "int **" -> "const int * const *". */
@@ -3125,8 +3141,9 @@ and source_type are the destination and source types of a conversion.
   *qualifiers_added = FALSE;
   if (!is_function_type(dest_type) || !is_function_type(source_type)) {
     /* This is not the special function case, so the normal check will work. */
-    correspond = qualification_conversion_possible(source_type, dest_type,
-						   qualifiers_added);
+    correspond = qualification_conversion_possible
+                                  (source_type, dest_type, qualifiers_added,
+                                   /*ignore_underlying_type=*/FALSE);
   } else {
     /* We have two function types from member pointers.  See if they
        match when we allow for the difference in the underlying type
@@ -3228,9 +3245,10 @@ pointers to members).
                                    get_type_qualifiers(source_type_pointed_to);
       if (dest_type_qualifiers == source_type_qualifiers) {
         /* The qualifiers are the same. */
-      } else if (qualification_conversion_possible(source_type_pointed_to,
-						   dest_type_pointed_to,
-						   &qualifiers_added)) {
+      } else if (qualification_conversion_possible
+                                (source_type_pointed_to, dest_type_pointed_to,
+		                 &qualifiers_added,
+                                 /*ignore_underlying_type=*/FALSE)) {
         /* This is an allowed qualification conversion. */
         std_conv->type_qualifiers_added = qualifiers_added;
       }  /* if */
