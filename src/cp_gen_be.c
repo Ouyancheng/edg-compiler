@@ -3486,13 +3486,17 @@ is the one associated with the definition of the class.
   { a_src_seq_end_of_construct_ptr ssecp = 
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
-    check_assertion_str((ss_entry_kind(ssecp) == iek_type &&
-                         ss_entry_ptr(ssecp, a_type_ptr) == type)
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-                        || (ss_entry_kind(ssecp) == iek_template &&
-                           is_immediate_class_type(type) &&
+    check_assertion_str((ss_entry_kind(ssecp) == iek_type &&
+                         ss_entry_ptr(ssecp, a_type_ptr) == type) ||
+                        (ss_entry_kind(ssecp) == iek_template &&
+                         is_immediate_class_type(type) &&
                            ss_entry_ptr(ssecp, a_template_ptr) ==
                                                       assoc_template_of(type)),
+                        "gen_class_definition: bad end-of-construct");
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+    check_assertion_str((ss_entry_kind(ssecp) == iek_type &&
+                         ss_entry_ptr(ssecp, a_type_ptr) == type),
                         "gen_class_definition: bad end-of-construct");
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Set the position for the closing "}". */
