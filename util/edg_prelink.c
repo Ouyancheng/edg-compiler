@@ -258,6 +258,13 @@ static a_boolean
 			   of iterations under the assumption that we've run
 			   into an instantiation loop. */
 
+static a_boolean
+		do_not_assign_to_nonlocal_objects = FALSE;
+			/* TRUE if assignments (and their resulting
+			   compilations) may only be done to
+			   local object files (i.e., those compiled in
+			   the current directory. */
+
 typedef enum /* an_nm_format_kind */ {
 	nmfk_default,
 		/* SunOS 4.1. */
@@ -300,9 +307,9 @@ static a_boolean
 			   recompiled to generate new instantiations, do
 			   the recompilation in the local directory. */
 
-static FILE	*f_rename_list;
-			/* File variable for the list of renamed object
-			   files to be passed back to the driver. */
+static FILE	*f_obj_file_list;
+			/* File variable for the list of object file names
+			   to be passed back to the driver. */
 
 #define CURR_DIR_NAME_SIZE 2048
 			/* Maximum size of the current directory name. */
@@ -401,7 +408,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_error_occurred_during_name_decoding,
   pl_ec_warning,
   pl_ec_invalid_reserved_info_lines_option,
-  pl_ec_cannot_open_rename_list_file,
+  pl_ec_cannot_open_obj_file_list_file,
   pl_ec_cannot_open_info_file,
   pl_ec_cannot_chdir
 } a_pl_error_code;
@@ -463,8 +470,8 @@ string.
   case pl_ec_invalid_reserved_info_lines_option:
     m = "invalid reserved information file lines option \"%s\"";
     break;
-  case pl_ec_cannot_open_rename_list_file:
-    m = "cannot open rename list file \"%s\"";
+  case pl_ec_cannot_open_obj_file_list_file:
+    m = "cannot open object file name list file \"%s\"";
     break;
   case pl_ec_cannot_open_info_file:
     m = "cannot create instantiation information file \"%s\"";
@@ -2037,9 +2044,6 @@ and update pifp to point to the new file.
   }  /* while */
   fclose(f_old_info);
   fclose(f_new_info);
-  /* Write a record to the rename list file indicating that this file
-     has been moved. */
-  fprintf(f_rename_list, "%s;%s\n", pifp->file_name, new_file_name);
   /* Update the pointers in the input file record to point to the
      new file names.  The original names are not freed because they
      point to command line arguments. */
@@ -2315,13 +2319,17 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnrvuc:d:f:l:L:N:R:"
+#define OPTION_LIST "imnrvuc:d:Df:l:L:N:R:W:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
         /* Specify the nm command to be used instead of the default
            value. */
         nm_command = optarg;
+        break;
+      case 'D':
+        /* Do not assign instantiations to nonlocal object files. */
+        do_not_assign_to_nonlocal_objects = TRUE;
         break;
       case 'f':
         /* Specifies the nm line format to be expected. */
@@ -2353,6 +2361,15 @@ int main(int argc, char *argv[])
         /* Library directory names (e.g., -L/edg/cpfe/lib). */
         L_directories[num_of_L_directories++] = optarg;
         break;
+      case 'W':
+        /* Alternate form of the library directory name option (e.g.,
+           -Wl/edg/cpfe/lib). */
+        if (optarg[0] != 'l') {
+          fprintf(stderr, pl_error_text(pl_ec_unrecognized_option), optarg);
+          pl_error(pl_ec_command_line_error, (char*)NULL);
+        }  /* if */
+        L_directories[num_of_L_directories++] = &optarg[1];
+        break;
       case 'm':
         /* Leave identifier names in mangled format for display. */
         mangled_names_in_output = TRUE;
@@ -2365,16 +2382,16 @@ int main(int argc, char *argv[])
       case 'N':
         /* If a file from a nonlocal directory needs to be recompiled,
            do the compilation in the current directory.  The argument
-           specifies the name of the file into which a list of renamed
+           specifies the name of the file into which a list of object
            files is to be written. */
         {
-          char	*rename_list_file_name;
+          char	*obj_file_list_file_name;
           move_nonlocal_objects_to_curr_dir = TRUE;
-          rename_list_file_name = optarg;
-          f_rename_list = fopen(rename_list_file_name, "w");
-          if (f_rename_list == NULL) {
-            pl_error(pl_ec_cannot_open_rename_list_file,
-                     rename_list_file_name);
+          obj_file_list_file_name = optarg;
+          f_obj_file_list = fopen(obj_file_list_file_name, "w");
+          if (f_obj_file_list == NULL) {
+            pl_error(pl_ec_cannot_open_obj_file_list_file,
+                     obj_file_list_file_name);
           }  /* if */
         }
         break;
@@ -2557,7 +2574,11 @@ int main(int argc, char *argv[])
          the first of which attempts to do assignments in local files,
          the second in nonlocal files. */
       no_local_changes = pl_determine_actions(/*do_local_files=*/TRUE);
-      no_nonlocal_changes = pl_determine_actions(/*do_local_files=*/FALSE);
+      if (!do_not_assign_to_nonlocal_objects) {
+        no_nonlocal_changes = pl_determine_actions(/*do_local_files=*/FALSE);
+      } else {
+        no_nonlocal_changes = TRUE;
+      }  /* if */
       done = no_local_changes && no_nonlocal_changes;
 
       /* Write the modified info files back to the disk. */
@@ -2569,9 +2590,22 @@ int main(int argc, char *argv[])
       if (!done) pl_free_all();
     } while (!done);
   }  /* if */
-  /* Close the rename list file if needed. */
   if (move_nonlocal_objects_to_curr_dir) {
-    fclose(f_rename_list);
+    /* Generate a list of object file names.  This may be different from
+       the list of object files passed to the driver if one of the
+       files was moved as a consequence of a recompilation. */
+    a_pl_input_file_ptr	pifp;
+    for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
+      char	*ptr;
+      /* If this file ends in the object file suffix, write the name
+         of the file to the rename list. */
+      ptr = strrchr(pifp->file_name, '.');
+      if (ptr != NULL && strcmp(ptr, OBJECT_FILE_SUFFIX) == 0) {
+        fprintf(f_obj_file_list, " %s", pifp->file_name);
+      }  /* if */
+    }  /* for */
+    fprintf(f_obj_file_list, "\n");
+    fclose(f_obj_file_list);
   }  /* if */
 
 #ifdef USING_PURIFY
