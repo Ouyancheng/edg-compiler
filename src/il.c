@@ -10790,7 +10790,6 @@ eliminated, if appropriate.
         prev_rp->next = rp->next;
       }  /* if */
       rp->next = NULL;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
       /* If the instantiation_required flag was set, clear it now. */
       if (rp->is_template_function && !rp->is_specialized) {
         a_symbol_ptr             sym;
@@ -10840,7 +10839,6 @@ eliminated, if appropriate.
           }  /* if */
         }  /* if */
       }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     } else {
       prev_rp = rp;
     }  /* if */
