@@ -2677,7 +2677,11 @@ precedence confusion.  Do the output in the way described by octl.
     cast_to_nonpointer = TRUE;
     final_cast_needed = TRUE;
     desired_type = NULL;
-  } else if (!octl->debug_output && !octl->c_generating_back_end &&
+  } else if (
+#if DEBUG
+             !octl->debug_output &&
+#endif /* DEBUG */
+             !octl->c_generating_back_end &&
              constant->implicit_cast && !constant->explicit_cast_applied) {
     /* The constant was cast, but only implicitly, so leave off the cast.
        Don't do this in the C-generating back end, because some casts
@@ -3310,7 +3314,11 @@ precedence confusion.  Do the output in the way described by octl.
         /* The source form involved an explicit cast. */
         need_cast = TRUE;
       } else if (constant->implicit_cast) {
-        if (octl->debug_output || octl->c_generating_back_end) {
+        if (
+#if DEBUG
+            octl->debug_output ||
+#endif /* DEBUG */
+            octl->c_generating_back_end) {
           /* Give full information about implicit casts when generating
              debug output and in the C generating back end (for the latter,
              because casts added by IL lowering are "implicit" but they
