@@ -11734,18 +11734,22 @@ Return TRUE if the indicated type is to be kept in the IL.  For the most
 part, this means that its keep_in_il flag is TRUE.
 */
 {
-  a_boolean keep;
-  a_type_ptr type = tp;
+  a_boolean  keep;
+  a_type_ptr type = tp, nested_class_ph = NULL;
 
   /* For placeholder typerefs, test the keep_in_il flag on the
      underlying type, thus keeping the placeholder typeref if the
      underlying type is being kept. */
   while (type->kind == (a_type_kind)tk_typeref &&
          !typeref_is_typedef(type)) {
+    if (type->variant.typeref.is_placeholder_for_nested_class_def) {
+      /* Remember that there is a nested class placeholder. */
+      nested_class_ph = type;
+    }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
   keep = il_entry_prefix_of(type).keep_in_il;
-  if (keep && tp->variant.typeref.is_placeholder_for_nested_class_def) {
+  if (keep && nested_class_ph != NULL) {
     check_assertion(is_immediate_class_type(type));
     if (!type->variant.class_struct_union.
                                       nested_class_defined_outside_of_parent) {
