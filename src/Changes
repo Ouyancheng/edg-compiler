@@ -1,5 +1,13 @@
 Version 2.37
 
+8/19/97   Missing diagnostic on storage class in explicit specialization
+
+A storage class is not allowed in an explicit specialization
+declaration, but was accepted by the front end.  This has been fixed.
+
+  template <class T> void f(T);
+  template <> static void f(int) {}
+
 8/17/97   Internal error on declaration of class operator new in a class
           template with a template-dependent base class when exceptions are
           enabled

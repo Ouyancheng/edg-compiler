@@ -9581,7 +9581,6 @@ that follows.
   /* First scan the decl-specifiers. */
   (void)decl_specifiers((DSI_IS_SPECIALIZATION |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                         DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_INLINE_ALLOWED |
