@@ -6698,7 +6698,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             /* No action on most operators. */
             break;
         }  /* switch */
-#if LOWER_LVALUE_RETURNING_OPERATIONS
         if (bool_is_keyword && is_operator_returning_bool(op)) {
           /* Operators that return bool in C++ return int in C.  Unless
              an optimization applies, a cast must be inserted to cast the
@@ -6712,6 +6711,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             change_to_cast(expr, expr_copy, expr->type);
           }  /* if */
         }  /* if */
+#if LOWER_LVALUE_RETURNING_OPERATIONS
         /* Transform lvalue-returning assignments, prefix ++/--, and "?" and
            "," operators into valid C. */
         lower_operations_returning_lvalue_instead_of_usual_rvalue(expr,
@@ -6933,7 +6933,11 @@ is_full_expr is TRUE.
     a_boolean adjusted;
     adjust_bool_operation_types(expr, &adjusted, /*see_if_possible=*/FALSE);
   }  /* if */
-  lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+  if (is_full_expr) {
+    lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+  } else {
+    lower_expr(expr, /*is_lvalue=*/FALSE);
+  }  /* if */
   /* This expression is supposed to have something on top that guarantees
      a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test.
      When bool is enabled, this transformation is necessary even if no
@@ -6970,7 +6974,8 @@ is_full_expr is TRUE.
     a_constant       zero_constant;
     an_expr_node_ptr zero_node;
 
-    make_zero_of_proper_type(expr->type, &zero_constant);
+    copy_expr = integral_promote_node(copy_expr);
+    make_zero_of_proper_type(copy_expr->type, &zero_constant);
     zero_node = alloc_node_for_constant(&zero_constant);
     copy_expr->next = zero_node;
     change_node_to_operation(expr,
