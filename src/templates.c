@@ -16002,6 +16002,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   add_to_list = TRUE;
   a_boolean			   added_to_list = FALSE;
+                                   /* Only used in certain configurations. */
+                                   /*lint -esym(550,added_to_list)*/
   a_master_instance_ptr		   mip = NULL;
   a_boolean			   defer_inline;
   a_boolean			   use_master_instance;
