@@ -8,7 +8,8 @@ against it.  In its place, we added a tpck_cast variant under the
 ck_template_param variant of a_constant.  We also added variants
 tpck_sizeof and tpck_alignof.  These are used to represent yet more
 instances of constants whose values are unknown because they are based
-on template parameters.
+on template parameters.  In general, these are front-end-only constants,
+so back ends will not have to be changed to accommodate them.
 
 Since these constants appear in the types of function templates, they
 also appear in mangled names for templates.  The new operator encodings
@@ -37,7 +38,7 @@ an inconsistency for back ends that do not consult the "needed" flag --
 there is a pointer to a static function, but the function has no
 definition.
 
-6/1/96  Destruction of partially-constructed aggregates on exception
+6/1/96  IL CHANGE: destruction of aggregate members on exceptions
 
 Arrays and aggregate classes can be initialized piecewise using the "{}"
 form of initialization.  When that is done, if an exception is thrown
@@ -51,6 +52,25 @@ initialization is completed.
 Note that for arrays this problem was only present when some members
 are initialized individually, not when the entire array is given
 default initialization.
+
+More significantly, array initialization/destruction in the IL can now
+be summarized with the phrase "initialize elements, destroy arrays".
+That is, whether or not the array is initialized piecewise, or gets
+default initialization, or some combination of the two, the destruction
+of the array is scheduled as a single operation (which loops calling the
+destructor).  In the IL, this is represented by attaching the destructor
+pointer to the array initialization instead of each element initialization
+(the destructor pointers for the elements are set for the
+partial-construction cleanup, as described above).  For most
+configurations, this change doesn't fix a bug; it's just necessary
+to accommodate the first change described above.  For those using
+IL lowering with no lowering of exception handling features, however,
+this change provides information that is needed and was missing
+previously, i.e., the fact that an entity being destroyed is an
+array and the destructor should be repeated for each of its elements.
+Those using IL lowering with full or partial lowering of EH features
+will not have to change their code; the code and data structures after
+lowering is done are upward-compatible with previous versions.
 
 5/31/96 Windows-NT portability issues
 
