@@ -6260,6 +6260,7 @@ cache the expected tokens.
      be in this cache is in cases where the initializer contains a
      brace enclosed list. */
   incr_token_set_array_element(stop_tokens, tok_lbrace);
+  incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   cache_token_stream(p_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
