@@ -415,7 +415,7 @@ static void disp_name_linkage(char                 *name,
 Display the indicated field name and name linkage kind.
 */
 {
-  disp_name("  name_linkage");
+  disp_name(name);
   switch (nlk) {
     case nlk_none:
       (void)printf("nlk_none\n");
