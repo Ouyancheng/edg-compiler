@@ -444,14 +444,14 @@ Display the indicated source correspondence entry.
   disp_source_position("  decl_position", &scp->decl_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("  decl_end_position", &scp->decl_end_position);
-  disp_source_position("  specifiers_start_position",
-                       &scp->specifiers_start_position);
-  disp_source_position("  specifiers_end_position",
-                       &scp->specifiers_end_position);
-  disp_source_position("  declarator_start_position",
-                       &scp->declarator_start_position);
-  disp_source_position("  declarator_end_position",
-                       &scp->declarator_end_position);
+  disp_source_position("  specifiers_range.start",
+                       &scp->specifiers_range.start);
+  disp_source_position("  specifiers_range.end",
+                       &scp->specifiers_range.end);
+  disp_source_position("  declarator_range.start",
+                       &scp->declarator_range.start);
+  disp_source_position("  declarator_range.end",
+                       &scp->declarator_range.end);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CFE
   if (scp->is_class_member) {
@@ -1275,10 +1275,10 @@ Display the indicated variable.
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("initializer_start_position",
-                       &ptr->initializer_start_position);
-  disp_source_position("initializer_end_position",
-                       &ptr->initializer_end_position);
+  disp_source_position("initializer_range.start",
+                       &ptr->initializer_range.start);
+  disp_source_position("initializer_range.end",
+                       &ptr->initializer_range.end);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);
@@ -2310,8 +2310,8 @@ cleanup_state_common:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("start_position", &ptr->start_position);
-  disp_source_position("end_position", &ptr->end_position);
+  disp_source_position("expr_range.start", &ptr->expr_range.start);
+  disp_source_position("expr_range.end", &ptr->expr_range.end);
   disp_source_position("operator_position", &ptr->operator_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_expr_node */
@@ -3580,8 +3580,8 @@ do_base_class:
   }  /* switch */
   disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("start_position", &ptr->start_position);
-  disp_source_position("end_position", &ptr->end_position);
+  disp_source_position("ctor_range.start", &ptr->ctor_range.start);
+  disp_source_position("ctor_range.end", &ptr->ctor_range.end);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_constructor_init */
 
@@ -3664,8 +3664,8 @@ static void disp_comment(a_comment_ptr cp)
 Display the indicated comment entry.
 */
 {
-  disp_source_position("start_position", &cp->range.end_position);
-  disp_source_position("end_position", &cp->range.end_position);
+  disp_source_position("source_range.start", &cp->source_range.start);
+  disp_source_position("source_range.end", &cp->source_range.end);
 }  /* disp_comment */
 
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */

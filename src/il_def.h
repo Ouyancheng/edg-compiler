@@ -566,10 +566,10 @@ A range of source text, starting at one source position and ending at another.
 */
 typedef struct a_source_range {
   a_source_position
-		start_position;
+		start;
 			/* Starting source position of a range of text. */
   a_source_position
-		end_position;
+		end;
 			/* Ending source position of a range of text. */
 } a_source_range;
 
@@ -761,8 +761,9 @@ the source file can be examined.
 typedef struct a_comment *a_comment_ptr;
 typedef struct a_comment {
   a_source_range
-		range;
-			/* Starting and ending positions of the comment. */
+		source_range;
+			/* Starting and ending source positions of the
+			   comment. */
 } a_comment;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
@@ -899,30 +900,20 @@ typedef struct a_source_correspondence {
 			   were specified explicitly).  May be
 			   null_source_position if decl_position does not
 			   refer to an explicit name in the source. */
-  a_source_position
-		specifiers_start_position;
+  a_source_range
+		specifiers_range;
 			/* If decl_position is specified and the declaration
 			   involves declaration-specifiers, the source
-			   position corresponding to the start of the first
-			   declaration-specifier of the declaration.  May be
-			   null_source_position. */
-  a_source_position
-		specifiers_end_position;
-			/* If specifiers_start_position is specified, the
-			   source position corresponding to the end of the
-			   last declaration-specifier of the declaration;
-			   otherwise, null_source_position. */
-  a_source_position
-		declarator_start_position;
+			   positions corresponding to the start and end of the
+			   declaration-specifier of the declaration.  Both
+			   positions may be null_source_position. */
+  a_source_range
+		declarator_range;
 			/* If decl_position is specified and the declaration
-			   involves a declarator, the source position
-			   corresponding to the start of the declarator.  May
-			   be null_source_position. */
-  a_source_position
-		declarator_end_position;
-			/* If declarator_start_position is specified, the
-			   source position corresponding to the end of the
-			   the declarator; otherwise, null_source_position. */
+			   involves a declarator, the source positions
+			   corresponding to the start and end of the
+			   declarator.  Both positions may be
+			   null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CIL
   a_bit_field /* an_access_specifier */
@@ -4227,19 +4218,13 @@ typedef struct a_variable {
 			/* Union discriminated by init_kind and indicating the
 			   initializer. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		initializer_start_position;
+  a_source_range
+		initializer_range;
 			/* When an initializer appears explicitly in the
-			   source, the source position corresponding to the
-			   start of the top-level initializer construct
-			   (i.e, including "=" or "(").  May be
-			   null_source_position. */
-  a_source_position
-		initializer_end_position;
-			/* When initializer_start_position is specified, the
-			   source position corresponding to the end of the
-			   initializer construct (e.g., ")"); otherwise,
-			   null_source_position. */
+			   source, the source positions corresponding to the
+			   start and end of the top-level initializer
+			   construct (i.e, including "=" or "(" and ")").
+			   Both positions may be null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -5778,17 +5763,13 @@ typedef struct an_expr_node {
 #endif /* ifdef FIL */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		start_position;
+  a_source_range
+		expr_range;
 			/* When the node corresponds to an explicit sequence
-			   of tokens in the source, the source position of
-			   start of the expression.  Otherwise, the source
-			   position where the expression would appear if it
-			   were explicit.  May be null_source_position. */
-  a_source_position
-		end_position;
-			/* When start_position is specified, the source
-			   position of the end of the expression.  Otherwise,
+			   of tokens in the source, the source positions of
+			   start and end of the expression.  Otherwise, the
+			   source positions where the expression would appear
+			   if it were explicit.  Both positions may be
 			   null_source_position. */
   a_source_position
 		operator_position;
@@ -6669,16 +6650,12 @@ typedef struct a_constructor_init {
 			   being initialized, represented by a dynamic
 			   initialization entry. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		start_position;
+  a_source_range
+		ctor_range;
 			/* When the mem-initializer is explicit in the source,
-			   the source position corresponding to the opening
-			   "(".  May be null_source_position. */
-  a_source_position
-		end_position;
-			/* When start_position is specified, the source
-			   position corresponding to the closing ")";
-			   otherwise, null_source_position. */
+			   the source positions corresponding to the opening
+			   "(" and the closing ")".  Both positions may be
+			   null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_constructor_init;
 

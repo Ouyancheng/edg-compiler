@@ -1253,8 +1253,8 @@ to it.
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  vp->initializer_start_position  = null_source_position;
-  vp->initializer_end_position    = null_source_position;
+  vp->initializer_range.start     = null_source_position;
+  vp->initializer_range.end       = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
@@ -1704,8 +1704,8 @@ its kind to the indicated kind.
   node->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  node->start_position = null_source_position; 
-  node->end_position = null_source_position;
+  node->expr_range.start = null_source_position; 
+  node->expr_range.end = null_source_position;
   node->operator_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   set_expr_node_kind(node, kind);
@@ -2062,8 +2062,8 @@ pointer to it.
   }  /* switch */
   cip->initializer = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  cip->start_position = null_source_position; 
-  cip->end_position = null_source_position;
+  cip->ctor_range.start = null_source_position; 
+  cip->ctor_range.end = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return cip;
@@ -2492,8 +2492,8 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 #if DEBUG
   num_comments_allocated++;
 #endif /* DEBUG */
-  cp->range.start_position = null_source_position;
-  cp->range.end_position   = null_source_position;
+  cp->source_range.start = null_source_position;
+  cp->source_range.end   = null_source_position;
 
   return cp;
 }  /* alloc_comment */
@@ -2766,10 +2766,10 @@ in il_init.)
   def_source_corresp.decl_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_source_corresp.decl_end_position = null_source_position;
-  def_source_corresp.specifiers_start_position = null_source_position;
-  def_source_corresp.specifiers_end_position = null_source_position;
-  def_source_corresp.declarator_start_position = null_source_position;
-  def_source_corresp.declarator_end_position = null_source_position;
+  def_source_corresp.specifiers_range.start = null_source_position;
+  def_source_corresp.specifiers_range.end = null_source_position;
+  def_source_corresp.declarator_range.start = null_source_position;
+  def_source_corresp.declarator_range.end = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
