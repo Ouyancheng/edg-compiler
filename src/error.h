@@ -220,6 +220,11 @@ extern void pos_sy_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,
                               struct a_symbol    *symbol);
+extern void pos_sy2_diagnostic(an_error_severity  error_severity,
+                               an_error_code      error_code,
+                               a_source_position  *error_pos,
+                               struct a_symbol    *symbol1,
+                               struct a_symbol    *symbol2);
 extern void sym_diagnostic(an_error_severity  error_severity,
                            an_error_code      error_code,
                            struct a_symbol    *symbol);
