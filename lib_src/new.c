@@ -23,13 +23,22 @@ extern pointer_to_function_returning_void _new_handler;
 
 extern void *operator new(size_t size)
 /*
-Allocate the specified memory size from free store.  If the amount of
-memory allocated or the size requested is 0 bytes, call *_new_handler()
-if defined (non-NULL pointer).
+Allocate the specified memory size from free store.  If the allocation fails,
+call *_new_handler() if defined (non-NULL pointer), and try the allocation
+again.  The new_handler is permitted to
+	- cause more memory to be available,
+	- throw an exception, or
+	- call exit or abort.
+
+If the size passed by the caller is zero, it is incremented to one
+because the behavior of malloc is unspecified when size is zero.
+In C++, a call of operator new(0) must return a value distinct from other
+calls of operator new.
 */
 {
   void *ptr;
 
+  if (size == 0) size = 1;
   while ((ptr = (void *)malloc(size)) == NULL) {
     if (_new_handler != NULL) {
       (*_new_handler) ();
