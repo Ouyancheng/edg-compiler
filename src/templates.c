@@ -6844,22 +6844,6 @@ lists must by non-empty.
     }  /* if */
   }  /* while */
   decl_state->decl_info = template_decl_info;
-  /* Now that we know where the template declaration begins (and the template
-     parameter list ends), break the original token cache at this point. */
-  split_token_cache(&decl_state->param_list_cache,
-                    &decl_state->decl_token_cache,
-                    curr_token_sequence_number,
-                    /*include_prev_token=*/FALSE,
-                    /*okay_if_not_found=*/TRUE);
-  if (decl_state->decl_token_cache.first_token == NULL ||
-      decl_state->decl_token_cache.first_token->token_sequence_number !=
-                                                  curr_token_sequence_number) {
-    /* We are not where we expected to be after scanning the template parameter
-       lists.  Recache the template declaration now for better error
-       recovery.  This should only happen in error cases. */
-    check_assertion(total_errors != 0);
-    cache_template_declaration(decl_state, /*skip_params=*/TRUE);
-  }  /* if */
   if (decl_state->is_member_decl && !decl_state->is_template_friend &&
       decl_state->number_of_template_param_clauses > 1) {
     /* A declaration with more than one template parameter clause is only
@@ -6908,6 +6892,22 @@ any non-empty template parameter lists that were scanned.
   a_template_cache_segment_ptr	    cache_segments;
 
   db_enter(3, "template_declaration");
+  /* Now that we know where the template declaration begins (and the template
+     parameter list ends), break the original token cache at this point. */
+  split_token_cache(&decl_state->param_list_cache,
+                    &decl_state->decl_token_cache,
+                    curr_token_sequence_number,
+                    /*include_prev_token=*/FALSE,
+                    /*okay_if_not_found=*/TRUE);
+  if (decl_state->decl_token_cache.first_token == NULL ||
+      decl_state->decl_token_cache.first_token->token_sequence_number !=
+                                                  curr_token_sequence_number) {
+    /* We are not where we expected to be after scanning the template parameter
+       lists.  Recache the template declaration now for better error
+       recovery.  This should only happen in error cases. */
+    check_assertion(total_errors != 0 || curr_token == tok_end_of_source);
+    cache_template_declaration(decl_state, /*skip_params=*/TRUE);
+  }  /* if */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
   if (is_class_template_decl(&decl_state->decl_token_cache)) {
