@@ -51,7 +51,7 @@ declarator (3.5.5).
 #define is_abstract_declarator_start()                                \
   (curr_token == tok_star || curr_token == tok_lbracket ||            \
    curr_token == tok_lparen ||                                        \
-   is_microsoft_type_qualifier() ||				      \
+   is_microsoft_calling_convention() ||				      \
    (C_dialect == C_dialect_cplusplus &&                               \
     (is_ptr_to_member_declarator_start() ||                           \
      curr_token == tok_ampersand)))
@@ -62,7 +62,7 @@ abstract or real declarator.
 */
 #define is_abstract_or_real_declarator_start()                        \
   (is_declarator_start() || curr_token == tok_lbracket ||             \
-   is_microsoft_type_qualifier() ||				      \
+   is_microsoft_calling_convention() ||				      \
    (C_dialect == C_dialect_cplusplus &&                               \
     is_ptr_to_member_declarator_start()))
 
