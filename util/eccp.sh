@@ -633,6 +633,7 @@ check_abbreviation()
 --no_sun
 --no_svr4
 --no_typename
+--no_upc
 --no_use_before_set_warnings
 --no_using_std
 --no_variadic_macros
@@ -701,6 +702,8 @@ check_abbreviation()
 --undefine_macro
 --unsigned_chars
 --upc
+--upc_strict
+--upc_threads
 --use_pch
 --using_std
 --variadic_macros
@@ -1168,13 +1171,15 @@ process_option()
          --ignore_std | \
 	 --long_long | \
 	 --upc | \
+	 --no_upc | \
+	 --upc_strict | \
 	 --short_enums | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
       case $arg in
         -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4 | \
-	--gcc | --no_gcc | --upc)
+	--gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
           if [ $arg = "--c99" -a \
                "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
@@ -1247,6 +1252,7 @@ process_option()
          --context_limit | \
          --set_flag | \
          --clear_flag | \
+	 --upc_threads | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1316,6 +1322,7 @@ process_option()
           --context_limit=* | \
           --set_flag=* | \
           --clear_flag=* | \
+	  --upc_threads=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
