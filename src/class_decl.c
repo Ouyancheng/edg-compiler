@@ -5406,13 +5406,33 @@ and "class_type" indicates the class in which the declaration occurs.
   clear_locator(&locator, &locator_for_curr_id.source_position);
   locator.symbol_header = locator_for_curr_id.symbol_header;
   (void)normal_id_lookup(&locator, IDL_NO_OPTIONS);
-  projection_into_curr_class = locator.specific_symbol;
-  if (projection_into_curr_class->kind != (a_symbol_kind)sk_projection ||
-      projection_into_curr_class->variant.projection.access_adjustment_made) {
-    /* Name has already been redeclared in the current scope and cannot
-       appear in an access adjustment. */
-    pos_error(ec_id_already_declared, &locator_for_curr_id.source_position);
-    goto done;
+  if (locator.specific_symbol->kind == (a_symbol_kind)sk_projection) {
+    projection_into_curr_class = locator.specific_symbol;
+    if (projection_into_curr_class->
+                           variant.projection.access_adjustment_made) {
+      /* Name has already been declared in an access declaration. */
+      pos_error(ec_id_already_declared, &locator_for_curr_id.source_position);
+      goto done;
+    }  /* if */
+  } else {
+    /* Name has already been declared in this scope.  Since tag names and
+       nontag names can coexist in the same scope, check for this condition. */
+    a_symbol_ptr  insert_sym = NULL;
+    if (symbols_may_coexist_in_curr_scope(locator.specific_symbol,
+                                          locator_for_curr_id.specific_symbol,
+                                          &insert_sym)) {
+      clear_locator(&locator, &locator_for_curr_id.source_position);
+      locator.symbol_header = locator_for_curr_id.symbol_header;
+      (void)find_projected_symbol(class_type, &locator, /*must_be_tag=*/FALSE,
+                                  /*must_be_type_name=*/FALSE,
+                                  /*add_to_active_list=*/TRUE, insert_sym,
+                                  &projection_into_curr_class);
+    } else {
+      /* Name has already been declared in the current scope and cannot
+         appear in an access adjustment. */
+      pos_error(ec_id_already_declared, &locator_for_curr_id.source_position);
+      goto done;
+    }  /* if */
   }  /* if */
   /* Find the immediate progenitor of projection_into_curr_class.  If the
      symbol originally specified in the source is a member of an indirect
