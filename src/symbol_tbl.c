@@ -7172,23 +7172,15 @@ specific version of the template.
          are pushing the scope for the declaration (but not the body) of a
          template function -- no source sequence entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
+    } else if (assoc_type != NULL) {
+      /* We are pushing the scope for a class template instantiation. */
+      source_sequence_entries_disallowed =
+                  !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
     } else {
-      /* Otherwise, do generate source sequence entries during an
-         instantiation. */
-      source_sequence_entries_disallowed = FALSE;
-      /* ... unless doing so is disabled by a compilation option: */
-#if !FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (assoc_routine != NULL) {
-        /* We are pushing the scope for a function template instantiation. */
-        source_sequence_entries_disallowed = TRUE;
-      }  /* if */
-#endif /* !FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (assoc_type != NULL) {
-        /* We are pushing the scope for a class template instantiation. */
-        source_sequence_entries_disallowed = TRUE;
-      }  /* if */
-#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      /* We are pushing the scope for a function template instantiation
+         or for the definition of a template static data member. */
+      source_sequence_entries_disallowed =
+                  !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
     }  /* if */
     ssep->source_sequence_entries_disallowed =
                                      source_sequence_entries_disallowed;

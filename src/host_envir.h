@@ -408,16 +408,17 @@ should include information about comments.
 
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
-should include function template instantiations.
+should include (member and nonmember) function template instantiations and
+static data member template instantiations.
 */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#ifndef FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#ifndef NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 /* You can change this: */
-#define FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
-#endif /* ifndef FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#define NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
+#endif /* ifndef NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 /* Do not change this: */
-#define FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
+#define NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /*
