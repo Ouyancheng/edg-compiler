@@ -2182,7 +2182,7 @@ type is in fact valid.
         a_class_list_entry_ptr  corresp_cle = corresp_sup->friend_classes;
         for (; cle != NULL && corresp_cle != NULL;
              cle = cle->next, corresp_cle = corresp_cle->next) {
-          if (!seek_type_corresp(cle->class_type, corresp_cle->class_type)) {
+          if (!corresponding_types(cle->class_type, corresp_cle->class_type)) {
             match = FALSE;
             report_error = TRUE;
             goto done;
@@ -2915,19 +2915,27 @@ given type.
       /* This is presumably the first class body instantiation. */
       clear_class_type_correspondence(type, /*visited=*/TRUE);
     } else {
-      if (!type_has_definition(canon) || !in_secondary_trans_unit(type)) {
+      a_boolean  canon_defined = type_has_definition(canon);
+#if /* FIXME */0
+      if (!canon_defined || !in_secondary_trans_unit(type)) {
         /* The canonical entry is about to change. */
         new_canon = TRUE;
         /* Prefer definitions as canonical entries, and definitions in primary
            translation units in particular. */
         change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
-        clear_class_type_correspondence(type, /*visited=*/TRUE);
+        if (!canon_defined) {
+          clear_class_type_correspondence(type, /*visited=*/TRUE);
+        }  /* if */
         /* Work from the noncanonical entry to set the correspondences of
            members. */
         type = canon;
       }  /* if */
       establish_trans_unit_correspondences_for_class(type);
       if (new_canon) {
+#endif /*FIXME*/
+      set_type_corresp(type, canon);
+      if ((a_type_ptr)canonical_il_entry_of(type) != canon &&
+          (!canon_defined || !in_secondary_trans_unit(type))) {
         /* Since the canonical entry has changed, extra actions may be needed.
            Force the verification of the previous canonical entry against the
            new one. */
