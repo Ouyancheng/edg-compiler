@@ -106,7 +106,7 @@ and before the back end (if any) is executed.
     }  /* if */
     /* Go through the classes in the file scope and each namespace scope
        and generate bodies for virtual destructors, as required. */
-    generate_required_virtual_destructor_bodies();
+    generate_required_virtual_destructor_bodies(il_header.primary_scope);
   }  /* if */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

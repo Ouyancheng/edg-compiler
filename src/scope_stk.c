@@ -2564,7 +2564,7 @@ End a name scope by popping an entry off the scope stack.
         kind == (a_scope_kind)sck_block) {
       /* If there are any local classes, check for compiler-generated
          virtual destructors for which bodies should be put out. */
-      generate_required_virtual_destructor_bodies(il_scope->types);
+      generate_required_virtual_destructor_bodies(il_scope);
     }  /* if */
   }  /* if */
   if (ssep->curr_construct_pragmas != NULL && total_errors != 0) {

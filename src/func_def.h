@@ -61,7 +61,7 @@ a_symbol_ptr function_definition(a_symbol_locator  *locator,
 
 extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 
-extern void generate_required_virtual_destructor_bodies(void);
+extern void generate_required_virtual_destructor_bodies(a_scope_ptr  scope);
 
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 extern char *scan_asm_block(a_boolean  stop_at_end_of_line);
