@@ -332,7 +332,7 @@ EXTERN unsigned long
    need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \
 {								        \
-  if (is_incomplete_type(tp)) {						\
+  if (is_incomplete_type(tp) && is_class_struct_union_type(tp)) {	\
     f_instantiate_template_class(tp);					\
   }  /* if */							        \
 }
