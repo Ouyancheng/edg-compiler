@@ -6011,10 +6011,14 @@ Generate C from the intermediate language.
 #if USE_INIT_SECTION_IN_GENERATED_C
   if (startup_routine_name != NULL) {
     /* If a startup routine was emitted, put a call of it into the .init
-       section.  The form here works for Solaris; it may have to be adapted
-       for other systems. */
+       section.  The form here works for Solaris and ELF versions of Linux;
+       it may have to be adapted for other systems. */
     end_output_line();
+#ifdef __linux__
+    write_str("asm(\" .section \\\".init\\\"\");");
+#else /* ifndef __linux__ */
     write_str("asm(\" .pushsection \\\".init\\\"\");");
+#endif /* ifdef __linux__ */
     end_output_line();
     write_str("asm(\" call ");
     write_str(startup_routine_name);
@@ -6022,8 +6026,10 @@ Generate C from the intermediate language.
     end_output_line();
     write_str("asm(\" nop\");");
     end_output_line();
+#ifndef __linux__
     write_str("asm(\" .popsection\");");
     end_output_line();
+#endif /* ifndef __linux__ */
   }  /* if */
 #endif /* USE_INIT_SECTION_IN_GENERATED_C */
   check_assertion_str(f_rout_dynamic_inits == NULL,
