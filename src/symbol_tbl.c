@@ -6449,8 +6449,9 @@ NULL.
     case sk_routine:
       /* Function. */
       rout_ptr = sym->variant.routine.ptr;
-      if (sym->referenced) {
-        /* Referenced function. */
+      if (rout_ptr->source_corresp.referenced) {
+        /* Referenced function.  We check the IL referenced flag because
+           a reference in, say, a sizeof operation doesn't count. */
         if (rout_ptr->storage_class == (a_storage_class)sc_static &&
             depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
             rout_ptr->assoc_scope == NULL_region_number) {
@@ -6469,7 +6470,7 @@ NULL.
                          &sym->decl_position, sym);
           }  /* if */
         }  /* if */
-      } else {
+      } else if (!sym->referenced) {
         /* Unreferenced function. */
         storage_class = rout_ptr->storage_class;
         if (storage_class == (a_storage_class)sc_unspecified) {
