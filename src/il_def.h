@@ -7432,7 +7432,11 @@ typedef struct a_scope {
 			   of statements.  NULL if none (including implicitly
 			   generated sck_block scopes containing for-init
 			   declarations).  Used only when kind == sck_function
-			   or sck_block. */
+			   or sck_block.  The statement pointed to is
+			   usually an stmk_block statement; however, in C++
+			   mode when kind == sck_function, it can also be an
+			   stmk_try_block statement, to indicate a
+			   function-try-block. */
 #if ASM_FUNCTION_ALLOWED
 			/* Also used to point to the stmk_asm_func_body
 			   statement that represents the uninterpreted body
