@@ -837,11 +837,13 @@ initializing declarations.
           } while (cfdp != NULL);
           break;
         case cfdk_block:
-          if (parent->variant.block.is_switch_block ||
-              parent->variant.block.is_switch_subblock) {
-            new_cfdp->variant.block.is_switch_subblock = TRUE;
-            new_cfdp->variant.block.exposed_init_in_switch =
-                        parent->variant.block.exposed_init_in_switch;
+          if (!new_cfdp->variant.block.is_switch_block) {
+            if (parent->variant.block.is_switch_block ||
+                parent->variant.block.is_switch_subblock) {
+              new_cfdp->variant.block.is_switch_subblock = TRUE;
+              new_cfdp->variant.block.exposed_init_in_switch =
+                          parent->variant.block.exposed_init_in_switch;
+            }  /* if */
           }  /* if */
       }  /* switch */
     }  /* if */
