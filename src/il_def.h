@@ -3427,6 +3427,10 @@ typedef struct a_type {
 			   typeref that has is_placeholder_for_namespace_type
 			   TRUE.  Used for types that are members of
 			   namespaces. */
+  a_bit_field	is_builtin_va_list:1;
+			/* TRUE if this type is the va_list type declared by
+			   <stdarg.h> (or, with nonstandard headers, by
+			   something like <stdio.h>). */
 #if DO_IL_LOWERING
   a_variable_ptr
 		typeinfo_var;

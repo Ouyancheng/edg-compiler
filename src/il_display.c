@@ -893,6 +893,9 @@ Display the indicated type entry.
   if (ptr->referenced_by_namespace_placeholder_typeref) {
     disp_boolean("referenced_by_namespace_placeholder_typeref", TRUE);
   }  /* if */
+  if (ptr->is_builtin_va_list) {
+    disp_boolean("is_builtin_va_list", TRUE);
+  }  /* if */
 #if DO_IL_LOWERING
   if (ptr->typeinfo_var != NULL) {
     disp_ptr("typeinfo_var", (char *)ptr->typeinfo_var, iek_variable);
