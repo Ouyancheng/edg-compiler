@@ -1907,25 +1907,35 @@ current structured statement.
        appears. */
     set_unreachable(curr_reachability);
   } else if (kind == ssk_compound) {
-    a_scope_ptr  scope = scope_stack[depth_scope_stack].il_scope;
-
     /* Represent this compound statement by adding a block entry to the
        control_flow_descr_list. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
-    cfdp->variant.block.object_lifetime = olp;
-    if (depth_stmt_stack > 0) {
-      if (scope != NULL && scope->kind == (a_scope_kind)sck_block &&
-          scope->variant.assoc_handler != NULL) {
-        /* This block represents the compound statement immediately within a
-           catch clause. */
-        cfdp->variant.block.is_catch_block = TRUE;
-        cfdp->variant.block.is_within_catch_or_try_block = TRUE;
-        sssep->is_catch_clause = TRUE;
-      } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block) {
-        /* This block represents the compound statement immediately within a
-           try block statement. */
-        cfdp->variant.block.is_try_block = TRUE;
-        cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+    if (!C_mode()) {
+      /* Set the lifetime in the control flow entry. */
+      cfdp->variant.block.object_lifetime = olp;
+      if (depth_stmt_stack > 0) {
+        /* Special case processing for C++ mode only. */
+        a_scope_ptr  scope = scope_stack[depth_scope_stack].il_scope;
+
+        if (sssep[-1].kind == (a_struct_stmt_kind)ssk_switch) {
+          /* This block represents the block statement or compound statement
+             immediately within a switch statement.  Record the current
+             object lifetime in the ssk_switch entry, too -- it's used in
+             add_switch_clause. */
+          sssep[-1].curr_block_object_lifetime = olp;
+        } else if (scope != NULL && scope->kind == (a_scope_kind)sck_block &&
+                   scope->variant.assoc_handler != NULL) {
+          /* This block represents the compound statement immediately within a
+             catch clause. */
+          cfdp->variant.block.is_catch_block = TRUE;
+          cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+          sssep->is_catch_clause = TRUE;
+        } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block) {
+          /* This block represents the compound statement immediately within a
+             try block statement. */
+          cfdp->variant.block.is_try_block = TRUE;
+          cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     add_to_control_flow_descr_list(cfdp);
@@ -2084,6 +2094,14 @@ resumed).
                          (an_object_lifetime_kind)olk_block_after_label);
     sssep->curr_block_object_lifetime = curr_object_lifetime;
     sssep->label_invalidates_curr_block_object_lifetime = FALSE;
+    if (depth_stmt_stack > 0) {
+      if (sssep[-1].kind == (a_struct_stmt_kind)ssk_switch) {
+        /* sssep represents the block statement or compound statement
+           immediately within a switch statement.  Update the object lifetime
+           in the ssk_switch entry, too. */
+        sssep[-1].curr_block_object_lifetime = curr_object_lifetime;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* reset_curr_block_object_lifetime */
 
@@ -3836,9 +3854,18 @@ after_check:
       }  /* if */
       goto_stmt->variant.label.ptr = label;
       if (!C_mode()) {
-        /* Set the object lifetime for the goto statement. */
+        /* Set the object lifetime for the goto statement.  Note: the goto
+           belongs to the object lifetime for the switch statement itself,
+           which may be different from the current object lifetime when
+           label_directly_in_switch is FALSE. */
+        check_assertion_str2(label_directly_in_switch ?
+                               ((sssep)->curr_block_object_lifetime ==
+                                                    curr_object_lifetime) :
+                               ((sssep)->curr_block_object_lifetime != NULL),
+                             "add_switch_clause: bad lifetime in struct",
+                             "stmt stack entry for switch statement");
         goto_stmt->variant.label.lifetime =
-                      innermost_block_object_lifetime(curr_object_lifetime);
+                                     (sssep)->curr_block_object_lifetime;
         /* Create a control flow entry for this goto statement.  Note that it
            isn't needed in C mode, since it's only used for tracking and
            promoting object lifetimes. */
