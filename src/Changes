@@ -1,5 +1,18 @@
 Version 2.45
 
+9/27/00  Instantiation of static data member type
+
+The front end used to instantiate the element type of a static data member
+array at the point of the declaration of such a member.  The instantiation
+is now delayed until the complete element type is actually needed.
+For example:
+
+  template <class T> struct S: public T {};
+  struct I;
+  class C {
+    static S<I> foobar[7];  // Fine now.  Used to trigger an error because
+  };                        // S<I> was instantiated with an incomplete base
+
 9/25/00  Template conversion function usable for conversion to bool
 
 In a context that requires an expression of type bool, a template
