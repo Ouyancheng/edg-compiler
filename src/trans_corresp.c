@@ -2852,6 +2852,13 @@ instantiated.  Such an event may cause routine to become the canonical entry.
 */
 {
   if (trans_unit_corresp_of(routine) != NULL) {
+    a_routine_ptr  canon = (a_routine_ptr)canonical_il_entry_of(routine);
+    if (canon->is_specialized) {
+      /* The canonical entry is specialized, but we're instantiating a
+         matching generic version. */
+      f_report_bad_trans_unit_corresp((char*)canon,
+                                      &routine->source_corresp.decl_position);
+    }  /* if */
     update_canonical_entry(iek_routine, (char*)routine);
   }  /* if */
 }  /* establish_function_instantiation_corresp */
@@ -2865,6 +2872,13 @@ the canonical entry.
 */
 {
   if (trans_unit_corresp_of(var) != NULL) {
+    a_variable_ptr  canon = (a_variable_ptr)canonical_il_entry_of(var);
+    if (canon->is_specialized) {
+      /* The canonical entry is specialized, but we're instantiating a
+         matching generic version. */
+      f_report_bad_trans_unit_corresp((char*)canon,
+                                      &var->source_corresp.decl_position);
+    }  /* if */
     update_canonical_entry(iek_variable, (char*)var);
   }  /* if */
 }  /* establish_variable_instantiation_corresp */
