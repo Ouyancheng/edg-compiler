@@ -7400,7 +7400,7 @@ in every translation unit in which it is used.  Only a warning is put out
 in cfront mode (because cfront itself issues no error), and the IL entry
 is modified to produce consistent IL.
 
-9/23/06 Support for "extern inline"
+9/23/96 Support for "extern inline"
 
 In C++ support for "extern inline" is now available.  This means
 -- on nonmember function declarations "extern" and "inline" can appear
