@@ -1110,6 +1110,12 @@ typedef struct a_template_symbol_supplement {
 			   class template has been completed.  Used to
 			   prevent a real instantiation from occurring while
 			   the prototype instantiation is in progress. */
+      a_bit_field /* a_name_linkage_kind */
+		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* The name linkage associated with this class
+			   template -- typically C++ linkage, but internal
+			   linkage if the template is declared inside an
+			   unnamed namespace. */
       bitfield_to_avoid_codecenter_warnings()
     } class_template;
     /* When symbol kind = sk_function_template: */

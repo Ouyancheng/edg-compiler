@@ -1346,6 +1346,8 @@ and return a pointer to it.
       tssp->variant.class_template.member_function_templates = NULL;
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
+      tssp->variant.class_template.name_linkage =
+                                            (a_name_linkage_kind)nlk_none;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
