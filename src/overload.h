@@ -344,6 +344,7 @@ extern a_symbol_ptr select_overloaded_function(
 
 extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           an_expr_node_ptr  arg_expr_list,
+                                          a_type_ptr        temp_type,
                                           a_boolean         result_is_addr,
                                           a_source_position *position,
                                           an_operand        *result);

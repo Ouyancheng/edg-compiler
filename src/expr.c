@@ -7413,7 +7413,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       /* Make a dynamic init entry that calls constructor to initialize
          a temporary.  Make an operand for the value of the temporary. */
       make_constructor_dynamic_init(ctor_routine, arg_expr_list,
-                                    /*result_is_addr=*/FALSE,
+                                    type_cast_to, /*result_is_addr=*/FALSE,
                                     start_position, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs) {

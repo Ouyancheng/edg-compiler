@@ -1,5 +1,29 @@
 Version 2.38
 
+12/2/97   Type of temporary created on cast to cv-qualified class type
+
+The type of temporary created on a cast to a cv-qualified class type
+should be the cv-qualified type.  Instead, if the temporary was created
+by calling a constructor, the cv-unqualified class type was used.
+
+  struct A {
+    A();
+    void f();
+  };
+  int main () {
+    typedef const A CA;
+    CA().f();  // Should be an error; now, it is
+  }
+
+A similar issue comes up with typedefs of a class type in the C++-generating
+back end.  Now, a temporary of the typedef type (instead of the class
+type) is created, which avoids some naming errors in the generated code.
+
+12/2/97   Inlining of constructor calls on cv-qualified objects
+
+The minimal inlining feature now generates better code on calls of
+constructors for objects that are cv-qualified.
+
 12/2/97   Setting the maximum recursive instantiation depth
 
 The front end limits the depth of recursive instantiations so that

@@ -201,6 +201,15 @@ whether the constant is non-NULL, the safe value is FALSE.
       is_constant_valued =
                is_constant_valued_expression(expr->variant.operation.operands,
                                              is_non_null);
+    } else if (op == (an_expr_operator_kind)eok_cast &&
+               is_pointer_type(expr->type)) {
+      /* A cast of a constant address is constant-valued.  This is useful on a
+         cast of the address of a local variable to adjust its cv-qualification
+         when it is passed as the "this" parameter to a constructor or
+         destructor. */
+      is_constant_valued =
+                is_constant_valued_expression(expr->variant.operation.operands,
+                                              is_non_null);
     }  /* if */
   }  /* if */
   return is_constant_valued;

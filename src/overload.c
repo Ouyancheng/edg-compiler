@@ -7129,6 +7129,7 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
 
 void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                    an_expr_node_ptr  arg_expr_list,
+                                   a_type_ptr        temp_type,
                                    a_boolean         result_is_addr,
                                    a_source_position *position,
                                    an_operand        *result)
@@ -7138,7 +7139,9 @@ the argument list arg_expr_list.  Return an operand for the value (if
 result_is_addr == FALSE) or address (if result_is_addr == TRUE) of the
 temporary in *result.  The argument list has already been prepared for
 the call (default arguments have been added, the argument types have
-been adjusted, etc.).
+been adjusted, etc.).  temp_type is the type of the temporary; its
+cv-unqualified version must be the class of which the constructor is
+a member.  If it is NULL, the class type is used.
 */
 {
   a_type_ptr         class_type;
@@ -7151,8 +7154,15 @@ been adjusted, etc.).
   }  /* if */
 #endif /* CHECKING */
   class_type = ctor_routine->source_corresp.parent.class_type;
+  if (temp_type == NULL) {
+    temp_type = class_type;
+  } else {
+    check_assertion_str(identical_types(class_type,
+                                        skip_typerefs(temp_type)),
+                        "make_constructor_dynamic_init: bad temp_type");
+  }  /* if */
   /* Create the dynamic initialization entry and the enk_temp_init node. */
-  temp_init_node = create_expr_temporary(class_type, result_is_addr, position);
+  temp_init_node = create_expr_temporary(temp_type, result_is_addr, position);
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
   set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
@@ -7289,7 +7299,7 @@ in that case.
     set_up_for_constructor_call(operand, conversion_routine,
                                 ctor_arg_conversion, &arg_expr_list);
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
-                                  /*result_is_addr=*/FALSE,
+                                  dest_type, /*result_is_addr=*/FALSE,
                                   &orig_operand.position, operand);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -7826,7 +7836,7 @@ the address of the temporary.  Used only in C++ mode.
         cctor_case = TRUE;
         set_up_for_constructor_call(operand, cctor_routine,
                                     (a_conv_descr *)NULL, &cctor_arg);
-        make_constructor_dynamic_init(cctor_routine, cctor_arg,
+        make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
                                       /*result_is_addr=*/TRUE,
                                       &orig_operand.position,
                                       operand);
