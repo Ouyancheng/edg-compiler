@@ -1189,6 +1189,19 @@ stack.
 
 #endif /* DO_IL_LOWERING */
 
+/*
+Determine whether RTTI can be enabled.  It cannot be if we are doing IL
+lowering and the ABI changes for RTTI aren't enabled.
+*/
+#if DO_IL_LOWERING
+#if ABI_CHANGES_FOR_RTTI
+#define RTTI_ENABLING_POSSIBLE TRUE
+#else /* !ABI_CHANGES_FOR_RTTI */
+#define RTTI_ENABLING_POSSIBLE FALSE
+#endif /* ABI_CHANGES_FOR_RTTI */
+#else /* !DO_IL_LOWERING */
+#define RTTI_ENABLING_POSSIBLE TRUE
+#endif /* DO_IL_LOWERING */
 #endif /* !defined(TARG_DEF_H) */
 
 

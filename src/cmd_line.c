@@ -438,14 +438,14 @@ Initialize the option information table.
                          "no_preproc_only",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#if ABI_CHANGES_FOR_RTTI
+#if RTTI_ENABLING_POSSIBLE
   add_option_description(optk_rtti, "rtti", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_rtti, "no_rtti", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* ABI_CHANGES_FOR_RTTI */
+#endif /* RTTI_ENABLING_POSSIBLE */
   add_option_description(optk_building_runtime, "building_runtime", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -1313,12 +1313,12 @@ Process the arguments on the command line that invoked the compiler.
 	   be done. */
         suppress_do_preprocessing_only = opt_value;
         break;
-#if ABI_CHANGES_FOR_RTTI
+#if RTTI_ENABLING_POSSIBLE
       case optk_rtti:
         /* Enable/disable runtime type information (RTTI). */
         rtti_enabled = opt_value;
         break;
-#endif /* ABI_CHANGES_FOR_RTTI */
+#endif /* RTTI_ENABLING_POSSIBLE */
       case optk_building_runtime:
         /* We are building the runtime library for the compiler. */
         check_assertion(opt_value == TRUE);
@@ -1370,11 +1370,11 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
-#if ABI_CHANGES_FOR_RTTI
+#if RTTI_ENABLING_POSSIBLE
     if (option_kind_used[(int)optk_rtti]) {
       command_line_error(ec_cl_rtti_option_only_in_cplusplus);
     }  /* if */
-#endif /* ABI_CHANGES_FOR_RTTI */
+#endif /* RTTI_ENABLING_POSSIBLE */
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
@@ -1446,10 +1446,10 @@ Process the arguments on the command line that invoked the compiler.
       alternative_tokens_allowed = TRUE;
       /* Temporary lifetime is short. */
       long_lifetime_temps = FALSE;
-#if ABI_CHANGES_FOR_RTTI
+#if RTTI_ENABLING_POSSIBLE
       /* Enable RTTI. */
       rtti_enabled = TRUE;
-#endif /* ABI_CHANGES_FOR_RTTI */
+#endif /* RTTI_ENABLING_POSSIBLE */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
        error threshold was set at a higher level. */

@@ -118,9 +118,9 @@ typedef enum /*an_option_kind*/ {
   optk_brief_diagnostics,
   optk_nonconst_ref_anachronism,
   optk_no_preproc_only,
-#if ABI_CHANGES_FOR_RTTI
+#if RTTI_ENABLING_POSSIBLE
   optk_rtti,
-#endif /* ABI_CHANGES_FOR_RTTI */
+#endif /* RTTI_ENABLING_POSSIBLE */
   optk_building_runtime,
   optk_last		/* Must be last. */
 } an_option_kind;
@@ -269,11 +269,11 @@ EXTERN a_boolean
 		rtti_enabled
 #if VAR_INITIALIZERS
                              =
-#if ABI_CHANGES_FOR_RTTI
+#if RTTI_ENABLING_POSSIBLE
                                DEFAULT_RTTI_ENABLED
-#else /* !ABI_CHANGES_FOR_RTTI */
+#else /* !RTTI_ENABLING_POSSIBLE */
                                FALSE
-#endif /* ABI_CHANGES_FOR_RTTI */
+#endif /* RTTI_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                    ;
 			/* TRUE if support for runtime type identification
