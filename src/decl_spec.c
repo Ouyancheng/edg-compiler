@@ -7333,6 +7333,7 @@ destructor_name:
           warning(ec_invalid_access_specifier);
           break;
         }  /* if */
+        /*FALLTHROUGH*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         /* Something unexpected.  After the first time, we can just exit
