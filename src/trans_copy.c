@@ -1120,10 +1120,15 @@ not being eliminated.
                   /* In C mode, the inline specifier need not match. */
                   C_mode() ||
                   /* The is_inline flag in templates is not set until
-                     the function is fully instantiated. */
-                  (routine->is_template_function &&
+                     the function is fully instantiated.  Also, you
+                     can have an inline definition of a member function
+                     in one translation unit and just a declaration in
+                    another. */
+                  ((routine->is_template_function ||
+                    routine->source_corresp.is_class_member) &&
                    routine->assoc_scope == NULL_region_number) ||
-                  (corresp_routine->is_template_function &&
+                  ((corresp_routine->is_template_function ||
+                    corresp_routine->source_corresp.is_class_member) &&
                    corresp_routine->assoc_scope == NULL_region_number));
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
