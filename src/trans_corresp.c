@@ -2401,8 +2401,11 @@ symbol supplement.
   for (; sym_entry != NULL; sym_entry = sym_entry->next) {
     a_routine_ptr  corresp_routine = sym_entry->symbol->variant.routine.ptr;
     if (identical_types(routine->type, corresp_routine->type) &&
+        /* The ETA_IS_NONREAL_MEMBER option allows comparisons between
+           template argument lists that are not known to match the same
+           template. */
         equiv_template_arg_lists(corresp_routine->template_arg_list,
-                                 templ_args, ETA_NO_OPTIONS)) {
+                                 templ_args, ETA_IS_NONREAL_MEMBER)) {
       record_trans_unit_corresp(routine, corresp_routine);
       break;
     }  /* if */
