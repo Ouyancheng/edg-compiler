@@ -4082,7 +4082,9 @@ to either
     reference, so also consider conversions to a derived class of
     dest_type), and an lvalue of that type if need_lvalue_result is TRUE, or
 (b) a built-in type in the set given by builtin_types_allowed, if
-    dest_type is NULL.
+    builtin_types_allowed != BTK_NONE (if both (a) and (b) apply,
+    (b) takes precedence, and dest_type is used only to guide the
+    selection of template conversion functions).
 
 If a conversion function to do that conversion exists, evaluate how
 well it matches the arguments and add it to the candidate_functions list,
@@ -4129,7 +4131,7 @@ This routine is only used in C++ mode.
     return_type = return_type_of(conv_routine_type);
     result_is_an_lvalue = is_reference_type(conv_routine_type->
                                                   variant.routine.return_type);
-    if (dest_type != NULL) {
+    if (dest_type != NULL && builtin_types_allowed == BTK_NONE) {
       /* We're looking for a specific type. */
       a_boolean types_match_ignoring_qualifiers =
               types_are_compatible_ignoring_qualifiers(dest_type, return_type);
@@ -4809,8 +4811,26 @@ the target type to be used).
       if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
            an appropriate built-in type. */
+        a_type_ptr other_operand_type;
+        /* Get the type of the other operand.  This is used to guide selection
+           of template conversion functions if it's an appropriate type. */
+        if (arg_operand_list->next == NULL) {
+          /* No other type for unary operators. */
+          other_operand_type = NULL;
+        } else {
+          if (arg_operand == arg_operand_list) {
+            other_operand_type = arg_operand_list->next->operand.type;
+          } else {
+            other_operand_type = arg_operand_list->operand.type;
+          }  /* if */
+          if (!type_matches_type_code(other_operand_type, type_code)) {
+            /* The other operand type is not a builtin type that could be
+               used for the current operand, so ignore it. */
+            other_operand_type = NULL;
+          }  /* if */
+        }  /* if */
         if (conversion_from_class_possible(&arg_operand->operand,
-                                           (a_type_ptr)NULL,
+                                           other_operand_type,
                                      builtin_type_set_for_type_code(type_code),
                                            need_lvalue_result,
                                            /*is_copy_initialization=*/TRUE,
@@ -6084,7 +6104,9 @@ to either
     reference, so also consider conversions to a derived class of
     dest_type), and an lvalue of that type if need_lvalue_result is TRUE, or
 (b) a built-in type in the set given by builtin_types_allowed, if
-    dest_type is NULL,
+    builtin_types_allowed != BTK_NONE (if both (a) and (b) apply,
+    (b) takes precedence, and dest_type is used only to guide the
+    selection of template conversion functions),
 
 then set *conversion to describe the conversion, and return TRUE.
 Otherwise return FALSE.  If more than one function matches, set
