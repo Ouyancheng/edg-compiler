@@ -5781,7 +5781,20 @@ Scan the body of a class definition, including the base classes list.
         }  /* if */
         /* Scan a member declaration. */
         add_stop_token(tok_semicolon);
-        if (curr_token == tok_asm) {
+        if (curr_token == tok_semicolon && 
+            (C_dialect == C_dialect_cplusplus ||
+             !(is_first_field && next_token() == tok_rbrace))) {
+          /* No declaration -- just a semicolon.  Issue a warning (or error in
+             strict ANSI mode).  Note: in C mode we bypass the "extra ':'"
+             diagnostic when there are no fields in the struct -- i.e.,
+             "struct S { ; };" is treated just like "struct S { };". */
+          pos_diagnostic(strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning,
+                         ec_extra_semicolon, &pos_curr_token);
+          /* Bypass the superfluous semicolon and continue looping. */
+          (void)get_token();
+          goto next_declaration;
+        } else if (curr_token == tok_asm) {
           /* An asm declaration is not allowed in a class definition, but
              scan it anyway (after issuing the error). */
           (void)asm_declaration(/*asm_decl_allowed=*/FALSE);
