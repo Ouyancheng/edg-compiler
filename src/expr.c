@@ -1049,7 +1049,7 @@ build an argument operand list and return a pointer to it in
     do {
       /* In cfront mode, allow an extra comma at the end of the argument
          list. */
-      if (cfront_compatibility_mode && curr_token == tok_rparen) break;
+      if (any_cfront_mode() && curr_token == tok_rparen) break;
       /* Scan an argument expression.  Note that it is not converted to an
          rvalue yet. */
       scan_expr(&argument_operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -1823,7 +1823,7 @@ The result is placed in *result.
     make_error_operand(result);
   } else {
     field = field_sym->variant.field.ptr;
-    if (cfront_compatibility_mode && is_array_type(field->type)) {
+    if (cfront_2_1_mode && is_array_type(field->type)) {
       /* cfront 2.1 fouls up the qualifiers on arrays.  Duplicate the
          behavior.  (This comes up in the NIH libraries.) */
       result_type = field->type;
@@ -1836,7 +1836,7 @@ The result is placed in *result.
     }  /* if */
     rvalue_selection = (!is_arrow_operator && is_an_rvalue(operand_1));
     if (rvalue_selection && C_dialect == C_dialect_cplusplus &&
-        !cfront_compatibility_mode) {
+        !any_cfront_mode()) {
       /* In C++, a member selected from an rvalue is an lvalue (ARM 5.2.4).
          If the selector is an rvalue, turn it back into an lvalue. */
       conv_class_operand_to_object_pointer(operand_1);
@@ -4536,7 +4536,7 @@ for both C-style casts and C++ functional-notation type conversions.
       /* Casting to a reference type in C++. */
     } else if (is_ptr_to_member_type(type_cast_to)) {
       /* In C++, a cast to a pointer-to-member type is allowed. */
-    } else if (cfront_compatibility_mode && is_array_type(type_cast_to)) {
+    } else if (cfront_2_1_mode && is_array_type(type_cast_to)) {
       /* In C++, treat a cast to an array type as a cast to a pointer to
          the array element type.  This is an extension to match cfront 2.1
          and is only accepted in cfront compatibility mode.   A warning is
@@ -6429,8 +6429,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   /* In C++, the 3rd operand is an assignment-expression (this was changed
      after the ARM) to allow things like "a ? i=1 : j=2". */
   scan_expr(&operand_3, (C_dialect != C_dialect_cplusplus ||
-                         cfront_compatibility_mode) ? PREC_QUEST_MARK :
-                                                      PREC_ASSIGNMENT,
+                         any_cfront_mode()) ? PREC_QUEST_MARK :
+                                              PREC_ASSIGNMENT,
                          EOPT_NO_OPTIONS);
   expr_stack->evaluated = saved_evaluated;
 
@@ -8581,7 +8581,7 @@ the appropriate dynamic initialization entry and return NULL.
     /* The required type can be void if we are in cfront mode.  If it is
        void just take the expression as we found it -- don't try to
        convert it to void. */
-    if (cfront_compatibility_mode && is_void_type(required_type)) {
+    if (cfront_2_1_mode && is_void_type(required_type)) {
       /* Leave operand alone. */
     } else {
       /* Convert to the required type. */
