@@ -202,9 +202,13 @@ some support along these lines: TARG_HAS_SIGNED_CHARS was used to define
 global variable targ_has_signed_chars, and the default setting could then
 be overridden by invoking the compiler with the -s or -u option.  The
 option of extending this technique to other configuration settings is now
-available.  By default, however, the compiler works as before: the
-configuration variables simply retain the values established by the
-#defines.
+available.
+
+Furthermore, the TARG_xxx macros are #undef'ed after their use as
+initializers.  To accommodate implementations with private code that is
+broken by this change, the macros may be redefined to refer to the
+corresponding targ_xxx variable (see MAKE_TARG_NAMES_REFER_TO_VARIABLES in
+target.h).
 
 4/25/94  defines.h -- a file for specifying configuration parameters
 

@@ -542,14 +542,14 @@ EXTERN an_integer_kind
 #undef TARG_JMP_BUF_NUM_ELEMENTS
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
 
-#ifndef REDEFINE_TARG_VALUE_NAMES
-#define REDEFINE_TARG_VALUE_NAMES 0
-#endif /* ifndef REDEFINE_TARG_VALUE_NAMES */
+#ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
+#define MAKE_TARG_NAMES_REFER_TO_VARIABLES 0
+#endif /* ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 /* The following macro name redefinitions are provided to help accommodate
    implementations that have code of their own that depends on these names'
    being defined.  These TARG_xxx names should not reappear in code supplied
    by EDG. */
-#if REDEFINE_TARG_VALUE_NAMES
+#if MAKE_TARG_NAMES_REFER_TO_VARIABLES
 #define TARG_LITTLE_ENDIAN targ_little_endian
 #define TARG_CHAR_BIT targ_char_bit
 #define TARG_HOST_STRING_CHAR_BIT targ_host_string_char_bit
@@ -605,7 +605,7 @@ EXTERN an_integer_kind
 #define TARG_MINIMUM_STRUCT_ALIGNMENT targ_minimum_struct_alignment
 #define TARG_JMP_BUF_NUM_ELEMENTS targ_jmp_buf_num_elements
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
-#endif /* REDEFINE_TARG_VALUE_NAMES */
+#endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 #if CHECKING
 void check_target_configuration(void);
