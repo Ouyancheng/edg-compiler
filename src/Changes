@@ -1,4 +1,6 @@
-Version 2.33
+Version 2.33, October 1, 1996
+
+10/1/96 IL version number changed to 2.25
 
 9/30/96 Dynamic initialization of local static variable
 
