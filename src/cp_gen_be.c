@@ -3214,7 +3214,12 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
   if (expr->variant.init.result_is_addr) {
     temp_type = type_pointed_to(temp_type);
   }  /* if */
-  if (is_class_struct_union_type(temp_type)) {
+  if (is_class_struct_union_type(temp_type) &&
+      /* Don't use copy-initialization for dik_expression and
+         dik_call_returning_class_via_cctor cases. */
+      (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+       dip->kind == (a_dynamic_init_kind)dik_zero ||
+       dip->kind == (a_dynamic_init_kind)dik_none)) {
     /* For a class temporary requiring a constructor, use the form
        A(arg1, arg2, ...).  dik_zero or dik_none will produce "A()". */
     /* Note that parentheses are not put around this, because that would
