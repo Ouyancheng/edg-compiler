@@ -7954,17 +7954,19 @@ expression copy will be inside a conditional part of an expression.
   an_expr_copy_options_set options = CE_NO_OPTIONS;
   an_expr_node_ptr	   expr;
 
-  if (rout == NULL) {
-    check_assertion_str(total_errors != 0,
-                        "copy_default_arg_expr: rout NULL, no error");
-    /* Avoid an error recovery problem. */
-  } else if (ptp->has_unevaluated_template_default) {
+  if (ptp->has_unevaluated_template_default) {
     /* This is a parameter of a function template, or a member function of a
        template class, and the default value has not yet been instantiated.
        Instantiate it now. */
-    a_symbol_ptr rout_sym;
-    rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
-    instantiate_default_argument(rout_sym, ptp);
+    if (rout == NULL) {
+      check_assertion_str(total_errors != 0,
+                          "copy_default_arg_expr: rout NULL, no error");
+      /* Avoid an error recovery problem. */
+    } else {
+      a_symbol_ptr rout_sym;
+      rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+      instantiate_default_argument(rout_sym, ptp);
+    }  /* if */
   }  /* if */
   /* Watch out for cases where a default argument is followed by
      a non-default argument.  An error will have been issued at

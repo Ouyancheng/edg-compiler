@@ -1,5 +1,21 @@
 Version 2.43
 
+8/19/99  Abort in copy_default_arg_expr
+
+Some changes to default argument processing made in 2.42 could cause
+aborts on some default argument cases related to typedefs.  Now
+fixed.
+
+  struct A {
+    typedef void (*pf)(int = x);
+    static int x;
+  };
+  void f(int i);
+  int main() {
+    A::pf pf = &f;
+    pf(); // Abort here fixed.
+  }
+
 8/19/99  Token positions in macro expansions in macro argument lists
 
 The token positions for tokens in macros expanded in macro argument
