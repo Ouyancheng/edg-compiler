@@ -2290,9 +2290,11 @@ to FALSE if the entity being declared is not initializable.
             ssep->il_scope->variant.assoc_namespace ==
                         qualifier_namespace_ptr(locator_for_curr_id)) {
           /* The declarator name is qualified by the current namespace. */
-          pos_diagnostic(strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning,
-                         ec_qualified_name_not_allowed, &pos_curr_token);
+          an_error_severity  es = es_discretionary_error;
+          if (strict_ansi_mode && (strict_ansi_error_severity > es)) {
+            es = strict_ansi_error_severity;
+          }  /* if */
+          pos_diagnostic(es, ec_qualified_name_not_allowed, &pos_curr_token);
           /* Reset the fields in the locator to make it appear as if the
              qualifier were not present. */
           clear_qualifier_from_locator(&locator_for_curr_id);
