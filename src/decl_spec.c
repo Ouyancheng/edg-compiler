@@ -141,12 +141,18 @@ keyword (or a memory attribute keyword).
               } else {
                 decl_modifiers->flags |= DM_NOTHROW;
               }  /* if */
-            } else if (!C_mode() && strcmp(modifier, "uuid") == 0 &&
-                       next_token() == tok_lparen) {
+            } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
               if (!is_class_decl) {
                 /* "uuid" is allowed only on a class declaration. */
                 pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                                &pos_curr_token, modifier);
+                if (next_token() == tok_lparen) {
+                  /* Advance past "uuid" to the left paren. */
+                  (void)get_token();
+                  /* Flush all tokens till the matching right paren is
+                     found. */
+                  flush_until_matching_token();
+                }  /* if */
               } else {
                 /* The syntax is
                      uuid ( string-literal )
@@ -154,26 +160,24 @@ keyword (or a memory attribute keyword).
                    braces and is of the form
                      hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
                    where "h" is any hex digit and the hyphens are required. */
-
-
-#if 0
-                a_token_kind  next_tok = next_token();
-                if (next_tok == tok_rparen || next_tok == tok_identifier) {
-                  /* 
-                   Note: support for the "uuid" attribute is incomplete. */
-#endif /* if 0 */
-
-
-                if (next_token() != tok_rparen) {
-                  /* Advance past "uuid" to the left paren. */
-                  (void)get_token();
-                  /* Temporary: if the next token is a left paren, flush all
-                     tokens till the matching right paren is found. */
-                  if (required_token_no_advance(tok_lparen, ec_exp_lparen)) {
-                    flush_until_matching_token();
+                /* Advance past "uuid". */
+                (void)get_token();
+                if (required_token(tok_lparen, ec_exp_lparen)) {
+                  if (curr_token != tok_string_literal) {
+                    /* Error. */
+                  } else {
+                    char *str = const_for_curr_token.variant.string.value;
+                    /* Do error checking on the string. */
+                    decl_modifiers->uuid_string = alloc_il(sizeof(str));
+                    strcpy(decl_modifiers->uuid_string, str);
+                    (void)get_token();
                   }  /* if */
+                  (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+                } else {
+                  break;
                 }  /* if */
               }  /* if */
+#if 0
             } else if (strcmp(modifier, "property") == 0) {
               if (is_class_decl) {
                 /* "property" is not allowed on a class declaration. */
@@ -193,6 +197,7 @@ keyword (or a memory attribute keyword).
                   }  /* if */
                 }  /* if */
               }  /* if */
+#endif /* if 0 */
             } else {
               str_error(ec_bad_declspec_modifier, modifier);
               *err = TRUE;
@@ -1517,6 +1522,18 @@ the template.
         /* Inheritance kind has already been set for this class. */
         pos_sy_error(ec_inheritance_kind_already_set, &inheritance_kind_pos,
                      tag_sym);
+      }  /* if */
+    }  /* if */
+    if (decl_modifiers.uuid_string != NULL) {
+      if (ctsp->uuid_string != NULL) {
+        /* Issue an error if they aren't identical. */
+        if (strcmp(ctsp->uuid_string, decl_modifiers.uuid_string) != 0) {
+          pos_diagnostic(es_discretionary_error,
+                         ec_decl_modifiers_incompatible_with_previous_decl,
+                         &locator.source_position);
+        }  /* if */
+      } else {
+        ctsp->uuid_string = decl_modifiers.uuid_string;
       }  /* if */
     }  /* if */
   }  /* if */
