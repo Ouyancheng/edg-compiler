@@ -418,7 +418,7 @@ this function is called; it is set to TRUE If the base class is found.
     for (bcsp = vmi_obj_info->__base_info;
          bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
          bcsp++) {
-      if (bcsp->__offset_flags && BCS_VIRTUAL) {
+      if (bcsp->__offset_flags & BCS_VIRTUAL) {
         a_vtbl_entry_ptr vtbl, vbase_offset;
         vtbl = *((a_vtbl_entry_ptr *)base_ptr);
         vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
@@ -431,7 +431,7 @@ this function is called; it is set to TRUE If the base class is found.
         /* We found a match.  Note that both the address and type must match
            because base classes can share an address. */
         result = bcsp;
-        if (bcsp->__offset_flags && BCS_PUBLIC) *found = TRUE;
+        if (bcsp->__offset_flags & BCS_PUBLIC) *found = TRUE;
         break;
       }  /* if */
       if ((bcsp->__offset_flags & BCS_PUBLIC) != 0) {
