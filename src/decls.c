@@ -4359,9 +4359,21 @@ is not a template declaration scope.
       type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr));
     }  /* if */
   }  /* if */
-  if (locator->specific_symbol != NULL &&
-      (qualifier_namespace_ptr(*locator) != NULL ||
-       locator->is_file_scope_qualified_name)) {
+  if (sym != NULL) {
+    /* Must be a member template. */
+    if (!namespace_is_enclosed_by_scope(sym,
+                                        &scope_stack[effective_decl_level])) {
+      /* This member template is being defined in a scope that does not
+         enclose the scope in which the parent class was defined. */
+      if (func_info->is_definition) {
+        sym_error(ec_bad_scope_for_definition, sym);
+      } else {
+        sym_error(ec_bad_scope_for_redeclaration, sym);
+      }  /* if */
+    }  /* if */
+  } else if (locator->specific_symbol != NULL &&
+             (qualifier_namespace_ptr(*locator) != NULL ||
+              locator->is_file_scope_qualified_name)) {
     /* This identifier is a namespace-qualified name that was previously
        declared, or else a file-scope qualified name (friend declarations
        only).  Do the appropriate checking, including overload resolution.
