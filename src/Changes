@@ -1,5 +1,15 @@
 Version 2.43
 
+9/8/99   Initialization of const members in union aggregates
+
+In C++ mode, the front end now diagnoses (with a discretionary error) union
+aggregate variables which contain a const member and yet do not have an
+initializer.
+
+  int main() {
+    union { int i; long const lc; } uv;  // Error: uv has an uninitialized
+  }                                      //        const member.
+      
 9/3/99   Linkage of extern "C" const variables
 
 Variables declared in namespace or global scope with a const type have

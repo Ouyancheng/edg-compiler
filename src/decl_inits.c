@@ -4721,10 +4721,10 @@ are created by a new expression (in which case sym is NULL).  In both cases
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
     type = skip_typerefs(type);
-    if (is_union_type(type)) {
-      /* No diagnostic on unions with const/ref members. */
+    if (C_mode() && is_union_type(type)) {
+      /* In C, no diagnostic on unions with const members. */
     } else if (is_class_struct_union_type(type) &&
-               (vp == NULL ||
+               (vp == NULL /* A new-expression */ ||
                 vp->storage_class != (a_storage_class)sc_extern)) {
       /* The object is a class-struct-union type or an array whose element
          type is a class-struct-union type.  Issue a warning if there is a
