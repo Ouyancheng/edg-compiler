@@ -1,4 +1,4 @@
-Version 2.21, December 2.21
+Version 2.21, December 21, 1993
 
 11/18/93 struct __iobuf renamed _iobuf in <stdio.h>
 
