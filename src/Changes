@@ -1,5 +1,16 @@
 Version 2.09
 
+9/13/92  Fixed bug in error recovery -- access adjustment declarations
+
+Fixed an internal error bug produced when an access adjustment
+declaration contained an invalid qualified name.  For instance, the
+following is now handled correctly:
+
+  class A { public: int x;};
+  class B : private A { public: A::y; };   // y is not a member of A
+
+Fixed error recovery 
+
 9/13/92  New error on static data member definitions
 
 If the type of a static data member is still incomplete at the point of
