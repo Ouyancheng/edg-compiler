@@ -740,9 +740,6 @@ Initialize everything that has to do with the front end.
   pos_curr_token.column = SP_COL_UNKNOWN;
   set_err_pos_to_curr_token();
 
-  /* decls.h: */
-  avail_param_ids = NULL;
-  in_old_style_param_decl_list = FALSE;
   /* error.h: */
   total_remarks = total_warnings = total_errors = total_catastrophes = 0;
   /* host_envir.h: */
