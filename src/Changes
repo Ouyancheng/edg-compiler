@@ -1,5 +1,20 @@
 Version 2.46
 
+1/29/01  Lowering of for-initializations in C99 mode can result in
+         dropped initialization
+
+The lowering of a complicated initialization in a for-initialization
+statement in C99 produced incorrect IL.  One consequence of this
+incorrect IL was that the initialization code was omitted.  Another
+possible consequence is an IL write/read error.  The problem did not
+occur when source sequence entries are generated.
+
+  int main() {
+    _Complex long double a = 37.0;
+    for (_Complex long double* x[] = {(_Complex long double[]){a}};;) {
+    }
+  }
+
 1/28/01  C-generating back end output of union initializer with
          designator
 

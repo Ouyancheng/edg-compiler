@@ -1306,7 +1306,17 @@ Do C99 lowering on the indicated statement.
     case stmk_for:
       { a_for_loop_ptr flp = statement->variant.for_loop.extra_info;
         if (flp->initialization != NULL) {
-          lower_c99_statement(flp->initialization);
+          a_statement_ptr init_stmt = flp->initialization, init_stmt_next;
+          lower_c99_statement(init_stmt);
+          /* If the initialization was rewritten as a sequence of statements,
+             make it into a block, because the stmk_for can only point at a
+             single statement. */
+          init_stmt_next = init_stmt->next;
+          if (init_stmt_next != NULL) {
+            init_stmt->next = NULL;
+            change_statement_into_block(init_stmt, &init_stmt);
+            init_stmt->next = init_stmt_next;
+          }  /* if */
         }  /* if */
         if (flp->increment != NULL) {
           lower_c99_full_expr(flp->increment);
