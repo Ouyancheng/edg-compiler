@@ -1,5 +1,19 @@
 Version 2.46
 
+7/13/01  Error on implicit conversion to abstract class type
+
+An error is now issued on any attempt to create an object of
+an abstract class type via an implicit conversion.
+
+  struct A {
+    A(int);
+    virtual void f() = 0;
+  };
+  void g(const A& a);
+  int main() {
+    g(42);
+  }
+
 7/12/01  assoc_template not set for function template prototype instantiation
 
 The assoc_template field was not set properly for most function templates.

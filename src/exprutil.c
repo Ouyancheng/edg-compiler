@@ -6337,6 +6337,12 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_addr,
                                         is_explicit_cast);
+  if (!result_is_addr && !microsoft_bugs &&
+      is_abstract_class_type(temp_type)) {
+    /* It's an error to create a temporary of an abstract class type. */
+    report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                temp_type, position);
+  }  /* if */
   return temp_init_node;
 }  /* create_expr_temporary */
 
