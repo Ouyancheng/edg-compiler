@@ -4745,8 +4745,11 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         /* Force the use of a qualified name for these cases. */
         force_qualified_name = TRUE;
       } else {
-        /* Suppress "this->". */
-        suppress_this = TRUE;
+        /* Suppress "this->", unless we're dealing with a virtual call and
+           the name of the virtual function would be invisible without
+           "this->" qualification. */
+        suppress_this = !rout->source_corresp.qualification_needed ||
+                        (suppress_virtual && rout->is_virtual);
       }  /* if */
     }  /* if */
     if (!suppress_this) {
