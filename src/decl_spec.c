@@ -2900,7 +2900,7 @@ exit_loop:
       *output_flags |= DSO_DANGLING_TYPE_SPECIFIER;
     }  /* if */
     if (bad_combination_of_type_specifiers) {
-      /* Error has aleady been diagnosed. */
+      /* Error has already been diagnosed. */
       *type_ptr = error_type();
       err = TRUE;
     } else {
