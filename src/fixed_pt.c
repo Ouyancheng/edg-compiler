@@ -165,6 +165,175 @@ done:;
 }  /* fxp_string_to_fixed_point */
 
 
+static int value_bits_for_fixed_point(a_fixed_point_type_descr	*fxp_descr)
+/*
+Return the number of data bits in a fixed point value (i.e., the number of
+bits excluding the sign bit).
+*/
+{
+  int	bits;
+
+  bits = targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                [(int)fxp_descr->precision]
+                                [fxp_descr->is_fract_type] * CHAR_BIT;
+  if (!fxp_descr->is_unsigned) bits--;
+  return bits;
+}  /* value_bits_for_fixed_point */
+
+
+static int sizeof_fixed_point(a_fixed_point_type_descr	*fxp_descr)
+/*
+Return the number of bytes in a fixed point value.
+*/
+{
+  int	size;
+
+  size = targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                [(int)fxp_descr->precision]
+                                [fxp_descr->is_fract_type];
+  return size;
+}  /* sizeof_fixed_point */
+
+
+static int non_fractional_bits_for_fixed_point(
+				a_fixed_point_type_descr	*fxp_descr)
+/*
+Return the number of bits in the non-fractional part of a fixed point value.
+The sign bit (if any) is included in the non-fractional bits.
+*/
+{
+  int	fract_bits;
+  int	total_bits;
+
+  fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
+                                                   [(int)fxp_descr->precision]
+                                                   [fxp_descr->is_fract_type];
+  total_bits = targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                      [(int)fxp_descr->precision]
+                                      [fxp_descr->is_fract_type] * CHAR_BIT;
+  return total_bits - fract_bits;
+}  /* non_fractional_bits_for_fixed_point */
+
+
+static void set_mantissa_to_saturated_value(
+				a_mantissa_ptr			mp,
+				a_fixed_point_type_descr	*fxp_descr)
+/*
+Set the mantissa to the value used to represent a saturated fixed-point
+value.  This is all bits set to 1, except for the sign bit.
+*/
+{
+  int i;
+
+  for (i = 0; i < MANTISSA_PARTS; i++) mp->parts[i] = 0xffffffff;
+  if (!fxp_descr->is_unsigned) mp->parts[0] = 0x7fffffff;
+}  /* set_mantissa_to_saturated_value */
+
+
+static void store_hex_fxp_value(
+				a_mantissa_ptr			mp,
+				a_fixed_point_type_descr	*fxp_descr,
+				a_fixed_point_value		*value)
+/*
+Store the value represented by mp in the fixed point value "value".
+fxp_descr describes the format of the value being stored.
+*/
+{
+  int			parts_to_copy;
+  int			source_size;
+
+  /* Zero the memory so that all of the space occupied by "value"
+     is cleared, even if we are not storing all of the bytes of the
+     value. */
+  memzero((char *)value, sizeof(a_fixed_point_value));
+  source_size = sizeof_fixed_point(fxp_descr);
+  parts_to_copy = source_size / sizeof(an_fp_value_part);
+  /* The source value is in the upper source_size bytes of the mantissa.
+     This needs to be copied to the low order bytes of the fixed point
+     value. */
+  if (host_little_endian) {
+    int i;
+    for (i = 0; i < source_size; ++i) {
+      char	*source;
+      char	*dest;
+      dest = &((char*)value)[i];
+      source = (char*)&(mp->parts[(parts_to_copy - 1) -
+                                  (i / sizeof(an_fp_value_part))]) +
+                       (i % sizeof(an_fp_value_part));
+      *dest = *source;
+    }  /* for */
+  } else {
+    /* Copy the value from the mantissa to the low order bytes of the
+       fixed point value. */
+    memcpy((char*)value + sizeof(a_fixed_point_value) - source_size,
+           (char*)&mp->parts[0], size_t_arg(source_size));
+  }  /* if */
+}  /* store_hex_fxp_value */
+
+
+static void conv_mantissa_to_fixed_point(
+				a_mantissa_ptr			mp,
+				long				exponent,
+				a_fixed_point_type_descr	*fxp_descr,
+				a_boolean			overflow,
+				a_fixed_point_value		*value,
+				a_boolean			*err,
+				a_boolean			*inexact)
+/*
+Given a mantissa (mp) and exponent that represent a fixed point value, check
+that the value is representable in the destination type specified by
+fxp_descr and shift the value as needed so that it contains the correct
+number of value bits for the destination type.  overflow is TRUE if
+the value is already known to be too large.  Set *err on overflow.  Set
+*inexact if any bits are lost because of scaling or rounding.
+*/
+{
+  int		nonfract_bits;
+  int		value_bits;
+  int		shift_count;
+
+  *err = FALSE;
+  *inexact = FALSE;
+  if (!overflow) {
+    /* Compute the number of bits to shift the mantissa so that it contains
+       the right number of fractional and non-fractional bits. */
+    nonfract_bits = non_fractional_bits_for_fixed_point(fxp_descr);
+    value_bits = value_bits_for_fixed_point(fxp_descr);
+    shift_count = nonfract_bits - exponent;
+    if (shift_count > 0) {
+      shift_right_mantissa(mp, shift_count);
+      /* See if the result value has more bits of precision than fit int
+         the destination type. */
+      if (number_of_bits_in_mantissa(mp) > value_bits) *inexact = TRUE;
+      /* Round the value to the nearest representable value. */
+      round_hex_fp_value(mp, &exponent, value_bits, inexact);
+    } else {
+      /* We would be shifting bits out of the high end of this mantissa. */
+      overflow = TRUE;
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (db_flag_is_set("fxp_conv")) {
+    fprintf(f_debug, "fxp hex value: ");
+    db_mantissa(mp);
+    fprintf(f_debug, "exponent=%ld, nonfract=%d, shift=%d\n",
+            exponent, nonfract_bits, shift_count);
+  }  /* if */
+#endif /* DEBUG */
+  if (overflow) {
+    /* On overflow, return an error flag and set the result value to a
+       saturated value. */
+    *err = TRUE;
+    set_mantissa_to_saturated_value(mp, fxp_descr);
+  }  /* if */
+  /* Store the result in the appropriate form. */
+  store_hex_fxp_value(mp, fxp_descr, value);
+  /* If an underflow occurred, set the flag that indicates that the resulting
+     value is not an exact representation of the specified value. */
+  if (mp->underflow) *inexact = TRUE;
+}  /* conv_mantissa_to_fixed_point */
+
+
 void fxp_hex_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
                                    char                      *str,
                                    a_fixed_point_value       *value,
@@ -178,14 +347,17 @@ an error, return *err = TRUE.  The specific fixed-point kind is indicated by
 *fxp_descr (an will typically affect the representation in *value).
 *inexact is set to TRUE if *value does not exactly represent the value
 indicated by the given string.  Otherwise, it is set to FALSE.
-
-This implementation is for demonstration purposes only: It is known to be
-imprecise.  Specifically, this implementation scans the string as a floating-
-point value and scales that value to obtain an integer that is used as the
-fixed-point representation.
 */
 {
-  unexpected_condition();
+  a_boolean	overflow = FALSE;
+  long		exponent = 0;
+  a_mantissa	mantissa;
+  a_boolean	any_digits = FALSE;
+
+  conv_hex_string_to_mantissa_and_exponent(str, &mantissa, &exponent,
+                                           &any_digits, &overflow);
+  conv_mantissa_to_fixed_point(&mantissa, exponent, fxp_descr,
+                               overflow, value, err, inexact);
 }  /* fxp_hex_string_to_fixed_point */
 
 

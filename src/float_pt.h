@@ -22,6 +22,47 @@ float_pt.h -- Declarations for float_pt.c (having to do with manipulation of
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/*
+The number of host longs requires to represent the largest possible
+mantissa.
+*/
+#define MANTISSA_PARTS 4
+
+/*
+Structure used to represent an internal value of a mantissa.  Used
+to convert hexadecimal floating point values to internal form.
+*/
+typedef struct a_mantissa *a_mantissa_ptr;
+typedef struct a_mantissa {
+  an_fp_value_part
+		parts[MANTISSA_PARTS];
+			/* The bits that make up the mantissa. */
+  a_boolean	underflow;
+			/* TRUE if bits have been shifted out of the
+			   mantissa. */
+} a_mantissa;
+
+extern void shift_right_mantissa(a_mantissa_ptr	mp,
+				 int			bits);
+
+extern int number_of_bits_in_mantissa(a_mantissa_ptr	mp);
+
+extern void round_hex_fp_value(a_mantissa_ptr	mp,
+			       long		*exponent,
+			       int		value_bits,
+			       a_boolean	*inexact);
+
+#if DEBUG
+extern void db_mantissa(a_mantissa_ptr	mp);
+#endif /* DEBUG */
+
+extern void conv_hex_string_to_mantissa_and_exponent(
+				char			*str,
+				a_mantissa_ptr		mantissa,
+				long			*p_exponent,
+				a_boolean		*p_any_digits,
+				a_boolean		*exponent_overflow);
+
 extern a_host_fp_value fetch_host_fp_value(
 				a_float_kind            kind,
 				an_internal_float_value *float_value);

@@ -2291,6 +2291,11 @@ EXTERN a_boolean
 			   before a declaration of the standard class
 			   "type_info". */
 
+EXTERN a_boolean
+		host_little_endian;
+			/* TRUE if the host system uses little-endian
+			   byte ordering. */
+
 #endif /* ifndef HOST_ENVIR_H */
 
 /******************************************************************************

@@ -3200,6 +3200,13 @@ This is done before command line processing.
   macro_preinclude_file_tail = NULL;
   template_search_path = NULL;
   template_search_path_tail = NULL;
+  /* Determine whether the host system is big or little endian. */
+  /* Suppress the CodeCenter warning that would be issued because we
+     access an "int" using a "char" pointer. */
+  /*SUPPRESS 112 */
+  { int		i = 1;
+    host_little_endian = (*(char *)&i) == 1;
+  }
 }  /* host_envir_early_init */
 
 

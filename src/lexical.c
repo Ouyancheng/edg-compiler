@@ -5743,7 +5743,7 @@ the kind of token.
         any_hex_digits = TRUE;
       }  /* while */
       /* Check for floating point. */
-      if (hex_floating_point_constants_allowed) {
+      if (hex_floating_point_constants_allowed || fixed_point_allowed) {
         /* C99 permits floating point constants specified in hexadecimal. */
         if ((ch = *curr_char_loc) == '.') goto float_accum_1;
         if (ch == 'p' || ch == 'P')       goto float_accum_2;
@@ -6005,7 +6005,7 @@ fixed_point_suffix:
     while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
            ((ch == '+' || ch == '-') &&
             ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||
-             (hex_floating_point_constants_allowed &&
+             ((hex_floating_point_constants_allowed || fixed_point_allowed) &&
               (ch == 'p' || ch == 'P'))))) {
       /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E" or "p"
          or "P".  Keep accumulating. */
@@ -6065,6 +6065,10 @@ fixed_point_suffix:
         break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case k_float:
+	if (!hex_floating_point_constants_allowed) {
+          diagnostic_at_line_pos(strict_ansi_error_severity,
+                                 ec_hex_fp_constant, start_of_curr_token);
+        }  /* if */
         conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
         ctoken = tok_float_constant;
         break;
