@@ -1,5 +1,42 @@
 Version 2.27
 
+10/27/94 Keyword "restrict" added
+
+Support for keyword "restrict" has been added, consistent with the proposal
+for its incorporation into C by NCEG (see X3J11.1 Technical Report 2).  It
+is recognized only if RESTRICT_ALLOWED is configured to TRUE.  The
+highlights:
+
+  (1) restrict is a new type qualifier, meaning that, in contexts where
+      qualifiers are allowed, restrict is treated just like const and
+      volatile (except when it is subject to special constraints).
+
+  (2) restrict may only be applied to pointers-to-objects, including
+      (with some surprising syntax) function parameter arrays that decay
+      to pointers.  For instance:
+
+        const restrict int i = 0;    // Error -- not a pointer
+        const int * restrict pi;     // Okay -- restrict-ptr-to-int
+        int a[restrict 10];          // Error -- not a pointer
+        void f(int a[restrict 10]);  // Okay -- restrict-array-of-int
+                                     //   decays to restrict-ptr-to-int
+
+  (3) The semantics of restrict are ignored in the front end -- its purpose
+      is to enable optimizations that would otherwise be prevented because
+      of possible aliasing.
+
+In C++ mode, restrict has been extended, in accord with the suggestions in
+X3J16/92-0057:
+
+  (1) restrict may be used with pointer-to-member types (when what is
+      pointed to is a data member, not a member function).
+
+  (2) restrict may be used as a qualifier on a member function, in which
+      case it means the this pointer itself (not *this) is restrict
+      qualified.
+
+  (3) restrict (unlike const and volatile) may be used with references.
+
 10/27/94 Access checking of file scope function declarations and definitions
 
 There are a number of instances in which access checking of names that
