@@ -1,5 +1,12 @@
 Version 2.23
 
+5/21/94  Operator new and delete
+
+A diagnostic is no longer issued on redeclaring operator new or delete with
+static storage class or as inline.  This applies only relative to the
+implicit declaration -- not if an explcit declaration has already been
+seen.
+
 5/20/94  IL CHANGE: depth_in_scope_stack added to a_scope
 
 The new depth_in_scope_stack field in a_scope, used during front end
