@@ -1077,7 +1077,8 @@ reference type if param_is_reference is TRUE.
 
   arg_summary->match_level = aml_user_conversion;
   arg_summary->conversion = *conversion;
-  if (param_is_reference && !conversion->unusable) {
+  if (param_is_reference && !conversion->unusable &&
+      !conversion->unknown_dependent_conversion) {
     /* For reference parameters, see if any type qualifiers were added under
        the reference relative to the output type of the conversion function.
        That serves as a tie-breaker in overload resolution. */
@@ -10286,6 +10287,7 @@ to be acceptable, and *conversion describes it.
           ambiguous) {
         direct_binding_conversion_possible = TRUE;
         conversion = &conv_for_direct_binding;
+        if (conversion->unknown_dependent_conversion) template_case = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
