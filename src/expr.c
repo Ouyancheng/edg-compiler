@@ -1237,7 +1237,8 @@ Syntax:
     if (operand->is_routine_name_followed_by_left_paren &&
         !operand->is_qualified_name) {
       do_arg_dep_lookup = TRUE;
-    } else {
+    } else if (is_undefined_symbol_operand(operand) ||
+               is_indefinite_function_operand(operand)) {
       arg_dep_lookup_suppressed = TRUE;
     }  /* if */
   }  /* if */
