@@ -884,6 +884,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->friend_routines                   = NULL;
   ctsp->friend_classes                    = NULL;
   ctsp->assoc_scope                       = NULL;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  ctsp->template_decl                     = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   ctsp->template_arg_list                 = NULL;
   ctsp->partial_spec_template_arg_list    = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -1329,6 +1332,9 @@ to it.
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  vp->template_decl               = NULL;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1550,6 +1556,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->virtual_function_number     = 0;
   rp->befriending_classes         = NULL;
   rp->template_arg_list           = NULL;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  rp->template_decl               = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
