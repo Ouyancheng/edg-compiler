@@ -2644,7 +2644,8 @@ precedence confusion.  Do the output in the way described by octl.
     if (need_char_star_cast) final_cast_needed = TRUE;
   }  /* if */
   /* See if we need a final cast to the desired type. */
-  if (skip_typedefs(achieved_type) != skip_typedefs(desired_type)) {
+  if (desired_type == NULL ||
+      skip_typedefs(achieved_type) != skip_typedefs(desired_type)) {
     if (!constant->implicit_cast &&
         constant->variant.address.kind == (an_address_base_kind)abk_routine) {
       /* Function declarators don't get shared, so a pointer equality test
