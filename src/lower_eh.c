@@ -970,7 +970,7 @@ Lower an enk_throw expression node.
     /* Make the arguments for the __throw_alloc call. */
     typeinfo_node = var_lvalue_expr(typeinfo_var);
     size_node = node_for_integer_constant((long)throw_type->size,
-                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+                                          TARG_SIZE_T_INT_KIND);
     typeinfo_node->next = size_node;
     flags_node = node_for_integer_constant(flags_value,
                                            (an_integer_kind)ik_int);

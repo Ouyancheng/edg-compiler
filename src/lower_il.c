@@ -4397,7 +4397,7 @@ proper type if necessary.  If the offset is zero, return the original node.
     cast_to_char_star_node = add_cast_to_char_star(source_node);
     /* Make the node for the constant. */
     offset_constant_node = node_for_integer_constant((long)byte_offset,
-                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+                                                     TARG_SIZE_T_INT_KIND);
     cast_to_char_star_node->next = offset_constant_node;
     /* Make the node for the pointer subtraction. */
     source_node = make_operator_node((an_expr_operator_kind)eok_psubtract,
