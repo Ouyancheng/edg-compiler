@@ -2302,16 +2302,14 @@ is generated.  The name of the .ti file is generated if they are being used.
 {
   FILE			*f_test;
   char			*request_file_name;
-  char			*template_info_file_name;
+  char			*template_info_file_name = NULL;
   char			*file_to_test;
 
   request_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
                                                 INSTANTIATION_REQUEST_SUFFIX));
-  pifp->request_file_name = request_file_name;
   if (use_template_info_file) {
     template_info_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
                                                         TEMPLATE_INFO_SUFFIX));
-    pifp->template_info_file_name = template_info_file_name;
     file_to_test = template_info_file_name;
   } else {
     file_to_test = request_file_name;
@@ -2319,6 +2317,11 @@ is generated.  The name of the .ti file is generated if they are being used.
   f_test = fopen(file_to_test, "r");
   if (f_test != NULL) {
     fclose(f_test);
+    pifp->request_file_name = request_file_name;
+    pifp->template_info_file_name = template_info_file_name;
+  } else {
+    free(request_file_name);
+    if (use_template_info_file) free(template_info_file_name);
   }  /* if */
   return (f_test != NULL);  
 }  /* pl_check_for_template_file */
