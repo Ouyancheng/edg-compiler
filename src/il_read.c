@@ -437,11 +437,10 @@ necessary to make it directly accessible in memory.
     remap_first_ptr_of_orphaned_file_scope_entry_array();
     remap_last_ptr_of_orphaned_file_scope_entry_array();
   }  /* if */
-  /* Remember the location of the primary scope entry.  It's the LAST scope
-     entry, because local scopes (prototype scopes, block scopes) get processed
-     first in the IL walk. */
+  /* Remember the location of the primary scope entry.  It's the first scope
+     entry, because il_write assigns its number first. */
   il_header.region_scope_entry[region_number] = (a_scope_ptr)
-      remap_entry_number_to_ptr(entry_count_array_ptr[(unsigned int)iek_scope],
+      remap_entry_number_to_ptr((an_il_entry_number)1,
                                 reading_file_scope_il,
                                 iek_scope);
 #if CHECKING

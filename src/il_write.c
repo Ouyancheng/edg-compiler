@@ -338,7 +338,7 @@ corresponding encoded entry number, and return that number cast to "char *".
       } else {
         /* Assign an entry number. */
         (void)assign_entry_number(entry_ptr, entry_kind,
-                                  /*is_string_entry=*/FALSE,(sizeof_t)0,
+                                  /*is_string_entry=*/FALSE, (sizeof_t)0,
                                   &encoded_number);
       }  /* if */
     } else {
@@ -725,6 +725,8 @@ Write the indicated memory region to the file f_il_output.
     { a_file_position  count_array_pos;
       int              int_entry_kind;
       char             zero = 0;
+      an_encoded_entry_number
+                       encoded_number;
 
       /* For a function scope, clear the array of entry counts. */
       if (!writing_file_scope_il) {
@@ -744,6 +746,11 @@ Write the indicated memory region to the file f_il_output.
       (void)fwrite((char *)(&entry_numbers_array[1]),
                    sizeof(entry_numbers_array)-sizeof(an_il_entry_number), 1,
                    f_il_output);
+      /* Give the primary scope entry of the region the number 1. */
+      (void)assign_entry_number(
+                           (char *)il_header.region_scope_entry[region_number],
+                           iek_scope, /*is_string_entry=*/FALSE,
+                           (sizeof_t)0, &encoded_number);
       /* Walk the IL tree for the region, and write the entries. */
       if (writing_file_scope_il) {
         /* The memory region is the file scope region. */
