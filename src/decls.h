@@ -209,6 +209,11 @@ typedef int a_decl_flag_set;
 #define DSI_IS_PARAMETER 0x8
 			/* If this bit is set the declaration specifiers are
 			   part of the declaration of a parameter. */
+#define DSI_EMPTY_DECL_SPECIFIERS_ALLOWED 0x10
+			/* If this bit is set suppress an error when an
+			   non-type-name identifier is found before the first
+			   specifier.  Simply set the default type and return
+			   a flag signaling that there are no specifiers. */
 /* Constants defining bits in the output bit vector, returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
@@ -247,6 +252,10 @@ typedef int a_decl_flag_set;
 			   semicolon following an class, struct, union, or
 			   enum declaration.  Error reporting is left to the
 			   caller in such cases. */
+#define DSO_NO_DECL_SPECIFIERS 0x400
+			/* If this bit is set then no declaration specifiers
+			   were found before the first non-type-name
+			   identifier was encountered. */
 
 extern a_boolean decl_specifiers(a_decl_flag_set input_flags,
 				 a_decl_flag_set *output_flags,
