@@ -2668,11 +2668,11 @@ the constant.
         /* To initialize a local static variable to an aggregate we use
            a local-static-variable-init entry (to avoid memory region
            problems). */
-        (void)alloc_local_static_variable_init(assoc_var, 
-                                               innermost_function_scope,
-                                               (an_init_kind)initk_static,
-                                               constant,
-                                               (a_dynamic_init_ptr)NULL);
+        (void)make_local_static_variable_init(assoc_var, 
+                                              innermost_function_scope,
+                                              (an_init_kind)initk_static,
+                                              constant,
+                                              (a_dynamic_init_ptr)NULL);
       }  /* if */
       /* Save the pointer in the assoc_info field so the variable can be
          reused. */

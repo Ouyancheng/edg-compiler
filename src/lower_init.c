@@ -2567,9 +2567,9 @@ and update *insert_location accordingly.
   /* Make the top-level aggregate constant that will be its initial value. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   /* Use a local-static-variable-init entry to indicate the initialization. */
-  (void)alloc_local_static_variable_init(var, curr_context->scope,
-                                         (an_init_kind)initk_static,
-                                         aggr_con, (a_dynamic_init_ptr)NULL);
+  (void)make_local_static_variable_init(var, curr_context->scope,
+                                        (an_init_kind)initk_static,
+                                        aggr_con, (a_dynamic_init_ptr)NULL);
   /* Make the constants under the aggregate constant. */
   next_con = alloc_constant((a_constant_repr_kind)ck_address);
   make_zero_of_proper_type(make_pointer_type(var->type), next_con);

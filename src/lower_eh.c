@@ -122,12 +122,12 @@ scope (which might be a block scope).
   *aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   /* Attach the aggregate constant as the initial value of the variable. */
   /* Use a local-static-variable-init entry to indicate the initialization. */
-  (void)alloc_local_static_variable_init(var, 
-                                         in_function_scope ?
+  (void)make_local_static_variable_init(var, 
+                                        in_function_scope ?
                                               innermost_function_scope :
                                               curr_context->scope,
-                                         (an_init_kind)initk_static,
-                                         *aggr_con, (a_dynamic_init_ptr)NULL);
+                                        (an_init_kind)initk_static,
+                                        *aggr_con, (a_dynamic_init_ptr)NULL);
   return var;
 }  /* make_init_unnamed_local_static_array_var */
 

@@ -1153,9 +1153,9 @@ unreachable code).
          have a pointer to it.  Instead, create a local-static-variable-init
          entry to point to the initializer -- it is added to a list associated
          with the current function or block scope. */
-      (void)alloc_local_static_variable_init(vp, (a_scope_ptr)NULL,
-                                             (an_init_kind)initk_dynamic,
-                                             (a_constant_ptr)NULL, dip);
+      (void)make_local_static_variable_init(vp, (a_scope_ptr)NULL,
+                                            (an_init_kind)initk_dynamic,
+                                            (a_constant_ptr)NULL, dip);
     } else {
       /* Make the variable point at the dynamic initialization. */
       vp->init_kind = (an_init_kind)initk_dynamic;
@@ -1562,10 +1562,10 @@ returned set to TRUE.
            to it.  Instead, create a local-static-variable-init entry to point
            to the initializer -- it is added to a list associated with the
            current function or block scope. */
-        (void)alloc_local_static_variable_init(vp, (a_scope_ptr)NULL,
-                                               (an_init_kind)initk_static,
-                                               init_con,
-                                               (a_dynamic_init_ptr)NULL);
+        (void)make_local_static_variable_init(vp, (a_scope_ptr)NULL,
+                                              (an_init_kind)initk_static,
+                                              init_con,
+                                              (a_dynamic_init_ptr)NULL);
       } else {
         /* The initializer is a simple constant, so it can just be attached
            to the variable.  However, the variable is in file scope memory
