@@ -5412,6 +5412,7 @@ static void scan_functional_notation_type_conversion(
 Scan a C++ functional-notation type conversion, e.g., "int(1.5)" or "A(1,2)".
 The type keyword or identifier is the current token, and the associated
 type is passed in as type_cast_to.  The result is returned in *result.
+See _expr.type.conv_ in the WP.
 */
 {
   a_source_position             start_position, lparen_pos;
@@ -5506,9 +5507,9 @@ type is passed in as type_cast_to.  The result is returned in *result.
         /* Check for uninitialized reference members within the class. */
         check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
       } else {
-        /* A non-class type followed by (); generate an "undefined" value
-           of the type.  We actually use 0, because it can be cast to all
-           non-class types (arithmetic, pointer, pointer to member, void). */
+        /* A non-class type followed by (); generate the value a static
+           object of that type would get by default (WP _expr.type.conv_),
+           which is to say zero converted to the type. */
         make_integer_constant_operand(result, 0L);
         if (is_void_type(type_cast_to)) {
           /* Use an expression for the void case, because a constant cannot
