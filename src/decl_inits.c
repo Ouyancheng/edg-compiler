@@ -723,7 +723,7 @@ i.e., it does something other than just return a value for the initialization.
       case dik_nonconstant_aggregate:
         /* A non-constant aggregate must be examined recursively. */
         has_side_effects =
-                  init_con_has_side_effects(dip->variant.aggregate.aggr_const);
+                  init_con_has_side_effects(dip->variant.constant);
         break;
 #if CHECKING
       case dik_member_copy:
@@ -752,6 +752,7 @@ unreachable code).
   a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
   a_symbol_ptr            assoc_sym;
+  a_memory_region_number  region_to_switch_back_to = NULL_region_number;
 
   db_enter(4, "gen_dynamic_initialization");
   if (depth_stmt_stack >= 0) {
@@ -773,17 +774,26 @@ unreachable code).
     }  /* if */
   }  /* if */
   /* Build the dynamic initialization entry. */
+  if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
+      vp->storage_class == (a_storage_class)sc_static) {
+    /* Initializers for local static variables must appear in the file scope
+       memory region. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+  }  /* if */
   new_dip = alloc_dynamic_init(dip->kind);
+  if (region_to_switch_back_to != NULL_region_number) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
   *new_dip = *dip;
-  /* Attach the dynamic initialization entry to the scope list. */
-  add_to_dynamic_inits_list(new_dip);
   /* Make the variable point at the dynamic initialization. */
   vp->init_kind = (an_init_kind)initk_dynamic;
   vp->initializer.dynamic = new_dip;
   new_dip->variable = vp;
   if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
     /* A dynamic file-scope initialization (possible only in C++) has
-       no associated stmk_init statement. */
+       no associated stmk_init statement, so attach the dynamic initialization
+       entry to the scope list. */
+    add_to_dynamic_inits_list(new_dip);
   } else {
     /* Build the initialization statement. */
     init_stmt = add_statement((a_statement_kind)stmk_init);
@@ -1057,34 +1067,23 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     /* Scan the initializer list. */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
                          /*top_level=*/TRUE);
-    switch (cp->kind) {
-      case ck_aggregate:
-        /* Scan was successful and the value list was recorded as a list of
-           constant entries hanging off a ck_aggregate constant. */
-        if (di_list != NULL) {
-          /* Set the dynamic init entry to represent aggregate
-             initialization. */
-          clear_dynamic_init(&local_di,
-                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
-          local_di.variant.aggregate.aggr_const = cp;
-          local_di.variant.aggregate.dynamic_init_list = di_list;
-          initialization_is_dynamic = TRUE;
-          break;
-        }  /* if */
-        /* Fall through for the case in which all the aggregate initializers
-           are constants. */
-      case ck_string:    
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
-        local_di.variant.constant = cp;
-        break;
-      case ck_error:
-        err = TRUE;
-        break;
+    if (cp->kind == (a_constant_repr_kind)ck_error) {
+      err = TRUE;
+    } else {
 #if CHECKING
-      default:
+      if (cp->kind != (a_constant_repr_kind)ck_aggregate &&
+          (di_list != NULL ||
+           cp->kind != (a_constant_repr_kind)ck_string)) {
         internal_error("initializer: unexpected constant kind");
+      }  /* if */
 #endif /* CHECKING */
-    }  /* switch */
+      if (di_list != NULL) initialization_is_dynamic = TRUE;
+      clear_dynamic_init(&local_di,
+                         (initialization_is_dynamic ?
+                             (a_dynamic_init_kind)dik_nonconstant_aggregate :
+                             (a_dynamic_init_kind)dik_constant));
+      local_di.variant.constant = cp;
+    }  /* if */
     if (!err && put_init_in_variable) {
       /* Copy the type back into the variable.  It might have been changed
          if vp is an incomplete array. */
@@ -1180,9 +1179,9 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
 }  /* initializer */
 
 
-void repeat_constructor_init(a_dynamic_init_ptr  ctor_dip,
-                             a_dynamic_init_ptr  new_dip,
-                             int                 count)
+static void repeat_constructor_init(a_dynamic_init_ptr  ctor_dip,
+                                    a_dynamic_init_ptr  new_dip,
+                                    int                 count)
 /*
 Define a dynamic init entry for a nonconstant aggregate, which will always be
 for an array whose elements are to be initialized by a series of constructor
@@ -1193,10 +1192,9 @@ the number of elements in the array to be initialized.
 {
   a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
 
-  clear_dynamic_init(new_dip, (a_dynamic_init_kind)dik_nonconstant_aggregate);
   /* Create a ck_aggregate constant. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  new_dip->variant.aggregate.aggr_const = aggr_con;
+  new_dip->variant.constant = aggr_con;
   /* Set it to point to a newly created ck_init_repeat constant. */
   aggr_con->variant.aggregate.first_constant =
     aggr_con->variant.aggregate.last_constant =
@@ -1209,8 +1207,6 @@ the number of elements in the array to be initialized.
   /* Set the ck_dynamic_init_constant to point to the dynamic init entry
      representing the constructor call. */
   dynamic_init_con->variant.dynamic_init = ctor_dip;
-  /* Set the new dynamic init entry also to point the dik_constructor entry. */
-  new_dip->variant.aggregate.dynamic_init_list = ctor_dip;
 }  /* repeat_constructor_init */
 
 
@@ -1280,6 +1276,9 @@ the default constructor (if one exists) is called.
             ctor_dip =
                     alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
             *ctor_dip = local_di;
+            /* Now that the local_di has been copied, reinitialize it. */
+            clear_dynamic_init(&local_di,
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
             /* Compute the repeat count. */
             if (var_type->size == 0) {
               count = 1;
@@ -1313,6 +1312,9 @@ the default constructor (if one exists) is called.
           /* Copy the dynamic init entry. */
           dtor_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           *dtor_dip = local_di;
+          /* Now that the local_di has been copied, reinitialize it. */
+          clear_dynamic_init(&local_di,
+                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
           /* Compute the repeat count. */
           if (var_type->size == 0) {
             count = 1;
