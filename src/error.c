@@ -793,8 +793,13 @@ symbol_name:
                                     /*need_trailing_space=*/TRUE,
                                     &octl);
       }  /* if */
-      /* Put out the name, including the class qualifier if any. */
-      form_symbol_name(sym->is_class_member ? sym : fund_sym, &octl);
+      /* Put out the name, including the class qualifier if any.  For
+         class members and ambiguous symbols always use the original
+         symbol.  Otherwise, use the fundamental symbol. */
+      { a_boolean	use_orig_sym;
+        use_orig_sym = sym->is_class_member || sym->ambiguous;
+        form_symbol_name(use_orig_sym ? sym : fund_sym, &octl);
+      }
       /* Put out the second part of the type if needed.  Don't put it
          out in name-only mode.  Do put it out in full-type mode, or
          for an overloaded function. */
