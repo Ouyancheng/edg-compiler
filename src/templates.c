@@ -8079,10 +8079,10 @@ list (the one specified by param_list).
 }  /* reconcile_template_param_lists */
 
 
-static a_boolean member_template_param_list_matches_class
-				(a_template_decl_info_ptr start_decl_info,
-                                 a_symbol_ptr             member_sym,
-				 a_source_position        *error_pos)
+static a_boolean member_template_param_list_matches_class(
+	                         a_tmpl_decl_state_ptr	decl_state,
+                                 a_symbol_ptr		member_sym,
+				 a_source_position	*error_pos)
 /*
 This routine is called for template declarations of members of classes.
 It calls reconcile_template_param_lists to compare the template parameters
@@ -8100,12 +8100,12 @@ Otherwise, return FALSE.
      next enclosing template parameter list because this routine is
      only used for comparing the class template parameter lists of the
      enclosing classes. */
+  decl_info = decl_state->decl_info;
   if (member_sym->kind == (a_symbol_kind)sk_function_template ||
       member_sym->kind == (a_symbol_kind)sk_class_template) {
-    start_decl_info = start_decl_info->enclosing_template_decl;
+    decl_info = decl_info->enclosing_template_decl;
   }  /* if */
   type = member_sym->parent.class_type;
-  decl_info = start_decl_info;
   /* Loop as long as we have a decl_info or a parent type.  The loop
      is terminated when both no longer represent templates (as happens
      when processing a specialization) or when a mismatch has been found. */
@@ -8142,7 +8142,10 @@ Otherwise, return FALSE.
     } else if (decl_info == NULL || template_sym == NULL ||
                !check_template_param_nesting_depths(decl_info->parameters,
                                                     template_sym)) {
-      pos_sy_error(ec_template_depth_mismatch, error_pos, member_sym);
+      if (!decl_state->decl_scope_err) {
+        /* Suppress the error if we have already issued an error. */
+        pos_sy_error(ec_template_depth_mismatch, error_pos, member_sym);
+      }  /* if */
       any_mismatches = TRUE;
       break;
     }  /* if */
@@ -9471,7 +9474,7 @@ instantiation.
           /* If this is a class member defined outside of its class or a friend
              function declaration in a class.  Make sure that the template
              parameters match those of the original class definition. */
-          if (!member_template_param_list_matches_class(decl_state->decl_info,
+          if (!member_template_param_list_matches_class(decl_state,
                                                         sym,
                                                         &error_position)) {
             err = TRUE;
@@ -11308,7 +11311,7 @@ returned to the caller.
     tssp = sym->variant.static_data_member.instance_ptr->template_info;
     /* Make sure the parameter list matches the class declaration. */
     if (!member_template_param_list_matches_class
-                              (decl_state->decl_info, sym, &error_position)) {
+                              (decl_state, sym, &error_position)) {
       err = TRUE;
     } else if ((is_ptr_or_ref_type(type) &&
                 is_function_type(type_pointed_to(type))) ||
@@ -11751,7 +11754,7 @@ caller.
   if (!err && sym->is_class_member &&
       (decl_state->class_declared_in == NULL ||
        decl_state->is_template_friend)) {
-    if (!member_template_param_list_matches_class(decl_state->decl_info,
+    if (!member_template_param_list_matches_class(decl_state,
                                                   sym, decl_pos)) {
       err = TRUE;
     } /* if */
