@@ -3912,9 +3912,9 @@ set to NULL and return FALSE.
         if (get_class_qualifier(&class_scope)) {
           /* This is a qualified name. */
           /* The current token must now be the final identifier of the
-             qualified name, e.g., "x" in "A::B::x".  Note that we
-             asked get_class_qualifier not to get the next token after
-             the qualifier to that we can do the test here with a
+             qualified name, e.g., "x" in "A::B::x".  Note that
+             get_class_qualifier did not get the next token after
+             the qualifier so we can do the test here with a
              next_token.  That allows us to preserve the next token in
              the case that the following identifier is missing. */
           if (curr_token != tok_identifier) {
