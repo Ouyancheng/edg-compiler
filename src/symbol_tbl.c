@@ -4001,6 +4001,31 @@ End a name scope by popping an entry off the scope stack.
       etfp->variant.variable->type = etfp->type;
     }  /* if */
   }  /* for */
+  /* Determine and remember the current (old) memory region, to see
+     if it changes when returning to the outer scope. */
+  old_memory_region_number = ssep->il_memory_region;
+  /* If the old memory region number does not appear anywhere in the
+     remaining stack, the region is no longer needed by the front end. */
+  old_region_still_needed = FALSE;
+  for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
+    if (scope_stack[scope_depth].il_memory_region == old_memory_region_number){
+      old_region_still_needed = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!old_region_still_needed) {
+    /* The old memory region is no longer needed. */
+#if DO_IL_LOWERING
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    if (!suppress_il_lowering) {
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+      lower_il_memory_region(old_memory_region_number);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* DO_IL_LOWERING */
+    done_with_memory_region(old_memory_region_number);
+  }  /* if */
   /* Keep track of the number of current classes and class reactivations.
      (If either count is non-zero name lookup is more involved.) */
   if (C_dialect == C_dialect_cplusplus) {
@@ -4026,42 +4051,8 @@ End a name scope by popping an entry off the scope stack.
     clear_access_control_scope();
 done_with_access_control_setting:;
   }  /* if */
-  /* Determine and remember the current (old) memory region, to see
-     if it changes when returning to the outer scope. */
-  old_memory_region_number = ssep->il_memory_region;
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
-  /* If the old memory region number does not appear anywhere in the
-     remaining stack, the region is no longer needed by the front end. */
-  old_region_still_needed = FALSE;
-  for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
-    if (scope_stack[scope_depth].il_memory_region == old_memory_region_number){
-      old_region_still_needed = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (!old_region_still_needed) {
-    /* The old memory region is no longer needed. */
-#if DO_IL_LOWERING
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-    if (!suppress_il_lowering) {
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-      lower_il_memory_region(old_memory_region_number);
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-    }  /* if */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    /* Note that the call of add_shareable_constants_to_constants_list below
-       must follow IL lowering. */
-#endif /* DO_IL_LOWERING */
-    if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
-      /* End of the file scope memory region. */
-      /* Move the constants in the shareable constants table onto the
-         file-scope constants list so that all file-scope items are found in
-         a traversal of the file-scope IL tree. */
-      add_shareable_constants_to_constants_list();
-    }  /* if */
-    done_with_memory_region(old_memory_region_number);
-  }  /* if */
   /* Pop the stack. */
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the
