@@ -547,6 +547,19 @@ the global variable special_subscript_cost, which can be changed via the
 #define DEFAULT_SPECIAL_SUBSCRIPT_COST FALSE
 #endif /* ifndef DEFAULT_SPECIAL_SUBSCRIPT_COST */
 
+/*
+Flag that is TRUE if the scope of a name declared in a for-init statement
+extends to the end of the scope in which the for-statement appears and FALSE
+if it extends only to the end of the for-statement; the latter is required in
+standard-conforming programs.  This is the initial value for global variable
+use_nonstandard_for_init_scope, which is also controlled by command-line
+options --old_for_variable_scope and --new_for_variable_scope.  Used only in
+C++ mode, since in C a for-init statement may not be a declaration.
+*/
+#ifndef DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE
+#define DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE FALSE
+#endif /* ifndef DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
