@@ -421,7 +421,7 @@ extern void set_integer_constant_with_overflow_check(
 
 extern void set_unsigned_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
-                                              long            con_val,
+                                              unsigned long   con_val,
                                               an_integer_kind ikind);
 
 extern void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 

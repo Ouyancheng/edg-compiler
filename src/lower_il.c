@@ -2150,7 +2150,7 @@ and if not, issue an error.  This version is for signed integer kinds.
 
 void set_unsigned_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
-                                              long            con_val,
+                                              unsigned long   con_val,
                                               an_integer_kind ikind)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
