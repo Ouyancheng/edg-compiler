@@ -1531,7 +1531,7 @@ Display the indicated routine.
   if (ptr->pure_virtual) {
     disp_boolean("pure_virtual", TRUE);
   }  /* if */
-  if (ptr->covariant_return_virtual_override) }
+  if (ptr->covariant_return_virtual_override) {
     disp_boolean("covariant_return_virtual_override", TRUE);
   }  /* if */
   if (ptr->is_inline) {
