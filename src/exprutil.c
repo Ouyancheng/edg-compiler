@@ -7472,7 +7472,8 @@ derived class cast nodes will be created and the return value will be NULL.
            set *new_top_of_tree to point to it. */
         new_derived_cast_node =
               make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
-                                 make_pointer_type(operand_class), NULL);
+                                 make_pointer_type(operand_class),
+                                 (an_expr_node_ptr)NULL);
         new_derived_cast_node->variant.operation.compiler_generated = TRUE;
         *new_top_of_tree = new_derived_cast_node;
       } else {
@@ -7487,7 +7488,8 @@ derived class cast nodes will be created and the return value will be NULL.
              the tree resulting from the recursive invocations. */
           new_derived_cast_node =
              make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
-                                make_pointer_type(operand_class), NULL);
+                                make_pointer_type(operand_class),
+                                (an_expr_node_ptr)NULL);
           new_derived_cast_node->variant.operation.compiler_generated = TRUE;
           new_parent->variant.operation.operands = new_derived_cast_node;
         }  /* if */
