@@ -363,6 +363,7 @@ via branch from the bottom.
   }  /* if */
 }  /* check_loop_unreachable_code */
 
+
 static a_statement_ptr nearest_enclosing_compound_statement(void)
 /*
 Return a pointer to the nearest enclosing compound statement.
@@ -744,26 +745,71 @@ found:
 }  /* find_enclosing_struct_stmt */
 
 
+static void start_block_statement(a_statement_ptr *block)
+/*
+Do processing to begin a block or compound statement.  Return a pointer
+to the block statement in *block.
+*/
+{
+  *block = add_statement((a_statement_kind)stmk_block);
+  /* Make the parent pointer in the block point to the nearest enclosing
+     compound statement. */
+  (*block)->variant.block.extra_info->parent_block =
+                                        nearest_enclosing_compound_statement();
+  /* Push an entry on the structured statement stack. */
+  push_stmt_stack(ssk_compound, *block);
+  /* Push an associated scope.  This does not allocate the IL scope yet. */
+  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
+}  /* start_block_statement */
+
+
+static void finish_block_statement(a_statement_ptr block)
+/*
+Do processing to finish a block or compound statement.  block points to the
+block statement.
+*/
+{
+  a_scope_ptr scope_ptr;
+
+  /* Remember whether or not the end of the block is reachable.  This
+     is helpful in IL lowering. */
+  block->variant.block.extra_info->end_of_block_reachable = 
+                                              (code_reachable == rc_reachable);
+  /* Store the IL scope pointer in the block.  This is NULL except for
+     blocks with declarations. */
+  scope_ptr = scope_stack[decl_scope_level].il_scope;
+  if (scope_ptr != NULL) {
+    block->variant.block.extra_info->assoc_scope = scope_ptr;
+    scope_ptr->assoc_block = block;
+  }  /* if */
+  /* Pop the name scope. */
+  pop_scope();
+  /* Pop the statement stack. */
+  pop_stmt_stack();
+}  /* finish_block_statement */
+
+
 static void dependent_statement(void)
 /*
-In C++ the dependent statement of an if or switch statement implicitly
-defines a local scope.  Push a new scope on the scope stack and then
+In C++ the dependent statement of a loop-statement or a selection-statement
+implicitly defines a local scope.  Push a new scope on the scope stack and then
 call statement().  In C mode or when the dependent statement is a compound
 statement no new scope is required.
 */
 {
-  a_boolean    pop_scope_needed;
+  a_boolean       block_added;
+  a_statement_ptr block;
 
   db_enter(3, "dependent_statement");
   if (C_dialect != C_dialect_cplusplus || curr_token == tok_lbrace) {
-    pop_scope_needed = FALSE;
+    block_added = FALSE;
   } else {
-    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
-    pop_scope_needed = TRUE;
+    start_block_statement(&block);
+    block_added = TRUE;
   }  /* if */
   statement();
-  if (pop_scope_needed) pop_scope();
+  if (block_added) finish_block_statement(block);
   db_exit();
 }  /* dependent_statement */
 
@@ -1863,7 +1909,6 @@ come out on the closing "}".
 */
 {
   a_statement_ptr block;
-  a_scope_ptr     scope_ptr;
   a_boolean       any_statements = FALSE;
   unsigned char   old_else_stop_token_value;
 
@@ -1878,6 +1923,13 @@ come out on the closing "}".
     block->seq_number = pos_curr_token.seq;
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
+    /* Push an entry on the structured statement stack. */
+    push_stmt_stack(ssk_compound, block);
+    /* Record in the statement stack entry whether the routine was declared
+       with an explicit return type. */
+    if (explicit_return_type) {
+      struct_stmt_stack->rout_type_explicitly_specified = TRUE;
+    }  /* if */
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence.  Check for unreachable code. */
@@ -1886,36 +1938,20 @@ come out on the closing "}".
     } else {
       check_for_unreachable_code();
     }  /* if */
-    block = add_statement((a_statement_kind)stmk_block);
-    /* Make the parent pointer in the block point to the nearest enclosing
-       compound statement. */
-    block->variant.block.extra_info->parent_block =
-                                        nearest_enclosing_compound_statement();
+    start_block_statement(&block);
     /* Clear the entry for "else" in the stop tokens set.  Without this,
        an else encountered where a statement is expected could cause an
        error recovery loop. */
     old_else_stop_token_value = stop_token_array[(int)tok_else];
     stop_token_array[(int)tok_else] = 0;
   }  /* if */
-  /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_compound, block);
-  /* When at the function level, record in the current statement stack entry
-     whether the routine was declared with an explicit return type. */
-  if (at_function_level && explicit_return_type) {
-    struct_stmt_stack->rout_type_explicitly_specified = TRUE;
-  }  /* if */
   /* Skip over the opening brace.  Note that this is NOT an internal error
      check; when a compound statement is the body of a function, it's
      required. */
   (void)required_token(tok_lbrace, ec_exp_lbrace);
   add_stop_token(tok_rbrace);
-  /* Push an associated scope if this block is not for a function.  This
-     does not allocate the IL scope yet. */
-  if (!at_function_level) {
-    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
-  }  /* if */
 
+  /* Scan the sequence of statements. */
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ mode, where declarations can be interspersed with executable
@@ -1944,14 +1980,18 @@ come out on the closing "}".
       }  /* if */
     }  /* if */
   }  /* while */
+
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
-  /* Remember whether or not the end of the block is reachable.  This
-     is helpful in IL lowering. */
-  block->variant.block.extra_info->end_of_block_reachable = 
-                                              (code_reachable == rc_reachable);
-  if (at_function_level) {
+  if (!at_function_level) {
+    /* Block/compound statement rather than function. */
+    finish_block_statement(block);
+    /* Restore the entry for "else" in the stop tokens set (see comment
+       above). */
+    stop_token_array[(int)tok_else] = old_else_stop_token_value;
+  } else {
+    /* Function. */
     /* If the code at the end of a function runs off the end, a default
        return must be added.  See 3.6.6.4. */
     /* Unless we're already in dead code, or there is a lint-style
@@ -1969,26 +2009,8 @@ come out on the closing "}".
         sp->expr = this_param_value_expr();
       }  /* if */
     }  /* if */
-  }  /* if */
-
-  /* Pop a name scope if one was pushed earlier in this routine (for
-     a block). */
-  if (!at_function_level) {
-    /* Store the IL scope pointer in the block.  This is NULL except for
-       blocks with declarations. */
-    scope_ptr = scope_stack[decl_scope_level].il_scope;
-    if (scope_ptr != NULL) {
-      block->variant.block.extra_info->assoc_scope = scope_ptr;
-      scope_ptr->assoc_block = block;
-    }  /* if */
-    pop_scope();
-    /* Restore the entry for "else" in the stop tokens set (see comment
-       above). */
-    stop_token_array[(int)tok_else] = old_else_stop_token_value;
-  }  /* if */
-  /* Pop the statement stack. */
-  pop_stmt_stack();
-  if (at_function_level) {
+    /* Pop the statement stack. */
+    pop_stmt_stack();
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
   }  /* if */
@@ -2002,7 +2024,7 @@ come out on the closing "}".
   remove_stop_token(tok_rbrace);
 
   db_exit();
-  return(block);
+  return block;
 }  /* compound_statement */
 
 
