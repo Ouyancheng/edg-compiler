@@ -3829,7 +3829,7 @@ this one is such a continuation.
                                            (a_name_linkage_kind)nlk_external &&
           !(type->source_corresp.is_class_member ||
             type->source_corresp.is_local_to_function)) {
-          /* The class definition is surrounded by an extern "C" block. */
+          /* The typedef definition is surrounded by an extern "C" block. */
           write_tok_str("extern \"C\" { ");
           /* Force matching "}" to be output later */
           need_extern_C_closing_brace = TRUE;
