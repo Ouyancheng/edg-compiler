@@ -989,6 +989,10 @@ Dump a virtual function override entry, for debug purposes.
   db_name(&ovfp->overriding_function->source_corresp);
   fputs(", type =\n    ", f_debug);
   db_type(ovfp->overriding_function->type);
+  if (ovfp->return_adjustment_base_class != NULL) {
+    fputs("\n    return adjustment base class = ", f_debug);
+    db_type_name(ovfp->return_adjustment_base_class->type);
+  }  /* if */
   (void)fputc('\n', f_debug);
 }  /* db_virtual_function_override */
 
@@ -1369,6 +1373,8 @@ new_bcp is the base class being created in new_class.
       new_ovfp->primary_function = ovfp_to_copy->primary_function;
       new_ovfp->overriding_function = ovfp_to_copy->overriding_function;
       new_ovfp->base_class = new_ovfp_base_class;
+      new_ovfp->return_adjustment_base_class =
+                                ovfp_to_copy->return_adjustment_base_class;
 #if DEBUG
       if (debug_level >= 4) {
         fputs("copy for base class ", f_debug);
@@ -1386,9 +1392,11 @@ next_entry_from_old_list:;
 }  /* copy_virtual_function_override_list */
 
 
-static void record_virtual_function_override(a_base_class_ptr  base_class,
-                                             a_routine_ptr     primary_func,
-                                             a_routine_ptr     overriding_func)
+static void record_virtual_function_override(
+                                      a_base_class_ptr  base_class,
+                                      a_routine_ptr     primary_func,
+                                      a_routine_ptr     overriding_func,
+                                      a_base_class_ptr  return_adjustment_bcp)
 /*
 Record the overriding of virtual function "primary_func", which was
 declared in a base class ("base_class") of the current class, by function
@@ -1415,6 +1423,7 @@ entry appears on a linked list pointed to from base_class.
 #endif /* DEBUG */
       ovfp->overriding_function = overriding_func;
       ovfp->base_class = NULL;
+      ovfp->return_adjustment_base_class = return_adjustment_bcp;
 #if DEBUG
       if (debug_level >= 4) {
         fputs("after modification: ", f_debug);
@@ -1454,6 +1463,7 @@ entry appears on a linked list pointed to from base_class.
     ovfp = alloc_overriding_virtual_function();
     ovfp->primary_function = primary_func;
     ovfp->overriding_function = overriding_func;
+    ovfp->return_adjustment_base_class = return_adjustment_bcp;
 #if DEBUG
     if (debug_level >= 4) {
       fputs("newly created: ", f_debug);
@@ -1467,25 +1477,30 @@ entry appears on a linked list pointed to from base_class.
 
 
 static a_boolean return_types_are_override_compatible(
-                                        a_type_ptr  type_of_overriding_routine,
-                                        a_type_ptr  type_of_overridden_routine)
+                                 a_type_ptr       type_of_overriding_routine,
+                                 a_type_ptr       type_of_overridden_routine,
+                                 a_type_ptr       class_type,
+                                 a_base_class_ptr *return_adjustment_bcp)
 /*
-It is an error for the return type of an overriding virtual function to
-differ from the return type of the function that is overridden -- unless
-they are both pointers or both references to class types where the class
-associated with the overriding function is publicly derived from the
-other class (WP 10.2, but not in the ARM).  This routine does the checking
-required.
+Given the routine types of overriding and overridden virtual functions,
+return TRUE if the return types are identical or "covariant" (WP 10.3).
+Covariance means both return types are references or pointers to class types
+that are related by derivation, where the class associated with the overridden
+function is a base class of the class associated with the overriding function.
+When covariance is detected, return in *return_adjustment_bcp the base class
+entry for the class associated with the overridden function.  class_type is
+the class of which the overriding function is a member.
 */
 {
   a_type_ptr             tp1, tp2;
   a_boolean              compatible = FALSE;
 
   db_enter(4, "return_types_are_override_compatible");
-  tp1 = skip_typerefs(type_of_overriding_routine)->variant.routine.return_type;
-  tp2 = skip_typerefs(type_of_overridden_routine)->variant.routine.return_type;
-  if (types_are_compatible(tp1, tp2)) {
-    /* The types are "simply" compatible.  No further checking is required. */
+  tp1 = type_of_overriding_routine->variant.routine.return_type;
+  tp2 = type_of_overridden_routine->variant.routine.return_type;
+  *return_adjustment_bcp = NULL;
+  if (identical_types(tp1, tp2)) {
+    /* The types are identical. */
     compatible = TRUE;
   } else if (is_or_contains_template_param(tp1) ||
              is_or_contains_template_param(tp2)) {
@@ -1493,40 +1508,53 @@ required.
        compatible depending on the template argument in a real instantiation,
        so issue no error now. */
     compatible = TRUE;
-#if 0
-/* IL lowering is not ready for the rest of this routine yet. */
+  } else if (is_error_type(tp1) || is_error_type(tp2)) {
+    /* Assume compatibility. */
+    compatible = TRUE;
   } else {
     /* They're not "simply" compatible.  Do the other checking. */
-    a_base_class_ptr       bcp;
-    a_derivation_step_ptr  dsp;
-
     if ((is_reference_type(tp1) && is_reference_type(tp2)) ||
-        (is_pointer_type(tp1) && is_pointer_type(tp2))) {
-      /* Both types are references or both are pointers. */
+        (is_pointer_type(tp1) && is_pointer_type(tp2) &&
+         type_qualifiers_match(tp1, tp2))) {
+      /* Both types are references or both are pointers with identical type
+         qualifiers on top of the pointer type.  Now check the types pointed
+         to. */
       tp1 = type_pointed_to(tp1);
       tp2 = type_pointed_to(tp2);
       if (is_class_struct_union_type(tp1) && is_class_struct_union_type(tp2)) {
-        /* The types referenced/pointed to are both classes.  See if the
-           class associated with the overridden function is a base class
-           of the class associated with the overriding function. */
-        bcp = find_base_class_of(tp1, tp2);
-        if (bcp != NULL) {
-          /* One is a base class of the other.  Just be sure it's a publicly
-             accessible base class by checking the access on the base class
-             at each step of the derivation. */
-          for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
-            if (dsp->base_class->access != (an_access_specifier)as_public) {
-              /* At least on step in the derivation is inaccessible, so the
-                 conditions for "override compatibility" are not satisfied. */
-              goto done;
+        /* The types referenced/pointed to are both classes. */
+        if (!any_qualifier_in_set_missing(get_type_qualifiers(tp2),
+                                          get_type_qualifiers(tp1))) {
+          /* The cv-qualification on the class the overriding function's
+             return type (tp1) is equal to or less than the cv-qualification
+             on the class of overridden function's return type (tp2). */
+          tp1 = skip_typerefs(tp1);
+          tp2 = skip_typerefs(tp2);
+          /* Next see if the class associated with the overridden function
+             is the same as or a base class of the class associated with the
+             overriding function. */
+          if (identical_types(tp1, tp2)) {
+            /* The class types are the same. */
+            compatible = TRUE;
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+          } else {
+            complete_type_is_needed(tp1);
+            if (!is_incomplete_type(tp1) || identical_types(tp1, class_type)) {
+              a_base_class_ptr bcp = find_base_class_of(tp1, tp2);
+              if (bcp != NULL) {
+                /* tp2 is a base class of tp1.  Be sure it's unambiguous and
+                   accessible in tp1. */
+                if (!bcp->ambiguous && is_accessible_base_class(bcp)) {
+                  compatible = TRUE;
+                  *return_adjustment_bcp = bcp;
+                }  /* if */
+              }  /* if */
             }  /* if */
-          }  /* for */
-          compatible = TRUE;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-done:;
-#endif /* if 0 */
   }  /* if */
   db_exit();
   return compatible;      
@@ -1960,7 +1988,8 @@ routine entry and return TRUE; otherwise return FALSE.
                                  source_pos, rout_sym, sym);
             }  /* if */
           }  /* if */
-          record_virtual_function_override(bcp, rp, rout);
+          record_virtual_function_override(bcp, rp, rout,
+                                           (a_base_class_ptr)NULL);
           if (shares_virtual_function_info(class_type, bcp)) {
             /* The virtual function table is being shared, so we must use the
                identical number. */
@@ -2041,8 +2070,12 @@ routine entry and return TRUE; otherwise return FALSE.
                 } else {
                   /* The this parameter types correspond; now compare the
                      return types. */
-                  if (return_types_are_override_compatible(rout->type,
-                                                           rp->type)) {
+                  a_base_class_ptr  return_adjustment_bcp;
+
+                  if (return_types_are_override_compatible(
+                                                    rout->type, rp->type,
+                                                    class_type,
+                                                    &return_adjustment_bcp)) {
                     /* Match */
                     is_virtual = TRUE;
                     if (exception_spec_is_less_restrictive(rout->type,
@@ -2065,10 +2098,17 @@ routine entry and return TRUE; otherwise return FALSE.
                     /* Record the virtual function override in the base class
                        entry.  It can be used later, e.g., for building a
                        virtual function table. */
-                    record_virtual_function_override(bcp, rp, rout);
-                    if (shares_virtual_function_info(class_type, bcp)) {
-                      /* The virtual function table is being shared, so we
-                         must use the identical number. */
+                    record_virtual_function_override(bcp, rp, rout,
+                                                     return_adjustment_bcp);
+                    if (return_adjustment_bcp != NULL) {
+                      /* The overriding function has a covariant return type.
+                         Set a flag, since some extra processing may be needed
+                         later. */
+                      rout->covariant_return_virtual_override = TRUE;
+                    } else if (shares_virtual_function_info(class_type, bcp)) {
+                      /* The virtual function table is being shared and there
+                         is no base-class adjustment on the return type, so we
+                         can use the same virtual function number. */
                       virtual_function_number = rp->virtual_function_number;
                     }  /* if */
                     /* If this declaration amounts to an override of a member
