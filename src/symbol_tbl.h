@@ -1642,6 +1642,9 @@ extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
 
+extern a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
+                                    a_symbol_kind     tag_kind);
+
 extern a_symbol_ptr class_qualified_id_lookup(
                                          a_symbol_locator         *locator,
                                          a_type_ptr               class_type,

@@ -5044,39 +5044,6 @@ function_lparen:
 }  /* declarator */
 
 
-static a_symbol_ptr curr_tag_symbol(a_symbol_kind  tag_kind)
-/*
-The current token is an identifier.  If it is a tag of the indicated kind
-do ambiguity and access control checking and return a pointer to the tag
-symbol.  Otherwise, return NULL.
-*/
-{
-  a_symbol_ptr assoc_symbol;
-
-  /* Look up the current token.  Note that a qualified name is not allowed. */ 
-  assoc_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
-  if (assoc_symbol != NULL) {
-    if (assoc_symbol->kind != tag_kind) {
-      /* A tag, but the wrong kind of tag (e.g., struct when union is
-         required). */
-      assoc_symbol = NULL;
-    } else {
-      if (locator_for_curr_id.is_semivisible_nested_type) {
-        /* The symbol in the locator is a nested class that is not visible
-           according to the ARM lookup rules but is returned in support of the
-           nested class anachronism (ARM 18.3.5).  Issue an anachronism
-           diagnostic. */
-        sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
-                       locator_for_curr_id.specific_symbol);
-      }  /* if */
-      /* Do ambiguity and access control checking on the member. */
-      check_ambiguity_and_verify_access(&locator_for_curr_id);
-    }  /* if */
-  }  /* if */
-  return assoc_symbol;
-}  /* curr_tag_symbol */
-
-
 a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                            a_symbol_locator  *locator,
                            a_boolean         check_for_vacuous_decl,
@@ -5205,7 +5172,7 @@ caution when modifying this routine.
            scope or a base class.  This can be ascertained by doing a full
            lookup of the tag name (before, it was done just for the current
            scope). */
-        tag_sym = curr_tag_symbol(tag_kind);
+        tag_sym = curr_tag_symbol(locator, tag_kind);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at
