@@ -117,6 +117,7 @@ static void unimplemented(void)
    front end are duplicated here so that cp_gen_be.c can be compiled
    independently of a front end. */
 
+#define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
 #define is_pointer_type(tp) \
 	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
 #define is_integer_type(tp) \
@@ -474,6 +475,10 @@ Output the indicated constant.
         write_str(")");
       }  /* if */
       if (ptr_implicit_cast_case) write_str(")");
+      break;
+    case ck_ptr_to_member:
+      /* Pointer-to-member constant. */
+      unimplemented();
       break;
     default:
       unexpected_condition_str("gen_constant: bad constant kind");
@@ -890,18 +895,33 @@ is not empty, because it contains a name or a derived type).
 }  /* gen_type_first_part */
 
 
-static void gen_function_declarator(a_type_ptr type)
+static void gen_function_declarator(a_type_ptr  type,
+                                    a_scope_ptr scope)
 /*
 Output a function declarator for the indicated routine type.
-This is not the top-level type of a function definition.
+This is the top-level type of a function definition only if scope
+is non-NULL, in which case that is the function scope.
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
+  a_variable_ptr                param_var;
 
+  if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_str("(");
   if (!rtsp->prototyped) {
-    /* Old-style list.  Nothing to put out. */
+    /* Old-style list. */
+    if (scope != NULL) {
+      /* This is the definition, so put out the parameter names. */
+      for (;;) {
+        gen_name(&param_var->source_corresp);
+        /* Stop after the last parameter. */
+        param_var = param_var->next;
+        if (param_var == NULL) break;
+        /* Put out a separator and keep looping. */
+        write_str(", ");
+      }  /* for */
+    }  /* if */
   } else {
     /* Prototyped list. */
     param = rtsp->param_type_list;
@@ -912,9 +932,19 @@ This is not the top-level type of a function definition.
         write_str("void");
       }  /* if */
     } else {
-      /* List the parameter types. */
+      /* List the parameter types (and, if this the definition, names too). */
       for (;;) {
-        gen_type(param->type, (a_source_correspondence *)NULL);
+        if (scope != NULL) {
+          /* This is the definition of the function, so put out the type and
+             name from the parameter variable.  Note that the type in the
+             variable might be slightly different than (though, of course,
+             compatible with) the type in the param_type entry. */
+          gen_type(param_var->type, &param_var->source_corresp);
+          param_var = param_var->next;
+        } else {
+          /* This is just a declaration, so put out the type and no name. */
+          gen_type(param->type, (a_source_correspondence *)NULL);
+        }  /* if */
         param = param->next;
         if (param == NULL) break;
         /* There are more parameters, so output a separator and keep
@@ -930,6 +960,16 @@ This is not the top-level type of a function definition.
     }  /* if */
   }  /* if */
   write_str(")");
+  /* Output a cv-qualifier for a member function, if there is one. */
+  if (rtsp->implicit_this_param_type != NULL) {
+    a_type_ptr underlying_type =
+                               type_pointed_to(rtsp->implicit_this_param_type);
+    for (; is_immediate_type_qualifier(underlying_type);
+         underlying_type = underlying_type->variant.typeref.type) {
+      write_str(" ");
+      gen_type_qualifier(underlying_type);
+    }  /* for */
+  }  /* if */
 }  /* gen_function_declarator */
 
 
@@ -974,7 +1014,7 @@ out first if anything is generated.
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     if (need_paren) write_str(")");
-    gen_function_declarator(type);
+    gen_function_declarator(type, (a_scope_ptr)NULL);
     gen_type_second_part(type->variant.routine.return_type,
                          /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_array) {
@@ -1117,6 +1157,125 @@ information about the secondary declaration.
 }  /* gen_variable_decl */
 
 
+static void gen_old_style_parameter_decls(a_scope_ptr scope)
+/*
+Generate parameter declarations for the definition of an unprototyped
+function.  scope is the associated scope.
+*/
+{
+  a_source_sequence_entry_ptr ssep;
+
+  /* Process all the source sequence entries on the list that are for
+     parameters. */
+#if 0
+  /* We should also be merging in types from the prototype scope. */
+#endif /* 0 */
+  for (ssep = scope->source_sequence_list;
+       ssep != NULL;
+       ssep = ssep->next) {
+    if (ssep->entity.kind == iek_variable) {
+      a_variable_ptr var = (a_variable_ptr)ssep->entity.ptr;
+      if (var->is_parameter) {
+        /* Output the parameter declaration. */
+        write_str(" ");
+        set_output_position(&var->source_corresp.decl_position);
+        gen_type(var->type, &var->source_corresp);
+        write_str(";");
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* gen_old_style_parameter_decls */
+
+
+static void gen_func_definition_type(a_routine_ptr rout,
+                                     a_scope_ptr   scope)
+/*
+Generate the routine name and type, including the parameter declarations,
+for the definition of the indicated routine.  scope is the associated scope.
+*/
+{
+  a_type_ptr type = rout->type;
+
+  /* The storage class and "inline" have already been written if
+     necessary. */
+  /* Write the specifiers and the first part of the declarator. */
+  gen_type_first_part(type, /*need_paren=*/FALSE,
+                      /*need_trailing_space=*/TRUE);
+  /* Write the name. */
+  gen_name(&rout->source_corresp);
+  /* Write the second part of the declarator. */
+  gen_function_declarator(type, scope);
+  gen_type_second_part(type->variant.routine.return_type, /*need_paren=*/TRUE);
+  /* For an old-style function, declare the parameters. */
+  if (!rout->type->variant.routine.extra_info->prototyped) {
+    gen_old_style_parameter_decls(scope);
+  }  /* if */
+  write_str(" ");
+}  /* gen_func_definition_type */
+
+
+static void gen_function_body(a_scope_ptr scope)
+/*
+Generate the body statement for a function.  scope points to the function
+scope.
+*/
+{
+  write_str("{}");
+}  /* gen_function_body */
+
+
+static void gen_routine_decl(a_routine_ptr                rout,
+                             a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Generate a declaration of the indicated routine.  If sec_decl is non-NULL,
+a secondary declaration is wanted, and sec_decl points to an entry giving
+information about the secondary declaration.
+*/
+{
+  a_boolean       is_definition = (sec_decl == NULL &&
+                                   rout->assoc_scope != NULL_region_number);
+  a_storage_class storage_class;
+  a_scope_ptr     scope;
+
+  /* Don't put out compiler-generated routines. */
+  if (!rout->compiler_generated) {
+    /* Position the output file to the declaration position. */
+    set_decl_position(&rout->source_corresp, sec_decl);
+    /* Output the storage class. */
+    storage_class = rout->storage_class;
+    /* The storage class in the entry is the definition storage class.
+       If this isn't the definition, adjust it. */
+    if (!is_definition) {
+      if (storage_class != (a_storage_class)sc_static) {
+        storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+    }  /* if */
+    gen_storage_class(storage_class);
+    if (rout->is_inline) write_str("inline ");
+    /* Output the routine name and its type. */
+    if (!is_definition) {
+      /* A declaration of the routine. */
+      gen_type(rout->type, &rout->source_corresp);
+      /* Finish the declaration. */
+      write_str(";");
+    } else {
+      /* The definition of the routine. */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+      /* Read the information for the function from the IL file.  This must be
+         read before the interface is dumped in order to get the parameter
+         names. */
+      read_memory_region(rout->assoc_scope);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+      scope = il_header.region_scope_entry[rout->assoc_scope];
+      /* Generate the routine name and the parameter declarations. */
+      gen_func_definition_type(rout, scope);
+      /* Generate the body statement. */
+      gen_function_body(scope);
+    }  /* if */
+  }  /* if */
+}  /* gen_routine_decl */
+
+
 static void gen_secondary_decl(a_src_seq_secondary_decl_ptr sec_decl)
 /*
 Generate a secondary declaration of an entity, i.e., a declaration that
@@ -1133,7 +1292,7 @@ points to the entry for the secondary declaration.
       gen_variable_decl((a_variable_ptr)entity_ptr, sec_decl);
       break;
     case iek_routine:
-      unimplemented();
+      gen_routine_decl((a_routine_ptr)entity_ptr, sec_decl);
       break;
     default:
       unexpected_condition_str("gen_secondary_decl: bad entity kind");
@@ -1189,7 +1348,8 @@ Generate C++ or C from the intermediate language.
                           (a_src_seq_secondary_decl_ptr)NULL);
         break;
       case iek_routine:
-        unimplemented();
+        gen_routine_decl((a_routine_ptr)entity_ptr,
+                         (a_src_seq_secondary_decl_ptr)NULL);
         break;
       case iek_asm_entry:
         unimplemented();
