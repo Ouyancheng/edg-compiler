@@ -744,7 +744,8 @@ processing, and in wide characters if the constant is wide).
     temp_ptr++;
     int_kind = targ_wchar_t_int_kind;
     constant_size = (sizeof_t)(num_chars*targ_sizeof_wchar_t);
-    centity_mask = (unsigned long)1 << ((targ_sizeof_wchar_t*targ_char_bit)-1);
+    centity_mask = (unsigned long)1 <<
+                                ((((int)targ_sizeof_wchar_t)*targ_char_bit)-1);
     centity_mask = centity_mask | (centity_mask - 1);
     centity_bits = (int)targ_sizeof_wchar_t*targ_char_bit;
     centity_is_signed = int_kind_is_signed[(int)targ_wchar_t_int_kind];
