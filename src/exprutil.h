@@ -194,9 +194,6 @@ Argument match levels for overloaded function call resolution; See ARM 13.2.
 */
 typedef enum /*an_arg_match_level*/ {
   aml_exact,		/* Exact match or trivial conversions. */
-  aml_exact_qualified,	/* Trivial conversions including removal of a type
-			   qualifier from the base type of a reference or
-			   pointer. */
   aml_promotion,	/* Match with promotions. */
   aml_std_conversion,	/* Match with standard conversions. */
   aml_user_conversion,	/* Match with user-defined conversions. */
@@ -216,12 +213,17 @@ typedef struct an_arg_match_summary {
 			   if this is the last argument. */
   an_arg_match_level
 		match_level;
-			/* Match level -- see ARM 13.2.  Primary key. */
+			/* Match level -- see ARM 13.2. */
+  a_byte_boolean
+		less_desirable_exact_match;
+			/* TRUE if the match is one of the exact match cases
+			   indicated as "less desirable", i.e., those that
+			   add type qualifiers under references or pointers. */
   a_derivation_step_ptr
 		downward_cast_derivation;
-			/* If match_level == aml_std_conversion and the
-			   compatibility involves a downward cast, this is
-			   the derivation.  Otherwise, NULL.  Secondary key. */
+			/* If the match involves a standard conversion that
+			   is a downward cast, this is the derivation.
+			   Otherwise, NULL. */
   a_byte_boolean
 		reversed_derivation;
 			/* If TRUE, the downward_cast_derivation describes
@@ -242,8 +244,9 @@ typedef struct an_arg_match_summary {
 			   of type qualifiers at the end of a conversion.
 			   NULL if not applicable (e.g., for an ellipsis). */
   a_routine_ptr	conversion_routine;
-			/* If match_level is aml_user_conversion, this is
-			   the user-defined conversion routine. */
+			/* If match_level is aml_user_conversion and the
+			   conversion is done by a conversion function, this is
+			   the conversion function.  Otherwise, NULL. */
   a_byte_boolean
 		std_conversion_after_user_conversion;
 			/* If TRUE, a standard conversion was required after

@@ -4115,6 +4115,8 @@ values.
 {
   amsp->next                     = NULL;
   amsp->match_level              = aml_none;
+  amsp->less_desirable_exact_match
+                                 = FALSE;
   amsp->downward_cast_derivation = NULL;
   amsp->reversed_derivation      = FALSE;
   amsp->const_anachronism        = FALSE;
@@ -4175,7 +4177,6 @@ Print an argument match summary for debug purposes.
 
   switch (amsp->match_level) {
     case aml_exact:             str = "exact";               break;
-    case aml_exact_qualified:   str = "exact qualified";     break;
     case aml_promotion:         str = "promotion";           break;
     case aml_std_conversion:    str = "std conversion";      break;
     case aml_user_conversion:   str = "user conversion";     break;
@@ -4185,14 +4186,21 @@ Print an argument match summary for debug purposes.
     default:                    str = "**BAD MATCH LEVEL**";
   }  /* if */
   fprintf(f_debug, "match level = %s", str);
-  if (amsp->match_level == aml_std_conversion) {
-    dsp = amsp->downward_cast_derivation;
-    if (dsp != NULL) {
-      /* Count derivation steps and print the count. */
-      for (step_count = 0; dsp != NULL; dsp = dsp->next, step_count++) {}
-      fprintf(f_debug, " (%lu step%s)", step_count,
-                       (step_count != 1) ? "s" : "");
-    }  /* if */
+  if (amsp->less_desirable_exact_match) {
+    fprintf(f_debug, " (less desirable)");
+  }  /* if */
+  if (amsp->const_anachronism) {
+    fprintf(f_debug, " (const anachronism)");
+  }  /* if */
+  if (amsp->std_conversion_after_user_conversion) {
+    fprintf(f_debug, " (std conversion)");
+  }  /* if */
+  dsp = amsp->downward_cast_derivation;
+  if (dsp != NULL) {
+    /* Count derivation steps and print the count. */
+    for (step_count = 0; dsp != NULL; dsp = dsp->next, step_count++) {}
+    fprintf(f_debug, " (%lu step%s)", step_count,
+                     (step_count != 1) ? "s" : "");
   }  /* if */
   fprintf(f_debug, "\n");
 }  /* db_arg_match_summary */
@@ -4434,6 +4442,62 @@ built-in operators.  The start_error or equivalent has already been done.
 }  /* diagnose_overload_ambiguity */
 
 
+static void determine_downward_cast_derivation(
+                                             a_type_ptr           source_type,
+                                             a_type_ptr           dest_type,
+                                             an_arg_match_summary *arg_summary)
+/*
+source_type --> dest_type is a standard conversion.  If it is a cast to
+a related class, fill in downward_cast_derivation in *arg_summary.
+*/
+{
+  a_boolean        downward_cast;
+  a_base_class_ptr bcp;
+
+  if (related_class_pointers(source_type, dest_type, &downward_cast, &bcp)) {
+    /* Cast to base class (no need to check downward_cast; downward
+       is the only direction allowed as an implicit conversion). */
+    arg_summary->downward_cast_derivation = bcp->derivation;
+  } else if (related_member_pointers(source_type, dest_type, &downward_cast,
+                                     &bcp)) {
+    /* Likewise for casts of pointers-to-members; note, however, that
+       implicit casts there are from base to derived. */
+    arg_summary->downward_cast_derivation = bcp->derivation;
+    arg_summary->reversed_derivation = TRUE;
+  }  /* if */
+}  /* determine_downward_cast_derivation */
+
+
+static void set_arg_summary_for_user_conversion(
+                                    an_arg_match_summary *arg_summary,
+                                    a_type_ptr           param_type,
+                                    a_routine_ptr        conversion_routine,
+                                    a_boolean            std_conversion_needed)
+/*
+Set *arg_summary to indicate an argument match involving an user-defined
+conversion using a conversion function.  param_type is the parameter
+type, conversion_routine is the conversion function being called, and
+std_conversion_needed is TRUE if a standard conversion is needed after
+the conversion function.
+*/
+{
+  a_type_ptr conversion_type;
+
+  arg_summary->match_level = aml_user_conversion;
+  arg_summary->conversion_routine = conversion_routine;
+  if (std_conversion_needed) {
+    arg_summary->std_conversion_after_user_conversion = TRUE;
+    /* Get the return type of the conversion routine. */
+    conversion_type = f_skip_typerefs(conversion_routine->type)->
+                                                   variant.routine.return_type;
+    /* If the standard conversion is a cast between related classes,
+       set downward_cast_derivation. */
+    determine_downward_cast_derivation(conversion_type, param_type,
+                                       arg_summary);
+  }  /* if */
+}  /* set_arg_summary_for_user_conversion */
+
+
 static void determine_arg_match_level(
                                      an_operand           *arg_operand,
                                      a_type_ptr           arg_type,
@@ -4454,7 +4518,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   a_boolean        param_is_reference;
   a_boolean        ref_type_qualifiers_dropped, ref_type_qualifiers_added;
   an_error_code    warning_suggested;
-  a_boolean        downward_cast, std_conversion_needed;
+  a_boolean        std_conversion_needed;
   a_base_class_ptr bcp;
   a_routine_ptr    conversion_routine;
   a_boolean        ambiguous;
@@ -4614,13 +4678,11 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Check for an exact match.  This is case [1] in the ARM. */
     if (types_are_compatible(unqual_arg_type, unqual_param_type)) {
       /* There is an exact match, possibly involving trivial conversions. */
+      arg_summary->match_level = aml_exact;
       if (ref_type_qualifiers_added) {
         /* This is the "T --> (qualified T)& case, which is one of the
            "less desirable" cases. */
-        arg_summary->match_level = aml_exact_qualified;
-      } else {
-        /* Normal case. */
-        arg_summary->match_level = aml_exact;
+        arg_summary->less_desirable_exact_match = TRUE;
       }  /* if */
       goto have_level;
     }  /* if */
@@ -4644,7 +4706,8 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
           /* Some qualifiers are being added.  This is the
              "T* --> (qualified T)*" case, one of the "less desirable"
              cases. */
-          arg_summary->match_level = aml_exact_qualified;
+          arg_summary->match_level = aml_exact;
+          arg_summary->less_desirable_exact_match = TRUE;
           goto have_level;
         }  /* if */
       }  /* if */
@@ -4678,17 +4741,9 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
     arg_summary->warning_suggested = warning_suggested;
     /* If the cast is from a pointer to a derived class to a pointer to a
        base class, set downward_cast_derivation. */
-    if (related_class_pointers(arg_type, param_type, &downward_cast, &bcp)) {
-      /* Cast to base class (no need to check downward_cast; downward
-         is the only direction allowed as an implicit conversion). */
-      arg_summary->downward_cast_derivation = bcp->derivation;
-    } else if (related_member_pointers(arg_type, param_type, &downward_cast,
-                                       &bcp)) {
-      /* Likewise for casts of pointers-to-members; note, however, that
-         implicit casts there are from base to derived. */
-      arg_summary->downward_cast_derivation = bcp->derivation;
-      arg_summary->reversed_derivation = TRUE;
-    } else if (cfront_compatibility_mode && param_is_reference) {
+    determine_downward_cast_derivation(arg_type, param_type, arg_summary);
+    if (cfront_compatibility_mode && param_is_reference &&
+        arg_summary->downward_cast_derivation == NULL) {
       /* cfront 2.1 has a bug: when a reference parameter is initialized
          with something that requires a standard conversion that isn't
          class-related, the cost is considered to be a user-defined
@@ -4738,9 +4793,9 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
       /* There is a conversion function (or several) that will convert the
          argument class type into the parameter type or to some type that
          can be converted to the parameter type via a standard conversion. */
-      arg_summary->match_level = aml_user_conversion;
-      arg_summary->conversion_routine = conversion_routine;
-      arg_summary->std_conversion_after_user_conversion= std_conversion_needed;
+      set_arg_summary_for_user_conversion(arg_summary, param_type,
+                                          conversion_routine,
+                                          std_conversion_needed);
       goto have_level;
     }  /* if */
   }  /* if */
@@ -5094,10 +5149,9 @@ Compare two argument match summary entries and return
   int                   cmp;
   a_derivation_step_ptr derivation_1, derivation_2;
   a_boolean             reversed_derivation;
+  a_type_ptr            param_type1, param_type2;
+  a_type_ptr            under_type1, under_type2;
 
-  /* There are two parts to the key to be compared.  match_level is the
-     primary key; downward_cast_derivation is the secondary key, but it does
-     not always apply. */
   if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
     /* arg_match1 is better. */
     cmp = 1;
@@ -5105,100 +5159,150 @@ Compare two argument match summary entries and return
     /* arg_match2 is better. */
     cmp = -1;
   } else {
-    derivation_1 = arg_match1->downward_cast_derivation;
-    derivation_2 = arg_match2->downward_cast_derivation;
-    if (derivation_1 != NULL && derivation_2 != NULL) {
-      /* Both entries have downward casts, so they can be compared.  If one
-         is a subsequence of the other, the shorter derivation is
-         preferable. */
-      reversed_derivation = arg_match1->reversed_derivation;
-      if (reversed_derivation) {
-        /* For pointers to members, the derivation given is in reverse order.
-           We still want the shorter derivation, but extra steps on the
-           longer derivation are at the beginning of the list rather than the
-           end. */
-        /* Find the last entry on each list so we can start there. */
-        while (derivation_1->next != NULL) derivation_1 = derivation_1->next;
-        while (derivation_2->next != NULL) derivation_2 = derivation_2->next;
-      }  /* if */
-      /* Loop comparing entries as long as they match. */
-      do {
-        /* Note that the "->type" part in the following comparison is not
-           needed for the non-reversed case, but it IS needed in the
-           reversed case. */
-        if (derivation_1->base_class->type != derivation_2->base_class->type) {
-          /* The derivations go different ways, so they cannot be compared
-             and are considered equal in terms of argument match level. */
-          cmp = 0;
-          goto have_cmp;
-        }  /* if */
-        /* Advance to the next entries.  For the reversed case, this means
-           backing up. */
-        if (!reversed_derivation) {
-          derivation_1 = derivation_1->next;
-          derivation_2 = derivation_2->next;
-        } else {
-          derivation_1 = prev_derivation(derivation_1, arg_match1);
-          derivation_2 = prev_derivation(derivation_2, arg_match2);
-        }  /* if */
-      } while (derivation_1 != NULL && derivation_2 != NULL);
-      /* See if the two lists (equal so far) ended together. */
-      if (derivation_2 != NULL) {
-        /* derivation_1 is shorter and thus preferable. */
-        cmp = 1;
-      } else if (derivation_1 != NULL) {
-        /* derivation_2 is shorter and thus preferable. */
+    /* The major match levels are equal.  Look for tie-breakers. */
+    /* Exact matches can be distinguished by the presence of "less
+       desirable" trivial conversions, those that add type qualifiers
+       to the underlying types of reference and pointer types. */
+    if (arg_match1->match_level == (an_arg_match_level)aml_exact &&
+        arg_match1->less_desirable_exact_match !=
+                                      arg_match2->less_desirable_exact_match) {
+      if (arg_match1->less_desirable_exact_match) {
+        /* arg_match1 is a less desirable exact match, and arg_match2 is
+           not, so arg_match2 is better. */
         cmp = -1;
       } else {
-        /* The lists ended together and are equal. */
-        cmp = 0;
+        /* arg_match2 is a less desirable exact match, and arg_match1 is
+           not, so arg_match1 is better. */
+        cmp = 1;
       }  /* if */
-    } else if (derivation_1 != NULL) {
-      /* derivation_1 != NULL, derivation_2 == NULL.  A base class cast is
-         preferable to another kind of cast (e.g., a cast to "void *"),
-         so arg_match1 is better. */
-      cmp = 1;
-    } else if (derivation_2 != NULL) {
-      /* derivation_1 == NULL, derivation_2 != NULL.  A base class cast is
-         preferable to another kind of cast (e.g., a cast to "void *),
-         so arg_match2 is better. */
-      cmp = -1;
+    } else if (cfront_compatibility_mode &&
+               arg_match1->const_anachronism != arg_match2->const_anachronism){
+      /* In cfront compatibility mode, the anachronism that allows a
+         non-const function to be called for a const object causes matches
+         that are considered worse than the corresponding matches that do
+         not involve the anachronism. */
+      if (arg_match1->const_anachronism) {
+        /* arg_match1 uses the const anachronism and arg_match2 does not,
+           so arg_match2 is better. */
+        cmp = -1;
+      } else {
+        /* arg_match2 uses the const anachronism and arg_match1 does not,
+           so arg_match1 is better. */
+        cmp = 1;
+      }  /* if */
     } else {
-      /* derivation_1 == NULL, derivation_2 == NULL. */
-      /* The matches are equal. */
-      cmp = 0;
-    }  /* if */
-have_cmp:
-    /* If the sequence of conversions in one case is a subsequence of the
-       sequence in the other case, the shorter sequence is the better match.
-       Check first for cases involving user-defined conversions, like
-       A->int versus A->int->float. */
-    if (cmp == 0) {       
-      if (arg_match1->conversion_routine != NULL &&
-          arg_match1->conversion_routine == arg_match2->conversion_routine &&
-          arg_match1->std_conversion_after_user_conversion !=
+      /* The matches are equal in terms of match level.  One can still be
+         better than the other if the conversion in one case is a
+         subsequence of the conversion in the other case. */
+      /* Check first for subsequence cases involving user-defined conversions,
+         like
+           A->int
+         versus
+           A->int->float
+      */
+      if (arg_match1->conversion_routine != arg_match2->conversion_routine) {
+        /* Two different conversion functions are involved, so no subsequence
+           is possible. */
+        goto end_subsequence_check;
+      } else if (arg_match1->conversion_routine != NULL &&
+                 arg_match1->std_conversion_after_user_conversion !=
                             arg_match2->std_conversion_after_user_conversion) {
         /* Two user-defined conversions involving the same conversion routine.
-           If one does not have a standard conversion after the user-defined
-           conversion and the other does, the one without the standard
+           One does not have a standard conversion after the user-defined
+           conversion and the other does, so the one without the standard
            conversion is better. */
         if (arg_match1->std_conversion_after_user_conversion) {
           /* arg_match1 has the standard conversion and arg_match2 does not,
              so arg_match2 is better. */
           cmp = -1;
+          goto have_cmp;
         } else {
           /* arg_match2 has the standard conversion and arg_match1 does not,
              so arg_match1 is better. */
           cmp = 1;
+          goto have_cmp;
         }  /* if */
       }  /* if */
-    }  /* if */
-    /* More subsequence checking: check for differences of type qualifiers
-       at the end of conversions, like float->int versus
-       float->int->const int. */
-    if (cmp == 0) {
-      a_type_ptr param_type1 = arg_match1->base_param_type;
-      a_type_ptr param_type2 = arg_match2->base_param_type;
+      /* More subsequence checking: check for subsequences in standard
+         conversions, involving casts to base or derived class types. */
+      if ((arg_match1->std_conversion_after_user_conversion ||
+           arg_match1->match_level == (an_arg_match_level)aml_std_conversion)&&
+          (arg_match2->std_conversion_after_user_conversion ||
+           arg_match2->match_level == (an_arg_match_level)aml_std_conversion)){
+        /* Both matches involve a standard conversion. */
+        derivation_1 = arg_match1->downward_cast_derivation;
+        derivation_2 = arg_match2->downward_cast_derivation;
+        if (derivation_1 != NULL && derivation_2 != NULL) {
+          /* Both entries have downward casts, so they can be compared.  If one
+             is a subsequence of the other, the shorter derivation is
+             preferable. */
+          reversed_derivation = arg_match1->reversed_derivation;
+          if (reversed_derivation) {
+            /* For pointers to members, the derivation given is in reverse
+               order.  We still want the shorter derivation, but extra steps
+               on the longer derivation are at the beginning of the list
+               rather than the end. */
+            /* Find the last entry on each list so we can start there. */
+            while (derivation_1->next != NULL) {
+              derivation_1 = derivation_1->next;
+            }  /* while */
+            while (derivation_2->next != NULL) {
+              derivation_2 = derivation_2->next;
+            }  /* while */
+          }  /* if */
+          /* Loop comparing entries as long as they match. */
+          do {
+            /* Note that the "->type" part in the following comparison is not
+               needed for the non-reversed case, but it IS needed in the
+               reversed case. */
+            if (derivation_1->base_class->type !=
+                                              derivation_2->base_class->type) {
+              /* The derivations go different ways, so they cannot be compared
+                 and are considered equal in terms of argument match level. */
+              goto end_subsequence_check;
+            }  /* if */
+            /* Advance to the next entries.  For the reversed case, this means
+               backing up. */
+            if (!reversed_derivation) {
+              derivation_1 = derivation_1->next;
+              derivation_2 = derivation_2->next;
+            } else {
+              derivation_1 = prev_derivation(derivation_1, arg_match1);
+              derivation_2 = prev_derivation(derivation_2, arg_match2);
+            }  /* if */
+          } while (derivation_1 != NULL && derivation_2 != NULL);
+          /* See if the two lists (equal so far) ended together. */
+          if (derivation_2 != NULL) {
+            /* derivation_1 is shorter and thus preferable. */
+            cmp = 1;
+            goto have_cmp;
+          } else if (derivation_1 != NULL) {
+            /* derivation_2 is shorter and thus preferable. */
+            cmp = -1;
+            goto have_cmp;
+          }  /* if */
+        } else if (derivation_1 != NULL) {
+          /* derivation_1 != NULL, derivation_2 == NULL.  A base class cast is
+             preferable to another kind of cast (e.g., a cast to "void *"),
+             so arg_match1 is better. */
+          cmp = 1;
+          goto have_cmp;
+        } else if (derivation_2 != NULL) {
+          /* derivation_1 == NULL, derivation_2 != NULL.  A base class cast is
+             preferable to another kind of cast (e.g., a cast to "void *"),
+             so arg_match2 is better. */
+          cmp = -1;
+          goto have_cmp;
+        }  /* if */
+      }  /* if */
+      /* More subsequence checking: check for differences of type qualifiers
+         at the end of conversions (trivial conversions), like
+           float->int
+         versus
+           float->int->const int
+      */
+      param_type1 = arg_match1->base_param_type;
+      param_type2 = arg_match2->base_param_type;
       /* Some cases (e.g., ellipsis) have no base param type. */
       if (param_type1 != NULL && param_type2 != NULL) {
         if (type_qualifiers_match(param_type1, param_type2)) {
@@ -5214,20 +5318,25 @@ have_cmp:
               /* param_type2 has a proper subset of the qualifiers in
                  param_type1, so arg_match2 is the better match. */
               cmp = -1;
+              goto have_cmp;
             } else if (!any_qualifier_missing(param_type2, param_type1)) {
               /* param_type1 has a proper subset of the qualifiers in
                  param_type2, so arg_match1 is the better match. */
               cmp = 1;
+              goto have_cmp;
             }  /* if */
           }  /* if */
         }  /* if */
         /* More subsequence checking: check for differences of type qualifiers
-           at the end of conversions to pointer types, like char*->void*
-           versus char*->void*->const void*. */
-        if (cmp == 0 &&
-            is_pointer_type(param_type1) && is_pointer_type(param_type2)) {
-          a_type_ptr under_type1 = type_pointed_to(param_type1);
-          a_type_ptr under_type2 = type_pointed_to(param_type2);
+           at the end of conversions to pointer types (trivial conversions),
+           like
+             char*->void*
+           versus
+             char*->void*->const void*
+        */
+        if (is_pointer_type(param_type1) && is_pointer_type(param_type2)) {
+          under_type1 = type_pointed_to(param_type1);
+          under_type2 = type_pointed_to(param_type2);
           if (type_qualifiers_match(under_type1, under_type2)) {
             /* The two types have the same qualifiers, so one cannot be
                different than the other on the basis of qualifiers. */
@@ -5241,34 +5350,23 @@ have_cmp:
                 /* under_type2 has a proper subset of the qualifiers in
                    under_type1, so arg_match2 is the better match. */
                 cmp = -1;
+                goto have_cmp;
               } else if (!any_qualifier_missing(under_type2, under_type1)) {
                 /* under_type1 has a proper subset of the qualifiers in
                    under_type2, so arg_match1 is the better match. */
                 cmp = 1;
+                goto have_cmp;
               }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (cmp == 0 && cfront_compatibility_mode) {
-      /* In cfront compatibility mode, the anachronism that allows a
-	 non-const function to be called for a const object causes matches
-	 that are considered worse than the corresponding matches that do
-	 not involve the anachronism. */
-      if (arg_match1->const_anachronism != arg_match2->const_anachronism) {
-	if (arg_match1->const_anachronism) {
-	  /* arg_match1 uses the const anachronism and arg_match2 does not,
-	     so arg_match2 is better. */
-	  cmp = -1;
-	} else {
-	  /* arg_match2 uses the const anachronism and arg_match1 does not,
-	     so arg_match1 is better. */
-	  cmp = 1;
-	}  /* if */
-      }  /* if */
+end_subsequence_check:
+      /* No subsequence was found, so the matches are equal. */
+      cmp = 0;
     }  /* if */
   }  /* if */
+have_cmp:
   return cmp;
 }  /* compare_arg_match_levels */
 
@@ -6634,7 +6732,9 @@ pointer type).
                                            (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
           /* The conversion can be done with a conversion function. */
-          arg_match->match_level = aml_user_conversion;
+          set_arg_summary_for_user_conversion(arg_match, pointer_type,
+                                              conversion_routine,
+                                              std_conversion_needed);
         }  /* if */
       } else {
         /* A non-class operand. */
