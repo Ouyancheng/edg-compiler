@@ -1,5 +1,10 @@
 Version 3.1
 
+6/20/02  GNU C compatibility: infinity used for FP values out of range
+
+In GNU C mode, instead of issuing a diagnostic when a floating point
+value is out of range, the "infinity" value is silently used instead.
+
 6/19/02  C-generating back end: Sequencing of C99 STDC pragmas
 
 The C-generating back end used to emit all the file scope C99 STDC pragmas

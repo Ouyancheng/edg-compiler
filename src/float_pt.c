@@ -449,6 +449,8 @@ conversion can be done, return the result in "result".
       /* The number is slightly larger than the official maximum double, but
          on conversion to double it rounds to the maximum double, so it's
          okay. */
+    } else if (gcc_mode) {
+      /* gcc silently uses infinity for values that are too large. */
     } else {
       /* Overflow. */
       *err = TRUE;
@@ -774,19 +776,20 @@ Shift the mantissa in "mp" right by "bits".
 
 
 static void check_and_denormalize_hex_fp_value(
-			  a_mantissa_ptr	mp,
-			  long			*exponent,
-			  a_float_kind		kind,
-	                  a_boolean		*err,
-			  a_boolean		*inexact)
+			  a_mantissa_ptr		mp,
+			  long				*exponent,
+			  a_float_kind			kind,
+	                  a_boolean			*err,
+			  a_boolean			*inexact,
+			  an_internal_float_value	*float_value)
 /*
 mp contains the mantissa of a floating point value.  Exponent is the
 effective exponent to be used (the combination of an explicit exponent
 and the implied exponent based on the position of the decimal point).
 kind specifies the type of floating point value being used.
 
-If the number of mantissa bits exceeds the, set inexact to TRUE.  If
-the exponent is out of range, set err to TRUE.
+If the number of mantissa bits exceeds the precision of the result
+type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
 */
 {
   int	min_exp;
@@ -872,7 +875,22 @@ the exponent is out of range, set err to TRUE.
   }  /* if */
   /* Check for a value that cannot be represented.  The "min_exp - 1" is
      used to permit the special denormalized value. */
-  if (*exponent < (min_exp - 1) || *exponent > max_exp) *err = TRUE;
+  if (*exponent < (min_exp - 1) || *exponent > max_exp) {
+    if (gcc_mode) {
+      /* gcc silently uses infinity for values out of range.  The error flag is
+         still returned, but will be cleared. */
+      make_fp_infinity(float_value);
+      if (kind != (a_float_kind)fk_float) {
+        /* make_fp_infinity returns a float.  If we need a different kind,
+           convert the infinity to the proper kind. */
+        a_boolean	dummy_err;
+        a_boolean	depends_on_rounding_mode;
+        fp_change_kind(float_value, (a_float_kind)fk_float, float_value,
+                       kind, &dummy_err, &depends_on_rounding_mode);
+      }  /* if */
+    }  /* if */
+    *err = TRUE;
+  }  /* if */
   /* See if the number of mantissa bits provided exceeds the mantissa size.
      mang_dig includes the implicit bit. */
   {
@@ -1123,9 +1141,17 @@ fit in the indicated type.
   }  /* if */
 #endif /* DEBUG */
   /* Check whether the resulting value fits in the type being used. */
-  check_and_denormalize_hex_fp_value(&mantissa, &exponent, kind, err, inexact);
-  /* Store the value in the appropriate kind of floating point value. */
-  store_hex_fp_value(&mantissa, exponent, kind, float_value, any_digits);
+  check_and_denormalize_hex_fp_value(&mantissa, &exponent, kind, err, inexact,
+                                     float_value);
+  /* Store the value in the appropriate kind of floating point value.  If
+     the value is out of range, float_value will have already been set to
+     infinity, so it is not updated here. */
+  if (!*err) {
+    store_hex_fp_value(&mantissa, exponent, kind, float_value, any_digits);
+  } else {
+    /* Reset the error flag to prevent the overflow from being diagnosed. */
+    if (gcc_mode) *err = FALSE;
+  }  /* if */
   /* If an underflow occurred, set the flag that indicates that the resulting
      value is not an exact representation of the specified value. */
   if (mantissa.underflow) *inexact = mantissa.underflow;
@@ -1158,12 +1184,17 @@ look like an integer).  It may have a leading "-" sign.
   /* Convert the number. */
   temp = strtod_interface(str);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  if (errno == ERANGE && (temp != 0.0 || microsoft_mode)) {
-    /* Do not give an error on cases that involve partial loss of significance,
-       e.g., extremely small values like 4.9e-324.  In Microsoft mode, do
-       not give an error on a small number that was converted to zero. */
-    /* Do not clear the error for large values that overflow. */
-    if ((temp >= 0.0) ? temp < 1.0 : temp > -1.0) errno = 0;
+  if (errno == ERANGE) {
+    if (gcc_mode) {
+      errno = 0;
+    } else if (temp != 0.0 || microsoft_mode) {
+      /* Do not give an error on cases that involve partial loss of
+         significance,  e.g., extremely small values like 4.9e-324.
+         In Microsoft mode, do not give an error on a small number that
+         was converted to zero. */
+      /* Do not clear the error for large values that overflow. */
+      if ((temp >= 0.0) ? temp < 1.0 : temp > -1.0) errno = 0;
+    }  /* if */
   }  /* if */
   *err = (errno != 0);
   store_host_fp_value(temp, kind, float_value, err);
