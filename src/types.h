@@ -103,6 +103,10 @@ an enum type).
  (((tp)->variant.typeref.qualifiers & TQ_CONST) != 0)
 #define typeref_is_volatile_qualified(tp)                             \
  (((tp)->variant.typeref.qualifiers & TQ_VOLATILE) != 0)
+#if RESTRICT_ALLOWED
+#define typeref_is_restrict_qualified(tp)                             \
+ (((tp)->variant.typeref.qualifiers & TQ_RESTRICT) != 0)
+#endif /* RESTRICT_ALLOWED */
 
 /*
 Return TRUE if the type pointed to is a tk_typeref that indicates type
@@ -136,6 +140,10 @@ on the underlying element type of an array.
   ((get_type_qualifiers(tp) & TQ_CONST) != 0)
 #define is_volatile_qualified_type(tp)                                \
   ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
+#if RESTRICT_ALLOWED
+#define typeref_is_restrict_qualified(tp)                             \
+ (((tp)->variant.typeref.qualifiers & TQ_RESTRICT) != 0)
+#endif /* RESTRICT_ALLOWED */
 
 /*
 Check for "top-level" type qualifiers -- i.e., don't look at the element
@@ -147,6 +155,10 @@ type if tp is an array.
   ((get_top_level_type_qualifiers(tp) & TQ_CONST) != 0)
 #define is_top_level_volatile_qualified_type(tp)                      \
   ((get_top_level_type_qualifiers(tp) & TQ_VOLATILE) != 0)
+#if RESTRICT_ALLOWED
+#define typeref_is_restrict_qualified(tp)                             \
+ (((tp)->variant.typeref.qualifiers & TQ_RESTRICT) != 0)
+#endif /* RESTRICT_ALLOWED */
 
 /*
 Return TRUE if the type qualifiers on two types match.  Typedefs and
