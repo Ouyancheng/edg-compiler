@@ -20,8 +20,6 @@ The instantiation is now deferred until the class is complete.
     A<int> a;
   }
 
-
-
 11/17/93 Problem with non-alternate file format
 
 Because IL lowering did not clear the pointers in a class scope
@@ -104,19 +102,20 @@ error or a spurious error while processing the pragma.
 
 11/16/93 Restrictions on target type of conversion operator
 
-An error is now issued on declaring a conversion operator whose target
+A warning is now issued on declaring a conversion operator whose target
 type is either a (possibly cv-qualified) base class of the class of which
-the operator is a member or a reference to such a base class; this is
-consistent with a post-ARM change to the Working Paper.  In addition, an
-error is issued when the target type is (possible cv-qualified) void, in
-accord with a pending change to the Working Paper, agreed to at the Boston
-meeting.  For example:
+the operator is a member or a reference to such a base class; as required
+by a post-ARM change to the Working Paper, the warning states that the
+declaration, though permitted, will not be used in explicit or implicit
+type conversions.  In addition, an error is issued when the target type is
+(possible cv-qualified) void, in accord with a pending change to the
+Working Paper, agreed to at the Boston meeting.  For example:
 
   class Base { };
   class Derived : Base {
-    operator Derived();      // Already an error
-    operator Base();         // Now an error
-    operator Base&();        // Now an error
+    operator Derived();      // Was an error, now a warning
+    operator Base();         // Now a warning
+    operator Base&();        // Now a warning
     operator void();         // Now an error
   };
 
