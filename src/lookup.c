@@ -2670,6 +2670,7 @@ C and C++.
     if (ssep->slow_lookup_required) {
       /* Certain scopes (e.g., pragma and template instantiation) require
          slow lookups. */    
+      use_slow_lookup = TRUE;
     } else if (!C_mode() &&
                (lookup_state.skip_curr_scope ||
                 lookup_state.skip_class_scopes ||
