@@ -4102,6 +4102,12 @@ on a prior declaration.
                   /*save_as_decl_position=*/TRUE);
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
+    /* If this is an member function of an instantiation of a class
+       template, set the specific_def flag in the instance entry. */
+    if (sym->variant.routine.instance_ptr != NULL) {
+      sym->variant.routine.instance_ptr->specific_def = TRUE;
+      sym->variant.routine.instance_ptr->instantiation_required = FALSE;
+    }  /* if */
   }  /* if */
   if (inline_specified) {
     if (!sym->variant.routine.ptr->is_inline &&
