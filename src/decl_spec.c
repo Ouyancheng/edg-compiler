@@ -1480,6 +1480,10 @@ typedef enum {
 #if LONG_LONG_ALLOWED
   , size_long_long
 #endif /* LONG_LONG_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  , size_int32,
+  size_int64
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_type_size;
 
 
@@ -1684,6 +1688,26 @@ decl_specifiers.
           }  /* if */
           break;
 #endif /* LONG_LONG_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case size_int32:
+          if (sign != sign_unsigned) {
+            /* __int32, signed __int32. */
+            ikind = targ_int32_int_kind;
+          } else {
+            /* unsigned __int32. */
+            ikind = targ_unsigned_int32_int_kind;
+          }  /* if */
+          break;
+        case size_int64:
+          if (sign != sign_unsigned) {
+            /* __int64, signed __int64. */
+            ikind = targ_int64_int_kind;
+          } else {
+            /* unsigned __int64. */
+            ikind = targ_unsigned_int64_int_kind;
+          }  /* if */
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
         default:
           internal_error("combine_type_specifiers: bad size for int");
@@ -2404,6 +2428,26 @@ Returns TRUE if there is an error in the specifiers.
           }  /* switch */
         }  /* if */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_int32:
+      case tok_int64:
+        /* The Microsoft keywords __int32 and __int64 represent a basic type
+           and a size in combination.  In other words, an explicit size
+           may not be specified in conjuction with either. */
+        if (!type_specifier_allowed) {
+          error(ec_type_specifier_not_allowed);
+          err = TRUE;
+        } else if (basic_type != bt_none || size != size_none) {
+          /* Basic type or size has already been specified in some way. */
+          bad_combination_of_type_specifiers = TRUE;
+          error(ec_bad_combination_of_type_specifiers);
+        } else {
+          /* Set both basic type and size. */
+          basic_type = bt_int;
+          size = curr_token == tok_int32 ? size_int32 : size_int64;
+        }  /* if */
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_short:
       case tok_long:
         /* A type specifier (3.5.2) that modifies the length of a basic
