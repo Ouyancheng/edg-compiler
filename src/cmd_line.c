@@ -292,7 +292,7 @@ Process the arguments on the command line that invoked the compiler.
         /* Print out compiler version. */
         fprintf(stderr, "Edison Design Group C/C++ Front End, version %s\n",
                          VERSION_NUMBER);
-        fprintf(stderr, "Copyright 1988-1993 Edison Design Group Inc.\n");
+        fprintf(stderr, "Copyright 1988-1994 Edison Design Group Inc.\n");
 #ifdef DEMO_VERSION_ID
         fprintf(stderr, "Demonstration version for %s\n", DEMO_VERSION_ID);
 #endif /* ifdef DEMO_VERSION_ID */
