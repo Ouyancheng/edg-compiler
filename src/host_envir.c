@@ -1278,7 +1278,7 @@ file should be a binary file if binary_file is TRUE.
 #if __MICROSOFT_OS__
   /* Under MS-DOS we don't need to add a slash if the path already ends with
      a backslash. */
-  if (need_slash && temp_dir[dir_len-1] != '\\') need_slash = TRUE;
+  if (need_slash && temp_dir[dir_len-1] != '\\') need_slash = FALSE;
 #endif /* __MICROSOFT_OS__ */
   do {
     /* Put together the name dir + "/edg" + seed + "_" + process id.  See if

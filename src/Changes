@@ -1,5 +1,11 @@
 Version 2.42
 
+7/2/99  Extra slash in temporary file name on DOS/Windows
+
+On Microsoft operating systems, a temporary file name would contain
+an extra slash if the temporary directory name was terminated by a
+backslash.  This has been fixed.
+
 7/2/99  Microsoft compatibility: ignore self qualification
 
 In Microsoft bugs mode, the qualifier "C::" in the declarator of a member
