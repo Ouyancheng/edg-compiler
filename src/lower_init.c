@@ -6402,7 +6402,6 @@ cast to the proper base class.
   a_routine_ptr          overriding_function, overridden_function;
   a_base_class_ptr       bcp;
   a_type_ptr             overriding_return_type, overridden_return_type;
-  a_boolean              baseward_cast;
 
   /* The routine type must be already lowered so that, among other things,
      the implicit "this" parameter is already in the parameter type list. */
@@ -6431,14 +6430,16 @@ cast to the proper base class.
      to the right base class pointer. */
   overriding_function = routine->overriding_function_for_covariant_return_type;
   overridden_function = routine->overridden_function_for_covariant_return_type;
-  overriding_return_type = return_type_of(overriding_function->type);
-  overridden_return_type = return_type_of(overridden_function->type);
+  overriding_return_type = skip_typerefs(overriding_function->type)->
+                                                   variant.routine.return_type;
+  overridden_return_type = skip_typerefs(overridden_function->type)->
+                                                   variant.routine.return_type;
   expr = alloc_expr_node((an_expr_node_kind)enk_result_of_overriding_function);
   expr->type = overriding_return_type;
-  (void)f_related_class_pointers(overriding_return_type,
-                                 overridden_return_type,
-                                 &baseward_cast,
-                                 &bcp);
+  bcp = find_base_class_of_full(type_pointed_to(overriding_return_type),
+                                type_pointed_to(overridden_return_type),
+                                /*instantiate_if_necessary=*/FALSE);
+  check_assertion(bcp != NULL);
   add_base_class_casts(bcp, overridden_return_type,
                        /*check_cast_access=*/FALSE,
                        /*is_implicit_cast=*/TRUE,
