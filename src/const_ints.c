@@ -850,12 +850,11 @@ underflow occurred.
 }  /* subtract_integer_values */
 
 
-#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 void negate_integer_value(an_integer_value *op_1,
 			  a_boolean	    *err)
 /*
-Negate a simulated large integer value.  The result is returned in the
-first operand (op_1 = -op_1).  err is TRUE if an overflow occurred.
+Negate an integer value.  The result is returned in the first operand
+(op_1 = -op_1).  err is TRUE if an overflow occurred.
 */
 {
   an_integer_value  result;
@@ -863,7 +862,6 @@ first operand (op_1 = -op_1).  err is TRUE if an overflow occurred.
   subtract_integer_values(&result, op_1, /*is_signed=*/TRUE, err);
   *op_1 = result;
 }  /* negate_integer_value */
-#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
