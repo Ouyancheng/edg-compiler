@@ -4999,6 +4999,10 @@ the latter will be NULL for variables.
         } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
           scp = &sym->variant.extern_symbol_descr->
                                     variant.routine.ptr->source_corresp;
+        } else {
+          /* Skip synthesized namespace projection symbols. */
+          check_assertion(sym->kind == (a_symbol_kind)sk_namespace_projection);
+          continue;
         }  /* if */
         if (scp->name_linkage == (a_name_linkage_kind)nlk_external) {
           if (rout_type != NULL &&
