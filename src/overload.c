@@ -1277,16 +1277,16 @@ match the argument list given by arg_operand_list and the selector given
 overloaded_function_symbol may be an overloaded function, a simple
 function, or a projection symbol for one of those.  bound_function_selector
 is an object pointer if selector_is_object_pointer is TRUE, an object
-otherwise.  Note that, for constructor calls, bound_function_selector can
-be NULL when have_selector is TRUE.  Any viable functions are added to
-the candidate_functions list along with information on the level of
-argument matches.  If user_conversion_case is TRUE, this analysis is
-being done as part of resolving an implicit conversion; user-defined
-conversions are not tried on argument matches, and user_conversion is set
-in any candidate function entries created.  If a match would have been
-found except for the absence of a selector, set
-*matched_except_for_missing_selector TRUE; that allows a different error
-message.
+otherwise.  Any viable functions are added to the candidate_functions
+list along with information on the level of argument matches.  If a
+match would have been found except for the absence of a selector, set
+*matched_except_for_missing_selector TRUE; that allows a different
+error message.  If user_conversion_case is TRUE, this analysis is
+being done as part of resolving an implicit conversion: the functions
+are constructors, have_selector is FALSE (sic; the "this" parameter
+is not matched up); user-defined conversions are not tried on argument
+matches, and user_conversion is set in any candidate function entries
+created.
 */
 {
   a_boolean                overloaded_function_case;
@@ -1317,8 +1317,10 @@ message.
     function_symbol = overloaded_function_symbol;
   }  /* if */
   /* If we have no selector, see if any one of the functions requires one.
-     If so, we will look to see if an implicit "this->" can be generated. */
-  if (!have_selector) {
+     If so, we will look to see if an implicit "this->" can be generated.
+     Don't do this for the conversion case (the "this" parameter of the
+     constructor is not used in the match). */
+  if (!user_conversion_case && !have_selector) {
     a_boolean some_function_needs_selector = FALSE;
     /* Check the first or only function to see whether or not it requires
        a selector. */
@@ -1443,7 +1445,9 @@ message.
     /* All the arguments can be made to match the parameters. */
     /* See if the "this" parameter, if any, matches. */
     /* Template functions do not have "this" parameters. */
-    if (!function_template_case) {
+    /* Do not process the "this" parameter for constructors in a conversion
+       case. */
+    if (!function_template_case && !user_conversion_case) {
       function_is_nonstatic_member_function =
                        routine_type_is_nonstatic_member_function(routine_type);
       if (have_selector) {
@@ -1479,12 +1483,6 @@ message.
               *matched_except_for_missing_selector = TRUE;
               goto reject_function;
             }  /* if */
-          } else if (bound_function_selector == NULL) {
-            /* We're dealing with a constructor case, the selector
-               expression is not available, and we can assume that it matches
-               perfectly (const- and volatile- qualifiers are not allowed
-               on constructors). */
-            this_match->match_level = aml_exact;
           } else {
             /* See how the selector expression matches the "this" parameter
                type. */
@@ -4691,8 +4689,8 @@ This routine is only used in C++ mode.
     /* Try all the constructors with that argument list. */
     try_overloaded_function_match(constructor_symbol,
                                   arg_operand_list,
-                                  /*have_selector=*/TRUE,
-                                  (an_operand *)NULL, /* constructor */
+                                  /*have_selector=*/FALSE, /* sic */
+                                  (an_operand *)NULL,
                                   /*selector_is_object_pointer=*/FALSE,
                                   /*user_conversion_case=*/TRUE,
                                   &candidate_functions,

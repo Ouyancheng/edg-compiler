@@ -1,5 +1,11 @@
 Version 2.20
 
+10/22/93 Bug in overload resolution fixed
+
+When a conversion could be done both via a constructor and via a
+conversion function, the relative goodness of argument matches was
+not compared correctly.
+
 10/21/93 Code after a throw is unreachble
 
 The front end now recognizes that code following a throw is unreachable.
