@@ -3611,10 +3611,8 @@ a template parameter.
       template_param_found = arg_operand_contains_template_param(
                                                              tap->arg_operand);
     } else if (tap->is_array_bound_of_unknown_type) {
-      /* Such arguments should be sufficiently short-lived that they should
-         never get here. */
+      /* An array bound specified as a integral constant. */
       template_param_found = FALSE;
-      unexpected_condition();
     } else {
       /* A normal nontype parameter represented as a constant. */
       check_assertion(tap->variant.constant != NULL);
