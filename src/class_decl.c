@@ -402,7 +402,7 @@ Dump a base class's list of overriding virtual functions, for debug purposes.
 }  /* db_virtual_function_override_list */
 
 
-static void db_all_virtual_function_override_lists(a_type_ptr  class_type)
+void db_all_virtual_function_override_lists(a_type_ptr  class_type)
 /*
 Dump the virtual function override lists for a class, by base class.
 */
@@ -730,6 +730,9 @@ old_class under new_class.
       }  /* if */
     } else if (bcp->type == base_class->type) {
       /* The types match. */
+#if 0
+/* Also check whether bcp->is_virtual == base_class->is_virtual ?? */
+#endif /* if 0 */
       if (!bcp->ambiguous && !base_class->ambiguous) {
         new_base_class = bcp;
         goto done;
@@ -778,43 +781,103 @@ done:;
 }  /* corresponding_base_class */
 
 
-static void copy_virtual_function_override_list(
-                                 an_overriding_virtual_function_ptr list,
-                                 a_base_class_ptr                   base_class,
-                                 a_type_ptr                         old_class,
-                                 a_type_ptr                         new_class)
+static a_boolean overriding_virtual_function_lists_correspond(
+                                    an_overriding_virtual_function_ptr  list1,
+                                    an_overriding_virtual_function_ptr  list2)
 /*
-Copy the list of overriding virtual functions given by "list" and add
-each of the copies to the list belonging to base_class.  The entries are
-being copied from a base class of old_class to a base class of new_class.
-base_class is the base class being created in new_class.
+Return TRUE if the lists of overriding virtual functions, list1 and list2,
+correspond item for item (that is, if entries in the same position of the
+lists refer to the same virtual function override).
 */
 {
-  an_overriding_virtual_function_ptr  ovfp, new_ovfp;
+  a_boolean  lists_correspond = TRUE;
 
-  db_enter(4, "copy_virtual_function_override_list");
-  /* Make a pass over the existing list. */
-  for (ovfp = list; ovfp != NULL; ovfp = ovfp->next) {
-    /* Allocate a new entry and copy fields from the original. */
-    new_ovfp = alloc_overriding_virtual_function();
-    new_ovfp->primary_function = ovfp->primary_function;
-    new_ovfp->overriding_function = ovfp->overriding_function;
-    /* The base class of the overriding function must be translated into
-       the new class. */
-    new_ovfp->base_class = corresponding_base_class(ovfp->base_class,
-                                                    old_class,
-                                                    new_class);
-#if DEBUG
-    if (debug_level >= 4) {
-      fputs("copy for base class ", f_debug);
-      db_name(&base_class->type->source_corresp);
-      fputs(": ", f_debug);
-      db_virtual_function_override(ovfp);
+  while (list1 != NULL || list2 != NULL) {
+    if (list1 == NULL || list2 == NULL ||
+        list1->primary_function != list2->primary_function ||
+        list1->overriding_function != list2->overriding_function) {
+      lists_correspond = FALSE;
+      break;
     }  /* if */
-#endif /* DEBUG */
-    /* Add it to the new list. */
-    insert_in_virtual_function_override_list(base_class, new_ovfp);
+    list1 = list1->next;
+    list2 = list2->next;
+  }  /* while */
+  return lists_correspond;
+}  /* overriding_virtual_function_lists_correspond */
+
+
+static a_boolean already_on_overriding_virtual_function_list(
+                                     a_base_class_ptr                    bcp,
+                                     an_overriding_virtual_function_ptr  ovfp)
+{
+  a_boolean                           already_on_list = FALSE;
+  an_overriding_virtual_function_ptr  ovfp_from_list;
+
+  for (ovfp_from_list = bcp->overriding_virtual_functions;
+       ovfp_from_list != NULL;
+       ovfp_from_list = ovfp_from_list->next) {
+    if (ovfp_from_list->primary_function == ovfp->primary_function &&
+        ovfp_from_list->overriding_function == ovfp->overriding_function) {
+      already_on_list = TRUE;
+    }  /* if */
   }  /* for */
+  return already_on_list;
+}  /* already_on_overriding_virtual_function_list */
+
+
+static void copy_virtual_function_override_list(a_base_class_ptr  old_bcp,
+                                                a_base_class_ptr  new_bcp,
+                                                a_type_ptr        old_class,
+                                                a_type_ptr        new_class)
+/*
+Copy the list of overriding virtual functions associated with old_bcp and add
+each of the copies to the list belonging to new_bcp.  The entries are
+being copied from a base class of old_class to a base class of new_class.
+new_bcp is the base class being created in new_class.
+*/
+{
+  an_overriding_virtual_function_ptr  ovfp, new_ovfp, old_list;
+  a_boolean                           check_new_list;
+  db_enter(4, "copy_virtual_function_override_list");
+  old_list = old_bcp->overriding_virtual_functions;
+  if (old_list != NULL) {
+    if (new_bcp->overriding_virtual_functions == NULL) {
+      new_bcp->base_class_with_same_virtual_function_info = old_bcp;
+      check_new_list = FALSE;
+    } else if (overriding_virtual_function_lists_correspond(
+                       old_list, new_bcp->overriding_virtual_functions)) {
+      goto done;
+    } else {
+      new_bcp->base_class_with_same_virtual_function_info = NULL;
+      check_new_list = TRUE;
+    }  /* if */
+    /* Make a pass over the existing list. */
+    for (ovfp = old_list; ovfp != NULL; ovfp = ovfp->next) {
+      if (!check_new_list ||
+          !already_on_overriding_virtual_function_list(new_bcp, ovfp)) {
+        /* Allocate a new entry and copy fields from the original. */
+        new_ovfp = alloc_overriding_virtual_function();
+        new_ovfp->primary_function = ovfp->primary_function;
+        new_ovfp->overriding_function = ovfp->overriding_function;
+        /* The base class of the overriding function must be translated into
+           the new class. */
+        new_ovfp->base_class = corresponding_base_class(ovfp->base_class,
+                                                        old_class,
+                                                        new_class);
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("copy for base class ", f_debug);
+          db_name(&new_bcp->type->source_corresp);
+          fputs(": ", f_debug);
+          db_virtual_function_override(ovfp);
+        }  /* if */
+#endif /* DEBUG */
+        /* Add it to the new list. */
+        insert_in_virtual_function_override_list(new_bcp, new_ovfp);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+done:;
   db_exit();
 }  /* copy_virtual_function_override_list */
 
@@ -895,6 +958,7 @@ entry appears on a linked list pointed to from base_class.
 #endif /* DEBUG */
     insert_in_virtual_function_override_list(base_class, ovfp);
   }  /* if */
+  base_class->base_class_with_same_virtual_function_info = NULL;
   db_exit();
 }  /* record_virtual_function_override */
 
@@ -1516,10 +1580,8 @@ NULL, a pointer to step is returned.
 
 
 static void fixup_virtual_base_class(a_base_class_ptr               base_class,
-                                     an_overriding_virtual_function *ovf_list,
                                      a_derivation_step_ptr          path,
                                      an_access_specifier            new_access,
-                                     a_type_ptr                     old_class,
                                      a_type_ptr                     new_class)
 /*
 
@@ -1568,8 +1630,7 @@ it is always NULL when the other instance of the base class is a direct
 base class.  path is the derivation path leading up to the other instance
 of the base class (e.g., ==>B==>V); it is always NULL when the other
 instance is a direct base class.  access is the accessibility of the
-other instance of the base class.  old_class is the class from which
-we are inheriting ovf_list.  new_class is the class of which base_class
+other instance of the base class.  new_class is the class of which base_class
 is a base class.
 */
 {
@@ -1624,10 +1685,6 @@ is a base class.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Make a copy of each item on the override list base class and merge
-     it into the list of base_class. */
-  copy_virtual_function_override_list(ovf_list, base_class,
-                                      old_class, new_class);
   if (recompute_path_and_access) {
     base_class->access = new_access;
     /* Reset the path of base_class.  It should just be the path passed in
@@ -1642,21 +1699,16 @@ is a base class.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-  /* Go through all the base classes for the class to which base_class
-     corresponds (they are represented by "other_bcp"), and find the
-     corresponding base class in the list that is now being built ("bcp").
-     The "bcp" items may need to be modified to incorporate information from
-     "other_bcp" -- each should have its virtual function override list updated
-     and its path modified (if required).  The access field should not be
-     changed. */
-  for (other_bcp = base_classes_of(base_class->type);
-       other_bcp != NULL;
-       other_bcp = other_bcp->next) {
-    bcp = corresponding_base_class(other_bcp, base_class->type, new_class);
-    copy_virtual_function_override_list(
-                     other_bcp->overriding_virtual_functions, bcp,
-                     old_class, new_class);
-    if (recompute_path_and_access) {
+  if (recompute_path_and_access) {
+    /* Go through all the base classes for the class to which base_class
+       corresponds (they are represented by "other_bcp"), and find the
+       corresponding base class in the list that is now being built ("bcp").
+       The "bcp" items may need to be modified to incorporate path information
+       from "other_bcp".  The access field should not be changed. */
+    for (other_bcp = base_classes_of(base_class->type);
+         other_bcp != NULL;
+         other_bcp = other_bcp->next) {
+      bcp = corresponding_base_class(other_bcp, base_class->type, new_class);
 #if DEBUG
       if (debug_level >= 3) {
         fputs("may need fixup: ", f_debug);
@@ -1703,15 +1755,14 @@ static a_base_class_ptr add_indirect_base_class(
                                     a_base_class_ptr      add_list,
                                     a_base_class_ptr      *end_of_add_list,
                                     a_derivation_step_ptr path,
-                                    a_type_ptr            old_class,
                                     a_type_ptr            new_class)
 /*
 Create a new indirect base class based on base_class_to_copy and, typically,
 add it to the end of add_list.  "path" is the derivation path from the most
 derived class to the class that is directly derived from the new base class,
 and it is copied and extended to produce the new base class's derivation.
-In addition, check for ambiguity and duplicate paths.  base_class_to_copy
-is a base class of old_class, and the copy will be a base class of new_class.
+In addition, check for ambiguity and duplicate paths.  The copy will be a
+base class of new_class.
 */
 {
   a_base_class_ptr       new_bcp = NULL, bcp;
@@ -1723,10 +1774,10 @@ is a base class of old_class, and the copy will be a base class of new_class.
     for (bcp = add_list; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
         is_virtual_duplicate = TRUE;
-        fixup_virtual_base_class(
-                         bcp, base_class_to_copy->overriding_virtual_functions,
-                         path, base_class_to_copy->access,
-                         old_class, new_class);
+        fixup_virtual_base_class(bcp, path, base_class_to_copy->access,
+                                 new_class);
+        new_bcp = bcp;
+        break;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1764,8 +1815,7 @@ is a base class of old_class, and the copy will be a base class of new_class.
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         (void)add_indirect_base_class(bcp, add_list, end_of_add_list,
-                                      new_bcp->derivation,
-                                      old_class, new_class);
+                                      new_bcp->derivation, new_class);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1924,10 +1974,8 @@ or struct definition.  The syntax is
                of the other must be preserved, so that we will get the order
                of initializers right (ARM 12.6.2).  Modify the other base class
                (and any base classes from which it is derived) in place. */
-            fixup_virtual_base_class(bcp,
-                                     (an_overriding_virtual_function_ptr)NULL,
-                                     (a_derivation_step_ptr)NULL, access,
-                                     base_class_type, type_ptr);
+            fixup_virtual_base_class(bcp, (a_derivation_step_ptr)NULL, access,
+                                     type_ptr);
             goto skip_base_class;
           } else {
             /* At least one is non-virtual, so there is an ambiguity.  Mark
@@ -2012,32 +2060,20 @@ or struct definition.  The syntax is
                base class list for the derived class. */
             new_bcp = add_indirect_base_class(bcp, ctsp->base_classes,
                                               &end_of_base_classes_list, path,
-                                              base_class_type, type_ptr);
-            /* add_indirect_base_class returns NULL when the class to
-               be copied is a virtual base class and it's already on the
-               base classes list that is being constructed. */
-            if (new_bcp == NULL) continue;
+                                              type_ptr);
           }  /* if */
           if (bcp->overriding_virtual_functions != NULL) {
             if (!bcp->direct) {
               /* Indirect base classes must have their virtual function
                  override lists copied, too. */
-              for (new_bcp = ctsp->base_classes;
-                   new_bcp->type != bcp->type;
-                   new_bcp = new_bcp->next) {
-#if CHECKING
-                if (new_bcp->next == NULL) {
-                  internal_error(
-                          "scan_base_specifiers_list: base class not on list");
-                }  /* if */
-#endif /* CHECKING */
-              }  /* for */
+              new_bcp = corresponding_base_class(bcp, bcp->type, type_ptr);
             }  /* if */
-            /* Copy the virtual function override entries from bcp to the
-               corresponding copied base class new_bcp. */
-            copy_virtual_function_override_list(
-                             bcp->overriding_virtual_functions, new_bcp,
-                             base_class_type, type_ptr);
+            /* Copy the virtual function override entries from bcp (which is
+               on the base classes list for base_class_type) to the
+               corresponding copied base class new_bcp (which is on the base
+               bases list for type_ptr). */
+            copy_virtual_function_override_list(bcp, new_bcp,
+                                                base_class_type, type_ptr);
 #if DEBUG
             if (debug_level >= 4) {
               if (bcp->overriding_virtual_functions != NULL) {
@@ -6334,7 +6370,6 @@ next_declaration:
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
-    db_all_virtual_function_override_lists(class_type);
   }  /* if */
 #endif
   db_exit();
