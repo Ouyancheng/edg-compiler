@@ -3475,10 +3475,13 @@ done_with_operation:
           break;
         case leck_cleanup_state:
           write_tok_str("cleanup_state");
-#if GENERATE_EH_TABLES
           write_tok_str(" = ");
+#if GENERATE_EH_TABLES
           write_unsigned_num((unsigned long)expr->variant.
                                      lowered_eh.variant.cleanup_region_number);
+#else /* !GENERATE_EH_TABLES */
+          write_unsigned_num((unsigned long)expr->variant.
+                                     lowered_eh.variant.cleanup_ptr);
 #endif /* GENERATE_EH_TABLES */
           break;
         case leck_function_prologue:
