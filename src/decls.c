@@ -3842,6 +3842,7 @@ otherwise it is NULL.  The syntax is:
             set_to_error_locator(*locator);
           }  /* if */
         }  /* if */
+        if (required_token(tok_lparen, ec_exp_lparen)) goto function_lparen;
       }  /* if */
     }  /* if */
   }  /* if */
