@@ -2621,8 +2621,23 @@ after_entry_from_class:
       }
       break;
     case iek_asm_operand_constraint:
+#if !DO_SUBTREE_WALK
+      {
+        an_asm_operand_constraint_ptr ptr =
+                                      (an_asm_operand_constraint_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_asm_operand_constraint_ptr,
+                       iek_asm_operand_constraint);
+      }
+#endif /* !DO_SUBTREE_WALK */
       break;
     case iek_named_register_list:
+#if !DO_SUBTREE_WALK
+      {
+        a_named_register_list_ptr ptr = (a_named_register_list_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_named_register_list_ptr,
+                       iek_named_register_list);
+      }
+#endif /* !DO_SUBTREE_WALK */
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case iek_template_arg:
