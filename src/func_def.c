@@ -325,7 +325,16 @@ being taken.
      add_to_derived_type_list.  In addition, a reference type (including a
      reference to an array or function) may also be returned (ARM 8.2.5). */
   if (is_void_type(return_type)) {
-    /* Okay. */
+    if (is_qualified_type(return_type) && !is_expr_use &&
+        C_mode() && strict_ansi_mode) {
+      /* In strict C mode a void return type on a function definition cannot
+         have a qualifier. */
+      err = (strict_ansi_error_severity == es_error);
+      diagnostic(strict_ansi_error_severity,
+                 ec_type_qualifier_on_void_return_type);
+    } else {
+      /* Okay. */
+    }  /* if */
   } else if (is_error_type(return_type)) {
     /* No diagnostic this time. */
   } else {
