@@ -4166,6 +4166,7 @@ qualified name.  They may not include constraints (such as IDL_MUST_BE_CLASS).
 */
 {
   a_boolean         is_qualified_name = FALSE, qualifier_err, okay;
+  a_boolean         is_destructor;
   a_scope_number    class_scope;
   a_source_position start_position;
 
@@ -4196,6 +4197,10 @@ qualified name.  They may not include constraints (such as IDL_MUST_BE_CLASS).
           start_position = error_position;
           set_err_pos_to_curr_token();
           okay = FALSE;
+          /* There can be a "~" next when the name is for a destructor, as
+             in "A::~A". */
+          is_destructor = (curr_token == tok_compl);
+          if (is_destructor) (void)get_token();
           /* The current token must now be the final identifier of the
              qualified name, e.g., "x" in "A::B::x". */
           if (curr_token != tok_identifier) {
@@ -4208,7 +4213,9 @@ qualified name.  They may not include constraints (such as IDL_MUST_BE_CLASS).
             error(ec_exp_identifier);
           } else {
             /* The final identifier is present.  Look it up in the class
-               scope. */
+               scope.  For a destructor, add the "~" to the name in the
+               locator. */
+            if (is_destructor) tildize_locator(&locator_for_curr_id);
             if (scope_qualified_id_lookup(&locator_for_curr_id, class_scope,
                                           options) != NULL) {
               /* The name was found.  locator_for_curr_id.specific_symbol
