@@ -276,7 +276,9 @@ at *insert_location.
   an_expr_node_ptr      call_node, rout_node;
   a_type_ptr            rout_return_type;
   an_expr_operator_kind op;
+#if MINIMAL_INLINING
   a_statement_ptr       call_stmt = NULL;
+#endif /* MINIMAL_INLINING */
 
   if (make_all_functions_unprototyped) {
     /* If transforming all functions to old-style unprototyped form (for
@@ -313,7 +315,11 @@ at *insert_location.
   rout_return_type = il_return_type_of(routine->type);
   call_node = make_operator_node(op, rout_return_type, rout_node);
   if (insert_location != NULL) {
+#if MINIMAL_INLINING
     call_stmt = insert_expr_statement_set_pos(call_node, insert_location);
+#else /* !MINIMAL_INLINING */
+    (void)insert_expr_statement_set_pos(call_node, insert_location);
+#endif /* MINIMAL_INLINING */
   }  /* if */
 #if MINIMAL_INLINING
   if (inlining_enabled && op == (an_expr_operator_kind)eok_call) {
