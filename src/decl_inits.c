@@ -1010,7 +1010,7 @@ Either way, *brace_flag is set to true if a brace was seen.
   a_dynamic_init_ptr             dip;
 
 
-  /* The following test can have to side-effects: *brace_flag may become true
+  /* The following test can have two side-effects: *brace_flag may become true
      and *dest_type may become the error type. */
   if (!looks_like_whole_object_init_case(top_level, init_info,
                                          dest_type_ptr, brace_flag)) {
@@ -1653,7 +1653,7 @@ this function points to a tree that includes a dynamic-init entry.
         if (member_type == NULL) {
           /* Switch to an error type to take this and all following
              initializers without error. */
-          kind = (a_constant_repr_kind)tk_error;
+          kind = (a_type_kind)tk_error;
           member_type = error_type();
           any_more_members = TRUE;
         }  /* if */
