@@ -387,7 +387,6 @@ Write the initial information to the IL file, if there is one.
       fs_entry_numbers_array[int_entry_kind] = 0;
     }  /* if */
   }
-#endif /* ALTERNATE_IL_FILE_FORMAT */
   /* We need a constant that is at least as big as the largest size of
      a (non-string) IL entry.  We take a guess by adding the sizes of
      two of the largest entries, and check here that we're okay. */
@@ -403,6 +402,7 @@ Write the initial information to the IL file, if there is one.
     }  /* if */
   }
 #endif /* CHECKING */
+#endif /* ALTERNATE_IL_FILE_FORMAT */
 }  /* start_il_file */
 
 
@@ -424,11 +424,21 @@ Finish writing the IL file, if there is one.
          file offset to the file index table
          file offset to the start of the file scope region
          il_header
-       and that zeroes were written in the space for the last four items
+    */
+#if ORPHANED_PROCESSING_NEEDED
+    /*   orphaned_file_scope_il_entries[]
+    */
+#endif
+    /* and that zeroes were written in all but the first item
        when the file was begun (see start_il_file).  il_header was
        written again by write_memory_region when the file-scope memory
        region was written.
     */
+#if ORPHANED_PROCESSING_NEEDED
+    /* The orphaned_file_scope_il_entries[] was also written again by 
+       write_memory_region when the file-scope memory region was written.
+    */
+#endif
     /* Write a zero region number that indicates the end of the list
        of regions. */
     (void)fwrite((char *)&end_flag, sizeof(end_flag), 1, f_il_output);
@@ -762,7 +772,13 @@ Write the indicated memory region to the file f_il_output.
          file-scope storage may get freed and we may need to be
          able to check addresses in il_header to see if they're valid
          file-scope addresses.
-         Recall that the beginning of the file looks like:
+      */
+#if ORPHANED_PROCESSING_NEEDED
+      /* Also the orphaned_file_scope_il_entries array must be written now
+         for the same reason.
+      */
+#endif
+     /*  Recall that the beginning of the file looks like:
            magic string that identifies an IL file (already written properly)
            number of regions (written as 0)
            file offset to the file index table (written as 0)
@@ -814,7 +830,7 @@ Write the indicated memory region to the file f_il_output.
       (void)fwrite((char *)orphaned_file_scope_il_entries,
                    sizeof(orphaned_file_scope_il_entries), 1, f_il_output);
 #if ALTERNATE_IL_FILE_FORMAT
-      /* Restor the orphaned IL entry table. */
+      /* Restore the orphaned IL entry table. */
       memcpy((char *)orphaned_file_scope_il_entries,
              orphaned_file_scope_il_entries_copy,
              sizeof(orphaned_file_scope_il_entries));
