@@ -2615,12 +2615,8 @@ to FALSE if the entity being declared is not initializable.
           set_to_error_locator(*locator);
         } else {
           sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-          if (!destructor_name_matches_class_name(sym) ||
-              !(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
-            /* Either the name on the destructor is not the name of the
-               class or the specifiers are not consistent with a destructor
-               declaration (e.g., a destructor cannot be specified "static"
-               or "void"). */
+          if (!destructor_name_matches_class_name(sym)) {
+            /* The name on the destructor is not the name of the class. */
             error(ec_bad_destructor_decl);
             set_to_error_locator(*locator);
           } else {
@@ -3397,7 +3393,7 @@ the parameters.
   /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
   check_assertion_str(!is_constructor || member_parent_type != NULL ||
                       (input_flags & DI_IS_FRIEND_DECL),
-                      "r_declarator: parent class is NULL for ctor");
+                      "declarator: parent class is NULL for ctor");
   r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,
                &bottom_derived_type, &is_constructor, &is_destructor,
