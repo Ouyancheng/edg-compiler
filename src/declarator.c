@@ -2314,9 +2314,7 @@ to FALSE if the entity being declared is not initializable.
               sym->kind == (a_symbol_kind)sk_function_template) {
             /* It is a member function.  Its parameters should be scanned
                with the original class reactivated. */
-            if (!(input_flags & DI_IS_FRIEND_DECL)) {
-              reactivate_scope = TRUE;
-            }  /* if */
+            reactivate_scope = TRUE;
             *parenthesized_initializer_allowed = FALSE;
             if (is_constructor_symbol(sym)) {
               *is_constructor = TRUE;
@@ -2353,14 +2351,12 @@ to FALSE if the entity being declared is not initializable.
           }  /* if */
         } else {
           /* This must be a namespace-qualified name. */
-          if (!(input_flags & DI_IS_FRIEND_DECL)) {
-            nsp = qualifier_namespace_ptr(locator_for_curr_id);
-            if (nsp != NULL) {
-              /* Push the namespace extension scope.  It will be popped when
-                 scanning the declarator has been completed. */
-              push_namespace_reactivation_scope(nsp);
-              *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
-            }  /* if */
+          nsp = qualifier_namespace_ptr(locator_for_curr_id);
+          if (nsp != NULL) {
+            /* Push the namespace extension scope.  It will be popped when
+               scanning the declarator has been completed. */
+            push_namespace_reactivation_scope(nsp);
+            *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
           }  /* if */
         }  /* if */
       }  /* if */
