@@ -65,6 +65,7 @@ a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
    files added by customers.  Note the use of "struct an_operand"
    here to avoid exposing the definition of an_operand to the front end
    at large. */
+typedef struct an_operand an_operand_dummy_typedef;
 extern void scan_expr_full(struct an_operand        *result,
                            struct an_operand        *bound_function_selector,
                            int                      prec_level,
