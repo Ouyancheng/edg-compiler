@@ -10294,8 +10294,8 @@ of the front end.
 #endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
-  file_scope_number = FILE_SCOPE_NUMBER;
-  next_scope_number = file_scope_number;
+  next_scope_number = FILE_SCOPE_NUMBER;
+  file_scope_number = take_next_scope_number();
 
   /* size_scope_stack is not per-file and should not be reset. */
   /* ident_buffer and size_ident_buffer are not per-file and should not
