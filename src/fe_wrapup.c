@@ -71,7 +71,9 @@ Show the amount of memory allocated.
 void translation_unit_wrapup(void)
 /*
 Do any processing that is required at the end of a translation unit
-(primary or secondary).
+(primary or secondary).  This is called after all the source code
+for the translation unit has been read, but before any templates
+are instantiated.
 */
 {
   db_enter(1, "translation_unit_wrapup");
