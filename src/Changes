@@ -1,5 +1,11 @@
 Version 3.4
 
+12/10/03 C++-generating back end: Abort in tag_keyword on enum specifier
+
+In configurations with MICROSOFT_EXTENSIONS_ALLOWED is TRUE, the C++-
+generating back end sometimes triggered an internal error in function
+tag_keyword while generating an enum specifier.  This is now fixed.
+
 12/9/03  Argument-dependent lookup and block extern declarations
 
 Core issue 239 says that if the name found in a call is a

@@ -1959,7 +1959,8 @@ Return a string that describes the tag kind for the indicated type (i.e.,
   char *result;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (type->variant.class_struct_union.is_interface) {
+  if (type->kind != (a_type_kind)tk_enum &&
+      type->variant.class_struct_union.is_interface) {
     check_assertion(type->kind == (a_type_kind)tk_struct);
     result = "__interface";
   } else
