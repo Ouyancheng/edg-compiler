@@ -297,6 +297,20 @@ Dump decl-pos information for the specified symbol (for debugging).
           }  /* if */
         }  /* if */
       }  /* for */
+    } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+      /* Display decl-pos info for each explicit specialization of the
+         class template. */
+      a_symbol_ptr  instance_sym;
+
+      for (instance_sym = sym->variant.template_info->
+                                  variant.class_template.instantiations;
+           instance_sym != NULL;
+           instance_sym = next_instance_sym(instance_sym)) {
+        if (instance_sym->variant.class_struct_union.type->
+                             variant.class_struct_union.is_specialized) {
+          db_decl_pos_info(instance_sym);
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
 }  /* db_decl_pos_info */
