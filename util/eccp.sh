@@ -541,6 +541,7 @@ check_abbreviation()
 --far_data_pointers
 --force_vtbl
 --friend_injection
+--g++
 --gcc
 --guiding_decls
 --ignore_std
@@ -598,6 +599,7 @@ check_abbreviation()
 --no_extended_variadic_macros
 --no_extern_inline
 --no_friend_injection
+--no_g++
 --no_gcc
 --no_guiding_decls
 --no_il_lowering
@@ -1146,6 +1148,8 @@ process_option()
          --no_sun | \
          --gcc | \
          --no_gcc | \
+         --g++ | \
+         --no_g++ | \
          --dep_name | \
          --no_dep_name | \
          --parse_templates | \
@@ -1170,7 +1174,7 @@ process_option()
             cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
           fi
           ;;
-        -b | --c++ | --cfront_2.1 | --cfront_3.0)
+        -b | --c++ | --cfront_2.1 | --cfront_3.0 | --g++ | --no_g++)
           c_mode=0
           ;;
 	--no_preproc_only)
