@@ -321,6 +321,17 @@ extern void debug_exit(void);
 #endif /* ifndef CHECKING */
 
 /*
+Indication that a function does not return.  gcc recognizes a return
+type of "volatile void" as meaning that a function does not return.
+*/
+#ifdef __GNUC__
+#define DOES_NOT_RETURN volatile void
+#else /* !defined(__GNUC__) */
+#define DOES_NOT_RETURN void
+#endif /* ifdef __GNUC__ */
+
+
+/*
 Data declarations pertaining to positions within source files.
 */
 typedef unsigned short
