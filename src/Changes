@@ -20,6 +20,8 @@ on a plain typedef.)
   namespace A { using B::x; }  // Now OK: imported name "x" refers to the same
                                // type as "struct x" in the current scope.
 
+(See also the related Changes entry of 11/1/99.)
+
 11/5/99  Array new/delete for class with two-argument operator delete
 
 An array delete operation for a class that has no constructor or
@@ -133,6 +135,8 @@ than to redeclare std::ptrdiff_t:
 This change should be invisible to programmers, but it fixes some
 incorrect output produced by the C++-generating back end on the above
 test program.
+
+(See also the related Changes entry of 10/15/99.)
 
 10/31/99 Loop with NEAR_AND_FAR_ENABLED but not MICROSOFT_EXTENSIONS_ALLOWED
 
