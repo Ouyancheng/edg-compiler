@@ -96,7 +96,7 @@ and return the old value.
 }  /* set_unexpected */
 
 
-__bool uncaught_exception()
+__bool uncaught_exception() THROW_NOTHING()
 /*
 Return TRUE if an exception is in the process of being thrown.
 */

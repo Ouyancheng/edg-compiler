@@ -49,7 +49,7 @@ namespace std {
   void terminate();
   void unexpected();
 
-  extern __bool uncaught_exception();
+  extern __bool uncaught_exception() throw();
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
