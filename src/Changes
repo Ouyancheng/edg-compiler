@@ -1,5 +1,13 @@
 Version 3.5
 
+7/23/04  Embedded C: Named-register storage classes and named address spaces
+
+The front end now issues an error when a variable is declared both with a
+named-register storage class and a type qualified with a named address space.
+For example:
+
+  register _EDG_REG_1 int _EDG_NAS_A x;  // Error.  (Previously accepted.)
+
 7/22/04  Embedded C: Named-register storage class on standalone class
          definition
 

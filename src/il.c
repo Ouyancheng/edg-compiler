@@ -6310,17 +6310,19 @@ variable can be diagnosed.
          previous declaration did not or did not have the same one. */
       pos_sy_error(ec_register_storage_class_conflict, pos, sym);
     }  /* if */
-  } else
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  } else if (named_address_spaces_enabled &&
+             type_qualified_with_named_address_space(var->type)) {
+    pos_error(ec_register_in_address_space, pos);
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  if (!var->has_named_register_storage_class &&
+  } else if (!var->has_named_register_storage_class &&
       (!var->asm_name_is_valid || var->asm_name_or_reg.name != NULL)) {
     /* The variable was already mapped using a GNU construct or a Sun
        pragma. */
     pos_error(ec_aliased_variable_cannot_have_register_storage_class, pos);
-  } else
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-  /* Do not insert code here. */
-  if (register_id != 0) {
+  } else if (register_id != 0) {
     if (named_register_variables[register_id] != NULL) {
       pos_error(ec_register_in_use, pos);
     } else if (is_array_type(var->type)) {
