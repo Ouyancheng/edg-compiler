@@ -5702,7 +5702,6 @@ Scan the body of a class definition, including the base classes list.
   a_scope_ptr             scope_ptr;
   a_field_ptr             end_of_field_list = NULL;
   a_symbol_ptr            rout_sym;
-  a_memory_region_number  region_to_switch_back_to;
   a_class_symbol_supplement_ptr
                           cssp;
   a_boolean               class_aggregate_ruled_out = FALSE;
@@ -5782,12 +5781,10 @@ Scan the body of a class definition, including the base classes list.
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
-    /* Start a scope for the fields and other members. */
-    /* Since (for reasons mentioned above) the class type is allocated in
-       the file scope memory region, all its members are also allocated there
-       (otherwise, an IL object in the file scope would point to a component
-       that might not be available). push_scope will switch to the file scope
-       memory region here; pop_scope will switch back. */
+    /* Start a scope for the fields and other members.  Since the class type
+       is allocated in the file scope memory region, all its members must also
+       allocated there -- push_scope will switch to the file scope memory
+       region; pop_scope will switch back. */
     scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL,
                            (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
