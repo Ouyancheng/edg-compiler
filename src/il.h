@@ -202,6 +202,8 @@ extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);
 
+extern an_expr_node_ptr function_addr_expr(a_routine_ptr rout);
+
 extern an_expr_node_ptr this_param_value_expr(void);
 
 extern a_switch_clause_ptr alloc_switch_clause(void);

@@ -3500,6 +3500,21 @@ return a pointer to it.
 }  /* var_rvalue_expr */
 
 
+an_expr_node_ptr function_addr_expr(a_routine_ptr rout)
+/*
+Build an expression node that represents the address of the function rout
+and return a pointer to it.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = alloc_expr_node((an_expr_node_kind)enk_routine_address);
+  node->type = make_pointer_type(rout->type);
+  node->variant.routine = rout;
+  return node;
+}  /* function_addr_expr */
+
+
 an_expr_node_ptr this_param_value_expr(void)
 /*
 Return an expression for the value of the "this" parameter of the current
