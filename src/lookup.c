@@ -1941,10 +1941,14 @@ that do normal id lookup processing.
          defining and referencing context. */
       if (ssep->instantiation_context_depth !=
                                           ssep->previous_scope &&
-          !lookup_state->suppress_instantiation_context_lookup) {
+          !lookup_state->suppress_instantiation_context_lookup &&
+          !arg_dependent_lookup_enabled) {
         /* Only do the special lookup if the context scope is different
            from the current scope.  If they are the same, just keep
-           going back through the scopes. */
+           going back through the scopes.  Instantiation context lookups
+           are never done when argument dependent lookup is enabled because
+           argument dependent lookup replaced the special rules for
+           instantiation lookup that came before. */
         sym = instantiation_context_lookup(ssep, locator, lookup_state);
         break;
       }  /* if */
