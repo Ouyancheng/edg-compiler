@@ -50,6 +50,7 @@ static unsigned long
 		num_routine_type_supplements_allocated,
 		num_class_type_supplements_allocated,
 		num_types_allocated,
+		num_dynamic_inits_allocated,
 		num_variables_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
@@ -2205,6 +2206,45 @@ Copy the type entry "from" to "to".
 }  /* copy_type */
 
 
+a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind,
+                                      a_variable_ptr      variable)
+/*
+Allocate a dynamic initialization entry, clear it to default values, set
+its kind to kind and its variable to variable, and return a pointer to it.
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  db_enter(5, "alloc_dynamic_init");
+
+  dip = (a_dynamic_init_ptr)alloc_cil(sizeof(a_dynamic_init));
+#if DEBUG
+  num_dynamic_inits_allocated++;
+#endif /* DEBUG */
+  dip->next     = NULL;
+  dip->variable = variable;
+  dip->kind     = kind;
+  switch (kind) {
+    case dik_constant:
+      dip->variant.constant = NULL;
+      break;
+    case dik_expression:
+      dip->variant.expression = NULL;
+      break;
+    case dik_statement:
+      dip->variant.statement.constructor = NULL;
+      dip->variant.statement.destructor  = NULL;
+      break;
+#if CHECKING
+    default:
+      internal_error("alloc_dynamic_init: bad kind");
+#endif /* CHECKING */
+  }  /* switch */
+  db_exit();
+  return dip;
+}  /* alloc_dynamic_init */
+
+
 a_variable_ptr alloc_variable(void)
 /*
 Allocate a variable entry, clear it to default values, and return a pointer
@@ -2225,7 +2265,7 @@ to it.
   vp->storage_class               = (a_storage_class)sc_unspecified;
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
-  vp->initializer                 = NULL;
+  vp->init_kind                   = (an_init_kind)initk_none;
   vp->parent_class_struct_union   = NULL;
 #ifdef FIL
   vp->by_address                  = FALSE;
@@ -2710,7 +2750,7 @@ to it.  The statement kind is set as indicated.
       bp->assoc_scope      = NULL;
       break;
     case stmk_init:
-      sp->variant.init_variable = NULL;
+      sp->variant.dynamic_init = NULL;
       break;
     case stmk_asm:
       sp->variant.asm_string = NULL;
@@ -2808,6 +2848,7 @@ Display and return the amount of space used for various IL tables.
   write_one("class type supplement", num_class_type_supplements_allocated,
                                      a_class_type_supplement);
   write_one("type", num_types_allocated, a_type);
+  write_one("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   write_one("variable", num_variables_allocated, a_variable);
   write_one("field", num_fields_allocated, a_field);
   write_one("routine", num_routines_allocated, a_routine);
@@ -2895,6 +2936,7 @@ of the front end.
   num_routine_type_supplements_allocated = 0;
   num_class_type_supplements_allocated   = 0;
   num_types_allocated                    = 0;
+  num_dynamic_inits_allocated            = 0;
   num_variables_allocated                = 0;
   num_fields_allocated                   = 0;
   num_routines_allocated                 = 0;

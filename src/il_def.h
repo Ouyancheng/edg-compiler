@@ -977,6 +977,51 @@ typedef struct a_type {
 } a_type;
 
 /*
+Data structure that describes a dynamic initialization of a variable:
+*/
+enum a_dynamic_init_kind_tag {
+  dik_constant,		/* Initial value is a constant. */
+  dik_expression,	/* Initial value is an expression. */
+  dik_statement		/* Initial value is established by a statement
+			   calling a constructor (and there may be also a
+			   statement calling a destructor). */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_dynamic_init_kind;
+typedef struct a_dynamic_init *a_dynamic_init_ptr;
+typedef struct a_dynamic_init {
+  a_dynamic_init_ptr
+		next;	/* Pointer to the next dynamic initialization in
+			   the same scope, or NULL if none. */
+  a_variable_ptr
+		variable;
+			/* The variable to be initialized. */
+  a_dynamic_init_kind
+		kind;	/* Kind of dynamic initialization (constant,
+			   expression, constructor). */
+  union {
+    /* When kind == dik_constant: */
+    a_constant_ptr
+		constant;
+			/* The constant initial value. */
+    /* When kind == dik_expression: */
+    an_expr_node_ptr
+		expression;
+			/* The expression that gives the initial value. */
+    /* When kind == dik_statement: */
+    struct {
+      a_statement_ptr
+		constructor,
+		destructor;
+			/* Statements to be called for construction/destruction
+			   of the variable.  Either may be NULL to indicate
+			   no action is necessary.  Each pointer is a pointer
+			   to a single statement, not a list of statements. */
+    } statement;
+  } variant;
+} a_dynamic_init;
+
+/*
 Data structures related to variables:
 */
 enum a_storage_class_tag {
@@ -1012,7 +1057,6 @@ enum a_storage_class_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_storage_class;
 
-
 #if DEBUG
 /*
 Table of storage class names, for debug purposes.
@@ -1033,6 +1077,15 @@ EXTERN char     *db_storage_class_names[(int)sc_last + 1]
 #endif /* DEBUG */
 
 
+enum an_init_kind_tag {
+  /* Kinds of initialization of a variable: */
+  initk_none,		/* No initialization. */
+  initk_static,		/* Static initialization to a constant. */
+  initk_dynamic		/* Dynamic initialization (code is required). */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_init_kind;
+
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
 #ifdef FIL
@@ -1051,36 +1104,7 @@ typedef struct a_variable {
                            scope, NULL if this variable is the last in the
                            scope. */
   a_type_ptr    type;
-                        /* Type of the variable. */
-  a_constant_ptr
-                initializer;
-#ifdef FIL
-                        /* If the variable is DATA initialized, this points
-                           to the initial value.  For arrays and COMMON
-                           blocks, the initializer is a ck_aggregate constant.
-                           For DATA-initialized user variables that belong to
-                           an EQUIVALENCE association or COMMON block, this
-                           field will be NULL; the initializer field of the
-                           association or COMMON block variable will supply
-                           the initial value. */
-#endif /* ifdef FIL */
-#ifdef CIL
-                        /* If the variable is initialized with a constant
-                           value, this points to the initial value.  If not,
-                           NULL.  For a union or aggregate, this points to
-                           a ck_aggregate constant.  This is used whenever
-                           the initializer has a constant value, including
-                           when the variable is not static (and therefore the
-                           initialization must be done each time the 
-                           containing routine is called; in that case,
-                           there is also a stmk_init statement for this
-                           variable, but its expression pointer is NULL). */
-  a_type_ptr
-		parent_class_struct_union;
-			/* For a C++ static data member, a pointer to the
-			   type entry identifying the class (or struct or
-			   union) of which it is a member; otherwise NULL. */
-#endif /* ifdef CIL */
+			/* Type of the variable. */
   a_storage_class
                 storage_class;
                         /* Storage class. */
@@ -1097,6 +1121,41 @@ typedef struct a_variable {
   unsigned int  by_address:1;
 			/* TRUE if is_parameter is TRUE and if the
 			   parameter is passed by address. */
+#endif /* ifdef FIL */
+  an_init_kind	init_kind;
+			/* Kind of initialization, if any. */
+  union {
+    /* When init_kind == initk_none, no variant fields. */
+    /* When init_kind == initk_static: */
+    a_constant_ptr
+                constant;
+			/* Constant initial value for static initialization. */
+#ifdef FIL
+                        /* If the variable is DATA initialized, this points
+                           to the initial value.  For arrays and COMMON
+                           blocks, the initializer is a ck_aggregate constant.
+                           For DATA-initialized user variables that belong to
+                           an EQUIVALENCE association or COMMON block, this
+                           field will be NULL; the initializer field of the
+                           association or COMMON block variable will supply
+                           the initial value. */
+#endif /* ifdef FIL */
+#ifdef CIL
+    /* When init_kind == initk_dynamic: */
+    a_dynamic_init_ptr
+		dynamic;
+			/* Pointer to an entry describing the dynamic
+			   initialization required. */
+#endif /* ifdef CIL */
+  } initializer;
+#ifdef CIL
+  a_type_ptr
+		parent_class_struct_union;
+			/* For a C++ static data member, a pointer to the
+			   type entry identifying the class (or struct or
+			   union) of which it is a member; otherwise NULL. */
+#endif /* ifdef CIL */
+#ifdef FIL
   a_variable_ptr
                 base_var;
                         /* If storage_class is sc_associated, this points
@@ -1725,8 +1784,7 @@ enum a_statement_kind_tag {
 #ifdef CIL
   stmk_end_test_while,  /* Loop, test at bottom. */
   stmk_switch,          /* Switch. */
-  stmk_init,            /* Similar to an assignment, for dynamic
-                           initialization. */
+  stmk_init,            /* Do a dynamic initialization. */
   stmk_asm,             /* "asm" statement.  Only accepted in versions
                            with ASM_STATEMENT_ALLOWED set to TRUE, but
                            always here to keep all IL versions compatible. */
@@ -2082,9 +2140,6 @@ typedef struct a_statement {
                         /* Also:
                              The expression to test for stmk_end_test_while.
                              The switch expression for stmk_switch.
-                             The initial value expression for stmk_init
-                                (where NULL means use the constant pointed to
-                                by the initializer field of the variable).
                            Note that the "expression to test" in each of the
                            three cases is always standardized to an integer/
                            logical expression. */
@@ -2156,9 +2211,11 @@ typedef struct a_statement {
     } block;
 #ifdef CIL
     /* When kind == stmk_init: */
-    a_variable_ptr
-                init_variable;
-                        /* Variable to be initialized. */
+    a_dynamic_init_ptr
+		dynamic_init;
+			/* The description of the dynamic initialization
+			   to be performed (including a pointer to the
+			   variable to be initialized). */
     /* When kind == stmk_asm: */
     a_constant_ptr
                 asm_string;
@@ -2421,6 +2478,16 @@ typedef struct a_scope {
                            that block scopes inside block scopes will appear
                            on the scopes list for those scopes, not at the
                            function scope level. */
+  a_dynamic_init_ptr
+		dynamic_inits;
+			/* List of dynamic initializations to be done in the
+			   scope, in the order they should be done.  May
+			   appear in a file, function, or block scope.
+			   Note that in a function or block scope, these
+			   initializations should not be done at the start of
+			   the scope; stmk_init statements will appear to
+			   indicate the points within the code where each
+			   initialization should be done. */
 #endif /* ifdef CIL */
 #ifdef FIL
   an_entry_description_ptr

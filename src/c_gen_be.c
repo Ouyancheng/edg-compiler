@@ -4204,11 +4204,12 @@ the list pointed to by "ipdp".
 #endif /* ifdef CFE */
 #ifdef CFE
 
-static FILE *pick_init_file(a_variable_ptr variable)
+static void set_init_file(a_variable_ptr variable,
+                          FILE           **prev_f_C_output,
+                          int            *prev_indent)
 /*
-Pick the proper temporary file to which an initialization assignment for
-the indicated variable should be written.  Return a pointer to its file
-block.
+Set f_C_output to the temporary file to which an initialization assignment
+for the indicated variable should be written.
 */
 {
   FILE *file_to_use;
@@ -4239,8 +4240,24 @@ block.
     }  /* if */
     file_to_use = f_rout_dynamic_inits;
   }  /* if */
-  return(file_to_use);
-}  /* pick_init_file */
+  *prev_f_C_output = f_C_output;
+  f_C_output = file_to_use;
+  *prev_indent = indent;
+  indent = 0;
+}  /* set_init_file */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void unset_init_file(FILE *prev_f_C_output,
+                            int  prev_indent)
+/*
+Undo the effect of set_init_file.
+*/
+{
+  f_C_output = prev_f_C_output;
+  indent = prev_indent;
+}  /* unset_init_file */
 
 #endif /* ifdef CFE */
 #ifdef CFE
@@ -4254,7 +4271,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
 "constant".
 */
 {
-  FILE *file_to_use, *save_f_C_output;
+  FILE *save_f_C_output;
   int  save_indent;
 
   /* Skip this code if the variable is unreferenced.  This is necessary
@@ -4268,13 +4285,9 @@ described by the list pointed to by "ipdp" to the constant pointed to by
     /* The assignment is written to a temporary file, to be dumped out
         at the appropriate time later.  Select the appropriate file,
         and open it if necessary. */
-    file_to_use = pick_init_file(variable);
+    set_init_file(variable, &save_f_C_output, &save_indent);
     /* Generate an assignment.  For string initialization, generate a call
        to memcpy or bcopy instead. */
-    save_f_C_output = f_C_output;
-    f_C_output = file_to_use;
-    save_indent = indent;
-    indent = 0;
     startline(variable->source_corresp.decl_position.seq);
     if (constant->kind == (a_constant_repr_kind)ck_string) {
       /* String -- Generate a move.  Note that the destination of the move is
@@ -4305,10 +4318,44 @@ described by the list pointed to by "ipdp" to the constant pointed to by
     }  /* if */
     /* Add final semicolon and end of line to the assigning statement. */
     fputs(";", f_C_output);
-    f_C_output = save_f_C_output;
-    indent = save_indent;
+    unset_init_file(save_f_C_output, save_indent);
   }  /* if */
 }  /* dump_init_assignment */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void dump_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Dump code for a dynamic initialization operation.
+*/
+{
+  FILE *save_f_C_output;
+  int  save_indent;
+
+  if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+    /* Initialization to a constant. */
+    dump_init_assignment(dip->variable, (an_init_pos_descr_ptr)NULL,
+                         dip->variant.constant);
+  } else {
+#if CHECKING
+    if (dip->kind != (a_dynamic_init_kind)dik_expression) {
+      internal_error("dump_statement: bad dynamic init");
+    }  /* if */
+#endif /* CHECKING */
+    /* Initialization to an expression. */
+    /* The assignment is written to a temporary file, to be dumped out
+        at the appropriate time later.  Select the appropriate file,
+        and open it if necessary. */
+    set_init_file(dip->variable, &save_f_C_output, &save_indent);
+    startline(dip->variable->source_corresp.decl_position.seq);
+    dump_var_name(dip->variable);
+    fputs(" = ", f_C_output);
+    dump_expression(dip->variant.expression, /*need_parens=*/TRUE);
+    putc(';', f_C_output);
+    unset_init_file(save_f_C_output, save_indent);
+  }  /* if */
+}  /* dump_dynamic_init */
 
 #endif /* ifdef CFE */
 #ifdef CFE
@@ -4318,17 +4365,13 @@ static void zero_variable(a_variable_ptr variable)
 Generate code to set the indicated variable entirely to zeros.
 */
 {
-  FILE *file_to_use, *save_f_C_output;
+  FILE *save_f_C_output;
   int  save_indent;
   
   /* The assignment is written to a temporary file, to be dumped out
       at the appropriate time later.  Select the appropriate file,
       and open it if necessary. */
-  file_to_use = pick_init_file(variable);
-  save_f_C_output = f_C_output;
-  f_C_output = file_to_use;
-  save_indent = indent;
-  indent = 0;
+  set_init_file(variable, &save_f_C_output, &save_indent);
   startline(variable->source_corresp.decl_position.seq);
 #if __BSD__
   /* BSD -- use bzero(variable, sizeof(variable)). */
@@ -4345,8 +4388,7 @@ Generate code to set the indicated variable entirely to zeros.
   fputs(",sizeof(", f_C_output);
   dump_var_name(variable);
   fputs("));", f_C_output);
-  f_C_output = save_f_C_output;
-  indent = save_indent;
+  unset_init_file(save_f_C_output, save_indent);
 }  /* zero_variable */
 
 #endif /* ifdef CFE */
@@ -4789,8 +4831,9 @@ parameters.
   char            *var_name;
   a_storage_class storage_class;
 
-  if (!dump_vars_without_initializers && variable->initializer == NULL) {
-    /* The variable has no initializer, and we're not supposed to dump
+  if (!dump_vars_without_initializers &&
+      variable->init_kind != (an_init_kind)initk_static) {
+    /* The variable has no (static) initializer, and we're not supposed to dump
        variables without initializers. */
   } else {
 #ifdef FFE
@@ -4821,7 +4864,8 @@ parameters.
     } else
 #endif /* ifdef FFE */
     {
-      if (variable->initializer != NULL && !dump_initializers) {
+      if (variable->init_kind == (an_init_kind)initk_static &&
+          !dump_initializers) {
         /* Do not dump storage class on first output of initialized variable.
            This is to suppress "static" on the first declaration of an 
            initialized static variable, because pcc will not allow two
@@ -4855,20 +4899,12 @@ parameters.
       {
         simple_type_reference(var_name, variable->type);
       }  /* if */
-      if (dump_initializers && variable->initializer != NULL) {
-#ifdef CFE
-        /* Assignment statements (rather than an initializer) must be used
-           for automatic variables with union or aggregate type, since K&R
-           does not allow initializers for those. */
-        a_type_kind var_type_kind = skip_typerefs(variable->type)->kind;
-        gen_assignments = !static_storage_class(variable->storage_class) &&
-                          (var_type_kind == (a_type_kind)tk_struct ||
-                           var_type_kind == (a_type_kind)tk_union ||
-                           var_type_kind == (a_type_kind)tk_array);
-#else /* !defined(CFE) */
+      if (dump_initializers &&
+          variable->init_kind == (an_init_kind)initk_static) {
+        /* Dump the initializer if there is one. */
         gen_assignments = FALSE;
-#endif /* ifdef CFE */
-        dump_initializer(variable, variable->type, variable->initializer,
+        dump_initializer(variable, variable->type,
+                         variable->initializer.constant,
                          &gen_assignments, /*separate_chars=*/FALSE,
                          (an_init_pos_descr_ptr)NULL);
       }  /* if */
@@ -6263,20 +6299,7 @@ Generate C for a statement.
 #ifdef CFE
     case stmk_init:
       /* Dynamic initialization. */
-      /* Ignore this if the expression pointer is NULL; in that case, the
-         assignment was taken care of when the variable declaration was
-         processed. */
-      if (statement->expr == NULL) {
-        start_comment();
-        fputs("init of ", f_C_output);
-        dump_var_name(statement->variant.init_variable);
-        end_comment();
-      } else {
-        dump_var_name(statement->variant.init_variable);
-        fputs(" = ", f_C_output);
-        dump_expression(statement->expr, /*need_parens=*/TRUE);
-        putc(';', f_C_output);
-      }  /* if */
+      dump_dynamic_init(statement->variant.dynamic_init);
       break;
     case stmk_asm:
       /* stmk_asm is only used in versions with ASM_STATEMENT_ALLOWED set 

@@ -561,6 +561,10 @@ typedef struct a_scope_stack_entry {
 			   last_scope, then transferred to the il_scope entry
 			   or into the parent scope when the current scope
 			   is popped. */
+  a_dynamic_init_ptr
+		last_dynamic_init;
+			/* End of list of local dynamic initializations, NULL
+			   if none. */
 } a_scope_stack_entry;
 
 EXTERN a_scope_stack_entry_ptr

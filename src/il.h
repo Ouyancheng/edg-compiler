@@ -106,6 +106,9 @@ extern void set_integer_constant(a_constant *cp,
 
 extern char *alloc_text_of_string_literal(sizeof_t size);
 
+extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind,
+                                             a_variable_ptr      variable);
+
 extern a_variable_ptr alloc_variable(void);
 
 extern void add_to_variables_list(a_variable_ptr var_ptr,

@@ -418,24 +418,57 @@ for unions and aggregates at that level).
 }  /* get_initializer */
 
 
-static void gen_dynamic_initialization(a_variable_ptr   vp,
-                                       an_expr_node_ptr expression)
+static void gen_dynamic_initialization(a_variable_ptr      vp,
+                                       a_dynamic_init_kind kind,
+                                       a_constant_ptr      constant,
+                                       an_expr_node_ptr    expression)
 /*
-Generate a statement to perform the initialization "vp = expression".
-expression is a NULL pointer if the initializer is a constant value
-that's already been put into the variable entry.
+Generate a dynamic initialization of the variable vp.  If
+kind == dik_constant, constant points to the initial value constant;
+if kind == dik_expression, expression points to the initial value expression.
+Except for a dynamic initialization at file scope (possible only in C++),
+also create an stmk_init statement at the current point in the code.
 */
 {
-  a_statement_ptr init_stmt;
+  a_dynamic_init_ptr      dip;
+  a_statement_ptr         init_stmt;
+  a_scope_stack_entry_ptr ssep;
 
-  /* Build the initialization statement "vp = expression". */
-  init_stmt = add_statement((a_statement_kind)stmk_init);
-  init_stmt->seq_number = vp->source_corresp.decl_position.seq;
-  init_stmt->expr = expression;
-  init_stmt->variant.init_variable = vp;
+  /* Build the dynamic initialization entry. */
+  dip = alloc_dynamic_init(kind, vp);
+  if (kind == (a_dynamic_init_kind)dik_constant) {
+    dip->variant.constant = constant;
+  } else {
+#if CHECKING
+    if (kind != (a_dynamic_init_kind)dik_expression) {
+      internal_error("gen_dynamic_initialization: bad kind");
+    }  /* if */
+#endif /* CHECKING */
+    dip->variant.expression = expression;
+  }  /* if */
+  /* Attach the dynamic initialization entry to the scope list. */
+  ssep = &scope_stack[decl_scope_level];
+  if (ssep->il_scope->dynamic_inits == NULL) {
+    ssep->il_scope->dynamic_inits = dip;
+  } else {
+    ssep->last_dynamic_init->next = dip;
+  }  /* if */
+  ssep->last_dynamic_init = dip;
+  /* Make the variable point at the dynamic initialization. */
+  vp->init_kind = (an_init_kind)initk_dynamic;
+  vp->initializer.dynamic = dip;
   /* Set the referenced flag for the variable, because there is a
-     reference now -- the initialization statement. */
+     reference now -- the dynamic initialization. */
   vp->source_corresp.referenced = TRUE;
+  if (ssep->kind == (a_scope_kind)sck_file) {
+    /* A dynamic file-scope initialization (possible only in C++) has
+       no associated stmk_init statement. */
+  } else {
+    /* Build the initialization statement. */
+    init_stmt = add_statement((a_statement_kind)stmk_init);
+    init_stmt->seq_number = vp->source_corresp.decl_position.seq;
+    init_stmt->variant.dynamic_init = dip;
+  }  /* if */
 }  /* gen_dynamic_initialization */
 
 
@@ -514,6 +547,7 @@ The syntax is:
   an_expr_node_ptr      expression;
   a_constant            constant;
   a_constant_ptr        cp;
+  an_init_kind          init_kind;
 
   db_enter(3, "initializer");
 
@@ -536,7 +570,7 @@ The syntax is:
          not allowed to be initialized.  (3.5.7 Constraints) */
       pos_error(ec_cannot_initialize, source_pos);
       err = TRUE;
-    } else if (vp->initializer != NULL) {
+    } else if (vp->init_kind != (an_init_kind)initk_none) {
       /* Variable already initialized (presumably, it is being declared
          again, and we have the variable from the earlier declaration). */
       pos_error(ec_already_initialized, source_pos);
@@ -598,37 +632,24 @@ The syntax is:
         /* Constant.  Check the constant type to see if it is legal,
            change the constant type if necessary. */
         check_constant_initializer(&constant, &vp_type, &err);
-        if (!err && put_init_in_variable) {
-          /* Copy the type back into the variable.  It might have been changed
-             if vp is an incomplete array being initialized with a string. */
-          if (vp != NULL && vp_type != vp->type) {
-            put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                        vp_type);
-          }  /* if */
-          /* Attach the initializer constant to the variable. */
-          vp->initializer = alloc_unshared_constant(&constant);
-        }  /* if */
+        init_kind = (a_dynamic_init_kind)dik_constant;
         expression = NULL;
       } else {
-        /* Non-constant.  Check the type by assignment rules, cast the
+        /* Non-constant.  Check the type by assignment rules and cast the
            node if necessary. */
         node_prepare_assignment(&expression, vp_type, ec_bad_initializer_type,
                                 &err);
+        init_kind = (a_dynamic_init_kind)dik_expression;
       }  /* if */
       if (!err && put_init_in_variable) {
+        /* Generate a dynamic initialization entry and attach it to the
+           variable, and generate an stmk_init statement. */
         /* Note that it is not necessary to record the fact of an
            initialization either when there is an error or when there isn't.
            Since the variable is not static, it has no linkage.  Thus, a
            second declaration would be an error whether or not it contains
            another initializer. */
-        /* Build a statement like "object = initializer-expression" and add it
-           to the code for the current function (we must be in a function,
-           because the object being initialized is non-static).  The
-           statement is an stmk_init, not a normal assignment.
-           Note that if the initializer was constant we still build the
-           initialization statement, but the expression node pointer is
-           NULL. */
-        gen_dynamic_initialization(vp, expression);
+        gen_dynamic_initialization(vp, init_kind, &constant, expression);
       }  /* if */
     }  /* if */
     /* If an extra opening brace was ignored earlier, ignore the matching
@@ -647,13 +668,16 @@ The syntax is:
         put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
                                     vp_type);
       }  /* if */
-      /* Attach the initializer constant to the variable. */
-      vp->initializer = cp;
-      if (!has_static_storage_duration(vp->storage_class)) {
+      if (has_static_storage_duration(vp->storage_class)) {
+        /* Initialization of a static variable with a constant (the most
+           common case).  Attach the initializer constant to the variable. */
+        vp->init_kind = (an_init_kind)initk_static;
+        vp->initializer.constant = cp;
+      } else {
         /* For initialization of a non-static aggregate or union, 
-           an stmk_init statement must be generated.  It has a NULL expression
-           pointer, meaning look at the initializer field of the variable. */
-        gen_dynamic_initialization(vp, (an_expr_node_ptr)NULL);
+           a dynamic initialization must be generated. */
+        gen_dynamic_initialization(vp, (a_dynamic_init_kind)dik_constant,
+                                   cp, (an_expr_node_ptr)NULL);
       }  /* if */
     }  /* if */
   }  /* if */
