@@ -9652,10 +9652,12 @@ continue_with_declaration:
         check_for_uninstantiated_template_class(tp);
       }  /* if */
       incomplete_type_error_reported = FALSE;
+      /* Set the error position to the start of the initializer (that is, to
+         the "=" if there is one) or to where the initializer should be in
+         case there ought to be one. */
+      set_err_pos_to_curr_token();
       if (has_initializer) {
-        /* Set error position to the start of the initializer (that is, to
-           the "=" if there is one), and advance past the "=". */
-        set_err_pos_to_curr_token();
+        /* Advance past the "=". */
         if (curr_token == tok_assign) (void)get_token();
         /* Now scan the initializer. */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
@@ -9682,6 +9684,8 @@ continue_with_declaration:
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
+      } else if (is_old_style_param_decl) {
+        /* Don't worry about missing initializer. */
       } else if (is_variable_def && !is_error_locator(locator) &&
                  var_ptr->init_kind == (an_init_kind)initk_none) {
         /* Uninitialized variable or static data member is being defined, but
