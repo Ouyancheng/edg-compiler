@@ -4804,6 +4804,12 @@ entry_for_line_splice:
 entry_for_extend_current_line:
   /* Add more characters to the current source line instead of beginning
      a new source line. */
+  if (curr_char_loc > after_curr_source_line_minus_term) {
+    /* The \ n inserted can be very close to the end of the buffer. */
+    expand_curr_source_line();
+    after_curr_source_line_minus_term =
+                               after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
+  }  /* if */
   loc_in_line = curr_char_loc;
   if (!eof_read_on_curr_input_stream &&
       (ch = getc(curr_input_stream), !is_eof_char(ch))) goto line_loop;
