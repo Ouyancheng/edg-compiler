@@ -158,6 +158,7 @@ typedef enum /*an_option_kind*/ {
   optk_vla,
 #endif /* VLA_ALLOWED */
   optk_enum_overloading,
+  optk_nonstandard_qualifier_deduction,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -897,6 +898,22 @@ EXTERN a_boolean
 			   unknown size.  The standard disallows such param
 			   types, but they are accepted by cfront, MSVC++,
 			   and (reportedly) other C++ compilers. */
+
+EXTERN a_boolean
+		nonstandard_qualifier_deduction
+#if VAR_INITIALIZERS
+                  = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* TRUE if the nonstandard deduction using the
+			   qualifier portion of a qualified name should be
+			   performed.  This permits T to be deduced in
+			   contexts such as A<T>::B or T::B.  The standard
+			   deduction mechanism treats these as nondeduced
+			   contexts that use the values of template parameters
+			   that were either explicitly specified or deduced
+			   elsewhere. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

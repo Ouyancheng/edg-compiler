@@ -685,6 +685,14 @@ Initialize the option information table.
                          "no_enum_overloading",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_nonstandard_qualifier_deduction,
+                         "nonstd_qualifier_deduction",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nonstandard_qualifier_deduction,
+                         "no_nonstd_qualifier_deduction",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1765,6 +1773,9 @@ enable_microsoft_mode:
       case optk_enum_overloading:
         operator_overloading_on_enums_enabled = opt_value;
         break;
+      case optk_nonstandard_qualifier_deduction:
+        nonstandard_qualifier_deduction = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1863,6 +1874,10 @@ enable_microsoft_mode:
     if (option_kind_used[(int)optk_enum_overloading]) {
       command_line_error(ec_cl_enum_overloading_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_nonstandard_qualifier_deduction]) {
+      command_line_error(
+              ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus);
+    }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
       address_of_ellipsis_allowed = TRUE;
@@ -1883,6 +1898,7 @@ enable_microsoft_mode:
     }  /* if */
     special_subscript_cost = FALSE;  /* Not really needed. */
     use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
+    nonstandard_qualifier_deduction = FALSE;  /* Not really needed. */
     warning_on_for_init_difference = FALSE;
     remove_qualifiers_from_param_types = FALSE;
     impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
@@ -2084,6 +2100,11 @@ enable_microsoft_mode:
         /* If enum_overloading was not explicitly set by a command line
            option, set it now. */
         operator_overloading_on_enums_enabled = TRUE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_nonstandard_qualifier_deduction])) {
+        /* If nonstandard_qualifier_deduction was not set on the command line,
+           turn it off now. */
+        nonstandard_qualifier_deduction = FALSE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

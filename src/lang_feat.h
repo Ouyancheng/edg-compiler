@@ -906,6 +906,19 @@ in strict ANSI mode.
 */
 #define DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE FALSE
 
+/*
+Flag that is TRUE if the nonstandard deduction using the qualifier
+portion of a qualified name should be performed.  It is the initial
+value of the global variable nonstandard_qualifier_deduction.
+Nonstandard qualifier deduction permits T to be deduced in contexts
+such as A<T>::B or T::B.  The standard deduction mechanism treats
+these as nondeduced contexts that use the values of template paremters
+that were either explicitly specified or deduced elsewhere.
+*/
+#ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION
+#define DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION FALSE
+#endif /* ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION */
+
 #endif /* ifndef LANG_FEAT_H */
 
 
