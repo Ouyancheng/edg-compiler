@@ -1,5 +1,12 @@
 Version 3.1
 
+11/14/02 Configuration option DEFAULT_GCC_COMPATIBILITY renamed and extended
+
+The new configuration option DEFAULT_GNU_COMPATIBILITY now controls whether
+GNU extensions should be enabled by default both in C and C++ modes.  If the
+(now obsolete) configuration option DEFAULT_GCC_COMPATIBILITY is defined,
+DEFAULT_GNU_COMPATIBILITY is set to the same value.
+
 11/12/02 Compiler-generated fields marked as such
 
 A "compiler_generated" flag was added to field entries.  It is set for

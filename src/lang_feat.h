@@ -384,26 +384,27 @@ Flag that is TRUE to include code for GNU C compatibility features.
 #endif /* ifndef GNU_EXTENSIONS_ALLOWED */
 
 /*
-Flag that is TRUE if GNU C compatibility features should be allowed by
-default.  It is the default initial value of the associated global variable
-gcc_mode and can be overridden by the command-line options --gcc and --no_gcc.
+Obsolete flag indicating that GNU compatibility features should be enabled
+by default.  Use DEFAULT_GNU_COMPATIBILITY instead.  It now also affects C++
+mode.
 */
-#ifndef DEFAULT_GCC_COMPATIBILITY
-#if GNU_EXTENSIONS_ALLOWED
-#define DEFAULT_GCC_COMPATIBILITY TRUE
-#else /* GNU_EXTENSIONS_ALLOWED */
-#define DEFAULT_GCC_COMPATIBILITY FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* DEFAULT_GCC_COMPATIBILITY */
+#ifdef DEFAULT_GCC_COMPATIBILITY
+#define DEFAULT_GNU_COMPATIBILITY DEFAULT_GCC_COMPATIBILITY
+#endif /* ifdef DEFAULT_GCC_COMPATIBILITY */
 
 /*
-Flag that is TRUE if GNU C++ compatibility features should be allowed by
-default.  It is the default initial value of the associated global variable
-gpp_mode and can be overridden by the command-line options --g++ and --no_g++.
+Flag that is TRUE if GNU C or C++ compatibility features should be allowed by
+default.  In C mode, it is the default value for gcc_mode; in C++ mode it is
+the default value for gpp_mode.  This default may be overridden by command-
+line options --gcc, --no_gcc, --g++, and --no_g++.
 */
-#ifndef DEFAULT_GPP_COMPATIBILITY
-#define DEFAULT_GPP_COMPATIBILITY FALSE
-#endif /* DEFAULT_GPP_COMPATIBILITY */
+#ifndef DEFAULT_GNU_COMPATIBILITY
+#if GNU_EXTENSIONS_ALLOWED
+#define DEFAULT_GNU_COMPATIBILITY TRUE
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define DEFAULT_GNU_COMPATIBILITY FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* ifndef DEFAULT_GNU_COMPATIBILITY */
 
 /*
 The value of the __GNUC__ macro in GNU mode.
@@ -624,11 +625,7 @@ that it can be available to standalone utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
-                gcc_mode
-#if VAR_INITIALIZERS
-                         = DEFAULT_GCC_COMPATIBILITY
-#endif /* VAR_INITIALIZERS */
-                                                    ;
+                gcc_mode;
                         /* Accept C language features supported by GNU C
                            compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
@@ -644,11 +641,7 @@ that it can be available to standalone utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
-                gpp_mode
-#if VAR_INITIALIZERS
-                         = DEFAULT_GPP_COMPATIBILITY
-#endif /* VAR_INITIALIZERS */
-                                                    ;
+                gpp_mode;
                         /* Accept C++ language features supported by GNU C++
                            compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
@@ -1436,21 +1429,13 @@ enabled.
 #endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_SUN_COMPATIBILITY */
 
-#if DEFAULT_GCC_COMPATIBILITY
+#if DEFAULT_GNU_COMPATIBILITY
 #ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
 #else /* !defined(DEFAULT_DIALECT_SET) */
 #define MULTIPLE_DEFAULT_DIALECTS_SET TRUE
 #endif /* ifndef DEFAULT_DIALECT_SET */
-#endif /* DEFAULT_GCC_COMPATIBILITY */
-
-#if DEFAULT_GPP_COMPATIBILITY
-#ifndef DEFAULT_DIALECT_SET
-#define DEFAULT_DIALECT_SET TRUE
-#else /* !defined(DEFAULT_DIALECT_SET) */
-#define MULTIPLE_DEFAULT_DIALECTS_SET TRUE
-#endif /* ifndef DEFAULT_DIALECT_SET */
-#endif /* DEFAULT_GPP_COMPATIBILITY */
+#endif /* DEFAULT_GNU_COMPATIBILITY */
 
 #ifdef MULTIPLE_DEFAULT_DIALECTS_SET
  #error -- Cannot set multiple exclusive dialects as defaults

@@ -2571,6 +2571,17 @@ being a minor dialect under C mode, is a historical accident of the
 order of development of this front end, and is inconsistent and strange.
 */
 {
+  /* Set the default values of gcc_mode and gpp_mode if necessary. */
+#if DEFAULT_GNU_COMPATIBILITY
+  if (!option_kind_used[(int)optk_gcc_mode] &&
+      !option_kind_used[(int)optk_gpp_mode]) {
+    if (C_dialect == C_dialect_cplusplus) {
+      gpp_mode = TRUE;
+    } else {
+      gcc_mode = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* DEFAULT_GNU_COMPATIBILITY */
   if (C_dialect != C_dialect_ANSI) {
     /* Issue an error for specifying a language mode that is valid only
        when the dialect is ANSI C. */
