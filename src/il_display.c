@@ -1545,8 +1545,10 @@ Display the indicated name and template arg list.
           disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
         }  /* if */
       }  /* if */
-      disp_boolean("  explicitly_specified",
-                   (a_boolean)ptr->explicitly_specified);
+      if (ptr->explicitly_specified) {
+        disp_boolean("  explicitly_specified",
+                     (a_boolean)ptr->explicitly_specified);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* disp_template_arg_list */
