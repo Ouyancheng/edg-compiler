@@ -1886,8 +1886,8 @@ scope is that of a class definition.
   clear_func_info(func_info);
   if (locator != NULL && !is_error_locator(*locator) &&
       func_info != &local_func_info_block) {
-    set_decl_sequence_info(&func_info->decl_seq_info,
-                           (an_il_entry_kind)iek_routine);
+    (void)set_decl_sequence_info(&func_info->decl_seq_info,
+                                 (an_il_entry_kind)iek_routine);
   }  /* if */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
@@ -4894,14 +4894,10 @@ a new symbol is created and entered in the symbol table.
                                decl_scope_level,
                                /*suppress_redecl_error=*/FALSE);
     } else {
-      remove_symbol(sym);
       set_symbol_kind(sym, (a_symbol_kind)sk_variable);
-      reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
-    mark_defined(sym, &locator.source_position, (a_decl_seq_info_ptr)NULL);
-    mark_variable_value_set(sym);
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "Changed from parameter symbol: ", 4);
@@ -6035,16 +6031,25 @@ caution when modifying this routine.
     /* An error occurred while handling a qualified name or a template
        reference earlier. */
   } else {
-    /* Look for a tag symbol in the current scope.  If the tag kind does
-       not match the tag being processed, issue an error. */
-    tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
-    if (tag_sym != NULL && tag_sym->kind != tag_kind) {
-      pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
-                     &locator_for_curr_id.source_position,
-		     name_of_symbol_kind(tag_kind), tag_sym);
-      tag_sym = NULL;
-      tag_err = TRUE;
+#if 0
+    if (C_dialect == C_dialect_cplusplus &&
+        scope_stack[decl_scope_level].kind ==
+                                       (a_scope_kind)sck_func_prototype) {
+    } else {
+#endif /* if 0 */
+      /* Look for a tag symbol in the current scope.  If the tag kind does
+         not match the tag being processed, issue an error. */
+      tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
+      if (tag_sym != NULL && tag_sym->kind != tag_kind) {
+        pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                       &locator_for_curr_id.source_position,
+                       name_of_symbol_kind(tag_kind), tag_sym);
+        tag_sym = NULL;
+        tag_err = TRUE;
+      }  /* if */
+#if 0
     }  /* if */
+#endif /* if 0 */
     /* Save the symbol locator for this identifier before doing the
        get_token. */
     *locator = locator_for_curr_id;
@@ -8346,6 +8351,25 @@ and for the instantiation of template functions.
     check_assertion(func_info->param_id_list == NULL);
   } else {
     /* Correctly declared function type. */
+    if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
+      /* New-style (function prototype) for which at least one of the param
+         names was omitted in the prototype.  In C this is not valid on a
+         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
+      if (C_dialect != C_dialect_cplusplus) {
+        error(ec_all_proto_params_must_be_named);
+      }  /* if */
+    }  /* if */
+    param_id = func_info->param_id_list;
+    ptp = rtsp->param_type_list;
+    /* Be sure param-id and param-type lists are in sync. */
+    check_assertion((param_id == NULL) == (ptp == NULL));
+    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+      /* Declare each parameter identifier to have the associated type
+         from the parameter type list. */
+      decl_parameter(param_id, ptp, is_instantiation);
+      /* Be sure param-id and param-type lists are in sync. */
+      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+    }  /* for */
     if (!is_instantiation) {
       /* Parameter symbols that were created in the prototype scope (and then
          removed in pop_scope) have to be reentered in the function scope; they
@@ -8353,6 +8377,22 @@ and for the instantiation of template functions.
          that were defined in the prototype scope need to reactivated now so
          that they will be available in the current scope. */
       if (func_info->prototype_scope_symbols != NULL) {
+        a_symbol_ptr  sym = func_info->prototype_scope_symbols;
+        for (; sym != NULL; sym = sym->next_in_scope) {
+          if (sym->kind == (a_symbol_kind)sk_variable) {
+            param_id = func_info->param_id_list;
+            while (param_id->symbol != sym) param_id = param_id->next;
+            mark_defined(sym, &sym->decl_position, &param_id->decl_seq_info);
+            mark_variable_value_set(sym);
+          } else {
+            a_source_sequence_entry_ptr  ssep;
+
+            check_assertion(is_tag_symbol(sym));
+            ssep = type_symbol_type(sym)->source_corresp.source_sequence_entry;
+            check_assertion(ssep != NULL);
+            make_proxy_ptr_source_sequence_entry(ssep);
+          }  /* if */
+        }  /* for */
         reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
       }  /* if */
     }  /* if */
@@ -8377,25 +8417,6 @@ and for the instantiation of template functions.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
-      /* New-style (function prototype) for which at least one of the param
-         names was omitted in the prototype.  In C this is not valid on a
-         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-      if (C_dialect != C_dialect_cplusplus) {
-        error(ec_all_proto_params_must_be_named);
-      }  /* if */
-    }  /* if */
-    param_id = func_info->param_id_list;
-    ptp = rtsp->param_type_list;
-    /* Be sure param-id and param-type lists are in sync. */
-    check_assertion((param_id == NULL) == (ptp == NULL));
-    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-      /* Declare each parameter identifier to have the associated type
-         from the parameter type list. */
-      decl_parameter(param_id, ptp, is_instantiation);
-      /* Be sure param-id and param-type lists are in sync. */
-      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
-    }  /* for */
     if (!is_instantiation) {
       /* Free the list of parameter ids, now that it is no longer needed. */
       free_param_id_list(&(func_info->param_id_list));
