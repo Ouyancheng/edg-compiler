@@ -1,5 +1,12 @@
 Version 2.46
 
+9/10/01  __alignof__ equivalent to __ALIGNOF__
+
+The front end now accepts __alignof__ as an alternative spelling of
+__ALIGNOF__.  The two are exactly equivalent, but the former was added
+to increase compatibility with other C++ front ends.  The __ALIGNOF__
+spelling remains available.
+
 8/28/01  GNU C compatibility option
 
 The front end now supports command-line switches --gcc and --no_gcc that
