@@ -1005,6 +1005,20 @@ this processing.
 #endif /* ifndef DO_UNORDERED_EH_PROCESSING */
 
 /*
+This switch controls generation of code at the end of fully-lowered
+try blocks to fool C compilers into suppressing certain harmful optimizations.
+Specifically, the code generated is an unreachable call of a runtime
+routine, passing the addresses of all local variables modified within
+the try block, to force the C compiler to store those immediately
+when they are modified.
+*/
+#if DO_FULL_PORTABLE_EH_LOWERING
+#ifndef FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
+#define FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS BACK_END_IS_C_GEN_BE
+#endif /* ifndef FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+
+/*
 Integer kind to use for an offset into a class.  This is used for delta
 fields in pointers to member functions, etc., but not for pointers to
 data members.
