@@ -1,5 +1,19 @@
 Version 2.39
 
+7/6/98    IL-to-string routines, forming an lvalue: bit field problem
+
+The IL-to-string routines had a bug in forming a description of an
+lvalue in some cases involving a cast of the address of a struct
+having a bit-field at the beginning.
+
+  struct A {
+    char f1 : 1;
+  };
+  A a;
+  char f(int k) {
+    return ((char*)&a)[k];  // Bad C code generated for this.
+  }
+
 7/3/98    C++-generating back end: operator function name followed by
           explicit template argument list
 

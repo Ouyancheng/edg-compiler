@@ -2067,8 +2067,8 @@ parentheses are not needed.
           if ((a_targ_ptrdiff_t)field->offset <= *offset &&
               *offset < (a_targ_ptrdiff_t)(field->offset +
                                       skip_typerefs(field->type)->size) &&
-              /* Ignore bit fields, at least those not on byte boundaries. */
-              field->offset_bit_remainder == 0) break;
+              /* Ignore bit fields. */
+              field->bit_size == 0) break;
         }  /* for */
         /* Watch out for classes with no fields. */
         if (field == NULL) break;
