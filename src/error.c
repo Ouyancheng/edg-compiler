@@ -836,6 +836,9 @@ error code.
     case ec_bad_type_name_redefinition:
       m = "invalid redefinition of type name";
       break;
+    case ec_missing_initializer_on_const:
+      m = "internally-linked const variable requires an initializer";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
