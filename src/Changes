@@ -2,7 +2,7 @@ Version 3.5
 
 8/27/04  IL lowering for fixed-point types and operations
 
-When LOWER_FIXED_POINT is TRUE, IL Lowering now lowers fixed-point
+When LOWER_FIXED_POINT is TRUE, IL lowering now lowers fixed-point
 types, constants, and operations to standard C.  The lowered code
 calls runtime routines not supplied by EDG (they are available
 from Dinkumware), so this feature is off by default.
