@@ -428,7 +428,6 @@ can be NULL to indicate that the corresponding function is unnecessary.
   db_exit();
 }  /* walk_routine_scope_il */
 
-
 #if MAINTAIN_NEEDED_FLAGS
 
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
@@ -465,6 +464,17 @@ as needed.
     } else {
       /* The flag is not set, so set it and keep walking. */
       scp->needed = TRUE;
+#if 0
+#else /* 0 */
+      /* For now, set the definition_needed flag on a class whenever the needed
+         flag is set when the class has a definition. */
+      if (entry_kind == iek_type) {
+        a_type_ptr type = (a_type_ptr)entry_ptr;
+        if (is_immediate_class_type(type) && !is_incomplete_type(type)) {
+          type->variant.class_struct_union.definition_needed = TRUE;
+        }  /* if */
+      }  /* if */
+#endif /* 0 */
     }  /* if */
   }  /* if */
   return prune;
@@ -530,9 +540,6 @@ references.
 }  /* mark_as_needed */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
-
-#endif /* IL_WALK_NEEDED */
-
 
 /*
 Macro to remap an orphan IL entry pointer from an "old" value to a "new"
@@ -746,6 +753,28 @@ running them through walk_remap_func.
 
 #undef DO_SUBTREE_WALK
 #undef WALK_ENTRY_ROUTINE_NAME
+
+
+void il_walk_init(void)
+/*
+Initialize static variables related to IL walking.  This is done as a
+subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  /* Variables in il_walk.h: */
+  walk_remap_func = NULL;
+  end_of_file_scope_needed_flags_phase = FALSE;
+  /* Variables in il_walk.c: */
+  entry_process_func = NULL;
+  string_entry_process_func = NULL;
+  walk_termination_test_func = NULL;
+  walking_file_scope = FALSE;
+  flag_value_meaning_visited = 0;
+}  /* il_walk_init */
+
+#endif /* IL_WALK_NEEDED */
 
 #if NEED_DECLARATIVE_WALK
 

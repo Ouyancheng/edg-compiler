@@ -88,6 +88,17 @@ extern void walk_routine_scope_il(
              a_string_entry_process_function_ptr string_entry_process_function,
              a_remap_function_ptr                remap_function);
 
+#if MAINTAIN_NEEDED_FLAGS
+extern void mark_as_needed(char             *entry_ptr,
+                           an_il_entry_kind entry_kind);
+
+EXTERN a_boolean
+		end_of_file_scope_needed_flags_phase;
+			/* TRUE during the phase at the end of the file scope
+			   that deals with walking the subtrees of variables
+			   and classes to set needed flags. */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+
 #if REMAP_ONLY_ROUTINES_NEEDED
 extern void remap_pointers_in_il_entry(char             *entry_ptr,
                                        an_il_entry_kind entry_kind);
@@ -100,10 +111,7 @@ extern void remap_first_ptr_of_orphaned_file_scope_entry_array(void);
 
 extern void remap_last_ptr_of_orphaned_file_scope_entry_array(void);
 
-#if MAINTAIN_NEEDED_FLAGS
-extern void mark_as_needed(char             *entry_ptr,
-                           an_il_entry_kind entry_kind);
-#endif /* MAINTAIN_NEEDED_FLAGS */
+extern void il_walk_init(void);
 
 #endif /* IL_WALK_NEEDED */
 
