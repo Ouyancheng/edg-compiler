@@ -97,6 +97,10 @@ typedef struct a_pch_event {
   a_source_position
 		position;
 			/* The source position of this event. */
+  a_byte_boolean
+		match_found;
+			/* Flag used while comparing the event list for
+			   the current file with a candidate PCH file. */
 } a_pch_event;
 
 
@@ -138,6 +142,13 @@ EXTERN a_boolean
 			   information for this compilation.  For example,
 			   running out of special PCH memory. */
 
+EXTERN a_boolean
+		cannot_create_pch_file;
+			/* TRUE is a condition has occurred that makes
+			   the current compilation ineligable to create
+			   a precompiled header.  For example, using
+			   the predefined macros __DATE__ and __TIME__. */
+
 EXTERN a_source_position
 		header_stop_source_position;
 			/* The line number and column position in the
@@ -148,11 +159,16 @@ EXTERN a_source_position
 			   reached the implied header stop point. */
 
 /*
-Macro called when a condition occurs that makes it impossible to generate or
-use precompiled header information.
+Macro used to set cannot_do_pch_processing.
 */
 #define abandon_pch_processing()					\
   cannot_do_pch_processing = TRUE
+
+/*
+Macro used to set cannot_create_pch_file.
+*/
+#define suppress_creation_of_pch()					\
+  cannot_create_pch_file = TRUE
 
 extern
 void add_pch_event(a_pch_event_kind	kind,
@@ -171,6 +187,8 @@ extern void precompiled_header_processing(void);
 extern void write_precompiled_header_file(void);
 
 extern void pch_init(void);
+
+extern void pch_one_time_init(void);
 
 
 /******************************************************************************

@@ -449,6 +449,18 @@ following, indicating something special:
 /* Macro to copy a source position. */
 #define copy_source_position(from, to) ((to) = (from))
 
+/*
+Macro to compare two source positions.
+
+  return >0 if pos1 is greater than pos2
+  return  0 if pos1 is equal to pos2
+  return <0 if pos1 is less than pos2
+*/
+#define cmp_source_positions(pos1, pos2)				\
+  (((pos1).seq != (pos2).seq)						\
+       ?  (pos1).seq - (pos2).seq					\
+       :  (pos1).column - (pos2).column)
+ 
 EXTERN a_source_position
 		null_source_position
 #if VAR_INITIALIZERS
