@@ -10184,11 +10184,7 @@ entry into one representing a nondefining declaration.
     /* In C++ mode fix up the class-type-supplement and data structures
        pointed to from it. */
     a_class_type_supplement_ptr  ctsp;
-    a_template_arg_ptr           template_arg_list;
-    a_class_list_entry_ptr       befriending_classes;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    a_type_kind                  orig_type_kind;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    a_class_type_supplement      old_supp;
 
     /* If the definition of class_type included friend declarations, the
        befriended classes and routines have pointers back to class_type.
@@ -10203,18 +10199,18 @@ entry into one representing a nondefining declaration.
        partial_spec_template_arg_list does not need to be saved because it
        is only present for fully instantiated partial specializations. */
     ctsp = class_type->variant.class_struct_union.extra_info;
-    template_arg_list = ctsp->template_arg_list;
-    befriending_classes = ctsp->befriending_classes;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Don't lose information about the tag with which this class was
-       originally declared: it is used for Microsoft-style name mangling. */
-    orig_type_kind = ctsp->orig_type_kind;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Save the old supplement's contents in order to restore individual
+       fields later. */
+    old_supp = *ctsp;
     clear_class_type_supplement(ctsp);
-    ctsp->template_arg_list = template_arg_list;
-    ctsp->befriending_classes = befriending_classes;
+    ctsp->template_arg_list = old_supp.template_arg_list;
+    ctsp->befriending_classes = old_supp.befriending_classes;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    ctsp->orig_type_kind = orig_type_kind;
+    ctsp->orig_type_kind = old_supp.orig_type_kind;
+    ctsp->uuid_string = old_supp.uuid_string;
+#if DO_IL_LOWERING
+    ctsp->uuid_variable = old_supp.uuid_variable;
+#endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Clear flags that can only be TRUE for classes with definitions. */
     class_type->variant.class_struct_union.any_const_member = FALSE;
