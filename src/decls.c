@@ -2602,7 +2602,8 @@ issued a similar error).  Return FALSE if there is some error.
     if (!types_are_compatible(old_type, type_ptr)) {
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
-        pos_error(ec_decl_incompatible_with_previous_use, position);
+        pos_sy_error(ec_decl_incompatible_with_previous_use,
+                     position, ext_sym);
       }  /* if */
       okay = FALSE;
       /* Record an error type as the external symbol's type, to avoid
@@ -2695,8 +2696,8 @@ created; the caller must set it.
         /* The old entity is a variable and the new one is a routine, or
            vice-versa; error. */
         if (!suppress_incompatible_error) {
-          pos_error(ec_decl_incompatible_with_previous_use,
-                    &locator->source_position);
+          pos_sy_error(ec_decl_incompatible_with_previous_use,
+                       &locator->source_position, ext_sym);
         }  /* if */
         err = TRUE;
         /* Force creation of a new external symbol. */
@@ -3500,11 +3501,11 @@ otherwise, set *ext_sym to NULL.
         /* The ARM specifies that inconsistencies are errors for functions but
            not for variables.  Just issue a warning in the latter case. */
         if (is_function) {
-          pos_error(ec_incompatible_linkage_specifier,
-                    &locator->source_position);
+          pos_sy_error(ec_incompatible_linkage_specifier,
+                       &locator->source_position, *ext_sym);
         } else {
-          pos_warning(ec_incompatible_linkage_specifier,
-                      &locator->source_position);
+          pos_sy_warning(ec_incompatible_linkage_specifier,
+                         &locator->source_position, *ext_sym);
         }  /* if */
       }  /* if */
     }  /* if */

@@ -423,7 +423,7 @@ error code.
       m = "a parameter declaration may not have an initializer";
       break;
     case ec_exp_type_specifier:
-      m = "expected a type specifier";
+      m = "expected a type specifier (\"int\" assumed)";
       break;
     case ec_storage_class_not_allowed:
       m = "a storage class may not be specified here";
@@ -670,7 +670,7 @@ error code.
       m = "expression must be an lvalue or a function designator";
       break;
     case ec_decl_incompatible_with_previous_use:
-      m = "declaration is incompatible with previous use of same name";
+      m = "declaration is incompatible with previous %nod";
       break;
     case ec_external_name_clash:
       m = "name conflicts with previously used external name %sq";
@@ -1211,13 +1211,13 @@ error code.
       m = "unknown external linkage specification";
       break;
     case ec_incompatible_linkage_specifier:
-      m = "linkage specification is incompatible with previous declaration";
+      m = "linkage specification is incompatible with previous %nod";
       break;
     case ec_overloaded_function_linkage:
       m = "more than one instance of %n has \"C\" linkage";
       break;
     case ec_ambiguous_default_constructor:
-      m = "more than one default constructor for class %t";
+      m = "class %t has more than one default constructor";
       break;
     case ec_temp_used_for_ref_init:
       m = "value copied to temporary, reference to temporary used";
