@@ -3811,8 +3811,10 @@ this routine to do a relatively simple copy of the all the fields.
     }  /* if */
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
-    subobject_type->source_corresp.parent.class_type =
-                            class_type->source_corresp.parent.class_type;
+    subobject_type->source_corresp.parent =
+                                      class_type->source_corresp.parent;
+    subobject_type->source_corresp.is_class_member =
+                                    class_type->source_corresp.is_class_member;
 #if 0
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
@@ -8437,7 +8439,7 @@ Promote the static variables on the variables list of the indicated scope
      members out of file-scope classes or classes nested within them.
      (Or namespaces in the file scope or nested within such namespaces.)
      For those, the file scope is the right place to promote to. */
-  /* Promote the variables to the end of the proper variables list. */
+  /* Promote the variables to the end of the file-scope variables list. */
   for (variable = scope->variables;
        variable != NULL;
        variable = next_variable) {
@@ -9114,6 +9116,7 @@ scope) along with the class members.
              enum_con = enum_con->next) {
           mangle_promoted_entity_name(&enum_con->source_corresp, routine,
                                       scope);
+          enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
       }  /* if */
     }  /* for */
