@@ -2099,19 +2099,18 @@ given entity (which is from that scope) does not indicate class or
 namespace membership, or have the is_local_to_function flag TRUE.
 */
 #if CHECKING
-#define check_membership_info(entry, scope) \
+#define check_membership_info(entity, scope) \
 { if ((scope)->kind == (a_scope_kind)sck_file) { \
-    if ((entry)->source_corresp.is_class_member || \
-        (entry)->source_corresp.parent.namespace_ptr != NULL || \
-        (entry)->source_corresp.is_local_to_function) { \
-      display_entity_if_debug_enabled(entry); \
-      internal_error( \
-         "check_membership_info: file scope entity has bad membership info"); \
+    if ((entity)->source_corresp.is_class_member || \
+        (entity)->source_corresp.parent.namespace_ptr != NULL || \
+        (entity)->source_corresp.is_local_to_function) { \
+      display_entity_if_debug_enabled(entity); \
+      internal_error("check_membership_info: bad membership info"); \
     }  /* if */ \
   }  /* if */ \
 }  /* check_membership_info */
 #else /* !CHECKING */
-#define check_membership_info(entry, scope) /* Nothing */
+#define check_membership_info(entity, scope) /* Nothing */
 #endif /* CHECKING */
 
 
