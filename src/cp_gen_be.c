@@ -4185,7 +4185,11 @@ Generate code for the indicated statement.
            "continue" statements, since the gotos are put out as breaks
            and continues.  This is important to avoid a cfront "sorry"
            with destructors in blocks containing labels. */
-        if (label->break_label || label->continue_label) {
+        if (label->break_label || label->continue_label
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            || label->leave_label
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                       ) {
           suppress_trailing_space = TRUE;
           goto done;
         }  /* if */
@@ -4261,6 +4265,11 @@ Generate code for the indicated statement.
         } else if (label->continue_label) {
           /* This is really a "continue". */
           write_tok_str("continue");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (label->leave_label) {
+          /* This is really a "__leave". */
+          write_tok_str("__leave");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           write_tok_str("goto ");
           gen_unqualified_name(&label->source_corresp, iek_label);
