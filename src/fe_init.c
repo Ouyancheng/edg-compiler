@@ -948,12 +948,12 @@ when it is a secondary file.
   mem_manage_trans_unit_init();
   host_envir_trans_unit_init();
   error_trans_unit_init();
+  il_trans_unit_init();
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
   templates_trans_unit_init();
   corresp_trans_unit_init();
   expr_trans_unit_init();
-  il_trans_unit_init();
   statements_trans_unit_init();
   class_decl_trans_unit_init();
   layout_trans_unit_init();

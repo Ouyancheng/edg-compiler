@@ -12482,6 +12482,7 @@ need initialization for every (primary and secondary) translation unit.
 #endif /* ORPHAN_PROCESSING_NEEDED */
   based_type_fixup_list = NULL;
   il_reset();
+  il_alloc_trans_unit_init();
 }  /* il_trans_unit_init */
 
 

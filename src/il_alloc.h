@@ -213,6 +213,8 @@ extern void il_alloc_one_time_init(void);
 
 extern void compute_il_prefix_size(void);
 
+extern void il_alloc_trans_unit_init(void);
+
 extern void il_alloc_init(void);
 
 #ifdef TRACE_ALLOC

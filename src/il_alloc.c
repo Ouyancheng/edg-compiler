@@ -3333,6 +3333,7 @@ in il_alloc_init.)
     register_pch_saved_variables(saved_vars);
   }  /* if */
   register_trans_unit_variable(file_scope_entry_prefix_size);
+  register_trans_unit_variable(avail_template_args);
 }  /* il_alloc_one_time_init */
 
 
@@ -3356,6 +3357,16 @@ translation unit.
 }  /* compute_il_prefix_size */
 
 
+void il_alloc_trans_unit_init(void)
+/*
+Initialize static variables related to IL allocation.  These are variables
+that need initialization for every (primary and secondary) translation unit.
+*/
+{
+  avail_template_args = NULL;
+}  /* il_alloc_trans_unit_init */
+
+
 void il_alloc_init(void)
 /*
 Initialize static variables related to IL allocation.  These are
@@ -3363,7 +3374,6 @@ initializations that are done for each compilation.
 */
 {
   /* Static variables. */
-  avail_template_args = NULL;
 #if DEBUG
   num_source_files_allocated             = 0;
   num_constants_allocated                = 0;
