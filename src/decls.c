@@ -3943,7 +3943,9 @@ on for use in generating cross-reference output describing this declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!C_mode() &&
       (is_function_def || !source_sequence_entries_disallowed)) {
-    if (func_info->declared_type != NULL) {
+    if (func_info->declared_type != NULL &&
+        skip_typerefs(func_info->declared_type)->
+                variant.routine.extra_info->prototyped) {
       copy_routine_type_default_args(type_ptr, func_info->declared_type);
     }  /* if */
   }  /* if */
