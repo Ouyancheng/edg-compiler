@@ -2582,6 +2582,11 @@ user later during real instantiations.
        inserted to mark the end of the cached token stream. If necessary, keep
        flushing until end-of-source is found. */
     flush_past_token_cache_terminator();
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (nonclass_prototype_instantiations) {
+      add_to_routines_list(rout_ptr, NO_SCOPE_DEPTH);
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   db_exit();
 }  /* function_prototype_instantiation */
@@ -9423,12 +9428,6 @@ instantiation.
 
     depth_scope_stack = decl_state->effective_decl_level;
     ssep = add_empty_source_sequence_entry();
-    /* Since we record a prototype instantiation, remove the source sequence
-       entry for the corresponding a_template entry.  (We never want both in
-       the IL.) */
-    remove_from_src_seq_list(
-         decl_state->il_template_entry->source_corresp.source_sequence_entry);
-    decl_state->il_template_entry->source_corresp.source_sequence_entry = NULL;
     depth_scope_stack = saved_depth;
     if (is_definition) srk_flags |= SRK_DEFINITION;
     if (decl_state->is_template_friend) srk_flags |= SRK_FRIEND;
@@ -12320,6 +12319,13 @@ any non-empty template parameter lists that were scanned.
     /* Link in the a_template entry only if no prototype instantiation was
        recorded. */
     complete_il_template_entry(decl_state, sym, p_template_body_cache);
+  } else {
+    /* Since we record a prototype instantiation, remove the source sequence
+       entry for the corresponding a_template entry.  (We never want both in
+       the IL.) */
+    remove_from_src_seq_list(
+         decl_state->il_template_entry->source_corresp.source_sequence_entry);
+    decl_state->il_template_entry->source_corresp.source_sequence_entry = NULL;
   }  /* if */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */

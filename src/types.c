@@ -528,6 +528,19 @@ Return TRUE if the given type is a template parameter type.
 }  /* is_template_param_type */
 
 
+a_boolean is_template_dependent_qualifier_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a template parameter type or a nonreal class
+type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_template_param(tp) ||
+         (is_immediate_class_type(tp) &&
+          tp->variant.class_struct_union.is_nonreal_class);
+}  /* is_template_dependent_qualifier_type */
+
+
 a_boolean is_template_class_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a template class type -- an instance

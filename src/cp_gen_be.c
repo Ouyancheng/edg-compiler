@@ -1827,7 +1827,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type,                         \
-           is_or_contains_template_param(type) ?                      \
+           is_template_dependent_qualifier_type(type) ?               \
                                      GN_DEPENDENT : GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -4868,19 +4868,9 @@ Generate code for a new or delete operation.
 
   unqual_type = skip_typerefs(type);
   /* See if a global specifier "::" is needed on the new or delete. */
-#if 1 /* FIXME */
   if (ndsp->global_new_or_delete) {
     write_tok_str("::");
   }  /* if */
-#else
-  if (is_class_type_kind(unqual_type->kind) &&
-      /* Watch out for the case where the new/delete is folded into the
-         constructor/destructor. */
-      routine != NULL && !routine->source_corresp.is_class_member) {
-    /* Not a class-specific new or delete routine, so put out "::". */
-    write_tok_str("::");
-  }  /* if */
-#endif
   if (ndsp->is_new) {
     /* New.  The general form is
          :: new (arg2, arg3, ...) type(initializer)
