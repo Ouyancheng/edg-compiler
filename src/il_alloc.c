@@ -2528,6 +2528,9 @@ a pointer to it.
   idp->entity.kind = (a_byte_il_entry_kind)iek_none;
   idp->entity.ptr  = NULL;
   idp->do_not_instantiate = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  idp->decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return idp;
 }  /* alloc_instantiation_directive */

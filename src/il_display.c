@@ -3762,6 +3762,16 @@ Display the indicated instantiation-directive entry.
   if (idp->do_not_instantiate) {
     disp_boolean("do_not_instantiate", idp->do_not_instantiate);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (idp->decl_pos_info != NULL) {
+    disp_source_range("identifier_range",
+                      &idp->decl_pos_info->identifier_range);
+    disp_source_range("specifiers_range",
+                      &idp->decl_pos_info->specifiers_range);
+    disp_source_range("declarator_range",
+                      &idp->decl_pos_info->variant.declarator_range);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_instantiation_directive */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

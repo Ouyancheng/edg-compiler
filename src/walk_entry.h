@@ -2322,6 +2322,10 @@ after_entry_from_class:
                                     (an_instantiation_directive_ptr)entry_ptr;
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
+                 iek_decl_position_supplement);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */

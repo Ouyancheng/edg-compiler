@@ -12873,11 +12873,16 @@ symbol, otherwise we return NULL.
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is used only when extra source positions are
+                put out in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static
 void make_instantiation_directive(a_pragma_kind		       pragma_kind,
                                   a_symbol_ptr                 sym,
                                   a_source_sequence_entry_ptr  ssep,
-                                  a_source_position            *pos)
+                                  a_source_position            *pos,
+                                  a_decl_pos_block_ptr         decl_pos_block)
 /*
 Create an IL entry to represent an instantiation directive.  kind is used
 to distinguish an instantiation directive from a "do not instantiate"
@@ -12898,6 +12903,10 @@ should be used.
     if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       idp->do_not_instantiate = TRUE;
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    idp->decl_pos_info = make_decl_pos_supplement(/*at_file_scope=*/TRUE,
+                                                  decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     update_source_sequence_list((char *)idp,
                                  (an_il_entry_kind)iek_instantiation_directive,
                                  ssep);
@@ -12966,6 +12975,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     (void)get_token();
     *start_pos = pos_curr_token;
   }  /* if */    
+  clear_decl_pos_block(&decl_pos_block);
   /* If this is a pragma it will end with a tok_end_of_source, if not
      it will end with a semicolon. */
   end_of_statement_token = is_pragma ? tok_end_of_source : tok_semicolon;
@@ -12983,7 +12993,12 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                                            /*top_level=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
-        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        decl_pos_block.identifier_range.start = *start_pos;
+        decl_pos_block.identifier_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos,
+                                     &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (sym != NULL && !sym->is_error) {
@@ -13020,7 +13035,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                                            /*top_level=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
-        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos);
+        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos,
+                                     &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
@@ -13104,7 +13120,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!is_pragma) {
             make_instantiation_directive(kind, sym, ssep,
-                                         &template_keyword_pos);
+                                         &template_keyword_pos,
+                                         &decl_pos_block);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -13154,7 +13171,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
           make_instantiation_directive(kind, new_sym, ssep,
-                                       &template_keyword_pos);
+                                       &template_keyword_pos, &decl_pos_block);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */

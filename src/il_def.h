@@ -856,6 +856,13 @@ typedef struct an_instantiation_directive {
 			   directive may be prefixed with "extern" to indicate
 			   that the instantiation of an entity should be
 			   suppressed. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_decl_position_supplement_ptr
+		decl_pos_info;
+			/* Points to a block containing additional source
+			   position information about the instantiation
+			   directive.  May be NULL. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_instantiation_directive;
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
