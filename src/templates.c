@@ -145,7 +145,8 @@ might not be able to if the template itself has not yet been defined.
          the template arguments will be associated with the template
          parameter names. */
       (void)push_scope((a_scope_kind)sck_template_instantiation,
-                       tssp->declaration_scope, class_type, (a_routine_ptr)NULL,
+                       tssp->declaration_scope, class_type,
+                       (a_routine_ptr)NULL,
                        (a_function_instantiation_entry_ptr)NULL);
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
@@ -280,6 +281,7 @@ Instantiate the body of the template function associated with fiep.
   rtsp = rout_type->variant.routine.extra_info;
   tssp = fiep->template_sym->variant.template_info;
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
+  /* Push the template instantiation scope. */
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                   tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr, fiep);
   rescan_reusable_cache(&tssp->token_cache);
@@ -441,17 +443,43 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
 #endif /* CHECKING */
   static_data_member_sym->defined = TRUE;
   if (tssp->token_cache.first_token != NULL) {
+    a_boolean  incomplete_type_error_reported;
+    a_type_ptr tp = sdmdp->template_sym->class_of_which_a_member;
+    while (tp->source_corresp.class_of_which_a_member != NULL) {
+      tp = tp->source_corresp.class_of_which_a_member;
+    }  /* while */
+    /* Push a template instantiation scope.  The real values of the
+       the template arguments will be associated with the template
+       parameter names. */
 #if 0
-    /* Not yet implemented. */
-    push_scope(...);
-    initializer(...);
-    pop_scope(...);
+    /* But note that a template parameter T will be hidden by a member T --
+       is this correct? */
 #endif /* if 0 */
+    (void)push_scope((a_scope_kind)sck_template_instantiation,
+                     tssp->declaration_scope, tp, (a_routine_ptr)NULL,
+                     (a_function_instantiation_entry_ptr)NULL);
+    push_class_reactivation_scope(static_data_member_sym->
+                                                  class_of_which_a_member);
+    
+
+    rescan_reusable_cache(&tssp->token_cache);
+    initializer(static_data_member_sym, &static_data_member_sym->decl_position,
+                idl_internal, /*has_parenthesized_initializer=*/FALSE,
+                /*is_old_style_param_decl=*/FALSE,
+                &incomplete_type_error_reported);
+    if (curr_token != tok_end_of_source) {
+      error(ec_exp_semicolon);
+      while (curr_token != tok_end_of_source) (void)get_token();
+    }  /* if */
+    /* By pass end-of-source token, which is probably the terminator token
+       in the cache. */
+    (void)get_token();
+    pop_class_reactivation_scope();
+    pop_scope();
+
   } else {
-#if 0
-    /* Not yet implemented. */
-    def_initializer(...);
-#endif /* if 0 */
+    def_initializer(static_data_member_sym,
+                    &static_data_member_sym->decl_position);
   }  /* if */
   db_exit();
 }  /* define_template_static_data_member */
@@ -2429,6 +2457,7 @@ entry is pushed on the scope stack.
         /* Update the param list ptr, which should be non-null when the
            symbol is defined. */
         tssp->parameters = template_param_list;
+        tssp->declaration_scope = scope_stack[decl_scope_level].number;
         /* Scan the initializer expression, if any, and cache its tokens. */
         if (curr_token == tok_assign) {
           /* Bypass the "=". */
