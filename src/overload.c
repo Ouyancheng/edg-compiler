@@ -2429,16 +2429,27 @@ evaluated (but not checked to see if the match is good enough).
       }  /* if */
       if (class_copy_case && !param_is_reference && !pointer_case) {
         /* See if a copy constructor is needed for a class copy. */
-        set_user_conversion_for_class_copy(&arg_operand->operand,
-                                           arg_match,
-                                           eff_param_type);
-        if (arg_match->match_level == aml_none) {
-          /* This can come up for a parameter that is a class, when the
-             class only has a copy constructor that copies nonconsts, and
-             the actual argument is a const object of that class.
-             The template deduction succeeds, but the function cannot be
-             called. */
-          arg_match->conversion.unusable = TRUE;
+        if (routine->special_kind == (a_special_function_kind)sfk_constructor&&
+            eff_param_type == routine->source_corresp.parent.class_type) {
+          /* The routine is a member template constructor, and it's
+             threatening to become a copy constructor that copies its
+             own type by value, which is not allowed.  Avoid looking for
+             a copy constructor here, since that would cause a recursion
+             loop.  If this routine is selected, an error will be issued
+             on the attempt to instantiate the function. */
+          arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
+        } else {
+          set_user_conversion_for_class_copy(&arg_operand->operand,
+                                             arg_match,
+                                             eff_param_type);
+          if (arg_match->match_level == aml_none) {
+            /* This can come up for a parameter that is a class, when the
+               class only has a copy constructor that copies nonconsts, and
+               the actual argument is a const object of that class.
+               The template deduction succeeds, but the function cannot be
+               called. */
+            arg_match->conversion.unusable = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
