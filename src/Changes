@@ -1,5 +1,20 @@
 Version 2.41
 
+12/12/98  Removal of redundant forward class declaration from source
+          sequence list
+
+With CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS configured to
+TRUE, secondary-declaration entries representing forward declarations of
+classes in the original source were mistakenly removed.  This meant the
+following:
+
+  struct S;
+  struct S { };
+
+was represented by the C++-generating back end as only a definition.
+Fixed -- the code to remove such forward declarations now only removes
+those that are compiler-generated.
+
 12/11/98  Long-lifetime temporaries mode, destruction of temporary
           on switch clause fallthrough
 

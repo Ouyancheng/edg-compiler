@@ -1080,14 +1080,14 @@ fixup_function_scope_source_sequence_list has been called.)
 void check_for_and_remove_redundant_secondary_decl_ss_entry(
                                                        a_type_ptr class_type)
 /*
+Look for a "compiler-generated" forward-declaration secondary-decl source
+sequence entry.  If it immediately precedes the primary entry for the
+class specified, remove it.
 */
 {
   a_source_sequence_entry_ptr  ssep;
   a_src_seq_secondary_decl_ptr sssdp;
 
-  /* If no instantiation was added between the source-sequence entry
-     for the definition of the class and the secondary-decl entry added
-     before it (see above), the latter can be removed. */
   ssep = class_type->source_corresp.source_sequence_entry;
   if (ssep != NULL) {
     ssep = ssep->prev;
@@ -1095,7 +1095,15 @@ void check_for_and_remove_redundant_secondary_decl_ss_entry(
         ss_entry_kind(ssep) ==
                      (an_il_entry_kind)iek_src_seq_secondary_decl) {
       sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      if (sssdp->entity.ptr == (char *)class_type) {
+      /* If no instantiation was inserted between the source-sequence entry
+         for the definition of the class and the secondary-decl entry added
+         before it, the latter can be removed. */
+      if (sssdp->entity.ptr == (char *)class_type &&
+          sssdp->compiler_generated_forward_decl) {
+        if (sssdp->first_declaration) {
+          symbol_supplement_for_class(class_type)->
+                                         definition_is_first_decl = TRUE;
+        }  /* if */
         remove_from_src_seq_list(ssep);
       }  /* if */
     }  /* if */
@@ -1560,6 +1568,7 @@ declared_type points to a type that should be recorded in the entry.
     /* Create the entry. */
     sssdp = make_source_sequence_secondary_decl(ptr, kind, declared_type);
     sssdp->is_partial_instantiation = TRUE;
+    sssdp->compiler_generated_forward_decl = TRUE;
     if (kind == (an_il_entry_kind)iek_type) {
       sssdp->autonomous_tag_decl = TRUE;
     }  /* if */

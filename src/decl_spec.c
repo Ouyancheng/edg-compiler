@@ -1925,14 +1925,13 @@ the template.
                               (a_source_sequence_entry_ptr)NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Set the first_declaration flag in the associated source-sequence
-       secondary declaration entry. */
+       secondary declaration entry.  The corresponding field in the class
+       symbol supplement will already have been set for definitions, if
+       appropriate. */
     if (!is_class_definition) {
       (void)set_src_seq_secondary_decl_fields((char *)class_type,
                                               (a_type_ptr)NULL,
                                               SSSD_FIRST_DECLARATION);
-    } else {
-      tag_sym->variant.class_struct_union.extra_info->
-                                       definition_is_first_decl = TRUE;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {

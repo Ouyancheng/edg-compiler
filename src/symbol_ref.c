@@ -1047,6 +1047,7 @@ created for this entity; otherwise, it is NULL.
   a_boolean                is_tentative_def = srk_flags & SRK_TENTATIVE_DEF;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                is_primary_decl = FALSE;
+  a_boolean                set_first_decl_flag = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_source_correspondence  *scptr = NULL;
 
@@ -1116,11 +1117,19 @@ created for this entity; otherwise, it is NULL.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Issue a source sequence entry -- unless this is a label definition.  (A
      label is always defined by an stmk_label statement, for which a source
-     sequence entry will be put out; putting out both would be redundant.
-     sk_parameter symbols are not yet bound to a variable, so there's no way
-     to put out a source sequence entry yet.) */
+     sequence entry will be put out; putting out both would be redundant.)
+     Also, sk_parameter symbols are not yet bound to a variable, so there's
+     no way to put out a source sequence entry yet. */
   if (sym_ptr->kind != (a_symbol_kind)sk_label &&
       sym_ptr->kind != (a_symbol_kind)sk_parameter) {
+    /* Determine whether the field definition_is_first_decl should be set
+       for a class symbol.  Note that it may be changed later, if a source
+       sequence entry is generated to represent a forward declaration of
+       the class. */
+    if (is_definition && is_class_struct_union_symbol(sym_ptr) &&
+        scptr != NULL && scptr->source_sequence_entry == NULL) {
+      set_first_decl_flag = TRUE;
+    }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (is_definition && !C_mode()) {
       if ((sym_ptr->kind == (a_symbol_kind)sk_member_function ||
@@ -1135,6 +1144,7 @@ created for this entity; otherwise, it is NULL.
            just after it).  That means a secondary-source-sequence entry
            should be put out here. */
         is_primary_decl = FALSE;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       } else if (is_class_struct_union_symbol(sym_ptr)) {
         if (scptr != NULL && scptr->source_sequence_entry == NULL) {
           /* This is the initial declaration of this class.  If appropriate,
@@ -1170,6 +1180,9 @@ created for this entity; otherwise, it is NULL.
                                                         kind, class_type);
             sssdp->autonomous_tag_decl = TRUE;
             sssdp->decl_position = *source_position;
+            sssdp->compiler_generated_forward_decl = TRUE;
+            sssdp->first_declaration = TRUE;
+            set_first_decl_flag = FALSE;
             if (class_type->variant.class_struct_union.is_template_class) {
 #if BACK_END_IS_CP_GEN_BE
               sssdp->specialized_with_new_syntax =
@@ -1184,6 +1197,7 @@ created for this entity; otherwise, it is NULL.
             reset_ss_list_instantiation_insert_point();
           }  /* if */
         }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -1192,6 +1206,10 @@ created for this entity; otherwise, it is NULL.
          is the first definition of the variable), erase the previous
          source sequence entry bound to this entity (if any). */
       if (scptr != NULL) scptr->source_sequence_entry = NULL;
+      if (set_first_decl_flag) {
+        sym_ptr->variant.class_struct_union.extra_info->
+                                       definition_is_first_decl = TRUE;
+      }  /* if */
     }  /* if */
     sym_update_source_sequence_list(sym_ptr, source_position,
                                     is_primary_decl, ssep);
