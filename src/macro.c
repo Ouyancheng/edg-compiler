@@ -1398,7 +1398,7 @@ associated global variables will also have been set).
   a_boolean       at_end_of_source;
   a_boolean       delete_source_from_loc_was_set_on_entry = FALSE;
   a_boolean       token_pasting_off_end;
-  a_boolean       too_many_args_warning_given = FALSE;
+  a_boolean       too_many_args_diag_given = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
 #define ARG_VALUES_SIZE 50
 			/* For parameter counts in the normal range, the
@@ -1666,17 +1666,15 @@ end_scan_for_macro_modifs:;
              the beginning and end of the argument is ignored. */
           if (pp == NULL) {
             /* Too many arguments. */
-            if (pcc_preprocessing_mode || SVR4_C_mode) {
-              /* In pcc mode and SVR4 C compatibility mode, this is only a
-		 warning. */
-              if (!too_many_args_warning_given) {
+            if (!too_many_args_diag_given) {
+              if (pcc_preprocessing_mode || SVR4_C_mode) {
+                /* In pcc mode and SVR4 C compatibility mode, this is only a
+                   warning. */
                 warning(ec_too_many_macro_args);
-                too_many_args_warning_given = TRUE;
+              } else {
+                error(ec_too_many_macro_args);
               }  /* if */
-            } else {
-              remove_stop_token(tok_comma);
-              syntax_error(ec_too_many_macro_args);
-              goto end_all_args_scan;
+              too_many_args_diag_given = TRUE;
             }  /* if */
           }  /* if */
           map = alloc_macro_arg();
@@ -1835,7 +1833,6 @@ end_arg_expansion:;
           }  /* if */
         } while (not_done);
         remove_stop_token(tok_comma);
-end_all_args_scan:;
       }  /* if */
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
