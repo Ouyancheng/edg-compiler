@@ -2425,7 +2425,7 @@ being created to surround a dependent statement in C++.
   a_block_ptr             block;
   an_object_lifetime_ptr  olp = NULL;
 
-  /* Allocate the a block statement and add it to the statements list. */
+  /* Allocate a block statement and add it to the statements list. */
   block_stmt = add_statement((a_statement_kind)stmk_block);
   stmt_update_source_sequence_list(block_stmt);
   block = block_stmt->variant.block.extra_info;

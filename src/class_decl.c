@@ -8170,7 +8170,7 @@ static void check_completed_member_type(a_type_ptr              *type,
                                         a_member_decl_info_ptr  decl_info)
 /*
 This routine is called after declarator to perform some checks on *type,
-which is the the type produced by the combined processing of decl_specifiers
+which is the type produced by the combined processing of decl_specifiers
 and declarator. locator points to the symbol locator for the member.
 *class_state tracks general information about the class, and *decl_info
 tracks information about the current declaration.
