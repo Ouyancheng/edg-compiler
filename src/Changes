@@ -91,9 +91,9 @@ The front end sometimes aborted its processing with an internal error when
 a block extern declaration was incompatible with a previous declaration of
 that entity.
 
-  extern int gi;
+  extern int g;
   void f() {
-    extern void (*gi[])();  // User to trigger an internal error with --svr4
+    extern void (*g[])();  /* Used to trigger an internal error with --svr4 */
   }
 
 This is fixed and a normal error message is issued.
