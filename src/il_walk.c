@@ -2332,8 +2332,7 @@ in cases where the orphan lists have not been generated yet.
        cases, we're done. */
     if (C_mode() ||
         !is_primary_translation_unit ||
-        !(secondary_translation_unit_seen() ||
-          function_body_processing_delayed_on_some_func_in_primary_il))
+        !function_body_processing_delayed_on_some_func_in_primary_il)
 #endif /* DO_IL_LOWERING */
     /* Do not insert code here. */
     {

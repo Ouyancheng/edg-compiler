@@ -560,8 +560,7 @@ This mainly handles functions copied from secondary translation units, but
 there may be some functions in the primary IL for which lowering was delayed.
 */
 {
-  if (secondary_translation_unit_seen() ||
-      function_body_processing_delayed_on_some_func_in_primary_il) {
+  if (function_body_processing_delayed_on_some_func_in_primary_il) {
     /* Do inline functions in a first pass to have a better chance of inlining
        calls to them. */
     a_boolean inline_pass = TRUE; 
@@ -628,6 +627,9 @@ Complete the file scope of each of the translation units.
   if (total_errors == 0 && !trans_unit_test_mode &&
       translation_units->next != NULL) {
     copy_secondary_trans_unit_IL_to_primary();
+    /* Some function bodies may have been copied to the primary IL, so
+       check for any needed lowering. */
+    function_body_processing_delayed_on_some_func_in_primary_il = TRUE;
   }  /* if */
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
