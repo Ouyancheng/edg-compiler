@@ -3540,89 +3540,6 @@ function symbols.
 }  /* symbol_for_member_function */
 
 
-static void redecl_member_function(a_symbol_ptr         sym,
-                                   a_type_ptr           member_type,
-                                   an_access_specifier  access,
-                                   a_boolean            is_inline,
-                                   a_boolean            is_virtual,
-                                   a_source_position    *err_pos)
-/*
-The current member function redeclares the function to which sym refers.
-Parameters member_type, access, is_inline, and is_virtual indicate
-specifications of the current declaration.  The ARM (9.2) disallows the
-redeclaration of member functions, so issue an error, but if access,
-static-ness, and virtual-ness are unchanged, merge the two declarations.
-(This routine was originally written to support an extension to allow
-member function redeclarations, as long as the second declaration was not
-too different from the first.  Changing it back to support such behavior
-is just a matter of changing where and how diagnostics are issued.)
-*/
-{
-  a_routine_ptr             rp = sym->variant.routine.ptr;
-  a_param_type_ptr          ptp1, ptp2;
-  a_def_arg_expr_fixup_ptr  daefp;
-
-  db_enter(3, "redecl_member_function");
-  /* Issue the error.  Then, if the declarations are close enough, proceed
-     as if function redeclaration were permitted. */
-  pos_sy_error(ec_member_function_redeclaration, err_pos, sym);
-  if (access != rp->source_corresp.access ||
-      (is_virtual && !rp->is_virtual) ||
-      (routine_type_is_nonstatic_member_function(rp->type) !=
-         routine_type_is_nonstatic_member_function(member_type))) {
-    /* The two declarations differ with respect to access specifier, virtual
-       vs. nonvirtual, and/or static vs. nonstatic.  Rather than trying to
-       resolve such differences, just throw the second declaration away. */
-  } else {
-    /* In the interests of better error recovery, merge the declarations. */
-    /* If the new declaration specifies "inline", keep it, even if the
-       previous declaration did not. */
-    if (is_inline) rp->is_inline = TRUE;
-    /* Reconcile the types. */
-    reconcile_routine_types(rp, member_type, /*preserve_rout_type=*/TRUE,
-                            /*preserve_type_ptr=*/FALSE);
-    /* If any default arguments were encountered in the second declaration,
-       the tokens were cached in an entry that makes reference to a now
-       obsolete param type entry.  Find such references and change them to
-       refer to the corresponding param type entry in the old param types
-       list (the one that's being preserved). */
-    ptp1 = skip_typerefs(rp->type)->
-                                  variant.routine.extra_info->param_type_list;
-    ptp2 = skip_typerefs(member_type)->
-                                  variant.routine.extra_info->param_type_list;
-    for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
-      if (ptp2->has_default_arg) {
-        /* A default arg appears in the current declaration.  Find the
-           delayed scan fixup entry that points to this param type entry. */
-        daefp = curr_routine_fixup->def_arg_expr_fixup_list;
-        for (; daefp != NULL; daefp = daefp->next) {
-          /* Stop when we find the entry that refers to the current
-             param type entry. */
-          if (daefp->param_type == ptp2) {
-            daefp->param_type = ptp1;
-            /* We intentionally do not set the has_default_arg flag to TRUE
-               in ptp1.  This enables us to detect errors in the default arg
-               list of the first declaration that would otherwise be missed.
-               For instance,
-                   class A { void f(int=1,int); void f(int,int=0); };
-               According to ARM 8.2.6 (commentary on p. 141) an error should
-               be issued on the first declaration of f(). has_default_arg is
-               FALSE on the second param type entry when the cached default arg
-               expression is scanned (see delayed_scan_of_default_arg_expr),
-               and so the error can be detected. */
-            /* Leave the inner loop but continue the outer loop. */
-            break;
-          } else {
-            check_assertion(daefp->next != NULL);
-          }  /* if */
-        }  /* for */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  db_exit();
-}  /* redecl_member_function */
-
-
 static void add_to_conversion_list(a_symbol_ptr                   orig_sym,
                                    a_class_symbol_supplement_ptr  cssp)
 /*
@@ -3758,7 +3675,7 @@ special function kind (e.g., constructor, destructor), if any.
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
   a_type_qualifier_set          qualifiers;
   a_type_ptr                    tp;
-  a_source_sequence_entry_ptr   declarator_ssep;
+  a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
 
   db_enter(3, "decl_member_function");
@@ -3779,246 +3696,237 @@ special function kind (e.g., constructor, destructor), if any.
 #endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
-  rtn = sym->variant.routine.ptr;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  declarator_ssep = func_info->declarator_ssep;
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-  declarator_ssep = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (rtn != NULL) {
+  if (sym->variant.routine.ptr != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
-       declared.  It is an error to redeclare a member function, but we try
-       merge the declarations anyway. */
-    redecl_member_function(sym, member_type, access,
-                           (a_boolean)func_info->is_inline, is_virtual,
-                           &locator->source_position);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+       declared.  Issue an error to redeclare a member function. */
+    /* Issue an error on trying to redeclare the function. */
+    pos_sy_error(ec_member_function_redeclaration, &locator->source_position,
+                 sym);
+    set_to_named_error_locator(*locator);
+    sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                             decl_scope_level, /*suppress_redecl_error=*/TRUE);
+  }  /* if */
+  /* Create the routine entry for the member function. */
+  /* The routine is allocated in the current memory region, as indicated
+     by curr_il_region_number -- i.e., in the memory region of the scope in
+     which its class is declared. */
+  /* Member functions are static by default. */
+  rtn = make_routine(member_type, (a_storage_class)sc_static,
+                     /*at_file_scope=*/FALSE, /*add_to_list=*/TRUE);
+  sym->variant.routine.ptr = rtn;
+  /* Set the source correspondence, including the access specifier. */
+  set_source_corresp(&rtn->source_corresp, sym);
+  set_class_membership(sym, &rtn->source_corresp, class_type);
+  rtn->source_corresp.access = access;
+  if (overload_sym != NULL) {
+    set_mixed_static_nonstatic_flag(overload_sym);
+  }  /* if */
+  /* Member functions should have the same name linkage as the class of
+     which they are members.  (In cfront mode that may mean internal
+     linkage -- if and when its linkage is promoted to C++, the linkage of
+     the member functions will also be changed. */
+  def_name_linkage = class_type->source_corresp.name_linkage;
+  if (func_info->is_inline) {
+    /* Inline member function (either because "inline" was specified or
+       a function definition is present). */
+    rtn->is_inline = TRUE;
 #if 0
-    update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
-                                declarator_ssep);
+    /* Temporary special handling for inline member functions of nonlocal
+       classes -- until we support "extern inline" inline member functions
+       get nlk_internal and sc_static (which is the cfront behavior). */
 #endif /* if 0 */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    cannot_bind_to_curr_construct();
-  } else {
-    /* Create the routine entry for the member function. */
-    /* The routine is allocated in the current memory region, as indicated
-       by curr_il_region_number -- i.e., in the memory region of the scope in
-       which its class is declared. */
-    /* Member functions are static by default. */
-    rtn = make_routine(member_type, (a_storage_class)sc_static,
-                       /*at_file_scope=*/FALSE, /*add_to_list=*/TRUE);
-    sym->variant.routine.ptr = rtn;
-    /* Set the source correspondence, including the access specifier. */
-    set_source_corresp(&rtn->source_corresp, sym);
-    set_class_membership(sym, &rtn->source_corresp, class_type);
-    rtn->source_corresp.access = access;
-    if (overload_sym != NULL) {
-      set_mixed_static_nonstatic_flag(overload_sym);
+    if (def_name_linkage == (a_name_linkage_kind)nlk_none) {
+      /* Must be a local class. */
+      rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+    } else {
+      rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     }  /* if */
-    /* Member functions should have the same name linkage as the class of
-       which they are members.  (In cfront mode that may mean internal
-       linkage -- if and when its linkage is promoted to C++, the linkage of
-       the member functions will also be changed. */
-    def_name_linkage = class_type->source_corresp.name_linkage;
-    if (func_info->is_inline) {
-      /* Inline member function (either because "inline" was specified or
-         a function definition is present). */
-      rtn->is_inline = TRUE;
-#if 0
-      /* Temporary special handling for inline member functions of nonlocal
-         classes -- until we support "extern inline" inline member functions
-         get nlk_internal and sc_static (which is the cfront behavior). */
-#endif /* if 0 */
-      if (def_name_linkage == (a_name_linkage_kind)nlk_none) {
-        /* Must be a local class. */
-        rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
-      } else {
-        rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-      }  /* if */
+    /* storage_class is already set to sc_static. */
+  } else {
+    /* Noninline member function. */
+    rtn->is_inline = FALSE;
+    rtn->source_corresp.name_linkage = def_name_linkage;
+    if (def_name_linkage != (a_name_linkage_kind)nlk_cplusplus_external) {
+      /* Either this is a local class (nlk_none) or a cfront-compatible
+         declaration (nlk_internal). */
       /* storage_class is already set to sc_static. */
     } else {
-      /* Noninline member function. */
-      rtn->is_inline = FALSE;
-      rtn->source_corresp.name_linkage = def_name_linkage;
-      if (def_name_linkage != (a_name_linkage_kind)nlk_cplusplus_external) {
-        /* Either this is a local class (nlk_none) or a cfront-compatible
-           declaration (nlk_internal). */
-        /* storage_class is already set to sc_static. */
-      } else {
-        /* Will be changed to sc_unspecified if a definition is seen. */
-        rtn->storage_class = (a_storage_class)sc_extern;
-      }  /* if */
+      /* Will be changed to sc_unspecified if a definition is seen. */
+      rtn->storage_class = (a_storage_class)sc_extern;
     }  /* if */
-    if (compiler_generated) {
-      rtn->compiler_generated = TRUE;
-    } else {
-      a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+  }  /* if */
+  if (compiler_generated) {
+    rtn->compiler_generated = TRUE;
+  } else {
+    a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
 
-      if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
-      record_symbol_declaration(srk_flags, sym, &locator->source_position,
-                                declarator_ssep);
+    if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (!func_info->is_definition) {
-        (void)set_src_seq_secondary_decl_type((char *)rtn, member_type);
-      } else {
-        rtn->declared_type = member_type;
-      }  /* if */
+    declarator_ssep = func_info->declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (func_info->is_definition) {
-        /* Since this is a definition, record the current lint argsused and
-           varargs-count state in the routine type. That will suppress any
-           warnings about unused parameters or variable arguments. */
-        record_lint_argsused_and_varargs_state(sym);
-      }  /* if */
-      /* Do processing required for any pragmas that are bound to the current
-         declaration. */
-      process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-    }  /* if */
-    add_exception_specification(func_info, rtn);
-    if (cssp->is_nonreal_class) {
-      /* This symbol represents a member function of a prototype instantiation
-         of a class template.  As such it is a quasi function template itself.
-         Set it up to look like that. */
-      a_template_instance_ptr           tip;
-      a_template_symbol_supplement_ptr  tssp;
-
-      sym->variant.routine.instance_ptr = tip = alloc_template_instance();
-      tip->instance_sym = tip->template_sym = sym;
-      tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
-      tssp->variant.function.routine = rtn;
-    }  /* if */
-    /* Do processing for special member functions, including assignment
-       operators, constructors and destructors. */
-    if (locator->is_operator_name) {
-      rtn->special_kind = (a_special_function_kind)sfk_operator;
-      rtn->opname_kind = locator->variant.opname;
-      /* If this is an assignment operator, record a pointer to it in the
-         symbol -- to facilitate generating default assignment operators. */
-      if (rtn->opname_kind == (an_opname_kind)onk_assign) {
-        if (cssp->assignment_operator == NULL) {
-          cssp->assignment_operator = sym;
-        } else if (cssp->assignment_operator->kind ==
-                                    (a_symbol_kind)sk_overloaded_function) {
-          /* The overloaded function symbol is already registered. */
-        } else {
-          /* The overloaded function symbol was just created. */
-          cssp->assignment_operator = overload_sym;
-        }  /* if */
-      } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
-        cssp->has_operator_new = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_array_new) {
-        cssp->has_operator_array_new = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
-        cssp->has_operator_delete = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_array_delete) {
-        cssp->has_operator_array_delete = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_arrow) {
-        /* For operator->() do a special check on the return type.  It must
-           be something that can be used as a pointer -- either a pointer
-           to a class or an object of or reference to a class for which
-           operator->() is defined (ARM 13.4.6). */
-        check_operator_arrow_return_type(rtn, /*is_expr_use=*/FALSE,
-                                         &locator->source_position);
-      }  /* if */
-    } else if (locator->is_conversion_name) {
-      /* User-defined conversion function. */
-      a_boolean  is_usable = TRUE;
-
-      rtn->special_kind = (a_special_function_kind)sfk_conversion;
-      /* Check the target type of the conversion -- which is the return type
-         of rout_type. */
-      tp = skip_typerefs(rtn->type);
-      tp = skip_typerefs(tp->variant.routine.return_type);
-      if (is_reference_type(tp)) {
-        tp = skip_typerefs(type_pointed_to(tp));
-      }  /* if */
-      if (tp == class_type) {
-        is_usable = FALSE;
-      } else if (is_class_struct_union_type(tp)) {
-        if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
-          /* An operator that converts from a derived class to a base class
-             is allowed by cfront 2.1, but not by cfront 3.0. */
-          is_usable = FALSE;
-        } else {
-          /* The target type of the conversion is a class or ref-to-class
-             type: set a flag to mark it as target of a conversion. */
-          set_target_of_conversion_function_flag(tp);
-        }  /* if */
-      } else if (is_void_type(tp)) {
-        /* Except in cfront-compatibility mode, conversion to void type will
-           already have been checked for. */
-        check_assertion(any_cfront_mode());
-        is_usable = FALSE;
-      }  /* if */
-      if (is_usable) {
-        /* Create a conversion list entry.  This list provides an alternative
-           to traversing the entire symbols list for a class to find its
-           conversion functions. */
-        add_to_conversion_list(sym, cssp);
-      } else {
-        /* Conversion to the same type or a reference to the same type or to
-           a base class or a reference to a base class "is never used" (WP
-           12.3.2; that is, it is not used in implicit or explicit conversions
-           but only in an explicit invocations of the function). */
-        pos_sy_warning(ec_conversion_function_not_usable,
-                       &locator->source_position, sym);
-      }  /* if */
+    record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                              declarator_ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (!func_info->is_definition) {
+      (void)set_src_seq_secondary_decl_type((char *)rtn, member_type);
     } else {
-      rtn->special_kind = spec_kind;
+      rtn->declared_type = member_type;
     }  /* if */
-    /* If "virtual" was specified in the declaration, mark the routine as
-       virtual.  Even if it wasn't, its virtualness can be inherited.  In
-       either case record the relationship between the current routine and
-       its appearance in the base classes of the current class. */
-    if (check_for_virtual_function(is_virtual, sym, class_type,
-                                   &locator->source_position, registry_ptr)) {
-      /* Classes with virtual functions require constructors. */
-      cssp->constructor_required = TRUE;
-      /* Classes with virtual functions cannot be constructed or assigned
-         by bitwise copying. */
-      cssp->construction_by_bitwise_copy_allowed = FALSE;
-      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (func_info->is_definition) {
+      /* Since this is a definition, record the current lint argsused and
+         varargs-count state in the routine type. That will suppress any
+         warnings about unused parameters or variable arguments. */
+      record_lint_argsused_and_varargs_state(sym);
     }  /* if */
-    if (spec_kind == (a_special_function_kind)sfk_constructor) {
-      /* Set the pointer to the constructor symbol in the class symbol
-         supplement. */
-      if (cssp->constructor == NULL) {
-        cssp->constructor = sym;
-      } else if (cssp->constructor->kind ==
+    /* Do processing required for any pragmas that are bound to the current
+       declaration. */
+    process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+  }  /* if */
+  add_exception_specification(func_info, rtn);
+  if (cssp->is_nonreal_class) {
+    /* This symbol represents a member function of a prototype instantiation
+       of a class template.  As such it is a quasi function template itself.
+       Set it up to look like that. */
+    a_template_instance_ptr           tip;
+    a_template_symbol_supplement_ptr  tssp;
+
+    sym->variant.routine.instance_ptr = tip = alloc_template_instance();
+    tip->instance_sym = tip->template_sym = sym;
+    tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
+    tssp->variant.function.routine = rtn;
+  }  /* if */
+  /* Do processing for special member functions, including assignment
+     operators, constructors and destructors. */
+  if (locator->is_operator_name) {
+    rtn->special_kind = (a_special_function_kind)sfk_operator;
+    rtn->opname_kind = locator->variant.opname;
+    /* If this is an assignment operator, record a pointer to it in the
+       symbol -- to facilitate generating default assignment operators. */
+    if (rtn->opname_kind == (an_opname_kind)onk_assign) {
+      if (cssp->assignment_operator == NULL) {
+        cssp->assignment_operator = sym;
+      } else if (cssp->assignment_operator->kind ==
                                   (a_symbol_kind)sk_overloaded_function) {
         /* The overloaded function symbol is already registered. */
       } else {
         /* The overloaded function symbol was just created. */
-        cssp->constructor = overload_sym;
+        cssp->assignment_operator = overload_sym;
       }  /* if */
-      /* Determine if this is a default constructor. */
-      if (is_default_constructor(rtn)) {
-        cssp->has_default_constructor = TRUE;
-      }  /* if */
-      /* Determine if this is a copy constructor.  If so, set the class symbol
-         supplement flags appropriately. */
-      if (is_copy_constructor(rtn, class_type, &qualifiers)) {
-        cssp->has_copy_constructor = TRUE;
-        cssp->has_copy_constructor_for_const_object |= 
-                                               ((qualifiers & TQ_CONST) != 0);
-        if (!compiler_generated) {
-          /* If a user-defined copy constructor is declared for the class,
-             construction by bitwise copying is not allowed.  (On the other
-             hand, this flag *may* be TRUE even when the compiler generates a
-             a copy constructor.) */
-          cssp->construction_by_bitwise_copy_allowed = FALSE;
-        }  /* if */
-      }  /* if */
-    } else if (spec_kind == (a_special_function_kind)sfk_destructor) {
-      /* Set the pointer to the destructor symbol in the class symbol
-         supplement. */
-      cssp->destructor = sym;
+    } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
+      cssp->has_operator_new = TRUE;
+    } else if (rtn->opname_kind == (an_opname_kind)onk_array_new) {
+      cssp->has_operator_array_new = TRUE;
+    } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
+      cssp->has_operator_delete = TRUE;
+    } else if (rtn->opname_kind == (an_opname_kind)onk_array_delete) {
+      cssp->has_operator_array_delete = TRUE;
+    } else if (rtn->opname_kind == (an_opname_kind)onk_arrow) {
+      /* For operator->() do a special check on the return type.  It must
+         be something that can be used as a pointer -- either a pointer
+         to a class or an object of or reference to a class for which
+         operator->() is defined (ARM 13.4.6). */
+      check_operator_arrow_return_type(rtn, /*is_expr_use=*/FALSE,
+                                       &locator->source_position);
     }  /* if */
-    update_routine_decl_modifiers(rtn, decl_modifiers,
-                                  &locator->source_position,
-                                  /*is_redecl=*/FALSE,
-                                  (a_boolean)func_info->is_definition);
+  } else if (locator->is_conversion_name) {
+    /* User-defined conversion function. */
+    a_boolean  is_usable = TRUE;
+
+    rtn->special_kind = (a_special_function_kind)sfk_conversion;
+    /* Check the target type of the conversion -- which is the return type
+       of rout_type. */
+    tp = skip_typerefs(rtn->type);
+    tp = skip_typerefs(tp->variant.routine.return_type);
+    if (is_reference_type(tp)) {
+      tp = skip_typerefs(type_pointed_to(tp));
+    }  /* if */
+    if (tp == class_type) {
+      is_usable = FALSE;
+    } else if (is_class_struct_union_type(tp)) {
+      if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
+        /* An operator that converts from a derived class to a base class
+           is allowed by cfront 2.1, but not by cfront 3.0. */
+        is_usable = FALSE;
+      } else {
+        /* The target type of the conversion is a class or ref-to-class
+           type: set a flag to mark it as target of a conversion. */
+        set_target_of_conversion_function_flag(tp);
+      }  /* if */
+    } else if (is_void_type(tp)) {
+      /* Except in cfront-compatibility mode, conversion to void type will
+         already have been checked for. */
+      check_assertion(any_cfront_mode());
+      is_usable = FALSE;
+    }  /* if */
+    if (is_usable) {
+      /* Create a conversion list entry.  This list provides an alternative
+         to traversing the entire symbols list for a class to find its
+         conversion functions. */
+      add_to_conversion_list(sym, cssp);
+    } else {
+      /* Conversion to the same type or a reference to the same type or to
+         a base class or a reference to a base class "is never used" (WP
+         12.3.2; that is, it is not used in implicit or explicit conversions
+         but only in an explicit invocations of the function). */
+      pos_sy_warning(ec_conversion_function_not_usable,
+                     &locator->source_position, sym);
+    }  /* if */
+  } else {
+    rtn->special_kind = spec_kind;
   }  /* if */
+  /* If "virtual" was specified in the declaration, mark the routine as
+     virtual.  Even if it wasn't, its virtualness can be inherited.  In
+     either case record the relationship between the current routine and
+     its appearance in the base classes of the current class. */
+  if (check_for_virtual_function(is_virtual, sym, class_type,
+                                 &locator->source_position, registry_ptr)) {
+    /* Classes with virtual functions require constructors. */
+    cssp->constructor_required = TRUE;
+    /* Classes with virtual functions cannot be constructed or assigned
+       by bitwise copying. */
+    cssp->construction_by_bitwise_copy_allowed = FALSE;
+    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+  }  /* if */
+  if (spec_kind == (a_special_function_kind)sfk_constructor) {
+    /* Set the pointer to the constructor symbol in the class symbol
+       supplement. */
+    if (cssp->constructor == NULL) {
+      cssp->constructor = sym;
+    } else if (cssp->constructor->kind ==
+                                (a_symbol_kind)sk_overloaded_function) {
+      /* The overloaded function symbol is already registered. */
+    } else {
+      /* The overloaded function symbol was just created. */
+      cssp->constructor = overload_sym;
+    }  /* if */
+    /* Determine if this is a default constructor. */
+    if (is_default_constructor(rtn)) {
+      cssp->has_default_constructor = TRUE;
+    }  /* if */
+    /* Determine if this is a copy constructor.  If so, set the class symbol
+       supplement flags appropriately. */
+    if (is_copy_constructor(rtn, class_type, &qualifiers)) {
+      cssp->has_copy_constructor = TRUE;
+      cssp->has_copy_constructor_for_const_object |= 
+                                             ((qualifiers & TQ_CONST) != 0);
+      if (!compiler_generated) {
+        /* If a user-defined copy constructor is declared for the class,
+           construction by bitwise copying is not allowed.  (On the other
+           hand, this flag *may* be TRUE even when the compiler generates a
+           a copy constructor.) */
+        cssp->construction_by_bitwise_copy_allowed = FALSE;
+      }  /* if */
+    }  /* if */
+  } else if (spec_kind == (a_special_function_kind)sfk_destructor) {
+    /* Set the pointer to the destructor symbol in the class symbol
+       supplement. */
+    cssp->destructor = sym;
+  }  /* if */
+  update_routine_decl_modifiers(rtn, decl_modifiers,
+                                &locator->source_position,
+                                /*is_redecl=*/FALSE,
+                                (a_boolean)func_info->is_definition);
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
