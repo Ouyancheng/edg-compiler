@@ -1,5 +1,13 @@
 Version 2.28
 
+3/1/95   IL CHANGE: new variable flag modified_within_try_block
+
+A new flag, modified_within_try_block, has been added to a_variable.  It is
+set for function-local variables that are declared in a scope that contains
+a try block and that are then modified inside the compound statement of the
+try block.  It is intended to help optimizing back-ends recognize variables
+that must (sometimes) be stored immediately after being modified.
+
 3/1/95   Internal error after error when generating cross-reference output
 
 An internal error occurred after an error on the following program
