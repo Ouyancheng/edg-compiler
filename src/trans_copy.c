@@ -479,10 +479,8 @@ and remap the pointers in the copy.
     remap_pointers_in_il_entry(ptr, kind,
                                remap_secondary_ptr_to_primary,
                                remap_secondary_list_ptr_to_primary);
-#if MAINTAIN_NEEDED_FLAGS
     copy = ptr;
     scp = source_corresp_for_il_entry(copy, kind);
-#endif /* MAINTAIN_NEEDED_FLAGS */
   } else {
     a_trans_unit_corresp_ptr tucp = NULL;
     copy = checked_trans_unit_copy_address_of(ptr);
@@ -519,7 +517,7 @@ and remap the pointers in the copy.
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   /* Clear the needed and keep_in_il flags in the copy (or original,
-     for an entry in a file scope memory region), so that they can be
+     for an entry in a function scope memory region), so that they can be
      recomputed in the context of the primary IL. */
   il_entry_prefix_of(copy).keep_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -598,6 +596,8 @@ it and remapping pointers.
                   routine->assoc_scope != NULL_region_number);
   scope = il_header.region_scope_entry[routine->assoc_scope];
   check_assertion(scope != NULL);
+  /* Note that the "copy" routines called here simply remap pointers
+     when given an entry in a file scope memory region. */
   walk_routine_scope_il(routine->assoc_scope,
                         copy_entry,
                         copy_string_entry,

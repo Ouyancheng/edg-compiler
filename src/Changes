@@ -1,5 +1,13 @@
 Version 3.3
 
+6/11/03  Unset variable with multiple translation units,
+         MAINTAIN_NEEDED_FLAGS FALSE
+
+In versions built with MAINTAIN_NEEDED_FLAGS FALSE, some processing
+in trans_copy.c/copy_entry used an uninitialized variable.  The
+code in question is reached only with multiple translation units
+(e.g., with exported templates).  Now fixed.
+
 6/10/03  C mode: Abort on unusual syntax error in function definition
 
 In C mode, the front end sometimes aborted during the processing what seems
