@@ -4078,7 +4078,7 @@ virtual function table pointer with the next class up.
           bcp = NULL;
         } else {
           /* We've reached some other base with the same type as ctor_bcp,
-             which means that we've left the ctor_bcp subobject.  */
+             which means that we've left the ctor_bcp subobject. */
         }  /* if */
         break;
       }  /* if */
