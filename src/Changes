@@ -1,5 +1,11 @@
 Version 2.44
 
+7/8/00   Compilation problem with uncompiled code in enter_predefined_type
+
+The sample code in enter_predefined_type (enclosed in #if 0/#endif,
+so not compiled ordinarily) had a compilation error introduced in
+version 2.41, which is now corrected.
+
 7/6/00   Constant-expressions for bit field lengths and array bounds
          recorded in IL
 

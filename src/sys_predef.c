@@ -70,7 +70,7 @@ Enter a predefined type.
 
   sym_ptr = full_enter_symbol(name, (sizeof_t)(strlen(name)),
                               (a_symbol_kind)sk_type, NO_SCOPE_DEPTH);
-  sym_ptr->variant.type = type;
+  sym_ptr->variant.type.ptr = type;
   set_source_corresp(&type->source_corresp, sym_ptr);
 }  /* enter_predefined_type */
 #endif /* 0 */
