@@ -3566,11 +3566,14 @@ are created by a new expression (in which case sym is NULL).  In both cases
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(type)) {
       a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
-      if (!cssp->any_nonstatic_data_members && cssp->is_POD) {
+      if (!cssp->any_nonstatic_data_members &&
+          (cssp->is_POD || any_cfront_mode())) {
         /* Uninitialized const object that is an "empty" POD class (i.e.,
            one with no nonstatic data members).  The WP probably requires
            initialization of const objects even when they are empty.  Other
            C++ compilers don't enforce such a restriction, however. */
+        /* In cfront mode treat a non-POD empty class as though it were a
+           POD. */
         is_empty_POD_class = TRUE;
       }  /* if */
     }  /* if */
@@ -3596,7 +3599,8 @@ are created by a new expression (in which case sym is NULL).  In both cases
             } else {
               severity = es_error;
             }  /* if */
-            if (is_class_struct_union_type(type) && !is_incomplete_array) {
+            if (is_class_struct_union_type(type) && !is_incomplete_array &&
+                !any_cfront_mode()) {
                /* Even if the class has an implicitly declared default
                   constructor, a user-declared default constructor must be
                   present (WP 7.1.5.1 [dcl.cv]). */
@@ -3619,28 +3623,33 @@ are created by a new expression (in which case sym is NULL).  In both cases
         }  /* if */
       }  /* if */
     } else {
-      /* Uninitialized const new-object.  Issue a discretionary error.  If
-         it's an empty class, issue a discretionary error in strict mode,
-         otherwise a warning. */
-      if (is_empty_POD_class &&
-          (!strict_ansi_mode ||
-           (strict_ansi_error_severity != (an_error_severity)es_error &&
-            strict_ansi_error_severity != (an_error_severity)
+      /* Uninitialized const new-object. */
+      if (any_cfront_mode()) {
+        /* No diagnostic required. */
+      } else {
+        /* Issue a discretionary error -- unless it's an empty class, in
+           which case issue a discretionary error in strict mode, otherwise
+           a warning. */
+        if (is_empty_POD_class &&
+            (!strict_ansi_mode ||
+             (strict_ansi_error_severity != (an_error_severity)es_error &&
+              strict_ansi_error_severity != (an_error_severity)
                                                    es_discretionary_error))) {
-        severity = es_warning;
-      } else {
-        severity = es_discretionary_error;
-      }  /* if */
-      if (is_class_struct_union_type(type)) {
-        /* Even if the class has an implicitly declared default constructor,
-           a user-declared default constructor must be present (WP 5.3.4
-           [expr.new]). */
-        check_assertion(!type_has_user_declared_default_constructor(type));
-        pos_ty_diagnostic(severity,
-                          ec_missing_default_constructor_on_unnamed_const,
-                          &error_position, skip_typerefs(type));
-      } else {
-        diagnostic(severity, ec_missing_initializer_on_unnamed_const);
+          severity = es_warning;
+        } else {
+          severity = es_discretionary_error;
+        }  /* if */
+        if (is_class_struct_union_type(type)) {
+          /* Even if the class has an implicitly declared default constructor,
+             a user-declared default constructor must be present (WP 5.3.4
+             [expr.new]). */
+          check_assertion(!type_has_user_declared_default_constructor(type));
+          pos_ty_diagnostic(severity,
+                            ec_missing_default_constructor_on_unnamed_const,
+                            &error_position, skip_typerefs(type));
+        } else {
+          diagnostic(severity, ec_missing_initializer_on_unnamed_const);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {
