@@ -345,9 +345,10 @@ be written.
         (void)printf(": ");
         if (type->variant.typeref.is_placeholder_for_class_instantiation) {
           (void)printf("placeholder for instantiation of ");
-        }  /* if */
-        if (type->variant.typeref.is_placeholder_for_namespace_type) {
+        } else if (type->variant.typeref.is_placeholder_for_namespace_type) {
           (void)printf("placeholder for namespace type ");
+        } else if (type->variant.typeref.is_placeholder_for_nested_class_def) {
+          (void)printf("nested-class-def placeholder for ");
         }  /* if */
         summarize_type(type);
       } else if (entry_kind == iek_source_file) {
