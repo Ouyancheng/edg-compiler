@@ -2381,8 +2381,10 @@ nonstatic_member_function:
         case sk_union_tag:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
+          pos_error(ec_type_identifier_not_allowed,
+                    &locator_for_curr_id.source_position);
           operand_will_not_be_used_because_of_error(operand_1);
-          error_and_make_error_operand(ec_type_identifier_not_allowed, result);
+          conv_to_error_operand(result);
           break;
 #if CHECKING
         default:
