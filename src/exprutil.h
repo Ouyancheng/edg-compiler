@@ -234,6 +234,13 @@ typedef struct an_arg_match_summary {
 			   that the match was possible only because of the
 			   anachronism that allows a non-const function to
 			   be called for a const object. */
+  a_type_ptr    base_param_type;
+			/* The underlying type of the parameter, shorn of
+			   any top-level reference type and similar
+			   trivial-conversion baggage.  Used in looking
+			   for conversion subsequences involving addition
+			   of type qualifiers at the end of a conversion.
+			   NULL if not applicable (e.g., for an ellipsis). */
   a_routine_ptr	conversion_routine;
 			/* If match_level is aml_user_conversion, this is
 			   the user-defined conversion routine. */
