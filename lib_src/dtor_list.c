@@ -107,13 +107,12 @@ static a_link __link = {(a_link*)NULL,
                         (a_void_function_ptr)NULL,
                         (a_void_function_ptr)__process_needed_destructions};
 
-static void dummy(a_link*)
+
 /*
-Suppress unused warning on __link.
+This declaration is used to force the static definition of __link to be
+put out (i.e., to make the compiler think that __link is actually used).
 */
-{
-  dummy(&__link);
-}  /* dummy */
+a_link* __dummy_variable_used_to_force_definition_of__link = &__link;
 #endif /* CFRONT_COMPATIBILITY_MODE */
 
 
