@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -54,44 +54,65 @@ static void check_constant_initializer (a_constant *constant,
 Check that the given constant is acceptable as an initial value of an object
 of the given type.  Change the constant's type, or remove the final null
 from a string literal, if necessary.  If type is an incomplete array of
-char type, and *constant is a string, change the number of elements in the
-incomplete array type by copying and modifying the type.  *err is returned
-TRUE if there was an error of some kind.
+char or wchar_t type, and *constant is a string, change the number of elements
+in the incomplete array type by copying and modifying the type.  *err is
+returned TRUE if there was an error of some kind.
 */
 {
   a_type_ptr    array_type;
-  a_targ_size_t string_length;
+  a_targ_size_t string_length, num_elems;
   a_targ_size_t array_length;
+  a_boolean     is_wide_string = FALSE;
 
   *err = FALSE;
-  if (is_char_array_type(*type)) {
+  if (is_string_type(*type)) {
     /* The object to be initialized is an array (possibly incomplete) of
-       char -- i.e., a string. */
+       char or wchar_t -- i.e., a string or wide string. */
+    is_wide_string = !is_char_array_type(*type);
     if (constant->kind != (a_constant_repr_kind)ck_string) {
       /* The constant is not a string. */
       error(ec_bad_initializer_type);
       *err = TRUE;
+    } else if (char_int_kind_from_string_type(*type) !=
+               char_int_kind_from_string_type(constant->type)) {
+      /* The constant and the array do not have the same underlying character
+         element type; it must be that one is a wide string and the other
+         a normal string.  Note that there is no mismatch in that case if
+         wchar_t is char. */
+      error(ec_bad_initializer_type);
+      *err = TRUE;
     } else {
       /* The constant is a string. */
-      string_length = constant->variant.string.length;
+      num_elems = string_length = constant->variant.string.length;
+      if (is_wide_string) {
+        /* Adjust the wide string number of elements. */
+        num_elems /= TARG_SIZEOF_WCHAR_T;
+      }  /* if */
       array_type = skip_typerefs(*type);
       if (is_incomplete_type(array_type)) {
         /* The array type is incomplete, and therefore the array size
            is set from the string length. */
-        set_initialized_array_size(type, string_length);
+        set_initialized_array_size(type, num_elems);
       } else {
         /* The object being initialized is an array that has a definite
            size.  See if the string will fit in the array. */
         array_length = array_type->variant.array.number_of_elements;
-        if (string_length > array_length) {
+        if (num_elems > array_length) {
           /* The string is longer than the array.  Check to see if the
              string will fit if we drop the final null.  See 3.5.7. */
-          if (string_length-1 == array_length) {
+          if (num_elems-1 == array_length) {
             /* Decrement the string length, and change its type,
                thus "dropping" the final null.  Note that this depends on
                the string not being shared. */
-            constant->variant.string.length = --string_length;
-            constant->type = string_type(string_length);
+            num_elems--;
+            if (!is_wide_string) {
+              string_length--;
+              constant->type = string_type(num_elems);
+            } else {
+              string_length -= TARG_SIZEOF_WCHAR_T;
+              constant->type = wide_string_type(num_elems);
+            }  /* if */
+            constant->variant.string.length = string_length;
           } else {
             /* The initializer string is too long for the array being
                initialized. */
@@ -308,9 +329,9 @@ for unions and aggregates at that level).
        values can either appear inside a brace-enclosed list, or at
        the current level. */
     check_for_opening_brace(&brace_flag);
-    if (is_char_array_type(local_type) && curr_token == tok_string_literal) {
-      /* The object being initialized has type array of char, and is
-         being initialized with a string.  Handle this case specially. */
+    if (curr_token == tok_string_literal && is_string_type(local_type)) {
+      /* The object being initialized has type array of char or wchar_t, and
+         is being initialized with a string.  Handle this case specially. */
       scan_constant_initializer_expression(/*convert_array_to_pointer=*/FALSE,
                                            &constant, &err);
       if (!err) {
@@ -918,7 +939,7 @@ The syntax is:
     scan_initializer_of_simple_object(
              /*nonconst_allowed=*/(C_dialect == C_dialect_cplusplus ||
                (vp != NULL && has_static_storage_duration(vp->storage_class))),
-             /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
+             /*convert_array_to_pointer=*/!is_string_type(vp_type),
              &vp_type, &local_di, &err);
     if (local_di.kind == (a_dynamic_init_kind)dik_expression) {
       initialization_is_dynamic = TRUE;
@@ -1234,6 +1255,9 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
           /* Okay. */
           init_type = member_or_base_sym->variant.field->type;
           if (is_array_type(init_type) && !is_char_array_type(init_type)) {
+#if 0
+                                           is_string_type?
+#endif
             error(ec_cannot_initialize);
             init_type = error_type();
           } else {
@@ -1504,6 +1528,6 @@ a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

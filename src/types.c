@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -297,16 +297,48 @@ the definition of "character types" -- "plain" char, signed char, and
 unsigned char are all included.
 */
 {
-  a_boolean       is_char_array = FALSE;
-  a_type_ptr      elem_type;
+  a_boolean  is_char_array = FALSE;
+  a_type_ptr elem_type;
 
   tp = skip_typerefs(tp);
   if (is_array(tp)) {
     elem_type = skip_typerefs(tp->variant.array.element_type);
     is_char_array = is_character(elem_type);
   }  /* if */
-  return(is_char_array);
+  return is_char_array;
 }  /* is_char_array_type */
+  
+  
+static a_boolean is_wchar_t_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an array of wchar_t.
+*/
+{
+  a_boolean  is_wchar_t_array = FALSE;
+  a_type_ptr elem_type;
+
+  tp = skip_typerefs(tp);
+  if (is_array(tp)) {
+    elem_type = skip_typerefs(tp->variant.array.element_type);
+    is_wchar_t_array = is_integral_type(elem_type) &&
+                       elem_type->variant.integer.int_kind ==
+                                        (an_integer_kind)TARG_WCHAR_T_INT_KIND;
+  }  /* if */
+  return is_wchar_t_array;
+}  /* is_wchar_t_array_type */
+
+
+a_boolean is_string_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an array of character (any kind) or
+an array of wchar_t.
+*/
+{
+  a_boolean is_string;
+
+  is_string = is_char_array_type(tp) || is_wchar_t_array_type(tp);
+  return is_string;
+}  /* is_string_type */
 
 
 a_boolean is_class_struct_union_type(a_type_ptr tp)
@@ -2369,6 +2401,6 @@ is returned.
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -22,6 +22,7 @@ literals.c -- Literal constant conversion to and from internal form.
 #include "preproc.h"
 #include "lexical.h"
 #include "float_pt.h"
+#include "types.h"
 
 
 /* Convert a character hex digit to the associated hex digit value. */
@@ -269,25 +270,30 @@ is set to the character position of the error.
 }  /* conv_float_literal */
 
 
-static void conv_single_char(char **temp_ptr,
-                             long *ch)
+static void conv_single_char(char          **temp_ptr,
+                             unsigned long *ch,
+                             unsigned long centity_mask,
+                             unsigned long centity_sign_bit,
+                             a_boolean     centity_is_signed)
 /*
 Fetch one character of a character constant or string literal.  The current
 position in the token is *temp_ptr (it is incremented appropriately
 for what is taken).  The character gotten is returned (sign-extended
-if necessary) in ch.
+if necessary) in ch.  centity_mask, centity_sign_bit, and centity_is_signed
+define the character entity into which this character is going (char or
+wchar_t).
 */
 {
-  register long c;
-  register char tch;
-  register char *lptr;
-  int           digit;
-  a_boolean     range_error = FALSE;
-  a_boolean     unrecognized;
+  register unsigned long targ_ch;
+  register char          src_ch, tch;
+  register char          *lptr;
+  int                    digit;
+  a_boolean              range_error = FALSE;
+  a_boolean              unrecognized;
 
   lptr = *temp_ptr;
-  c = *(lptr++);
-  if (c == '\\') {
+  targ_ch = src_ch = *(lptr++);
+  if (src_ch == '\\') {
     /* Backslash, escaped character.  Can be an octal escape, a hexadecimal
        escape, a simple escape sequence (like \n), or something unrecognized,
        in which case the character is left alone.  See standard, 2.2.2,
@@ -299,27 +305,27 @@ if necessary) in ch.
           /* pcc does not recognize \a. */
           unrecognized = TRUE;
         } else {
-          c = TARG_ALERT_CHAR;
+          targ_ch = TARG_ALERT_CHAR;
         }  /* if */
         break;
       case 'b':
-        c = TARG_BACKSPACE_CHAR;
+        targ_ch = TARG_BACKSPACE_CHAR;
         break;
       case 'f':
-        c = TARG_FORM_FEED_CHAR;
+        targ_ch = TARG_FORM_FEED_CHAR;
         break;
       case 'n':
-        c = TARG_NEWLINE_CHAR;
+        targ_ch = TARG_NEWLINE_CHAR;
         break;
       case 'r':
-        c = TARG_CARR_RETURN_CHAR;
+        targ_ch = TARG_CARR_RETURN_CHAR;
         break;
       case 't':
-        c = TARG_HORIZ_TAB_CHAR;
+        targ_ch = TARG_HORIZ_TAB_CHAR;
         break;
       case 'v':
         /* \v is not in K&R, but is recognized by pcc. */
-        c = TARG_VERT_TAB_CHAR;
+        targ_ch = TARG_VERT_TAB_CHAR;
         break;
       case 'x':
         /* Hexadecimal escape.  There can be many digits, but there must be
@@ -327,16 +333,15 @@ if necessary) in ch.
         if (!isxdigit(*lptr)) {
           unrecognized = TRUE;
         } else {
-          c = hexvalue(*lptr);  /* First digit. */
+          targ_ch = hexvalue(*lptr);  /* First digit. */
           while (isxdigit(tch = *(++lptr))) {
-            if (c > ((unsigned long)LONG_MAX)>>4) {
+            if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
               /* Error will be processed below.  We must keep going and take
                  all the digits. */
-              c &= (1<<TARG_CHAR_BIT)-1;
               range_error = TRUE;
             }  /* if */
             digit = hexvalue(tch);
-            c = (c << 4) | digit;
+            targ_ch = (targ_ch << 4) | digit;
           }  /* while */
           goto range_check;
         }  /* if */
@@ -347,15 +352,15 @@ if necessary) in ch.
            as "octal" in this context.  Up to three octal digits may appear.
            Note that there is code in accum_quoted_string that must match
            this code. */
-        c = tch - '0';  /* First digit. */
+        targ_ch = tch - '0';  /* First digit. */
         if (isdigit(tch = *lptr) && tch != '8' && tch != '9') {
           /* Second digit. */
           lptr++;
-          c = (c << 3) | (tch - '0');
+          targ_ch = (targ_ch << 3) | (tch - '0');
           if (isdigit(tch = *lptr) && tch != '8' && tch != '9') {
             /* Third digit. */
             lptr++;
-            c = (c << 3) | (tch - '0');
+            targ_ch = (targ_ch << 3) | (tch - '0');
           }  /* if */
         }  /* if */
         goto range_check;
@@ -363,7 +368,7 @@ if necessary) in ch.
         /* Other characters, left alone.  Specifically, standard requires
            that \', \", \?, and \\ be reduced to just the escaped character. */
         if (tch == '\'' || tch == '"' || tch == '?' || tch == '\\') {
-          c = tch;
+          targ_ch = tch;
         } else {
           unrecognized = TRUE;
         }  /* if */
@@ -374,11 +379,17 @@ if necessary) in ch.
     if (unrecognized) {
       conv_line_loc_to_source_pos(*temp_ptr, &error_position);
       warning(ec_unrecognized_char_escape);
-      c = tch;
+      targ_ch = tch;
     }  /* if */
   }  /* if */
 return_point:
-  *ch = c;
+  /* Drop sign extension, then add it again if the target wants it. */
+  targ_ch &= centity_mask;
+  if (centity_is_signed) {
+    /* Sign-extend the value (the char or wchar_t type is signed). */
+    if (targ_ch & centity_sign_bit) targ_ch |= ~centity_mask;
+  }  /* if */
+  *ch = targ_ch;
   *temp_ptr = lptr;
   return;
 
@@ -386,24 +397,101 @@ range_check:
   /* Check that the value of c is legal for a character.  The standard
      (3.1.3.4) requires that this be diagnosed, but also says that it's
      implementation-defined.  That means it has to be a warning rather
-     than an error. */
-  if (range_error || c > TARG_UCHAR_MAX) {
+     than an error.  Range is different for wide characters. */
+  if (!range_error) {
+    /* The comparison here is always done as unsigned, even if char or
+       wchar_t are signed.  That's because octal and hexadecimal escapes
+       are always treated as unsigned.  See 3.1.3.4 constraints. */
+    if (targ_ch > centity_mask) range_error = TRUE;
+  }  /* if */
+  if (range_error) {
     conv_line_loc_to_source_pos(*temp_ptr, &error_position);
     warning(ec_bad_character_value);
-    /* Truncate the character value so it fits in a target character. */
-    c &= (1<<TARG_CHAR_BIT)-1;
-  }  /* if */
-  if (targ_has_signed_chars) {
-    /* Sign-extend the value (target has signed chars). */
-    if (c > TARG_SCHAR_MAX) {
-      c |= ~((1<<TARG_CHAR_BIT)-1);
-    }  /* if */
+    /* Value is truncated by the normal return processing. */
   }  /* if */
   goto return_point;
 }  /* conv_single_char */
 
 
-void conv_char_literal(long          num_chars,
+static void conv_single_wide_char(char          **temp_ptr,
+                                  unsigned long *ch,
+                                  unsigned long *chars_taken,
+                                  unsigned long centity_mask,
+                                  unsigned long centity_sign_bit,
+                                  a_boolean     centity_is_signed)
+/*
+Fetch one wide character of a wide character constant or string literal.
+The current position in the token is *temp_ptr (it is incremented
+appropriately for what is taken).  More than one source character
+may be taken to produce one wide character as output.  The number of
+source characters taken is returned in *chars_taken.  The wide character
+gotten is returned (sign-extended if necessary) in ch.  centity_mask,
+centity_sign_bit, and centity_is_signed define the attributes of wchar_t.
+This routine works like mbtowc (see 4.10.7.2 and 3.1.3.4 in the ANSI C
+standard).
+*/
+{
+  /* Simple version: one character in means one wchar_t out. */
+  conv_single_char(temp_ptr, ch, centity_mask, centity_sign_bit,
+                   centity_is_signed);
+  *chars_taken = 1;
+}  /* conv_single_wide_char */
+
+
+/*ARGSUSED*/ /* <-- Because temp_ptr is not used in this simple version. */
+static void determine_wide_char_constant_size(char          *temp_ptr,
+                                              unsigned long num_chars,
+                                              a_boolean     add_null,
+                                              sizeof_t      *constant_size,
+                                              a_targ_size_t *num_elems)
+/*
+Determine the size of a wide character constant or string literal.
+temp_ptr points to the source characters; there are num_chars of them.
+A null should be considered appended to the constant if add_null is TRUE.
+Return *constant_size set to the size in bytes for the constant and
+*num_elems set to the number of wchar_t elements.  This routine should
+provide results consistent with the functioning of mbtowc (see 4.10.7.2
+and 3.1.3.4 in the ANSI C standard).
+*/
+{
+  /* Simple version: one character in means one wchar_t out. */
+  /* Fancier versions may have to scan the text of the literal here to
+     determine the proper size after allowing for escape sequences and
+     the like. */
+  *num_elems = num_chars;
+  if (add_null) (*num_elems)++;
+  *constant_size = (*num_elems)*TARG_SIZEOF_WCHAR_T;
+}  /* determine_wide_char_constant_size */
+
+
+/*
+Set variables describing the attributes of the character entity to be
+used to match the type "char".
+*/
+#define set_centity_attributes_for_char()                             \
+{ centity_mask = TARG_UCHAR_MAX;                                      \
+  centity_sign_bit = (unsigned long)TARG_SCHAR_MAX + 1;               \
+  centity_is_signed = targ_has_signed_chars;                          \
+}  /* set_centity_attributes_for_char */
+
+
+/*
+Set variables describing the attributes of the character entity to be
+used to match the type "wchar_t".
+*/
+#define set_centity_attributes_for_wchar_t()                          \
+{ /* Make the sign bit. */                                            \
+  centity_sign_bit = (unsigned long)1 <<                              \
+                              ((TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT)-1);\
+  /* Combine the sign bit with all the bits below the sign bit to     \
+     get the full mask. */                                            \
+  centity_mask = (centity_sign_bit) | ((centity_sign_bit) - 1);       \
+  centity_is_signed = int_kind_is_signed(                             \
+                              (an_integer_kind)TARG_WCHAR_T_INT_KIND);\
+}  /* set_centity_attributes_for_wchar_t */
+
+
+void conv_char_literal(unsigned long num_chars,
                        an_error_code *err_code,
                        char          **err_pos)
 /*
@@ -417,59 +505,87 @@ the number of characters contained within the quotes (after escape
 processing).
 */
 {
-  long            i;
-  long            ch;
-  long            temp;
+  unsigned long   i;
+  unsigned long   ch;
+  unsigned long   temp;
   char            *temp_ptr;
   a_boolean       is_wide = FALSE;
   a_type_ptr      con_type;
   an_integer_kind int_kind;
+  sizeof_t        constant_size;
+  a_targ_size_t   num_elems;
+  unsigned long   chars_taken;
+  unsigned long   centity_mask;
+  unsigned long   centity_sign_bit;
+  a_boolean       centity_is_signed;
+  int             centity_bits;
 
   *err_code = ec_no_error;
   *err_pos = NULL;
-  temp_ptr = start_of_curr_token;
-  /* If this is a wide char constant, skip the "L". */
-  if (*temp_ptr == 'L') {
-    temp_ptr++;
-    is_wide = TRUE;
-  }  /* if */
-  /* Advance past the opening quote. */
-  temp_ptr++;
+  temp_ptr = start_of_curr_token+1;
+  /* See if this is a wide character constant. */
   /* Determine the constant type:
-       Wide character constant (L'x'): wchar_t
+       Wide character constant  (L'x'): wchar_t
        Single character constant ('x'): int in C, char in C++
        Multi-character constant ('xy'): int
   */
-  if (is_wide) {
+  if (*start_of_curr_token == 'L') {
+    /* Wide character constant. */
+    is_wide = TRUE;
+    /* Skip over the "L". */
+    temp_ptr++;
     int_kind = (an_integer_kind)TARG_WCHAR_T_INT_KIND;
-  } else if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
-    int_kind = (an_integer_kind)ik_char;
+    determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/FALSE,
+                                      &constant_size, &num_elems);
+    set_centity_attributes_for_wchar_t();
+    centity_bits = TARG_SIZEOF_WCHAR_T * TARG_CHAR_BIT;
   } else {
-    int_kind = (an_integer_kind)ik_int;
+     /* Normal character constant. */
+    if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
+      int_kind = (an_integer_kind)ik_char;
+    } else {
+      int_kind = (an_integer_kind)ik_int;
+    }  /* if */
+    constant_size = num_chars;
+    set_centity_attributes_for_char();
+    centity_bits = TARG_CHAR_BIT;
   }  /* if */
   con_type = integer_type(int_kind);
-  /* See if the characters we have will fit in the size we've chosen. */
-  if (num_chars > con_type->size) {
+  /* See if the characters we have will fit in the size we've determined. */
+  if (constant_size > con_type->size) {
     /* Too many characters to fit. */
     *err_code = ec_too_many_characters;
     *err_pos = start_of_curr_token;
   } else {
+    /* Accumulate the characters. */
     temp = 0;
-    for (i = 0; i < num_chars; i++) {
+    for (i = 0; i < num_chars; i += chars_taken) {
       /* Convert one character of the char constant. */
-      conv_single_char(&temp_ptr, &ch);
+      if (!is_wide) {
+        conv_single_char(&temp_ptr, &ch, centity_mask, centity_sign_bit,
+                         centity_is_signed);
+        chars_taken = 1;
+      } else {
+        conv_single_wide_char(&temp_ptr, &ch, &chars_taken,
+                              centity_mask, centity_sign_bit,
+                              centity_is_signed);
+      }  /* if */
       /* Put the character in the right place. */
 #if TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
       /* 'ab' == 0x6162. */
       /* Drop any sign extension on the new character if it's not the first. */
-      if (targ_has_signed_chars && i != 0) ch &= (1<<TARG_CHAR_BIT)-1;
-      temp <<= TARG_CHAR_BIT;
+      if (i != 0 && centity_is_signed) ch &= centity_mask;
+      temp <<= centity_bits;
 #else
       /* 'ab' == 0x6261. */
-      /* Drop any sign extension on the previous value if this isn't the
-         first character. */
-      if (targ_has_signed_chars && i != 0) temp &= (1<<(i*TARG_CHAR_BIT))-1;
-      ch <<= i*TARG_CHAR_BIT;
+      if (i != 0) {
+        /* Drop any sign extension on the previous value if this isn't the
+           first character. */
+        if (centity_is_signed) {
+          temp &= ~(~(unsigned long)0 << (i*centity_bits));
+        }  /* if */
+        ch <<= (i*centity_bits);
+      } /* if */
 #endif /* TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT */
       temp |= ch;
     }  /* for */
@@ -491,7 +607,31 @@ processing).
 }  /* conv_char_literal */
 
 
-void conv_string_literal(long          num_chars,
+static void put_wide_char_into_string(unsigned long ch,
+                                      char     **pstr)
+/*
+Put the wide character ch into the string pointed to by *pstr, and increment
+*pstr by the proper amount.
+*/
+{
+  int  i;
+  char *p = *pstr;
+
+  /* This is basically a copy of an integer to an array of characters;
+     we must allow for the target endian-ness. */
+  for (i = 0; i < TARG_SIZEOF_WCHAR_T; i++) {
+#if TARG_LITTLE_ENDIAN
+    *p++ = ch & UCHAR_MAX;
+    ch >>= TARG_CHAR_BIT;
+#else /* !TARG_LITTLE_ENDIAN */
+    *p++ = (ch >> ((TARG_SIZEOF_WCHAR_T - i - 1) * TARG_CHAR_BIT)) & UCHAR_MAX;
+#endif /* TARG_LITTLE_ENDIAN */
+  }  /* for */
+  *pstr = p;
+}  /* put_wide_char_into_string */
+
+
+void conv_string_literal(unsigned long num_chars,
                          an_error_code *err_code,
                          char          **err_pos)
 /*
@@ -505,24 +645,53 @@ the number of characters contained within the quotes (after escape
 processing).
 */
 {
-  long i;
-  long ch;
-  char *temp_ptr;
-  char *pstr;
+  unsigned long i;
+  unsigned long ch;
+  char          *temp_ptr;
+  char          *pstr, *str_start;
+  a_boolean     is_wide = FALSE;
+  sizeof_t      constant_size;
+  a_targ_size_t num_elems;
+  unsigned long chars_taken;
+  unsigned long centity_mask;
+  unsigned long centity_sign_bit;
+  a_boolean     centity_is_signed;
   
   *err_code = ec_no_error;
   *err_pos = NULL;  /* To make lint happy. */
+  temp_ptr = start_of_curr_token+1;
+  /* See if this is a wide string literal. */
+  if (*start_of_curr_token == 'L') {
+    /* Wide string literal. */
+    is_wide = TRUE;
+    /* Skip over the "L". */
+    temp_ptr++;
+    determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/TRUE,
+                                      &constant_size, &num_elems);
+    set_centity_attributes_for_wchar_t();
+  } else {
+    /* Normal string literal. */
+    constant_size = num_elems = num_chars+1;  /* "+1" is space for the null. */
+    set_centity_attributes_for_char();
+  }  /* if */
   /* Allocate enough space to hold the final string, including the null
      added to it. */
-  pstr = alloc_text_of_string_literal((sizeof_t)(num_chars+1));
-  temp_ptr = start_of_curr_token+1;
-  /* If this is a wide string literal, skip the "L". */
-  if (*start_of_curr_token == 'L') temp_ptr++;
-  for (i = 0; i < num_chars; i++) {
+  str_start = pstr = alloc_text_of_string_literal(constant_size);
+  /* Accumulate the characters. */
+  for (i = 0; i < num_chars; i += chars_taken) {
     /* Convert one character of the string literal. */
-    conv_single_char(&temp_ptr, &ch);
-    /* Put the character in the right place. */
-    pstr[i] = (char)ch;
+    if (!is_wide) {
+      conv_single_char(&temp_ptr, &ch, centity_mask, centity_sign_bit,
+                       centity_is_signed);
+      /* Put the character in the right place. */
+      *pstr++ = (char)ch;
+      chars_taken = 1;
+    } else {
+      conv_single_wide_char(&temp_ptr, &ch, &chars_taken,
+                            centity_mask, centity_sign_bit,
+                            centity_is_signed);
+      put_wide_char_into_string(ch, &pstr);
+    }  /* if */
   }  /* for */
 #if CHECKING
   /* Make sure the whole string was taken.  If not, the character count
@@ -531,11 +700,19 @@ processing).
     internal_error("conv_string_literal: length miscalculated");
   }  /* if */
 #endif /* CHECKING */
-  pstr[num_chars] = '\0';
+  /* Add the final null. */
+  if (!is_wide) {
+    *pstr = '\0';
+  } else {
+    ch = 0;
+    put_wide_char_into_string(ch, &pstr);
+  }  /* if */
+  /* Make the constant entry for the string. */
   clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
-  const_for_curr_token.type = string_type((a_targ_size_t)(num_chars+1));
-  const_for_curr_token.variant.string.length = num_chars+1;
-  const_for_curr_token.variant.string.value  = pstr;
+  const_for_curr_token.type = is_wide ? wide_string_type(num_elems) :
+                                        string_type(num_elems);
+  const_for_curr_token.variant.string.length = constant_size;
+  const_for_curr_token.variant.string.value  = str_start;
   if (*err_code != ec_no_error) {
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);
@@ -554,16 +731,27 @@ doing the concatenation; the one from the second string is copied as
 the final null of the concatenated string; see 3.1.4.
 */
 {
-  long s1_len, s2_len, new_len;
-  char *new_str;
+  a_targ_size_t s1_len, s2_len, new_len;
+  char          *new_str;
+  a_boolean     wide_strings;
 
   if (first_string ->kind == (a_constant_repr_kind)ck_error ||
       second_string->kind == (a_constant_repr_kind)ck_error) {
     /* One or the other of the strings had an error, leave the second
        string as is. */
   }  else {
+    /* We want wide_strings FALSE if wchar_t and char are the same type,
+       so test for not char array type rather than testing explicitly
+       for wchar_t array. */
+    wide_strings = !is_char_array_type(first_string->type);
     /* Get string lengths. */
-    s1_len = first_string->variant.string.length - 1;  /* Remove null. */
+    s1_len = first_string->variant.string.length;
+    /* Remove null from length of first string. */
+    if (!wide_strings) {
+      s1_len--;
+    } else {
+      s1_len -= TARG_SIZEOF_WCHAR_T;
+    }  /* if */
     if (s1_len > 0) {
       s2_len = second_string->variant.string.length;
       /* Allocate space for the concatenation. */
@@ -585,7 +773,12 @@ the final null of the concatenated string; see 3.1.4.
       /* Adjust the *second_string constant to be the new string. */
       second_string->variant.string.length = new_len;
       second_string->variant.string.value  = new_str;
-      second_string->type = string_type((a_targ_size_t)new_len);
+      if (!wide_strings) {
+        second_string->type = string_type((a_targ_size_t)new_len);
+      } else {
+        second_string->type = wide_string_type(
+                               (a_targ_size_t)(new_len / TARG_SIZEOF_WCHAR_T));
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* concat_string_literals */
@@ -597,6 +790,6 @@ the final null of the concatenated string; see 3.1.4.
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -36,6 +36,7 @@ static a_type_ptr int_types[(int)ik_last];
 static a_type_ptr float_types[(int)fk_last];
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
 static a_type_ptr string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
+static a_type_ptr wide_string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr il_signed_int_type;
 static a_type_ptr il_error_type;
 static a_type_ptr il_void_type;
@@ -274,10 +275,9 @@ Dump a member function (a routine entry), for debug purposes.
 
 
 static void db_base_class_field(a_field *fp,
-				a_type  *tp,
                                 int     depth)
 /*
-Dump field *fp derived from base class *tp, for debug purposes.
+Dump field *fp, for debug purposes.
 */
 {
   int i;
@@ -325,7 +325,7 @@ Dump a direct base class entry, for debug purposes.
     }  /* while */
     fp = tp->variant.class_struct_union.field_list;
     while (fp != NULL) {
-      db_base_class_field(fp, tp, depth);
+      db_base_class_field(fp, depth);
       fp = fp->next;
     }  /* while */
   }  /* if */
@@ -376,7 +376,7 @@ Dump a virtual base class entry, for debug purposes.
   }  /* while */
   fp = tp->variant.class_struct_union.field_list;
   while (fp != NULL) {
-    db_base_class_field(fp, tp, /*nesting_depth=*/0);
+    db_base_class_field(fp, /*nesting_depth=*/0);
     fp = fp->next;
   }  /* while */
   fputs(" )]\n", f_debug);
@@ -388,7 +388,6 @@ static void db_access_adjustment(an_access_adjustment_ptr aap)
 */
 {
   a_source_correspondence  *sc;
-  a_type_ptr               class;
   char                     *str;
 
   switch (aap->kind) {
@@ -2442,6 +2441,59 @@ and return a pointer to it.
 }  /* string_type */
 
 
+a_type_ptr wide_string_type(a_targ_size_t num_chars)
+/*
+Make or find an entry for a type that is an array of num_char wchar_t elements,
+and return a pointer to it.
+*/
+{
+  a_type_ptr pst;
+
+  if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH &&
+      wide_string_types[num_chars] != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pst = wide_string_types[num_chars];
+  } else {
+    /* The type must be created. */
+    pst = fs_type((a_type_kind)tk_array);
+    pst->variant.array.element_type =
+                          integer_type((an_integer_kind)TARG_WCHAR_T_INT_KIND);
+    pst->variant.array.number_of_elements = num_chars;
+    set_type_size(pst);
+    if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
+      wide_string_types[num_chars] = pst;
+    }  /* if */
+  }  /* if */
+  return (pst);
+}  /* wide_string_type */
+
+
+an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type)
+/*
+Return the character element integer kind (char or wchar_t) from the
+indicated string type.
+*/
+{
+  a_type_ptr elem_type;
+  an_integer_kind int_kind;
+
+#if CHECKING
+  if (!is_array_type(str_type)) {
+    internal_error("char_int_kind_from_string_type: bad type");
+  }  /* if */
+#endif /* CHECKING */
+  elem_type = array_element_type(str_type);
+#if CHECKING
+  if (!is_integral_type(elem_type)) {
+    internal_error("char_int_kind_from_string_type: bad elem type");
+  }  /* if */
+#endif /* CHECKING */
+  elem_type = skip_typerefs(elem_type);
+  int_kind = elem_type->variant.integer.int_kind;
+  return int_kind;
+}  /* char_int_kind_from_string_type */
+  
+
 a_type_ptr error_type(void)
 /*
 Make or find a type entry for an error type, and return a pointer to it.
@@ -3524,6 +3576,7 @@ of the front end.
   memzero((char *)int_types, sizeof(int_types));
   memzero((char *)float_types, sizeof(float_types));
   memzero((char *)string_types, sizeof(string_types));
+  memzero((char *)wide_string_types, sizeof(wide_string_types));
   il_signed_int_type = il_error_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));
@@ -3569,6 +3622,6 @@ of the front end.
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

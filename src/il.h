@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -77,6 +77,10 @@ extern a_type_ptr signed_int_type(void);
 extern a_type_ptr float_type(a_float_kind kind);
 
 extern a_type_ptr string_type(a_targ_size_t num_chars);
+
+extern a_type_ptr wide_string_type(a_targ_size_t num_chars);
+
+extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
 extern a_type_ptr error_type(void);
 
@@ -256,6 +260,6 @@ extern void il_init(void);
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

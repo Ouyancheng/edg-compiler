@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -48,6 +48,7 @@ extern a_boolean is_reference_type(a_type_ptr tp);
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
+extern a_boolean is_string_type(a_type_ptr tp);
 extern a_boolean is_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_complete_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
@@ -138,6 +139,6 @@ The type must be known to be a routine type (not, for example, an error type).
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2987,9 +2987,9 @@ constant_accumulated:
 }  /* scan_number */
 
 
-static a_token_kind accum_quoted_string(a_token_kind ctoken,
-                                        long         *num_chars,
-                                        a_boolean    *err)
+static a_token_kind accum_quoted_string(a_token_kind  ctoken,
+                                        unsigned long *num_chars,
+                                        a_boolean     *err)
 /*
 Scan a quoted construct, of kind indicated by ctoken.  The initial quote
 is at curr_char_loc.  Scan to the matching closing quote, and do not be
@@ -3079,7 +3079,7 @@ Scan a character constant token, return the token kind or tok_error.
 {
   a_token_kind  ctoken;
   a_boolean     err;
-  long		num_chars;
+  unsigned long num_chars;
   an_error_code err_code;
   char          *err_pos;
 
@@ -3107,7 +3107,7 @@ Scan a string literal token, return the token kind or tok_error.
 {
   a_token_kind  ctoken;
   a_boolean     err;
-  long          num_chars;
+  unsigned long num_chars;
   an_error_code err_code;
   char          *err_pos;
 
@@ -3307,7 +3307,7 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   register char         ch;
   register a_symbol_ptr	assoc_symbol;
   a_boolean             err;
-  long			num_chars;
+  unsigned long         num_chars;
   a_constant		con_copy;
   a_source_position     save_pos_curr_token;
   a_symbol_kind		id_kind;
@@ -3916,9 +3916,17 @@ concatenate_adjacent_string_literals:
   /* Come here after scanning a string literal or wide string literal.
      If appropriate, string literals following the current one will be
      concatenated with it.  See 2.1.1.2, translation phase 6. */
-  /* The standard says that a wide string literal next to a normal
-     string literal is undefined; we choose to concatenate them. */
   if (!(fetch_pp_tokens || in_preprocessing_directive)) {
+    /* The standard says that a wide string literal next to a normal
+       string literal is undefined; we choose not to concatenate them
+       unless wchar_t is char. */
+    /* Get the string element integer kind from the string. */
+    an_integer_kind centity_int_kind = plain_char_int_kind;
+    if (ctoken == tok_string_literal &&
+        const_for_curr_token.kind == (a_constant_repr_kind)ck_string) {
+      centity_int_kind =
+                     char_int_kind_from_string_type(const_for_curr_token.type);
+    }  /* if */
     /* Scan forward to the next token, to see if it is another string literal.
        One catch: the second string literal may come from a macro expansion,
        so if the next thing looks like the start of an identifier, scan
@@ -3944,6 +3952,16 @@ concatenate_adjacent_string_literals:
       if (curr_token != tok_string_literal) {
         /* The next token is not a string literal, so do not take it; leave
            it for next time. */
+        start_of_curr_token = NULL;
+        break;
+      } else if (((*start_of_curr_token == 'L') ?
+                                       (an_integer_kind)TARG_WCHAR_T_INT_KIND :
+                                       plain_char_int_kind) !=
+                 centity_int_kind) {
+        /* If the new string will not have the same underlying character
+           entity type as what we have so far, do not add the new string
+           to the old one.  That happens when a wide string literal is next
+           to a normal string literal and wchar_t is not the same as char. */
         start_of_curr_token = NULL;
         break;
       }  /* if */
@@ -4631,6 +4649,6 @@ of the front end.
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

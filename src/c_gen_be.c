@@ -3925,6 +3925,7 @@ i.e., instead of "abc" (no final null) dump 'a','b','c'.
       }  /* if */
     }  /* if */
   }  /* for */
+#undef CHAR_CONS_PER_LINE
 }  /* dump_exploded_string */
 
 #ifdef FFE
@@ -4561,6 +4562,69 @@ it is decremented to zero, start a new line and reset *count_until_newline.
   }  /* if */
 }  /* initializer_comma */
 
+#ifdef CFE
+
+static a_boolean is_wide_string_constant(a_constant_ptr constant)
+/*
+Return TRUE if the indicated string is a wide string constant (L"abc").
+*/
+{
+  a_boolean  is_wide_string = FALSE;
+  a_type_ptr con_type, elem_type;
+
+  if (constant->kind == (a_constant_repr_kind)ck_string) {
+    con_type = skip_typerefs(constant->type);
+    elem_type = con_type->variant.array.element_type;
+    elem_type = skip_typerefs(elem_type);
+    /* Check for element type that is not some variety of char. */
+    is_wide_string = (elem_type->size != 1);
+  }  /* if */
+  return is_wide_string;
+}  /* is_wide_string_constant */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void dump_exploded_wide_string(a_constant_ptr constant)
+/*
+Dump out a wide string constant.  Dump each wchar_t as a separate integer
+value.
+*/
+{
+  register a_targ_size_t a, len;
+  register unsigned char ch;
+  int                    i;
+  unsigned long          temp;
+#define CONS_PER_LINE 10
+  int                    count_until_newline;
+  
+  len = constant->variant.string.length;
+  count_until_newline = CONS_PER_LINE;
+  for (a = 0; a < len; a += TARG_SIZEOF_WCHAR_T) {
+    /* Assemble the right number of bytes into one integer. */
+    temp = 0;
+    for (i = 0; i < TARG_SIZEOF_WCHAR_T; i++) {
+#if TARG_LITTLE_ENDIAN
+      ch = constant->variant.string.value[a + (TARG_SIZEOF_WCHAR_T - 1) - i];
+#else /* !TARG_LITTLE_ENDIAN */
+      ch = constant->variant.string.value[a + i];
+#endif /* TARG_LITTLE_ENDIAN */
+      temp <<= TARG_CHAR_BIT;
+      temp |= ch;
+    }  /* for */
+    fprintf(f_C_output, "%lu", temp);
+    if (a != len-TARG_SIZEOF_WCHAR_T) {
+      fputc(',', f_C_output);
+      if (--count_until_newline <= 0) {
+        startline((a_seq_number)0);
+        count_until_newline = CONS_PER_LINE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+#undef CONS_PER_LINE
+}  /* dump_exploded_wide_string */
+
+#endif /* ifdef CFE */
 
 static void dump_initializer_part(a_variable_ptr        variable,
                                   a_type_ptr            type,
@@ -4649,6 +4713,15 @@ characters should be put out separately (to initialize a substring, probably).
         fputc('}', f_C_output);
       } else
 #endif /* ifdef FFE */
+#ifdef CFE
+      if (is_wide_string_constant(constant)) {
+        /* If the initial value is a wide string constant, the string must
+           be dumped specially. */
+        fputc('{', f_C_output);
+        dump_exploded_wide_string(constant);
+        fputc('}', f_C_output);
+      } else
+#endif /* ifdef CFE */
       if (constant->kind == (a_constant_repr_kind)ck_string &&
               constant->variant.string.value[constant->variant.string.length-1]
                                                                      != '\0') {
