@@ -10062,10 +10062,15 @@ to be returned to the caller.
   }  /* if */
   if (curr_token == tok_semicolon) {
     /* There's no declarator following the declaration specifier.  This may
-       be okay, but sometimes a diagnostic should be issued. Unless this is
-       an anonymous union declaration, skip to the next declaration. */
-    check_missing_declarator_in_member_declaration(class_type, member_type,
-                                                   &decl_info);
+       be okay, but sometimes a diagnostic should be issued.  If we are in a
+       template declaration scope, something went wrong during earlier parsing
+       and an error will be issued elsewhere; do not invoke semantic checking
+       that expects real types.  Unless this is an anonymous union
+       declaration, skip to the next declaration. */
+    if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      check_missing_declarator_in_member_declaration(class_type, member_type,
+                                                     &decl_info);
+    }  /* if */
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
     } else {
@@ -10896,6 +10901,147 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
 }  /* check_operator_new_and_delete */
 
 
+void complete_class_definition(a_type_ptr         class_type,
+                               a_scope_depth      effective_decl_level,
+                               a_class_def_state  *class_state)
+/*
+We have seen the complete definition of class_type belonging to scope level
+effective_decl_level.  Perform various postprocessing steps such as computing
+the layout and synthesizing special members (C++).  *class_state holds some
+bits of information that were acquired while parsing.
+*/
+{
+  a_symbol_ptr  tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  a_class_symbol_supplement_ptr  cssp
+                        = tag_sym->variant.class_struct_union.extra_info;
+
+  if (class_state->last_field_is_incomplete_array) {
+    /* The last field that was recorded was an incomplete array.  This is
+       permitted in C mode (as an extension) and in Microsoft C++ mode.
+       If this is strict-ANSI-C mode, issue a diagnostic.  If it is
+       Microsoft C++ mode, mark the class so it will not be used as a
+       base class. */
+    check_assertion((C_mode() || microsoft_mode) &&
+                    !is_union_type(class_state->class_type));
+    if (strict_ansi_mode) {
+      a_field_ptr  fp = class_state->end_of_field_list;
+      pos_diagnostic(strict_ansi_error_severity,
+                     ec_incomplete_type_not_allowed,
+                     &fp->source_corresp.decl_position);
+      if (strict_ansi_error_severity == es_error) fp->type = error_type();
+    }  /* if */
+    /* Flag is needed only in Microsoft C++ mode. */
+    if (!C_mode()) cssp->last_field_is_incomplete_array = TRUE;
+  }  /* if */    
+  if (!class_state->is_nonreal_instantiation) {
+    if (may_be_added_to_types_list(class_type, effective_decl_level)) {
+      /* The type will already have been added to the current scope's types
+         list.  However, it should be moved to the end of the list (unless
+         it's already there), since its location in the types list should
+         record where it was defined, not where it was initially declared.
+         move_to_end_of_types_list also takes care of the placeholder
+         typerefs associated with this class. */
+      move_to_end_of_types_list(class_type, effective_decl_level);
+#if DEBUG
+    } else {
+      if (db_flag_is_set("dump_type_lists")) {
+        fprintf(f_debug, "Not moving to end of type list: ");
+        db_abbreviated_type(class_type);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* if */
+  /* Save a pointer to the list of member symbols in the tag symbol.  Note
+     that there may be symbols even if there there were no declarations,
+     since symbols may be inherited. */
+  cssp->symbols =
+          assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
+  /* A number of the checks done as a part the "wrapup" phase of scanning a
+     class definition produce diagnostics.  Set error_position to assure
+     that these diagnostics will be associated with tag_sym instead of
+     with the current token, which is the closing brace. */
+  error_position = tag_sym->decl_position;
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Reset the access to "public" for compiler-generated functions, if
+       any. */
+    class_state->access = (an_access_specifier)as_public;
+    if (!class_state->class_aggregate_ruled_out) {
+      /* Classes with no constructors, no private or protected nonstatic
+         data members, no base classes, and no virtual functions are used to
+         declare "aggregate" objects (WP 8.5.1). */
+      cssp->is_class_aggregate = TRUE;
+    }  /* if */
+    /* Issue a diagnostic on a class with no user-defined constructor and
+       with one or more nonstatic data members with reference or const type.
+       This check must be done before compiler-generated constructors, if
+       any, are entered.  (No diagnostic is issued on a const member that
+       has a default constructor, since it will be initialized properly
+       when the default constructor for the current class is generated. */
+    if (class_state->any_const_or_ref_fields && cssp->constructor == NULL) {
+      /* The current class has no user-defined constructor and at least
+         one const or ref nonstatic data member.  A diagnostic may be
+         required. */
+      report_missing_constructor(tag_sym);
+    }  /* if */
+    if (!class_state->is_nonreal_instantiation) {
+      /* Check to see if a remark should be issued on direct base classes
+         with nonvirtual destructors. */
+      check_base_class_destructors(class_type);
+      /* Create compiler-generated default constructor, copy constructor,
+         destructor, and assignment operator, if any is needed. */
+      check_special_member_functions(class_type, class_state);
+    }  /* if */
+    if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
+      /* It was intentional to wait until check_special_member_functions
+         was called to set the is_POD flag -- the check for copy
+         assignment operator was needed first. */
+      cssp->is_POD = TRUE;
+    }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 232
+    /* Go though all the functions declared for this class and set the
+       virtual function number of virtual functions.  (Note: with less
+       current ABIs the numbers are updated on the fly as the member
+       function declaration is processed.) */
+    set_virtual_function_numbers(class_type);
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
+    /* Set shares_virtual_function_info for a base class of class_type, if
+       appropriate. */
+    set_shares_virtual_function_info_flag(class_type,
+                                          (a_base_class_ptr)NULL);
+  }  /* if */
+  /* Do subobject allocation and compute the size and alignment of the
+     class. */
+  do_class_layout(class_type);
+  if (C_dialect == C_dialect_cplusplus) {
+    if (!class_state->is_nonreal_instantiation) {
+      /* Check for inherited conversion functions.  This must be done before
+         rescanning inline function definitions. */
+      project_base_class_conversion_functions(class_type);
+    }  /* if */
+    /* Report errors in virtual function declarations that result from
+       the failure to redeclare a virtual function originally declared in
+       a virtual base class. */
+    set_err_pos_to_curr_token();
+    report_virtual_function_ambiguities(class_type);
+    /* If the current class is not already marked as "abstract", run
+       through its base classes to determine whether it is abstract by
+       inheritance and set the flag accordingly. */
+    check_abstract_class(class_type);
+    /* Issue warnings/remarks if the class has an operator new but no
+       operator delete, etc. */
+    check_operator_new_and_delete(tag_sym);
+    if (class_state->override_registry != NULL) {
+      /* Check for incomplete overriding of virtual functions, and issue
+         diagnostics where appropriate. */
+      check_override_registry(class_state->override_registry, tag_sym);
+      /* All entries on the list have been freed, so clear the pointer. */
+      class_state->override_registry = NULL;
+    }  /* if */
+  }  /* if */
+}  /* complete_class_definition */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -11280,133 +11426,16 @@ next_declaration:
         warning(ec_no_named_fields);
       }  /* if */
     }  /* if */
-    if (class_state.last_field_is_incomplete_array) {
-      /* The last field that was recorded was an incomplete array.  This is
-         permitted in C mode (as an extension) and in Microsoft C++ mode.
-         If this is strict-ANSI-C mode, issue a diagnostic.  If it is
-         Microsoft C++ mode, mark the class so it will not be used as a
-         base class. */
-      check_assertion((C_mode() || microsoft_mode) &&
-                      !is_union_type(class_state.class_type));
-      if (strict_ansi_mode) {
-        a_field_ptr  fp = class_state.end_of_field_list;
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_incomplete_type_not_allowed,
-                       &fp->source_corresp.decl_position);
-        if (strict_ansi_error_severity == es_error) fp->type = error_type();
-      }  /* if */
-      /* Flag is needed only in Microsoft C++ mode. */
-      if (!C_mode()) cssp->last_field_is_incomplete_array = TRUE;
-    }  /* if */    
-    if (!class_state.is_nonreal_instantiation) {
-      if (is_template_instantiation && delayed_nested_class_def) {
-        /* Force the functions to compute the scope depth, if any. */
-        effective_decl_level = NO_SCOPE_DEPTH;
-      }  /* if */
-      if (may_be_added_to_types_list(class_type, effective_decl_level)) {
-        /* The type will already have been added to the current scope's types
-           list.  However, it should be moved to the end of the list (unless
-           it's already there), since its location in the types list should
-           record where it was defined, not where it was initially declared.
-           move_to_end_of_types_list also takes care of the placeholder
-           typerefs associated with this class. */
-        move_to_end_of_types_list(class_type, effective_decl_level);
-#if DEBUG
-      } else {
-        if (db_flag_is_set("dump_type_lists")) {
-          fprintf(f_debug, "Not moving to end of type list: ");
-          db_abbreviated_type(class_type);
-          fprintf(f_debug, "\n");
-        }  /* if */
-#endif /* DEBUG */
-      }  /* if */
+    if (is_template_instantiation && delayed_nested_class_def) {
+      /* Force the functions to compute the scope depth, if any. */
+      effective_decl_level = NO_SCOPE_DEPTH;
     }  /* if */
-    /* Save a pointer to the list of member symbols in the tag symbol.  Note
-       that there may be symbols even if there there were no declarations,
-       since symbols may be inherited. */
-    cssp->symbols =
-            assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
-    /* A number of the checks done as a part the "wrapup" phase of scanning a
-       class definition produce diagnostics.  Set error_position to assure
-       that these diagnostics will be associated with tag_sym instead of
-       with the current token, which is the closing brace. */
-    error_position = tag_sym->decl_position;
-    if (C_dialect == C_dialect_cplusplus) {
-      /* Reset the access to "public" for compiler-generated functions, if
-         any. */
-      class_state.access = (an_access_specifier)as_public;
-      if (!class_state.class_aggregate_ruled_out) {
-        /* Classes with no constructors, no private or protected nonstatic
-           data members, no base classes, and no virtual functions are used to
-           declare "aggregate" objects (WP 8.5.1). */
-        cssp->is_class_aggregate = TRUE;
-      }  /* if */
-      /* Issue a diagnostic on a class with no user-defined constructor and
-         with one or more nonstatic data members with reference or const type.
-         This check must be done before compiler-generated constructors, if
-         any, are entered.  (No diagnostic is issued on a const member that
-         has a default constructor, since it will be initialized properly
-         when the default constructor for the current class is generated. */
-      if (class_state.any_const_or_ref_fields && cssp->constructor == NULL) {
-        /* The current class has no user-defined constructor and at least
-           one const or ref nonstatic data member.  A diagnostic may be
-           required. */
-        report_missing_constructor(tag_sym);
-      }  /* if */
-      if (!class_state.is_nonreal_instantiation) {
-        /* Check to see if a remark should be issued on direct base classes
-           with nonvirtual destructors. */
-        check_base_class_destructors(class_type);
-        /* Create compiler-generated default constructor, copy constructor,
-           destructor, and assignment operator, if any is needed. */
-        check_special_member_functions(class_type, &class_state);
-      }  /* if */
-      if (cssp->is_class_aggregate && !class_state.POD_ruled_out) {
-        /* It was intentional to wait until check_special_member_functions
-           was called to set the is_POD flag -- the check for copy
-           assignment operator was needed first. */
-        cssp->is_POD = TRUE;
-      }  /* if */
-#if ABI_COMPATIBILITY_VERSION >= 232
-      /* Go though all the functions declared for this class and set the
-         virtual function number of virtual functions.  (Note: with less
-         current ABIs the numbers are updated on the fly as the member
-         function declaration is processed.) */
-      set_virtual_function_numbers(class_type);
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
-      /* Set shares_virtual_function_info for a base class of class_type, if
-         appropriate. */
-      set_shares_virtual_function_info_flag(class_type,
-                                            (a_base_class_ptr)NULL);
-    }  /* if */
-    /* Do subobject allocation and compute the size and alignment of the
-       class. */
-    do_class_layout(class_type);
-    if (C_dialect == C_dialect_cplusplus) {
-      if (!class_state.is_nonreal_instantiation) {
-        /* Check for inherited conversion functions.  This must be done before
-           rescanning inline function definitions. */
-        project_base_class_conversion_functions(class_type);
-      }  /* if */
-      /* Report errors in virtual function declarations that result from
-         the failure to redeclare a virtual function originally declared in
-         a virtual base class. */
-      set_err_pos_to_curr_token();
-      report_virtual_function_ambiguities(class_type);
-      /* If the current class is not already marked as "abstract", run
-         through its base classes to determine whether it is abstract by
-         inheritance and set the flag accordingly. */
-      check_abstract_class(class_type);
-      /* Issue warnings/remarks if the class has an operator new but no
-         operator delete, etc. */
-      check_operator_new_and_delete(tag_sym);
-      if (class_state.override_registry != NULL) {
-        /* Check for incomplete overriding of virtual functions, and issue
-           diagnostics where appropriate. */
-        check_override_registry(class_state.override_registry, tag_sym);
-        /* All entries on the list have been freed, so clear the pointer. */
-        class_state.override_registry = NULL;
-      }  /* if */
+    if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      /* Something went wrong if we are in a template declaration scope;
+         we ought to be in class_template_declaration instead.  An error
+         has been or will be issued elsewhere. */
+      complete_class_definition(class_type, effective_decl_level,
+                                &class_state);
     }  /* if */
     /* Process pragmas associated with the closing brace before the current
        scope is popped and before add_end_of_construct_source_sequence_entry

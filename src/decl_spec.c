@@ -2202,8 +2202,13 @@ the template.
        do any class fixups and template instantiations that have been
        deferred.  (Note that this has to be done after the namespace
        extension scope is popped to handle source-sequence insertion for
-       templates correctly.) */
-    process_deferred_class_fixups_and_instantiations();
+       templates correctly.)  At this point we should not be in a template
+       declaration scope, unless an earlier syntax error caused us to confuse
+       the intended construct; in that case a diagnostic has been or will be
+       issued elsewhere. */
+    if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      process_deferred_class_fixups_and_instantiations();
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     check_for_and_remove_redundant_secondary_decl_ss_entry(class_type);

@@ -1,5 +1,16 @@
 Version 2.43
 
+11/17/99 Aborts while recovering from syntax errors in templates
+
+Various syntax errors in class definitions occuring in the scope of a template
+declaration could lead the front end to abort compilation.  For example:
+
+  template <class T> class struct A { 
+    typename T::X<short> T2;
+  };
+
+Many such cases are now fixed (i.e., an ordinary error message is issued).
+
 11/17/99 Microsoft compatibility: treatment of names hidden by injected class
          names in the C++ generating back end
 
