@@ -647,10 +647,12 @@ extern void prep_elision_initializer_operand(
                                       an_expr_node_ptr *arg_expr_list,
                                       a_boolean        *class_bitwise_copy);
 
-extern void prep_initializer_operand(an_operand         *source_operand,
-                                     a_type_ptr         dest_type,
-                                     an_expression_kind expression_kind,
-                                     an_error_code      incompatible_err);
+extern void prep_initializer_operand(
+                                  an_operand         *source_operand,
+                                  a_type_ptr         dest_type,
+                                  a_boolean          initializing_return_value,
+                                  an_expression_kind expression_kind,
+                                  an_error_code      incompatible_err);
 
 extern void prep_argument_operand(an_operand         *source_operand,
                                   a_param_type_ptr   formal_param,
