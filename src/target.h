@@ -363,8 +363,12 @@ Float types:
 #define TARG_ALIGNOF_FLOAT 4
 #define TARG_SIZEOF_DOUBLE 8
 #define TARG_ALIGNOF_DOUBLE 8
+#ifndef TARG_SIZEOF_LONG_DOUBLE
 #define TARG_SIZEOF_LONG_DOUBLE 8
+#endif /* ifndef TARG_SIZEOF_LONG_DOUBLE */
+#ifndef TARG_ALIGNOF_LONG_DOUBLE
 #define TARG_ALIGNOF_LONG_DOUBLE 8
+#endif /* ifndef TARG_ALIGNOF_LONG_DOUBLE */
 
 /*
 Type used to represent float quantities internally:
