@@ -1,5 +1,18 @@
 Version 2.16
 
+4/19/93  IL lowering generates dtor calls on goto to label before init
+
+Proper destructor calls are now generated on a goto backward to a label
+preceding some initializations in the same block.
+
+         struct A { ~A(); A(int); };
+         void m() {
+           label:
+             A x(1);
+             goto label;  // should destroy x
+         }
+
+
 4/18/93  Optimization: extra temporaries/copy constructor calls avoided
 
 Cases that involved generation of a temporary and then a copy constructor

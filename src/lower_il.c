@@ -343,9 +343,14 @@ typedef struct a_required_destructor_call {
   an_init_pos_descr
 		init_pos_descr;
 			/* Description of the object to destroy. */
-  a_boolean	is_expr_temporary;
+  a_byte_boolean
+		is_expr_temporary;
 			/* TRUE if the entity to be destroyed is a compiler-
 			   generated expression temporary. */
+  unsigned long
+		label_count;
+			/* The count of label definitions that precede the
+			   point at which this entry was added to the list. */
 } a_required_destructor_call;
 static a_required_destructor_call_ptr
 		avail_required_destructor_calls;
@@ -385,6 +390,19 @@ typedef struct a_context {
 			/* A copy of latest_dynamic_init_processed as of
 			   the start of the current switch clause, if
 			   assoc_switch_clause is non-NULL.  NULL otherwise. */
+  unsigned long	label_count;
+			/* The number of labels processed so far in this
+			   block. */
+  a_statement_ptr
+		latest_label_statement_processed;
+			/* The stmk_label statement most recently processed
+			   in the block, or NULL if none has been processed. */
+  a_dynamic_init_ptr
+		dynamic_init_preceding_label;
+			/* A copy of latest_dynamic_init_processed as of
+			   the label most recently processed if
+			   latest_label_statement_processed is non-NULL.
+			   NULL otherwise. */
 } a_context;
 a_context_ptr	curr_context;
 			/* Current (bottom) end of the context chain. */
@@ -451,9 +469,8 @@ static void lower_call(an_expr_node_ptr      expr,
 static void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);
 static void gen_required_destructor_calls(
-                                        a_context_ptr          outer_context,
-                                        an_insert_location_ptr insert_location,
-                                        a_boolean              make_block);
+                                       a_context_ptr          outer_context,
+                                       an_insert_location_ptr insert_location);
 static a_boolean any_required_destructor_calls(a_context_ptr outer_context);
 static void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
                                                  a_targ_ptrdiff_t *delta);
@@ -719,8 +736,9 @@ and return a pointer to it.
   rdcp->next = NULL;
   clear_dynamic_init(&rdcp->dynamic_init, (a_dynamic_init_kind)dik_none);
   rdcp->first_time_test_var = NULL;
-  rdcp->is_expr_temporary = FALSE;
   clear_init_pos_descr(&rdcp->init_pos_descr);
+  rdcp->is_expr_temporary = FALSE;
+  rdcp->label_count = 0;
   return rdcp;
 }  /* alloc_required_destructor_call */
 
@@ -763,6 +781,9 @@ is "scope".
   context->assoc_switch_clause = NULL;
   context->latest_dynamic_init_processed = NULL;
   context->dynamic_init_preceding_switch_clause = NULL;
+  context->label_count = 0;
+  context->latest_label_statement_processed = NULL;
+  context->dynamic_init_preceding_label = NULL;
   /* Keep track of the innermost function context/scope. */
   if (scope->kind == (a_scope_kind)sck_function) {
     nearest_function_context = curr_context;
@@ -7420,7 +7441,7 @@ later will be made conditional on the temporary.
   a_variable_ptr      temp;
   a_dynamic_init_ptr  dip, prev_dip;
   a_constant          zero_constant;
-  a_statement_ptr     stmk_init_stmt, block;
+  a_statement_ptr     stmk_init_stmt, block, label_statement;
   a_scope_ptr         scope;
   a_switch_clause_ptr scp;
   an_insert_location  insert_before_location;
@@ -7441,12 +7462,30 @@ later will be made conditional on the temporary.
     /* The dynamic init entry is pointed to by an stmk_init statement. */
     stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
     stmk_init_stmt->variant.dynamic_init = dip;
-    /* The stmk_init statement must be inserted at the right place.  For
-       most cases, the right place is the beginning of the current block.
-       For switch clauses, it's the beginning of the clause. */
     scope = curr_context->scope;
     scp = curr_context->assoc_switch_clause;
-    if (scp == NULL) {
+    /* The stmk_init statement must be inserted at the right place.  For
+       most cases, the right place is the beginning of the current block.
+       For switch clauses, it's the beginning of the clause.  When labels
+       appear, the initialization goes after the latest label. */
+    label_statement = curr_context->latest_label_statement_processed;
+    if (label_statement != NULL) {
+      /* Insert the stmk_init after the most recent label. */
+      /* The dynamic init is not at the start of the scope. */
+      dip->follows_an_exec_statement = TRUE;
+      /* Add the stmk_init statement after the label. */
+      stmk_init_stmt->next = label_statement->next;
+      label_statement->next = stmk_init_stmt;
+      prev_dip = curr_context->dynamic_init_preceding_label;
+    } else if (scp != NULL) {
+      /* Switch clause. */
+      /* The dynamic init is not at the start of the scope. */
+      dip->follows_an_exec_statement = TRUE;
+      /* Add the stmk_init statement at the beginning of the clause. */
+      stmk_init_stmt->next = scp->statements;
+      scp->statements = stmk_init_stmt;
+      prev_dip = curr_context->dynamic_init_preceding_switch_clause;
+    } else {
       /* Normal case. */
       block = scope->assoc_block;
 #if CHECKING
@@ -7457,38 +7496,25 @@ later will be made conditional on the temporary.
       /* Add the stmk_init statement at the beginning of the block. */
       stmk_init_stmt->next = block->variant.block.statements;
       block->variant.block.statements = stmk_init_stmt;
-      /* Add the dynamic init entry to the beginning of the dynamic init
-         list for the scope. */
+      prev_dip = NULL;
+    }  /* if */
+    /* Add the dynamic init entry at the right spot in the dynamic inits
+       list.  Note that we do the insert of the statement and the dynamic
+       init entry at the front of the list each time, so they end up in
+       reverse order of insertion. */
+    if (prev_dip == NULL) {
       dip->next = scope->dynamic_inits;
       scope->dynamic_inits = dip;
     } else {
-      /* Switch clause. */
-      /* The dynamic init is not at the start of the scope. */
-      dip->follows_an_exec_statement = TRUE;
-      /* Add the stmk_init statement at the beginning of the clause. */
-      stmk_init_stmt->next = scp->statements;
-      scp->statements = stmk_init_stmt;
-      /* Add the dynamic init entry to the right spot in the list, that is,
-         after any dynamic inits in previous switch clauses.  Note that we
-         do the insert of the statement and the dynamic init entry at the
-         front of the list each time, so they end up in reverse order of
-         insertion. */
-      prev_dip = curr_context->dynamic_init_preceding_switch_clause;
-      if (prev_dip == NULL) {
-        dip->next = scope->dynamic_inits;
-        scope->dynamic_inits = dip;
-      } else {
-        dip->next = prev_dip->next;
-        prev_dip->next = dip;
-      }  /* if */
-      /* If the dynamic init is the first one so far in the current switch
-         clause (i.e., there are no previous initializations of this kind and
-         no pre-existing dynamic inits), record it as the last dynamic init
-         processed. */
-      if (curr_context->latest_dynamic_init_processed ==
-                          curr_context->dynamic_init_preceding_switch_clause) {
-        curr_context->latest_dynamic_init_processed = dip;
-      }  /* if */
+      dip->next = prev_dip->next;
+      prev_dip->next = dip;
+    }  /* if */
+    /* If the dynamic init is the first one so far in the current
+       clause (i.e., there are no previous initializations of this kind and
+       no pre-existing dynamic inits), record it as the last dynamic init
+       processed. */
+    if (curr_context->latest_dynamic_init_processed == prev_dip) {
+      curr_context->latest_dynamic_init_processed = dip;
     }  /* if */
   }  /* if */
   /* Make and insert an assignment statement to set the temporary to 1.
@@ -7725,6 +7751,7 @@ do_assignment:;
     dip->destructor = NULL;
     rdcp->init_pos_descr = *ipdp;
     rdcp->is_expr_temporary = is_expr_temporary;
+    rdcp->label_count = curr_context->label_count;
     /* If this is an initialization within an aggregate, we must save the
        init_pos_modifier list.  However, the list runs through the stack,
        so we must make an allocated copy. */
@@ -10269,8 +10296,7 @@ it; otherwise, switch_context is NULL.
           /* Insert after the last statement. */
           set_insert_location(last_statement, &insert_location);
         }  /* if */
-        gen_required_destructor_calls(switch_context, &insert_location,
-                                      /*make_block=*/FALSE);
+        gen_required_destructor_calls(switch_context, &insert_location);
       }  /* if */
     }  /* if */
     /* Get rid of the entries for required destructor calls on
@@ -10395,6 +10421,23 @@ original statement under it.
   statement->variant.block.statements = copy_statement;
   statement->seq_number = 0;
 }  /* turn_statement_into_block */
+
+
+static void turn_branch_into_block(a_statement_ptr        statement,
+                                   an_insert_location_ptr insert_location)
+/*
+Turn a branch statement (goto or return) into a block, and set *insert_location
+so that statements can be inserted at the beginning of the block (i.e.,
+in front of the original branch statement).
+*/
+{
+  turn_statement_into_block(statement);
+  /* We know the original statement is a branch of some sort, so
+     the end of the block is not reachable. */
+  statement->variant.block.extra_info->end_of_block_reachable = FALSE;
+  /* Insert at the start of the added block. */
+  set_block_start_insert_location(statement, insert_location);
+}  /* turn_branch_into_block */
 
 
 static void gen_one_required_destructor_call(
@@ -10555,45 +10598,24 @@ Generate code for a stmk_init (dynamic initialization) statement.
 
 static void gen_required_destructor_calls(
                                         a_context_ptr          outer_context,
-                                        an_insert_location_ptr insert_location,
-                                        a_boolean              make_block)
+                                        an_insert_location_ptr insert_location)
 /*
 Generate any destructor calls required to exit from the contexts indicated
 by curr_context through outer_context, inclusive.  Insert the code for
-the destructor calls at *insert_location.  If make_block is TRUE,
-rewrite the statement at the insert location as a block statement with the
-original statement as a dependent statement and insert the destructor calls
-at the start of the new block.  The statement in that case is assumed to be
-a branch of some kind (goto or return).
+the destructor calls at *insert_location.
 */
 {
-  a_statement_ptr                statement;
   a_context_ptr                  context_ptr;
   a_required_destructor_call_ptr rdcp;
 
   /* Loop outward through the indicated contexts. */
   for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
-    rdcp = context_ptr->required_destructor_calls;
-    if (rdcp != NULL) {
-      /* There are some required destructor calls. */
-      if (make_block) {
-        /* The first time that we know that a destructor call is required
-           in the make_block case, make the original statement into
-           a block statement with the original statement under it. */
-        statement = insert_location->variant.statement.ptr;
-        turn_statement_into_block(statement);
-        /* We know the original statement is a branch of some sort, so
-           the end of the block is not reachable. */
-        statement->variant.block.extra_info->end_of_block_reachable = FALSE;
-        make_block = FALSE;
-        /* Insert at the start of the added block. */
-        set_block_start_insert_location(statement, insert_location);
-      }  /* if */
-      /* Loop through the list of required destructor calls. */
-      for (; rdcp != NULL; rdcp = rdcp->next) {
-        gen_one_required_destructor_call(rdcp, insert_location);
-      }  /* for */
-    }  /* if */
+    /* Loop through the list of required destructor calls. */
+    for (rdcp = context_ptr->required_destructor_calls;
+         rdcp != NULL;
+         rdcp = rdcp->next) {
+      gen_one_required_destructor_call(rdcp, insert_location);
+    }  /* for */
     /* Stop when the outer context is reached. */
     if (context_ptr == outer_context) break;
   }  /* for */
@@ -10643,6 +10665,106 @@ and their parents headed by block_list.
 }  /* block_is_on_parent_list */
 
 
+static void gen_goto_required_destructor_calls(a_statement_ptr statement)
+/*
+Generate any destructor calls required preceding the indicated goto statement.
+*/
+{
+  a_statement_ptr    goto_block, label_block;
+  a_context_ptr      goto_context, outermost_context_being_exited;
+  an_insert_location insert_location;
+  a_boolean          any_label_block_destructor_calls_needed;
+  a_boolean          any_exited_block_destructor_calls_needed;
+  unsigned long      label_number;
+  a_required_destructor_call_ptr
+                     rdcp;
+
+  goto_context = curr_context;
+  label_block = statement->variant.label->parent_block;
+#if CHECKING
+  if (label_block == NULL) {
+    internal_error(
+       "gen_goto_required_destructor_calls: goto label has NULL parent_block");
+  }  /* if */
+#endif /* CHECKING */
+  outermost_context_being_exited = NULL;
+  for (;; goto_context = goto_context->parent) {
+    goto_block = goto_context->scope->assoc_block;
+    /* End the loop when we find a block that both the goto and the
+       label are inside of.  At the worst, the block for the function
+       is such a block, so the loop would end on that block. */
+    if (block_is_on_parent_list(goto_block, label_block)) break;
+    /* Here, goto_context is a context that the goto is inside of whose
+       block does not appear on the label block list; therefore, we are
+       leaving the block.  */
+    outermost_context_being_exited = goto_context;
+  }  /* for */
+  /* See if any destructor calls are needed. */
+  any_label_block_destructor_calls_needed = FALSE;
+  any_exited_block_destructor_calls_needed = FALSE;
+  if (outermost_context_being_exited != NULL) {
+    /* Some contexts are being exited.  See if any destructor calls are
+       needed on leaving those contexts. */
+    any_exited_block_destructor_calls_needed = 
+                 any_required_destructor_calls(outermost_context_being_exited);
+  }  /* if */
+  if (label_block == goto_block) {
+    /* The label is in the block that is the first one shared with the goto
+       context.  Check for a case where the goto branches to a label
+       preceding some initializations:
+         struct A { ~A(); };
+         void m() {
+           label:
+             A x;
+             goto label;  // should destroy x
+         }
+    */
+    a_statement_ptr label_stmt = statement->variant.label->variant.exec_stmt;
+    a_statement_ptr temp_stmt;
+
+    /* Determine the label number of the label within its block. */
+    label_number = 0;
+    for (temp_stmt = label_block->variant.block.statements;
+         ;
+         temp_stmt = temp_stmt->next) {
+      if (temp_stmt->kind == (a_statement_kind)stmk_label) {
+        label_number++;
+        if (temp_stmt == label_stmt) break;
+      }  /* if */
+    }  /* for */
+    /* See if any of the required destructions were initialized after the
+       label's definition.  If so, they need to be generated. */
+    for (rdcp = goto_context->required_destructor_calls;
+         rdcp != NULL;
+         rdcp = rdcp->next) {
+      if (rdcp->label_count >= label_number) {
+        any_label_block_destructor_calls_needed = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (any_exited_block_destructor_calls_needed ||
+      any_label_block_destructor_calls_needed) {
+    /* Some destructor calls are needed.  Generate them. */
+    /* Turn the goto into a block so code can be inserted in front of it. */
+    turn_branch_into_block(statement, &insert_location);
+    if (any_exited_block_destructor_calls_needed) {
+      gen_required_destructor_calls(outermost_context_being_exited,
+                                    &insert_location);
+    }  /* if */
+    if (any_label_block_destructor_calls_needed) {
+      /* Generate destructor calls corresponding to any initializations made
+         after the label in the same block. */
+      for (rdcp = goto_context->required_destructor_calls;
+           rdcp != NULL && rdcp->label_count >= label_number;
+           rdcp = rdcp->next) {
+        gen_one_required_destructor_call(rdcp, &insert_location);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* gen_goto_required_destructor_calls */
+
+
 static void pop_block_scope_context(a_statement_ptr last_statement)
 /*
 The current context is a context for a block statement.  Generate any
@@ -10665,8 +10787,7 @@ NULL if there are no statements in the block.
       /* Insert after the last statement. */
       set_insert_location(last_statement, &insert_location);
     }  /* if */
-    gen_required_destructor_calls(curr_context, &insert_location,
-                                  /*make_block=*/FALSE);
+    gen_required_destructor_calls(curr_context, &insert_location);
   }  /* if */
   pop_context();
 }  /* pop_block_scope_context */
@@ -10679,11 +10800,10 @@ Do IL lowering of the indicated statement and everything under it.
 {
   a_routine_ptr      curr_routine;
   a_context          context;
-  a_context_ptr      goto_context, outermost_context_being_exited;
   a_context_ptr      switch_context;
   a_scope_ptr        scope;
   an_insert_location insert_location;
-  a_statement_ptr    last_statement, goto_block, label_block, body_statement;
+  a_statement_ptr    last_statement, body_statement;
   a_boolean          make_block;
   an_expr_node_ptr   return_expr;
   a_variable_ptr     temp_var;
@@ -10696,39 +10816,22 @@ Do IL lowering of the indicated statement and everything under it.
     if (statement->expr != NULL) lower_normal_expr(statement->expr);
     switch (statement->kind) {
       case stmk_expr:
-      case stmk_label:
       case stmk_asm:
         /* No processing required. */
         break;
       case stmk_goto:
         /* Generate any destructor calls required on exit from any blocks
            that the goto is inside of but the label is not. */
-        goto_context = curr_context;
-        label_block = statement->variant.label->parent_block;
-#if CHECKING
-        if (label_block == NULL) {
-          internal_error("lower_statement: goto label has NULL parent_block");
-        }  /* if */
-#endif /* CHECKING */
-        outermost_context_being_exited = NULL;
-        for (;; goto_context = goto_context->parent) {
-          goto_block = goto_context->scope->assoc_block;
-          /* End the loop when we find a block that both the goto and the
-             label are inside of.  At the worst, the block for the function
-             is such a block, so the loop would end on that block. */
-          if (block_is_on_parent_list(goto_block, label_block)) break;
-          /* Here, goto_context is a context that the goto is inside of whose
-             block does not appear on the label block list; therefore, we are
-             leaving the block.  */
-          outermost_context_being_exited = goto_context;
-        }  /* for */
-        if (outermost_context_being_exited != NULL) {
-          /* Some contexts are being exited.  Generate any destructor calls
-             for those contexts. */
-          set_insert_location(statement, &insert_location);
-          gen_required_destructor_calls(outermost_context_being_exited,
-                                        &insert_location, /*make_block=*/TRUE);
-        }  /* if */
+        gen_goto_required_destructor_calls(statement);
+        break;
+      case stmk_label:
+        /* Keep track of the number of labels encountered in this block.
+           This is needed when generating destructor calls on gotos
+           backward in a block. */
+        curr_context->label_count++;
+        curr_context->latest_label_statement_processed = statement;
+        curr_context->dynamic_init_preceding_label =
+                                   curr_context->latest_dynamic_init_processed;
         break;
       case stmk_return:
         dip = statement->variant.return_dynamic_init;
@@ -10736,7 +10839,6 @@ Do IL lowering of the indicated statement and everything under it.
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
         make_block = TRUE;
-        set_insert_location(statement, &insert_location);
         curr_routine = nearest_function_scope->variant.routine.ptr;
         if (curr_routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor) {
@@ -10758,9 +10860,8 @@ Do IL lowering of the indicated statement and everything under it.
                                             &ipd);
             /* Put the return statement under a block so we can insert in
                front of it. */
-            turn_statement_into_block(statement);
+            turn_branch_into_block(statement, &insert_location);
             make_block = FALSE;
-            set_block_start_insert_location(statement, &insert_location);
             lower_dynamic_init(dip, &ipd,
                                /*first_time_test_var=*/(a_variable_ptr)NULL,
                                /*is_expr_temporary=*/FALSE,
@@ -10791,17 +10892,21 @@ Do IL lowering of the indicated statement and everything under it.
                be executing the code here, because a return can have either
                a dynamic init entry or an expression, but not both. */
             check_assertion(make_block);
-            turn_statement_into_block(statement);
+            turn_branch_into_block(statement, &insert_location);
             make_block = FALSE;
-            set_block_start_insert_location(statement, &insert_location);
             /* Insert the "temp = return-expr;" statement. */
             (void)insert_var_assignment_statement(
                                    temp_var,
                                    lowered_assignment_operator(temp_var->type),
                                    return_expr, &insert_location);
           }  /* if */
+          if (make_block) {
+            /* Turn the return into a block so that code can be inserted
+               in front of the return. */
+            turn_branch_into_block(statement, &insert_location);
+          }  /* if */
           gen_required_destructor_calls(nearest_function_context,
-                                        &insert_location, make_block);
+                                        &insert_location);
         }  /* if */
         break;
       case stmk_if:
@@ -10914,8 +11019,7 @@ Do lowering on the file-scope dynamic initializations list.
     scope = file_scope_term_insert_location(&insert_location);
     push_context(&context, scope);
     switch_il_region(file_scope_term_routine_il_region);
-    gen_required_destructor_calls(file_scope_context, &insert_location,
-                                  /*make_block=*/FALSE);
+    gen_required_destructor_calls(file_scope_context, &insert_location);
     pop_context();
     done_with_memory_region(file_scope_term_routine_il_region);
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
