@@ -85,7 +85,7 @@ extern void form_class_qualifier(
                           a_type_ptr                            class_type,
                           an_il_to_str_output_control_block_ptr octl);
 
-extern void form_name(char                                  *entry,
+extern void form_name(a_source_correspondence               *scp,
                       an_il_entry_kind                      kind,
                       an_il_to_str_output_control_block_ptr octl);
 

@@ -116,16 +116,16 @@ is put out.
 
 
 static void form_unqualified_name(
-                              char                                  *entry,
+                              a_source_correspondence               *scp,
                               an_il_entry_kind                      entry_kind,
                               an_il_to_str_output_control_block_ptr octl)
 /*
-Output the (unqualified) name of the indicated IL entity of the indicated kind.
-This includes template arguments on template classes.
+Output the (unqualified) name of the IL entity whose source correspondence
+entry is pointed to by scp.  The IL entry is of the indicated kind.
+The output includes template arguments on template classes.
 */
 {
-  a_source_correspondence *scp = (a_source_correspondence *)entry;
-  char                    *name = scp->name;
+  char *name = scp->name;
 
   if (name == NULL) {
     /* For entities without names, use <unnamed>. */
@@ -137,7 +137,7 @@ This includes template arguments on template classes.
   }  /* if */
   /* Check for template arguments on a class name. */
   if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type) {
-    a_type_ptr  type = (a_type_ptr)entry;
+    a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
       a_template_arg_ptr tap =
                 type->variant.class_struct_union.extra_info->template_arg_list;
@@ -161,22 +161,21 @@ class type.  Do the output in the way described by octl.
   a_type_ptr parent_class = class_type->source_corresp.class_of_which_a_member;
 
   /* Use recursion to handle multiple levels of nesting. */
-  if (parent_class != NULL) {
-    form_class_qualifier(parent_class, octl);
-    /* Do the last level. */
-    form_unqualified_name((char *)class_type, iek_type, octl);
-  } else {
-    form_name((char *)class_type, iek_type, octl);
-  }  /* if */
+  if (parent_class != NULL) form_class_qualifier(parent_class, octl);
+  /* Do the last level.  Use form_name to get the special output_name
+     routine called when form_class_qualifier is called from outside
+     of il_to_str.c. */
+  form_name(&class_type->source_corresp, iek_type, octl);
   octl->output_str("::");
 }  /* form_class_qualifier */
 
 
-void form_name(char                                  *entry,
+void form_name(a_source_correspondence               *scp,
                an_il_entry_kind                      kind,
                an_il_to_str_output_control_block_ptr octl)
 /*
-Output the name of the indicated IL entity of the indicated kind.
+Output the name of the IL entity whose source correspondence
+entry is pointed to by scp.  The IL entry is of the indicated kind.
 If the entity is a class member, generate a qualified name.  Do the
 output in the way described by octl.
 */
@@ -184,7 +183,7 @@ output in the way described by octl.
   /* See if there is a routine to do specialized name output. */
   if (octl->output_name != NULL) {
     /* Use the specialized routine. */
-    octl->output_name(entry, kind);
+    octl->output_name((char *)scp, kind);
   } else {
     /* Default handling. */
     /* This code isn't suitable for generating compilable output. */
@@ -193,12 +192,11 @@ output in the way described by octl.
     /* If the name is a member of a class in C++, output the class
        qualifier. */
     if (il_header.source_language == sl_Cplusplus) {
-      a_type_ptr class_type = ((a_type_ptr)entry)->
-                                        source_corresp.class_of_which_a_member;
+      a_type_ptr class_type = scp->class_of_which_a_member;
       if (class_type != NULL) form_class_qualifier(class_type, octl);
     }  /* if */
     /* Output the base name. */
-    form_unqualified_name(entry, kind, octl);
+    form_unqualified_name(scp, kind, octl);
   }  /* if */
 }  /* form_name */
 
@@ -248,7 +246,7 @@ Output a reference to a tag, doing output in the way described by octl.
       form_tag_kind(type->kind, octl);
       octl->output_str(" ");
     }  /* if */
-    form_name((char *)type, iek_type, octl);
+    form_name(&type->source_corresp, iek_type, octl);
   }  /* if */
 }  /* form_tag_reference */
 
@@ -482,11 +480,11 @@ by octl.  Note that derived types should be handled above this level.
         form_type_specifier(type->variant.typeref.type, octl);
       } else {
         /* A typedef; output its name. */
-        form_name((char *)type, iek_type, octl);
+        form_name(&type->source_corresp, iek_type, octl);
       }  /* if */
       break;
     case tk_template_param:
-      form_name((char *)type, iek_type, octl);
+      form_name(&type->source_corresp, iek_type, octl);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -631,7 +629,8 @@ top of the type.  Do the output in the way described by octl.
                          /*add_const=*/FALSE,
                          octl);
     /* Output Classname::*. */
-    form_name((char *)type->variant.ptr_to_member.class_of_which_a_member,
+    form_name(&type->variant.ptr_to_member.
+                                       class_of_which_a_member->source_corresp,
               iek_type, octl);
     octl->output_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
@@ -1125,7 +1124,7 @@ Do the output in the way described by octl.
 {
   a_type_ptr              orig_type = constant->type;
   a_type_ptr              con_type = skip_typerefs(orig_type);
-  char                    *entry = NULL;
+  a_source_correspondence *scp = NULL;
   a_boolean               need_cast_close_paren = FALSE;
   an_il_entry_kind        entry_kind;
   a_base_class_ptr        bcp =
@@ -1134,11 +1133,11 @@ Do the output in the way described by octl.
   /* See if this is a pointer to data member or pointer to member function. */
   if (constant->variant.ptr_to_member.is_function_ptr) {
     a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
-    if (rout != NULL) entry = (char *)rout;
+    if (rout != NULL) scp = &rout->source_corresp;
     entry_kind = iek_routine;
   } else {
     a_field_ptr field = constant->variant.ptr_to_member.variant.field;
-    if (field != NULL) entry = (char *)field;
+    if (field != NULL) scp = &field->source_corresp;
     entry_kind = iek_field;
   }  /* if */
   /* If the constant is implicitly cast to another type, ... */
@@ -1147,12 +1146,12 @@ Do the output in the way described by octl.
     /* Do not put out the cast if it's not needed and minimal_casts is
        TRUE. */
     if (!minimal_casts || constant->variant.ptr_to_member.cast_to_base ||
-        entry == NULL) {
+        scp == NULL) {
       output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
       form_cast(orig_type, octl);
     }  /* if */
   }  /* if */
-  if (entry == NULL) {
+  if (scp == NULL) {
     /* A null pointer-to-member.  implicit_cast will be TRUE, so a cast
        to the right type has been put out above. */
     octl->output_str("0");
@@ -1179,7 +1178,7 @@ Do the output in the way described by octl.
       }  /* if */
     }  /* if */
     octl->output_str("&");
-    form_name(entry, entry_kind, octl);
+    form_name(scp, entry_kind, octl);
     output_optional_close_paren(need_pm_close_paren, octl);
   }  /* if */
   output_optional_close_paren(need_cast_close_paren, octl);
@@ -1320,11 +1319,11 @@ in the way described by octl.
   }  /* if */
   switch (constant->variant.address.kind) {
     case abk_routine:
-      form_name((char *)constant->variant.address.variant.routine,
+      form_name(&constant->variant.address.variant.routine->source_corresp,
                 iek_routine, octl);
       break;
     case abk_variable:
-      form_name((char *)constant->variant.address.variant.variable,
+      form_name(&constant->variant.address.variant.variable->source_corresp,
                 iek_variable, octl);
       break;
     case abk_constant:
@@ -1415,7 +1414,7 @@ confusion.  Do the output in the way described by octl.
     case ck_integer:
       if (!octl->gen_pcc_code && is_enum_constant(constant)) {
         /* An enum constant. */
-        form_name((char *)constant, iek_constant, octl);
+        form_name(&constant->source_corresp, iek_constant, octl);
       } else if (il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
@@ -1568,7 +1567,7 @@ confusion.  Do the output in the way described by octl.
       switch (constant->variant.template_param.kind) {
         case tpck_param:
         case tpck_member:
-          form_name((char *)constant, iek_constant, octl);
+          form_name(&constant->source_corresp, iek_constant, octl);
           break;
         case tpck_expression:
           octl->output_str("<template-expr>");

@@ -150,14 +150,17 @@ Output the (possibly qualified) name of the indicated symbol.  The output
 is done according to the output control block octl.
 */
 {
-  char             *entry;
-  an_il_entry_kind kind;
+  char                    *entry;
+  an_il_entry_kind        kind;
+  a_source_correspondence *scp;
 
-  /* See if the symbol has an associated IL entry. */
+  /* See if the symbol has an associated IL entry and if that entry has
+     a source correspondence field. */
   entry = il_entry_for_symbol(sym, &kind);
-  if (entry != NULL) {
-    /* Use the IL entry. */
-    form_name(entry, kind, octl);
+  if (entry != NULL &&
+      (scp = source_corresp_for_il_entry(entry, kind)) != NULL) {
+    /* Use the IL entry to generate the name. */
+    form_name(scp, kind, octl);
   } else {
     /* No IL entry; use the symbol name directly. */
     if (il_header.source_language == sl_Cplusplus) {
