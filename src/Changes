@@ -247,6 +247,15 @@ ignoring the enk_object_lifetime expression nodes).  Those using
 IL lowering in the default configuration will not, as the object lifetimes
 and enk_object_lifetime nodes are used and then removed by IL lowering.
 
+12/10/94 IL CHANGE: removed parent_block and dependent_statement
+
+The fields parent_block in a_label and a_block, and the field
+dependent_statement in a_statement have been removed.  They were there
+to provide information to IL lowering that is now more readily
+available in the object lifetime information.  Let us know if you
+were using these fields (I'm sure you will), and we can give you
+patches to put them back in for you.
+
 12/10/94 Setting virtual_function_info_base_class with ambiguous base class
 
 A bug has been fixed in setting virtual_info_base_class when the base class
