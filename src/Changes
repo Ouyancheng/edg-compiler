@@ -9,7 +9,9 @@ back end assumes that extern "C" functions will not throw any exception).
 Although other exception specifications are ignored in Microsoft mode, this
 special syntax is recorded in the IL through the new "throw_any" flag of
 "an_exception_specification".  The C++-generating back end uses that flag
-to correctly regenerate the associated declarations.
+to correctly regenerate the associated declarations.  For example:
+
+  extern "C" void f() throw (...); // "f" may throw any exception
 
 10/2/00  Improve file name comparisons
 
