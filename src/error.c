@@ -3872,6 +3872,8 @@ indicated by error_position.
 }  /* type_diagnostic */
 
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 void pos_sy_diagnostic(an_error_severity  error_severity,
                        an_error_code      error_code,
                        a_source_position  *error_pos,
@@ -3898,6 +3900,7 @@ indicated by error_position.
   pos_sy_diagnostic(error_severity, error_code, &error_position, symbol);
 }  /* sym_diagnostic */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void pos_st_remark(an_error_code     error_code,
                    a_source_position *error_pos,
