@@ -330,8 +330,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
   }  /* for */
   if (!any_decl_specifiers && !is_ctor_or_dtor_name) {
     /* A declaration must have at least one decl-specifier, or this must be
-       a constructor or destructor. */
-    *may_be_decl = FALSE;
+       a constructor or destructor.  This requirement is waived for namespace
+       scope declarations. */
+    *may_be_decl = is_template_decl(flags);
   }  /* if */
   return;
 }  /* prescan_decl_specifiers */
@@ -860,7 +861,7 @@ cache passed by the caller are flushed.
      scanning from a cache. */
   discard_token_cache(&token_cache);
   return decl_class_type;
-}
+}  /* prescan_and_find_declarator */
 
 
 /******************************************************************************
