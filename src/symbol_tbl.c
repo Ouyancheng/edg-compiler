@@ -605,6 +605,9 @@ and indentation is the indentation desired.
         if (cssp->any_nonreal_base_classes) {
           put_string("has nonreal base class");
         }  /* if */
+        if (cssp->any_template_dependent_fields) {
+          put_string("has dependent field");
+        }  /* if */
         if (cssp->last_field_is_incomplete_array) {
           put_string("last field is zero-array");
         }  /* if */
@@ -2272,6 +2275,7 @@ state.
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
         cssp->is_POD = FALSE;
+        cssp->any_template_dependent_fields = FALSE;
         cssp->has_operator_new = FALSE;
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;

@@ -4284,7 +4284,7 @@ or struct definition.  The syntax is
         if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
           a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
           if (tp->kind == (a_type_kind)tk_template_param) {
-            if (cssp->is_prototype_instantiation) {
+            if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
               /* No diagnostic on template parameters, which will only show
                  up during prototype instantiations.  Set the flag that
                  indicates that this prototype instantiation has a nonreal
@@ -8405,6 +8405,11 @@ specific information about the member declaration, respectively.
     }  /* if */
     /* Record that there is at least one nonstatic data member in the class. */
     cssp->any_nonstatic_data_members = TRUE;
+    if (is_or_contains_template_param(member_type)) {
+      /* The field is template parameter dependent and hence the POD/non-POD
+         character of the containing class may not be certain. */
+      cssp->any_template_dependent_fields = TRUE;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (decl_info->decl_modifiers.get_property_name != NULL ||
         decl_info->decl_modifiers.put_property_name != NULL) {

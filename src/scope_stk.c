@@ -2910,10 +2910,20 @@ NULL.
                    !sym->variant.variable.used) {
           report_unreferenced(sym, ec_set_but_not_used, es_warning);
         }  /* if */
-      } else if (!sym->referenced ||
-                 (sym->variant.variable.value_has_been_set &&
-                  !sym->variant.variable.used)) {
-        /* An unreferenced or unused variable or an unused parameter. */
+      } else if ((!sym->referenced ||
+                  (sym->variant.variable.value_has_been_set &&
+                   !sym->variant.variable.used)) &&
+                 !(is_class_struct_union_type(var_ptr->type) &&
+                   (var_ptr->type->
+                                variant.class_struct_union.is_nonreal_class ||
+                    symbol_supplement_for_class(var_ptr->type)->
+                                              any_template_dependent_fields ||
+                    symbol_supplement_for_class(var_ptr->type)->
+                                                 any_nonreal_base_classes))) {
+        /* An unreferenced or unused variable or an unused parameter.
+           If a class is nonreal or if it has a template-dependent field or
+           base, it may yet have side effects and no diagnostic should be
+           issued. */
         a_boolean           suppress_warning;
         an_error_code       error_code;
         an_error_severity   severity = es_warning;
