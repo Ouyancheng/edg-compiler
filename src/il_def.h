@@ -7854,6 +7854,8 @@ enum an_expr_operator_kind_tag {
   eok_fxsubtract,       /* Fixed-point subtraction. */
   eok_fxmultiply,       /* Fixed-point multiplication. */
   eok_fxdivide,         /* Fixed-point division. */
+  eok_fxshiftl,         /* Fixed-point left shift ("<<" operator). */
+  eok_fxshiftr,         /* Fixed-point right shift (">>" operator). */
   eok_fxeq,             /* Fixed-point equality. */
   eok_fxne,             /* Fixed-point inequality. */
   eok_fxgt,             /* Fixed-point greater than. */
@@ -7971,6 +7973,8 @@ enum an_expr_operator_kind_tag {
   eok_fxsubtract_assign,/* Fixed-point subtract assign operator. */
   eok_fxmultiply_assign,/* Fixed-point multiply assign operator. */
   eok_fxdivide_assign,  /* Fixed-point divide assign operator. */
+  eok_fxshiftl_assign,  /* Fixed-point left shift assign operator. */
+  eok_fxshiftr_assign,  /* Fixed-point right shift assign operator. */
 #endif /* FIXED_POINT_ALLOWED */
   eok_fadd_assign,      /* Floating add assign operator. */
   eok_fsubtract_assign, /* Floating subtract assign operator. */
@@ -10949,8 +10953,8 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=",
    "i<?", "i>?", "i=",
 #if FIXED_POINT_ALLOWED
-   "fx+", "fx-", "fx*", "fx/", "fx==", "fx!=", "fx>", "fx<", "fx>=", "fx<=",
-   "fx=",
+   "fx+", "fx-", "fx*", "fx/", "fx<<", "fx>>", "fx==", "fx!=", "fx>",
+   "fx<", "fx>=", "fx<=", "fx=",
 #endif /* FIXED_POINT_ALLOWED */
    "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=",
    "f<?", "f>?", "f=",
@@ -10974,7 +10978,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "s=", "b=", "pm=",
    "i+=", "i-=", "i*=", "i/=", "%=",
 #if FIXED_POINT_ALLOWED
-   "fx+=", "fx-=", "fx*=", "fx/=",
+   "fx+=", "fx-=", "fx*=", "fx/=", "fx<<=", "fx>>=",
 #endif /* FIXED_POINT_ALLOWED */
    "f+=", "f-=", "f*=", "f/=",
    "p+=", "p-=",

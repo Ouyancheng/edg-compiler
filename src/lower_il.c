@@ -9396,6 +9396,12 @@ assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
     case eok_fxdivide_assign:
       op = (an_expr_operator_kind)eok_fxdivide;
       break;
+    case eok_fxshiftl_assign:
+      op = (an_expr_operator_kind)eok_fxshiftl;
+      break;
+    case eok_fxshiftr_assign:
+      op = (an_expr_operator_kind)eok_fxshiftr;
+      break;
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fadd_assign:
       op = (an_expr_operator_kind)eok_fadd;
@@ -11295,6 +11301,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_fxsubtract_assign:
           case eok_fxmultiply_assign:
           case eok_fxdivide_assign:
+          case eok_fxshiftl_assign:
+          case eok_fxshiftr_assign:
 #endif /* FIXED_POINT_ALLOWED */
           case eok_fadd_assign:
           case eok_fsubtract_assign:

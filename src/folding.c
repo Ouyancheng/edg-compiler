@@ -4485,8 +4485,8 @@ as the position for any diagnostics issued.
               constant_2->kind == (a_constant_repr_kind)ck_fixed_point) &&
              (constant_1->kind != (a_constant_repr_kind)ck_fixed_point ||
               constant_2->kind != (a_constant_repr_kind)ck_fixed_point) &&
-             (op != (an_expr_operator_kind)eok_shiftl) &&
-             (op != (an_expr_operator_kind)eok_shiftr) &&
+             (op != (an_expr_operator_kind)eok_fxshiftl) &&
+             (op != (an_expr_operator_kind)eok_fxshiftr) &&
              (op != (an_expr_operator_kind)eok_fxadd) &&
              (op != (an_expr_operator_kind)eok_fxsubtract) &&
              (op != (an_expr_operator_kind)eok_fxmultiply) &&
@@ -4571,30 +4571,10 @@ as the position for any diagnostics issued.
           do_idivide(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_shiftl:
-#if FIXED_POINT_ALLOWED
-          if (constant_1->kind == (a_constant_repr_kind)ck_fixed_point) {
-            do_fxshiftl(constant_1, constant_2, result,
-		        &err_code, &err_severity);
-          } else
-#endif /* FIXED_POINT_ALLOWED */
-          /* Do not insert code here. */
-          {
-            do_shiftl(constant_1, constant_2, result, &err_code,
-                      &err_severity);
-          }  /* if */
+          do_shiftl(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_shiftr:
-#if FIXED_POINT_ALLOWED
-          if (constant_1->kind == (a_constant_repr_kind)ck_fixed_point) {
-            do_fxshiftr(constant_1, constant_2, result,
-		        &err_code, &err_severity);
-          } else
-#endif /* FIXED_POINT_ALLOWED */
-          /* Do not insert code here. */
-          {
-            do_shiftr(constant_1, constant_2, result, &err_code,
-                      &err_severity);
-          }  /* if */
+          do_shiftr(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_ieq:
         case eok_ine:
@@ -4682,6 +4662,14 @@ as the position for any diagnostics issued.
         case eok_fxge:
         case eok_fxle:
           do_fxcompare(constant_1, op, constant_2, result);
+          break;
+        case eok_fxshiftl:
+            do_fxshiftl(constant_1, constant_2, result, &err_code,
+                        &err_severity);
+          break;
+        case eok_fxshiftr:
+          do_fxshiftr(constant_1, constant_2, result, &err_code,
+                      &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED

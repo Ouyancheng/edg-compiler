@@ -4550,9 +4550,15 @@ expressions on nontype template parameters in function signatures.
     case eok_remainder:
       opkind = (an_opname_kind)onk_remainder;
       break;
+#if FIXED_POINT_ALLOWED
+    case eok_fxshiftl:
+#endif /* FIXED_POINT_ALLOWED */
     case eok_shiftl:
       opkind = (an_opname_kind)onk_shift_left;
       break;
+#if FIXED_POINT_ALLOWED
+     case eok_fxshiftr:
+#endif /* FIXED_POINT_ALLOWED */
     case eok_shiftr:
       opkind = (an_opname_kind)onk_shift_right;
       break;

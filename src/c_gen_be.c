@@ -4322,9 +4322,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_psubtract_assign:
           opstr = "-=";
           goto process_assignment;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftl_assign:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftl_assign:
           opstr = "<<=";
           goto process_assignment;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftr_assign:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftr_assign:
           opstr = ">>=";
           goto process_assignment;
@@ -4446,9 +4452,15 @@ process_assignment:
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_binary_operation;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftl:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftl:
           opstr = "<<";
           break;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftr:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftr:
           opstr = ">>";
           break;

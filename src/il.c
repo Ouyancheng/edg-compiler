@@ -9761,6 +9761,8 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_fxsubtract:
       case eok_fxmultiply:
       case eok_fxdivide:
+      case eok_fxshiftl:
+      case eok_fxshiftr:
       case eok_fxeq:
       case eok_fxne:
       case eok_fxgt:
@@ -9772,6 +9774,8 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_fxsubtract_assign:
       case eok_fxmultiply_assign:
       case eok_fxdivide_assign:
+      case eok_fxshiftl_assign:
+      case eok_fxshiftr_assign:
         unexpected_condition_str("fixed-point operators not implemented");
         break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -11985,6 +11989,8 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_fxsubtract_assign:
     case eok_fxmultiply_assign:
     case eok_fxdivide_assign:
+    case eok_fxshiftl_assign:
+    case eok_fxshiftr_assign:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_iassign:
     case eok_fassign:

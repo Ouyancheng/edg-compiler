@@ -3073,6 +3073,8 @@ Display the name of an expression operator.
     case eok_fxsubtract:        s = "eok_fxsubtract";             break;
     case eok_fxmultiply:        s = "eok_fxmultiply";             break;
     case eok_fxdivide:          s = "eok_fxdivide";               break;
+    case eok_fxshiftl:          s = "eok_fxshiftl";               break;
+    case eok_fxshiftr:          s = "eok_fxshiftr";               break;
     case eok_fxeq:              s = "eok_fxeq";                   break;
     case eok_fxne:              s = "eok_fxne";                   break;
     case eok_fxgt:              s = "eok_fxgt";                   break;
@@ -3161,6 +3163,8 @@ Display the name of an expression operator.
     case eok_fxsubtract_assign: s = "eok_fxsubtract_assign";      break;
     case eok_fxmultiply_assign: s = "eok_fxmultiply_assign";      break;
     case eok_fxdivide_assign:   s = "eok_fxdivide_assign";        break;
+    case eok_fxshiftl_assign:   s = "eok_fxshiftl_assign";        break;
+    case eok_fxshiftr_assign:   s = "eok_fxshiftr_assign";        break;
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fadd_assign:       s = "eok_fadd_assign";            break;
     case eok_fsubtract_assign:  s = "eok_fsubtract_assign";       break;

@@ -6833,10 +6833,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "-=";
           operand_1_is_lvalue = TRUE;
           break;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftl_assign:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftl_assign:
           opstr = "<<=";
           operand_1_is_lvalue = TRUE;
           break;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftr_assign:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftr_assign:
           opstr = ">>=";
           operand_1_is_lvalue = TRUE;
@@ -6909,9 +6915,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, ".",
                          operand_2, /*is_lvalue_2=*/FALSE);
           goto done_with_operation;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftl:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftl:
           opstr = "<<";
           break;
+#if FIXED_POINT_ALLOWED
+        case eok_fxshiftr:
+#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftr:
           opstr = ">>";
           break;

@@ -1603,6 +1603,8 @@ _Bool type, and VLA types.
     case eok_fxsubtract_assign:
     case eok_fxmultiply_assign:
     case eok_fxdivide_assign:
+    case eok_fxshiftl_assign:
+    case eok_fxshiftr_assign:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fadd_assign:
     case eok_fsubtract_assign:

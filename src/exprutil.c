@@ -5249,10 +5249,10 @@ type is an error type, return eok_error.
 	  op = (an_expr_operator_kind)eok_fxdivide;
 	  break;
 	case tok_shift_right:
-	  op = (an_expr_operator_kind)eok_shiftr;
+	  op = (an_expr_operator_kind)eok_fxshiftr;
 	  break;
 	case tok_shift_left:
-	  op = (an_expr_operator_kind)eok_shiftl;
+	  op = (an_expr_operator_kind)eok_fxshiftl;
 	  break;
 	case tok_lt:
 	  op = (an_expr_operator_kind)eok_fxlt;
@@ -5288,10 +5288,10 @@ type is an error type, return eok_error.
 	  op = (an_expr_operator_kind)eok_fxsubtract_assign;
 	  break;
 	case tok_shift_left_assign:
-	  op = (an_expr_operator_kind)eok_shiftl_assign;
+	  op = (an_expr_operator_kind)eok_fxshiftl_assign;
 	  break;
 	case tok_shift_right_assign:
-	  op = (an_expr_operator_kind)eok_shiftr_assign;
+	  op = (an_expr_operator_kind)eok_fxshiftr_assign;
 	  break;
 	default:
 	  unexpected_condition_str(
@@ -5769,6 +5769,8 @@ operand.
     case eok_fxsubtract_assign:
     case eok_fxmultiply_assign:
     case eok_fxdivide_assign:
+    case eok_fxshiftl_assign:
+    case eok_fxshiftr_assign:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_va_start:
     case eok_va_arg:
