@@ -4070,6 +4070,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   a_routine_ptr rout;
   a_type_ptr    naming_class, selection_class;
 
+  check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
+  rout = func_expr->variant.routine;
   /* Remove any cast that just adjusts the type qualifiers (e.g., adds
      const); it's implied by the context. */
   object_expr = skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
@@ -4081,9 +4083,14 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
        reference indirection on the object, because that will add a "&"
        that may mean the wrong thing if operator& is overloaded. */
     if (is_variable_node(object_expr) &&
-        object_expr->variant.variable->is_this_parameter) {
+        object_expr->variant.variable->is_this_parameter &&
+        rout->special_kind != (a_special_function_kind)sfk_constructor) {
       /* Suppress "this->", as it's implied.  This is necessary to avoid
-         a bug in MSVC++ 4.2. */
+         a bug in MSVC++ 4.2.  Don't do this optimization when a constructor
+         is called explicitly (a Microsoft extension), because
+           this->X::X()   and
+           X::X()
+         mean different things to the Microsoft compiler. */
     } else {
       gen_expr_with_parens(object_expr);
       write_tok_str("->");
@@ -4093,8 +4100,6 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     gen_lvalue(object_expr);
     write_tok_ch('.');
   }  /* if */
-  check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
-  rout = func_expr->variant.routine;
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
