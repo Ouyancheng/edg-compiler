@@ -2053,16 +2053,16 @@ to FALSE if the entity being declared is not initializable.
      will be coalesced by is_generalized_identifier_start.  The qualifier
      will then be discarded by simplify_curr_class_qualified_name resulting
      in an unqualified destructor that has already been coalesced. */
-  if (curr_token == tok_identifier &&
+  options = GID_DISALLOW_GLOBAL_QUALIFIER | GID_DTOR_RECOGNIZED;
+  if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
+    options |= GID_DISALLOW_QUALIFIED_NAME;
+  }  /* if */
+  if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
+    options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
+  }  /* if */
+  if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
       (!locator_for_curr_id.is_destructor_name ||
        locator_for_curr_id.is_qualified_name)) {
-    options = GID_DISALLOW_GLOBAL_QUALIFIER;
-    if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
-      options |= GID_DISALLOW_QUALIFIED_NAME;
-    }  /* if */
-    if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
-      options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
-    }  /* if */
     if (any_cfront_mode()) {
       /* Provide support for an exploitable cfront bug. */
       if (locator_for_curr_id.is_qualified_name &&
@@ -2169,7 +2169,7 @@ to FALSE if the entity being declared is not initializable.
          normal identifier case handled above. */
       (void)simplify_curr_class_qualified_name();
     }  /* if */
-    if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
+    if (curr_token == tok_identifier &&
         locator_for_curr_id.is_destructor_name) {
       /* A destructor name, like "~A".  It must have the same name as
          the class currently being defined, it must be followed by a
