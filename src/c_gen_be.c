@@ -2888,10 +2888,10 @@ with a routine.
 */
 {
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
-  char     *mangled_name, *store_at;
+  char     *mangled_name, *store_at, *routine_name = NULL;
   char     buffer[50];
 #if IA64_ABI
-  char     buffer2[50];
+  char     buffer2[50], buffer0[50];
 #endif /* IA64_ABI */
 
   /* Leave the name alone if the type is unnamed or if the name has
@@ -2899,7 +2899,8 @@ with a routine.
   if (scp->name != NULL && !scp->name_has_been_mangled) {
     name_length = strlen(scp->name);
     if (rout != NULL && has_name(rout)) {
-      routine_name_length = strlen(rout->source_corresp.name);
+      routine_name = rout->source_corresp.name;
+      routine_name_length = strlen(routine_name);
     } else {
       routine_name_length = 0;
     }  /* if */
@@ -2915,17 +2916,36 @@ with a routine.
          __ Z function-mangled-name E name-with-length _ discriminator
        We don't have an accurate discriminator value, so we use the
        scope number for that.  The routine name already has the "_Z"
-       at the front. */
+       at the front, unless the routine is extern "C". */
     /* Starting with "__" instead of "_Z" matches PREFIX_ON_NESTED_TYPE_NAME
-       in lower_name.c.  Thie name here is not an external name, so it's not
+       in lower_name.c.  The name here is not an external name, so it's not
        dictated by the IA-64 ABI, so we generate a name in the style
        of the IA-64 ABI but without the prefix that might make it
        appear to be a mandated name. */
+    /* buffer0 will contain the __Z and anything else that needs to be
+       added at the front of the routine name.  buffer will contain the
+       "E" and the length for the entity name.  buffer2 will contain the
+       "_" and the discriminator number. */
+    (void)strcpy(buffer0, "__Z");
+    if (routine_name_length == 0) {
+      /* For an unnamed routine, we put out no name.  That doesn't produce
+         a valid mangled name but it may be the best we can do. */
+    } else if (routine_name[0] == '_' && routine_name[1] == 'Z') {
+      /* Usual case: the routine name is mangled.  Remove "_Z". */
+      check_assertion(routine_name_length >= 5);
+      routine_name += 2;
+      routine_name_length -= 2;
+    } else {
+      /* Unmangled routine name (e.g., for an extern "C" routine).
+         Add the length of the name as a prefix. */
+      (void)sprintf(buffer, "%lu", (unsigned long)routine_name_length);
+      (void)strcat(buffer0, buffer);
+    }  /* if */
     (void)sprintf(buffer, "E%lu", (unsigned long)name_length);
     (void)sprintf(buffer2, "_%lu", (unsigned long)scope_number);
-    mangled_name_length = routine_name_length + 1 + strlen(buffer) +
+    mangled_name_length = strlen(buffer0) +
+                          routine_name_length + strlen(buffer) +
                           name_length + strlen(buffer2);
-    if (routine_name_length == 0) mangled_name_length += 2;
 #endif /* !IA64_ABI */
     /* Allocate space for the mangled name and build it. */
     alloc_length = mangled_name_length + 1;
@@ -2938,17 +2958,16 @@ with a routine.
     *store_at++ = '_';
     *store_at++ = '_';
     if (routine_name_length != 0) {
-      (void)strcpy(store_at, rout->source_corresp.name);
+      (void)strcpy(store_at, routine_name);
       store_at += routine_name_length;
     }  /* if */
     (void)strcpy(store_at, buffer);
 #else /* IA64_ABI */
-    (void)strcpy(mangled_name, "__Z");
-    store_at = mangled_name+3;
+    (void)strcpy(mangled_name, buffer0);
+    store_at = mangled_name + strlen(buffer0);
     if (routine_name_length != 0) {
-      check_assertion(routine_name_length >= 5);
-      (void)strcpy(store_at, rout->source_corresp.name+2);
-      store_at += routine_name_length-2;
+      (void)strcpy(store_at, routine_name);
+      store_at += routine_name_length;
     }  /* if */
     (void)strcpy(store_at, buffer);  /* E plus name length. */
     store_at += strlen(buffer);
@@ -2961,6 +2980,7 @@ with a routine.
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
     scp->is_local_to_function = FALSE;
+    check_assertion(mangled_name_length == strlen(mangled_name));
   }  /* if */
 }  /* mangle_promoted_name */
 

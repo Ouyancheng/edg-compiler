@@ -5620,7 +5620,6 @@ elsewhere.
 #endif /* IA64_ABI */
 
 #if DO_IL_LOWERING
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 
 #if !IA64_ABI
 
@@ -5707,7 +5706,6 @@ other mangled names.
   }  /* if */
 }  /* mangle_promoted_entity_name */
 
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
 void mangle_covariant_return_type_entry_name(a_routine_ptr entry_routine)
