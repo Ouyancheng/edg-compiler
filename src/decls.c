@@ -641,7 +641,7 @@ new fields are set properly.
             if (!err
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
                      && !exceptions_enabled
-#endif ABI_CHANGES_FOR_PLACEMENT_DELETE
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
                                            ) {
               ptp = ptp->next;
               if (ptp != NULL) {

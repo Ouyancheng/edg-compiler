@@ -9232,7 +9232,7 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
       }  /* if */
     } else {
       /* Exceptions are not enabled. */
-#endif ABI_CHANGES_FOR_PLACEMENT_DELETE
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
       /* Just issue a remark if the class has an operator new() but no
          default operator delete() or vice versa. */
       del_sym = opname_member_function_symbol(del_kind, class_type);
@@ -9263,7 +9263,7 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
       }  /* if */
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     }  /* if */
-#endif ABI_CHANGES_FOR_PLACEMENT_DELETE
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     if (array_pass) break;
     array_pass = TRUE;
   }  /* for */
