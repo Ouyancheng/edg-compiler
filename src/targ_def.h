@@ -588,14 +588,16 @@ typedef struct an_internal_float_value {
 /*
 C++ pointer-to-member type.
 (The formulas here are for a typical implementation, but are not required.)
+Note that cfront uses "int *" for pointers to data members; we use an
+integer the same size as a pointer.
 */
 #ifndef TARG_SIZEOF_PTR_TO_DATA_MEMBER
-#define TARG_SIZEOF_PTR_TO_DATA_MEMBER TARG_SIZEOF_SHORT
+#define TARG_SIZEOF_PTR_TO_DATA_MEMBER TARG_SIZEOF_POINTER
 			/* Default value, used to initialize global variable
 			   targ_sizeof_ptr_to_data_member. */
 #endif /* !defined(TARG_SIZEOF_PTR_TO_DATA_MEMBER) */
 #ifndef TARG_ALIGNOF_PTR_TO_DATA_MEMBER
-#define TARG_ALIGNOF_PTR_TO_DATA_MEMBER TARG_ALIGNOF_SHORT
+#define TARG_ALIGNOF_PTR_TO_DATA_MEMBER TARG_ALIGNOF_POINTER
 			/* Default value, used to initialize global variable
 			   targ_alignof_ptr_to_data_member. */
 #endif /* !defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
@@ -1003,8 +1005,9 @@ this processing.
 #endif /* ifndef DO_UNORDERED_EH_PROCESSING */
 
 /*
-Integer kind to use for an offset into a class.  Its size must match
-TARG_SIZEOF_PTR_TO_DATA_MEMBER.
+Integer kind to use for an offset into a class.  This is used for delta
+fields in pointers to member functions, etc., but not for pointers to
+data members.
 */
 #ifndef TARG_DELTA_INT_KIND
 #define TARG_DELTA_INT_KIND ((an_integer_kind)ik_short)
