@@ -1845,31 +1845,6 @@ by unnamed non-bit-fields.
 #endif /* ifdef CFE */
 #ifdef CFE
 
-static a_boolean is_signed_bit_field(a_field_ptr field)
-/*
-Return TRUE if the indicated field (which is is bit-field) is signed.
-*/
-{
-  a_boolean  is_signed;
-  a_type_ptr type;
-
-  type = field->type;
-#if CHECKING
-  if (type == NULL) internal_error("is_signed_bit_field: type NULL");
-#endif /* CHECKING */
-  type = skip_typerefs(type);
-#if CHECKING
-  if (type->kind != (a_type_kind)tk_integer) {
-    internal_error("is_signed_bit_field: bit field not integer");
-  }  /* if */
-#endif /* CHECKING */
-  is_signed = int_kind_is_signed[(int)type->variant.integer.int_kind];
-  return(is_signed);
-}  /* is_signed_bit_field */
-
-#endif /* ifdef CFE */
-#ifdef CFE
-
 static void dump_struct(a_type_ptr type,
                         a_boolean  body)
 /*
@@ -1903,7 +1878,7 @@ Dump the definition ({...}) if body is TRUE.
         } else {
           /* Bit field. */
           (void)fprintf(f_C_output, "%s %s: %d",
-                                    is_signed_bit_field(field) ?
+                                    field->bit_field_is_signed ?
                                        "int" : "unsigned int",
                                     field_name(field),
                                     field->bit_size);
@@ -2671,7 +2646,7 @@ because the left operand is an lvalue.
        for an unsigned bit field, use __trunc. */
     dest_is_bit_field = TRUE;
     dest_field = operand_1->variant.operation.operands->next->variant.field;
-    if (is_signed_bit_field(dest_field)) {
+    if (dest_field->bit_field_is_signed) {
       fputs("(__sexten((", f_C_output);
     } else {
       fputs("(__trunc((", f_C_output);
@@ -3609,7 +3584,7 @@ char_compare:
          promotions folded into the extraction node. */
       dump_cast(expr->type);
       fputc('(', f_C_output);
-      is_signed = is_signed_bit_field(field);
+      is_signed = field->bit_field_is_signed;
       if (is_signed) {
         /* Signed bit field.  Do sign extension on the unsigned bit field
            provided by pcc. */
