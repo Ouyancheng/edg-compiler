@@ -1260,7 +1260,7 @@ declaration.
     rout->keep_definition_in_il = TRUE;
 #if DEBUG
     if (db_trace("needed_flags", rout, iek_routine)) {
-      fprintf(f_debug, "Setting keep_definition_in_il on rout  ");
+      fprintf(f_debug, "Setting keep_definition_in_il on rout ");
       db_name_full(&rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
     }  /* if */
