@@ -1,5 +1,12 @@
 Version 2.23
 
+5/19/94  Comparison of function pointers in generated C code
+
+C++ allows comparison of function pointers (using <, >, <=, or >=);
+C does not.  Accordingly, the C-generating back end now casts function
+pointers to unsigned long (or unsigned long long, if that's appropriate)
+before comparing them.
+
 5/19/94  C-generating back end output of minimum integers
 
 The smallest integers on two's complement machines are now output

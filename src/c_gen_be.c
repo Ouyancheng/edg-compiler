@@ -3100,6 +3100,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   an_expr_node_ptr               operand_1, operand_2;
   a_type_ptr                     expr_type;
   a_boolean                      pointer_comparison = FALSE;
+  char                           *pointer_comparison_cast;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
   a_boolean                      is_signed, void_operand;
@@ -3246,15 +3247,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "/";
           break;
         case eok_peq:
-          pointer_comparison = TRUE;
-          /* Fall-through into following code. */
         case eok_ieq:
         case eok_feq:
           opstr = "==";
           break;
         case eok_pne:
-          pointer_comparison = TRUE;
-          /* Fall-through into following code. */
         case eok_ine:
         case eok_fne:
           opstr = "!=";
@@ -3563,9 +3560,18 @@ process_assignment:
       }  /* switch */
       if (pointer_comparison) {
         /* Comparisons of function pointers are not standard C, so put in casts
-           to void *. */
+           to some large integral type. */
         if (!is_function_type(type_pointed_to(operand_1->type))) {
           pointer_comparison = FALSE;
+        } else {
+#if LONG_LONG_ALLOWED
+          if (targ_sizeof_pointer > targ_sizeof_long) {
+            pointer_comparison_cast = "(unsigned long long)";
+          } else
+#endif /* LONG_LONG_ALLOWED */
+          {
+            pointer_comparison_cast = "(unsigned long)";
+          }
         }  /* if */
       }  /* if */
       /* General-case processing: */
@@ -3574,14 +3580,14 @@ process_assignment:
         m_write_tok_str(opstr);
       }  /* if */
       /* Generate the first operand. */
-      if (pointer_comparison) write_tok_str("(void *)");
+      if (pointer_comparison) write_tok_str(pointer_comparison_cast);
       dump_expr_with_parens(operand_1);
       if (operand_2 != NULL) {
         /* Two-operand operator. */
         m_write_space();
         m_write_tok_str(opstr);
         m_write_space();
-        if (pointer_comparison) write_tok_str("(void *)");
+        if (pointer_comparison) write_tok_str(pointer_comparison_cast);
         dump_expr_with_parens(operand_2);
       }  /* if */
 done_with_operation:
