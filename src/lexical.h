@@ -1692,6 +1692,9 @@ extern void init_token_string(a_source_position *pos);
 #if DEBUG
 /* Show space used in the lexical routines, for debugging purposes. */
 extern unsigned long show_lexical_space_used(void);
+
+extern void db_token_cache(a_token_cache *cache,
+                           char		 *cache_name);
 #endif /* DEBUG */
 
 /* Test whether or not a given character location falls within

@@ -10063,6 +10063,11 @@ being constructed that represents the tokens in the cache.
 {
   a_cached_token_ptr	ctp = cache->first_token;
 
+#if DEBUG
+  if (db_flag_is_set("atcts")) {
+    db_token_cache(cache, "add_token_cache_to_string");
+  }  /* if */
+#endif /* DEBUG */
   for (; ctp != NULL; ctp = ctp->next) {
     /* Stop when we run out of tokens or hit an end-of-source token. */
     if ((a_token_kind)ctp->token == tok_end_of_source) break;
@@ -10121,6 +10126,56 @@ position specified by pos.
 
 
 #if DEBUG
+void db_token_cache(a_token_cache *cache,
+                    char	  *cache_name)
+/*
+Display the contents of a token cache.
+*/
+{
+  a_cached_token_ptr	ctp;
+  unsigned long		count = 0;
+
+  fprintf(f_debug, "%s token cache at %p\n", cache_name, cache);
+  if (cache != NULL) {
+    fprintf(f_debug, "first_token: %p\n", cache->first_token);
+    fprintf(f_debug, "last_token: %p\n", cache->last_token);
+    fprintf(f_debug, "token_count: %lu\n", cache->token_count);
+    fprintf(f_debug, "pragma_count: %lu\n", cache->pragma_count);
+    for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+      if (count != 0) fprintf(f_debug, "\n");
+      fprintf(f_debug, "Token %0lu:\n", count++);
+      fprintf(f_debug, "  kind: %s", token_names[(int)ctp->token]);
+      if (ctp->token == (a_token_kind)tok_identifier &&
+          ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
+        fprintf(f_debug, " %s",
+                ctp->variant.locator.symbol_header->identifier);
+      }  /* if */
+      fprintf(f_debug, "\n");
+      fprintf(f_debug, "  sequence_number: %lu\n", ctp->token_sequence_number);
+      if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_none &&
+          ctp->extra_info_kind != (a_token_extra_info_kind)teik_identifier) {
+        char	*s;
+        switch (ctp->extra_info_kind) {
+          case teik_identifier:     s = "identifier"; break; /* not used */
+          case teik_constant:       s = "constant"; break;
+          case teik_pragma:         s = "pragma"; break;
+          case teik_pp_token:       s = "pp_token"; break;
+          case teik_extracted_body: s = "extracted_body"; break;
+        }  /* switch */
+        fprintf(f_debug, "  extra_info_kind: %s\n", s);
+      }  /* if */
+      if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+        a_pending_pragma_ptr	ppp;
+        for (ppp = ctp->variant.pragmas; ppp != NULL; ppp = ppp->next) {
+          fprintf(f_debug, "  Pragma: %s\n",
+                                     pragma_ids[(int)ppp->descr_ptr->kind]);
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* db_token_cache */
+
+
 unsigned long show_lexical_space_used(void)
 /*
 Display and return the amount of space used for various lexical tables.
