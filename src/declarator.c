@@ -898,9 +898,11 @@ specification is handled later (see check_exception_specification).
       estp->type = error_type();
     } else {
       type_name(&estp->type);
-      if (exceptions_enabled && !is_error_type(estp->type)) {
+      if (exceptions_enabled && !is_error_type(estp->type) &&
+          !microsoft_mode) {
         /* Check the type to be sure it's not an incomplete type or a pointer
-           to an incomplete type. */
+           to an incomplete type.  Microsoft compilers do not use the type
+           information at all: We perform no type checkin in that case. */
         a_type_ptr     tp = estp->type;
         an_error_code  error_code = ec_no_error;
 
