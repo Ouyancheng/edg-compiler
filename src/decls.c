@@ -5010,7 +5010,7 @@ Return a pointer to the variable that is declared.
   a_source_position            decl_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_boolean                    incomplete_type_error_reported;
-  a_boolean                    missing_declarator;
+  a_boolean                    missing_declarator = FALSE;
 
   db_enter(3, "condition_declaration");
   decl_pos = pos_curr_token;
@@ -5032,7 +5032,7 @@ Return a pointer to the variable that is declared.
     storage_class = (a_storage_class)sc_auto;
   }  /* if */
   if (is_declarator_start()) {
-    /* Scan the declarator.  It is not allowed to specify a function or an
+    /* Scan the declarator, which is not allowed to specify a function or an
        array. */
     declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
