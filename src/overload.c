@@ -5294,7 +5294,8 @@ the target type to be used).
              under the pointer type as part of the specific type.  This
              allows a first operand of, say "pointer to const X" with a
              second operand of type "pointer to member of X of type T". */
-          qualifiers = get_type_qualifiers(type_pointed_to(operand_type));
+          a_type_ptr underlying_type = type_pointed_to(operand_type);
+          qualifiers = get_type_qualifiers(underlying_type);
         }  /* if */
         eff_specific_type = make_pointer_type(make_qualified_type(class_type,
                                                                   qualifiers));
