@@ -4433,8 +4433,9 @@ an existing entry if possible.
 }  /* make_reference_type */
 
 
-static a_type_ptr copy_array_type_with_substitution(a_type_ptr  old_array,
-                                                    a_type_ptr  element_type)
+static a_type_ptr copy_array_type_replacing_element_type(
+                                                      a_type_ptr  old_array,
+                                                      a_type_ptr  element_type)
 /*
 old_array is an array type that needs to be copied, but with a new element
 type (one that may, e.g., differ from the existing element type in its
@@ -4444,6 +4445,7 @@ and return a pointer to the new array type.
 {
   a_type_ptr  tp, new_array = NULL, prev = NULL;
 
+  /* Loop, in case this is a multidimensional array. */
   for (;;) {
     /* Drop typedefs; there shouldn't be any typerefs. */
     old_array = skip_typerefs(old_array);
@@ -4461,19 +4463,19 @@ and return a pointer to the new array type.
       prev->variant.array.element_type = tp;
     }  /* if */
     prev = tp;
-    /* Advance to the element type (which may also be an array type). */
+    /* Advance to the element type (which may be another array type). */
     old_array = old_array->variant.array.element_type;
     if (is_array_type(old_array)) {
-      /* Keep looping -- the old element type was itself an array type. */
+      /* Keep looping. */
     } else {
-      /* Done.  The new element type is attached to the bottom of the new
-         chain of array types. */
+      /* Done.  Attach the new element type to the bottom of the chain of
+         array types. */
       tp->variant.array.element_type = element_type;
       break;
     }  /* if */
   }  /* for */
   return new_array;
-}  /* copy_array_type_with_substitution */
+}  /* copy_array_type_replacing_element_type */
 
 
 a_type_ptr make_qualified_type(a_type_ptr base_type,
@@ -4535,7 +4537,7 @@ they are not already present.
     if (base_type != orig_base_type) {
       /* For the strange array case, the array type entries must be
          copied in order to avoid changing the typedef type. */
-      ptr = copy_array_type_with_substitution(orig_base_type, ptr);
+      ptr = copy_array_type_replacing_element_type(orig_base_type, ptr);
     }  /* if */
   } else {
     /* No qualifiers to add, so return the original type. */
@@ -4598,7 +4600,7 @@ Return a type that is the unqualified version of the type given by type.
     }  /* while */
   } else if (type->kind == (a_type_kind)tk_typeref) {
     element_type = make_unqualified_type(underlying_array_element_type(type));
-    type = copy_array_type_with_substitution(type, element_type);
+    type = copy_array_type_replacing_element_type(type, element_type);
   }  /* if */
   return type;
 }  /* make_unqualified_type */
