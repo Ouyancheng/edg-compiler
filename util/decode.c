@@ -1983,6 +1983,30 @@ end_of_routine:
 }  /* full_demangle_identifier */
 
 
+static char *demangle_static_name(char                       *ptr,
+                                  a_decode_control_block_ptr dctl)
+/*
+Demangle the name of a static variable promoted to being external by
+addition of a prefix "__STV__" and a suffix of a module id.  Just put out
+the part in the middle, which is the original name.
+*/
+{
+  ptr += 7;  /* Move to after "__STV__". */
+  /* Copy the name until "__". */
+  while (*ptr != '_' || ptr[1] != '_') {
+    if (*ptr == '\0') {
+      bad_mangled_name(dctl);
+      break;
+    }  /* if */
+    write_id_ch(*ptr, dctl);
+    ptr++;
+  }  /* while */
+  /* Advance over the module id part of the name. */
+  while (*ptr != '\0') ptr++;
+  return ptr;
+}  /* demangle_static_name */
+
+
 static char *demangle_local_name(char                       *ptr,
                                  a_decode_control_block_ptr dctl)
 /*
@@ -2107,6 +2131,10 @@ is set to the size of buffer required to do the demangling.
   } else if (start_of_id_is("__Q", id)) {
     /* Nested class name. */
     end_ptr = demangle_type_name(id+2, dctl);
+  } else if (start_of_id_is("__STV__", id)) {
+    /* Static variable made external by addition of prefix "__STV__" and
+       suffix of module id. */
+    end_ptr = demangle_static_name(id, dctl);
   } else if (start_of_id_is("__", id) && isdigit((unsigned char)id[2])) {
     /* Local variable mangled by the C-generating back end: __nn_mm_name,
        where "nn" and "mm" are decimal integers. */
