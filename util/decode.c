@@ -636,7 +636,10 @@ original forms).
       /* We have no count of characters, so the string ends on a null or
          double underscore. */
       for (p = ptr; *p != '\0'; p++) {
-        if (p[0] == '_' && p[1] == '_') {
+        /* More than 2 underscores in a row does not terminate the string,
+           so that something like the name for "void f_()" (i.e., "f___Fv")
+           can be demangled successfully. */
+        if (p[0] == '_' && p[1] == '_' && p[2] != '_') {
           if (start_of_id_is("__pt__", p)) {
             /* This is a template class. */
             is_template = TRUE;
