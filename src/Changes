@@ -1,5 +1,12 @@
 Version 2.06
 
+5/19/92  Fixed handling of access adjustments in access control
+
+have_proj_access_to_symbol in symbol_tbl.c became
+have_access_across_derivation; fixed a bug in access control for members
+whose access has been adjusted by an access declaration and which are then
+inherited in a derived class.
+
 5/19/92  Fixed a bug in detecting illegal initialization of classes with
          private or protected fields.
 
