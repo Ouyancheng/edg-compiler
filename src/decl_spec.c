@@ -753,7 +753,7 @@ template class, its DLL interface may need to be adjusted implicitly.
            class_type->variant.class_struct_union.is_specialized)) {
         /* The DLL interface of a base class type is only adjusted for base
            class types that are implicit template specializations.  Otherwise,
-           we warn about inconsisten DLL interfaces in base class type. */
+           we warn about inconsistent DLL interfaces in base class type. */
         if ((ctsp->decl_modifiers & DM_DLLFLAGS) != new_dll_flags) {
           pos_warning(ec_base_class_has_different_dll_interface, err_pos);
         }  /* if */
@@ -856,9 +856,10 @@ void update_extended_decl_info_for_class(
 /*
 Update the specified class type with information based on a previous scan of
 extended declaration modifiers, as specified by *extended_decl_info.
-class_definition is TRUE if the modifiers appeared on a class definition
-(as opposed to just a declaration).  err_pos is a pointer to a source position
-used for diagnostics.
+class_definition is TRUE if the modifiers appeared on a class definition (as
+opposed to just a declaration).  If explicit_inst is TRUE, this routine is
+called for the explicit instantiation of class_type.  err_pos is a pointer
+to a source position used for diagnostics.
 */
 {
   a_class_type_supplement_ptr

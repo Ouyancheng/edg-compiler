@@ -3160,7 +3160,7 @@ Update the DLL interface of the given routine according to flags.  If the
 current declaration of the routine is marked as "inline", is_inline is set to
 TRUE (even when routine->is_inline may not yet have been set).  If the current
 declaration is a redeclaration, is_redecl is set to TRUE.  If the current
-declaration is a definition is_definition is set to TRUE.  Diagnostics should
+declaration is a definition, is_definition is set to TRUE.  Diagnostics should
 be issued at the given position.
 */
 {
@@ -3169,13 +3169,14 @@ be issued at the given position.
 
   /* dllimport and dllexport should never be set together. */
   check_assertion(new_dll_flags != DM_DLLFLAGS);
-  if (old_dll_flags | new_dll_flags) {
+  if ((old_dll_flags | new_dll_flags) != 0) {
     /* Either the current declaration has a DLL interface, or the routine was
        previously declared with a DLL interface. */
     a_boolean  new_dll_export = FALSE, clear_dll_import = FALSE;
     if (routine->is_inline) is_inline = TRUE;
     if (new_dll_flags != 0) {
-      if (routine->storage_class == (a_storage_class)sc_static) {
+      if (routine->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_internal) {
         /* Entities that don't have external linkage cannot be declared with
            a DLL interface. */
         pos_error(ec_dll_interface_requires_external_linkage, diag_pos);
@@ -3392,7 +3393,7 @@ void update_dll_info_for_variable(a_variable_ptr        var,
                                   a_source_position     *diag_pos)
 /*
 Update the DLL interface of the given variable according to flags (and clear
-the DLL-related flags of flags).  If the current declaration is a definition
+the DLL-related flags of flags).  If the current declaration is a definition,
 is_definition is set to TRUE.  If the current declaration is a redeclaration,
 is_redecl is set to TRUE.  Diagnostics should be issued at the given
 position. */
@@ -3402,7 +3403,7 @@ position. */
 
   /* dllimport and dllexport should never be set together. */
   check_assertion(new_dll_flags != DM_DLLFLAGS);
-  if (old_dll_flags | new_dll_flags) {
+  if ((old_dll_flags | new_dll_flags) != 0) {
     /* Either the current declaration has a DLL interface, or the variable was
        previously declared with a DLL interface. */
     a_boolean  new_dll_export = FALSE, clear_dll_import = FALSE;
@@ -3412,15 +3413,16 @@ position. */
           ((old_dll_flags | new_dll_flags) & DM_DLLIMPORT) != 0) {
         /* Imported static data members cannot be defined.  Note that an error
            is issued even if one declaration has dllimport and the other has
-           dllexport: For static data members, Microsoft compilers retain the
-           dllimport attribute. */
+           dllexport: Unlike for other entities, Microsoft compilers retain the
+           dllimport attribute on static data members. */
         pos_error(ec_dllimport_defined, diag_pos);
         old_dll_flags = new_dll_flags = 0;
       }  /* if */
     } else if (new_dll_flags != 0) {
-      if (var->storage_class == (a_storage_class)sc_static ||
-          var->storage_class == (a_storage_class)sc_auto ||
-          var->storage_class == (a_storage_class)sc_register) {
+      if (var->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_internal ||
+          var->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_none) {
         /* Entities that don't have external linkage cannot be declared with
            a DLL interface. */
         pos_error(ec_dll_interface_requires_external_linkage, diag_pos);
@@ -3496,8 +3498,9 @@ Update the decl_modifiers field of the variable entry to reflect the
 modifiers specified in new_modifiers.  If this is a redeclaration or a
 definition of a previously declared variable, make sure that the new
 modifiers are consistent with the previous declaration specified
-by variable.  position is used as the error position for any
-diagnostics.  is_redecl is TRUE if this is a redeclaration.
+by variable.  position is used as the error position for any diagnostics.
+is_redecl is TRUE if this is a redeclaration.  If the current declaration
+is a definition, is_definition is set to TRUE.  
 */
 {
   a_boolean	   any_invalid_redecl = FALSE;
