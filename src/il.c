@@ -7328,24 +7328,27 @@ its sub-scopes, return the appropriate scope.  Otherwise, return NULL.
   a_scope_ptr    result_scope = NULL, subscope;
   a_variable_ptr test_var;
 
-  /* Check static variables. */
-  for (test_var = scope->variables;
-       test_var != NULL;
-       test_var = test_var->next) {
-    if (test_var == variable) {
-      result_scope = scope;
-      goto end_of_routine;
-    }  /* if */
-  }  /* for */
-  /* Check auto variables. */
-  for (test_var = scope->nonstatic_variables;
-       test_var != NULL;
-       test_var = test_var->next) {
-    if (test_var == variable) {
-      result_scope = scope;
-      goto end_of_routine;
-    }  /* if */
-  }  /* for */
+  if (has_static_storage_duration(variable->storage_class)) {
+    /* Check static variables. */
+    for (test_var = scope->variables;
+         test_var != NULL;
+         test_var = test_var->next) {
+      if (test_var == variable) {
+        result_scope = scope;
+        goto end_of_routine;
+      }  /* if */
+    }  /* for */
+  } else {
+    /* Check auto variables. */
+    for (test_var = scope->nonstatic_variables;
+         test_var != NULL;
+         test_var = test_var->next) {
+      if (test_var == variable) {
+        result_scope = scope;
+        goto end_of_routine;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* Check sub-scopes. */
   for (subscope = scope->scopes;
        subscope != NULL;
