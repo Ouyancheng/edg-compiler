@@ -1,5 +1,15 @@
 Version 2.29
 
+3/28/95  Generating a preprocessed source file with implicit inclusion
+
+Formerly, when generating a preprocessed source file, it was not possible
+for the preprocessed source to include implicitly included files that
+may be needed for template instantiation purposes.  The new --no_preproc_only
+command line option may be used in conjunction with the options that
+generate preprocessed output to create a preprocessed output file
+as part of performing a full compilation.  This preprocessed output
+will include any implicitly included files.
+
 3/28/95  MICROSOFT_KEYWORDS_ALLOWED subsumed into MICROSOFT_EXTENSIONS_ALLOWED
 
 The configuration flag MICROSOFT_KEYWORDS_ALLOWED, which controlled things
