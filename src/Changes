@@ -1,5 +1,10 @@
 Version 2.08
 
+7/6/92   IL lowering bug with bit fields corrected.
+
+IL lowering no longer gives an internal error when processing a class
+that has both bit fields and virtual base classes.
+
 -------------------------------------------------------------------------------
 Version 2.07, July 2, 1992
 
