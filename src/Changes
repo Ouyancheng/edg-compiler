@@ -1,5 +1,16 @@
 Version 2.42
 
+3/31/99  C-generating back end: address of lvalue cast in pcc mode
+
+The C-generating back end can now handle a case where the address of
+an lvalue cast is taken in pcc mode.  Formerly, an example like the
+following produced an internal error in dump_expr.
+
+  void func(void) {
+    char *cptr;
+    f(&(char *)cptr);
+  }
+
 3/31/99  Overload resolution will not consider a template conversion function
          for a conversion to an abstract class type
 

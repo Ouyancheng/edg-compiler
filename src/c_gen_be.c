@@ -3131,7 +3131,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_unary_operation;
         case eok_lvalue_cast:
-          unexpected_condition_str("dump_expr: eok_lvalue_cast as rvalue");
+          write_tok_ch('&');
+          dump_lvalue(expr);
+          goto done_with_unary_operation;
         case eok_complement:
           is_unary = TRUE;
           opstr = "~";
