@@ -3246,6 +3246,7 @@ by parentheses.
 */
 {
   an_expr_node_ptr first_op, second_op, other_op, temp_node, parent_node;
+  an_expr_node_ptr con_op;
   a_constant_ptr   con;
 
   /* If there is a "!= 0" at the top of the expression, remove it.
@@ -3262,26 +3263,28 @@ by parentheses.
   for (;;) {
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
     /* Ignore an enk_object_lifetime node if present -- look under it. */
-    if (temp_node->kind == (an_expr_node_kind)enk_object_lifetime) {
+    while (temp_node->kind == (an_expr_node_kind)enk_object_lifetime) {
       temp_node = temp_node->variant.object_lifetime.expr;
-    }  /* if */
+    }  /* while */
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     if (temp_node->kind == (an_expr_node_kind)enk_operation &&
         temp_node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
       /* The operator is "!=".  Look for a constant operand. */
-      con = NULL;
+      con_op = NULL;
       first_op = temp_node->variant.operation.operands;
       second_op = first_op->next;
       if (first_op->kind == (an_expr_node_kind)enk_constant) {
-        con = first_op->variant.constant;
+        con_op = first_op;
         other_op = second_op;
       } else if (second_op->kind == (an_expr_node_kind)enk_constant) {
-        con = second_op->variant.constant;
+        con_op = second_op;
         other_op = first_op;
       }  /* if */
       /* If there is a constant operand, see if it is zero.  If not, exit
          the loop. */
-      if (con == NULL || con->kind != (a_constant_repr_kind)ck_integer ||
+      if (con_op == NULL) break;
+      con = con_op->variant.constant;
+      if (con->kind != (a_constant_repr_kind)ck_integer ||
           con->implicit_cast || !eqlit_integer_constant(con, 0L)) break;
       /* This is a "!= 0" case.  Rewrite it to get rid of the "!= 0". */
       if (parent_node == NULL) {
@@ -3291,14 +3294,37 @@ by parentheses.
         /* Rewrite is under a comma operation. */
         parent_node->variant.operation.operands->next = other_op;
         other_op->next = NULL;
+        if (other_op->type != parent_node->type) {
+          /* The node being tested has an integral type other than int, e.g.,
+             unsigned long.  Adjust the types in the parent comma node(s). */
+          an_expr_node_ptr temp = node;
+          for (;;) {
+#if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
+            /* Ignore an enk_object_lifetime node if present -- look under
+               it. */
+            while (temp->kind == (an_expr_node_kind)enk_object_lifetime) {
+              temp->type = other_op->type;
+              temp = temp->variant.object_lifetime.expr;
+            }  /* while */
+#endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+            temp->type = other_op->type;
+            if (temp == parent_node) break;
+            check_assertion_str(temp->kind ==
+                                            (an_expr_node_kind)enk_operation &&
+                                temp->variant.operation.kind ==
+                                              (an_expr_operator_kind)eok_comma,
+              "dump_boolean_controlling_expression: problem with comma nodes");
+            temp = temp->variant.operation.operands->next;
+          }  /* for */
+        }  /* if */
       }  /* if */
       /* Continue with the subnode. */
       temp_node = other_op;
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
       /* Ignore an enk_object_lifetime node if present -- look under it. */
-      if (temp_node->kind == (an_expr_node_kind)enk_object_lifetime) {
+      while (temp_node->kind == (an_expr_node_kind)enk_object_lifetime) {
         temp_node = temp_node->variant.object_lifetime.expr;
-      }  /* if */
+      }  /* while */
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     }  /* if */
     /* Keep looping if the current node is a comma node. */
