@@ -1,5 +1,10 @@
 Version 2.45
 
+8/30/00  Compilation errors in il_display.c (see also entry of 8/21/00)
+
+Compilation errors occurred in il_display.c when building an IL display
+program configured with PROTOTYPE_INSTANTIATIONS_IN_IL equal to TRUE.
+
 8/29/00  Microsoft mode: bad output of IL display program
 
 A bug introduced in version 2.44 caused the IL display program to output
