@@ -1,5 +1,17 @@
 Version 2.46
 
+1/9/01   Internal error when initializing a block extern variable length array
+
+The front end used to abort when encountering a block extern variable with
+a variable length array type (in modes accepting variable length arrays; e.g.,
+C99 mode).
+
+  void f(int n) {
+    extern int a[n] = { 1 };  // Used to abort in C99 mode
+  }
+
+This is now fixed.
+
 1/9/01   SVR4 mode error erroneously issued as warning in some configurations
 
 In configurations where TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME is nonzero and/or

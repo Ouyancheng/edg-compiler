@@ -2707,15 +2707,22 @@ returned set to TRUE.
   }  /* if */
   if (!var_err) {
     vp_type = vp->type;
+    if (vla_enabled && is_vla_type(vp->type)) {
+      /* VLAs cannot be initialized.  (This must be the first error case
+         tested because we set vp_type to NULL to recover.  If it were a
+         later case, and the declaration was also (e.g.) block extern,
+         we'd diagnose that instead and not recover completely.) */
+      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
+      var_err = TRUE;
+      vp_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (vp->decl_modifiers & DM_DLLIMPORT) {
+    } else if (vp->decl_modifiers & DM_DLLIMPORT) {
       /* A variable declared __declspec(dllimport) cannot be initialized. */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
-    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not add code here. */
-    if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+    } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
         linkage != idl_none &&
         depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       /* "Block extern" variable with internal or external linkage --
@@ -2727,11 +2734,6 @@ returned set to TRUE.
          again, and we have the variable from the earlier declaration). */
       pos_sy_error(ec_already_initialized, source_pos, symbol_ptr);
       var_err = TRUE;
-    } else if (vla_enabled && is_vla_type(vp->type)) {
-      /* VLAs cannot be initialized. */
-      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
-      var_err = TRUE;
-      vp_type = NULL;
     } else {
       /* Only object types (except for VLAs) and incomplete arrays are
          allowed to be initialized. */
