@@ -358,7 +358,7 @@ Initialize a token cache, presumably so tokens can be added to it.
 /*
 Macro to allocate a cached token entry or, if possible, to reuse a freed
 entry.  Note that some of the fields of the allocated entry are initialized
-by the caller (including token and extra_info_kind).
+by the caller (including token, source_position, and extra_info_kind).
 */
 #define alloc_cached_token(ctp)                                         \
 { if (avail_cached_tokens != NULL) {                                    \
@@ -371,7 +371,6 @@ by the caller (including token and extra_info_kind).
     incr_num_cached_tokens_allocated();                                 \
   }  /* if */                                                           \
   ctp->next = NULL;                                                     \
-  ctp->source_position = pos_curr_token;                                \
 }  /* alloc_cached_token */
 
 
@@ -462,8 +461,15 @@ associated with the current token.
   a_cached_token_ptr ctp;
 
   alloc_cached_token(ctp);
+  check_assertion(curr_token_pragmas != NULL);
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_pragma;
   ctp->variant.pragmas = curr_token_pragmas;
+  ctp->source_position = curr_token_pragmas->pragma_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* An ending position is not maintained for pragmas so the start position
+     is used. */
+  ctp->end_source_position = ctp->source_position;
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
   ctp->token = (a_byte_token_kind)tok_error;
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   add_cached_token_to_cache(ctp, cache);
@@ -492,6 +498,10 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
 
   /* Build an entry for the end-of-source token. */
   alloc_cached_token(ctp);
+  ctp->source_position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  ctp->end_source_position = null_source_position;
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
   ctp->token = (a_byte_token_kind)tok_end_of_source;
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
@@ -537,6 +547,11 @@ the newly created token.
   ctp->token = (a_byte_token_kind)kind;
   ctp->token_sequence_number = sequence_number;
   ctp->source_position = *position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* This is a synthesized token, for which we are really using the position
+     of another token.  Just use the same position for the start and end. */
+  ctp->end_source_position = *position;
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
 #if DEBUG
   /* For accounting purposes, assume that this token will be used in a
@@ -595,6 +610,10 @@ This is used to save tokens for later rescanning.
   /* Build an entry for the current token itself. */
   alloc_cached_token(ctp);
   ctp->token = (a_byte_token_kind)curr_token;
+  ctp->source_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  ctp->end_source_position = end_pos_curr_token;
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
   ctp->token_sequence_number = curr_token_sequence_number;
   if (fetch_pp_tokens) {
     /* The token being saved is a pp token.  Save this by copying the token
@@ -1503,6 +1522,9 @@ an equivalent change.
   /* Entry is for a token (normal case). */
   ctoken = (a_token_kind)ctp->token;
   pos_curr_token = ctp->source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos_curr_token = ctp->end_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
   curr_token_sequence_number = ctp->token_sequence_number;
   start_of_curr_token = end_of_curr_token = NULL;
@@ -1576,6 +1598,9 @@ an equivalent change.
   /* Entry is for a token (normal case). */
   ctoken = (a_token_kind)ctp->token;
   pos_curr_token = ctp->source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos_curr_token = ctp->end_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
   curr_token_sequence_number = ctp->token_sequence_number;
   start_of_curr_token = end_of_curr_token = NULL;
@@ -5531,6 +5556,13 @@ Loop to pick up all the adjacent string literals.
         last_token->next = ctp;
         last_token = ctp;
       } else {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        /* Update the end of token position of the resulting string with the
+           end position of the subsequent segment that is about to be freed.
+           This results in the ending position of the last string segment
+           being used as the ending position of the concatenated string. */
+        first_string_token->end_source_position = ctp->end_source_position;
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Free a string literal token entry. */
         free_cached_token(ctp);
 #if DEBUG
