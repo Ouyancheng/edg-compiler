@@ -579,9 +579,12 @@ there is additional processing to be done.
   add_to_pragma_list(pp, at_file_scope ?
                             DEPTH_OF_FILE_SCOPE : depth_scope_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  f_update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
-                                &pp->decl_position,
-                                ppp->source_sequence_entry);
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    f_update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
+                                  &pp->decl_position,
+                                  ppp->source_sequence_entry);
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
   ppp->il_pragma_entry = pp;
