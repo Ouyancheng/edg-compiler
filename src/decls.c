@@ -1791,16 +1791,6 @@ called by id_linkage.
         other_decl->decl_scope != scope_stack[depth_scope_stack].number) {
       idlbp->prior_decl_in_enclosing_scope = other_decl;
     }  /* if */
-    if (idlbp->is_local_class_friend_decl && strict_ansi_mode &&
-        idlbp->prior_decl_in_enclosing_scope != NULL) {
-      /* A local class friend declaration must refer to a function declared
-         within the immediately enclosing non-class scope. */
-      if (idlbp->prior_decl_in_enclosing_scope->decl_scope !=
-                           scope_stack[idlbp->effective_decl_level].number) {
-        idlbp->prior_decl_in_enclosing_scope = NULL;
-        idlbp->linked_symbol = NULL;
-      }  /* if */
-    }  /* if */
     if (idlbp->linked_symbol != NULL) {
       if (idlbp->homonym_symbol == NULL) {
         /* Okay. */
@@ -4343,6 +4333,21 @@ on for use in generating cross-reference output describing this declaration.
           /* The declarations are compatible.  Form the composite type. */
           *old_type = routine_ptr->type;
           if (C_dialect == C_dialect_cplusplus) {
+            if (strict_ansi_mode && idlb.is_local_class_friend_decl) {
+              /* A local class friend declaration must refer to a function
+                 declared within the immediately enclosing non-class scope. */
+              a_symbol_ptr  prior_decl = idlb.prior_decl_in_enclosing_scope;
+
+              if (prior_decl != NULL &&
+                  prior_decl->decl_scope !=
+                           scope_stack[effective_decl_level].number) {
+                /* There was a prior declaration, but it wasn't in the
+                   innermost enclosing non-class scope. */
+                pos_diagnostic(strict_ansi_discretionary_severity,
+                               ec_local_class_friend_requires_prior_decl,
+                               &locator->source_position);
+              }  /* if */
+            }  /* if */
             /* Do compatibility checking on the throw specification. */
             check_exception_specification(type_ptr, routine_ptr,
                                           &func_info->throw_position,
@@ -4402,20 +4407,24 @@ on for use in generating cross-reference output describing this declaration.
       if (is_friend_decl) {
         a_symbol_ptr  prior_decl = idlb.prior_decl_in_enclosing_scope;
 
-        if (prior_decl != NULL &&
-            !is_function_symbol(fundamental_symbol_of(prior_decl))) {
-          /* Issue an error for a case like this:
-               int x;
-               struct S { friend x(); }    // Incompatible decl
-          */
-          pos_sy_error(ec_decl_incompatible_with_previous_use,
-                       &locator->source_position, prior_decl);
-          redecl_error_already_issued = TRUE;
-        } else if (idlb.is_local_class_friend_decl && prior_decl == NULL) {
-          /* A local class friend declaration requires a prior declaration
-             in the scope that encloses the class definition. */
-          pos_error(ec_local_class_friend_requires_prior_decl,
-                    &locator->source_position);
+        if (prior_decl != NULL) {
+          if (!is_function_symbol(fundamental_symbol_of(prior_decl))) {
+            /* Issue an error for a case like this:
+                 int x;
+                 struct S { friend x(); }    // Incompatible decl
+            */
+            pos_sy_error(ec_decl_incompatible_with_previous_use,
+                         &locator->source_position, prior_decl);
+            redecl_error_already_issued = TRUE;
+          }  /* if */
+        } else {
+          if (strict_ansi_mode && idlb.is_local_class_friend_decl) {
+            /* A local class friend declaration requires a prior declaration
+               in the scope that encloses the class definition. */
+            pos_diagnostic(strict_ansi_discretionary_severity,
+                           ec_local_class_friend_requires_prior_decl,
+                           &locator->source_position);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

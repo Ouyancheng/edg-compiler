@@ -61,21 +61,19 @@ classes.
 
 3/13/99  Constraint on local class friend function declaration
 
-The front end now enforces the requirement (11.4 [class.friend] paragraph
-9) that a friend function declaration appearing in a local class refer to
-a function declared in the enclosing scope.  In strict mode, that scope
-must be the immediately enclosing scope; in default mode the prior
-declaration just has to appear within the function body.  For example:
+In strict mode the front end now issues a diagnostic (discretionary error
+or warning) on a friend function declaration in a local class that does
+not specify a function declared in the enclosing scope (as required by
+11.4 [class.friend] paragraph 9).
 
   void f(int i) {
-    extern void x();
     struct S {
-      friend void x();            // okay
-      friend void y();            // error
+      friend void x();            // diagnostic in strict mode
     };
+    extern void y();
     if (i) {
       struct SS {
-        friend void x();          // error in strict mode, okay otherwise
+        friend void y();          // diagnostic in strict mode
       };
     }
   }
