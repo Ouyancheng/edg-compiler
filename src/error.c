@@ -1259,6 +1259,9 @@ error code.
     case ec_bad_use_of_main:
       m = "\"main\" may not be called or have its address taken";
       break;
+    case ec_initializer_not_allowed_on_array_new:
+      m = "a new-initializer may not be specified for an array";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

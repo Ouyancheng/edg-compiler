@@ -438,7 +438,8 @@ typedef enum /*an_error_code*/ {
   ec_delete_count_anachronism,
   ec_bad_return_type_for_operator_arrow,
   ec_cast_to_abstract_class,
-  ec_bad_use_of_main
+  ec_bad_use_of_main,
+  ec_initializer_not_allowed_on_array_new
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
