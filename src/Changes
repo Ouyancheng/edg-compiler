@@ -2,13 +2,13 @@ Version 2.28
 
 2/26/95  Old-style parameter lists in C++
 
-When old-style function parameter lists are supported in C++ (i.e., when
-anachronism support is enabled, which is by default in cfront mode), the
-internal representation is now that of a prototyped parameter list.  That
-is, C++ back ends will never see the "prototyped" flag in the routine type
-supplement set to FALSE, nor will they see "old_style_params_scanned" set
-to TRUE.  This simplifies some code (e.g., in types.c) and also fixes some
-incompatibilities with cfront:
+When old-style function parameter lists are supported in C++ mode (i.e.,
+when anachronism support is enabled, which is by default in cfront
+compatibility mode), the internal representation is now that of a
+prototyped parameter list.  That is, back ends will never see the
+"prototyped" flag in the routine type supplement set to FALSE, nor will
+they see "old_style_params_scanned" set to TRUE.  This simplifies some code
+(e.g., in types.c) and also fixes some incompatibilities with cfront:
 
   void f(d) double d { }
   main() {
