@@ -168,7 +168,7 @@ compatibility mode).  This is the default value for the global flag
 exceptions_enabled, which can be modified by the "-x" command line option.
 */
 #ifndef DEFAULT_EXCEPTIONS_ENABLED
-#define DEFAULT_EXCEPTIONS_ENABLED TRUE
+#define DEFAULT_EXCEPTIONS_ENABLED FALSE
 #endif /* ifndef DEFAULT_EXCEPTIONS_ENABLED */
 
 /*
