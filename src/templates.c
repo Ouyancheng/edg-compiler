@@ -5338,6 +5338,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
   a_template_param_ptr			tpp = NULL;
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_nonreal_template;
+  a_boolean				orig_is_prototype;
   
   template_sym = primary_template_of(template_sym);
   /* If the template symbol refers to a template template parameter, get
@@ -5352,6 +5353,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
   }  /* if */
   tssp = template_sym->variant.template_info;
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
+  orig_is_prototype = orig_type->
+                        variant.class_struct_union.is_prototype_instantiation;
   is_nonreal_template = tssp->is_nonreal_member;
   if (!is_nonreal_template) {
     /* Except for nonreal templates, get the corresponding template parameter
@@ -5368,8 +5371,10 @@ are looked up, if needed.  The symbol of the new instance is returned.
        class. */
     new_sym = NULL;
   } else {
-    new_sym = find_template_class(template_sym, &new_list,
-                                  (options & CTWS_PROTOTYPE_ALLOWED) != 0,
+    a_boolean	prototype_allowed;
+    prototype_allowed = orig_is_prototype ||
+                        (options & CTWS_PROTOTYPE_ALLOWED) != 0;
+    new_sym = find_template_class(template_sym, &new_list, prototype_allowed,
                                   (a_symbol_ptr)NULL);
   }  /* if */
   return new_sym;
@@ -5925,22 +5930,26 @@ make_new_type:
                                                    copy_error);
         } else {
           a_symbol_ptr		new_sym;
- 
-          check_assertion_str2(cssp->class_template != NULL,
-                               "copy_type_with_substitution:",
-                               "nonreal class with no template");
-          tap = type->variant.class_struct_union.extra_info->template_arg_list;
-          new_sym = copy_template_class_reference_with_substitution(
+          if (cssp->class_template == NULL) {
+            /* A nonreal class, but not a template class.  Retain the current
+               type. */
+            new_type = type;
+          } else {
+            /* Substitute the template arguments. */
+            tap = type->variant.class_struct_union.extra_info->
+                                                             template_arg_list;
+            new_sym = copy_template_class_reference_with_substitution(
                             cssp->class_template, type, templ_arg_list, depth,
                             source_pos, options, copy_error);
-          if (new_sym == NULL || !is_type_symbol(new_sym)) {
-            /* The type was specified as something like A<T>::B, but the
-               substituted "A<T>" does not contain a B, or the B found is not
-               a type. */
-            *copy_error = TRUE;
-            new_type = error_type();
-          } else {
-            new_type = type_symbol_type(new_sym);
+            if (new_sym == NULL || !is_type_symbol(new_sym)) {
+              /* The type was specified as something like A<T>::B, but the
+                 substituted "A<T>" does not contain a B, or the B found is not
+                 a type. */
+              *copy_error = TRUE;
+              new_type = error_type();
+            } else {
+              new_type = type_symbol_type(new_sym);
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
@@ -8900,7 +8909,7 @@ list and template argument list of a partial specialization are valid.
       } /* if */
     }  /* if */
   } /* for */
-  if (!any_errors) {
+  if (!any_errors && !decl_state->in_prototype_instantiation) {
     /* If no errors were detected above, check each of the template arguments
        to make sure that its type is not dependent on a template parameter.
        This can happen when a value is used as a template argument (of the

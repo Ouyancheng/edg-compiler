@@ -1,5 +1,18 @@
 Version 2.46
 
+2/6/01   Microsoft compatibility: spurious error on in-class specialization
+
+A spurious error would result when a Microsoft in-class specialization
+that includes an explicit template argument list appears in a nested
+class of a class template.  This has been fixed.
+
+  template < class > class A {
+    class B {
+      template < class > void f(){}
+      template <> void f<int>(){}
+    };
+  };
+
 2/2/01   Inaccurate declared type information in routine entries
 
 The front end records the type as declared in the source in routine entries
