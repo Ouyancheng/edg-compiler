@@ -583,6 +583,10 @@ C++-generating back end.
           is_template_class_symbol(tag_sym)))) {
       /* sym_ptr does not hide old_sym_ptr -- they represent the same
          declaration. */
+    } else if (old_sym_ptr->decl_scope == sym_ptr->decl_scope) {
+      /* Despite the skip-curr-scope lookup, the two symbols were declared in
+         the same scope; this can happen as a result of using-declarations.
+         Qualification will not help. */
     } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
                old_sym_ptr->is_class_member ||
                old_sym_ptr->parent.namespace_ptr != NULL ||
