@@ -1662,8 +1662,10 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
   db_enter(4, "define_label");
   if (label != NULL) {
     label->reachable_by_fall_through = curr_reachability.reachable;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     label->num_microsoft_trys_inside_of =
               struct_stmt_stack[depth_stmt_stack].num_microsoft_trys_inside_of;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sp = add_statement((a_statement_kind)stmk_label);
     label->variant.exec_stmt = sp;
     sp->variant.label.ptr = label;
@@ -2760,7 +2762,9 @@ where handler-seq is a sequence of one or more handlers of the form
   }  /* if */
   /* Bypass "try". */
   (void)get_token();
-  add_stop_token(tok_catch);
+  /* "catch" is not put into the stop tokens set on purpose because the
+     guarded statement is always a compound statement.  It wouldn't do
+     any good and could cause looping on errors. */
   /* Scan the compound statement, and save a pointer to it in the try-block
      statement. */
   sp->variant.try_block->statement = compound_statement(
@@ -2785,7 +2789,6 @@ where handler-seq is a sequence of one or more handlers of the form
     } while (loop_token(tok_catch));
   }  /* if */
   (void)pop_object_lifetime();
-  remove_stop_token(tok_catch);
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -2823,8 +2826,9 @@ statement.  Its form is
 #endif /* CHECKING */
   /* Bypass "__try". */
   (void)get_token();
-  add_stop_token(tok_except);
-  add_stop_token(tok_finally);
+  /* "__except" and "__finally" are not put into the stop tokens set on
+     purpose because the guarded statement is always a compound statement.
+     It wouldn't do any good and could cause looping on errors. */
   /* Scan the compound statement, and save a pointer to it in the try
      statement. */
   sp->variant.microsoft_try->guarded_statement = compound_statement(
@@ -2834,8 +2838,6 @@ statement.  Its form is
   /* Define the "continue" label, if it is needed.  This is the target of
      __leave statements. */
   define_continue_label();
-  remove_stop_token(tok_except);
-  remove_stop_token(tok_finally);
   if (curr_token == tok_except) {
     /* __except ( expression ) form. */
     (void)get_token();
@@ -2891,7 +2893,11 @@ __leave instead of a continue.
       /* The continue label has not previously been used, so generate it. */
       dest_label = sssep->continue_label = alloc_temp_label();
       if (is_leave) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
         dest_label->leave_label = TRUE;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+        unexpected_condition();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         dest_label->continue_label = TRUE;
       }  /* if */
@@ -4424,30 +4430,50 @@ rescan_statement:
       }  /* if */
       /* Other cases are expression statements. */
       goto expr_statement;
-    default:
-expr_statement:
-      /* First look for things that can't be expression statements, and
-         produce a specific "Expected a statement" message for those cases. */
-      if (curr_token == tok_rbrace || curr_token == tok_else) {
-        if (prev_was_label && curr_token == tok_rbrace) {
-          /* When a label definition precedes a "}", let it by as an
-             extension, with a warning (at least) in all modes. */
-          if (strict_ansi_mode) {
-            diagnostic(strict_ansi_error_severity, ec_exp_statement);
-          } else {
-            warning(ec_exp_statement);
-          }  /* if */
+    case tok_rbrace:
+      /* Right brace where the start of a statement was expected. */
+      if (prev_was_label) {
+        /* When a label definition precedes a "}", let it by as an
+           extension, with a warning (at least) in all modes. */
+        if (strict_ansi_mode) {
+          diagnostic(strict_ansi_error_severity, ec_exp_statement);
         } else {
-          add_stop_token(tok_semicolon);
-          syntax_error(ec_exp_statement);
-          remove_stop_token(tok_semicolon);
+          warning(ec_exp_statement);
         }  /* if */
         /* Discard any pragmas that are bound to the current statement. */
         discard_curr_construct_pragmas();
-      } else if (C_dialect == C_dialect_cplusplus &&
-                 is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                                  /*real_declarator_allowed=*/TRUE,
-                                  /*single_type_required=*/FALSE)) {
+        break;
+      }  /* if */
+      /* FALLTHROUGH */
+    case tok_else:
+    case tok_catch:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_except:
+    case tok_finally:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Tokens that figure in statements but do not begin them; issue an
+         "expected a statement" error. */
+      /* If you add tokens to this list, and they could possibly be in the
+         stop tokens set (e.g., tok_else), add them also to the code in
+         compound_statement that removes these things from the stop tokens
+         set when entering a compound statement.  Otherwise, it would be
+         possible to loop on an error. */
+      /* Flush to the next statement. */
+      add_stop_token(tok_semicolon);
+      add_stop_token(tok_rbrace);
+      syntax_error(ec_exp_statement);
+      remove_stop_token(tok_semicolon);
+      remove_stop_token(tok_rbrace);
+      /* Discard any pragmas that are bound to the current statement. */
+      discard_curr_construct_pragmas();
+      break;
+    default:
+expr_statement:
+      /* An expression statement. */
+      if (C_dialect == C_dialect_cplusplus &&
+          is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
+                           /*real_declarator_allowed=*/TRUE,
+                           /*single_type_required=*/FALSE)) {
         /* Scan a declaration (C++ only). */
         is_declaration = TRUE;
         decl_statement();
@@ -4496,7 +4522,8 @@ branching into it is disallowed).
 {
   a_statement_ptr block;
   a_boolean       any_statements = FALSE;
-  unsigned char   old_else_stop_token_value;
+  a_token_set_array_element
+                  old_else_stop_token_value;
 
   db_enter (3, "compound_statement");
 
@@ -4536,12 +4563,12 @@ branching into it is disallowed).
        draconian to warn about an unreachable open brace if (say) there
        is a label right afterwards. */
     block = start_block_statement(/*dependent_statement=*/FALSE);
-    /* Clear the entry for "else" in the stop tokens set.  Without this,
-       an else encountered where a statement is expected could cause an
-       error recovery loop. */
-    old_else_stop_token_value = stop_token_array[(int)tok_else];
-    stop_token_array[(int)tok_else] = 0;
   }  /* if */
+  /* Clear the entry for "else" in the stop tokens set.  Without this,
+     an else encountered where a statement is expected could cause an
+     error recovery loop. */
+  old_else_stop_token_value = stop_token_array[(int)tok_else];
+  stop_token_array[(int)tok_else] = 0;
   /* Skip over the opening brace.  Note that this is NOT an internal error
      check; when a compound statement is the body of a function, it's
      required. */
@@ -4632,13 +4659,11 @@ branching into it is disallowed).
   } else {
     /* Block/compound statement rather than function. */
     finish_block_statement(block);
-    if (!is_catch_clause) {
-      /* Restore the entry for "else" in the stop tokens set (see comment
-         above). */
-      stop_token_array[(int)tok_else] = old_else_stop_token_value;
-    }  /* if */
   }  /* if */
 
+  /* Restore the entry for "else" in the stop tokens set (see comment
+     above). */
+  stop_token_array[(int)tok_else] = old_else_stop_token_value;
   /* Remember the sequence number of the current token, which is expected
      to be the closing brace. */
   set_stmt_source_position(block->variant.block.extra_info->final_position,
