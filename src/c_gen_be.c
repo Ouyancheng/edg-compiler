@@ -1163,10 +1163,23 @@ Print the name of the indicated variable.
 }  /* dump_variable_name */
 
 
+static void dump_type_name(a_type_ptr type)
+/*
+Output the name of the indicated type.
+*/
+{
+  if (type->is_builtin_va_list) {
+    /* Don't let va_list copied from a secondary translation unit be
+       given a generated name. */
+    type->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
+  }  /* if */
+  dump_name(&type->source_corresp);
+}  /* dump_type_name */
+
+
 /* Interface routines to dump_name. */
 #define dump_routine_name(routine) dump_name(&(routine)->source_corresp)
 #define dump_constant_name(constant) dump_name(&(constant)->source_corresp)
-#define dump_type_name(type) dump_name(&(type)->source_corresp)
 #define dump_field_name(field) dump_name(&(field)->source_corresp)
 
 
