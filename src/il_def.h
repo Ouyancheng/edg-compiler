@@ -294,7 +294,7 @@ enum a_dynamic_init_kind_tag {
 			   lacking a copy constructor). */
   dik_base_class_copy	/* Initial value of an entire base class of an object
 			   initialized by a copy constructor (bitwise copy of
-			   of a base class lacking a copy constructor). */
+			   a base class lacking a copy constructor). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_dynamic_init_kind;
