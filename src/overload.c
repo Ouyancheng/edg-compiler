@@ -573,6 +573,13 @@ Return a printable string describing a type code.
 }  /* name_for_type_code */
 
 
+/*
+Return TRUE if the given symbol is ambiguous by inheritance. */
+#define is_ambiguous_by_inheritance(symbol)                           \
+  ((symbol)->kind == (a_symbol_kind)sk_projection &&                  \
+   (symbol)->variant.projection.ambiguous)
+
+
 static void diagnose_overload_ambiguity(
                                   a_candidate_function_ptr candidate_functions,
                                   an_opname_kind           kind)
@@ -592,8 +599,7 @@ built-in operators.  The start_error or equivalent has already been done.
     function_sym = cfp->function_symbol;
     if (function_sym != NULL) {
       /* Normal function case. */
-      if (function_sym->kind == (a_symbol_kind)sk_projection &&
-          function_sym->variant.projection.ambiguous) {
+      if (is_ambiguous_by_inheritance(function_sym)) {
         /* Function symbol is ambiguous by inheritance.  Use a special
            message.  This happens for conversion functions inherited
            into a derived class. */
@@ -4416,8 +4422,9 @@ functions could still apply).
   a_type_ptr               routine_type;
   a_param_type_ptr         param;
   an_operand               *bound_function_selector;
+  a_boolean                ambiguous;
   a_boolean                undecidable_because_of_error;
-  a_boolean                arg_operand_list_discarded;
+  a_boolean                arg_operand_list_not_used;
 
   db_enter(4, "check_for_operator_overloading");
   *processed = FALSE;
@@ -4461,6 +4468,8 @@ functions could still apply).
         /* candidate_functions will contain the list of viable functions. */
         candidate_functions = NULL;
         /* Find any member function for the operator. */
+        ambiguous = FALSE;
+        undecidable_because_of_error = FALSE;
         if (operand_1_is_class) {
           member_functions_symbol = opname_member_function_symbol(kind,
                                                skip_typerefs(operand_1->type));
@@ -4473,58 +4482,75 @@ functions could still apply).
                             "check_for_operator_overloading: func not member");
             }  /* if */
 #endif /* CHECKING */
-            /* Use the first operand as the selector expression, and
-               the second operand as the first actual argument . */
-            try_overloaded_function_match(member_functions_symbol,
-                                          arg_operand_list2,
-                                          /*have_selector=*/TRUE,
-                                          operand_1,
-                                          /*selector_is_object_pointer=*/FALSE,
-                                          /*user_conversion_case=*/FALSE,
-                                          /*try_user_conversions=*/TRUE,
-                                          &candidate_functions,
+            if (is_ambiguous_by_inheritance(member_functions_symbol)) {
+              /* The symbol is ambiguous, and as such is an arbitrary
+                 representative of a set of functions that collided.  There's
+                 no point in seeing if the function indicated matches up, since
+                 there might be another function that isn't represented that
+                 would match better. */
+              pos_sy_error(ec_ambiguous_name, operator_position,
+                           member_functions_symbol);
+              ambiguous = TRUE;
+            } else {
+              /* Use the first operand as the selector expression, and
+                 the second operand as the first actual argument . */
+              try_overloaded_function_match(
+                                         member_functions_symbol,
+                                         arg_operand_list2,
+                                         /*have_selector=*/TRUE,
+                                         operand_1,
+                                         /*selector_is_object_pointer=*/FALSE,
+                                         /*user_conversion_case=*/FALSE,
+                                         /*try_user_conversions=*/TRUE,
+                                         &candidate_functions,
                                          &matched_except_for_missing_selector);
+            }  /* if */
           }  /* if */
         }  /* if */
-        /* Find any non-member function for the operator. */
-        if (!must_be_member_function) {
-          nonmember_functions_symbol = opname_function_symbol(kind);
-          /* There are non-member functions.  See how well they match up. */
-          if (nonmember_functions_symbol != NULL) {
-            try_overloaded_function_match(nonmember_functions_symbol,
-                                          arg_operand_list,
-                                          /*have_selector=*/FALSE,
-                                          (an_operand *)NULL,
-                                          /*selector_is_object_pointer=*/TRUE,
-                                          /*user_conversion_case=*/FALSE,
-                                          /*try_user_conversions=*/TRUE,
-                                          &candidate_functions,
+        /* If the member function is ambiguous, just go on to put out an
+           error. */
+        if (!ambiguous) {
+          /* Find any non-member function for the operator. */
+          if (!must_be_member_function) {
+            nonmember_functions_symbol = opname_function_symbol(kind);
+            /* There are non-member functions.  See how well they match up. */
+            if (nonmember_functions_symbol != NULL) {
+              try_overloaded_function_match(nonmember_functions_symbol,
+                                            arg_operand_list,
+                                            /*have_selector=*/FALSE,
+                                            (an_operand *)NULL,
+                                           /*selector_is_object_pointer=*/TRUE,
+                                            /*user_conversion_case=*/FALSE,
+                                            /*try_user_conversions=*/TRUE,
+                                            &candidate_functions,
                                          &matched_except_for_missing_selector);
+            }  /* if */
           }  /* if */
+          /* See if the built-in meaning of the operator can apply if we
+             convert the class operand(s) to a built-in type through use of
+             a conversion function. */
+          if (try_conversions) {
+            /* See if we can find user-defined conversions to built-in types
+               that will make the built-in operator feasible.  The argument
+               matches are compared to the best match so far from the above
+               searches. */
+            try_conversions_for_builtin_operator(kind, unary_operator,
+                                                 arg_operand_list,
+                                                 &candidate_functions);
+          }  /* if */
+          /* The candidate_functions list now contains all the viable
+             functions.  Find the best. */
+          select_best_candidate_functions(&candidate_functions,
+                                          operator_position,
+                                          &undecidable_because_of_error);
         }  /* if */
-        /* See if the built-in meaning of the operator can apply if we convert
-           the class operand(s) to a built-in type through use of a conversion
-           function. */
-        if (try_conversions) {
-          /* See if we can find user-defined conversions to built-in types that
-             will make the built-in operator feasible.  The argument matches
-             are compared to the best match so far from the above searches. */
-          try_conversions_for_builtin_operator(kind, unary_operator,
-                                               arg_operand_list,
-                                               &candidate_functions);
-        }  /* if */
-        /* The candidate_functions list now contains all the viable
-           functions.  Find the best. */
-        select_best_candidate_functions(&candidate_functions,
-                                        operator_position,
-                                        &undecidable_because_of_error);
         function_symbol = NULL;
         arg_expr_list = NULL;
-        arg_operand_list_discarded = FALSE;
-        if (undecidable_because_of_error) {
+        arg_operand_list_not_used = FALSE;
+        if (undecidable_because_of_error || ambiguous) {
           /* There was a previous error. */
           *processed = TRUE;
-          arg_operand_list_discarded = TRUE;
+          arg_operand_list_not_used = TRUE;
           make_error_operand(result);
         } else if (candidate_functions == NULL) {
           /* None of the functions applies. */
@@ -4537,7 +4563,7 @@ functions could still apply).
             *processed = TRUE;
             pos_error(ec_no_matching_operator_function, operator_position);
             make_error_operand(result);
-            arg_operand_list_discarded = TRUE;
+            arg_operand_list_not_used = TRUE;
           }  /* if */
         } else if (candidate_functions->next != NULL) {
           /* More than one function applies and is a best match --
@@ -4552,7 +4578,7 @@ functions could still apply).
                              opname_names[(int)kind]);
           diagnose_overload_ambiguity(candidate_functions, kind);
           make_error_operand(result);
-          arg_operand_list_discarded = TRUE;
+          arg_operand_list_not_used = TRUE;
         } else {
           /* Exactly one function applies and is best. */
           function_symbol = candidate_functions->function_symbol;
@@ -4649,7 +4675,7 @@ functions could still apply).
         }  /* if */
         /* Free the candidate functions list. */
         free_candidate_function_list(candidate_functions);
-        if (arg_operand_list_discarded) {
+        if (arg_operand_list_not_used) {
           /* There was an error and the arg_operand list was not used,
              so change all the references in it to error references. */
           change_arg_operand_list_refs_to_error(arg_operand_list);

@@ -1,5 +1,17 @@
 Version 2.28
 
+1/25/95  Ambiguous member functions in operator overloading
+
+Ambiguity on member functions in operator overloading is now diagnosed
+correctly (rather than with some other kind of error).
+
+  struct A {int operator++();};
+  struct B {int operator++(int);};
+  struct C : public A, public B {} c;
+  main () {
+    c++;  // Gets ambiguity error
+  }
+
 1/24/95  Checking return type of operator-> when taking its address
 
 According to WP 14.3.3, the return type of operator-> must be valid if,
