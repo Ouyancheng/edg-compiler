@@ -44,6 +44,12 @@ void conv_integer_to_fixed_point(a_constant_ptr		old_constant,
 			         an_error_code		*err_code,
 			         an_error_severity	*err_severity);
 
+extern
+void conv_fixed_point_to_integer(a_constant_ptr		old_constant,
+			         a_constant_ptr		new_constant,
+			         an_error_code		*err_code,
+			         an_error_severity	*err_severity);
+
 extern 
 void conv_fixed_point_to_float(a_constant_ptr		old_constant,
 			       a_constant_ptr		new_constant,

@@ -401,14 +401,13 @@ value is negative, is_negative will be TRUE.
        *dest = *source;
     }  /* for */
   } else {
-    /* Copy the value from the mantissa to the low order bytes of the
-       fixed-point value. */
+    /* Copy the value from the high-order bytes of the mantissa. */
     memcpy((char*)&mp->parts[0], (char*)value, sizeof(an_integer_value));
   }  /* if */
   if (!mantissa_is_zero(mp)) {
     /* Adjust the mantissa so that it is normalized in the high-order bits
        of the mantissa. */
-    bits = sizeof(an_integer_value) * CHAR_BIT;
+    bits = BITS_IN_AN_INTEGER_VALUE;
     while ((mp->parts[0] & 0x80000000) == 0) {
       shift_left_mantissa(mp, 1);
       bits--;
@@ -417,6 +416,65 @@ value is negative, is_negative will be TRUE.
     *exponent = bits;
   }  /* if */
 }  /* make_mantissa_from_integer_value */
+
+
+static void make_integer_value_from_mantissa(
+				an_integer_value		*value,
+				a_boolean			is_negative,
+				a_mantissa_ptr			mp,
+				long				exponent,
+				a_boolean			*err)
+/*
+Create an_integer_value from a mantissa (mp) and exponent.  If the value is
+negative, is_negative will be TRUE.
+*/
+{
+  int	parts_to_copy;
+  int	shift_count;
+
+  *err = FALSE;
+  /* Compute the number of bits to shift the mantissa so that any fractional
+     bits will be discarded. */
+  shift_count = BITS_IN_AN_INTEGER_VALUE - exponent;
+  if (shift_count >= 0) {
+    if (shift_count > 0) shift_right_mantissa(mp, shift_count);
+  } else {
+    /* The value will not fit in an integer value. */
+    *err = TRUE;
+    goto done;
+  }  /* if */
+  parts_to_copy = (sizeof(an_integer_value) + sizeof(an_fp_value_part) - 1) /
+                   sizeof(an_fp_value_part);
+  /* The destination value is in the low order bytes of the integer value.
+     This needs to be copied from the high order bytes of the mantissa. */
+  if (host_little_endian) {
+    unsigned int i;
+    for (i = 0; i < sizeof(an_integer_value); ++i) {
+      char	*dest;
+      char	*source;
+      dest = &((char*)value)[i];
+      source = (char*)&(mp->parts[(parts_to_copy - 1) -
+                                  (i / sizeof(an_fp_value_part))]) +
+                       (i % sizeof(an_fp_value_part));
+       *dest = *source;
+    }  /* for */
+  } else {
+    /* Copy the value to the high order bits of the mantissa. */
+    memcpy((char*)value, (char*)&mp->parts[0], sizeof(an_integer_value));
+  }  /* if */
+  if (is_negative) {
+    /* If the value should be negative, negate the resulting value. */
+    a_boolean		err;
+    an_integer_value	saved_value;
+    saved_value = *value;
+    negate_integer_value(value, &err);
+    /* An error should only occur on negating the smallest integer.  In
+       that case, just use the original value. */
+    if (err) *value = saved_value;
+  }  /* if */
+done:
+  return;
+}  /* make_integer_value_from_mantissa */
 
 
 static void conv_mantissa_to_fixed_point(
@@ -561,6 +619,56 @@ to be issued; otherwise set err_code to ec_no_error.
     *err_severity = es_error;
   }  /* if */
 }  /* conv_integer_to_fixed_point */
+
+
+void conv_fixed_point_to_integer(a_constant_ptr		old_constant,
+			         a_constant_ptr		new_constant,
+			         an_error_code		*err_code,
+			         an_error_severity	*err_severity)
+/*
+Convert the fixed-point constant "old_constant" to an integer constant
+in "new_constant.  If, as a result of the conversion, a diagnostic should
+be issued, set err_code and err_severity to the values for the message
+to be issued; otherwise set err_code to ec_no_error.
+*/
+{
+  a_mantissa		mantissa;
+  long			exponent;
+  a_boolean		is_negative;
+  a_boolean		err;
+  a_fixed_point_type_descr
+			*fxp_descr;
+  an_integer_value	int_value;
+
+  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+  *err_code = ec_no_error;
+  fxp_descr = fxp_descr_for_constant(old_constant);
+  /* Convert the fixed-point value into the internal mantissa
+     representation. */
+  load_hex_fxp_value(&old_constant->variant.fixed_point_value,
+                     fxp_descr, &mantissa, &exponent, &is_negative);
+  /* Convert and store the mantissa as an integer value. */
+  make_integer_value_from_mantissa(&int_value, is_negative,
+                                   &mantissa, exponent, &err);
+  if (err) {
+    /* The conversion to integer does not fit in the result type.  This case
+       occurs only if the fixed-point type does not fit in even the largest
+       integer type, which is unlikely. */
+    *err_code = ec_fixed_to_integer_conversion;
+    *err_severity = es_error;
+  } else {
+    /* Truncate the value to the size of the destination integer type. */
+    trunc_and_set_integer(&int_value, new_constant, /*check_overflow=*/TRUE,
+                          err_code, err_severity);
+    if (*err_code != ec_no_error) {
+      /* If an error occurred while storing the value, remap the error code
+         into a more appropriate one for this particular case. */
+      *err_code = ec_fixed_to_integer_conversion;
+      *err_severity = es_error;
+    }  /* if */
+  }  /* if */
+}  /* conv_fixed_point_to_integer */
 
 
 void conv_float_to_fixed_point(a_constant_ptr		old_constant,

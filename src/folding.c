@@ -155,11 +155,11 @@ size in bits of the integral type.
 }  /* get_integer_attributes */
 
 
-static void trunc_and_set_integer(an_integer_value  *result_value,
-                                  a_constant        *result,
-                                  a_boolean         check_overflow,
-                                  an_error_code     *err_code,
-                                  an_error_severity *err_severity)
+void trunc_and_set_integer(an_integer_value  *result_value,
+                           a_constant        *result,
+                           a_boolean         check_overflow,
+                           an_error_code     *err_code,
+                           an_error_severity *err_severity)
 /*
 Truncate the integer result_value and store it in *result.  result->type
 indicates the desired result type.  If check_overflow is TRUE and
@@ -1677,13 +1677,16 @@ to the constant is maintained, by adding a cast if necessary.
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
       switch (new_type->kind) {
+        case tk_integer:
+          /* Converting fixed-point to integer. */
+          conv_fixed_point_to_integer(constant, &new_constant,
+                                      &err_code, &err_severity);
+          break;
         case tk_float:
           /* Converting fixed-point to floating-point. */
           conv_fixed_point_to_float(constant, &new_constant,
                                     &err_code, &err_severity);
           break;
-        case tk_integer:
-          /* Fixed-point to integer.  Not folded at compile time. */
         case tk_imaginary:
           /* Fixed-point to imaginary.  Not folded at compile time. */
         case tk_complex:
