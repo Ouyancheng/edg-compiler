@@ -72,6 +72,11 @@ extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 
 extern void generate_required_virtual_destructor_bodies(a_type_ptr types_list);
 
+#if ASM_FUNCTION_ALLOWED
+extern void copy_from_source_to_asm_func_buffer(char *stop_char,
+                                                char *after_comment_stop_char);
+#endif /* ASM_FUNCTION_ALLOWED */
+
 #endif /* FUNC_DEF_H */
 
 /******************************************************************************
