@@ -5713,11 +5713,11 @@ operator_or_conversion_name:
           }  /* if */
           basic_type = bt_typedef;
           *type_ptr = locator_for_curr_id.variant.conversion_result_type;
-        } else if (locator_for_curr_id.is_operator_name) {
+        } else if (locator_for_curr_id.is_operator_name && is_member_decl) {
           an_opname_kind  opname = locator_for_curr_id.variant.opname;
           if (opname == (an_opname_kind)onk_new ||
               opname == (an_opname_kind)onk_delete) {
-            /* If we are inside a class definition, an operator new or
+            /* We are inside a class definition, so an operator new or
                operator delete function is automatically treated as a
                static member function, even if "static" is not explicitly
                specified. */
