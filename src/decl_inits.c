@@ -449,56 +449,6 @@ for unions and aggregates at that level).
 }  /* get_initializer */
 
 
-static void scan_constructor_args(an_expr_node_ptr  *arg_list)
-/*
-TEMPORARY routine.
-*/
-{
-  a_boolean                is_constant;
-  an_expr_node_ptr         expr, end_of_arg_list;
-  a_constant               constant;
-  a_boolean                err;
-
-  db_enter(4, "scan_constructor_args");
-  *arg_list = NULL;
-  end_of_arg_list = NULL;
-  add_stop_token(tok_comma);
-  /* Scan a comma-separated list of arguments. */
-  do {
-    /* Scan an argument expression. */
-    scan_initializer_expression(/*convert_array_to_pointer=*/FALSE,
-                                &is_constant, &expr, &constant, &err);
-    if (!err) {
-      if (is_constant) {
-        /* Just a temporary expedient! */
-        expr = alloc_node_for_constant(alloc_unshared_constant(&constant));
-      }  /* if */
-    }  /* if */
-    if (*arg_list == NULL) {
-      *arg_list = expr;
-    } else {
-      end_of_arg_list->next = expr;
-    }  /* if */
-    end_of_arg_list = expr;
-  } while (loop_token(tok_comma));
-  remove_stop_token(tok_comma);
-  db_exit();
-}  /* scan_constructor_args */
-
-
-static a_routine_ptr select_constructor(a_symbol_ptr      ctor_sym,
-                                        an_expr_node_ptr  *arg_list)
-/*
-TEMPORARY routine.
-*/
-{
-  if (ctor_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    ctor_sym = ctor_sym->variant.function_symbols;
-  }
-  return ctor_sym->variant.routine;
-}  /* select_constructor */
-
-
 static void gen_dynamic_initialization(a_variable_ptr      vp,
                                        a_dynamic_init_ptr  dip)
 /*
@@ -643,8 +593,7 @@ The syntax is:
   a_boolean                      is_constant;
   an_expr_node_ptr               expression;
   a_constant                     constant;
-  a_constant_ptr                 cp;
-  a_dynamic_init                 local_di, *di_list, *end_of_di_list;
+  a_dynamic_init                 local_di;
   a_boolean                      dynamic_init_required;
   a_boolean                      initialization_is_dynamic;
   an_expr_node_ptr               arg_list;
@@ -652,7 +601,6 @@ The syntax is:
 
   db_enter(3, "initializer");
 
-  if (paren_flag) add_stop_token(tok_rparen);
   if (is_parameter) {
     /* Parameter declarations cannot contain an initializer. */
     error(ec_initializer_in_param);
@@ -702,89 +650,111 @@ The syntax is:
   put_init_in_variable = !err;
   if (vp_type == NULL) vp_type = error_type();
   initialization_is_dynamic = FALSE;
-  if (is_class_struct_union_type(vp_type)) {
+  if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(vp_type)) {
     cssp = ((a_symbol_ptr)vp_type->source_corresp.assoc_info)->
                                  variant.class_struct_union.extra_info;
   }  /* if */
-  if (cssp != NULL && cssp->constructor != NULL) {
-    if (!paren_flag && curr_token == tok_lbrace) {
-      error(ec_brace_initialization_not_allowed);
+  if (cssp != NULL && paren_flag) {
+    /* This is an initialization of the form S x (arg [, ...]), where S is a
+       class type name.  Depending on the arguments present, a constructor,
+       possibly the copy constructor, will be selected and returned.  The
+       scan function returns FALSE if it finds no constructor for which the
+       arguments match. */
+    a_routine_ptr  rp;
+
+    if (!scan_constructor_arguments(cssp->constructor, &rp, &arg_list)) {
       err = TRUE;
-      flush_tokens();
     } else {
-      scan_constructor_args(&arg_list);
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-      local_di.variant.constructor.routine =
-                              select_constructor(cssp->constructor, &arg_list);
+      local_di.variant.constructor.routine = rp;
       local_di.variant.constructor.args = arg_list;
       if (cssp->destructor != NULL) {
         local_di.variant.constructor.corresp_destructor =
                               cssp->destructor->variant.routine;
       }  /* if */
-      initialization_is_dynamic = TRUE;
     }  /* if */
-
+    initialization_is_dynamic = TRUE;
+  } else if (cssp != NULL && cssp->constructor != NULL &&
+             curr_token == tok_lbrace) {
+    syntax_error(ec_brace_initialization_not_allowed);
+    err = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
              is_class_struct_union_type(vp_type) && curr_token != tok_lbrace) {
     /* Special C++ case:  a class aggregate may be initialized with an object
        of its class or a class derived from it.  E.g., if S is the name of a
-       struct and x is an S, then S y = x is permitted. */
-    scan_initializer_expression(/*convert_array_to_pointer=*/TRUE,
-                                  &is_constant, &expression, &constant, &err);
-    if (!err) {
-      if (is_constant) {
-        /* Check the type of the initial value against the type of the object
-           being initialized. */
-        /* This should always be an error. */
-        check_constant_initializer(&constant, &vp_type, &err);
-#if CHECKING
-        if (!err) {
-          internal_error("initializer: expected error on conversion");
-        }  /* if */
-#endif /* CHECKING */
-      } else {
-        /* Non-constant.  Check the type by assignment rules and cast the
-           node if necessary. */
-        node_prepare_assignment(&expression, vp_type,
-                                ec_bad_initializer_type, &err);
-        if (!err) {
-          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
-          local_di.variant.expression = expression;
-          initialization_is_dynamic = TRUE;
-        }  /* if */
+       struct and x is an S, then S y = x is permitted.  In addition, x may
+       be any expression of a type for which there is a type conversion to S.
+       Thus S y = 1 is a legal initialization if S(int) exists to perform the
+       conversion. */
+    expression = scan_argument_expression();
+    if (cssp->constructor == NULL) {
+      /* The case of C-style structs.  No constructor exists, but simple
+         struct assignment can be performed.  Check the type by assignment
+         rules. */
+      node_prepare_assignment(&expression, vp_type,
+                              ec_bad_initializer_type, &err);
+      if (!err) {
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
+        local_di.variant.expression = expression;
       }  /* if */
-    }  /* if */    
-  } else if (is_aggregate_or_union_type(vp_type)) {
-    if (paren_flag) {
-      /* Error has already been reported.  Scan the arguments, but don't
-         do anything else. */
-      scan_constructor_args(&arg_list);
-      err = TRUE;
     } else {
-      di_list = end_of_di_list = NULL;
-      cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
-                           /*top_level=*/TRUE);
-      if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
-        local_di.variant.aggregate.aggr_const = cp;
-        local_di.variant.aggregate.dynamic_init = di_list;
-        initialization_is_dynamic = (di_list != NULL);
-        if (put_init_in_variable) {
-          /* Copy the type back into the variable.  It might have been changed
-             if vp is an incomplete array. */
-          if (vp != NULL && vp_type != vp->type) {
-            put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                        vp_type);
-          }  /* if */
-        }  /* if */
-      } else {
+      a_routine_ptr   rp;
+
 #if CHECKING
-        if (cp->kind != (a_constant_repr_kind)ck_error) {
-          internal_error("initializer: unexpected constant kind");
-        }  /* if */
-#endif /* CHECKING */
-        err = TRUE;
+      if (cssp->copy_constructor == NULL) {
+        internal_error("initializer: missing copy constructor");
       }  /* if */
+#endif /* CHECKING */
+      if (!select_constructor(cssp->constructor, &rp,
+                              &expression, source_pos)) {
+        err = TRUE;
+      } else if (rp != cssp->copy_constructor->variant.routine) {
+        /* If something other than the copy constructor was returned, be sure
+           the copy constructor is accessible. */
+        if (!have_access_to_symbol(cssp->copy_constructor)) {
+#if 0
+          error(...);
+#endif /* if 0 */
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!err) {
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+        local_di.variant.constructor.routine = rp;
+        local_di.variant.constructor.args = expression;
+        if (cssp->destructor != NULL) {
+          local_di.variant.constructor.corresp_destructor =
+                              cssp->destructor->variant.routine;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    initialization_is_dynamic = TRUE;
+  } else if (is_aggregate_or_union_type(vp_type)) {
+    a_constant_ptr       cp;
+    a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
+
+    cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
+                         /*top_level=*/TRUE);
+    if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
+      local_di.variant.aggregate.aggr_const = cp;
+      local_di.variant.aggregate.dynamic_init = di_list;
+      initialization_is_dynamic = (di_list != NULL);
+      if (put_init_in_variable) {
+        /* Copy the type back into the variable.  It might have been changed
+           if vp is an incomplete array. */
+        if (vp != NULL && vp_type != vp->type) {
+          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                      vp_type);
+        }  /* if */
+      }  /* if */
+    } else {
+#if CHECKING
+      if (cp->kind != (a_constant_repr_kind)ck_error) {
+        internal_error("initializer: unexpected constant kind");
+      }  /* if */
+#endif /* CHECKING */
+      err = TRUE;
     }  /* if */
   } else {
     if (!paren_flag) check_for_opening_brace(&brace_flag);
@@ -810,7 +780,7 @@ The syntax is:
         check_constant_initializer(&constant, &vp_type, &err);
         if (!err) {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
-          local_di.variant.constant = cp = alloc_unshared_constant(&constant);
+          local_di.variant.constant = alloc_unshared_constant(&constant);
         }  /* if */
       } else {
         /* Non-constant.  Check the type by assignment rules and cast the
@@ -820,22 +790,27 @@ The syntax is:
         if (!err) {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
           local_di.variant.expression = expression;
-          initialization_is_dynamic = TRUE;
         }  /* if */
+        initialization_is_dynamic = TRUE;
       }  /* if */
     }  /* if */
     /* If an extra opening brace was ignored earlier, ignore the matching
        closing brace now. */
     check_for_matching_closing_brace(brace_flag);
   }  /* if */
-  if (!err && put_init_in_variable) {
+  if (put_init_in_variable) {
     if (C_dialect == C_dialect_cplusplus) {
       dynamic_init_required = (decl_scope_level != DEPTH_OF_FILE_SCOPE);
     } else {
       dynamic_init_required = !has_static_storage_duration(vp->storage_class);
     }  /* if */
+    if (err) {
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
+      set_error_constant(&constant);
+      local_di.variant.constant = alloc_unshared_constant(&constant);
+    }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
-      if (dynamic_init_required) {
+      if (dynamic_init_required && !err) {
         /* Issue a warning for a dynamic initialization in an unreachable
            block. */
         if (!curr_code_reachable()) {
@@ -848,7 +823,7 @@ The syntax is:
       gen_dynamic_initialization(vp, &local_di);
     } else {
       vp->init_kind = (an_init_kind)initk_static;
-      vp->initializer.constant = cp;
+      vp->initializer.constant = local_di.variant.constant;
     }  /* if */
 #if DEBUG
     if (debug_level >= 3) {
@@ -857,10 +832,6 @@ The syntax is:
       db_initializer(vp, 2);
     }  /* if */
 #endif /* DEBUG */
-  }  /* if */
-  if (paren_flag) {
-    remove_stop_token(tok_rparen);
-    (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
   db_exit();
 }  /* initializer */
@@ -872,9 +843,12 @@ a_boolean def_initializer(a_symbol_ptr       sym,
   a_boolean                      def_init_performed = FALSE;
   a_variable_ptr                 var;
   a_type_ptr                     var_type, tp;
+  a_routine_ptr                  rp;
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init                 local_di, *dip;
   a_constant_ptr                 cp1, cp2;
+  a_boolean                      err = FALSE;
+  an_expr_node_ptr               arg_list = NULL;
 
   db_enter(3, "def_initializer");
   if (C_dialect == C_dialect_cplusplus &&
@@ -899,46 +873,48 @@ a_boolean def_initializer(a_symbol_ptr       sym,
           internal_error("def_initializer: incomplete types not yet supported");
 #endif /* if 0 */
         }  /* if */
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-        local_di.variant.constructor.routine =
-                              select_constructor(cssp->constructor,
-                                                 /*arg_list=*/NULL);
-        local_di.variant.constructor.args = NULL;
-        if (cssp->destructor != NULL) {
-          local_di.variant.constructor.corresp_destructor =
-                                cssp->destructor->variant.routine;
-        }  /* if */
-        if (var_type != tp) {
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          *dip = local_di;
-          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
-          cp1 = alloc_constant((a_constant_repr_kind)ck_aggregate);
-          local_di.variant.aggregate.aggr_const = cp1;
-          /* Set the ck_aggregate constant. */
-          cp1->variant.aggregate.first_constant =
-            cp1->variant.aggregate.last_constant =
-            cp2 = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-          /* Set the ck_init_repeat constant. */
-          if (var_type->size == 0) {
-            cp2->variant.init_repeat.count = 1;
-          } else {
-            cp2->variant.init_repeat.count = var_type->size / tp->size;
+        if (!select_constructor(cssp->constructor, &rp, &arg_list, err_pos)) {
+          err = TRUE;
+        } else {
+          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+          local_di.variant.constructor.routine = rp;
+          local_di.variant.constructor.args = NULL;
+          if (cssp->destructor != NULL) {
+            local_di.variant.constructor.corresp_destructor =
+                                  cssp->destructor->variant.routine;
           }  /* if */
-          cp2->variant.init_repeat.constant = cp1 =
-            alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-          /* Set the ck_dynamic_init_constant. */
-          cp1->variant.dynamic_init = dip;
-          local_di.variant.aggregate.dynamic_init = dip;
-        }  /* if */
-        gen_dynamic_initialization(var, &local_di);
-        def_init_performed = TRUE;
+          if (var_type != tp) {
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+            *dip = local_di;
+            clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
+            cp1 = alloc_constant((a_constant_repr_kind)ck_aggregate);
+            local_di.variant.aggregate.aggr_const = cp1;
+            /* Set the ck_aggregate constant. */
+            cp1->variant.aggregate.first_constant =
+              cp1->variant.aggregate.last_constant =
+              cp2 = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+            /* Set the ck_init_repeat constant. */
+            if (var_type->size == 0) {
+              cp2->variant.init_repeat.count = 1;
+            } else {
+              cp2->variant.init_repeat.count = var_type->size / tp->size;
+            }  /* if */
+            cp2->variant.init_repeat.constant = cp1 =
+              alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+            /* Set the ck_dynamic_init_constant. */
+            cp1->variant.dynamic_init = dip;
+            local_di.variant.aggregate.dynamic_init = dip;
+          }  /* if */
+          gen_dynamic_initialization(var, &local_di);
+          def_init_performed = TRUE;
 #if DEBUG
-        if (debug_level >= 3) {
-          db_variable(var);
-          fputs(",\n", f_debug);
-          db_initializer(var, 2);
-        }  /* if */
+          if (debug_level >= 3) {
+            db_variable(var);
+            fputs(",\n", f_debug);
+            db_initializer(var, 2);
+          }  /* if */
 #endif /* DEBUG */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
