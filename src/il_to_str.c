@@ -60,6 +60,7 @@ Clear an output control block to default values.
 #endif /* DEBUG */
   octl->force_qualified_name      = FALSE;
   octl->gen_vla_array_as_asterisk_bound_array = FALSE;
+  octl->gen_raw_tab_in_literals = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -1874,13 +1875,14 @@ output.
   char *bptr = buffer;
   int  nchars = 1;
 
-  if (isprint((unsigned char)ch)
+  if ((isprint((unsigned char)ch)
 #ifdef sun
     /* The Sun cc (4.1.2) in -O mode when outputting assembly language
        has a bug that transforms quote into accent grave.  Avoid it. */
-      && ch != '\''
+       && ch != '\''
 #endif /* ifdef sun */
-                 ) {
+                    ) ||
+       (ch == '\t' && octl->gen_raw_tab_in_literals)) {
     /* Escape some characters, e.g., quotes. */
     if (ch == '"' || ch == '\'' || ch == '\\' ||
         /* Avoid accidentally putting out trigraphs by escaping "?". */

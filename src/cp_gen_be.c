@@ -6546,11 +6546,10 @@ is the one associated with the pragma.
 #else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       write_str("#ident ");
 #endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
-      /* Don't use gen_constant because special characters should not
-         be escaped (e.g., a tab character should not be emitted as '\t'). */
-      write_str("\"");
-      write_str(pp->variant.ident_string->variant.string.value);
-      write_str("\"");
+      /* Don't escape tab characters. */
+      octl.gen_raw_tab_in_literals = TRUE;
+      gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
+      octl.gen_raw_tab_in_literals = TRUE;
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     } else {
       check_assertion_str(pp->pragma_text != NULL,

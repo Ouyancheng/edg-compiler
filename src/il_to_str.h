@@ -134,6 +134,10 @@ typedef struct an_il_to_str_output_control_block {
 			/* TRUE if the bounds for variable-length arrays should
 			   be put out as "[*]".  This is needed to suppress
 			   VLAs in function declarations. */
+  a_byte_boolean
+	gen_raw_tab_in_literals;
+			/* TRUE if a tab character should be emitted as an
+			   actual tab character rather than as '\t'. */
 } an_il_to_str_output_control_block;
 
 /*
