@@ -97,7 +97,7 @@ int EDG_MAIN(int argc, char *argv[])
     /* Do wrap-up processing for the front end (before the back end). */
     fe_wrapup();
     if (display_compilation_time) {
-      /* Get the back end starting time. */
+      /* Get the front end ending time. */
       get_timer(&fe_end_time);
       /* Display the amount of time used by the front end. */
       display_time_used("Front end time", &fe_start_time, &fe_end_time);
