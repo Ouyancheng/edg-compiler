@@ -10526,7 +10526,7 @@ wrapup:
       if (ignore_std_namespace &&
           qualifier_namespace ==
                         symbol_for_namespace_std->variant.namespace_info.ptr) {
-        /* When using the g++ compatiblity mode where "std" is an alias for
+        /* When using the g++ compatibility mode where "std" is an alias for
            the global namespace, ignore a qualifier that refers to "std"
            namespace. */
         locator_for_curr_id.parent.namespace_ptr = NULL;
