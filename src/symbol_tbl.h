@@ -586,9 +586,6 @@ typedef struct a_class_symbol_supplement {
   unsigned int  any_nonstatic_data_members:1;
 			/* TRUE if the class or any of its base classes has
 			   one or more nonstatic data members. */
-  unsigned int	force_external_linkage:1;
-			/* The class was used in a way that would force
-			   external linkage (if it has linkage at all). */
   unsigned int	any_nonreal_base_classes:1;
 			/* For a prototype instantiation this is TRUE
 			   if any of its base classes are nonreal classes. */
@@ -1056,6 +1053,10 @@ typedef struct a_symbol {
 			/* TRUE if this is a template parameter that should
 			   not be visible for name lookup purposes at this
 			   point in time. */
+  unsigned int	force_external_linkage:1;
+			/* TRUE if this is a class or enum type that has been
+			   used in a way that would force external linkage (if
+			   it has linkage at all). */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */

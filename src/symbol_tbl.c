@@ -1395,7 +1395,6 @@ state.
         cssp->is_prototype_instantiation = FALSE;
         cssp->is_specific_template_def = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
-        cssp->force_external_linkage = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
       }
       break;
@@ -1489,6 +1488,7 @@ to the indicated kind (and the associated variant fields to safe values).
   sym_ptr->is_error                       = FALSE;
   sym_ptr->is_template_param              = FALSE;
   sym_ptr->template_param_not_visible     = FALSE;
+  sym_ptr->force_external_linkage         = FALSE;
   set_symbol_kind(sym_ptr, kind);
 
   db_exit();
