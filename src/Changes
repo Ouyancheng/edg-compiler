@@ -1,5 +1,20 @@
 Version 2.23
 
+4/19/94  Overload resolution: overloaded function pointer --> void *
+
+An internal error was formerly issued when an overloaded function
+pointer was matched against a void * parameter in overload resolution.
+This is now fixed (and gives an error).
+
+  void g();
+  void g(int);
+  void f(void *);
+  void f(const char *);
+  main () {
+    f(g);  // Caused internal error, now gets proper error
+  }
+
+
 4/18/94  Empty translation unit
 
 A diagnostic is no longer issued in C++ when a translation unit contains

@@ -998,6 +998,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                                  &ambiguous) || ambiguous) {
         /* There is a suitable indefinite function, or more than one.
            arg_summary->match_level has been set appropriately. */
+        arg_summary->user_conversion.ambiguous = ambiguous;
         goto have_level;
       }  /* if */
     }  /* if */
