@@ -4643,6 +4643,9 @@ This routine is only used in C++ mode.
      functions (no arguments, just a "this" parameter). */
   clear_user_conv_descr(user_conversion);
   class_type = skip_typerefs(dest_type);
+  /* If the class is a template class, instantiate it so that its
+     constructors are visible. */
+  instantiate_template_class(class_type);
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   /* candidate_functions will contain the list of viable functions. */
