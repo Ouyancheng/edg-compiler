@@ -453,11 +453,22 @@ no need to actually instantiate X<int> in the example above.
        (but do not enter it into the symbol table, since class templates
        are always looked up through the template. */
     sym = make_template_class_symbol(class_template_sym, source_pos);
+    /* Add the new symbol to the head of the instantiation list. */
+    sym->next = tssp->variant.class.instantiations;
+    tssp->variant.class.instantiations = sym;
+    /* Now create a new type entry. */
+    class_type = alloc_type(tssp->variant.class.type_kind);
+    sym->variant.class_struct_union.type = class_type;
+    /* If this is a "real instantiation" leave the type incomplete; it will
+       become compilete when it is instantiated.  However, if it is based on
+       template parameters and is therefore a "nonreal" instantiation, give it
+       a size and alignment to permit it to pass through subsequent processing
+       without causing spurious errors. */
     sym->variant.class_struct_union.extra_info->is_real_instantiation = TRUE;
     for (tap = *new_list; tap != NULL; tap = tap->next) {
       if (tap->is_type) {
         if (tap->variant.type->kind == (a_type_kind)tk_template_param) {
-         sym->variant.class_struct_union.extra_info->
+          sym->variant.class_struct_union.extra_info->
                                                is_real_instantiation = FALSE;
           break;
         }  /* if */
@@ -470,12 +481,6 @@ no need to actually instantiate X<int> in the example above.
 #endif /* if 0 */
       }  /* if */
     }  /* for */
-    /* Add the new symbol to the head of the instantiation list. */
-    sym->next = tssp->variant.class.instantiations;
-    tssp->variant.class.instantiations = sym;
-    /* Now create a new type entry. */
-    class_type = alloc_type(tssp->variant.class.type_kind);
-    sym->variant.class_struct_union.type = class_type;
     /* Record the argument list in the type.  It should be available in the
        IL at least for name generation and possibly for debuggers, too.  Note,
        however, that the type itself is not added to the scope types list
@@ -490,6 +495,10 @@ no need to actually instantiate X<int> in the example above.
        members. */
     class_type->source_corresp.name_linkage =
                                         (a_name_linkage_kind)nlk_internal;
+    if (!sym->variant.class_struct_union.extra_info->is_real_instantiation) {
+      class_type->size = 1;
+      class_type->alignment = 1;
+    }  /* if */
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "created: ", 2);
