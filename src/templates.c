@@ -91,6 +91,7 @@ typedef enum /* a_template_info_line_type */ {
   tilt_instantiation_file_name,
   tilt_secondary_trans_units,	/* Used by driver. */
   tilt_template_name,
+  tilt_dependency,
   tilt_last
   /* Lint comments to disable warnings that the driver line types are
      not used. */
@@ -117,6 +118,7 @@ static char	*template_info_line_type_names[(int)tilt_last+1] = {
   /* tilt_instantiation_file_name */	"ifn",
   /* tilt_secondary_trans_units */	"stu",
   /* tilt_template_name */		"tnm",
+  /* tilt_dependency */                 "dep",
   /* tilt_last */			NULL
 };
 
@@ -16566,6 +16568,44 @@ Create the exported template information file.
 }  /* generate_exported_template_information */
 
 
+static void write_dependency_information_for_file(a_source_file_ptr	sfp)
+/*
+Write dependency entries to the template information file for the source
+file specified by "sfp", and any of its child files.
+*/
+{
+  for (; sfp != NULL; sfp = sfp->next) {
+    /* Write a dependency line that specifies the file name to the
+       template information file. */
+    write_to_template_info_file(tilt_dependency, sfp->full_name,
+                                (char*)NULL, (a_symbol_ptr)NULL);
+    if (sfp->first_child_file != NULL) {
+      write_dependency_information_for_file(sfp->first_child_file);
+    }  /* if */
+  }  /* for */
+}  /* write_dependency_information_for_file */
+
+
+static void generate_template_dependency_information(void)
+/*
+Write dependency information to the template information file.  This
+information is used by the prelinker to detect files that need to
+be recompiled when a file that affects an exported template has been
+updated.
+*/
+{
+  a_translation_unit_ptr	tup;
+
+  for (tup = translation_units; tup != NULL; tup = tup->next) {
+    /* Only process translation units loaded to define exported
+       templates. */
+    if (tup->exported_template_file != NULL) {
+      write_dependency_information_for_file(tup->source_file);
+    }  /* if */
+  }  /* for */
+}  /* generate_template_dependency_information */
+
+
 void update_auto_instantiation_flags(void)
 /*
 This routine generates the information that is passed to the template
@@ -16724,10 +16764,12 @@ be processed.
     add_entities_to_request_file();
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Output information about exported templates defined in this
-     translation unit. */
   if (export_template_allowed && generate_template_files()) {
+    /* Output information about exported templates defined in this
+       translation unit. */
     generate_exported_template_information();
+    /* Output information used to do dependency checking in the prelinker. */
+    generate_template_dependency_information();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   db_exit();

@@ -83,7 +83,12 @@ typedef struct a_translation_unit {
 			   type entries that are for front-end use only, or
 			   because they refer to types from other translation
 			   units. */
-
+  an_exported_template_file_ptr
+		exported_template_file;
+			/* If this translation unit was loaded for the purpose
+			   of defining an exported template, this points to
+			   an entry that provides information about the
+			   file that was loaded. */
 } a_translation_unit;
 
 

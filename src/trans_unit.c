@@ -435,6 +435,7 @@ a pointer to the entry created.
   tup->last_macro = NULL;
 #endif /* RECORD_MACROS_IN_IL */
   tup->based_type_fixup_list = NULL;
+  tup->exported_template_file = NULL;
   return tup;
 }  /* alloc_translation_unit */
 
@@ -496,6 +497,7 @@ treated as separate translation units of a single compilation.
   compute_il_prefix_size();
   if (is_primary_translation_unit) fe_init_part_1();
   trans_unit = alloc_translation_unit();
+  trans_unit->exported_template_file = exported_file;
   /* Add this translation unit to the list of translation units. */
   if (translation_units == NULL) {
     translation_units = trans_unit;

@@ -955,35 +955,6 @@ necessary.  This routine may be called iteratively.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
-a_boolean get_file_modification_time(char   *file_name,
-                                     time_t *p_time)
-/*
-Determine whether a file exists, and if so, return the last modification
-time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
-*/
-{
-  a_boolean	is_regular = FALSE;
-  struct stat   buf;
-
-  /* Check the file type.  Use the stat call instead of fstat because some
-     implementations do not have the _file field in the structure. */
-  if (stat(file_name, &buf) == 0) {
-    /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
-       non-POSIX test using S_IFREG. */
-#ifdef S_ISREG
-    is_regular = S_ISREG(buf.st_mode);
-#else /* ifndef S_ISREG */
-    is_regular = ((buf.st_mode & S_IFREG) != 0);
-#endif /* ifdef S_ISREG */
-    if (is_regular && p_time != NULL) *p_time = buf.st_mtime;
-  } else {
-    /* If the file doesn't exist, set the time to zero just to be neat. */
-    if (p_time != NULL) *p_time = 0;
-  }  /* if */
-  return is_regular;
-}  /* get_file_modification_time */
-
-
 static char *get_file_modification_time_string(char	*file_name)
 /*
 Return the last modification time of "file_name" as a date/time string.

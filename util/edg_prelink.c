@@ -65,6 +65,8 @@ the body of our own version of the getopt routine.
 /* Forward declarations of pointer types required before their definitions. */
 typedef struct a_pl_input_file *a_pl_input_file_ptr;
 typedef struct a_pl_object_file *a_pl_object_file_ptr;
+typedef struct a_pl_file_list_entry *a_pl_file_list_entry_ptr;
+
 
 /* An element of a list of input files that can instantiation a
    given symbol. */
@@ -231,6 +233,10 @@ typedef struct a_pl_object_file {
 			   primary input file.  This is used in one
 			   instantiation per object mode to designate
 			   an object file containing an instantiation. */
+  time_t	modification_time;
+			/* The last modification time of the file.  Set
+			   when doing dependency checking for object files
+			   that depend on exported template files. */
 } a_pl_object_file;
 
 
@@ -266,6 +272,12 @@ typedef struct a_pl_input_file {
   char		*secondary_files;
 			/* An optional list of secondary files to be used when
 			   the compilation is done. */
+  a_pl_file_list_entry_ptr
+		dependencies;
+			/* A list of file names on which this object file
+			   depends.  The file will be recompiled if any of
+			   the dependency files are newer than the object
+			   file. */
   char		*instantiation_directory;
 			/* The directory containing instantiations associated
 			   with this file when one instantiation per object
@@ -301,6 +313,15 @@ typedef struct a_pl_input_file {
 			   in the current directory. */
   
 } a_pl_input_file;
+
+
+/* Structure used to represent a list of file names. */
+typedef struct a_pl_file_list_entry {
+  a_pl_file_list_entry_ptr
+		next;	/* Pointer to the next entry on the list or NULL for
+			   the last entry. */
+  char		*name;	/* The name of the file. */
+} a_pl_file_list_entry;
 
 
 /* Structure that represents a mixture of command line arguments and
@@ -638,6 +659,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_invalid_definition_list_option,
   pl_ec_cannot_open_temporary_file,
   pl_ec_adopted_by_file,
+  pl_ec_out_of_date,
   pl_ec_last 	/* must be last */
 } a_pl_error_code;
 
@@ -737,6 +759,9 @@ string.
     break;
   case pl_ec_adopted_by_file:
     m = "%s: %s adopted by file %s\n";
+    break;
+  case pl_ec_out_of_date:
+    m = "%s: rebuilding %s because %s (used by an exported template file) has changed\n";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -846,6 +871,7 @@ reset between iterations of the prelinker.
   pifp->compilation_directory = NULL;
   pifp->compilation_file_name = NULL;
   pifp->secondary_files = NULL;
+  pifp->dependencies = NULL;
   pifp->instantiation_directory = NULL;
 }  /* reset_pl_input_file */
 
@@ -886,6 +912,7 @@ Allocate an object file, initialize it, and return a pointer to it.
   pofp->symbols = NULL;
   pofp->included_in_output = FALSE;
   pofp->is_related_file = FALSE;
+  pofp->modification_time = 0;
   return pofp;
 }  /* alloc_pl_object_file */
 
@@ -913,6 +940,21 @@ Allocate an assignment entry, initialize it, and return a pointer to it.
   ap->times_assigned = 0;
   return ap;
 }  /* alloc_pl_assignment */
+
+
+static a_pl_file_list_entry_ptr alloc_pl_file_list_entry(void)
+/*
+Allocate a file list entry, initialize it, and return a pointer to it.
+*/
+{
+  a_pl_file_list_entry_ptr	flep;
+
+  flep = (a_pl_file_list_entry_ptr)pl_malloc_with_check(
+                                                 sizeof(a_pl_file_list_entry));
+  flep->next = NULL;
+  flep->name = NULL;
+  return flep;
+}  /* alloc_pl_file_list_entry */
 
 
 static a_pl_symbol_ptr alloc_pl_symbol(void)
@@ -2354,6 +2396,14 @@ that line type.
         pofp->next = pifp->objects;
         pofp->is_related_file = TRUE;
         pifp->objects = pofp;
+      } else if (strncmp(line_type, "dep:", 4) == 0) {
+        /* A dependency entry.  Add this to the list of dependencies for this
+           input file. */
+        a_pl_file_list_entry_ptr	flep;
+        flep = alloc_pl_file_list_entry();
+        flep->name = pl_copy_string(info);
+        flep->next = pifp->dependencies;
+        pifp->dependencies = flep;
       } else if (strncmp(line_type, "cmd:", 4) == 0) {
         /* The compilation command line. */
         pifp->command_line = pl_copy_string(info);
@@ -2590,6 +2640,47 @@ is issued if a loop is found.
 }  /* record_assignment */
 
 
+static a_boolean pl_check_dependencies(a_pl_input_file_ptr	pifp)
+/*
+Check the dependency list of "pifp" to see if any of the files on which
+it depends are newer than the associated object file.  Return TRUE
+if the file should be recompiled.
+*/
+{
+  a_boolean			result = FALSE;
+  a_pl_object_file_ptr		pofp = pifp->objects;
+  a_pl_file_list_entry_ptr	flep;
+
+  check_assertion(pofp != NULL);
+  if (pofp->modification_time == 0) {
+    /* We have not gotten the modification time of this object file yet.
+       Get it now. */
+    if (!get_file_modification_time(pofp->file_name,
+                                    &pofp->modification_time)) {
+      /* We could not get the file modification time.  Something unexpected
+         might have happened to the file.  Skip the dependency checking. */
+      goto done;
+    }  /* if */
+  }  /* if */
+  for (flep = pifp->dependencies; flep != NULL; flep = flep->next) {
+    time_t	dep_time;
+    if (get_file_modification_time(flep->name, &dep_time)) {
+      if (dep_time > pofp->modification_time) {
+        /* We found a newer file.  Don't look any further. */
+        result = TRUE;
+        if (verbose) {
+          fprintf(f_informational, pl_error_text(pl_ec_out_of_date),
+                  message_prefix, pifp->file_name, flep->name);
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:
+  return result;
+}  /* pl_check_dependencies */
+
+
 static a_boolean pl_determine_actions(a_boolean do_local_files)
 /*
 Once the link has been performed go through each of the input object
@@ -2613,6 +2704,15 @@ the file is flagged as requiring recompilation.
     if (!pifp->is_archive) {
       a_pl_symbol_ptr	psp;
       a_pl_symbol_ptr	prev_psp;
+      /* If there is dependency information, see if the object file is
+         up-to-date. */
+      if (pifp->dependencies != NULL && pl_check_dependencies(pifp)) {
+        /* The file is out of date.  Set the request_file_updated flag
+           to force the file to be recompiled. */
+        pifp->request_file_updated = TRUE;
+        pifp->recompile = TRUE;
+        done = FALSE;
+      }  /* if */
       /* For each of the entries on the instantiations list, see if the
          symbol is defined in the file. */
       psp = pifp->request_list;
@@ -3375,12 +3475,21 @@ Free all dynamically allocated data.
       free(last_pofp->file_name);
       free_pl_object_file(last_pofp);
     }  /* while */
+    /* Free the dependency list. */
+    { a_pl_file_list_entry_ptr	flep;
+      a_pl_file_list_entry_ptr	next_flep;
+      for (flep = pifp->dependencies; flep != NULL; flep = next_flep) {
+        next_flep = flep->next;
+        free(flep);
+      }  /* for */
+    }
     /* The input file structure should not be freed. */
     /* The file name, request file name, and template info file name should
        not be freed. */
     if (pifp->command_line != NULL) free(pifp->command_line);
     if (pifp->compilation_directory != NULL) free(pifp->compilation_directory);
     if (pifp->compilation_file_name != NULL) free(pifp->compilation_file_name);
+    if (pifp->secondary_files != NULL) free(pifp->secondary_files);
     if (pifp->instantiation_directory != NULL) {
       free(pifp->instantiation_directory);
     }  /* if */
@@ -3882,7 +3991,7 @@ end_of_options:
            the first of which attempts to do assignments in local files,
            the second in nonlocal files. */
         no_local_changes = pl_determine_actions(/*do_local_files=*/TRUE);
-       /* Only attempt to assign compilations to nonlocal files if
+        /* Only attempt to assign compilations to nonlocal files if
            such assignments are permitted.  Suppress nonlocal assignments
            if we've already assigned something to a local file and we are
            using a definition list file. */
