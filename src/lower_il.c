@@ -8239,6 +8239,54 @@ C++ to C, so that a C back end can handle it without change.
 }  /* lower_il_memory_region */
 
 
+static void visit_object_lifetime_tree(an_object_lifetime_ptr olp,
+                                       a_boolean              detach)
+/*
+Visit the indicated object lifetime and all its children to do end-of-lowering
+cleanup.  If detach is TRUE, detach all the object lifetimes from the IL tree
+so they're not reachable.  Do nothing if olp is NULL.
+*/
+{
+  an_object_lifetime_ptr child_olp;
+  a_dynamic_init_ptr     dip, dip_next;
+
+  if (olp != NULL) {
+    /* Visit all children. */
+    for (child_olp = olp->child_lifetime;
+         child_olp != NULL;
+         child_olp = child_olp->next) {
+      visit_object_lifetime_tree(child_olp, detach);
+    }  /* if */
+    /* Visit the dynamic init entries on the destructions list of
+       the lifetime. */
+    for (dip = olp->destructions; dip != NULL; dip = dip_next) {
+      dip_next = dip->next_in_destruction_list;
+      check_assertion_str2(dip->lifetime == olp,
+                           "visit_object_lifetime_tree:",
+                           "bad lifetime pointer in dynamic init");
+      /* Disassociate the dynamic init entry from the lifetime. */
+      if (detach) remove_from_destruction_list(dip);
+      /* Free any attached position description.  The init_pos_descr pointer
+         would normally be expected to be non-NULL, but if a subtree
+         is detached and then visited again later, the pointer will be
+         NULL the second time. */
+      if (dip->init_pos_descr != NULL) {
+        free_init_pos_descr(dip->init_pos_descr);
+        dip->init_pos_descr = NULL;
+      }  /* if */
+    }  /* while */
+    if (detach) {
+      /* Unbind this object lifetime from its attached entity. */
+      /* Watch out for lifetimes that have already been unbound (e.g., those
+         associated with enk_object_lifetime nodes). */
+      if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
+        unbind_object_lifetime(olp);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* visit_object_lifetime_tree */
+
+
 void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
 /*
 Eliminate the indicated object lifetime and all its children.  "Eliminate"
@@ -8246,60 +8294,44 @@ means to detach them from the IL tree so they're not reachable.  Do nothing
 if olp is NULL.
 */
 {
-  an_object_lifetime_ptr child_olp;
-
-  if (olp != NULL) {
-    /* Visit all children. */
-    for (child_olp = olp->child_lifetime;
-         child_olp != NULL;
-         child_olp = child_olp->next) {
-      eliminate_object_lifetime_tree(child_olp);
-    }  /* if */
-    /* Disassociate the dynamic init entries on the destructions list from
-       the lifetime. */
-    while (olp->destructions != NULL) {
-      check_assertion_str2(olp->destructions->lifetime == olp,
-                           "eliminate_object_lifetime_tree:",
-                           "bad lifetime pointer in dynamic init");
-      remove_from_destruction_list(olp->destructions);
-    }  /* while */
-    /* Watch out for lifetimes that have already been unbound (e.g., those
-       associated with enk_object_lifetime nodes). */
-    if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
-      /* Unbind this object lifetime from its attached entity. */
-      unbind_object_lifetime(olp);
-    }  /* if */
-  }  /* if */
+  visit_object_lifetime_tree(olp, /*detach=*/TRUE);
 }  /* eliminate_object_lifetime_tree */
 
 
-void eliminate_all_object_lifetimes(a_scope_ptr scope)
+void clean_up_all_object_lifetimes(a_scope_ptr scope)
 /*
-If we're not supposed to pass object lifetime information to the back end,
-eliminate all object lifetime entries attached to the indicated scope and
-its subtree.  This is done late so that the object lifetimes are available
-during the entire lowering process.  The scope is the top scope in a memory
-region.
+Visit all object lifetime entries attached to the indicated scope and
+its subtree to do end-of-lowering cleanup.  If we're not supposed to
+pass object lifetime information to the back end, detach all the object
+lifetime information from the IL tree.  This is done late so that the
+object lifetimes are available during the entire lowering process.
+The scope is the top scope in a memory region.
 */
 {
-  if (!keep_object_lifetime_info_in_lowered_il) {
-    eliminate_object_lifetime_tree(scope->lifetime);
-    if (scope->kind == (a_scope_kind)sck_function) {
-      a_label_ptr lab;
-      eliminate_object_lifetime_tree(
-                         scope->variant.routine.lifetime_of_constructor_inits);
-      eliminate_object_lifetime_tree(
-                         scope->variant.routine.lifetime_of_local_static_vars);
+  a_boolean detach = !keep_object_lifetime_info_in_lowered_il;
+
+  visit_object_lifetime_tree(scope->lifetime, detach);
+  if (scope->kind == (a_scope_kind)sck_function) {
+    visit_object_lifetime_tree(
+                         scope->variant.routine.lifetime_of_constructor_inits,
+                         detach);
+    visit_object_lifetime_tree(
+                         scope->variant.routine.lifetime_of_local_static_vars,
+                         detach);
+    if (detach) {
       /* Clear the object lifetime pointers in all stmk_label statements.
          They are cleared late (rather than when the label is encountered)
          because they are needed each time the label is referenced. */
+      a_label_ptr lab;
       for (lab = scope->labels; lab != NULL; lab = lab->next) {
         a_statement_ptr lab_stmt = lab->variant.exec_stmt;
         lab_stmt->variant.label.lifetime = NULL;
       }  /* for */
-    } else {
-      /* File scope. */
+    }  /* detach */
+  } else {
+    /* File scope. */
 #if ORPHAN_PROCESSING_NEEDED
+    if (detach) {
       /* Clear the orphan list for object lifetimes. */
       char                      *entry_ptr, *next_entry_ptr;
       an_orphaned_il_entry_list *orphan_header =
@@ -8312,10 +8344,10 @@ region.
       }  /* for */
       orphan_header->first_entry = NULL;
       orphan_header->last_entry = NULL;
-#endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
-}  /* eliminate_all_object_lifetimes */
+}  /* clean_up_all_object_lifetimes */
 
 
 #if DEBUG

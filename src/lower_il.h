@@ -678,7 +678,7 @@ extern void lower_il_memory_region(a_memory_region_number region_number);
 
 extern void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp);
 
-extern void eliminate_all_object_lifetimes(a_scope_ptr scope);
+extern void clean_up_all_object_lifetimes(a_scope_ptr scope);
 
 #if DEBUG
 extern unsigned long show_lowering_space_used(void);
