@@ -2933,12 +2933,15 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 
 
 static void change_assignment_result_to_lvalue(an_operand *result,
-                                               an_operand *lvalue_operand)
+                                               an_operand *lvalue_operand,
+                                               a_type_ptr result_type)
 /*
 In C++ mode, assignment operators and prefix ++/-- return lvalues.
 Change the operation in *result from an rvalue-returning operation to
 an lvalue-returning operation.  *lvalue_operand is the operand for
-the lvalue being operated upon.  This routine is called only in C++ mode.
+the lvalue being operated upon.  result_type is the original type of
+the first operand, which may differ from the current type of the result
+in having type qualifiers.  This routine is called only in C++ mode.
 */
 {
   an_expr_node_ptr node;
@@ -2946,7 +2949,7 @@ the lvalue being operated upon.  This routine is called only in C++ mode.
   if (!is_error_operand(result)) {
     node = result->variant.expression;
     node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-    node->type = make_pointer_type(node->type);
+    node->type = make_pointer_type(result_type);
     /* Keep the reference entries from the lvalue operand. */
     result->ref_entries_list = lvalue_operand->ref_entries_list;
   }  /* if */
@@ -2965,7 +2968,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
   a_source_position     start_position;
   an_expr_operator_kind op;
   a_boolean             is_increment;
-  a_type_ptr            result_type;
+  a_type_ptr            orig_result_type, result_type;
   a_boolean             err = FALSE, processed = FALSE;
 
   db_enter(4, "scan_prefix_incr_decr");
@@ -3035,11 +3038,14 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         /* Operand is not a modifiable lvalue. */
         err = TRUE;
       } else {
+        a_type_kind kind;
         /* Operand is okay. */
         modifying_lvalue(&operand, /*value_used=*/TRUE);
-        result_type = operand.type;
+        orig_result_type = operand.type;
+        result_type = make_unqualified_type(orig_result_type);
+        kind = skip_typerefs(result_type)->kind;
         if (is_increment) {
-          switch (skip_typerefs(result_type)->kind) {
+          switch (kind) {
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipre_incr;
               break;
@@ -3055,7 +3061,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 #endif /* CHECKING */
           }  /* switch */
         } else {
-          switch (skip_typerefs(result_type)->kind) {
+          switch (kind) {
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipre_decr;
               break;
@@ -3079,7 +3085,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         build_unary_result_operand(&operand, op, result_type, result);
         /* In C++, the prefix ++ and -- operators return lvalues. */
         if (C_dialect == C_dialect_cplusplus) {
-          change_assignment_result_to_lvalue(result, &operand);
+          change_assignment_result_to_lvalue(result, &operand,
+                                             orig_result_type);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7005,7 +7012,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
   a_source_position operator_position;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         has_predef_meaning;
-  a_type_ptr        result_type;
+  a_type_ptr        orig_result_type, result_type;
 
   db_enter(4, "scan_simple_assignment_operator");
 
@@ -7067,7 +7074,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       /* The type of the assignment is the destination type with any qualifiers
          dropped. */
-      result_type = make_unqualified_type(operand_1->type);
+      orig_result_type = operand_1->type;
+      result_type = make_unqualified_type(orig_result_type);
       /* do_operand_transformations is not done in the second operand, because
          the processing for that is done in the conversion stuff.
          In C++, an lvalue, or an array, or an indefinite function might
@@ -7081,7 +7089,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
                                   result_type, result);
       /* In C++, assignment operators return lvalues. */
       if (C_dialect == C_dialect_cplusplus) {
-        change_assignment_result_to_lvalue(result, operand_1);
+        change_assignment_result_to_lvalue(result, operand_1,
+                                           orig_result_type);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7105,7 +7114,7 @@ See section 3.3.16 of the standard.
   an_operand            operand_2;
   a_source_position     operator_position;
   a_boolean             err               = FALSE, processed = FALSE;
-  a_type_ptr            result_type;
+  a_type_ptr            orig_result_type, result_type;
   a_type_ptr            operation_type;
   a_boolean             pointer_add_sub   = FALSE;
 
@@ -7203,7 +7212,8 @@ See section 3.3.16 of the standard.
       if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
         make_error_operand(result);
       } else {
-        result_type = make_unqualified_type(operand_1->type);
+        orig_result_type = operand_1->type;
+        result_type = make_unqualified_type(orig_result_type);
         if (pointer_add_sub) {
           /* For pointer += or -=, integral promotions are not done, and
              the operation type is the first operand's type.  This is
@@ -7222,7 +7232,8 @@ See section 3.3.16 of the standard.
                                     result_type, result);
         /* In C++, assignment operators return lvalues. */
         if (C_dialect == C_dialect_cplusplus) {
-          change_assignment_result_to_lvalue(result, operand_1);
+          change_assignment_result_to_lvalue(result, operand_1,
+                                             orig_result_type);
         }  /* if */
       }  /* if */
     }  /* if */
