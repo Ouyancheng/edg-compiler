@@ -167,7 +167,8 @@ the options being used for the lookup.
          symbols from other translation units. */
       if (sym->synthesized_namespace_projection &&
           (a_boolean)sym->qualified_lookup == qualified_lookup &&
-          same_entities(sym->parent.namespace_ptr, qualifier_namespace) &&
+          /* Note that same_entities must not be used for this test. */
+          sym->parent.namespace_ptr == qualifier_namespace &&
           (qualifier_namespace != NULL ||
            sym->decl_scope == file_scope_number) &&
           (a_boolean)sym->must_be_class_or_namespace_lookup ==
@@ -3294,6 +3295,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     must_be_class ||						      \
     must_be_tag ||						      \
     !same_entities(class_type, (fund_sym)->variant.type.ptr)) &&      \
+   /* Note that same_entities must not be used for this test. */      \
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
@@ -4065,7 +4067,8 @@ namespace_qualified_id_lookup.
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
    (!(sym)->is_class_member) &&                                       \
-   same_entities((sym)->parent.namespace_ptr, ns_ptr) &&              \
+   /* Note that same_entities must not be used for this test. */      \
+   (sym)->parent.namespace_ptr == ns_ptr &&                           \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
    (!must_be_class ||				     		      \
@@ -4913,30 +4916,19 @@ Add the symbols for the names found to the list specified by symbol_list.
   for (tusep = curr_translation_unit_stack_entry; tusep != NULL;
        tusep = tusep->next) {
     a_translation_unit_ptr	tup;
-    a_boolean			free_lists = FALSE;
     a_namespace_list_entry_ptr	namespace_list;
     a_type_list_entry_ptr	class_list;
     tup = tusep->translation_unit;
-    /* If this is not the current translation unit, update the namespace and
-       class lists to refer to the corresponding entities in the new
-       translation unit. */
-    if (tup != curr_translation_unit) {
-      free_lists = TRUE;
-      /* We don't need to create a transformed class list because the
-         class lookup is not translation unit dependent. */
-      class_list = NULL;
-      namespace_list = update_namespace_list_for_trans_unit(
+    /* Update the namespace list to refer to the corresponding entities in
+       the new translation unit. */
+    namespace_list = update_namespace_list_for_trans_unit(
                                                      orig_namespace_list, tup);
-    } else {
-      class_list = orig_class_list;
-      namespace_list = orig_namespace_list;
-    }  /* if */
+    /* We don't need to create a transformed class list because the
+       class lookup is not translation unit dependent. */
+    class_list = tup == curr_translation_unit ? orig_class_list : NULL;
     argument_dependent_lookup_for_trans_unit(locator, namespace_list,
 				             class_list, tup, symbol_list);
-    if (free_lists) {
-      free_list_of_namespace_list_entries(namespace_list);
-      free_list_of_type_list_entries(class_list);
-    }  /* if */
+    free_list_of_namespace_list_entries(namespace_list);
   }  /* for */
 }  /* exported_template_argument_dependent_lookup */
 
