@@ -1247,30 +1247,30 @@ the current routine.
   a_routine_ptr   rout;
   a_type_ptr      tp;
   a_symbol_ptr    function_name_symbol;
-  a_boolean       issue_no_value_returned_warning;
+  a_boolean       issue_no_value_returned_diag;
 
 
   /* Get a pointer to the current routine entry, and get its return
      type. */
   rout = current_routine_entry();
   tp = rout->type->variant.routine.return_type;
-  issue_no_value_returned_warning = FALSE;
+  issue_no_value_returned_diag = FALSE;
   if (!is_void_type(tp) && !is_error_type(tp)) {
     if (C_dialect != C_dialect_cplusplus) {
       /* If a return with no expression appears in a function with a
-         non-void type, issue a warning.  Do not issue the warning for
+         non-void type, issue a diagnostic.  Do not issue the diagnostic for
          the main program, or if the declaration of the function did not
          have an explicit type specifier (omitting the specifier implies
          "int", but may have been intended to mean "void" in old-style C). */
       if (!struct_stmt_stack->rout_type_explicitly_specified) {
-        /* No warning if the routine's type was not explicitly specified. */
+        /* No diagnostic if the routine's type was not explicitly specified. */
       } else if (rout == il_header.main_routine) {
-        /* No warning for "main". */
+        /* No diagnostic for "main". */
       } else {
-        issue_no_value_returned_warning = TRUE;
+        issue_no_value_returned_diag = TRUE;
       }  /* if */
     } else {
-      /* C++:  Issue a warning unless we are returning from a constructor
+      /* C++:  Issue a diagnostic unless we are returning from a constructor
          (ARM 6.6.3 -- no special case for "main" or for cases in which the
          routine type is not explicit). */
       if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -1278,14 +1278,14 @@ the current routine.
            level they have no return type; however, in the IL they are
            represented as returning the "this" parameter. */
       } else {
-        issue_no_value_returned_warning = TRUE;
+        issue_no_value_returned_diag = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
 
-  /* Output message warning of no value returned from non-void function
+  /* Output diagnostic about no value returned from non-void function
      if necessary. */
-  if (issue_no_value_returned_warning) {
+  if (issue_no_value_returned_diag) {
     /* Get pointer to the symbol for the function name. */
     function_name_symbol = (a_symbol_ptr)rout->source_corresp.assoc_info;
 #if CHECKING
@@ -1293,8 +1293,14 @@ the current routine.
         internal_error("check_void_return_okay: unexpected NULL assoc_info");
     }  /* if */
 #endif /* CHECKING */
-    sym_warning(ec_no_value_returned_in_non_void_function,
-                function_name_symbol);
+    if (strict_ansi_mode && C_dialect == C_dialect_cplusplus) {
+      sym_diagnostic(strict_ansi_error_severity,
+                     ec_no_value_returned_in_non_void_function,
+                     function_name_symbol);
+    } else {
+      sym_warning(ec_no_value_returned_in_non_void_function,
+                  function_name_symbol);
+    }  /* if */
   }  /* if */
 }  /* check_void_return_okay */
 

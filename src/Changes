@@ -1,5 +1,9 @@
 Version 2.10
 
+9/21/92  Error on strict C++ mode void return from non-void function
+
+Formerly, this was a warning.
+
 9/21/92  Error on strict ANSI mode type incompatibility
 
 Assigning a pointer to an unsigned type to a pointer to the corresponding
