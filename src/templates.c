@@ -16582,6 +16582,7 @@ void templates_init(void)
 Initializations for template.
 */
 {
+  templates_trans_unit_init();
   curr_default_args = NULL;
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
