@@ -1024,6 +1024,8 @@ IL to a file, and the freeing of the memory, is deferred until the
 decision whether to generate a PCH is made.
 */
 {
+  a_boolean keep_memory;
+
   db_enter(5, "done_with_memory_region");
 #if DEBUG
   if (debug_level >= 1) {
@@ -1032,31 +1034,51 @@ decision whether to generate a PCH is made.
                      (unsigned long)allocated_in_region[region_number]);
   }  /* if */
 #endif /* DEBUG */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-#if !STANDALONE_UTILITY_PROGRAM
-  if (!may_be_building_new_pch()) {
-    /* Communication with the back end is via a file.  Write the region and
-       then free its storage. */
-    write_memory_region(region_number);
-  }  /* if */
-  if (!may_be_building_new_pch()) {
-    /* Only free the memory region if we know that we won't need to save
-       it in a PCH file. */
-    free_memory_region(region_number);
+#if STANDALONE_UTILITY_PROGRAM
+  /* In a standalone program the memory is always freed. */
+  keep_memory = FALSE;
+#else /* !STANDALONE_UTILITY_PROGRAM */
+#if !IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* The IL is passed to the back end in memory, so it is always kept. */
+  keep_memory = TRUE;
+#else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Communication with the back end is via a file.  Usually the memory
+     is freed after it's been written to the IL file. */
+  keep_memory = FALSE;
+  if (may_be_building_new_pch()) {
+    /* We are still considering whether to build a PCH file, so keep this
+       region around so we can use it in generating the PCH file.
+       done_with_memory_region will be called again once we've written
+       the PCH or decided not to write one.  We can still trim the unused
+       portion of the memory block at this time, though. */
+    keep_memory = TRUE;
   } else {
-    /* We are saving the memory for use in creating the PCH.  We can still
-       trim the unused portion of the memory block though. */
-    trim_memory_region(region_number);
+    /* Write the region to the file. */
+    write_memory_region(region_number);
+#if MINIMAL_INLINING
+    if (inlining_enabled) {
+      a_scope_ptr scope = il_header.region_scope_entry[region_number];
+      check_assertion(scope != NULL);
+      if (scope->kind == (a_scope_kind)sck_function &&
+          scope->variant.routine.ptr->is_inline) {
+        /* Keep the region for an inline function so it can be used to
+           do inlining. */
+        keep_memory = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* MINIMAL_INLINING */
   }  /* if */
-#else /* STANDALONE_UTILITY_PROGRAM */
-  free_memory_region(region_number);
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
-  /* Communication with the back end is via memory.  Trim the region to
-     reclaim unused storage at the end of the last block.  Unused storage
-     at the ends of blocks other than the last was previously reclaimed. */
-  trim_memory_region(region_number);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  if (keep_memory) {
+    /* Keep the memory for the region.  Trim the region to reclaim unused
+       storage at the end of the last block.  Unused storage at the ends
+       of blocks other than the last was previously reclaimed. */
+    trim_memory_region(region_number);
+  } else {
+    /* Free the memory for the region. */
+    free_memory_region(region_number);
+  }  /* if */
   db_exit();
 }  /* done_with_memory_region */
 
