@@ -3957,17 +3957,6 @@ Report the indicated remark at the indicated position.
 }  /* pos_remark */
 
 
-void str_remark(an_error_code error_code,
-                char          *error_string)
-/*
-Report the indicated remark (with the indicated fill-in string) at the
-position indicated by error_position.
-*/
-{
-  pos_st_remark(error_code, &error_position, error_string);
-}  /* str_remark */
-
-
 void remark(an_error_code error_code)
 /*
 Report the indicated remark at the position indicated by error_position.

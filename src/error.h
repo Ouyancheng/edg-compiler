@@ -598,8 +598,6 @@ extern void pos_st_remark(an_error_code     error_code,
                           char              *error_string);
 extern void pos_remark(an_error_code     error_code,
                        a_source_position *error_pos);
-extern void str_remark(an_error_code error_code,
-                       char          *error_string);
 extern void remark(an_error_code error_code);
 extern void pos_ty_remark(an_error_code     error_code,
                           a_source_position *error_pos,
