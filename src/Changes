@@ -1,5 +1,45 @@
 Version 2.26
 
+10/12/94 Precompiled header processing
+
+The front end can now write out a precompiled header file that captures
+the front end state at a point after initial header inclusions, and
+in another compilation (with the same initial inclusions) read in that
+precompiled header file to regain that internal state quickly.  This
+can significantly reduce compilation time for programs that include the
+same large initial headers in many files.
+
+The feature requires that users change their code for best results, i.e.,
+that they adjust the order of inclusion of header files at the beginnings
+of their source files.  Enabling the PCH feature on an arbitrary set of
+source files will probably not yield much improvement in compilation
+speed and may result in the use of enormous amounts of disk space for
+useless PCH files.  Therefore, PCH processing is not enabled by default.
+It can be enabled in two modes:
+
+- "Automatic" mode is enabled by the --pch option.  In that mode, the
+  front end will generate and use PCH files as it thinks best.  It
+  will generate a separate PCH file for each different leading sequence
+  that appears in the files compiled, and pick the best of all of the
+  available PCH files for reuse when compiling a file.
+- "Manual" mode is enabled by the --create_pch and --use_pch options.
+  These name a specific PCH file, and the front end uses the file
+  indicated.
+
+The --pch_dir option can be used to specify a directory to contain
+the PCH files.  The default is the current directory.
+
+#pragma hdrstop can be used to indicate the end of the leading sequence
+of inclusions to be considered for PCH optimization.  #pragma no_pch
+can be used in individual files for which no PCH file should be generated
+or used.
+
+The precompiled header scheme works best on systems that support memory
+mapping, but it can be configured to work on systems without such mapping
+(see USE_MMAP_FOR_MEMORY_REGIONS).
+
+See the internal documentation for more details.
+
 10/10/94 IL version number changed to 2.18
 
 10/10/94 Version build date and time information
@@ -54,7 +94,7 @@ showed up in the following sort of case:
     F g;                       // Internal error has been eliminated.
   };
 
-10/6/94  C_generating back end: no #define in output
+10/6/94  C-generating back end: no #define in output
 
 The C-generating back end has been changed to eliminate the only requirement
 for preprocessing of the generated C (the macro __trunc, used to truncate 
