@@ -238,6 +238,8 @@ static void lower_routine(a_routine_ptr routine);
 static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
+static void reset_cleanup_state_at_unreachable_end_of_block(
+                                          an_insert_location *insert_location);
 static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
@@ -7844,6 +7846,8 @@ it; otherwise, switch_lifetime is NULL.
   a_statement_ptr        clause_statements, last_statement;
   an_insert_location     insert_location;
   an_object_lifetime_ptr lifetime;
+  a_dynamic_init_ptr     saved_curr_cleanup_state =
+                                              curr_context->curr_cleanup_state;
 
   /* Find the first switch clause lifetime. */
   if (switch_lifetime != NULL) {
@@ -7865,9 +7869,6 @@ it; otherwise, switch_lifetime is NULL.
     /* Get the statement list before any insertions done for the start
        of an object lifetime. */
     clause_statements = clause->statements;
-    /* If the previous clause, or the body statement, ended with a return
-       or goto, the current cleanup state may be wrong, so restore it. */
-    set_curr_cleanup_state_to_latest_initialization();
     /* See if this clause is associated with the next object lifetime
        in sequence. */
     if (lifetime != NULL &&
@@ -7907,6 +7908,19 @@ it; otherwise, switch_lifetime is NULL.
           gen_cleanup_actions(switch_lifetime, &insert_location);
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
+      /* When a clause ends with a transfer of control, the current cleanup
+         state will be the state after any cleanup done before the transfer.
+         Restore the proper cleanup state. */
+      curr_context->curr_cleanup_state = saved_curr_cleanup_state;
+#if !DO_FULL_PORTABLE_EH_LOWERING
+      /* For the partially-lowered EH schemes, generate the cleanup state
+         operation since it might be used to build a table instead of being
+         considered executable.  */
+      set_insert_location(last_statement, &insert_location);
+      reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
     }  /* if */
   }  /* for */
 }  /* lower_switch_clause_list */
@@ -8512,7 +8526,7 @@ Lower the dependent statement of the indicated "switch" statement.
   a_context       context;
   a_boolean       context_pushed, new_lifetime;
   a_dynamic_init_ptr
-                  saved_curr_cleanup_state;
+                  saved_curr_cleanup_state, curr_cleanup_state_after_body;
 
   /* If there is a body statement that is a block, push a context
      around the processing of the switch clauses. */
@@ -8526,9 +8540,12 @@ Lower the dependent statement of the indicated "switch" statement.
                                  &context_pushed, &new_lifetime,
                                  &saved_curr_cleanup_state);
     lower_statement_list(statement_list, &last_statement);
+    curr_cleanup_state_after_body = curr_context->curr_cleanup_state;
+    curr_context->curr_cleanup_state = saved_curr_cleanup_state;
     lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
                              new_lifetime ? curr_context->lifetime :
                                             (an_object_lifetime_ptr)NULL);
+    curr_context->curr_cleanup_state = curr_cleanup_state_after_body;
     pop_block_statement_context(body_statement, last_statement,
                                 context_pushed, new_lifetime,
                                 saved_curr_cleanup_state);
