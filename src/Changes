@@ -82,9 +82,8 @@ The front end no longer considers variables and functions marked as "weak"
 when constructing unique module IDs: "Weak" entities may be defined in
 multiple translation units and are therefore not unique.  (Currently,
 "weak" variables and functions are only recorded in configurations with
-GNU_EXTENSIONS_ALLOWED set to TRUE.)  Similarly, variables defined with
-the Microsoft "selectany" modifier are no longer used to construct  module
-IDs.
+GNU_EXTENSIONS_ALLOWED set to TRUE.)  Similarly, variables defined with the
+Microsoft "selectany" modifier are no longer used to construct module IDs.
 
 10/11/04 Tweak for alloc_intercept debug function
 
