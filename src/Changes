@@ -1,5 +1,18 @@
 Version 2.30
 
+9/19/95  Internal error in Microsoft C++ mode using the C generating back end
+
+Examples like the following would result in an internal error in the
+C generating back end when compiled in Microsoft mode.  This occurred
+because an lvalue cast operation that should only be generated in C mode
+was being generated in C++ mode.  This has been fixed.
+
+  void f(int i, int *a, int* b)
+  {
+    void* p;
+    p = i ? (void*)a : (void*)b;
+  }
+
 9/19/95  Bug in switch-statement processing
 
 A bug has been fixed in switch-statement processing -- incorrect IL used to
