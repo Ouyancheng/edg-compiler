@@ -2004,7 +2004,7 @@ to indicate whether an enumeration is actually defined.
                             /*is_friend_decl=*/FALSE, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
                             &effective_decl_level, &tag_resolution,
-                            decl_pos_block);
+                            &local_decl_pos_block);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
