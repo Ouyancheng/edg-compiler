@@ -10662,7 +10662,8 @@ Check that this is a valid type and if so make member_type a friend.
                 &decl_info->decl_start_pos);
     } else {
       if (decl_info->dso_flags & (DSO_INLINE | DSO_VIRTUAL)) {
-        /* A friend class declaration cannot contain any of these specifiers. */
+        /* A friend class declaration cannot contain inline or virtual
+           specifiers. */
         pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
       } else if (!(decl_info->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
         char  *class_key_string;

@@ -1966,7 +1966,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (used_qualified_name || curr_name_context->field_selection_context) {
         if (class_type->variant.class_struct_union.is_nonreal_class &&
             (template_arguments_for_name(
-                  scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
+                scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
              (options & GN_TEMPLATE))) {
           /* Issue the "template" keyword in a "X<T>::template Y<int>" name
              or in a "X<T>::template Y" default template argument for a
