@@ -1566,8 +1566,9 @@ base class of the complete object).
   a_field_ptr  field;
 
   if (!is_immediate_class_type(subobject_type) ||
-      !symbol_supplement_for_class(subobject_type)
-                                                ->has_empty_class_subobject) {
+      (subobject_type->source_corresp.assoc_info != NULL &&
+       !symbol_supplement_for_class(subobject_type)
+                                               ->has_empty_class_subobject)) {
     goto done;
   }  /* if */
   field = subobject_type->variant.class_struct_union.field_list;
