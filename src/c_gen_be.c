@@ -1028,16 +1028,7 @@ static void dump_constant(a_constant_ptr constant)
 Output the indicated constant.
 */
 {
-  if (constant->kind == (a_constant_repr_kind)ck_string &&
-      constant->variant.string.value == NULL) {
-    /* Wide string constant has been stored in a static variable;
-       the variable is used here.  That's to ensure that the alignment
-       is right. */
-    dump_temp_name((char *)constant);
-  } else {
-    /* Normal constant. */
-    form_constant(constant, /*need_parens=*/TRUE, &octl);
-  }  /* if */
+  form_constant(constant, /*need_parens=*/TRUE, &octl);
 }  /* dump_constant */
 
 
@@ -5054,6 +5045,7 @@ Initialize for the C-generating back end.
   octl.output_str = write_tok_str;
   octl.output_partial_token_str = write_str;
   octl.output_name = gen_name_reference;
+  octl.output_temp_name = dump_temp_name;
   octl.output_func_declarator = dump_function_declarator;
   octl.gen_compilable_code = TRUE;
 #if !C_GEN_BE_GENERATES_ANSI_C

@@ -33,6 +33,8 @@ typedef an_output_name_function *an_output_name_function_ptr;
 typedef void an_output_func_declarator_function(a_type_ptr type);
 typedef an_output_func_declarator_function
                                        *an_output_func_declarator_function_ptr;
+typedef void an_output_temp_name_function(char *entry);
+typedef an_output_temp_name_function *an_output_temp_name_function_ptr;
 typedef struct an_il_to_str_output_control_block
                                         *an_il_to_str_output_control_block_ptr;
 /* If you add a field here, add it also to
@@ -53,6 +55,11 @@ typedef struct an_il_to_str_output_control_block {
 	output_name;
 			/* Function to output the name of an entity.  NULL
 			   if a default routine should be used. */
+  an_output_temp_name_function_ptr
+	output_temp_name;
+			/* Function to output a compiler-generated name based
+			   on the address passed in.  Used by the C-generating
+			   back end.  NULL if not needed. */
   an_output_func_declarator_function_ptr
 	output_func_declarator;
 			/* Function to output a function declarator from

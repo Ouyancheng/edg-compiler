@@ -33,6 +33,7 @@ Clear an output control block to default values.
   octl->output_str                = NULL;
   octl->output_partial_token_str  = NULL;
   octl->output_name               = NULL;
+  octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
@@ -60,6 +61,22 @@ The string may be only part of a token.
   if (rout == NULL) rout = octl->output_str;
   rout(str);
 }  /* output_partial_token_str */
+
+
+static void output_temp_name(char                                  *entry,
+                             an_il_to_str_output_control_block_ptr octl)
+/*
+Output a compiler-generated temporary name based on "entry".  Do this by
+using a callback routine provided for this purpose.  Do the output as
+indicated by octl.
+*/
+{
+  an_output_temp_name_function_ptr rout;
+
+  rout = octl->output_temp_name;
+  check_assertion_str(rout != NULL, "output_temp_name: no routine provided");
+  rout(entry);
+}  /* output_temp_name */
 
 
 static void form_num(long                                  num,
@@ -1537,7 +1554,16 @@ confusion.  Do the output in the way described by octl.
         char          *str = constant->variant.string.value;
         a_targ_size_t len = constant->variant.string.length;
 
-        if (is_wide_string_constant(constant)) {
+        if (str == NULL) {
+          /* The C-generating back end transforms wide string literals: it
+             creates a variable initialized with the string value and then
+             uses the variable instead of the string.  This ensures proper
+             alignment for the string.  The string.value pointer is cleared
+             to NULL as an indication that the transformation has occurred. */
+          check_assertion_str(octl->c_generating_back_end,
+                              "form_constant: null string pointer");
+          output_temp_name((char *)constant, octl);
+        } else if (is_wide_string_constant(constant)) {
           /* Wide string literal, e.g., L"abc". */
           /* The processing here must invert the processing done in
              conv_single_wide_char.  Do something that's right for the default
