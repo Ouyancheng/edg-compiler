@@ -1,5 +1,10 @@
 Version 2.30
 
+6/22/95  Repackaging of id_linkage
+
+Several subroutines have been broken out of id_linkage to make it of more
+manageable size.
+
 6/22/95  Overloaded function templates as arguments to function templates
 
 An abort has been corrected on the case where a set of overloaded functions,
