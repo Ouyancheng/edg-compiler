@@ -545,7 +545,7 @@ instance of the code does initialization or destruction, all other
 instances will do nothing.
 */
 #ifndef TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-#define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE TRUE
+#define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE FALSE
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
 #endif /* DO_IL_LOWERING */
