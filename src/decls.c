@@ -2150,18 +2150,38 @@ declaration of this symbol.
   a_symbol_ptr  sym;
 
   db_enter(4, "enter_local_symbol");
-  if (C_dialect != C_dialect_cplusplus) {
-    /* Give a warning for anything declared within a prototype scope.
-       For example,
-
-         inf f(struct s a;);
-         struct s {int b;};
-
-       The first "struct s" is a different type than the second, which is
-       probably not what was wanted.  (This warning is not issued for C++
-       because an error is issued elsewhere, where appropriate.) */
-    if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
-      pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
+  if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
+    if (kind == sk_variable) {
+      /* A variable declared in a function prototype scope is the result of
+         an error in an old-style param list. */
+    } else {
+      /* Other other declaration expected in a prototype scope is that of a
+         type. */
+#if CHECKING
+      if (kind != sk_class_or_struct_tag && kind != sk_union_tag &&
+          kind != sk_enum_tag && kind != sk_type) {
+        internal_error("enter_local_symbol: bad sym kind for func prototype");
+      }  /* if */
+#endif /* CHECKING */
+      if (C_dialect == C_dialect_cplusplus) {
+        /* An error will already have been issued. */
+      } else if (C_dialect == C_dialect_pcc) {
+        /* In pcc a type declared in a parameter declaration belongs to the
+           file scope.  For example:
+               void f(a) struct s { int i; }; s a; { ... }
+               struct s *aa;
+           "s" refers to the same struct in both declarations. */
+        scope_level = DEPTH_OF_FILE_SCOPE;
+      } else {
+        /* In C-mode a type declared in a parameter declaration is local to
+           function.  Issue a warning, since it will not be visible outside
+           the function declaration.  For example:
+               inf f(struct s a;);
+               struct s {int b;};
+           The first "struct s" is a different type than the second, which is
+           probably not what was wanted. */
+        pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
+      }  /* if */
     }  /* if */
   }  /* if */
   sym = enter_symbol(kind, locator, scope_level, suppress_redecl_error);
