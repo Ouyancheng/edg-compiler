@@ -276,7 +276,7 @@ Generate a warning if the current location in the code is unreachable.
   if (!curr_reachability.reachable) {
     if (!curr_reachability.suppress_unreachable_warning) {
       warning(ec_code_is_unreachable);
-      /* Suppress the warning once is has been issued. */
+      /* Suppress the warning once it has been issued. */
       curr_reachability.suppress_unreachable_warning = TRUE;
     }  /* if */
   }  /* if */
@@ -294,7 +294,7 @@ via branch from the bottom.
   if (!curr_reachability.reachable) {
     if (!curr_reachability.suppress_unreachable_warning) {
       warning(ec_loop_not_reachable);
-      /* Suppress the warning once is has been issued. */
+      /* Suppress the warning once it has been issued. */
       curr_reachability.suppress_unreachable_warning = TRUE;
     }  /* if */
   }  /* if */
