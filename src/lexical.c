@@ -6334,9 +6334,6 @@ Its value is unchanged if no errors are detected.
                                      DFS_SINGLE_TYPE_REQUIRED);
     arg_ptr = alloc_template_arg(is_type_param);
     if (is_type_param) {
-      a_source_position  arg_pos;
-
-      arg_pos = pos_curr_token;
       type_name(&argument_type);
       arg_ptr->variant.type = argument_type;
     } else {  /* else executed when !is_type_param */
@@ -6629,7 +6626,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
      found template class symbol. */
   set_err_pos_to_curr_token();
   if (curr_token != tok_gt) {
-    syntax_error(ec_exp_gt);
+    if (!any_errors) syntax_error(ec_exp_gt);
     any_errors = TRUE;
     /* Below we will set curr_token to tok_identifier.  Do an unget
        of the token that stopped the flush so that it can be processed
