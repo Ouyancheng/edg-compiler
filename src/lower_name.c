@@ -2473,7 +2473,7 @@ operator name mangling.
      operands will not demangle correctly. */
   if (num_operands > 9) num_operands = 9;
   /* Use the IA-64 ABI form for a vendor extended operator of "unknown". */
-  (void)sprintf(buffer, "v%d7unknown", num_operands);
+  (void)sprintf(buffer, "v%lu7unknown", num_operands);
   return buffer;
 }  /* bad_mangled_expr_operator_name */
 
