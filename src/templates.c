@@ -3310,6 +3310,9 @@ user later during real instantiations.
   if (instantiation_scope_needed) {
     pop_template_instantiation_scope();
   }  /* if */
+  /* Notify the correspondence routines that a definition of this function
+     is now present. */
+  establish_variable_instantiation_corresp(var_ptr);
   db_exit();
 }  /* static_data_member_prototype_instantiation */
 
