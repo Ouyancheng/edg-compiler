@@ -1,5 +1,21 @@
 Version 3.1
 
+11/25/02 Precision of output of long double constants, with 128-bit
+         long doubles
+
+When using 128-bit long double floating point (i.e., on Sun systems)
+long double constants were emitted with one fewer digits than would
+normally be used.  This was done to avoid a problem encountered when
+the Sun compiler is used to compile the generated code (the value emitted
+for LDBL_MIN was rejected by the Sun compiler).  The workaround could
+cause problems because of the reduced precision of the resulting values.
+As a result the workaround is now used only with the C++ generating back.
+Of course, this means that precision problems could occur when using the
+C++-generating back end, and the LDBL_MIN problem could occur when using
+the C-generating back end, but this behavior was selected to provide the
+best result for most users.  fp_to_string in float_pt.c can be modified
+if different behavior is desired.
+
 11/24/02  End position wrong on expression for "new"
 
 The end position (maintained when EXTRA_SOURCE_POSITIONS_IN_IL is

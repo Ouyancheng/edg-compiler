@@ -1271,14 +1271,18 @@ be NULL if the corresponding return value is not needed.
     } else if (kind == (a_float_kind)fk_double) {
       (void)sprintf(str, "%.19Lg", temp);
     } else {
-      /* In theory LDBL_DIG digits should be enough as the precision,
-         but LDBL_DIG+1 seems to help on some systems.  However, on Solaris,
-         with 128-bit long doubles, LDBL_DIG+1 hits the conversion of
+      /* In theory LDBL_DIG+1 digits should be enough as the precision,
+         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
+         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
          LDBL_MIN in a funny place with regard to rounding and the Sun CC
          compiler doesn't accept that value converted in that way.  So on
-         systems with 128-bit long double, just stick with LDBL_DIG. */
-      (void)sprintf(str, "%.*Lg",
-              (LDBL_DIG>30) ? LDBL_DIG + 1 : LDBL_DIG + 2, temp);/*lint !e506*/
+         systems with 128-bit long double, just stick with LDBL_DIG+1
+         when using the C++-generating back end. */
+      int	ldbl_digits = LDBL_DIG + 2;
+#if BACK_END_IS_CP_GEN_BE
+      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
+#endif /* BACK_END_IS_CP_GEN_BE */
+      (void)sprintf(str, "%.*Lg", ldbl_digits, temp);
     }  /* if */
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     if (kind == (a_float_kind)fk_float) {
