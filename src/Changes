@@ -1,5 +1,23 @@
 Version 2.11
 
+10/28/92 Handling of type qualifiers on reference initialization
+
+The handling of type qualifiers on reference initializers was tweaked
+yet again to deal with a case like
+
+  volatile int i;
+  const float &r = i;
+
+The fact that "i" has excess qualifiers is moot, since it has the wrong
+type and must be converted to float anyway.  Formerly, an error was
+issued.
+
+10/27/92 Minor c_gen_be.c changes for constants
+
+c_gen_be has been changed so that (a) it always casts unsigned constants
+to an unsigned type and (b) it masks unprintable characters in strings
+so that they are printed correctly even if they appear negative.
+
 10/27/92 New identifier scanning routines
 
 The routines that scan class qualifiers and identifiers have been
@@ -40,7 +58,9 @@ longer provokes an internal error:
 
 Two new files have been added.  They will contain routines that manipulate
 the internal representation of integer constants.  This is in preparation
-for the changes to support 64-bit integers on a 32-bit host.
+for the changes to support 64-bit integers on a 32-bit host.  Places
+that used to refer directly to the integer_value field of a_constant
+now call some routine in const_ints.c.
 
 10/21/92 Fixed bug in IL lowering code for multi-dimensional array new
 
