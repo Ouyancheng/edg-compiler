@@ -1047,6 +1047,21 @@ EXTERN char	*import_dir_name /* = NULL */;
 			   sought for the Microsoft #import directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+EXTERN a_boolean
+	       instantiations_permitted_in_class_src_seq_list
+#if VAR_INITIALIZERS
+                    = DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* Flag that indicates whether a source sequence
+			   entry representing a template instantiation is
+			   permitted within the portion of the source
+			   sequence list representing a class definition. */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

@@ -816,6 +816,77 @@ Process the default argument expressions for the indicated class.
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* If a template instantiation is triggered by a default argument,
+       the point at which the instantiation should be represented in the
+       source sequence list is problematic when the C++-generating back end
+       is being called.  Since a explicit specialization is put out to
+       represent the instantiation, there are potentially conflicting
+       constraints: an explicit specialization may not appear in a class
+       scope; it must appear before the default argument that references it;
+       and it must appear after the declaration of types used in its template
+       arguments.  When instantiations_permitted_in_class_src_seq_list is
+       TRUE, the first constraint is ignored and the instantiation is
+       entered immediately before the function declaration containing the
+       default argument.  When it is FALSE, the third constraint is ignored
+       and the instantiation is entered in the innermost namespace scope
+       containing the class declaration. */
+    {
+    a_boolean                     ss_list_insert_point_adjusted = FALSE;
+    a_src_seq_secondary_decl_ptr  sssdp;
+
+    if (!instantiations_permitted_in_class_src_seq_list &&
+        !is_nonreal_template_instantiation &&
+        !class_type->source_corresp.is_local_to_function) {
+      /* Set the instantiation insert point so that it precedes the class
+         definition. */
+      if (class_type->source_corresp.source_sequence_entry != NULL) {
+#if DEBUG
+        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+          fputs("forcing ss-entries for instantiations triggered ", f_debug);
+          fputs("by default args to precede\n  class \"", f_debug);
+          db_type_name(class_type);
+          fputs("\"\n", f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        push_ss_insert_stack(class_type->source_corresp.source_sequence_entry);
+        ss_list_insert_point_adjusted = TRUE;
+        /* Put out a secondary-decl source sequence entry, in case the
+           instantiations, if any, have template arguments involving the
+           current class type. */
+        if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
+          /* Reactivate the class (and the file-scope memory region). */
+          push_class_and_template_reactivation_scope(class_type,
+                                                     is_template_based);
+          curr_scope_class_type = class_type;
+        }  /* if */
+        sssdp = alloc_src_seq_secondary_decl();
+        sssdp->decl_position = class_type->source_corresp.decl_position;
+        sssdp->entity.ptr = (char *)class_type;
+        sssdp->entity.kind = (a_byte_il_entry_kind)iek_type;
+        sssdp->declared_type = class_type;
+        sssdp->autonomous_tag_decl = TRUE;
+        if (is_real_template_instantiation) {
+#if BACK_END_IS_CP_GEN_BE
+          sssdp->specialized_with_new_syntax =
+                            !old_specializations_for_generated_instances;
+#else /* !BACK_END_IS_CP_GEN_BE */
+          sssdp->specialized_with_new_syntax = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+        }  /* if */
+        /* Add the entry to the source sequence list. */
+        f_update_source_sequence_list(
+                              (char *)sssdp,
+                              (an_il_entry_kind)iek_src_seq_secondary_decl,
+                              (a_source_sequence_entry_ptr)NULL);
+        /* Be sure any instantiations are added *after* this entry. */
+        scope_stack[DEPTH_OF_FILE_SCOPE].
+                              ss_list_instantiation_insert_point = NULL;
+      }  /* if */
+    }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
       daefp = rfp->def_arg_expr_fixup_list;
       if (daefp != NULL) {
@@ -896,32 +967,33 @@ Process the default argument expressions for the indicated class.
         {
         a_boolean  do_declared_type_fixup = is_function_symbol(sym);
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        a_boolean  ss_list_insert_point_adjusted = FALSE;
+        if (instantiations_permitted_in_class_src_seq_list) {
+          if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+            /* Set the source-sequence insert point so that instantiations
+               triggered by scanning default argument expressions will
+               appear inside the class definition, immediately before the
+               declaration in which the default argument appears.  This
+               assures that the instantiation will appear following the
+               declarations of class members on which it is dependent in one
+               way or another.  However, this will cause the C++-generating
+               back end to put out an explicit specialization inside a class
+               body, which is a violation of the standard. */
+            a_source_sequence_entry_ptr  ssep;
+            an_il_entry_kind             kind;
 
-        if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-          /* Set the source-sequence insert point so that instantiations
-             triggered by scanning default argument expressions will
-             appear inside the class definition, immediately before the
-             declaration in which the default argument appears. (This is
-             a compromise -- they can't always appear before the class
-             definition, since they may be dependent on class members in one
-             way or another; yet putting them inside the class causes the
-             C++-generating back end to put out an explicit specialization
-             in a class body, which is a violation of the standard.) */
-          a_source_sequence_entry_ptr  ssep;
-          an_il_entry_kind             kind;
-
-          ssep = last_matching_source_sequence_entry(
-                                   il_entry_for_symbol(sym, &kind));
-          check_assertion(ssep != NULL);
-          push_ss_insert_stack(ssep);
-          ss_list_insert_point_adjusted = TRUE;
-        } else {
-          /* If a default argument on a member function declaration of a
-             local class triggers an instantiation, it should be recorded
-             in the nearest enclosing namespace scope.  That's what the
-             "instantiation insert point" should be set to already, so
-             nothing else needs to be done. */
+            ssep = last_matching_source_sequence_entry(
+                                     il_entry_for_symbol(sym, &kind));
+            check_assertion(ssep != NULL);
+            push_ss_insert_stack(ssep);
+            ss_list_insert_point_adjusted = TRUE;
+          } else {
+            /* If a default argument on a member function declaration of a
+               local class triggers an instantiation, it should be recorded
+               in the nearest enclosing namespace scope.  That's what the
+               "instantiation insert point" should be set to already, so
+               nothing else needs to be done. */
+            ss_list_insert_point_adjusted = FALSE;
+          }  /* if */
         }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -993,12 +1065,39 @@ Process the default argument expressions for the indicated class.
                                          rfp->func_info.declared_type);
         }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
+        if (instantiations_permitted_in_class_src_seq_list &&
+            ss_list_insert_point_adjusted) {
+          pop_ss_insert_stack();
+        }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* for */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* Restore the insert-point state. */
+    if (!instantiations_permitted_in_class_src_seq_list &&
+        ss_list_insert_point_adjusted) {
+      a_source_sequence_entry_ptr  ssep;
+
+      pop_ss_insert_stack();
+      /* If no instantiation was added between the source-sequence entry
+         for the definition of the class and the secondary-decl entry added
+         before it (see above), the latter can be removed. */
+      ssep = class_type->source_corresp.source_sequence_entry->prev;
+      if (ss_entry_kind(ssep) ==
+                       (an_il_entry_kind)iek_src_seq_secondary_decl) {
+        sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+        if (sssdp->entity.ptr == (char *)class_type) {
+          a_src_seq_sublist_ptr  dummy = NULL;
+          remove_from_source_sequence_list(ssep, &dummy);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    }
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (curr_scope_class_type != NULL) {
       /* Pop the reactivated class scope from the scope stack. */
       pop_class_reactivation_scope();
@@ -1049,7 +1148,7 @@ nested class.
 
     if (!class_type->source_corresp.is_local_to_function) {
       /* Temporarily remove source sequence entries, if any that have been
-         entered after the end-of-construct entry for class that was just
+         entered after the end-of-construct entry for the class that was just
          defined.  Here's an example why:  Sometimes the definition of a
          member or friend functions is represented by a source sequence
          entry that is added after the end of the class body.  Moreover, in
