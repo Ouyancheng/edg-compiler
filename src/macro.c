@@ -915,7 +915,7 @@ so a hanging delete is in effect).
 }  /* check_for_following_parenthesis */
 
 
-static a_token_kind scan_defined_operator(a_boolean *got_proper_closing_token)
+static a_token_kind scan_defined_operator(void)
 /*
 Scan an instance of the "defined" operator in a preprocessor expression.
 It has the form
@@ -926,12 +926,11 @@ or
 
   defined ( identifier )
 
-(See standard, 3.8.1).  Return tok_int_constant with a value of 0L (not
-defined) or 1L (defined).  This is done even if there is an error.
-If the "defined" identifier is not an operator in this case, return
-tok_identifier.  Return *got_proper_closing_token TRUE if the "defined"
-operator was correctly closed and the final token is the current token
-on return.
+(See standard, 3.8.1).  If the "defined" identifier is not an operator
+in this case, return tok_identifier.  Otherwise (including in error
+cases), set const_for_curr_token to a value of 0L (not defined) or 1L
+(defined), and return tok_int_constant.  On return, the first token
+beyond the operator has not yet been fetched.
 */
 {
   a_symbol_ptr  assoc_symbol = NULL;
@@ -942,7 +941,6 @@ on return.
   a_boolean     paren_or_id_found;
 
   db_enter(4, "scan_defined_operator");
-  *got_proper_closing_token = FALSE;
   copy_source_position(pos_curr_token, start_position);
   if (!in_pp_if_expression) {
     /* If not inside a #if expression, "defined" is just an identifier. */
@@ -965,7 +963,6 @@ on return.
         /* First form -- "defined identifier". */
         assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                    &locator_for_curr_id);
-        *got_proper_closing_token = TRUE;
       } else {
         /* Second form -- "defined ( identifier )". */
 #if CHECKING
@@ -973,30 +970,35 @@ on return.
           internal_error("scan_defined_operator: next is not id or \"(\"");
         }  /* if */
 #endif /* CHECKING */
-        add_stop_token(tok_rparen);
         if (get_token() != tok_identifier) {
           /* Error -- Expected an identifier. */
-          (void)required_token(tok_identifier, ec_exp_identifier);
+          error(ec_exp_identifier);
+          unget_token();
         } else {
           assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                      &locator_for_curr_id);
-          (void)get_token();
+          if (get_token() != tok_rparen) {
+            /* Error -- Expected a right parenthesis. */
+            if (microsoft_mode && curr_token == tok_newline) {
+              /* The Microsoft compiler gives no error on the missing
+                 right parenthesis at end of line, and Microsoft headers
+                 unfortunately use this. */
+              remark(ec_exp_rparen);
+            } else {
+              error(ec_exp_rparen);
+            }  /* if */
+            unget_token();
+          }  /* if */
         }  /* if */
-        if (curr_token == tok_rparen) {
-          *got_proper_closing_token = TRUE;
-        } else {
-          /* Error -- Expected a right parenthesis. */
-          set_err_pos_to_curr_token();
-          syntax_error(ec_exp_rparen);
-        }  /* if */
-        remove_stop_token(tok_rparen);
       }  /* if */
       /* Make a 0 or 1 constant depending or whether the symbol is undefined
          or defined.  Note that for error cases assoc_symbol is NULL and
          that will produce a value of 0. */
-      assoc_symbol = find_defined_macro(assoc_symbol);
       if (assoc_symbol != NULL) {
-        mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
+        assoc_symbol = find_defined_macro(assoc_symbol);
+        if (assoc_symbol != NULL) {
+          mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
+        }  /* if */
       }  /* if */
       ctoken = make_pp_int_constant((long)(assoc_symbol != NULL));
       /* Set the token position to the start of the keyword "defined". */
@@ -1675,7 +1677,7 @@ end_scan_for_macro_modifs:;
            an operator allowed only in #if expressions.  However, it is
            most easily handled as a pseudo-macro. */
         is_macro_call = FALSE;
-        ctoken = scan_defined_operator(&got_proper_closing_token);
+        ctoken = scan_defined_operator();
         *rescan = FALSE;
         /* Whether we end up with the original identifier or a constant,
            we have a token to return and do not need to rescan. */
@@ -1982,9 +1984,6 @@ end_arg_expansion:;
        replacement (problems that stem from the fact that the source
        modification technique really only allows replacements, not
        straight insertions). */
-    /* Example:
-         #if defined(x
-    */
     /* Delete any part of the macro invocation that is on this line. */
     if (delete_source_from_loc != NULL &&
         delete_source_from_loc < start_of_curr_token) {

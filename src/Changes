@@ -1,5 +1,15 @@
 Version 2.36
 
+5/9/97    Microsoft compatibility: missing closing parenthesis on defined(...)
+
+The Microsoft compiler allows the closing parenthesis on the preprocessor
+"defined" operator to be omitted, as in
+
+  #if defined(X
+
+and gives no error.  We now accept this in Microsoft compatibility mode,
+and issue a remark.  There are Microsoft headers that exploit this.
+
 5/8/97    Invalid test in find_function_template_member
 
 A test in find_function_template_member used the incorrect variant
