@@ -31,7 +31,31 @@ in .h files.
 #define VAR_INITIALIZERS 1
 /*lint -restore*/
 
+#include "basic_hdrs.h"
 #include "fe_common.h"
+
+#if STANDALONE_UTILITY_PROGRAM
+
+/* Header files used by standalone utility programs. */
+#include "il_display.h"
+#include "il_walk.h"
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#include "il_file.h"
+#include "il_read.h"
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+void standalone_utility_init(void)
+/*
+Initialize global variables that may be used by standalone utility programs.
+*/
+{
+  target_early_init();
+  target_one_time_init();
+  target_init();
+}  /* standalone_utility_init */
+
+#else /* !STANDALONE_UTILITY_PROGRAM */
+
 #if __BSD__
 #include <sys/time.h>
 #else  /* !__BSD__ */
@@ -1227,6 +1251,7 @@ when it is a secondary file.
   }  /* if */
 }  /* fe_translation_unit_init */
 
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *

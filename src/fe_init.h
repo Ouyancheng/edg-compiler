@@ -18,13 +18,16 @@ fe_init.h -- Declarations relating to fe_init.c (having to do with
 #ifndef FE_INIT_H
 #define FE_INIT_H 1
 
-/* Initialize front end: */
+#if STANDALONE_UTILITY_PROGRAM
+extern void standalone_utility_init(void);
+#else /* !STANDALONE_UTILITY_PROGRAM */
 extern void fe_early_init(void);
 extern void fe_one_time_init(void);
 extern void fe_init_part_1(void);
 extern void fe_init_for_pch_prefix_scan(void);
 extern void fe_init_part_2(void);
 extern void fe_translation_unit_init(void);
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
 #endif /* ifndef FE_INIT_H */
 

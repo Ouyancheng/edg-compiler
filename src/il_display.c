@@ -26,12 +26,6 @@ program as the front end is produced.
 #pragma no_pch
 #endif /* PCH_PRAGMA_GUARD */
 
-/* For the main-program version, get global variables defined. */
-#ifdef STANDALONE_IL_DISPLAY
-#define EXTERN /*empty*/
-#define VAR_INITIALIZERS 1
-#endif /* ifdef STANDALONE_IL_DISPLAY */
-
 #include "basic_hdrs.h"
 
 /*
@@ -50,6 +44,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "il_display.h"
 #include "il_walk.h"
 #if STANDALONE_IL_DISPLAY
+#include "fe_init.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
 #include "il_read.h"
@@ -6009,6 +6004,9 @@ where file.cil specifies the IL file.  Output is to stdout.
      done before anything else that could potentially produce debug output. */
   f_debug = stderr;
 #endif /* DEBUG */
+  /* Initialize the components of the front end needed by standalone
+     utility programs. */
+  standalone_utility_init();
   /* Set the position for errors to "unknown". */
   error_position.seq = 0;
   error_position.column = SP_COL_UNKNOWN;
@@ -6034,9 +6032,6 @@ where file.cil specifies the IL file.  Output is to stdout.
   if (optind != argc - 1) {
     command_line_error(ec_cl_il_display_requires_il_file_name);
   }  /* if */
-  target_early_init();
-  target_one_time_init();
-  target_init();
 #if CHECKING
   check_target_configuration();
 #endif /* CHECKING */

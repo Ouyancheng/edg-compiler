@@ -29,12 +29,6 @@ called in the same program as the front end is produced (if needed).
 #pragma no_pch
 #endif /* PCH_PRAGMA_GUARD */
 
-#ifdef STANDALONE_CP_GEN_BE
-/* For the main-program version, get global variables defined. */
-#define EXTERN /*empty*/
-#define VAR_INITIALIZERS 1
-#endif /* ifdef STANDALONE_CP_GEN_BE */
-
 #include "basic_hdrs.h"
 
 #if STANDALONE_CP_GEN_BE
@@ -85,9 +79,7 @@ a "for"] would have to be rewritten.)
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #if STANDALONE_CP_GEN_BE
-/* Include files needed only to define storage for global variables
-   in the main program. */
-#include "il_walk.h"
+#include "fe_init.h"
 #endif /* STANDALONE_CP_GEN_BE */
 
 #if !GNU_EXTENSIONS_ALLOWED
@@ -11702,6 +11694,9 @@ from the primary source file name in the IL information.
   FILE *f_il_input;
   int  optind = 1;
 
+  /* Initialize the components of the front end needed by standalone
+     utility programs. */
+  standalone_utility_init();
   /* Initialize. */
   init_cp_gen_be();
   /* The source file name is unknown until the IL is read correctly. */

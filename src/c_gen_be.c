@@ -28,18 +28,9 @@ instead of K&R C.
 #pragma no_pch
 #endif /* PCH_PRAGMA_GUARD */
 
-#ifdef STANDALONE_C_GEN_BE
-/* For the main-program version, get global variables defined. */
-#define EXTERN /*empty*/
-#define VAR_INITIALIZERS 1
-#endif /* ifdef STANDALONE_C_GEN_BE */
-
 #include "basic_hdrs.h"
 
 #if STANDALONE_C_GEN_BE
-/* For the main-program version, get global variables defined. */
-#define EXTERN /*empty*/
-#define VAR_INITIALIZERS 1
 #if !BACK_END_IS_C_GEN_BE
 /* We could just set the flag here for THIS compilation, but we want to
    ensure that it's set for the compilation of the OTHER files needed
@@ -68,10 +59,7 @@ instead of K&R C.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #if STANDALONE_C_GEN_BE
-/* Include files needed only to define storage for global variables
-   in the main program. */
-#include "lexical.h"
-#include "expr.h"
+#include "fe_init.h"
 #endif /* STANDALONE_C_GEN_BE */
 
 
@@ -8920,6 +8908,10 @@ from the primary source file name in the IL information.
 {
   FILE *f_il_input;
   int  optind = 1;
+
+  /* Initialize the components of the front end needed by standalone
+     utility programs. */
+  standalone_utility_init();
 
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
