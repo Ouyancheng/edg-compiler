@@ -1685,6 +1685,25 @@ is in fact valid.
 }  /* verify_type_correspondence */
 
 
+static a_boolean specialized_vs_generic_class_template_conflict(
+                                      a_template_symbol_supplement_ptr  tssp1,
+                                      a_template_symbol_supplement_ptr  tssp2)
+/*
+Return TRUE if one of the class templates associated with the given pointers
+is a specialization while the other one is generic and has been used.
+(Note that only member templates can be specializations.)
+*/
+{
+  a_boolean  result =
+             tssp1->is_specific_definition != tssp2->is_specific_definition &&
+             ((!tssp1->is_specific_definition &&
+               tssp1->variant.class_template.any_full_instantiations) ||
+              (!tssp2->is_specific_definition &&
+               tssp2->variant.class_template.any_full_instantiations));
+  return result;
+}  /* specialized_vs_generic_class_template_conflict */
+
+
 static a_boolean verify_template_correspondence(a_template_ptr  templ)
 /*
 Check that the recorded translation unit correspondence for the given template
@@ -1716,11 +1735,19 @@ is in fact valid.
         (scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage ||
          (tssp != NULL &&
-          !equiv_template_param_lists(
+          (!equiv_template_param_lists(
                                     corresp_tssp->cache.decl_info->parameters,
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
-                                    &templ_sym->decl_position)))) {
+                                    &templ_sym->decl_position) ||
+           /* Check if a (member) class template was specialized in one
+              translation unit, but generated in the other.  To avoid
+              duplicate diagnostics, this is only done for the canonical
+              template. */
+           (is_class_template_symbol(templ_sym) &&
+            templ->canonical_template == templ &&
+            specialized_vs_generic_class_template_conflict(tssp,
+                                                           corresp_tssp)))))) {
       match = FALSE;
       process_bad_trans_unit_corresp(templ);
     }  /* if */
