@@ -2387,7 +2387,8 @@ static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
                                   a_boolean              dtor_case,
                                   a_constructor_init_ptr ctor_init,
                                   a_boolean              others_follow_in_aggr,
-                                  an_insert_location_ptr insert_location)
+                                  an_insert_location_ptr insert_location,
+                                  a_boolean              *keep_constant)
 /*
 Generate executable code to handle a ck_dynamic_init constant (pointed
 to by con_ptr).  The entity to be initialized is described by ipdp.
@@ -2399,11 +2400,15 @@ indicated in the dynamic init but ignore any initialization.  If the dynamic
 initialization is part of a constructor initializer, ctor_init points
 to the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
 is followed by others in an aggregate initialization (i.e., it's not the
-last).
+last).  If the initialization is of an aggregate and there some parts
+of the initialization that are constant, the ck_dynamic_init constant
+will be changed to an aggregate constant for the constant parts and
+*keep_constant will be set to TRUE.
 */
 {
   a_constant_ptr next_con;
   a_type_ptr     desired_type;
+  a_constant_ptr constant_to_keep = NULL;
 
   if (dtor_case) {
     /* In a destructor case, so the "initialization" is really
@@ -2416,35 +2421,43 @@ last).
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        ctor_init, LDIO_FULL_EXPR, others_follow_in_aggr,
-                       insert_location, (a_boolean *)NULL);
+                       insert_location, (a_boolean *)NULL,
+                       &constant_to_keep);
   }  /* if */
-  /* Overwrite the constant with a harmless constant of the right kind.
-     It's just a place-holder that gets overwritten by the dynamic
-     initialization. */
-  desired_type = ipdp->modifiers->type;
-  if (is_aggregate_or_union_type(desired_type)) {
-    /* An aggregate is initialized with a ck_dynamic_init.  This can
-       come up in something like
-         complex v[6] = {1, complex(1,2), complex(), 4};
-       (From the ARM, 12.6.1).  Fortunately, if there's one of these
-       cases in a ck_aggregate, there can be no "normal" constants
-       in the aggregate, and the whole aggregate will be thrown
-       away.   For such a case, we could just leave the ck_dynamic_init
-       constant as it is.  There is another case, however: a pointer-to-
-       member-function is lowered into an aggregate, and that case
-       will come here too.  To handle that, we change the
-       ck_dynamic_init into an empty aggregate constant.  Note that
-       if we wanted a fully general solution for the earlier case
-       we would have to build a multi-level empty aggregate constant
-       with a structure that matches the aggregate, but since the constant
-       here is only used in the pointer-to-member-function case, we
-       need do no more than the simplest change. */
-    set_constant_kind(con_ptr, (a_constant_repr_kind)ck_aggregate);
+  if (constant_to_keep != NULL) {
+    /* There's a constant part of the initialization that needs to be
+       kept.  Replace the ck_dynamic_init constant with that constant. */
+    copy_constant(constant_to_keep, con_ptr);
+    *keep_constant = TRUE;
   } else {
-    /* Not an aggregate: a zero of the right type will be fine. */
-    next_con = con_ptr->next;
-    make_zero_of_proper_type(desired_type, con_ptr);
-    con_ptr->next = next_con;
+    /* Overwrite the constant with a harmless constant of the right kind.
+       It's just a place-holder that gets overwritten by the dynamic
+       initialization. */
+    desired_type = ipdp->modifiers->type;
+    if (is_aggregate_or_union_type(desired_type)) {
+      /* An aggregate is initialized with a ck_dynamic_init.  This can
+         come up in something like
+           complex v[6] = {1, complex(1,2), complex(), 4};
+         (From the ARM, 12.6.1).  Fortunately, if there's one of these
+         cases in a ck_aggregate, there can be no "normal" constants
+         in the aggregate, and the whole aggregate will be thrown
+         away.   For such a case, we could just leave the ck_dynamic_init
+         constant as it is.  There is another case, however: a pointer-to-
+         member-function is lowered into an aggregate, and that case
+         will come here too.  To handle that, we change the
+         ck_dynamic_init into an empty aggregate constant.  Note that
+         if we wanted a fully general solution for the earlier case
+         we would have to build a multi-level empty aggregate constant
+         with a structure that matches the aggregate, but since the constant
+         here is only used in the pointer-to-member-function case, we
+         need do no more than the simplest change. */
+      set_constant_kind(con_ptr, (a_constant_repr_kind)ck_aggregate);
+    } else {
+      /* Not an aggregate: a zero of the right type will be fine. */
+      next_con = con_ptr->next;
+      make_zero_of_proper_type(desired_type, con_ptr);
+      con_ptr->next = next_con;
+    }  /* if */
   }  /* if */
 }  /* lower_ck_dynamic_init */
 
@@ -2542,7 +2555,7 @@ aggregate, set *keep_constant to TRUE.
     if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
       /* Dynamic initialization. */
       lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, ctor_init,
-                            others_follow, insert_location);
+                            others_follow, insert_location, keep_constant);
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* Repeated constant.  Must be initializing members of an array. */
 #if CHECKING
@@ -2564,7 +2577,7 @@ aggregate, set *keep_constant to TRUE.
       ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
       lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
-                            others_follow, insert_location);
+                            others_follow, insert_location, keep_constant);
       /* Remove the ck_init_repeat constant, in case the overall aggregate
          is kept for the constant parts. */
       check_assertion(con_ptr->next == NULL);
@@ -3570,7 +3583,8 @@ void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                                options,
                         a_boolean              others_follow_in_aggr,
                         an_insert_location_ptr insert_location,
-                        a_boolean              *keep_dynamic_init)
+                        a_boolean              *keep_dynamic_init,
+                        a_constant_ptr         *constant_to_keep)
 /*
 Do IL lowering of the indicated dynamic initialization and everything under
 it.  ipdp indicates the entity to be initialized.  Ordinarily, that is the
@@ -3608,6 +3622,10 @@ be kept, FALSE if it should be deleted.  If the caller passes in
 keep_dynamic_init == NULL, no value is returned; the value determined
 in this routine must be FALSE in that case.
 
+On return, *constant_to_keep is set to point to a constant part of the
+initialization that should be kept.  If this feature is not needed,
+constant_to_keep can be passed in as NULL.
+
 When Microsoft extensions are allowed, this routine is called in C mode to
 lower initialization for nonconstant aggregates.
 */
@@ -3641,6 +3659,7 @@ lower initialization for nonconstant aggregates.
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
+  if (constant_to_keep != NULL) *constant_to_keep = NULL;
   variable = dip->variable;
   if (variable != NULL) {
     /* Whole-variable initialization. */
@@ -3992,35 +4011,44 @@ do_assignment:;
                                             eff_insert_location,
                                             &keep_constant);
       if (keep_constant) {
-        /* Keep a (now-)constant aggregate value as the static initial value
-           of the variable.  The nonconstant parts have been put out as
-           code and replaced with placeholder constants. */
-        simple_constant_init = TRUE;
-        simple_constant = dip->variant.constant;
+        /* There is a constant part of the initialization to be kept. */
+        if (variable == NULL) {
+          /* There is no variable, so we are down inside an aggregate
+             initialization.  Pass this constant back to the caller. */
+          check_assertion(constant_to_keep != NULL);
+          *constant_to_keep = dip->variant.constant;
+        } else {
+          /* Keep a (now-)constant aggregate value as the static initial value
+             of the variable.  The nonconstant parts have been put out as
+             code and replaced with placeholder constants. */
+          simple_constant_init = TRUE;
+          simple_constant = dip->variant.constant;
 #if LOWER_EXTERN_INLINE
-        if (local_static_promoted_out_of_extern_inline) {
-          /* A static variable of an extern inline function initialized
-             to a constant.  The constant is the constant part of the
-             nonconstant aggregate.  Insert an assignment to set the variable
-             to the constant, preceding any generated initialization code.
-             This is done because we want the variable to be a tentative
-             definition, which means it must be uninitialized. */
-          an_expr_node_ptr init_val_node;
-          set_block_start_insert_location(block_stmt, &insert_location2);
-          entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
-                                              /*using_as_dest=*/TRUE);
-          check_assertion(simple_constant->kind ==
-                          (a_constant_repr_kind)ck_aggregate);
-          init_val_node = make_node_for_il_constant(simple_constant);
-          (void)insert_assignment_statement(entity_node,
+          if (local_static_promoted_out_of_extern_inline) {
+            /* A static variable of an extern inline function initialized
+               to a constant.  The constant is the constant part of the
+               nonconstant aggregate.  Insert an assignment to set the variable
+               to the constant, preceding any generated initialization code.
+               This is done because we want the variable to be a tentative
+               definition, which means it must be uninitialized. */
+            an_expr_node_ptr init_val_node;
+            set_block_start_insert_location(block_stmt, &insert_location2);
+            entity_node = make_init_entity_node(ipdp,
+                                                /*using_as_address=*/FALSE,
+                                                /*using_as_dest=*/TRUE);
+            check_assertion(simple_constant->kind ==
+                            (a_constant_repr_kind)ck_aggregate);
+            init_val_node = make_node_for_il_constant(simple_constant);
+            (void)insert_assignment_statement(entity_node,
                                             (an_expr_operator_kind)eok_sassign,
-                                            init_val_node,
-                                            &insert_location2);
-          variable->init_kind = (an_init_kind)initk_none;
-          variable->initializer.constant = NULL;
-          simple_constant_init = FALSE;
-        }  /* if */
+                                              init_val_node,
+                                              &insert_location2);
+            variable->init_kind = (an_init_kind)initk_none;
+            variable->initializer.constant = NULL;
+            simple_constant_init = FALSE;
+          }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
+        }  /* if */
       }  /* if */
       break;
     case dik_bitwise_copy:
@@ -4890,7 +4918,8 @@ The subtree of the node has not yet been lowered.
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_NONE,
                          /*others_follow_in_aggr=*/FALSE,
-                         &insert_location, (a_boolean *)NULL);
+                         &insert_location, (a_boolean *)NULL,
+                         (a_constant **)NULL);
       /* Now that the entity is initialized, turn off the freeing on
          exception. */
       turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
@@ -5168,7 +5197,8 @@ Do IL lowering of an enk_temp_init expression node.
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL);
+                       &insert_location, (a_boolean *)NULL,
+                       (a_constant **)NULL);
     /* Optimization -- if the initialization is done by a constructor,
        and the enk_temp_init returns the address of the temporary,
        use the pointer returned from the constructor as the value of
@@ -5367,7 +5397,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, &keep_dynamic_init);
+                       &insert_location, &keep_dynamic_init,
+                       (a_constant **)NULL);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
       turn_statement_into_noop(statement);
@@ -5417,7 +5448,8 @@ init_stmt is the stmk_init statement.
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, &keep_dynamic_init);
+                       &insert_location, &keep_dynamic_init,
+                       (a_constant **)NULL);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
       turn_statement_into_noop(init_stmt);
@@ -5856,7 +5888,8 @@ inserted at *insert_location, and *insert_location is updated.
   lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
                      LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
-                     insert_location, (a_boolean *)NULL);
+                     insert_location, (a_boolean *)NULL,
+                     (a_constant **)NULL);
 }  /* lower_ctor_init */
 
 
@@ -7415,8 +7448,8 @@ after all initialization routines for instantiations have been generated.
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                          /*others_follow_in_aggr=*/FALSE,
-                         eff_insert_location, (a_boolean *)NULL);
-
+                         eff_insert_location, (a_boolean *)NULL,
+                         (a_constant **)NULL);
     }  /* for */
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */

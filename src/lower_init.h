@@ -102,7 +102,8 @@ extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                                       options,
                                a_boolean              others_follow_in_aggr,
                                an_insert_location_ptr insert_location,
-                               a_boolean              *keep_dynamic_init);
+                               a_boolean              *keep_dynamic_init,
+                               a_constant_ptr         *constant_to_keep);
 
 extern void lower_new_delete(an_expr_node_ptr expr);
 

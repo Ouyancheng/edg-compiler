@@ -9510,7 +9510,8 @@ Lower an stmk_return statement.
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                          /*others_follow_in_aggr=*/FALSE,
-                         &insert_location, (a_boolean *)NULL);
+                         &insert_location, (a_boolean *)NULL,
+                         (a_constant **)NULL);
     } else {
       /* Return value optimization was done. */
       if (dip->init_expr_lifetime != NULL) {
@@ -9788,7 +9789,8 @@ handled).
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL);
+                       &insert_location, (a_boolean *)NULL,
+                       (a_constant **)NULL);
     /* Lower the value expression. */
     value_expr = csp->expr;
     if (bool_is_keyword && !is_switch_stmt) {

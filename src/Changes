@@ -1,5 +1,27 @@
 Version 2.39
 
+5/3/96    Constant part of nonconstant aggregate initialization dropped
+          when exceptions enabled
+
+When exceptions are enabled, there were cases where a constant part
+of a nonconstant aggregate initialization would be dropped.  These cases
+involve brace-enclosed initialization of the members of a class that has
+a destructor, inside some containing aggregate such as an array.
+Now fixed.
+
+  struct S {
+    S(const char *);
+    ~S();
+  };  
+  struct X {
+    int i;
+    S s;
+  };
+  int main () {
+    X Mx[1] = {{1771,"test a"}};  // Init to 1771 was not done
+    return 0;
+  } 
+
 5/2/98    Microsoft compatibility: more cases like long + int ==> int
 
 In a previous change (see Changes entry of 4/22/97), we attempted to match

@@ -3134,7 +3134,8 @@ for the scope of the handler.
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL);
+                       &insert_location, (a_boolean *)NULL,
+                       (a_constant **)NULL);
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
   }  /* if */
@@ -3967,7 +3968,8 @@ Lower an enk_throw expression node.
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_THROW,
                        /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL);
+                       &insert_location, (a_boolean *)NULL,
+                       (a_constant **)NULL);
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* Put the lowered node pointer into the throw supplement. */
     tsp->expr = insert_location.variant.expr;
