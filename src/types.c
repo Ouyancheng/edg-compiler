@@ -3552,11 +3552,6 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              and accessibility check to be done when the cast is done. */
           okay = TRUE;
           std_conv->cast_base_class = bcp;
-        } else if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
-          /* In pcc mode and in SVR4 C compatibility mode, allow conversion
-             between incompatible pointer types, with a warning. */
-          okay = TRUE;
-          std_conv->warning_suggested = default_warning_code;
         } else if ((!suppress_extensions || !C_mode()) &&
                    qualification_conversion_possible
                                      (source_type_pointed_to,
@@ -3604,6 +3599,13 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                    is_function(unqual_source_type_pointed_to)) {
           /* In C, allow conversion between incompatible pointers to
              functions, as an extension, with a warning. */
+          okay = TRUE;
+          std_conv->warning_suggested = default_warning_code;
+        } else if (C_mode() &&
+                   (C_dialect == C_dialect_pcc || SVR4_C_mode ||
+                    microsoft_mode)) {
+          /* In pcc mode, SVR4 C, and Microsoft C modes, allow conversion
+             between incompatible pointer types, with a warning. */
           okay = TRUE;
           std_conv->warning_suggested = default_warning_code;
         }  /* if */

@@ -1,6 +1,12 @@
 Version 2.41
 
-2/17/99   Microsoft compatibility: lvalue cast of pointer to integral
+2/17/99   Microsoft C compatibility: implicit conversions between any
+          pointer types
+
+In Microsoft C mode, a pointer can now be implicitly converted to
+a pointer to any other type.  A warning is issued.
+
+2/17/99   Microsoft C compatibility: lvalue cast of pointer to integral
 
 In Microsoft C mode, an lvalue cast of a pointer to an integral
 type of a different size is now allowed.
