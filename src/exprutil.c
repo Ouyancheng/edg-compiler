@@ -4530,6 +4530,10 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
        an expression tree.  Note that we don't use cast_operand or
        type_change_constant, because this conversion might be highly
        invalid. */
+    /* We also cast the constant in some cases in non-constant expressions.
+       In particular, it is important that initializers for entities of
+       integral or enum type be folded to constants so their values can
+       be used in constant expressions. */
     do_generic_operand_transformations(operand);
     if (is_an_lvalue(operand)) {
       conv_lvalue_to_rvalue(operand);
@@ -5968,7 +5972,14 @@ to (or a function designator).
     } else {
       operand->type = type_pointed_to(operand->type);
     }  /* if */
-    if (is_function_type(operand->type)) {
+    if (is_function_type(operand->type) ||
+        /* Address of an unknown function in a prototype instantiation should
+           be a function designator. */
+        (is_constant_operand(operand) &&
+         operand->variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+         operand->variant.constant.variant.template_param.kind ==
+                      (a_template_param_constant_kind)tpck_unknown_function)) {
       operand->state = (an_operand_state)os_function_designator;
     } else {
       operand->state = (an_operand_state)os_lvalue;
