@@ -1,5 +1,13 @@
 Version 2.32
 
+5/31/96 Windows-NT portability issues
+
+The code in host_envir.c that reads directory entries has been changed
+to use names that available on a wider variety of NT compilers.
+For example, to use _tfindfirst intead of _findfirst.  The _t versions
+of the names are typically macros that expand to some other name that
+is appropriate for a given environment.
+
 5/30/96 Partial initialization of multidimensional array of class
 
 The correct dynamic-init entries are now produced for cases like this:

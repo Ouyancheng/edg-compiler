@@ -1770,6 +1770,8 @@ and curr_dir_name is the current directory name.
 WIN32 (e.g., Windows-NT) version.
 */
 
+#include <tchar.h>
+#include <dos.h>
 #include <io.h>
 
 char *get_file_name_from_dir(a_boolean	first,
@@ -1778,7 +1780,7 @@ char *get_file_name_from_dir(a_boolean	first,
 			     char	*curr_dir_name)
 {
   static long			handle;
-  static struct _finddata_t	fileinfo;
+  static struct _tfinddata_t	fileinfo;
   char				*result;
   static char			pattern[10];
 
@@ -1794,7 +1796,7 @@ char *get_file_name_from_dir(a_boolean	first,
        files are to be returned.  "handle" is saved in a static variable
        that is used on subsequent calls to get the remaining directory
        entries. */
-    handle = _findfirst(pattern, &fileinfo);
+    handle = _tfindfirst(pattern, _A_RDONLY, &fileinfo);
     if (handle < 0) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
@@ -1804,7 +1806,7 @@ char *get_file_name_from_dir(a_boolean	first,
   } else {
     /* On subsequent calls, use _findnext to find the next file that
        matches the pattern. */
-    if (_findnext(handle, &fileinfo) < 0) {
+    if (_tfindnext( &fileinfo) < 0) {
       /* Returns -1 when there are no more files. */
       result = NULL;
     } else {
