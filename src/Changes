@@ -1,5 +1,17 @@
 Version 2.45
 
+8/30/00  Prototype instantiations in the IL
+
+(See also entry of 7/18/00.)  Previously, the front end could only record
+prototype instantiations of templates in the IL if both class and nonclass
+template prototype instantiations were recorded (e.g., with the command-line
+option --parse_templates).  Now, when PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE,
+class prototype instantiations will be recorded even if nonclass prototype
+instantiations are not.  However, if nonclass prototype instantiations are
+not recorded, the C++-generating back end will not use the class prototype
+instantiations to regenerate source code (the unparsed template token
+sequence will be output instead).
+
 8/30/00  Compilation errors in il_display.c (see also entry of 8/21/00)
 
 Compilation errors occurred in il_display.c when building an IL display

@@ -1081,13 +1081,20 @@ end of the type definition.
         a_src_seq_end_of_construct_ptr ssecp =
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
-        if (ss_entry_kind(ssecp) == iek_type) {
-          if (ss_entry_ptr(ssecp, a_type_ptr) == type) {
-            /* Found the end-of-construct entry for the type.  Advance past
-               it and we're done. */
-            adv_curr_source_sequence_entry();
-            break;
-          }  /* if */
+        if ((ss_entry_kind(ssecp) == iek_type &&
+             ss_entry_ptr(ssecp, a_type_ptr) == type)
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+            /* We might be skipping a class template prototype
+               instantiation. */
+            || (ss_entry_kind(ssecp) == iek_template &&
+                ss_entry_ptr(ssecp, a_template_ptr)
+                                       ->prototype_instantiation.type == type)
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+            ) {
+          /* Found the end-of-construct entry for the type.  Advance past
+             it and we're done. */
+          adv_curr_source_sequence_entry();
+          break;
         }  /* if */
       }  /* if */
       adv_curr_source_sequence_entry();
@@ -6613,9 +6620,10 @@ is the one associated with the template.
     tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  /* If prototype instantiations are recorded in the IL, the templates
+  /* If all prototype instantiations are recorded in the IL, the templates
      will be generated from those. */
-  from_proto = gen_template_from_prototype_instantiation(tp);
+  from_proto = il_header.il_has_all_prototype_instantiations &&
+               gen_template_from_prototype_instantiation(tp);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (!from_proto) { /*lint !e774*/
     /* No prototype instantiation is available in the IL; generate the
@@ -6625,7 +6633,20 @@ is the one associated with the template.
     /* Write the template string. */
     write_code_string(tp->text);
     /* Advance past the source sequence entry for the template. */
-    adv_curr_source_sequence_entry();
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (tp->kind == templk_class &&
+        tp->prototype_instantiation.type != NULL) {
+      /* Source sequence entries were recorded for a class template prototype
+         instantiation, but we won't use those to regenerate the template
+         (because nonclass prototype instantiations are not recorded). */
+      skip_type_definition_source_sequence_entries(
+                                            tp->prototype_instantiation.type);
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
+    {
+      adv_curr_source_sequence_entry();
+    }  /* if */
   }  /* if */
 }  /* gen_template */
 

@@ -8329,6 +8329,17 @@ EXTERN struct il_header_tag {
 			   and IL lowering is being done, each name must
 			   be inspected when special processing is done
 			   for the mangling of names containing UCNs. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_byte_boolean
+		il_has_all_prototype_instantiations;
+			/* TRUE if if both class and nonclass prototype
+			   instantiations were recorded in the IL.  In that
+			   case, templates can be regenerated from the IL.
+			   However, if only class templates prototype
+			   instantiations were recorded, all templates should					  be regenerated from strings, since in-class member
+			   definitions would not have their prototype
+			   instantiation recorded. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   char		*instantiation_dir_name;
 			/* When each instantiation is placed in its own object

@@ -1320,7 +1320,6 @@ by a command line option.
     }  /* if */
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
       nonclass_prototype_instantiations = FALSE;
-      prototype_instantiations_in_il = FALSE;
     }  /* if */
     if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
       nonstandard_using_decl_allowed = FALSE;
@@ -1429,7 +1428,6 @@ by a command line option.
   }  /* if */
   if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
     nonclass_prototype_instantiations = FALSE;
-    prototype_instantiations_in_il = FALSE;
   }  /* if */
   /* Set flags that cannot be overridden by command line options. */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
@@ -3133,11 +3131,6 @@ enable_microsoft_mode:
   }  /* if */
   if (nonclass_prototype_instantiations) {
     implicit_typename_enabled = FALSE;
-  }  /* if */
-  if (prototype_instantiations_in_il) {
-    /* Don't record prototype instantiations in the IL if we don't actually
-       do nonclass prototype instantiations. */
-    prototype_instantiations_in_il = nonclass_prototype_instantiations;
   }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();

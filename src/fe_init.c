@@ -795,6 +795,11 @@ source file's compilation.
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* NEAR_AND_FAR_ALLOWED */
   il_header.UCN_identifiers_used = FALSE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  il_header.il_has_all_prototype_instantiations =
+                                            prototype_instantiations_in_il &&
+                                            nonclass_prototype_instantiations;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.number_of_external_nonclass_template_entities = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

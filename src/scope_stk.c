@@ -1574,6 +1574,7 @@ the scope being pushed.
          instantiation.  (When they are, they are placed on a list that
          is not part of the IL proper.) */
       a_boolean  prototype_in_real_instance = FALSE;
+      /* assoc_type != NULL means we're in a class template scope. */
       if (assoc_type != NULL) {
         /* Prototype instantiations inside real instantiations should not
            generate source sequence entries. */
