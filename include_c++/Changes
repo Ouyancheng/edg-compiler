@@ -1,3 +1,10 @@
+Version 2.42
+
+5/3/99   Implicitly declared delete functions missing from new.h
+
+The new.h header file was missing the implicitly declared delete
+and array delete routines.  Now fixed.
+-------------------------------------------------------------------------------
 Version 2.41, March 5, 1999
 
 No changes.

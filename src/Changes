@@ -1,5 +1,10 @@
 Version 2.42
 
+5/3/99   Implicitly declared delete functions missing from new.h
+
+The new.h header file in the include_src directory was missing the
+implicitly declared delete and array delete routines.  Now fixed.
+
 4/28/99  C++-generating back end: missing qualifier on references hidden
          by base class members
 

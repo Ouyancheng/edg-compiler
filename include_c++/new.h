@@ -8,7 +8,7 @@ new.h -- Include file for C++ default operator new (see ARM 12.5).
 
 #ifndef __STDDEF_H
 #include <stddef.h>
-#endif
+#endif  /* ifndef __STDDEF_H */
 #ifndef _EXCEPTION_H
 #include <exception.h>
 #endif /* _EXCEPTION_H */
@@ -60,11 +60,17 @@ using namespace std;
 
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-/* Normal operator new routine. */
+/* Normal operator new. */
 void *operator new(size_t) throw(__EDG_STD_NAMESPACE::bad_alloc);
+
+/* Normal operator delete. */
+void operator delete(void*) throw ();
 
 /* Nothrow version of operator new. */
 void *operator new(size_t, const __EDG_STD_NAMESPACE::nothrow_t&) throw();
+
+/* Nothrow version of operator delete. */
+void operator delete(void*, const __EDG_STD_NAMESPACE::nothrow_t&) throw();
 
 /* Placement new. */
 void *operator new(size_t, void*) throw();
@@ -79,6 +85,9 @@ void operator delete(void*, void*);
 /* Array new. */
 void *operator new[](size_t) throw(__EDG_STD_NAMESPACE::bad_alloc);
 
+/* Array delete. */
+void operator delete[](void*) throw ();
+
 /* Placement array new. */
 void *operator new[](size_t, void*) throw();
 
@@ -90,6 +99,10 @@ void operator delete[](void*, void*);
 /* Nothrow version of array new. */
 void *operator new[](size_t,
                      const __EDG_STD_NAMESPACE::nothrow_t&) throw();
+
+/* Nothrow version of array delete. */
+void operator delete[](void*,
+                       const __EDG_STD_NAMESPACE::nothrow_t&) throw();
 #endif /* __ARRAY_OPERATORS */
 
 #endif  /* ifndef __NEW_H */
