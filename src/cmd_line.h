@@ -1472,10 +1472,10 @@ EXTERN a_boolean
 
 #if IA64_ABI
 EXTERN a_boolean
-		emulate_gnu_layout_bugs;
-			/* TRUE if the IA-64 class layout algorithm should be
+		emulate_gnu_abi_bugs;
+			/* TRUE if the IA-64 ABI implementation should be
 			   modified to emulate early GNU implementations of
-			   that algorithm. */
+			   that ABI. */
 #endif /* IA64_ABI */
 
 EXTERN a_boolean

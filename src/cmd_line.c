@@ -1379,7 +1379,7 @@ static a_flag_name
   { "suppress_inline_corresp_check", &suppress_inline_corresp_check },
   { "allow_anon_types_in_anon_unions", &allow_anon_types_in_anon_unions },
 #if IA64_ABI
-  { "emulate_gnu_layout_bugs", &emulate_gnu_layout_bugs },
+  { "emulate_gnu_abi_bugs", &emulate_gnu_abi_bugs },
 #endif /* IA64_ABI */
   { NULL, NULL }  /* must be last */
 };

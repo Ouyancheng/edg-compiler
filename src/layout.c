@@ -1125,7 +1125,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
       /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
          seem  to affect the alignment of unions, but not that of classes and
          structs. */
-      !(emulate_gnu_layout_bugs && is_union_type(lob->class_type)) &&
+      !(emulate_gnu_abi_bugs && is_union_type(lob->class_type)) &&
 #endif /* IA64_ABI */
       ((bit_size == 0 &&
         !targ_zero_width_bit_field_affects_struct_alignment) ||
@@ -1141,7 +1141,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
       /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
          seem  to affect the alignment of unions.  The resulting alignment is
          at least the alignment of an int. */
-      if (emulate_gnu_layout_bugs &&
+      if (emulate_gnu_abi_bugs &&
           is_union_type(lob->class_type) && bit_size == 0 &&
           container_alignment < targ_alignof_int) {
         container_alignment = targ_alignof_int;
@@ -1357,7 +1357,7 @@ subobject_type are considered in addition to direct bases.
   a_boolean                   array_subobject = is_array_type(subobject_type);
 
   /* If the subobject is an array, get the (ultimate) element type. */
-  if (array_subobject && emulate_gnu_layout_bugs) {
+  if (array_subobject && emulate_gnu_abi_bugs) {
     /* Early GNU implementations of the IA-64 class layout algorithm ignore
        conflicts with array subobjects. */
     goto done;
