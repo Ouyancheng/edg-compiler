@@ -787,6 +787,44 @@ function parameter and return types.
 }  /* promote_float_to_double */
 
 
+static a_boolean is_cfront_member_function_typedef(a_type_ptr  type_ptr,
+                                                   a_type_ptr  *rout_type,
+                                                   a_type_ptr  *class_type)
+/*
+We are checking for a type entry produced by a typedef declaration like
+this:
+
+        typedef void A::T(int);  // Nonstandard typedef
+
+(meaning "T" names a routine type for a member function of A that takes an
+int argument and returning void.  It's tie to class A is indicated by having
+an implicit this-param type of const-ptr-to-A).  Cfront treats "T*" as though
+it had been a ptr-to-member declaration -- e.g.,
+
+        T* pm = &A::f(int);      // Nonstd ptr-to-member decl
+
+and
+
+        void (A::*pm)(int) = &A::f(int);
+
+have the very same meaning for cfront.  Although this is not part of the
+language defined in the ARM, it is support for cfront compatibility.
+*/
+{
+  a_type_ptr  tp;
+
+  *class_type = NULL;
+  if (cfront_compatibility_mode && is_function_type(type_ptr)) {
+    *rout_type = skip_typerefs(type_ptr);
+    if (*rout_type != type_ptr) {
+      tp = (*rout_type)->variant.routine.extra_info->implicit_this_param_type;
+      if (tp != NULL) *class_type = type_pointed_to(tp);
+    }  /* if */
+  }  /* if */
+  return (*class_type != NULL);
+}  /* is_cfront_member_function_typedef */
+
+
 static void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
                                      a_type_ptr *bottom_derived_type)
@@ -885,12 +923,33 @@ type is legal.
         (*bottom_derived_type)->variant.array.element_type = new_type_ptr;
       } else if (is_pointer_type(*bottom_derived_type)) {
         /* Pointer type. */
-	if (is_reference_type(skip_typerefs(new_type_ptr))) {
-	  /* Pointer to reference is illegal. */
-          error(ec_pointer_to_reference);
-	  new_type_ptr = error_type();
-	}  /* if */
-        (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
+        a_type_ptr  class_type, rout_type, tp;
+
+        if (is_cfront_member_function_typedef(new_type_ptr, &rout_type,
+                                              &class_type)) {
+          /* The code contains "T*" where "T" names a member function typedef.
+             It points to a routine type in which the implicit this-param
+             type pointer identifies the parent class, say "S".  Then "T*" is
+             equivalent to a pointer-to-member declaration, say int S::*(),
+             where the return type and argument types are read from the
+             routine type pointed to by "T".  What we need is not to add
+             something to *bottom_derived_type (as in other cases) but rather
+             to change it from a "pointer-to-???" type to a "ptr-to-member"
+             type pointing the the class and routine type. */
+          tp = ptr_to_member_type(rout_type, class_type);
+          copy_type(tp, *bottom_derived_type);
+          /* Change new_type_ptr and tkind to make it seem as if this were
+             an ordinary ptr-to-member declaration. */
+          new_type_ptr = rout_type;
+          tkind = (a_type_kind)tk_ptr_to_member;
+        } else {
+          if (is_reference_type(skip_typerefs(new_type_ptr))) {
+            /* Pointer to reference is illegal. */
+            error(ec_pointer_to_reference);
+            new_type_ptr = error_type();
+          }  /* if */
+          (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
+        }  /* if */
       } else if (is_reference_type(*bottom_derived_type)) {
         /* Reference type. */
         temp_type = skip_typerefs(new_type_ptr);
@@ -4394,7 +4453,7 @@ Only the first form is accepted in C.
 {
   a_type_ptr     complete_type = specifiers_type;
   a_boolean      err;
-  a_type_ptr     class_type;
+  a_type_ptr     class_type, rout_type;
 
   db_enter(3, "pointer_declarator");
   for (;;) {
@@ -4416,30 +4475,11 @@ Only the first form is accepted in C.
            reference type can be attached directly to it.  (Or, this is a
            pointer to a pointer type or a reference to a pointer type). */
         a_type_ptr  temp_type = skip_typerefs(complete_type);
-        if (curr_token == tok_star) {
-          if (cfront_compatibility_mode && temp_type != complete_type &&
-              is_function_type(temp_type) &&
-              temp_type->variant.routine.extra_info->
-                                        implicit_this_param_type != NULL) {
-            /* We have a situation in which a typedef has previously been
-               declared like this:
-                      typedef void A::t(int);  // Nonstandard typedef
-               (meaning "t" names a routine type taking an int argument and
-               returning void and having an implicit this-param type of
-               const-ptr-to-A).  Cfront treats "t*" as though it had been a
-               ptr-to-member declaration -- e.g.,
-                      t* pm = &A::f(int);      // Nonstd ptr-to-member decl
-               and
-                      void (A::*pm)(int) = &A::f(int);
-               have the very same meaning for cfront.  Although this is not
-               part of the language defined in the ARM, it is support for
-               cfront compatibility. */
-            a_type_ptr  class_type;
 
-            class_type = type_pointed_to(temp_type->
-                                            variant.routine.extra_info->
-                                            implicit_this_param_type);
-            complete_type = ptr_to_member_type(temp_type, class_type);
+        if (curr_token == tok_star) {
+          if (is_cfront_member_function_typedef(complete_type, &rout_type,
+                                                &class_type)) {
+            complete_type = ptr_to_member_type(rout_type, class_type);
           } else {
             if (is_reference_type(temp_type)) {
               /* Type "pointer to reference to anything" is illegal. */
