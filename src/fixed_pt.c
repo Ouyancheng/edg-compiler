@@ -192,7 +192,7 @@ This is only used on little-endian systems.
 
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
-static int byte_offset_in_integer_value(int	byte)
+static int byte_offset_in_integer_value(unsigned int	byte)
 /*
 Return the byte offset of a given logical byte of an integer value.
 
