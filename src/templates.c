@@ -8203,9 +8203,11 @@ instantiation.
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
                          decl_state->effective_decl_level,
                          suppress_redecl_error);
-      /* If the class template is initially declared in a friend declaration,
-         mark it as invisible. */
-      sym->is_invisible = decl_state->is_template_friend;
+      if (!friend_injection_enabled) {
+        /* If the class template is initially declared in a friend declaration,
+           mark it as invisible. */
+        sym->is_invisible = decl_state->is_template_friend;
+      }  /* if */
     }  /* if */
     tssp = sym->variant.template_info;
     if (ssep->kind == (a_scope_kind)sck_namespace ||
@@ -8400,10 +8402,12 @@ instantiation.
     }  /* if */
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
-    /* If this is not a friend declaration, mark the symbol as visible.
-       A class template declared only in template friend declarations is
-       not otherwise visible. */
-    if (!decl_state->is_template_friend) sym->is_invisible = FALSE;
+    if (!friend_injection_enabled) {
+      /* If this is not a friend declaration, mark the symbol as visible.
+         A class template declared only in template friend declarations is
+         not otherwise visible. */
+      if (!decl_state->is_template_friend) sym->is_invisible = FALSE;
+    }  /* if */
   }  /* if */
   *p_sym_ptr = sym;
   db_exit();
