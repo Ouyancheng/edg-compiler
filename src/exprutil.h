@@ -461,13 +461,13 @@ extern void node_prepare_assignment(an_expr_node_ptr  *right_side_node,
                                     an_error_code     incompatible_err,
 				    a_boolean         *err);
 
-extern a_type_ptr prepare_assignment_operand(
-                                      an_operand         *right_side_operand,
-                                      a_type_ptr         left_side_type,
-                                      an_expression_kind expression_kind,
-                                      an_error_code      incompatible_err,
-                                      a_source_position  *err_pos,
-                                      a_boolean          *err);
+extern a_boolean prepare_assignment_operand(
+                                     an_operand         *right_side_operand,
+                                     a_type_ptr         left_side_type,
+                                     an_expression_kind expression_kind,
+                                     an_error_code      incompatible_err,
+                                     a_source_position  *err_pos,
+                                     a_type_ptr         *result_type);
 
 extern void constant_prepare_assignment(a_constant    *constant,
                                         a_type_ptr    left_side_type,
