@@ -376,6 +376,16 @@ primary IL, should be merged into that type.
 }  /* type_should_be_merged */
 
 
+/*
+Macro that returns TRUE if the indicated entry will be copied to
+the primary file IL.  That can be because it's new (it has no
+correspondence) or because it provides a definition for a corresponding
+entry that is already in the primary file IL.
+*/
+#define entry_to_be_copied(ptr) \
+  (!has_corresp(ptr) || entry_to_be_merged(ptr))
+
+
 static void prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
                                       a_boolean   *any_removed_function_bodies)
@@ -454,13 +464,9 @@ set to TRUE if the body of a routine is eliminated.
                !typeref_is_typedef(type)) {
       /* This is a placeholder typeref, used to give guidance to IL lowering
          on the order of types promoted out of classes and namespaces.
-         Keep the placeholder only if the type pointed to has no
-         correspondence. */
+         Keep the placeholder only if the type pointed is being kept. */
       a_type_ptr ref_type = type->variant.typeref.type;
-      keep_on_list = TRUE;
-      if (has_corresp(ref_type)) {
-        keep_on_list = FALSE;
-      }  /* if */
+      keep_on_list = entry_to_be_copied(ref_type);
     }  /* if */
     if (keep_on_list) {
       prev_type = type;
