@@ -2624,42 +2624,22 @@ in_old_style_param_decl_list is TRUE.
 }  /* add_to_types_list */
 
 
-a_type_ptr alloc_unlinked_type(a_type_kind kind)
+a_type_ptr alloc_type(a_type_kind kind)
 /*
 Allocate a new type entry in the file scope memory region and return a pointer
 to it.  Set general fields, set kind to the indicated value, and set the
-associated variant fields to default values.  Do not add the type entry to the
-types list.
+associated variant fields to default values.
 */
 {
   a_type_ptr tp;
 
-  db_enter(5, "alloc_unlinked_type");
+  db_enter(5, "alloc_type");
   tp = (a_type_ptr)alloc_il(sizeof(a_type));
 #if DEBUG
   num_types_allocated++;
 #endif /* DEBUG */
   clear_type(tp, kind);
   db_exit();
-  return (tp);
-}  /* alloc_unlinked_type */
-
-
-a_type_ptr alloc_type(a_type_kind kind)
-/*
-Allocate a new type entry in the file scope memory region and return a pointer
-to it.  Set general fields, set kind to the indicated value, and set the
-associated variant fields to default values.  Add the type entry to the
-types list for the file scope.
-*/
-{
-  a_type_ptr tp;
-
-  tp = alloc_unlinked_type(kind);
-  if (kind != (a_type_kind)tk_error) {
-    add_to_types_list(tp, DEPTH_OF_FILE_SCOPE,
-                      /*in_old_style_param_decl_list=*/FALSE);
-  }  /* if */
   return (tp);
 }  /* alloc_type */
 
