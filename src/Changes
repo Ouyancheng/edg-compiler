@@ -1,5 +1,16 @@
 Version 3.2
 
+3/5/03   GNU C++ mode: Redeclared function template default arguments
+
+In GNU C++ mode, a function template default argument may be redeclared.
+A warning is issued and the default from the initial declaration is used.
+
+  template<class T> void f(int i = 1);
+  template<class T> void f(int i = 2){}
+  int main() {
+    f<void>();
+  }
+
 3/5/03   Missing definition of extern inline function with export and
          LOWER_EXTERN_INLINE
 

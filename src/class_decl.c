@@ -773,12 +773,14 @@ is TRUE if the function being scanned is a constructor.
 
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_boolean		is_friend,
+					      unsigned long	param_number,
 					      a_token_cache_ptr decl_cache)
 /*
 Scan a default argument expression and link the default argument
 entry onto a list in the current routine fixup entry.  "ptp" can be NULL if
 the tokens should be scanned and discarded.  is_friend is TRUE if the
-declaration being scanned is a friend function declaration.
+declaration being scanned is a friend function declaration.  param_number
+specifies the position of the parameter in the parameter list.
 */
 {
   a_def_arg_expr_fixup_ptr  *list;
@@ -802,7 +804,7 @@ declaration being scanned is a friend function declaration.
   }  /* if */
   prescan_default_function_arg_expr(ptp, list, decl_cache,
                                     /*is_function_template=*/FALSE,
-				    is_friend);
+				    is_friend, param_number);
 }  /* prescan_member_function_default_arg_expr */
 
 
