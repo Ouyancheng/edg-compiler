@@ -2098,6 +2098,27 @@ not known that the base class is an immediate base class.
     is_accessible_direct_base_class_derivation(bcp->derivation,       \
                                                viewpoint_class))
 
+/*
+Given a symbol kind that describes a tag kind, this macro returns the
+associated type kind.  If tag_kind does is not the symbol kind of a
+class/struct, union, or enum, then tk_error is returned.
+*/
+#define type_kind_for_tag_kind(tag_kind)				\
+  (tag_kind == (a_symbol_kind)sk_class_or_struct_tag ? tk_struct :	\
+    (tag_kind == (a_symbol_kind)sk_union_tag ? tk_union :		\
+      (tag_kind == (a_symbol_kind)sk_enum_tag ? tk_enum : tk_error)))
+
+
+/*
+Compare the tag kinds associated with two template_param_type_descrs.
+They match if they are the same, or if one of them is unknown.
+*/
+#define matching_template_tag_kinds(tptdp1, tptdp2)			\
+  (tptdp1 == NULL || tptdp2 == NULL ||					\
+   tptdp1->tag_kind == tptdp2->tag_kind ||				\
+   (tptdp1->tag_kind == (a_type_kind)tk_unknown ||			\
+    tptdp2->tag_kind == (a_type_kind)tk_unknown))
+
 extern a_boolean is_accessible_base_class(a_base_class_ptr bcp);
 
 extern a_boolean is_accessible_virtual_base_class(

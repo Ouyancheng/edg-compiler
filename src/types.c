@@ -1759,35 +1759,47 @@ funcs_not_identical:;
                                          il_identical));
           break;
         case tk_template_param:
-          /* Template parameter types are considered to be identical if
-             their positions in the template parameter list are the same. */
           if (type_1->variant.template_param.kind ==
                                     type_2->variant.template_param.kind) {
-            switch (type_1->variant.template_param.kind) {
-              case tptk_param:
-                identical = (type_1->variant.template_param.list_position ==
-                             type_2->variant.template_param.list_position);
-                break;
-              case tptk_member:
-                sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
-                sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
-                check_assertion(sym_1 != NULL && sym_2 != NULL);
-                if (sym_1->header == sym_2->header) {
-                  /* The names are the same. */
-                  identical = (identical_types(type_1->source_corresp.
+            a_template_param_type_descr_ptr	tptdp_1;
+            a_template_param_type_descr_ptr	tptdp_2;
+            /* The tag kinds (if any) associated with the template parameters
+               must match. */
+            tptdp_1 = type_1->variant.template_param.descr;
+            tptdp_2 = type_2->variant.template_param.descr;
+            if (matching_template_tag_kinds(tptdp_1, tptdp_2)) {
+              switch (type_1->variant.template_param.kind) {
+                case tptk_param:
+                   /* Template parameter types are considered to be identical
+                      if their positions in the template parameter list are
+                      the same. */
+                  identical = (type_1->variant.template_param.list_position ==
+                               type_2->variant.template_param.list_position);
+                  break;
+                case tptk_member:
+                  /* Members types are the same if their names are the same
+                     and if they are members of identical types. */
+                  sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
+                  sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
+                  check_assertion(sym_1 != NULL && sym_2 != NULL);
+                  if (sym_1->header == sym_2->header) {
+                    /* The names are the same. */
+                    identical = (identical_types(type_1->source_corresp.
                                                     class_of_which_a_member,
-                                               type_2->source_corresp.
+                                                 type_2->source_corresp.
                                                     class_of_which_a_member));
-                }  /* if */
-                break;
-              case tptk_type_of_member_constant:
-                /* Should never happen. */
-                break;
+                  }  /* if */
+                  break;
+                case tptk_type_of_member_constant:
+                  /* Should never happen. */
+                  break;
 #if CHECKING
-              default:
-                internal_error("f_identical_types: bad templ param type kind");
+                default:
+                  internal_error
+                             ("f_identical_types: bad templ param type kind");
 #endif /* CHECKING */
-            }  /* switch */
+              }  /* switch */
+            }  /* if */
           }  /* if */
           break;
 #if CHECKING
@@ -3165,12 +3177,35 @@ is allocated, it is allocated in the file scope.
         case tk_class:
         case tk_struct:
         case tk_union:
-        case tk_template_param:
           /* Simple types.  The composite type is either of the types. */
           /* The class/struct/union cases are here because a
              class/struct/union can be compatible with a file-scope
              copy of itself. */
           comp_type = base_type_1;
+          break;
+        case tk_template_param:
+          /* Template parameter types.  If only one of the types points to
+             a param_type_descr then it is the composite.  If both point to
+             a type descriptor, but only one includes a tag kind, then it is
+             the composite. */
+            { a_template_param_type_descr_ptr	tptdp_1;
+              a_template_param_type_descr_ptr	tptdp_2;
+              /* The tag kinds (if any) associated with the template parameters
+                 must match. */
+              tptdp_1 = type_1->variant.template_param.descr;
+              tptdp_2 = type_2->variant.template_param.descr;
+              /* Set the composite to type_1 until we determine otherwise. */
+              comp_type = base_type_1;
+              if (tptdp_1 == NULL && tptdp_2 != NULL) {
+                /* Only the second type as a type descr. */
+                comp_type = base_type_2;
+              } else if (tptdp_2 != NULL &&
+                         (tptdp_1->tag_kind == (a_type_kind)tk_unknown &&
+                          tptdp_2->tag_kind != (a_type_kind)tk_unknown)) {
+                /* Only the second type has a tag kind. */
+                comp_type = base_type_2;
+              }  /* if */
+            }
           break;
         case tk_pointer:
           /* Pointer and reference types.  The composite type is a pointer

@@ -6196,6 +6196,48 @@ C mode.
 }  /* tag_currently_being_defined */
 
 
+static void check_template_param_tag_kind(a_symbol_ptr	   tag_sym,
+					  a_symbol_kind	   tag_kind,
+					  a_boolean        *tag_err)
+/*
+This routine is called when a template parameter has been used in an
+elaborated type specifier.  If this is the first time the parameter has
+been used in such a context, we record the tag kind in the
+template_param_type_descr.  If it is not the first time, we make sure
+that this usage is consistent with the previous usage.
+*/
+{
+  a_type_ptr				tp = tag_sym->variant.type;
+  a_type_kind				prev_tag_type_kind;
+  a_type_kind				new_tag_type_kind;
+  a_template_param_type_descr_ptr	tptdp;
+  check_assertion(tp->kind == (a_type_kind)tk_template_param);
+  if (tp->variant.template_param.descr == NULL) {
+    /* The tk_template_param type does not yet have a description
+       entry, allocate one. */
+    tp->variant.template_param.descr = alloc_template_param_type_descr();
+  }  /* if */
+  /* If this template parameter has already been used in an elaborated
+     type specifier, make sure that the current tag kind is consistent
+     with the previous use. */
+  tptdp = tp->variant.template_param.descr;
+  prev_tag_type_kind = tptdp->tag_kind;
+  new_tag_type_kind = type_kind_for_tag_kind(tag_kind);
+  if (prev_tag_type_kind == (a_type_kind)tk_unknown) {
+    /* The template parameter does not yet have a tag kind.  Assign
+       it the current tag kind. */
+    tptdp->tag_kind = new_tag_type_kind;
+  } else if (prev_tag_type_kind != new_tag_type_kind) {
+    /* Error -- the new tag kind does not match the previous use. */
+    pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                   &locator_for_curr_id.source_position,
+                   name_of_symbol_kind(tag_kind), tag_sym);
+    *tag_err = TRUE;
+    tag_sym = NULL;
+  }  /* if */
+}  /* check_template_param_tag_kind */
+
+
 a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                            a_symbol_locator  *locator,
                            a_boolean         check_for_vacuous_decl,
@@ -6413,6 +6455,11 @@ caution when modifying this routine.
               }  /* if */
             } while (!done);
           }  /* if */
+        } else if (!C_mode() && tag_sym->kind == (a_symbol_kind)sk_type) {
+          /* A tag symbol was found from an enclosing scope.  If this is
+             a template parameter symbol, make sure the tag kind is
+             consistent with any previous declarations. */
+          check_template_param_tag_kind(tag_sym, tag_kind, &tag_err);
         }  /* if */
       }  /* if */
       if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag) {
