@@ -3780,11 +3780,19 @@ for class_type, return *shared TRUE.
          tables are therefore also shared. */
       *shared = TRUE;
       needed = FALSE;
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+    } else if (class_type->variant.class_struct_union.any_virtual_functions) {
+      /* cfront puts outs virtual function tables whenever there is a virtual
+         function in the derived class, which is more often than is really
+         needed. */
+      needed = TRUE;
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
     } else if (bcp->overriding_virtual_functions != NULL) {
       /* Some of the virtual functions in the base class are overridden
          in class_type, so a separate virtual function table instance is
          needed. */
       needed = TRUE;
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     } else {
       /* In other cases, no separate instance is needed. */
       needed = FALSE;
@@ -4163,9 +4171,14 @@ be local to the current compilation even if the class is externally linked.
   }  /* if */
   /* Change the array size from [] to the proper size.  Note that the type
      was created for this variable and is known not to be shared. */
-  /* The "+1" is to skip the [0] entry, for cfront compatibility. */
   vtbl_var->type->variant.array.number_of_elements =
-                                     ctsp->highest_virtual_function_number + 1;
+                                     ctsp->highest_virtual_function_number
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+  /* Skip the [0] entry and add an extra zeroed entry at the end of the table
+     for cfront compatibility. */
+                                     + 2
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+                                                                              ;
   set_type_size(vtbl_var->type);
   /* Set the linkage on the virtual function table variable. */
   if (class_type->source_corresp.name_linkage ==
@@ -4186,10 +4199,17 @@ be local to the current compilation even if the class is externally linked.
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   vtbl_var->init_kind = (an_init_kind)initk_static;
   vtbl_var->initializer.constant = aggr_con;
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   /* Put out the initialization for the [0] entry (skipped). */
   add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
-  /* Put out the rest of the table. */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  /* Put out the body of the table. */
   fill_virtual_function_table(aggr_con, class_type, bcp, &next_entry_number);
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+  /* Put out the initialization for an extra zeroed entry at the end, for
+     cfront compatibility. */
+  add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* define_one_virtual_function_table */
 
