@@ -8722,7 +8722,6 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;
   a_token_kind			end_of_statement_token;
-  a_source_position             decl_start_pos;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr   ssep;
   a_source_position             template_keyword_pos;
