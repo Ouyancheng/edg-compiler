@@ -3222,9 +3222,6 @@ Write out attributes that apply to the indicated variable.
   if (var->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-  if (var->has_gnu_used_attribute) {
-    write_tok_str(" __attribute__((__used__))");
-  }  /* if */
   if (var->has_gnu_deprecated_attribute) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */

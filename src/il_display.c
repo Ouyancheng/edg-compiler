@@ -1969,9 +1969,6 @@ Display the indicated variable.
   if (ptr->has_gnu_unused_attribute) { 
     disp_boolean("has_gnu_unused_attribute", TRUE);
   }  /* if */
-  if (ptr->has_gnu_used_attribute) { 
-    disp_boolean("has_gnu_used_attribute", TRUE);
-  }  /* if */
   if (ptr->has_gnu_deprecated_attribute) { 
     disp_boolean("has_gnu_deprecated_attribute", TRUE);
   }  /* if */
