@@ -3140,7 +3140,7 @@ class, struct, or union.
                                     depth_scope_stack,
                                     /*suppress_redecl_error=*/FALSE);
     member_sym->class_of_which_a_member = class_type;
-    member_sym->variant.field = field;
+    member_sym->variant.field.ptr = field;
     member_sym->defined = TRUE;
     set_source_corresp(&(field->source_corresp), member_sym);
     field->source_corresp.access = access;
@@ -4110,7 +4110,7 @@ operator routine or do bitwise assignment.
     for (; sym != NULL; sym = sym->next_in_scope) {
       if (sym->kind == (a_symbol_kind)sk_field) {
         /* A field. */
-        fp = sym->variant.field;
+        fp = sym->variant.field.ptr;
         tp = fp->type;
 #if 0
         /* Do error checking -- ARM 12.8. */
@@ -4413,7 +4413,7 @@ can copy a const object and whether bitwise copying is allowed.
                          variant.class_struct_union.extra_info->symbols;
   for (; sym != NULL; sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field) {
-      fp = sym->variant.field;
+      fp = sym->variant.field.ptr;
       tp = fp->type;
       /* Get the element type if this is an array field. */
       while (is_array_type(tp)) tp = array_element_type(tp);
@@ -4644,7 +4644,7 @@ a pointer to it.
     case aak_constant:  aap->variant.constant = sym->variant.constant;  break;
     case aak_type:      aap->variant.type = sym->variant.type;          break;
     case aak_routine:   aap->variant.routine = sym->variant.routine;    break;
-    case aak_field:     aap->variant.field = sym->variant.field;        break;
+    case aak_field:     aap->variant.field = sym->variant.field.ptr;    break;
   }  /* switch */
 
   return aap;

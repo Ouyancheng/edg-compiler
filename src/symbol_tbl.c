@@ -51,6 +51,7 @@ static unsigned long
 		symbol_name_string_space,
 		num_class_symbol_supplements_allocated,
                 num_conversion_list_entries_allocated,
+                num_anonymous_unions_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
                 num_projection_descrs_allocated,
@@ -312,16 +313,16 @@ and indentation is the indentation desired.
       }
       break;
     case sk_field:
-      if (sym->variant.field == NULL) {
+      if (sym->variant.field.ptr == NULL) {
         put_string("<null>");
       } else {
         if (C_dialect == C_dialect_cplusplus) {
-          put_access(sym->variant.field->source_corresp.access);
+          put_access(sym->variant.field.ptr->source_corresp.access);
         }  /* if */
         (void)sprintf(buffer, "offset = %d",
-                      sym->variant.field->bit_offset);
+                      sym->variant.field.ptr->bit_offset);
         put_string(buffer);
-        type = sym->variant.field->type;
+        type = sym->variant.field.ptr->type;
       }  /* if */
       break;
     case sk_label:
@@ -627,6 +628,31 @@ Allocate a new conversion list entry and return a pointer to it.
 }  /* alloc_conversion_header */
 
 
+an_anonymous_union_ptr alloc_anonymous_union(a_boolean  is_var)
+/*
+Allocate an anonymous union entry and return a pointer to it.
+*/
+{
+  an_anonymous_union_ptr  ptr;
+
+  db_enter(5, "alloc_anonymous_union");
+  ptr = (an_anonymous_union_ptr)alloc_fe(sizeof(an_anonymous_union));
+#if DEBUG
+  num_anonymous_unions_allocated++;
+#endif /* DEBUG */
+  ptr->next = NULL;
+  ptr->is_variable_object = is_var;
+  if (is_var) {
+    ptr->variant.variable = NULL;
+  } else {
+    ptr->variant.field = NULL;
+  }  /* if */
+
+  db_exit();
+  return ptr;
+}  /* alloc_anonymous_union */
+
+
 a_symbol_ptr find_symbol(char             *identifier,
 			 sizeof_t         length,
 			 a_symbol_locator *location)
@@ -817,7 +843,8 @@ state.
       sym_ptr->variant.variable = NULL;
       break;
     case sk_field:
-      sym_ptr->variant.field = NULL;
+      sym_ptr->variant.field.ptr = NULL;
+      sym_ptr->variant.field.anonymous_union = NULL;
       break;
     case sk_routine:
     case sk_member_function:
@@ -1993,7 +2020,7 @@ allowed for that kind of symbol).
       entry_ptr = (a_constant_ptr)sym_ptr->variant.variable;
       break;
     case sk_field:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.field;
+      entry_ptr = (a_constant_ptr)sym_ptr->variant.field.ptr;
       break;
     case sk_routine:
     case sk_member_function:
@@ -4125,6 +4152,8 @@ for space tracking purposes.
             a_class_symbol_supplement);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
             a_conversion_list_entry);
+  write_one("anonymous union", num_anonymous_unions_allocated,
+            an_anonymous_union);
   write_one("projection symbol descr", num_projection_descrs_allocated,
             a_projection_descr);
 
@@ -4238,6 +4267,7 @@ to avoid an 8-character external name clash with symbol_table.)
   symbol_name_string_space               = 0;
   num_class_symbol_supplements_allocated = 0;
   num_conversion_list_entries_allocated  = 0;
+  num_anonymous_unions_allocated         = 0;
   num_extern_symbol_descrs_allocated     = 0;
   num_extern_type_fixups_allocated       = 0;
   num_projection_descrs_allocated        = 0;

@@ -438,6 +438,39 @@ typedef struct a_class_symbol_supplement {
 } a_class_symbol_supplement;
 
 
+/*
+A structure used to represent "elided" union objects (typically, there is
+only one) through which a field of an anonymous union is to be accessed.
+When the anonymous union is declared as a class member, its fields appear
+among the symbols of the containing class, but those symbols will also
+specify the unnamed field of type tk_union through which the symbolized field
+will actually have to be accessed; that field is the "associated object".
+The case of anonymous unions outside a class definition is similar, except
+that the access of the field is though an unnamed variable of type tk_union;
+the associated object is a variable.
+*/
+typedef struct an_anonymous_union *an_anonymous_union_ptr;
+typedef struct an_anonymous_union {
+  an_anonymous_union_ptr
+		next;
+			/* Next in a linked list of anonymous union entries,
+			   representing the next field selection to be
+			   applied. */
+  a_boolean     is_variable_object;
+			/* If TRUE the associated object is a variable;
+			   otherwise, it is a field. */
+  union {
+    /* When is_variable_object is TRUE: */
+    a_variable_ptr
+		variable;
+			/* The variable that is the associated object. */
+    /* When is_variable_object is FALSE: */
+    a_field_ptr	field;
+			/* The field that is the associated object. */
+  } variant;
+} an_anonymous_union;
+
+
 typedef struct an_extern_symbol_descr *an_extern_symbol_descr_ptr;
 typedef struct an_extern_symbol_descr {
   /* Information on an sk_extern_variable or sk_extern_routine entry, i.e.,
@@ -560,8 +593,16 @@ typedef struct a_symbol {
 		variable;
 			/* The variable. */
     /* When kind == sk_field: */
-    a_field_ptr	field;
+    struct {
+      a_field_ptr
+		ptr;
 			/* The field. */
+      an_anonymous_union_ptr
+		anonymous_union;
+			/* Pointer to a entry (or list of enties) indicating
+			   elided field entries (of type tk_union) through
+			   which this field must be accessed (C++ only). */
+    } field;
     /* When kind == sk_routine or sk_member_function: */
     a_routine_ptr
 		routine;
@@ -1116,6 +1157,7 @@ extern void set_source_corresp(a_source_correspondence *sc,
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
+extern an_anonymous_union_ptr alloc_anonymous_union(a_boolean  is_var);
 
 /* Examine the list of symbols with a given name, looking for an
    instance with a particular kind. */

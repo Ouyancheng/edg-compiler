@@ -1239,7 +1239,7 @@ initialized.  These are addressed in the course of the processing.
       } else {
         /* This is not a copy constructor.  See if this is a field that
            requires constructor initialization. */
-        tp = sym->variant.field->type;
+        tp = sym->variant.field.ptr->type;
         while (is_array_type(tp)) {
           tp = skip_typerefs(tp->variant.array.element_type);
         }  /* while */
@@ -1251,7 +1251,7 @@ initialized.  These are addressed in the course of the processing.
       }  /* if */
       /* A constructor init entry is required for this field. */
       cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-      cip->variant.field = sym->variant.field;
+      cip->variant.field = sym->variant.field.ptr;
       if (cip_list == NULL) {
         cip_list = cip;
       } else {
@@ -1328,7 +1328,7 @@ initialized.  These are addressed in the course of the processing.
             pos_error(ec_qualified_name_not_allowed,
                       &locator_for_curr_id.source_position);
           }  /* if */
-          init_type = member_or_base_sym->variant.field->type;
+          init_type = member_or_base_sym->variant.field.ptr->type;
           /* The syntax does not provide for the initialization of arrays --
              except character strings. */
           if (is_array_type(init_type) && !is_string_type(init_type)) {
@@ -1339,7 +1339,7 @@ initialized.  These are addressed in the course of the processing.
           /* Check the list for a constructor init entry that refers to this
              member.  If it's there we may have a reinitialization error. */
           for (new_cip = cip_list; new_cip != NULL; new_cip = new_cip->next) {
-            if (new_cip->variant.field == member_or_base_sym->variant.field) {
+            if (new_cip->variant.field == member_or_base_sym->variant.field.ptr) {
               if (new_cip->initializer != NULL) {
                 error(ec_member_already_initialized);
                 err = TRUE;
@@ -1352,7 +1352,7 @@ initialized.  These are addressed in the course of the processing.
             /* No constructor init entry exists for this field.  Allocate one
                and add it to the list. */
             new_cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-            new_cip->variant.field = member_or_base_sym->variant.field;
+            new_cip->variant.field = member_or_base_sym->variant.field.ptr;
             if (cip_list == NULL) {
               /* Easy case:  start a new list. */
               cip_list = end_of_cip_list = new_cip;
@@ -1382,7 +1382,7 @@ initialized.  These are addressed in the course of the processing.
                       prev_cip->next = new_cip;
                     }  /* if */
                     break;
-                  } else if (sym->variant.field == cip->variant.field) {
+                  } else if (sym->variant.field.ptr == cip->variant.field) {
                     /* We didn't find the field we're trying to insert, but
                        we did find the next item on the list. */
                     if (cip == end_of_cip_list) {
@@ -1765,7 +1765,7 @@ though neither constructors nor initialization is involved here.)
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether a destructor exists. */
       array_type = NULL;
-      tp = skip_typerefs(sym->variant.field->type);
+      tp = skip_typerefs(sym->variant.field.ptr->type);
       /* For arrays get the element type, allowing for multidimensional
          arrays.  Keep track of the array type for later. */
       if (is_array_type(tp)) {
@@ -1780,7 +1780,7 @@ though neither constructors nor initialization is involved here.)
         if (cssp->destructor != NULL) {
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
-          cip->variant.field = sym->variant.field;
+          cip->variant.field = sym->variant.field.ptr;
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = cssp->destructor->variant.routine;
