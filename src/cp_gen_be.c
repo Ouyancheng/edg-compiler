@@ -240,7 +240,11 @@ Return TRUE if the given type has a definition.
 
 #define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
 #define is_pointer_type(tp) \
-  (skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
+  (skip_typerefs(tp)->kind == (a_type_kind)tk_pointer && \
+   !(tp)->variant.pointer.is_reference)
+#define is_reference_type(tp) \
+  (skip_typerefs(tp)->kind == (a_type_kind)tk_pointer && \
+   (tp)->variant.pointer.is_reference)
 #define is_integral_type(tp) \
   (skip_typerefs(tp)->kind == (a_type_kind)tk_integer)
 
@@ -3391,6 +3395,34 @@ done:;
 }  /* gen_statement */
 
 
+static a_boolean rout_is_copy_constructor(a_routine_ptr rout)
+/*
+Return TRUE if the indicated routine (a constructor) is a copy constructor.
+*/
+{
+  a_routine_type_supplement_ptr rtsp = rout->type->variant.routine.extra_info;
+  a_param_type_ptr              param = rtsp->param_type_list;
+  a_boolean                     is_cctor = FALSE;
+
+  /* A constructor is deemed a copy constructor if (1) the type of the first
+     parameter is reference-to-class or reference-to-qualified-class where
+     "class" is the class of which it is a member function, and (2) where
+     the function can be called with only one argument. */
+  /* If the param type entry is non-NULL there is at least one argument.  If
+     there is a second argument and it has a default expression, the function
+     call need not explicitly mention the second argument. */
+  if (param != NULL && is_reference_type(param->type) &&
+      (param->next == NULL || param->next->has_default_arg)) {
+    a_type_ptr tp = type_pointed_to(param->type);
+    if (skip_typerefs(tp) == rout->source_corresp.class_of_which_a_member) {
+      /* It is a copy constructor. */
+      is_cctor = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_cctor;
+}  /* rout_is_copy_constructor */
+
+
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          parenthesized_init)
 /*
@@ -3437,7 +3469,6 @@ is indicated, nothing is put out (in either mode).
       { a_routine_ptr    ctor;
         a_type_ptr       class_type;
         an_expr_node_ptr args;
-        a_boolean        const_object_okay, volatile_object_okay;
 
         /* Initialization by constructor.  The forms are as follows:
              parenthesized_init
@@ -3448,9 +3479,7 @@ is indicated, nothing is put out (in either mode).
         ctor = dip->variant.constructor.ptr;
         class_type = ctor->source_corresp.class_of_which_a_member;
         args = dip->variant.constructor.args;
-        if (!parenthesized_init && is_copy_constructor(ctor, class_type,
-                                                       &const_object_okay,
-                                                      &volatile_object_okay)) {
+        if (!parenthesized_init && rout_is_copy_constructor(ctor)) {
           /* This is the copy constructor elision case -- we don't have to
              write the copy constructor because it's implied. */
           gen_expression(args);
