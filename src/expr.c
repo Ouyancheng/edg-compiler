@@ -6732,7 +6732,7 @@ instantiations or errors) the actual operator new being called is not known
 and hence we cannot examine the matching operator delete either.
 */
 #define warn_about_missing_delete_if(cond)                                  \
-{ if (delete_routine == NULL && exceptions_enabled &&                       \
+{ if (/*lint --e(506)*/delete_routine == NULL && exceptions_enabled &&      \
       function_symbol != NULL && (cond)) {                                  \
     pos_stsy_warning(ec_no_corresponding_delete, &new_position,             \
                      (char *)(array_new ? "[]" : ""), function_symbol);     \
