@@ -403,25 +403,18 @@ name of an instance of a class template in Microsoft mode.
                                       simulated_hiding, sp, hidden_by);
         break;
       case sk_class_template:
-        /* Enter each instance of a class template. */
-        for (sym = hidden_sym->variant.template_info->
-                                  variant.class_template.instantiations;
-             sym != NULL;
-             sym = next_instance_sym(sym)) {
-          /* Don't enter prototype instantiations if they are not recorded in
-             the IL. */
-          if (!is_nonreal_instance_class_symbol(sym) ||
-              prototype_instantiations_in_il) {
-            record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                          hidden_class_or_namespace_member,
-                                          simulated_hiding, sp, hidden_by);
-          }  /* if */
-        }  /* for */
-        /* Process the template itself. */
+        /* Unlike function templates, only the template itself is added to
+           the hidden name list; when cp_gen_be encounters an instance of a
+           class template, it checks whether the template is hidden and
+           processes the instance accordingly.  This avoids an O(N^2)
+           performance problem when there are many instances of a class
+           template (perhaps resulting from a translation unit that contains
+           explicit instantiations), where each instance's injected class
+           name would hide every other instance of that template. */
         record_defeatable_name_hiding_for_single_entity(
-                                             hidden_sym, tag_hidden_by_nontag,
-                                             hidden_class_or_namespace_member,
-                                             simulated_hiding, sp, hidden_by);
+                                              hidden_sym, tag_hidden_by_nontag,
+                                              hidden_class_or_namespace_member,
+                                              simulated_hiding, sp, hidden_by);
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */
@@ -652,7 +645,7 @@ due to the simulated injected name of a template instance in Microsoft mode.
                               simulated_hiding, sp, sym_ptr);
     }  /* if */
   }  /* if */
-}  /* record_defeatable_name_hiding_if_not_same */
+}  /* record_defeatable_hiding_if_not_same */
 
 
 static void clone_inherited_hidden_members(a_type_ptr derived_class,
@@ -1235,6 +1228,21 @@ scopes and for the file scope.
         check_name_hiding_by_template_parameters(sp);
         tp = sp->variant.assoc_type;
         sym_list = symbol_supplement_for_class(tp)->symbols;
+        if (microsoft_bugs &&
+            tp->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL) {
+          /* Microsoft compilers do not inject the name of a template instance,
+             so this class does not contain an injected class name.  However,
+             to enable the C++-generating back end to generate correctly-
+             qualified code for dialects that do inject the template name, we
+             need to simulate an injected class name in this case for hidden
+             name processing. */
+          record_defeatable_hiding_if_not_same((a_symbol_ptr)tp->
+                                                     source_corresp.assoc_info,
+                                               sp,
+                                               /*sym_is_injected_class=*/TRUE,
+                                               /*simulated_hiding=*/TRUE);
+        }  /* if */
         break;
       default:
 #if CHECKING

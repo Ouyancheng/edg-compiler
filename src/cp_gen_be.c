@@ -2214,6 +2214,24 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
+    a_boolean save_qualification_needed = scp->qualification_needed;
+    if (entry_kind == iek_type) {
+      a_type_ptr tp = (a_type_ptr)scp;
+      if ((tp->kind == (a_type_kind)tk_class ||
+           tp->kind == (a_type_kind)tk_struct ||
+           tp->kind == (a_type_kind)tk_union) &&
+          tp->variant.class_struct_union.is_template_class &&
+          tp->variant.class_struct_union.extra_info->assoc_template->
+                                       source_corresp.qualification_needed) {
+        /* If the template requires qualification, so do all of its
+           instances.  (The check for qualified instance names is done this
+           way instead of by putting the instances on the hidden name list
+           to avoid performance problems with huge hidden name lists when
+           there are many instances, with the injected class name of each
+           instance hiding all the other instances. */
+        scp->qualification_needed = TRUE;
+      }  /* if */
+    }  /* if */
     if (scp->is_class_member) {
       a_type_ptr class_type = scp->parent.class_type;
       a_boolean  used_qualified_name = FALSE;
@@ -2223,7 +2241,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
       if (msvc_is_generated_code_target &&
           msvc_target_version_number < 1300 &&
-          entry_kind == (an_il_entry_kind)iek_constant &&
+          entry_kind == iek_constant &&
           in_friend_declaration) {
         /* MSVC version 6.0 had a bug such that the names of enumeration
            constants declared in base classes were not visible in default
@@ -2343,6 +2361,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         write_tok_str("::");
       }  /* if */
     }  /* if */
+    scp->qualification_needed = save_qualification_needed;
   }  /* if */
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */

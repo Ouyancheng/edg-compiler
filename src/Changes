@@ -1,5 +1,15 @@
 Version 3.6
 
+12/15/04 Hidden name table performance improvement
+
+The hidden name table routines have been improved to deal better with large
+numbers of instances of class templates (e.g., a translation unit with many
+explicit instantiations).  Previously, the injected class name in each
+instance hid every other instance, resulting in N hidden name lists with N-1
+entries (or quadratic complexity).  Now only the template itself is added to
+each instance's hidden name list, and the C++-generating back end determines
+whether an instance is hidden by examining its associated template.
+
 12/13/04 Thread-local storage specifier
 
 When THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED is TRUE, the front end can now
