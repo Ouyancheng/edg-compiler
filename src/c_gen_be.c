@@ -2546,7 +2546,9 @@ static void mangle_promoted_name(a_source_correspondence *scp,
 A local entity of the indicated routine, whose source correspondence
 entry is scp, is being promoted out of the routine and scope (number)
 indicated.  Adjust its name so it will be unique at the file scope.
-The encoding here should match mangle_promoted_entity_name.
+The encoding here should match mangle_promoted_entity_name.  rout can
+be NULL if promoting a type out of a prototype scope that is not associated
+with a routine.
 */
 {
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
@@ -2560,7 +2562,7 @@ The encoding here should match mangle_promoted_entity_name.
        mangled name of the routine, and "__Lnn" where "nn" is the
        scope number. */
     name_length = strlen(scp->name);
-    if (has_name(rout)) {
+    if (rout != NULL && has_name(rout)) {
       routine_name_length = strlen(rout->source_corresp.name);
     } else {
       routine_name_length = 0;
@@ -2597,7 +2599,9 @@ static void adjust_promoted_local_type_name(a_type_ptr     type,
 /*
 The indicated type is a local type of the indicated routine
 and is being promoted out of the routine and scope (number) indicated.
-Adjust its name so it will be unique at the file scope.
+Adjust its name so it will be unique at the file scope.  rout can
+be NULL if promoting a type out of a prototype scope that is not associated
+with a routine.
 */
 {
   mangle_promoted_name(&type->source_corresp, rout, scope_number);
@@ -2622,7 +2626,8 @@ static void dump_prototype_scope_types(a_scope_ptr   proto_scope,
                                        a_boolean     *any_found)
 /*
 If the indicated prototype scope contains any types, output them.
-The prototype scope is part of the routine indicated by rout.
+The prototype scope is part of the routine indicated by rout.  rout is
+NULL for a prototype scope that is not associated with a routine.
 pass is 1 or 2 (declarations are output on the first pass, full definitions
 on the second pass, to avoid ordering problems).  *any_found is set to
 TRUE if any prototype scope types are found.  This routine is only called
@@ -2647,6 +2652,41 @@ when the source language is C.
     dump_prototype_scope_types(sub_scope, rout, pass, any_found);
   }  /* for */
 }  /* dump_prototype_scope_types */
+
+
+static void dump_prototype_scope_types_within_type(a_type_ptr type,
+                                                   int        pass,
+                                                   a_boolean  *any_found)
+/*
+Examine type (and, if it is a derived type, its underlying types), looking
+for prototype scopes.  Whenever one is found, output all the types found
+therein (thus promoting them out of the prototype scope).  pass is 1 or 2
+(declarations are output on the first pass, full definitions on the
+second pass, to avoid ordering problems).  Set *any_found to TRUE if
+any prototype scope types are processed.  This routine is used, only
+in C mode, to process types that will have to be put out more than
+once (e.g., types of functions); without promotion of the prototype
+scope types, the two instances of the type would not be compatible.
+*/
+{
+  /* Do a loop so that we deal with prototype scopes at all levels in the
+     type, not just on top.  For example:
+       int (*f ())(enum E { e } arg) { }
+  */
+  do {
+    if (type->kind == (a_type_kind)tk_routine) {
+      a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+      a_scope_ptr                   proto_scope = rtsp->prototype_scope;
+      a_routine_ptr                 rout = rtsp->assoc_routine;
+      if (proto_scope != NULL) {
+        /* This type has a prototype scope.  Output any types declared
+           therein. */
+        dump_prototype_scope_types(proto_scope, rout, pass, any_found);
+      }  /* if */
+    }  /* if */
+    /* Move down to the underlying type.  Stop on a non-derived type. */
+  } while ((type = underlying_type_of_derived_type(type)) != NULL);
+}  /* dump_prototype_scope_types_within_type */
 
 
 static void dump_scope_types(a_scope_ptr scope)
@@ -2684,6 +2724,10 @@ Dump all types declared within one scope.
        is possible to call those functions (e.g., with a 0 to match a
        pointer) and the types would get referenced in the cast of
        the argument. */
+    /* Initialized variables must also be processed, because they also
+       are put out twice and can involve prototype scopes:
+         long *(*p) (struct { int i; }) = { 0 };
+    */
 #if 0
     /* These prototype scope types should really be merged with the types
        from the top level of the function, since there can be references
@@ -2697,27 +2741,35 @@ Dump all types declared within one scope.
     /* Also suppress the second pass if no prototype scope types were
        found on the first pass. */
     if (il_header.source_language == sl_C && !suppress_prototype_scope_pass) {
-      a_boolean     any_found = FALSE;
-      a_routine_ptr rout;
+      a_boolean      any_found = FALSE;
+      a_routine_ptr  rout;
+      a_variable_ptr variable;
       for (rout = scope->routines; rout != NULL; rout = rout->next) {
-        a_type_ptr type = rout->type;
-        /* Do a loop so that we deal with prototype scopes at all levels in the
-           type, not just on top.  For example:
-             int (*f ())(enum E { e } arg) { }
-        */
-        do {
-          if (type->kind == (a_type_kind)tk_routine) {
-            a_routine_type_supplement_ptr rtsp =
-                                              type->variant.routine.extra_info;
-            a_scope_ptr                   proto_scope = rtsp->prototype_scope;
-            if (proto_scope != NULL) {
-              /* This type has a prototype scope.  Output any types
-                 declared therein. */
-              dump_prototype_scope_types(proto_scope, rout, pass, &any_found);
-            }  /* if */
-          }  /* if */
-          /* Move down to the underlying type.  Stop on a non-derived type. */
-        } while ((type = underlying_type_of_derived_type(type)) != NULL);
+        /* Only functions with definitions are put out twice, so only they
+           need this processing. */
+        if (rout->assoc_scope != NULL_region_number) {
+          dump_prototype_scope_types_within_type(rout->type, pass, &any_found);
+        }  /* if */
+      }  /* for */
+      for (variable = scope->variables;
+           variable != NULL;
+           variable = variable->next) {
+        /* Only initialized variables are put out twice, so only they need
+           this processing. */
+        if (variable->init_kind != (an_init_kind)initk_none) {
+          dump_prototype_scope_types_within_type(variable->type, pass,
+                                                 &any_found);
+        }  /* if */
+      }  /* for */
+      for (variable = scope->nonstatic_variables;
+           variable != NULL;
+           variable = variable->next) {
+        /* Only initialized variables are put out twice, so only they need
+           this processing. */
+        if (variable->init_kind != (an_init_kind)initk_none) {
+          dump_prototype_scope_types_within_type(variable->type, pass,
+                                                 &any_found);
+        }  /* if */
       }  /* for */
       /* If no types were found in prototype scopes on the first pass,
          there's no need for the second pass. */
