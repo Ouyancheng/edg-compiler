@@ -350,6 +350,9 @@ might not be able to if the template itself has not yet been defined.
                        tssp->declaration_scope, class_type,
                        (a_routine_ptr)NULL, instance_sym, template_sym,
                        template_arg_list);
+      /* Reactivate any pragmas that should be bound to the generated
+         instance. */
+      reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
          the new values associated with the template parameters. */
@@ -455,6 +458,9 @@ encountered.
                    tssp->declaration_scope, prototype_type,
                    (a_routine_ptr)NULL, instance_sym, template_sym,
                    template_arg_list);
+  /* Reactivate any pragmas that should be bound to the generated
+     instance. */
+  reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   rescan_reusable_cache(p_token_cache);
 #if CHECKING
   if (curr_token != tok_lbrace && curr_token != tok_colon) {
@@ -573,6 +579,9 @@ Instantiate the body of the template function associated with tip.
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
                    rout_sym, tip->template_sym, tip->arg_list);
+  /* Reactivate any pragmas that should be bound to the generated
+     instance. */
+  reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   /* If a lint-style "argsused" or "varargs" comment appeared, record that in
      the function type.  That will suppress any warnings about unused
      parameters or variable arguments.  Note that this is done before calling
@@ -654,6 +663,9 @@ and the class instantiation will detect the runaway case.
                      tssp->declaration_scope, (a_type_ptr)NULL,
                      (a_routine_ptr)NULL, static_data_member_sym,
                      tip->template_sym, tip->arg_list);
+    /* Reactivate any pragmas that should be bound to the generated
+       instance. */
+    reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
     push_class_reactivation_scope(static_data_member_sym->
                                                   class_of_which_a_member);
     
@@ -1589,17 +1601,15 @@ of a function template.
 
 
 a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
-                                    a_type_ptr          rout_type,
                                     a_template_arg_ptr  templ_arg_list,
                                     a_source_position   *source_pos)
 /*
 Allocate the symbol and routine entry for a template function, based on
-the function template (represented by templ_sym) and the function type
-(rout_type), and allocate and enter the associated function instantiation
-entry, where the template arg list for the instantiation (templ_arg_list)
-is also recorded.  If rout_type is NULL, create a routine type based on
-the template argument list and the template parameter list (reached through
-templ_sym).
+the function template (represented by templ_sym), and allocate and enter
+the associated function instantiation entry, where the template arg list
+for the instantiation (templ_arg_list) is also recorded.  Create a routine
+type based on the template argument list and the template parameter list
+(reached through templ_sym).
 */
 {
   a_symbol_ptr                      sym;
@@ -1607,7 +1617,7 @@ templ_sym).
   a_memory_region_number            region_to_switch_back_to;
   a_template_instance_ptr           tip;
   a_routine_ptr                     templ_rout, rp;
-  a_boolean			    is_new_rout_type = FALSE;
+  a_type_ptr			    rout_type = NULL;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -1632,10 +1642,12 @@ templ_sym).
      memory region if necessary to allocate the routine entry. */
   switch_to_file_scope_region(&region_to_switch_back_to);
   sym->variant.routine.ptr = rp = alloc_routine();
-  if (rout_type == NULL) {
-    /* If the routine type does not already exist, create one by
-       rescanning the original declaration with the template parameters
-       updated to refer to the appropriate template arguments. */
+  {
+    /* Create a routine type by rescanning the original declaration
+       with the template parameters updated to refer to the appropriate
+       template arguments.  This is done even if a type already exists
+       because additional error checking is done during the declaration
+       processing. */
     a_decl_flag_set	do_flags;
     a_decl_flag_set	dso_flags;
     a_symbol_locator    locator;
@@ -1652,10 +1664,9 @@ templ_sym).
                      tssp->declaration_scope, (a_type_ptr)NULL,
                      (a_routine_ptr)NULL, (a_symbol_ptr)NULL, templ_sym,
                      templ_arg_list);
-    /* Throw out any pragmas that are associated with this template.  The
-       pragmas are only processed when the function is actually
-       instantiated. */
-    discard_curr_construct_pragmas();
+    /* Reactivate any pragmas that should be bound to the generated
+       instance. */
+    reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
     /* Rescan the tokens of the function declaration. */
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
@@ -1668,11 +1679,7 @@ templ_sym).
     done_with_func_info(func_info);
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
-    /* Pop the template instantiation scope. */
-    pop_scope();
-    is_new_rout_type = TRUE;
-  }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
+  }
   /* Give the routine entry the type passed in, and set other fields in
      accord with the settings in the template. */
   rp->type = rout_type;
@@ -1696,7 +1703,12 @@ templ_sym).
      point at each other. */
   tip->instance_sym = sym;
   sym->variant.routine.instance_ptr = tip;
-  if (is_new_rout_type) {
+  /* Process any pragmas that are to be bound to this instance. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+  /* Pop the template instantiation scope. */
+  pop_scope();
+  switch_back_to_original_region(region_to_switch_back_to);
+  {
     a_symbol_locator	locator;
     /* If there are default arguments whose types depend on template
        parameters, scan the default argument expressions. */
@@ -1705,10 +1717,6 @@ templ_sym).
       (void)push_scope((a_scope_kind)sck_template_instantiation,
                        tssp->declaration_scope, (a_type_ptr)NULL, rp,
                        sym, tip->template_sym, tip->arg_list);
-      /* Throw out any pragmas that are associated with this template.  The
-         pragmas are only processed when the function is actually
-         instantiated. */
-      discard_curr_construct_pragmas();
       delayed_scan_for_function_template_default_args
 			(templ_rout, rp, tssp);
       /* Pop the template instantiation scope. */
@@ -1728,7 +1736,7 @@ templ_sym).
     }  /* if */
     check_operator_function_params(rout_type, /*class_type=*/(a_type_ptr)NULL,
                                    &locator);
-  }  /* if */
+  }
   /* Function instantiation entries are not marked for actual instantiation
      (that is, for generation of the function body) until there is an
      invocation of the function.  In tim_all mode the instantiations
@@ -1907,8 +1915,7 @@ return a pointer to the symbol; otherwise, return NULL.
       /* A match has been found -- just return a pointer to it. */
     } else {
       /* Use the template arg list to create a new symbol. */
-      sym = make_template_function(templ_sym, curr_type, templ_arg_list,
-                                   source_pos);
+      sym = make_template_function(templ_sym, templ_arg_list, source_pos);
     }  /* if */
   }  /* if */
   db_exit();
@@ -2329,8 +2336,7 @@ structure.
        function instantiation entry, and linking all these appropriately.
        Note that the symbol will not be added to the symbol table, since it
        is accessed through the list of function instantiation entries. */
-    sym = make_template_function(templ_sym, (a_type_ptr)NULL, *new_list,
-                                 source_pos);
+    sym = make_template_function(templ_sym, *new_list, source_pos);
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "created: ", 2);
@@ -3596,10 +3602,12 @@ entry is pushed on the scope stack.
   if (sym != NULL) {
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(sym);
-    check_assertion_str2(tssp != NULL, "template_declaration:",
-                         "tssp is NULL");
-    tssp->pragmas_bound_to_template =
-                        extract_curr_construct_pragmas();
+    if (tssp != NULL) {
+      /* A null pointer could be returned if the symbol has an invalid
+         kind because of an earlier error. */
+      tssp->pragmas_bound_to_template =
+                          extract_curr_construct_pragmas();
+    }  /* if */
   }  /* if */
   if (prototype_type != NULL) {
 #if CHECKING

@@ -6798,10 +6798,6 @@ of the template.
                                                 is_prototype_instantiation;
         }  /* if */
       }  /* if */
-      /* Make a copy of the list of pragmas associated with this template and
-         set this scope's current construct list to point to the new copy. */
-      ssep->curr_construct_pragmas =
-                    make_copy_of_pragma_list(tssp->pragmas_bound_to_template);
     } else if (kind != (a_scope_kind)sck_file) {
       ssep->in_prototype_instantiation = (ssep-1)->in_prototype_instantiation;
     }  /* if */

@@ -1033,14 +1033,14 @@ the pragmas may be applied to each instance of a template.
 */
 {
   a_pending_pragma_ptr	ppp;
-  a_pending_pragma_ptr  *pragma_list;
+  a_pending_pragma_ptr  *scope_list_addr;
   a_pending_pragma_ptr  list_head;
 
-  pragma_list = curr_list_of_curr_construct_pragmas();
+  scope_list_addr = curr_list_of_curr_construct_pragmas();
   /* Get the list head and clear the list pointer in the scope stack. */
-  ppp = *pragma_list;
+  ppp = *scope_list_addr;
   list_head = ppp;
-  *pragma_list = NULL;
+  *scope_list_addr = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   while (ppp != NULL) {
     /* If this source sequence entry was never bound to another IL entry,
@@ -1058,6 +1058,23 @@ the pragmas may be applied to each instance of a template.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return list_head;
 }  /* extract_curr_construct_pragmas */
+
+
+void reactivate_curr_construct_pragmas(a_pending_pragma_ptr pragma_list)
+/*
+Restore a list of pragmas as the current token pragmas.
+*/
+{
+  a_pending_pragma_ptr  *scope_list_addr;
+
+  scope_list_addr = curr_list_of_curr_construct_pragmas();
+  check_assertion_str2(*scope_list_addr == NULL,
+                       "reactivate_curr_construct_pragmas:",
+                       "pragma list not already empty");
+  /* Make a copy of the list of pragmas associated with this template and
+     set this scope's current construct list to point to the new copy. */
+  *scope_list_addr = make_copy_of_pragma_list(pragma_list);
+}  /* reactivate_curr_construct_pragmas */
 
 
 void process_pragmas_at_end_of_source(void)
