@@ -3010,11 +3010,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
             }  /* if */
           } else {
             /* In C, such a conversion is nonstandard, but allowed as
-               an extension, with a warning */
+               an extension.  No diagnostic is issued. */
             if (!suppress_extensions) {
               okay = TRUE;
               std_conv->pointer_normalization_needed = TRUE;
-              std_conv->warning_suggested = default_warning_code;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -3835,7 +3834,6 @@ well as C++ mode.
           /* C mode. */
           if (!suppress_extensions) {
             okay = TRUE;
-            *warning_suggested = ec_mixed_function_object_pointers;
           }  /* if */
         } else {
           /* C++ mode. */

@@ -1,5 +1,18 @@
 Version 2.31
 
+1/15/96   Cast between pointer-to-object and pointer-to-function in C
+
+A conversion between a pointer-to-object and pointer-to-function no
+longer results in a warning in default C mode.  It is still an error
+in strict mode, and in default mode if the destination is not
+large enough to hold the pointer.
+
+1/15/96   Cast of pointer-to-function to void* in C
+
+A conversion from pointer-to-function to void* no longer results in a
+warning in default C mode.  It is still an error in strict mode, and in
+default mode if the destination is not large enough to hold the pointer.
+
 1/15/96   Implicit conversion from pointer to integer allowed in SVR4 mode
 
 An implicit conversion from a pointer to an integer, previously
