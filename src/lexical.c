@@ -488,7 +488,7 @@ in the cache, nothing is done.
 {
   a_lint_and_pragma_state laps;
 
-  db_enter(3, "rescan_cached_tokens");
+  db_enter(4, "rescan_cached_tokens");
   if (cache->first_token != NULL) {
     /* Add the current token to the cache, so that (a) it is not lost,
        and (b) the lint/pragma state is properly updated in the
@@ -505,6 +505,9 @@ in the cache, nothing is done.
     clear_lint_and_pragma_state(&laps);
     set_globals_from_lint_and_pragma_state(&laps);
     /* Fetch the first cached token. */
+#if DEBUG
+    if (debug_level >= 3) fputs("from cache ", f_debug);
+#endif /* DEBUG */
     (void)get_token();
   }  /* if */
   db_exit();
@@ -538,7 +541,7 @@ current token, and return its token kind.
   a_token_kind       ctoken;
   a_cached_token_ptr ctp;
 
-  db_enter(3, "get_token_from_cached_token_rescan_list");
+  db_enter(4, "get_token_from_cached_token_rescan_list");
   for (;;) {
     /* Remove the first entry from the list. */
     ctp = cached_token_rescan_list;
@@ -4410,7 +4413,10 @@ tokens should be rescanned.
         *class_type = class_symbol->variant.class_struct_union.type;
       }  /* if */
       /* Cache the identifier, if required. */
-      if (cache != NULL) cache_curr_token(cache);
+      if (cache != NULL) {
+        locator_for_curr_id.specific_symbol = NULL;
+        cache_curr_token(cache);
+      }  /* if */
       /* Skip over the class-name, and the "::". */
       (void)get_token();
       /* Cache the "::", if required. */
