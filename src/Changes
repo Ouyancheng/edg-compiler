@@ -1,5 +1,19 @@
 Version 2.16
 
+3/29/93  Scanning array dimension in static data member declaration
+
+The dimensions of an static data member array declaration are now scanned
+in the scope of the parent class.  For instance, this case is now handled
+correctly:
+
+  class A {
+  public:
+    static const int size;
+    static int array[];
+  };
+  const int A::size = 4;
+  int A::array[size] = { 0, 1, 2, 3 };   // "size" is A::size
+
 3/29/93  Improved support for operator declarations
 
 We no longer permit operator-name declarators in certain contexts -- e.g.,
