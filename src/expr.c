@@ -4050,6 +4050,117 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   db_exit();
 }  /* scan_typeid_operator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void scan_uuidof_operator(an_operand *result)
+/*
+Scan the C++ __uuidof operator, a Microsoft C++ extension.
+
+Syntax:
+	__uuidof ( expression )
+	__uuidof ( type-id )
+
+The value of the operation is an lvalue of type "const struct _GUID".
+*/
+{
+  a_source_position start_position;
+  an_operand        operand;
+  an_expr_node_ptr  expr = NULL, uuidof_node;
+  a_type_ptr        uuidof_type;
+  a_boolean         err = FALSE;
+
+  db_enter(4, "scan_uuidof_operator");
+  /* Save the position of the __uuidof keyword. */
+  start_position = pos_curr_token;
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* __uuidof not possible for preprocessing expressions. */
+    internal_error("scan_uuidof_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  if (curr_expr_kind_is_const()) {
+    /* __uuidof is not allowed in constant expressions. */
+    pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  }  /* if */
+  /* Advance past __uuidof. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  /* Disambiguate to choose between the type case and the expression case. */
+  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                       DFS_SINGLE_TYPE_REQUIRED)) {
+    /* Scan a type name. */
+    type_name(&uuidof_type);
+    /* If the type is a reference, drop that. */
+    if (is_reference_type(uuidof_type)) {
+      uuidof_type = type_pointed_to(uuidof_type);
+    }  /* if */
+  } else {
+    /* Scan an expression. */
+    /* The expression is not evaluated. */
+    an_expr_stack_entry expr_stack_entry;
+
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE);
+    expr_stack_entry.evaluated = FALSE;
+    expr_stack_entry.potentially_evaluated = FALSE;
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    uuidof_type = operand.type;
+    /* __uuidof(0) is a special case that yields a zero GUID. */
+    if (is_constant_operand(&operand) &&
+        is_null_pointer_constant(&operand.variant.constant)) {
+      uuidof_type = NULL;
+    }  /* if */
+    pop_expr_stack();
+  }  /* if */
+  /* Get down to the underlying type, which must be a class for
+     which __declspec(uuid(...)) was specified. */
+  if (uuidof_type != NULL) {
+    if (is_array_type(uuidof_type)) {
+      /* Reduce an array type to the underlying element type. */
+      uuidof_type = underlying_array_element_type(uuidof_type);
+    } else if (is_pointer_type(uuidof_type)) {
+      /* Reduce a pointer to the underlying type. */
+      uuidof_type = type_pointed_to(uuidof_type);
+    }  /* if */
+    uuidof_type = skip_typerefs(uuidof_type);
+    if (!is_class_struct_union_type(uuidof_type) ||
+        uuidof_type->variant.class_struct_union.extra_info->uuid_string ==
+                                                                        NULL) {
+      if (!is_error_type(uuidof_type)) {
+        error(ec_uuidof_requires_uuid_class_type);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Create a uuidof expression node. */
+    a_type_ptr const_guid= make_qualified_type(type_of_guid,
+                                               (a_type_qualifier_set)TQ_CONST);
+    uuidof_node = alloc_expr_node((an_expr_node_kind)enk_uuidof);
+    uuidof_node->variant.typeid_info.expr = expr;
+    uuidof_node->variant.typeid_info.type = uuidof_type;
+    uuidof_node->implicit_reference_indirection = TRUE;
+    /* The result is a reference to const _GUID, which means a pointer to
+       _GUID as an lvalue address. */
+    uuidof_node->type = make_pointer_type(const_guid);
+    make_expression_operand(uuidof_node, const_guid, result);
+    result->state = (an_operand_state)os_lvalue;
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_uuidof_operator */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean scan_new_style_cast(a_type_ptr        *cast_type,
                                      a_source_position *type_position,
@@ -9921,6 +10032,13 @@ see expr.h).
       /* typeid operation. */
       scan_typeid_operator(&local_result);
       break;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_uuidof:
+      /* Microsoft __uuidof operation. */
+      scan_uuidof_operator(&local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     case tok_dynamic_cast:
       /* dynamic_cast operation. */
