@@ -1351,12 +1351,19 @@ Process a preinclude or preinclude_macros option (determined by
 "kind").  "arg" is the file name.
 */
 {
-  if (preinclude_file_name != NULL) {
-    /* A value has already been specified. */
-    command_line_error(ec_cl_more_than_one_preinclude);
+  a_preinclude_file_ptr	pfp;
+  pfp = alloc_preinclude_file();
+  pfp->file_name = arg;
+  /* Add this entry to the list of preinclude files.  The lists are built
+     in reverse order. */
+  if (kind == optk_preinclude_macros) {
+    pfp->next = macro_preinclude_file_list;
+    macro_preinclude_file_list = pfp;
+  } else {
+    /* The normal preinclude list is built in reverse order. */
+    pfp->next = preinclude_file_list;
+    preinclude_file_list = pfp;
   }  /* if */
-  preinclude_file_name = arg;
-  is_macro_preinclude = (kind == optk_preinclude_macros);
 }  /* process_preinclude_option */
 
 

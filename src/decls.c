@@ -11910,7 +11910,7 @@ In C++, however, the declaration list is optional (3.4):
   }  /* if */
   /* If the preinclude_macros option was used, scan the files that provide
      macro definitions. */
-  if (is_macro_preinclude) process_macro_preinclude();
+  if (macro_preinclude_file_list != NULL) process_macro_preincludes();
   /* Set the global flag to enable the check for a header stop. */
   next_token_is_top_level_decl_start = TRUE;
   (void)get_token();

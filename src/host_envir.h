@@ -1702,20 +1702,18 @@ EXTERN a_boolean
 			   on the command line. */
 
 /*
-If non-NULL, the name of a file to include at the beginning of
-the compilation.  This can be used to set predefined macros, etc.
-When multiple source files are compiled, this is included at the
-beginning of each compilation.  This string is allocated in general
-storage, not IL storage.
+If non-NULL, a list of entries that describe files to include at the
+beginning of the compilation.  There is one list of file to be preincluded
+only for the purpose of setting macros, and another that can define macros
+as well as include other code.  The macro preincludes are processed before
+the other preincludes.  When multiple source files are compiled,
+this is included at the beginning of each compilation.  The list is
+allocated in general storage, not IL storage.  The lists are built
+in reverse order.
 */
-EXTERN char	*preinclude_file_name;
-
-/*
-TRUE if the file specified by "preinclude_file_name" should be processed
-only for the purpose of defining macros.
-*/
-EXTERN a_boolean
-		is_macro_preinclude;
+EXTERN struct a_preinclude_file
+		*preinclude_file_list,
+		*macro_preinclude_file_list;
 
 /*
 Object file name, usually derived from the primary source file name.

@@ -2264,21 +2264,32 @@ file).
 }  /* verify_that_all_pp_ifs_were_closed */
 
 
-void process_macro_preinclude(void)
+void process_macro_preincludes(void)
 /*
 When the preinclude_macros option is used, scan and discard any tokens
-until the end of the preinclude file is reached.
+until the end of the preinclude file is reached.  The files have already
+been pushed onto the input stack.  Read to the end of each file.
 */
 {
-  if (!using_a_pch_file) {
-    /* The preinclude will have been processed as part of the PCH when
-       using a precompiled header. */
-    for (;;) {
-      if (get_token() == tok_end_of_source) break;
+  /* The preinclude will have been processed as part of the PCH when
+     using a precompiled header. */
+  if (!using_a_pch_file && macro_preinclude_file_list != NULL) {
+    a_preinclude_file_ptr	pfp;
+    a_boolean			save_generate_pp_output;
+    /* Suppress preprocessed output while scanning macro preincludes. */
+    save_generate_pp_output = generate_pp_output;
+    generate_pp_output = FALSE;
+    for (pfp = macro_preinclude_file_list; pfp != NULL; pfp = pfp->next) {
+      /* Flush the tokens from this preinclude.  Any macros will be evaluated
+         during this process. */
+      for (;;) {
+        if (get_token() == tok_end_of_source) break;
+      }  /* for */
+      pop_input_stack();
     }  /* for */
-    pop_input_stack();
+    generate_pp_output = save_generate_pp_output;
   }  /* if */
-}  /* process_macro_preinclude */
+}  /* process_macro_preincludes */
 
 
 void cpp_driver(void)
@@ -2296,7 +2307,7 @@ is asked to act like cpp.
   expand_macros = generate_pp_output;
   /* If the preinclude_macros option was used, scan the files that provide
      macro definitions. */
-  if (is_macro_preinclude) process_macro_preinclude();
+  if (macro_preinclude_file_list != NULL) process_macro_preincludes();
   do {} while (get_token() != tok_end_of_source);
   /* In some cases involving macro ids right before the end of file,
      the end of file line will have been modified (characters will have

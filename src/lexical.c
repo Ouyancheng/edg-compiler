@@ -621,6 +621,7 @@ static unsigned long
 		num_cached_constants_allocated,
                 num_file_suffixes_allocated,
 		num_include_file_histories_allocated,
+		num_preinclude_files_allocated,
 		cached_pp_token_string_space,
                 num_stop_token_stack_entries_allocated,
 		num_reusable_cache_entries_allocated;
@@ -2939,6 +2940,23 @@ on the raw listing file, e.g., force out the last source line.
     gen_raw_listing_output_for_curr_line();
   }  /* if */
 }  /* finish_raw_listing_file */
+
+
+a_preinclude_file_ptr alloc_preinclude_file(void)
+/*
+Allocate a_preinclude_file structure, initialize it, and return
+a pointer.
+*/
+{
+  a_preinclude_file_ptr	pfp;
+  pfp = alloc_general_of_type(a_preinclude_file);
+#if DEBUG
+  num_preinclude_files_allocated++;
+#endif /* DEBUG */
+  pfp->next = NULL;
+  pfp->file_name = NULL;
+  return pfp;
+}  /* alloc_preinclude_file */
 
 
 /*
@@ -13198,6 +13216,8 @@ Display and return the amount of space used for various lexical tables.
                 a_file_suffix);
   db_space_used("include file histories", num_include_file_histories_allocated,
                 an_include_file_history);
+  db_space_used_general("preinclude files", num_preinclude_files_allocated,
+                        a_preinclude_file);
   db_space_used_other("cached pp token strings", cached_pp_token_string_space,
                       "");
   grand_total += cached_pp_token_string_space;
@@ -13457,6 +13477,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
       pch_saved_var_array_elem(num_stop_token_stack_entries_allocated),
       pch_saved_var_array_elem(num_include_file_histories_allocated),
+      pch_saved_var_array_elem(num_preinclude_files_allocated),
       pch_saved_var_array_elem(cached_pp_token_string_space),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
@@ -13592,6 +13613,7 @@ of the front end.
   num_stop_token_stack_entries_allocated = 0;
   num_pragma_descriptions_allocated = 0;
   num_include_file_histories_allocated = 0;
+  num_preinclude_files_allocated = 0;
   cached_pp_token_string_space = 0;
 #endif /* DEBUG */
 #if CHECKING

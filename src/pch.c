@@ -625,8 +625,8 @@ information.
      information.  This affects the way in which preprocessing directives
      are handled and the way end-of-file is processed. */
   building_pch_prefix = TRUE;
-  /* If a preinclude file was specified, create an event for it. */
-  if (preinclude_file_name != NULL) {
+  /* If any preinclude files were specified, create an event for them. */
+  if (preinclude_file_list != NULL || macro_preinclude_file_list) {
     create_preinclude_pch_event();
   }  /* if */
   /* Simply do a get_token call.  This will return the first token

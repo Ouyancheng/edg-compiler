@@ -728,6 +728,19 @@ Array giving the token name for each opname kind.
 */
 EXTERN char	*opname_names[(int)onk_last];
 
+
+/*
+Structure used to build a list of files to be pre-included.
+*/
+typedef struct a_preinclude_file *a_preinclude_file_ptr;
+typedef struct a_preinclude_file {
+  a_preinclude_file_ptr
+		next;	/* Pointer to the next entry in a linked list of
+			   preinclude files. */
+  char		*file_name;
+			/* Name of the file to be preincluded. */
+} a_preinclude_file;
+
 /*
 Structure used to record information about files that have been included.
 See the comment preceding find_include_history in lexical.c.
@@ -1971,6 +1984,8 @@ extern void add_token_cache_to_string(a_token_cache_ptr	cache);
 
 extern void init_token_string(a_source_position *pos);
 #endif /* TOKENS_TO_STRING_NEEDED */
+
+extern a_preinclude_file_ptr alloc_preinclude_file(void);
 
 #if RECORD_FORM_OF_NAME_REFERENCE
 extern a_name_reference_ptr make_name_reference(

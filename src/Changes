@@ -1,5 +1,12 @@
 Version 3.2
 
+3/18/03  Multiple --preinclude and --preinclude_macros options
+
+The use of multiple --preinclude and/or --preinclude_macros options
+is now supported.  As with gcc/g++, all of the macro preincludes are
+processed before the other preincludes, but within each group they are
+processed in the order specified on the command line.
+
 3/17/03  Incorrect check for loop on operator->
 
 The check for a loop while resolving overloaded operator->

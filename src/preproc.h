@@ -244,7 +244,7 @@ extern void create_preinclude_pch_event(void);
 
 extern void pch_prefix_processing_for_preinclude(void);
 
-extern void process_macro_preinclude(void);
+extern void process_macro_preincludes(void);
 
 #if IDENT_DIRECTIVE_AND_PRAGMA
 extern void ident_pragma(a_pending_pragma_ptr ppp);
