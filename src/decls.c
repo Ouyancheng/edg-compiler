@@ -2945,9 +2945,12 @@ of the identifier.
       a_type_ptr  tp = is_function ? sym->variant.routine.ptr->type :
                                      sym->variant.variable.ptr->type;
       if (is_or_contains_local_type(tp)) {
-        pos_error(is_function ? ec_local_type_in_function :
-                                ec_local_type_in_nonlocal_var,
-                  error_pos);
+        /* A block extern declaration that involves a local type.  Issue an
+           error (except in Microsoft compatibility mode). */
+        pos_diagnostic(microsoft_mode ? es_warning : es_error,
+                       is_function ? ec_local_type_in_function :
+                                     ec_local_type_in_nonlocal_var,
+                       error_pos);
       }  /* if */
     }  /* if */
   }  /* if */
