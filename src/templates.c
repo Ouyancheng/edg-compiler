@@ -359,6 +359,11 @@ static a_boolean
 #endif /* CHECKING */
 
 static a_boolean
+		after_inline_function_wrapup;
+			/* TRUE after inline function wrapup processing has
+			   completed. */
+
+static a_boolean
 		entries_updated_during_instantiation_wrapup;
 			/* TRUE when entries on the instantiation required
 			   list have their instantiation required flag
@@ -16638,6 +16643,13 @@ Assign a master instance entry for the template instance "tip".
       master_instantiations_tail = mip;
     }  /* if */
     canonical_tip->master_instance = mip;
+#if DEBUG
+    if (db_sym_trace("instantiations", canonical_sym)) {
+      fprintf(f_debug, "Creating master instance for ");
+      db_symbol_name_trans_unit(canonical_sym);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   /* Save a pointer to the master instance in the template instance. */
   tip->master_instance = mip;
@@ -17874,6 +17886,15 @@ emitted in this translation unit.
     result = TRUE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
+#if DEBUG
+  if (db_trace("instantiations", rout_ptr, iek_routine)) {
+    fprintf(f_debug, "Setting inline function info for: ");
+    db_entity_info((char *)rout_ptr, iek_routine);
+    fprintf(f_debug,
+            "\n  body_can_be_generated=%d, suppress_inline_body=%d\n",
+            body_can_be_generated, !result);
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* inline_function_should_be_emitted */
 
@@ -17915,9 +17936,6 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #if INSTANTIATE_EXTERN_INLINE
   if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       set_body_needed_flag_for_inline_function(rlep->routine);
     }  /* for */
@@ -17930,6 +17948,7 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
+  after_inline_function_wrapup = TRUE;
 }  /* inline_function_wrapup */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -19018,6 +19037,18 @@ Add the routine to an "instantiation list" of inline functions.
     rlep->next = inline_function_list;
     inline_function_list = rlep;
     rout_ptr->on_inline_function_list = TRUE;
+    if (after_inline_function_wrapup) {
+      /* If inline_function_wrapup has already been called, call the routine
+         to set the body needed flag now. */
+      set_body_needed_flag_for_inline_function(rout_ptr);
+    }  /* if */
+#if DEBUG
+  if (db_trace("instantiations", rout_ptr, iek_routine)) {
+    fprintf(f_debug, "Adding to inline function list: \n");
+    db_entity_info((char *)rout_ptr, iek_routine);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* add_to_inline_function_list */
 
@@ -19124,6 +19155,7 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(exported_templates_list);
   register_trans_unit_variable(exported_templates_tail);
   register_trans_unit_variable(inline_function_list);
+  register_trans_unit_variable(after_inline_function_wrapup);
   register_trans_unit_variable(entries_updated_during_instantiation_wrapup);
   register_trans_unit_variable(can_instantiate_list);
 #if CHECKING
@@ -19151,6 +19183,7 @@ given translation unit.
   any_friend_state_changed = FALSE;
   after_instantiation_wrapup = FALSE;
 #endif /* CHECKING */
+  after_inline_function_wrapup = FALSE;
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such
      constants that are created. */
