@@ -1,5 +1,17 @@
 Version 2.39
 
+6/3/98   Prelinker does not handle nonlocal files properly in
+         one-instantiation-per-object mode
+
+When using one-instantiation-per-object mode, the prelinker does not handle
+nonlocal instantiation files properly.  When files are linked using
+a command such as
+
+	eccp --one some_dir/a.o b.o
+
+"some_dir" needs to be used as a prefix to the instantiation directory
+specified in some_dir/a.ti.  This has been fixed.
+
 5/31/98  INSTANTIATION_OBJECT_SUFFIX set incorrectly when __MICROSOFT_OS__
          is TRUE
 

@@ -2111,6 +2111,7 @@ that line type.
 */
 {
   sizeof_t		instantiation_dir_length = 0;
+  sizeof_t		compilation_dir_length = 0;
   sizeof_t		instantiation_suffix_length;
   sizeof_t		extra_space;
   FILE			*f_template_info;
@@ -2165,6 +2166,7 @@ that line type.
            variable accounts for the space needed for the "/" and the
            trailing null terminator. */
         a_pl_object_file_ptr	pofp;
+        a_boolean		add_compilation_dir = FALSE;
         extra_space = 2;
         if (!instantiation_dir_set) {
           /* If the file does not contain an instantiation directory name,
@@ -2173,14 +2175,25 @@ that line type.
           instantiation_dir_length = strlen(pifp->instantiation_directory);
           instantiation_dir_set = TRUE;
         }  /* if */
+        if (!pifp->is_local_file &&
+            !pl_is_absolute_file_name(pifp->instantiation_directory)) {
+          /* The instantiation directory is a pathname that is relative to
+             the original compilation directory.  This must be added to the
+             instantiation file name. */
+          add_compilation_dir = TRUE;
+        }  /* if */
         pofp = alloc_pl_object_file();
         pofp->file_name = (char *)pl_malloc_with_check(
-					       strlen(info) +
-					       instantiation_dir_length +
-					       instantiation_suffix_length +
-					       extra_space);
+ 		         strlen(info) +
+	                 instantiation_dir_length +
+			 instantiation_suffix_length +
+                         (add_compilation_dir ?  compilation_dir_length : 0) +
+			 extra_space);
         /* Construct the name of the instantiation object file. */
-        sprintf(pofp->file_name, "%s/%s%s", pifp->instantiation_directory,
+        sprintf(pofp->file_name, "%s%s%s/%s%s",
+                add_compilation_dir ? pifp->compilation_directory : "",
+                add_compilation_dir ? "/" : "",
+                pifp->instantiation_directory,
                 info, INSTANTIATION_OBJECT_SUFFIX);
         pofp->next = pifp->objects;
         pofp->is_related_file = TRUE;
@@ -2194,6 +2207,7 @@ that line type.
         /* See if the .ii file was built in the current directory. */
         pifp->is_local_file = strcmp(pifp->compilation_directory,
                                      curr_dir_name) == 0;
+        compilation_dir_length = strlen(pifp->compilation_directory);
       } else if (strncmp(line_type, "fnm:", 4) == 0) {
         /* The file name of the file to be used to recompile the file. */
         pifp->compilation_file_name = pl_copy_string(info);
@@ -3580,7 +3594,11 @@ end_of_options:
         if (one_instantiation_per_object) {
           /* Add each of the template object files to the command line. */
           for (pofp = pifp->objects; pofp != NULL; pofp = pofp->next) {
-            pl_add_two_to_temp_string(" ", pofp->file_name);
+            if (pofp->is_related_file) {
+              /* The is_related_file test prevents the primary file from being
+                 output more than once. */
+              pl_add_two_to_temp_string(" ", pofp->file_name);
+            }  /* if */
           }  /* for */
         }  /* if */
       }  /* for */
