@@ -1735,6 +1735,9 @@ error code.
     case ec_runaway_recursive_instantiation:
       m = "recursion halted at instantiation for %t";
       break;
+    case ec_bad_template_declaration:
+      m = "invalid template declaration";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
