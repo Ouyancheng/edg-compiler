@@ -7069,7 +7069,8 @@ to indicate whether an enumeration is actually defined.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the enum definition. */
-    add_end_of_type_source_sequence_entry(enum_type);
+    add_end_of_construct_source_sequence_entry((char *)enum_type,
+                                               (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);

@@ -6992,7 +6992,8 @@ next_declaration:
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the class definition. */
-    add_end_of_type_source_sequence_entry(class_type);
+    add_end_of_construct_source_sequence_entry((char *)class_type,
+                                               (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
