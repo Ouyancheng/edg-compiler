@@ -112,13 +112,14 @@ do nothing.
     memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
       /* Converting to float. */
-#define CAN_DO_FLT_MAX_TEST FALSE
 #if USING_ISO_C
 #ifdef FLT_MAX
-#undef CAN_DO_FLT_MAX_TEST
 #define CAN_DO_FLT_MAX_TEST TRUE
 #endif /* ifdef FLT_MAX */
 #endif /* USING_ISO_C */
+#ifndef CAN_DO_FLT_MAX_TEST
+#define CAN_DO_FLT_MAX_TEST FALSE
+#endif /* ifndef CAN_DO_FLT_MAX_TEST */
 #if CAN_DO_FLT_MAX_TEST
       /* FLT_MAX is available, so we can use it to test for overflow.  We do
          this before converting to float in case an overflow on such a
@@ -626,7 +627,7 @@ values:
 
 unsigned int fp_hash(an_internal_float_value *value)
 /*
-Return a hash value derived from the floating-pointer value "value".  This
+Return a hash value derived from the floating-point value "value".  This
 is used in building the hash table for shareable constants.
 */
 {
@@ -639,7 +640,7 @@ is used in building the hash table for shareable constants.
      was zeroed in initialization, so any gaps have predictable values. */
   cptr = (char *)value;
   for (n = sizeof(an_internal_float_value); n > 0; n--) {
-    hash += (unsigned int)*cptr++;
+    hash += (unsigned char)*cptr++;
   }  /* for */
   return hash;
 }  /* fp_hash */
