@@ -1072,11 +1072,7 @@ the current statement sequence.
       kind == (a_statement_kind)stmk_return) {
     set_unreachable(curr_reachability);
   }  /* if */
-  /* If the statement was an executable statement, set a flag indicating
-     that an executable statement has been seen in the current block. */
-  if (kind != (a_statement_kind)stmk_init) {
-    struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
-  } else {
+  if (kind == (a_statement_kind)stmk_init) {
     /* An stmk_init statement is being added to the IL.  Add an entry to
        the control_flow_descr_list to point to it.  This will constitute part
        of the information used to diagnose transfers of control over
@@ -1084,6 +1080,14 @@ the current statement sequence.
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
     cfdp->variant.init_statement = sp;
     add_to_control_flow_descr_list(cfdp);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  } else if (kind == (a_statement_kind)stmk_decl) {
+    /* An stmk_decl is not an executable statement. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  } else {
+    /* Anything else is an executable statement.  Set a flag indicating
+       that an executable statement has been seen in the current block. */
+    struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
   }  /* if */
   db_exit();
   return(sp);
