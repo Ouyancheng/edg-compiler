@@ -8823,7 +8823,7 @@ continue_with_declaration:
         }  /* if */
 #if DEBUG
         if (is_static_data_member) {
-          if (debug_level != 3 || db_flag_is_set("dump_decl_pos_info")) {
+          if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
             fprintf(f_debug, "decl-pos info for static data member def\n");
             db_decl_pos_info(symbol_ptr);
           }  /* if */

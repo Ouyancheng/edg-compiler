@@ -1331,7 +1331,7 @@ on a prior declaration.
       dpsp->specifiers_range = decl_pos_block->specifiers_range;
       dpsp->declarator_range = decl_pos_block->declarator_range;
 #if DEBUG
-      if (debug_level != 3 || db_flag_is_set("dump_decl_pos_info")) {
+      if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
         fprintf(f_debug, "decl-pos info for member function def\n");
         db_decl_pos_info(sym);
       }  /* if */
