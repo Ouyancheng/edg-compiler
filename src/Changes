@@ -1,5 +1,25 @@
 Version 2.35
 
+1/13/97 C++-generating back end: source sequence entries for an instantiation
+        that appears inside a class template definition
+
+This bug occurred when instantiations were represented in source sequence
+lists (that is, CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+and/or NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was set to
+TRUE): the ordering of source sequence entries was incorrect when
+instantiations were triggered by a class template definition, with the
+result that incorrect code was issued by the C++-generating back end.  For
+example:
+
+  template <class T> struct A { T t; };
+  template <class T> struct B {
+    A<int> s;
+  };
+
+Now that the bug has been fixed, the source sequence entry representing the
+instantiation of A<int> precedes (rather than follows) the source sequence
+entry for the definition of class template B.
+
 1/13/97 Microsoft compatibility: special lookup of template names
 
 In the following example the Microsoft compiler incorrectly finds the
