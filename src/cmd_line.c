@@ -593,7 +593,6 @@ Initialize the option information table.
                          "no_for_init_diff_warning", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#if NEED_NAME_MANGLING
   add_option_description(optk_distinct_template_signatures,
                          "distinct_template_signatures", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -602,7 +601,6 @@ Initialize the option information table.
                          "no_distinct_template_signatures", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* NEED_NAME_MANGLING */
   add_option_description(optk_guiding_decls,
                          "guiding_decls", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1734,12 +1732,10 @@ enable_microsoft_mode:
            visibility than old rules. */
         warning_on_for_init_difference = opt_value;
         break;
-#if NEED_NAME_MANGLING
       case optk_distinct_template_signatures:
         /* Enable distinct name mangling for templates and nontemplates. */
         distinct_template_signatures = opt_value;
         break;
-#endif /* NEED_NAME_MANGLING */
       case optk_guiding_decls:
         /* Enable/disable guiding declarations of template functions. */
         guiding_decls_allowed = opt_value;

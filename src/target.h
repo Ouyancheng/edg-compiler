@@ -691,7 +691,6 @@ EXTERN a_targ_alignment
 			   reconfigurable. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
-#if NEED_NAME_MANGLING
 EXTERN a_boolean
 		distinct_template_signatures
 #if VAR_INITIALIZERS
@@ -701,8 +700,6 @@ EXTERN a_boolean
 			/* If TRUE, template functions are given mangled names
 			   that are distinct from the names for nontemplate
 			   functions. */
-
-#endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING
 

@@ -139,9 +139,7 @@ typedef enum /*an_option_kind*/ {
   optk_old_style_preprocessing,
   optk_old_for_init,
   optk_for_init_diff_warning,
-#if NEED_NAME_MANGLING
   optk_distinct_template_signatures,
-#endif /* NEED_NAME_MANGLING */
   optk_guiding_decls,
   optk_old_specializations,
   optk_wrap_diagnostics,
