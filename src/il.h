@@ -607,11 +607,7 @@ extern void db_ss_list_for_scope(a_scope_ptr  sp);
 extern void dump_ss(a_scope_ptr  sp);
 #endif /* DEBUG */
 
-extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);
-
 extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
-
-extern a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void);
 
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 extern a_comment_ptr alloc_comment(void);
