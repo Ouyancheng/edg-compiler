@@ -3840,8 +3840,13 @@ See section 3.3.3.2 of the standard.
     }  /* if */
   }  /* if */
 
-  set_operand_position(result, &start_position, &operand.end_position,
-                       &start_position);
+  /* set_operand_position is not used on purpose, because we want to keep
+     the position that is in the underlying expression. */
+  error_position = result->position = start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result->end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
   db_exit();
 }  /* scan_indirection_operator */
 
