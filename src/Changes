@@ -1,5 +1,16 @@
 Version 3.4
 
+10/13/03 Spurious errors on certain uses of function name pseudo-macros
+
+The is_expr_start routine did not handle the special tokens associated
+with the function name pseudo-macros properly (__func__, __FUNCTION__,
+__PRETTY_FUNCTION__, __FUNCSIG__, and __FUNCDNAME__).  This could result
+in spurious errors in certain contexts.  Now fixed.
+
+  int main() {
+    throw __PRETTY_FUNCTION__;
+  }
+
 10/10/03 UPC mode: Diagnostic on THREADS-dimension arrays
 
 In UPC mode, the front end used to issue an error saying that "only arrays

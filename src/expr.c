@@ -12404,6 +12404,10 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_throw:
     case tok_generic:
     case tok_null:
+    case tok_func_name:
+    case tok_function_name:
+    case tok_pretty_function_name:
+    case tok_decorated_function_name:
       is_expr_start = TRUE;
       break;
     default:
