@@ -1,5 +1,25 @@
 Version 2.27
 
+11/30/94 Microsoft keyword support
+
+The front end optionally supports certain Microsoft keywords.  The
+keywords are recognized when MICROSOFT_EXTENSIONS_ALLOWED is TRUE
+and the --microsoft command line option is used.  The keywords
+recognized are
+
+	__cdecl
+	__fastcall
+	__stdcall
+	__inline
+	__declspec
+
+The __declspec modifiers recognized are
+
+	dllimport
+	dllexport
+	naked
+	thread
+
 11/29/94 Branching into a try block
 
 An error is now issued on code that attempts to branch into a try block
