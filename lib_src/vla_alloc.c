@@ -177,15 +177,14 @@ use separate code.
 }  /* free_dead_allocations */
 
 
-EXTERN_C void __vla_alloc(void    *ptr,
-                          size_t  n_bytes)
+EXTERN_C void __vla_alloc(void       *ptr,
+                          ptrdiff_t  n_bytes)
 /*
 ptr points to a pointer variable.  Allocate n_bytes of storage and make *ptr
 point to that storage.
 */
 {
-  size_t                padding;
-  ptrdiff_t             alloc_idx;
+  ptrdiff_t             alloc_idx, padding;
   a_vla_allocation_ptr  allocation;
   
   padding = MOST_STRICT_ALIGNMENT - n_bytes % MOST_STRICT_ALIGNMENT;
