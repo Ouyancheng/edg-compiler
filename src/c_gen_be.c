@@ -1906,12 +1906,18 @@ of "const" in ANSI C mode.
 
 
 static void dump_type_first_part(a_type_ptr type,
-				 a_boolean  need_paren,
-				 a_boolean  need_trailing_space,
+                                 a_boolean  under_lhs_declarator,
+                                 a_boolean  need_trailing_space,
                                  a_boolean  suppress_const)
 /*
-Print the first of possibly two parts of a type reference.  If suppress_const
-is TRUE, suppress generation of top-level "const" in ANSI C mode.
+For the indicated type, output the specifiers and the part of the declarator
+that precedes the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
+If need_trailing_space is TRUE, put a space at the end of the specifiers
+part (needed if the declarator part is not empty, because it contains a
+name or a derived type).  If suppress_const is TRUE, suppress generation of
+top-level "const" in ANSI C mode.
 */
 {
   a_type_kind kind;
@@ -1928,32 +1934,35 @@ is TRUE, suppress generation of top-level "const" in ANSI C mode.
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer type. */
     dump_type_first_part(type->variant.pointer.type,
-                         /*need_paren=*/TRUE,
+                         /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
                          /*suppress_const=*/FALSE);
     /* Output "*" for pointer. */
     write_tok_ch('*');
     /* Output the type qualifiers on the pointer, if any. */
     dump_pointer_type_qualifiers(qual_type, type, suppress_const);
-    if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* If qual_type != type, it's because a local typedef appears on top
        of the function type.  Just ignore it. */
     dump_type_first_part(type->variant.routine.return_type,
-                         /*need_paren=*/TRUE,
+                         /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
                          /*suppress_const=*/FALSE);
-    if (need_paren) write_tok_ch('(');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* If qual_type != type, it's because a local typedef appears on top
        of the array type.  Just ignore it. */
     dump_type_first_part(type->variant.array.element_type,
-                         /*need_paren=*/TRUE,
+                         /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
                          suppress_const);
-    if (need_paren) write_tok_ch('(');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch('(');
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     dump_type_specifier(qual_type, suppress_const);
@@ -2110,13 +2119,15 @@ Generate an array declarator for the indicated array type.
 
 
 static void dump_type_second_part(a_type_ptr type,
-                                  a_boolean  need_paren,
+                                  a_boolean  under_lhs_declarator,
                                   a_boolean  suppress_const)
 /*
 Output the second part of a type reference, the part of the declarator
-that follows the name.  If need_paren is TRUE, put a closing parenthesis
-out first if anything is generated.  If suppress_const is TRUE,
-suppress generation of top-level "const" in ANSI C mode.
+that follows the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
+If suppress_const is TRUE, suppress generation of top-level "const" in
+ANSI C mode.
 */
 {
   a_type_kind kind;
@@ -2129,29 +2140,27 @@ suppress generation of top-level "const" in ANSI C mode.
   }  /* while */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
-    /* Pointer or reference type. */
-    if (need_paren) write_tok_ch(')');
-    dump_type_second_part(type->variant.pointer.type, /*need_paren=*/TRUE,
-                          /*suppress_const=*/FALSE);
-  } else if (kind == (a_type_kind)tk_ptr_to_member) {
-    /* Pointer-to-member type. */
-    if (need_paren) write_tok_ch(')');
-    dump_type_second_part(type->variant.ptr_to_member.type,
-                          /*need_paren=*/TRUE,
+    /* Pointer type. */
+    dump_type_second_part(type->variant.pointer.type,
+                          /*under_lhs_declarator=*/TRUE,
                           /*suppress_const=*/FALSE);
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    if (need_paren) write_tok_ch(')');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch(')');
     dump_function_declarator(type, (a_scope_ptr)NULL);
     dump_type_second_part(type->variant.routine.return_type,
-                          /*need_paren=*/TRUE,
+                          /*under_lhs_declarator=*/FALSE,
                           /*suppress_const=*/FALSE);
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
-    if (need_paren) write_tok_ch(')');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch(')');
     dump_array_declarator(type);
     dump_type_second_part(type->variant.array.element_type,
-                          /*need_paren=*/TRUE,
+                          /*under_lhs_declarator=*/FALSE,
                           /*suppress_const=*/FALSE);
   }  /* if */
 }  /* dump_type_second_part */
@@ -2176,7 +2185,7 @@ of top-level "const" in ANSI C mode.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  dump_type_first_part(type, /*need_paren=*/FALSE,
+  dump_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL || temp != NULL),
                        suppress_const);
   /* Write the name if there is one. */
@@ -2193,7 +2202,7 @@ of top-level "const" in ANSI C mode.
     dump_temp_name(temp);
   }  /* if */
   /* Write the second part of the declarator. */
-  dump_type_second_part(type, /*need_paren=*/FALSE, suppress_const);
+  dump_type_second_part(type, /*under_lhs_declarator=*/FALSE, suppress_const);
 }  /* dump_general_declaration_using_type */
 
 
@@ -2218,14 +2227,15 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  dump_type_first_part(type, /*need_paren=*/FALSE,
+  dump_type_first_part(type, /*under_lhs_declarator=*/add_pointer_to,
                        /*need_trailing_space=*/FALSE,
                        /*suppress_const=*/FALSE);
   /* The "name" in the type declarator is null.  For the add_pointer_to
      case, add an extra "*". */
-  if (add_pointer_to) write_tok_str("(*)");
+  if (add_pointer_to) write_tok_ch('*');
   /* Write the second part of the declarator. */
-  dump_type_second_part(type, /*need_paren=*/FALSE, /*suppress_const=*/FALSE);
+  dump_type_second_part(type, /*under_lhs_declarator=*/add_pointer_to,
+                        /*suppress_const=*/FALSE);
 }  /* dump_type */
 
 
@@ -5355,7 +5365,7 @@ for the definition of the indicated routine.  scope is the associated scope.
 
   /* The storage class and similar preamble have already been written. */
   /* Write the specifiers and the first part of the declarator. */
-  dump_type_first_part(type, /*need_paren=*/FALSE,
+  dump_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/TRUE,
                        /*suppress_const=*/FALSE);
   /* Write the name. */
@@ -5363,7 +5373,8 @@ for the definition of the indicated routine.  scope is the associated scope.
   /* Write the second part of the declarator. */
   dump_function_declarator(type, scope);
   dump_type_second_part(type->variant.routine.return_type,
-                        /*need_paren=*/TRUE, /*suppress_const=*/FALSE);
+                        /*under_lhs_declarator=*/FALSE,
+                        /*suppress_const=*/FALSE);
 #if C_GEN_BE_GENERATES_ANSI_C
   /* For an old-style function, declare the parameters. */
   /* Note that this does not use the "prototyped" flag, which is inaccurate
