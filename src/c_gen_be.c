@@ -3308,6 +3308,9 @@ the scope must be the file scope.
           /* Variably-modified types are put out where their stmk_vla_decl
              appears.  They cannot be the type of an entity with linkage, so
              not putting them out here is not a problem. */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+          unexpected_condition_str("VLA types should be lowered");
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
         } else {
           if (pass == 1) {
             /* Do some name mangling so that the name remains unique. */
@@ -6501,6 +6504,9 @@ interleaved with the variables.
       /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
          statement appears. */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+      unexpected_condition_str("VLA types should be lowered");
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
     } else {
       dump_variable_decl(var_ptr, dump_vars_without_initializers,
                          dump_initializers);
@@ -6523,6 +6529,9 @@ interleaved with the variables.
       /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
          statement appears. */
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+      unexpected_condition_str("VLA types should be lowered");
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
     } else {
       dump_variable_decl(var_ptr, dump_vars_without_initializers,
                          dump_initializers);
@@ -7365,9 +7374,15 @@ statement expression, i.e., ({...}).
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+      unexpected_condition_str("VLA statement unexpected");
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
       /* No output. */
       break;
     case stmk_vla_decl:
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+      unexpected_condition_str("VLA statement unexpected");
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
       if (statement->variant.vla.is_typedef_decl) {
         /* Dump out the declaration of a typedef for a variably-modified type
            at the point where it occurs in the executable code sequence. */
@@ -7383,6 +7398,9 @@ statement expression, i.e., ({...}).
       }  /* if */
       break;
     case stmk_vla_dealloc:
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+      unexpected_condition_str("VLA statement unexpected");
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
       /* No output. */
       break;
 #if UPC_EXTENSIONS_ALLOWED
