@@ -1,5 +1,17 @@
 Version 3.6
 
+3/21/05  C++-generating back end: types defined in variable initialization
+
+In g++ mode, the front end accepts definitions of types within variable
+initializers (e.g., in casts).  The C++-generating back end failed to
+include the definition of such types in the generated code, using only the
+type name (or a generated name, for unnamed types).  This is now fixed.  For
+example:
+
+  void f() {
+    void* p = (struct S {}*)0;  // Formerly generated as (S*)0
+  }
+
 3/21/05  Optimization of copy constructor calls in direct-initializations
 
 Copy constructor calls in direct-initializations are now elided in
