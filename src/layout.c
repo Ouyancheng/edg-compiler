@@ -1438,13 +1438,26 @@ function to confirm the "is_optimized_empty_base" bit.
 */
 {
   a_type_ptr        type = lob->class_type;
-  a_base_class_ptr  last = 0, ebcp = next_empty_nonvirtual_direct_base(
-                                                       base_classes_of(type));
+  a_base_class_ptr  last = 0, ebcp = base_classes_of(type);
+  a_targ_size_t     max_base_offset = 0;
+  a_boolean         max_base_offset_valid = FALSE;
 
-  while (ebcp != NULL) {
-    last = ebcp;
-    ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
-  }  /* while */
+  /* Look for the direct nonvirtual base with the largest offset. */
+  for (; ebcp != NULL; ebcp = ebcp->next) {
+    if (ebcp->direct && !ebcp->is_virtual) {
+      if (!max_base_offset_valid || ebcp->offset>max_base_offset) {
+        max_base_offset_valid = TRUE;
+        max_base_offset = ebcp->offset;
+        last = ebcp;
+      } else if (last != NULL && ebcp->offset ==max_base_offset) {
+        /* The are two base at the same offset: at least one was optimized and
+           another base at that offset must be nonempty or not optimized. */
+        last = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* If there was a trailing optimized base, check if it really shares the
+     offset of another subobject. */
   if (last && last->is_optimized_empty_base) {
     a_field_ptr  first_field = first_allocated_field(type);
 
