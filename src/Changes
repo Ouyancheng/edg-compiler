@@ -24,7 +24,7 @@ problems for other back ends.  Now fixed.
 
 A spurious error would result if a friend declaration with an implicit
 int return type was followed by a declaration of a member with the
-same name as the friend, and base class also contained a member of the
+same name as the friend, and a base class also contained a member
 with that name.  This has been fixed.
 
   class A {
@@ -33,7 +33,7 @@ with that name.  This has been fixed.
 
   class B : public A {
     friend f();
-    int f();  // spurious "f" has already been declared
+    int f();  // spurious error: "f" has already been declared
   };
 
 6/17/98   Ability to use long double to represent floating point values
