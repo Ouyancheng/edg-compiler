@@ -8455,7 +8455,6 @@ following the member declaration.
   a_boolean            mutable_specified;
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
-  a_boolean            first_declarator_diagnostics;
   a_boolean            is_member_template_rescan;
 
   db_enter(3, "class_member_declaration");
@@ -8554,8 +8553,9 @@ following the member declaration.
     a_type_ptr                        local_type;
     a_func_info_block                 func_info;
     a_template_symbol_supplement_ptr  tssp;
+    a_source_position                 declarator_start_pos;
 
-    first_declarator_diagnostics = decl_info.is_first_in_declarator_list;
+    declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
     add_stop_token(tok_colon);
     clear_func_info(&func_info);
@@ -8579,7 +8579,6 @@ following the member declaration.
         decl_info.is_constructor = TRUE;
         member_type = unknown_type();
       } else {
-        first_declarator_diagnostics = TRUE;
         decl_start_pos = pos_curr_token;
         member_type = integer_type((an_integer_kind)ik_int);
       }  /* if */
@@ -8704,20 +8703,9 @@ following the member declaration.
         } else {
           /* Type specifier is missing.  The type defaults to int, but issue
              a diagnostic. */
-          if (first_declarator_diagnostics) {
-            if (no_decl_specifiers && !function_def_present &&
-                !any_cfront_mode()) {
-              /* WP 9.4 [class.mem] says decl-specifiers may only be omitted
-                 in declarations when the function is a constructor,
-                 destructor, and conversion function: issue a diagnostic. */
-              pos_diagnostic(es_discretionary_error,
-                             ec_missing_decl_specifiers, &decl_start_pos);
-            } else {
-              /* If no error is put out, at least issue a remark on the
-                 implicit return type "int". */
-              pos_remark(ec_missing_type_specifier, &decl_start_pos);
-            }  /* if */
-          }  /* if */
+          pos_diagnostic(strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning,
+                         ec_missing_type_specifier, &declarator_start_pos);
         }  /* if */
       }  /* if */
       if (local_type == member_type) {
@@ -8929,13 +8917,6 @@ following the member declaration.
       /* Error has already been issued if it wasn't processed as a
          function. */
       discard_curr_construct_pragmas();
-    } else if (no_decl_specifiers) {
-      /* A declaration in which the declaration specifiers are entirely
-         omitted can only be a function declaration (ARM 9.2, p. 171). */
-      pos_error(ec_missing_decl_specifiers, &decl_start_pos);
-      remove_stop_token(tok_comma);
-      discard_curr_construct_pragmas();
-      break;
     } else if (decl_info.storage_class == (a_storage_class)sc_typedef) {
       check_assertion(C_dialect == C_dialect_cplusplus);
       if (decl_info.do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
@@ -8952,7 +8933,20 @@ following the member declaration.
         }  /* if */
       }  /* if */
       if (!type_explicitly_specified) {
-        warning(ec_missing_type_specifier);
+        /* No type was specified.  Issue different diagnostics for different
+           cases:
+             typedef X;                 // error
+             typedef const Y;           // warning (or error in -A mode)
+             typedef const *Z;          // warning (or error in -A mode)
+        */
+        an_error_severity severity = es_warning;
+        if (qualifiers == TQ_NONE) {
+          severity = es_error;
+        } else if (strict_ansi_mode) {
+          severity = strict_ansi_error_severity;
+        }  /* if */
+        pos_diagnostic(severity, ec_missing_type_specifier,
+                       &declarator_start_pos);
       }  /* if */
       /* Typedef declaration. */
       decl_typedef(&locator, local_type, class_type, &decl_info.member_sym,
@@ -8965,12 +8959,8 @@ following the member declaration.
            scanned). */
         curr_routine_fixup->symbol = decl_info.member_sym;
       }  /* if */
-    } else if (mutable_specified &&
-               is_const_qualified_type(local_type)) {
-      /* "mutable" and top-level "const" are not allowed together. */
-      pos_error(ec_mutable_not_allowed, &decl_start_pos);
     } else if (curr_token == tok_assign && !C_mode() &&
-               ((is_scalar_type(local_type) &&
+               ((is_scalar_type(local_type) && !mutable_specified &&
                  (get_type_qualifiers(local_type) == TQ_CONST)) ||
                 is_or_contains_template_param(local_type)) &&
                decl_info.storage_class == (a_storage_class)sc_unspecified) {
@@ -8979,10 +8969,24 @@ following the member declaration.
       decl_nonstd_member_constant(&locator, class_type, local_type,
                                   class_state, &decl_info);
     } else {
-      if (C_dialect == C_dialect_cplusplus) {
-        if (!type_explicitly_specified && first_declarator_diagnostics) {
-          warning(ec_missing_type_specifier);
+      if (mutable_specified &&
+          is_const_qualified_type(local_type)) {
+        /* "mutable" and top-level "const" are not allowed together. */
+        pos_error(ec_mutable_not_allowed, &decl_start_pos);
+      }  /* if */
+      if (!type_explicitly_specified) {
+        an_error_severity  severity;
+
+        if (C_dialect == C_dialect_cplusplus) {
+          severity = strict_ansi_mode ? strict_ansi_error_severity :
+                                        es_warning;
+        } else if (qualifiers == TQ_NONE) {
+          severity = es_warning;
+        } else {
+          severity = es_remark;
         }  /* if */
+        pos_diagnostic(severity, ec_missing_type_specifier,
+                       &declarator_start_pos);
       }  /* if */
       if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */

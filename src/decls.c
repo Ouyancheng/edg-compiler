@@ -5322,7 +5322,9 @@ In C++ mode an error is issued if a type definition appears in a type-name
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    warning(ec_missing_type_specifier);
+    diagnostic((!C_mode() && strict_ansi_mode) ?
+                  strict_ansi_error_severity : es_warning,
+               ec_missing_type_specifier);
   }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
@@ -5402,7 +5404,8 @@ within this routine if is_parenthesized comes in FALSE.
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    warning(ec_missing_type_specifier);
+    diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+               ec_missing_type_specifier);
   }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
@@ -5569,7 +5572,8 @@ is no parent.
       pos_error(ec_type_definition_not_allowed, &type_pos);
     } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
       /* Missing type specifier. */
-      warning(ec_missing_type_specifier);
+      diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                 ec_missing_type_specifier);
     }  /* if */
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
@@ -5968,7 +5972,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
           type_ptr = error_type();
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* Implicit int. */
-          pos_warning(ec_missing_type_specifier, &decl_pos);
+          pos_diagnostic(strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning,
+                         ec_missing_type_specifier, &pos_curr_token);
         }  /* if */
         sym = NULL;
         if (is_abstract_or_real_declarator_start()) {
@@ -6331,7 +6337,9 @@ Return a pointer to the variable that is declared.
     pos_error(ec_type_definition_not_allowed, &decl_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Implicit int. */
-    pos_warning(ec_missing_type_specifier, &decl_pos);
+    pos_diagnostic(strict_ansi_mode ?
+                     strict_ansi_error_severity : es_warning,
+                   ec_missing_type_specifier, &pos_curr_token);
   }  /* if */
   if (storage_class == (a_storage_class)sc_unspecified) {
     storage_class = (a_storage_class)sc_auto;
@@ -7808,7 +7816,15 @@ continue_with_declaration:
               if (C_dialect != C_dialect_cplusplus ||
                   (!is_constructor_or_destructor &&
                    !locator.is_conversion_name)) {
-                pos_remark(ec_missing_type_specifier, &decl_start_pos);
+                an_error_severity  severity = es_remark;
+                if (C_dialect == C_dialect_cplusplus && !any_cfront_mode()) {
+                  /* In default C++ mode issue at least a warning, since
+                     omission of a type specifier violates WP 7.1.5. */
+                  severity = strict_ansi_mode ?
+                               strict_ansi_error_severity : es_warning;
+                }  /* if */
+                pos_diagnostic(severity, ec_missing_type_specifier,
+                               &declarator_start_pos);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -7884,14 +7900,13 @@ continue_with_declaration:
       }  /* if */
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!is_main_function) {
-        if (decl_specifiers_omitted &&
-            (C_dialect != C_dialect_cplusplus || !is_function)) {
+        an_error_severity  severity;
+        if (decl_specifiers_omitted && C_mode()) {
           /* In ANSI C declaration specifiers can only be entirely omitted in
              a function definition.  This is possibly an undefined typedef
              name at the start of a declaration, so enter an error symbol
              instead of the name given.  In pcc mode the declaration is taken
-             as a declaration of an int variable.  (In C++ the decl specifiers
-             may be omitted on function definitions.) */
+             as a declaration of an int variable. */
           if (C_dialect == C_dialect_pcc) {
             pos_warning(ec_missing_decl_specifiers, &declarator_start_pos);
           } else {
@@ -7900,29 +7915,34 @@ continue_with_declaration:
         } else if (!has_explicit_type_specifier) {
           if (is_function) {
             /* Function with no explicitly specified return type.  Issue a
-               remark (except in pcc mode and except for C++ constructors,
+               diagnostic (except in pcc mode and except for C++ constructors,
                destructors, and conversion operators). */
             if (C_dialect != C_dialect_pcc) {
               if (C_dialect != C_dialect_cplusplus ||
                   (!is_constructor_or_destructor &&
                    !locator.is_conversion_name)) {
-                if (C_dialect == C_dialect_cplusplus && !any_cfront_mode() &&
-                    decl_specifiers_omitted) {
-                  /* In C++, except in cfront mode, a function declaration
-                     (but not a definition) must have decl-specifiers (WP 7
-                     [dcl.dcl]), except for certain member functions. */
-                  pos_diagnostic(es_discretionary_error,
-                                 ec_missing_decl_specifiers,
-                                 &declarator_start_pos);
+                if (C_dialect == C_dialect_cplusplus && !any_cfront_mode()) {
+                  /* In default C++ mode issue at least a warning, since
+                     omission of a type specifier violates WP 7.1.5. */
+                  severity = strict_ansi_mode ?
+                               strict_ansi_error_severity : es_warning;
                 } else {
-                  pos_remark(ec_missing_type_specifier, &declarator_start_pos);
+                  severity = es_remark;
                 }  /* if */
+                pos_diagnostic(severity, ec_missing_type_specifier,
+                               &declarator_start_pos);
               }  /* if */
             }  /* if */
           } else {
             /* For implicitly typed nonfunction declarations (variables,
-               typedefs, etc.) issue a warning in all modes. */
-            pos_warning(ec_missing_type_specifier, &declarator_start_pos);
+               typedefs, etc.) issue at least a warning in all modes. */
+            if (C_dialect == C_dialect_cplusplus && strict_ansi_mode) {
+              severity = strict_ansi_error_severity;
+            } else {
+              severity = es_warning;
+            }  /* if */
+            pos_diagnostic(severity, ec_missing_type_specifier,
+                           &declarator_start_pos);
           }  /* if */
         }  /* if */
       }  /* if */

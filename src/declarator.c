@@ -1079,6 +1079,20 @@ issue an error if a default argument expression is encountered.
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
+        } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+          /* No type specifier (aside from const or volatile) appeared among
+             the decl_specifiers.  Issue a diagnostic. */
+          an_error_severity  severity;
+
+          if (C_dialect == C_dialect_cplusplus) {
+            severity = strict_ansi_mode ?
+                         strict_ansi_error_severity : es_warning;
+          } else if (qualifiers == TQ_NONE) {
+            severity = es_warning;
+          } else {
+            severity = es_remark;
+          }  /* if */
+          pos_diagnostic(severity, ec_missing_type_specifier, &pos_curr_token);
         } else {
           /* Mark the type as referenced.  This is important for a
              parameter declaration like "struct s {int a;} p;" --
@@ -1099,11 +1113,6 @@ issue an error if a default argument expression is encountered.
             is_abstract_or_real_declarator_start()) {
           a_decl_flag_set  do_flags;
 
-          if (curr_token == tok_identifier &&
-              !(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-            /* Missing type specifier. */
-            warning(ec_missing_type_specifier);
-          }  /* if */
           declarator(DI_IS_PARAMETER_DECL |
                        DI_REAL_DECLARATOR_ALLOWED |
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
