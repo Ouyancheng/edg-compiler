@@ -1773,40 +1773,42 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
 */
 {
   a_boolean     okay = FALSE;
-  a_boolean     operand_1_is_pointer = is_pointer_type(operand_1->type);
-  a_boolean     operand_2_is_pointer = is_pointer_type(operand_2->type);
+  a_type_ptr    operand_1_type = operand_1->type;
+  a_type_ptr    operand_2_type = operand_2->type;
+  a_boolean     operand_1_is_pointer = is_pointer_type(operand_1_type);
+  a_boolean     operand_2_is_pointer = is_pointer_type(operand_2_type);
   a_boolean     pointer_normalization_needed;
   an_error_code warning_suggested;
 
   if (operand_1_is_pointer) {
     /* See if the second operand can be converted to the type of the
        first operand. */
-    if (impl_pointer_conversion(operand_2->type,
+    if (impl_pointer_conversion(operand_2_type,
                                 is_constant_operand(operand_2),
                                 &operand_2->variant.constant,
-                                operand_1->type,
+                                operand_1_type,
                                 /*check_as_operands_not_conversion=*/TRUE,
                                 &pointer_normalization_needed,
                                 /*suppress_extensions=*/FALSE,
                                 ec_incompatible_operands,
                                 &warning_suggested)) {
-      *operation_type = operand_1->type;
+      *operation_type = operand_1_type;
       okay = TRUE;
     }  /* if */
   }  /* if */
   if (!okay && operand_2_is_pointer) {
     /* See if the first operand can be converted to the type of the
        second operand. */
-    if (impl_pointer_conversion(operand_1->type,
+    if (impl_pointer_conversion(operand_1_type,
                                 is_constant_operand(operand_1),
                                 &operand_1->variant.constant,
-                                operand_2->type,
+                                operand_2_type,
                                 /*check_as_operands_not_conversion=*/TRUE,
                                 &pointer_normalization_needed,
                                 /*suppress_extensions=*/FALSE,
                                 ec_incompatible_operands,
                                 &warning_suggested)) {
-      *operation_type = operand_2->type;
+      *operation_type = operand_2_type;
       okay = TRUE;
     }  /* if */
   }  /* if */
@@ -1824,11 +1826,11 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         a_type_ptr operand_1_type_pointed_to, operand_2_type_pointed_to;
         /* Fetch the types pointed to by the pointer operands. */
         if (operand_1_is_pointer) {
-          operand_1_type_pointed_to = type_pointed_to(operand_1->type);
+          operand_1_type_pointed_to = type_pointed_to(operand_1_type);
           operand_1_type_pointed_to = skip_typerefs(operand_1_type_pointed_to);
         }  /* if */
         if (operand_2_is_pointer) {
-          operand_2_type_pointed_to = type_pointed_to(operand_2->type);
+          operand_2_type_pointed_to = type_pointed_to(operand_2_type);
           operand_2_type_pointed_to = skip_typerefs(operand_2_type_pointed_to);
         }  /* if */
         if (!pointers_to_functions_standard_in_C &&
@@ -1858,18 +1860,21 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       }  /* if */
       if (nonstd_case) {
         /* A nonstandard case. */
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_incompatible_operands, operator_position);
+        pos_ty2_diagnostic(strict_ansi_error_severity,
+                           ec_incompatible_operands, operator_position,
+                           operand_1_type, operand_2_type);
       }  /* if */
     }  /* if */
     if (warning_suggested != ec_no_error && !nonstd_case) {
       /* Oddball cases call for a warning.  Suppress this if we issued a
          diagnostic about nonstandard use. */
-      pos_warning(warning_suggested, operator_position);
+      pos_opt_ty2_warning(warning_suggested, operator_position,
+                          operand_1_type, operand_2_type);
     }  /* if */
   } else {
     /* The operands are not compatible. */
-    pos_error(ec_incompatible_operands, operator_position);
+    pos_ty2_error(ec_incompatible_operands, operator_position,
+                  operand_1_type, operand_2_type);
     *operation_type = error_type();
   }  /* if */
   return okay;
@@ -1889,35 +1894,38 @@ to the operation type; the caller must do that.)  operator_position gives the
 operator position (for errors).  Return FALSE if there is an error.
 */
 {
-  a_boolean okay = FALSE;
+  a_boolean  okay = FALSE;
+  a_type_ptr operand_1_type = operand_1->type;
+  a_type_ptr operand_2_type = operand_2->type;
 
-  if (is_ptr_to_member_type(operand_1->type)) {
+  if (is_ptr_to_member_type(operand_1_type)) {
     /* See if the second operand can be converted to the type of the
        first operand. */
-    if (impl_ptr_to_member_conversion(operand_2->type,
+    if (impl_ptr_to_member_conversion(operand_2_type,
                                       is_constant_operand(operand_2),
                                       &operand_2->variant.constant,
-                                      operand_1->type,
+                                      operand_1_type,
                                   /*check_as_operands_not_conversion=*/TRUE)) {
-      *operation_type = operand_1->type;
+      *operation_type = operand_1_type;
       okay = TRUE;
     }  /* if */
   }  /* if */
-  if (!okay && is_ptr_to_member_type(operand_2->type)) {
+  if (!okay && is_ptr_to_member_type(operand_2_type)) {
     /* See if the first operand can be converted to the type of the
        second operand. */
-    if (impl_ptr_to_member_conversion(operand_1->type,
+    if (impl_ptr_to_member_conversion(operand_1_type,
                                       is_constant_operand(operand_1),
                                       &operand_1->variant.constant,
-                                      operand_2->type,
+                                      operand_2_type,
                                   /*check_as_operands_not_conversion=*/TRUE)) {
-      *operation_type = operand_2->type;
+      *operation_type = operand_2_type;
       okay = TRUE;
     }  /* if */
   }  /* if */
   if (!okay) {
     /* The operands are not compatible. */
-    pos_error(ec_incompatible_operands, operator_position);
+    pos_ty2_error(ec_incompatible_operands, operator_position,
+                  operand_1_type, operand_2_type);
     *operation_type = error_type();
   }  /* if */
   return okay;

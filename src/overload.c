@@ -3787,7 +3787,7 @@ pointer type).
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     &pointer_normalization_needed,
                                     /*suppress_extensions=*/TRUE,
-                                    ec_incompatible_operands,
+                                    ec_incompatible_conv_operands,/*arbitrary*/
                                     &warning_suggested)) {
           /* The conversion can be done. */
           /* As noted above, any match here is considered a standard

@@ -553,7 +553,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_constructor_name,
   ec_unnamed_type_in_template_arg,
   ec_enum_type_not_allowed,
-  ec_qualified_reference_type
+  ec_qualified_reference_type,
+  ec_incompatible_conv_operands
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -677,6 +678,11 @@ extern void pos_ty_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,
                               struct a_type      *type);
+extern void pos_ty2_diagnostic(an_error_severity  error_severity,
+                               an_error_code      error_code,
+                               a_source_position  *error_pos,
+                               struct a_type      *type1,
+                               struct a_type      *type2);
 extern void type_diagnostic(an_error_severity  error_severity,
                             an_error_code      error_code,
                             struct a_type      *type);

@@ -2435,7 +2435,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           /* Related classes. */
         } else {
           /* Bad combination. */
-          pos_error(ec_incompatible_operands, &operator_position);
+          pos_ty2_error(ec_incompatible_operands, &operator_position,
+                        operand_1_type, operand_2_type);
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -5951,7 +5952,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
            are recognized here.  C++ class cases are handled above; this
            code deals only with error cases in C++. */
         if (!types_are_compatible(operand_2.type, operand_3.type)) {
-          pos_error(ec_incompatible_operands, &operator_position);
+          pos_ty2_error(ec_incompatible_operands, &operator_position,
+                        operand_2.type, operand_3.type);
           err = TRUE;
         }  /* if */
       } else if (is_error_type(operand_2.type) ||
@@ -5960,7 +5962,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         err = TRUE;
       } else {
         /* Incompatible operands. */
-        pos_error(ec_incompatible_operands, &operator_position);
+        pos_ty2_error(ec_incompatible_operands, &operator_position,
+                      operand_2.type, operand_3.type);
         err = TRUE;
       }  /* if */
       /* Cast operands 2 and 3 to the result type if necessary. */
@@ -6127,7 +6130,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION |
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       prep_assignment_operand(&operand_2, result_type,
-                              ec_incompatible_operands, &operator_position);
+                              ec_incompatible_conv_operands,
+                              &operator_position);
       build_binary_result_operand(operand_1, &operand_2,
                                   which_binary_operator(tok_assign,
                                                         result_type),

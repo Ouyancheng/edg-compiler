@@ -469,7 +469,7 @@ error code.
       m = "expression must have arithmetic or pointer type";
       break;
     case ec_incompatible_operands:
-      m = "operands are incompatible";
+      m = "operand types are incompatible (%t1 and %t2)";
       break;
     case ec_expr_not_integral_or_pointer:
       m = "expression must have integral or pointer type";
@@ -1909,6 +1909,9 @@ error code.
       break;
     case ec_qualified_reference_type:
       m = "type qualifier on a reference type is meaningless";
+      break;
+    case ec_incompatible_conv_operands:
+      m = "operand types are incompatible (%t2 and %t1)";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -4690,6 +4693,23 @@ indicated position.
   error_msg_types[1] = type;
   diag_message(error_code, error_pos, error_severity, dck_standalone);
 }  /* pos_ty_diagnostic */
+
+
+void pos_ty2_diagnostic(an_error_severity  error_severity,
+                        an_error_code      error_code,
+                        a_source_position  *error_pos,
+                        a_type_ptr         type1,
+                        a_type_ptr         type2)
+/*
+Report the indicated diagnostic (with the two indicated types) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type1;
+  error_msg_types[2] = type2;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos_ty2_diagnostic */
 
 
 void type_diagnostic(an_error_severity  error_severity,
