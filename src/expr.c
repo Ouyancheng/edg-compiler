@@ -5143,9 +5143,12 @@ When single_operand is TRUE, the <varargs.h> form is expected:
       if (routine_type->variant.routine.extra_info->has_ellipsis ||
           (!gcc_mode &&
            !routine_type->variant.routine.extra_info->prototyped)) {
-        diagnostic(gcc_mode ? es_error : es_warning,
-                   ec_va_start_requires_ellipsis_function);
+        bad_scope = FALSE;
       }  /* if */
+    }  /* if */
+    if (bad_scope) {
+      diagnostic(gcc_mode ? es_error : es_warning,
+                 ec_va_start_requires_ellipsis_function);
     }  /* if */
   }  /* if */
   /* Advance past va_start. */
