@@ -4609,15 +4609,17 @@ an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
                                  a_boolean  is_asm_statement)
 /*
 Scan an asm declaration, create an entry to represent it in the IL, and
-return a pointer to the asm entry.  An asm declaration is specified as
-follows in the ARM:
+return a pointer to the asm entry.  asm_decl_allowed is FALSE if an error
+should be issued.  is_asm_statement is TRUE if this asm declaration appears
+inside a function (and will therefore be associated an stmk_asm statement
+entry), FALSE otherwise.  An asm declaration is specified as follows in the
+ARM:
 
   asm ( string-literal ) ;
 
-We infer that it can appear as a declaration at file scope, function scope,
-and block scope.  It can also appear as a block of executable code, so
-in C mode, where declarations and executable statements may not be mingled,
-an asm "declaration" is actually treated as an executable statement.
+It can appear at file scope, function scope, and block scope.  In C mode,
+where declarations and executable statements may not be mingled, an asm
+"declaration" at function or block scope is always treated as executable.
 */
 {
   a_constant        asm_string;
@@ -4656,19 +4658,22 @@ an asm "declaration" is actually treated as an executable statement.
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   /* Update the IL. */
   if (asm_decl_allowed) {
-    ap = alloc_asm_entry();
-    ap->asm_string = alloc_unshared_constant(&asm_string);
+    /* Allocate and set the asm-entry. */
+    ap = alloc_asm_entry(/*is_asm_func_body=*/FALSE);
+    ap->variant.asm_string = alloc_unshared_constant(&asm_string);
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
-    /* Add the asm entry to the list for the current scope. */
-    add_to_asm_entries_list(ap);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!is_asm_statement) {
+      /* Add the asm entry to the list for the current scope.  This is only
+         done for asm declarations that do not appear in an executable context
+         and so have no statement entry to point at them. */
+      add_to_asm_entries_list(ap);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       /* There's no name or symbol for the asm declaration, so call
          update_source_sequence_list directly. */
       update_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry,
                                   (a_source_sequence_entry_ptr)NULL);
-    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
   }  /* if */
 
   db_exit();
