@@ -160,6 +160,9 @@ extern void type_name(a_type_ptr *type_ptr);
 
 extern a_type_ptr type_keyword(void);
 
+extern void check_operator_function_params(a_routine_ptr      rout,
+                                           a_source_position  *pos);
+
 extern void clear_func_info(a_func_info_block *func_info);
 
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
