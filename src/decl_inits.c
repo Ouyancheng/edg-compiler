@@ -158,6 +158,57 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
+static void scan_initializer_of_simple_object(
+                                       a_boolean       nonconst_allowed,
+                                       a_boolean       convert_array_to_ptr,
+                                       a_type_ptr      *type,
+                                       a_dynamic_init  *dip,
+                                       a_boolean       *err)
+{
+  an_expr_node_ptr    expression;
+  a_boolean           is_constant;
+  a_constant          constant;
+
+  if (nonconst_allowed) {
+    /* Scan a potentially non-constant initializer expression.  The result
+       of the scan is a constant if the expression is constant, and an
+       expression node if not. */
+    scan_initializer_expression(convert_array_to_ptr, &is_constant,
+                                &expression, &constant, err);
+  } else {
+    /* Non-constant is not allowed. */
+    scan_constant_initializer_expression(convert_array_to_ptr, &constant, err);
+    is_constant = TRUE;
+  }  /* if */
+  if (!*err) {
+    /* See if the scanned expression was constant or not. */
+    if (is_constant) {
+      /* Constant.  Check the constant type to see if it is legal,
+         change the constant type if necessary. */
+      check_constant_initializer(&constant, type, err);
+      if (!*err) {
+        /* Set the dynamic init entry to represent constant initialization.
+           (A local dynamic init entry is used only for convenience --
+           dynamic initialization is not presumed.) */
+        clear_dynamic_init(dip, (a_dynamic_init_kind)dik_constant);
+        dip->variant.constant = alloc_unshared_constant(&constant);
+      }  /* if */
+    } else {
+      /* Non-constant.  Check the type by assignment rules and cast the
+         node if necessary. */
+      node_prepare_assignment(&expression, *type, ec_bad_initializer_type,
+                              err);
+      if (!*err) {
+        /* Set the dynamic init entry to represent non-constant assignment
+           initialization. */
+        clear_dynamic_init(dip, (a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = expression;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* scan_initializer_of_simple_object */
+
+
 static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
@@ -188,7 +239,6 @@ for unions and aggregates at that level).
   a_boolean           array_too_long_error_given = FALSE;
   a_boolean           took_extra_comma;
   an_expr_node_ptr    expression;
-  a_boolean           is_constant;
   a_dynamic_init_ptr  dip;
   a_routine_ptr       rp;
   a_source_position   expr_pos;
@@ -199,8 +249,7 @@ for unions and aggregates at that level).
   err = FALSE;
   local_type = skip_typerefs(*type);
   if (is_class_struct_union_type(local_type)) {
-    cssp = ((a_symbol_ptr)local_type->source_corresp.assoc_info)->
-                                     variant.class_struct_union.extra_info;
+    cssp = symbol_supplement_for_class(local_type);
   } else {
     cssp = NULL;
   }  /* if */
@@ -454,42 +503,35 @@ for unions and aggregates at that level).
   } else {
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
+    a_dynamic_init  local_di;
+
     check_for_opening_brace(&brace_flag);
-    if (C_dialect == C_dialect_cplusplus) {
-      scan_initializer_expression(/*convert_array_to_pointer=*/TRUE,
-                                  &is_constant, &expression, &constant, &err);
-    } else {
-      scan_constant_initializer_expression(/*convert_array_to_pointer=*/TRUE,
-                                           &constant, &err);
-      is_constant = TRUE;
-    }  /* if */
+    scan_initializer_of_simple_object(/*nonconst_allowed=*/
+                                            (C_dialect == C_dialect_cplusplus),
+                                      /*convert_array_to_pointer=*/TRUE,
+                                      &local_type, &local_di, &err);
     if (!err) {
-      if (is_constant) {
-        /* Check the type of the initial value against the type of the object
-           being initialized. */
-        check_constant_initializer(&constant, &local_type, &err);
-        if (!err) {
-          /* Allocate the constant that is the value of the initializer. */
-          init_con = alloc_unshared_constant(&constant);
-        }  /* if */
-      } else {
-        /* Non-constant.  Check the type by assignment rules and cast the
-           node if necessary. */
-        node_prepare_assignment(&expression, local_type,
-                                ec_bad_initializer_type, &err);
-        if (!err) {
+      switch (local_di.kind) {
+        case dik_constant:
+          init_con = local_di.variant.constant;
+          break;
+        case dik_expression:
           init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
           init_con->variant.dynamic_init = dip =
                        alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-          dip->variant.expression = expression;
+          dip->variant.expression = local_di.variant.expression;
           if (*di_list == NULL) {
             *di_list = dip;
           } else {
             (*end_of_di_list)->next = dip;
           }  /* if */
           *end_of_di_list = dip;
-        }  /* if */
-      }  /* if */
+          break;
+#if CHECKING
+        default:
+          internal_error("get_initializer: bad dynamic init kind");
+#endif /* CHECKING */
+      }  /* switch */
     }  /* if */
     /* If there was an initial opening brace, check for and skip the
        closing brace now. */
@@ -650,7 +692,6 @@ The syntax is:
   a_variable_ptr                 vp = NULL;
   a_type_ptr                     vp_type = NULL;
   a_boolean                      brace_flag = FALSE;
-  a_boolean                      is_constant;
   an_expr_node_ptr               expression;
   a_constant                     constant;
   a_dynamic_init                 local_di;
@@ -723,8 +764,7 @@ The syntax is:
   }  /* if */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(vp_type)) {
-    cssp = ((a_symbol_ptr)vp_type->source_corresp.assoc_info)->
-                                 variant.class_struct_union.extra_info;
+    cssp = symbol_supplement_for_class(vp_type);
   }  /* if */
   if (cssp != NULL && paren_flag) {
     /* This is an initialization of the form S x (arg [, ...]), where S is a
@@ -869,53 +909,19 @@ The syntax is:
   } else {
     /* A non-aggregate object is being initialized.  Braces or parens are
        permitted (but not both, of course).  A constant or non-constant
-       expression is permitted as the initializer. */
+       expression may be permitted as the initializer. */
     if (paren_flag) {
       add_stop_token(tok_rparen);
     } else {
       check_for_opening_brace(&brace_flag);
     }  /* if */
-    if (C_dialect == C_dialect_cplusplus ||
-        (vp != NULL && has_static_storage_duration(vp->storage_class))) {
-      /* Scan a potentially non-constant initializer expression.  The result
-         of the scan is a constant if the expression is constant, and an
-         expression node if not. */
-      scan_initializer_expression(
-              /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
-              &is_constant, &expression, &constant, &err);
-    } else {
-      /* Non-constant is not allowed. */
-      scan_constant_initializer_expression(
-              /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
-              &constant, &err);
-      is_constant = TRUE;
-    }  /* if */
-    if (!err) {
-      /* See if the scanned expression was constant or not. */
-      if (is_constant) {
-        /* Constant.  Check the constant type to see if it is legal,
-           change the constant type if necessary. */
-        check_constant_initializer(&constant, &vp_type, &err);
-        if (!err) {
-          /* Set the dynamic init entry to represent constant initialization.
-             (A local dynamic init entry is used only for convenience --
-             dynamic initialization is not presumed.) */
-          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
-          local_di.variant.constant = alloc_unshared_constant(&constant);
-        }  /* if */
-      } else {
-        /* Non-constant.  Check the type by assignment rules and cast the
-           node if necessary. */
-        node_prepare_assignment(&expression, vp_type, ec_bad_initializer_type,
-                                &err);
-        if (!err) {
-          /* Set the dynamic init entry to represent non-constant assignment
-             initialization. */
-          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
-          local_di.variant.expression = expression;
-        }  /* if */
-        initialization_is_dynamic = TRUE;
-      }  /* if */
+    scan_initializer_of_simple_object(
+             /*nonconst_allowed=*/(C_dialect == C_dialect_cplusplus ||
+               (vp != NULL && has_static_storage_duration(vp->storage_class))),
+             /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
+             &vp_type, &local_di, &err);
+    if (local_di.kind == (a_dynamic_init_kind)dik_expression) {
+      initialization_is_dynamic = TRUE;
     }  /* if */
     if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
       /* The initializer of a static data member was scanned with the original
@@ -987,6 +993,33 @@ The syntax is:
 }  /* initializer */
 
 
+void repeat_constructor_init(a_dynamic_init_ptr  ctor_dip,
+                             a_dynamic_init_ptr  new_dip,
+                             int                 count)
+{
+  a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
+
+  clear_dynamic_init(new_dip, (a_dynamic_init_kind)dik_nonconstant_aggregate);
+  /* Create a ck_aggregate constant. */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  new_dip->variant.aggregate.aggr_const = aggr_con;
+  /* Set it to point to a newly created ck_init_repeat constant. */
+  aggr_con->variant.aggregate.first_constant =
+    aggr_con->variant.aggregate.last_constant =
+    repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+  /* Set the ck_init_repeat constant fields, including a pointer to a new
+     ck_dynamic_init constant. */
+  repeat_con->variant.init_repeat.count = count;
+  repeat_con->variant.init_repeat.constant = dynamic_init_con =
+    alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+  /* Set the ck_dynamic_init_constant to point to the dynamic init entry
+     representing the constructor call. */
+  dynamic_init_con->variant.dynamic_init = ctor_dip;
+  /* Set the new dynamic init entry also to point the dik_constructor entry. */
+  new_dip->variant.aggregate.dynamic_init_list = ctor_dip;
+}  /* repeat_constructor_init */
+
+
 a_boolean def_initializer(a_symbol_ptr       sym,
                           a_source_position  *err_pos)
 {
@@ -995,9 +1028,7 @@ a_boolean def_initializer(a_symbol_ptr       sym,
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
   a_routine_ptr                  rp;
-  a_dynamic_init                 local_di, *dip;
-  a_constant_ptr                 cp1, cp2;
-  a_boolean                      err = FALSE;
+  a_dynamic_init                 local_di, *ctor_dip;
 
   db_enter(3, "def_initializer");
   if (C_dialect == C_dialect_cplusplus &&
@@ -1009,8 +1040,7 @@ a_boolean def_initializer(a_symbol_ptr       sym,
       tp = skip_typerefs(tp->variant.array.element_type);
     }  /* while */
     if (is_class_struct_union_type(tp)) {
-      cssp = ((a_symbol_ptr)tp->source_corresp.assoc_info)->
-                                 variant.class_struct_union.extra_info;
+      cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
         if (is_incomplete_type(var_type)) {
 #if 0
@@ -1024,7 +1054,8 @@ a_boolean def_initializer(a_symbol_ptr       sym,
 #endif /* if 0 */
         }  /* if */
         if (cssp->default_constructor == NULL) {
-          pos_error(ec_no_default_constructor, err_pos);
+          pos_st_error(ec_no_default_constructor, err_pos,
+                       tp->source_corresp.name);
         } else {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
           local_di.variant.constructor.routine = rp =
@@ -1038,27 +1069,14 @@ a_boolean def_initializer(a_symbol_ptr       sym,
             rp->source_corresp.referenced = TRUE;
           }  /* if */
           if (var_type != tp) {
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-            *dip = local_di;
-            clear_dynamic_init(&local_di,
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-            cp1 = alloc_constant((a_constant_repr_kind)ck_aggregate);
-            local_di.variant.aggregate.aggr_const = cp1;
-            /* Set the ck_aggregate constant. */
-            cp1->variant.aggregate.first_constant =
-              cp1->variant.aggregate.last_constant =
-              cp2 = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-            /* Set the ck_init_repeat constant. */
-            if (var_type->size == 0) {
-              cp2->variant.init_repeat.count = 1;
-            } else {
-              cp2->variant.init_repeat.count = var_type->size / tp->size;
-            }  /* if */
-            cp2->variant.init_repeat.constant = cp1 =
-              alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-            /* Set the ck_dynamic_init_constant. */
-            cp1->variant.dynamic_init = dip;
-            local_di.variant.aggregate.dynamic_init_list = dip;
+            ctor_dip =
+                    alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+            *ctor_dip = local_di;
+            repeat_constructor_init(ctor_dip, &local_di,
+                                    var_type->size == 0 ? 1 :
+                                               var_type->size / tp->size);
+
+
           }  /* if */
           gen_dynamic_initialization(var, &local_di);
           def_init_performed = TRUE;
@@ -1088,6 +1106,373 @@ a_boolean def_initializer(a_symbol_ptr       sym,
   db_exit();
   return def_init_performed;
 }  /* def_initializer */
+
+
+a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout)
+{
+  a_boolean                     err;
+  a_type_ptr                    class_type, init_type, tp, array_type;
+  a_symbol_ptr                  sym, class_sym, member_or_base_sym;
+  a_constructor_init_ptr        cip, new_cip, prev_cip;
+  a_constructor_init_ptr        cip_list, end_of_cip_list;
+  a_constructor_init_ptr        virtual_list, end_of_virtual_list;
+  a_constructor_init_ptr        direct_list, end_of_direct_list;
+  a_base_class_ptr              bcp;
+  a_routine_ptr                 rp;
+  a_class_symbol_supplement_ptr cssp;
+  a_dynamic_init_ptr            dip, ctor_dip;
+
+  db_enter(3, "ctor_initializer");
+  class_type = ((a_symbol_ptr)ctor_rout->source_corresp.assoc_info)->
+                                                   class_of_which_a_member;
+#if CHECKING
+  if (class_type == NULL) internal_error("ctor_initializer: NULL class type");
+#endif /* if CHECKING */
+  /* The first step is to construct three lists of constructor initializer
+     entries, one for virtual base classes that have constructors, one for
+     nonvirtual direct base classes that have constructors, and one for
+     nonstatic data members that have constructors.  The entries on these
+     lists identify all base classes and fields that *must* be initialized
+     when the constructor is called; in addition, the third list may be
+     supplemented by explicit initializers of fields without constructors.
+     Eventually these three lists will be merged into one.  The order of
+     items on the list is the order in which initializations are to be
+     performed. */
+  /* Handle the first two lists together. */
+  virtual_list = end_of_virtual_list = NULL;
+  direct_list = end_of_direct_list = NULL;
+  /* Scan the list of base classes, which may include some that are
+     ineligible for initialization. */
+  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp->is_virtual || bcp->direct) {
+      cssp = symbol_supplement_for_class(bcp->type);
+      /* If the virtual base class or direct base class has a constructor or
+         a destructor, a dynamic init entry will be required.  Create the
+         constructor init entry now; the dynamic init will be added later. */
+      if (cssp->constructor != NULL || cssp->destructor != NULL) {
+        cip = alloc_ctor_init(bcp->is_virtual ?
+                              (a_constructor_init_kind)cik_virtual_base_class :
+                              (a_constructor_init_kind)cik_direct_base_class);
+        cip->variant.base_class = bcp;
+        /* Add the constructor init to the end of the appropriate list. */
+        if (bcp->is_virtual) {
+          if (virtual_list == NULL) {
+            /* Start a new list. */
+            virtual_list = cip;
+          } else {
+            /* Add to end of list. */
+            end_of_virtual_list->next = cip;
+          }  /* if */
+          end_of_virtual_list = cip;
+        } else {
+          if (direct_list == NULL) {
+            /* Start a new list. */
+            direct_list = cip;
+          } else {
+            /* Add to end of list. */
+            end_of_direct_list->next = cip;
+          }  /* if */
+          end_of_direct_list = cip;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Move on to the third list -- the list of nonstatic data members requiring
+    initialization. */
+  cip_list = end_of_cip_list = NULL;
+  /* Loop through the symbol list for the class, not the field list, since
+     the symbol list is always in declaration order, but the field list is in
+     allocation order.  These need not be the same. */
+  class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
+       sym != NULL;
+       sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      /* sym represents a field.  Determine whether constructor initialization
+         is required. */
+      tp = sym->variant.field->type;
+      while (is_array_type(tp)) {
+        tp = skip_typerefs(tp->variant.array.element_type);
+      }  /* while */
+      if (is_class_struct_union_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
+        if (cssp->constructor != NULL || cssp->destructor != NULL) {
+          cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
+          cip->variant.field = sym->variant.field;
+          if (cip_list == NULL) {
+            cip_list = cip;
+          } else {
+            end_of_cip_list->next = cip;
+          }  /* if */
+          end_of_cip_list = cip;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (curr_token == tok_colon) {
+    /* Bypass the colon. */
+    (void)get_token();
+    add_stop_token(tok_lbrace);
+    do {
+      err = FALSE;
+      add_stop_token(tok_comma);
+      if (!is_qualified_name_start()) {
+        syntax_error(ec_exp_identifier);
+      } else {
+        bcp = NULL;
+        dip = NULL;
+        /* Scan the base class name or member name. */
+        member_or_base_sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
+        if (member_or_base_sym == NULL) {
+          str_error(ec_not_a_field_or_base_class,
+                    class_type->source_corresp.name);
+          err = TRUE;
+          init_type = error_type();
+        } else if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
+          /* Okay. */
+          init_type = member_or_base_sym->variant.field->type;
+          if (is_array_type(init_type) && !is_char_array_type(init_type)) {
+            error(ec_cannot_initialize);
+            init_type = error_type();
+          } else {
+            for (new_cip = cip_list;
+                 new_cip != NULL;
+                 new_cip = new_cip->next) {
+              if (new_cip->variant.field ==
+                  member_or_base_sym->variant.field) {
+                 break;
+              }  /* if */
+            }  /* if */
+            if (new_cip != NULL) {
+              if (new_cip->initializer != NULL) {
+                error(ec_already_initialized);
+                err = TRUE;
+              }  /* if */
+            } else {
+              new_cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
+              new_cip->variant.field = member_or_base_sym->variant.field;
+              if (cip_list == NULL) {
+                /* Easy case:  start a new list. */
+                cip_list = end_of_cip_list = new_cip;
+              } else {
+                prev_cip = NULL;
+                cip = cip_list;
+                for (sym = class_sym->
+                             variant.class_struct_union.extra_info->symbols;
+                     sym != NULL;
+                     sym = sym->next_in_scope) {
+                  if (sym->kind == (a_symbol_kind)sk_field) {
+                    if (sym == member_or_base_sym) {
+                      /* Found the field.  Insert new_cip into cip_list
+                         immediately following prev_cip.  If prev_cip is NULL
+                         this will be at the head of the list. */
+                      if (prev_cip == NULL) {
+                        new_cip->next = cip_list;
+                        cip_list = new_cip;
+                      } else {
+                        new_cip->next = prev_cip->next;
+                        prev_cip->next = new_cip;
+                      }  /* if */
+                      break;
+                    } else if (sym->variant.field == cip->variant.field) {
+                      /* We didn't find the field we're trying to insert, but
+                         we did find the next item on the list. */
+                      if (cip == end_of_cip_list) {
+                        /* Since this is the end of the list, we know the
+                           new field must appear after the current entry.
+                           Cut short the search. */
+                        end_of_cip_list->next = new_cip;
+                        end_of_cip_list = new_cip;
+                        break;
+                      }  /* if */
+                      /* Advance through the cip list, saving the current
+                         entry as a possible insertion point. */
+                      prev_cip = cip;
+                      cip = cip->next;
+                    }  /* if */
+                  }  /* if */
+                }  /* for */
+              }  /* if */
+              /* At this point new_cip should point to the field's constructor
+                 init entry to which the initializer should be attached.  It
+                 has been located in or inserted into the list of such entries
+                 at a spot corresponding to its declaration order. */
+            }  /* if */
+          }  /* if */
+        } else if (is_class_symbol(sym)) {
+          a_boolean  indirect_nonvirtual_base_class_found = FALSE;
+          init_type = type_symbol_type(sym);
+          bcp = class_type->variant.class_struct_union.extra_info->
+                                                             base_classes;
+          for (; bcp != NULL; bcp = bcp->next) {
+            if (bcp->type == init_type) {
+              if (bcp->direct || bcp->is_virtual) {
+                break;
+              } else {
+                indirect_nonvirtual_base_class_found = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* for */
+          if (bcp == NULL) {
+            /* No match found. */
+            if (indirect_nonvirtual_base_class_found) {
+              error(ec_indirect_nonvirtual_base_class_not_allowed);
+            } else {
+              error(ec_not_a_field_or_base_class);
+            }  /* if */
+            init_type = error_type();
+          } else {
+            new_cip = (bcp->is_virtual) ? virtual_list : direct_list;
+            for (; new_cip != NULL; new_cip = new_cip->next) {
+              if (new_cip->variant.base_class == bcp) break;
+            }  /* for */
+            if (new_cip == NULL) {
+              str_error(ec_no_constructor, init_type->source_corresp.name);
+              init_type = error_type();
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        /* Advance past the identifier. */
+        (void)get_token();
+        if (required_token(tok_lparen, ec_exp_lparen)) {
+          if (is_error_type(init_type)) {
+            /* Flush tokens? Scan? */
+          } else if (is_scalar_type(init_type)) {
+            add_stop_token(tok_rparen);
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+            scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                              /*convert_array_to_ptr=*/TRUE,
+                                              &init_type, dip, &err);
+            new_cip->initializer = dip;
+            remove_stop_token(tok_rparen);
+            (void)required_token(tok_rparen, ec_exp_rparen);
+          } else if (is_class_struct_union_type(init_type)) {
+            cssp = symbol_supplement_for_class(init_type);
+            if (cssp->constructor == NULL) {
+              str_error(ec_no_constructor, init_type->source_corresp.name);
+              err = TRUE;
+            } else {
+              /* This is treated like an initialization of the form
+                 S x (arg [, ...]), where S is a class type name.  Depending
+                 on the arguments present, a constructor will be selected and
+                 returned.  The scan function returns FALSE if it finds no
+                 constructor for which the arguments match. */
+              an_expr_node_ptr  arg_list;
+              if (!scan_ctor_arguments(cssp->constructor, &rp, &arg_list)) {
+                err = TRUE;
+              } else {
+                /* Set the dynamic init entry to represent constructor
+                   initialization. */
+                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+                dip->variant.constructor.routine = rp;
+                dip->variant.constructor.args = arg_list;
+                /* Mark the constructor referenced. */
+                rp->source_corresp.referenced = TRUE;
+                if (cssp->destructor != NULL) {
+                  dip->destructor = rp = cssp->destructor->variant.routine;
+                  rp->source_corresp.referenced = TRUE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            if (err) {
+              a_constant_ptr  cp;
+              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+              cp = alloc_constant((a_constant_repr_kind)ck_error);
+              set_error_constant(cp);
+              dip->variant.constant = cp;
+            }  /* if */
+            new_cip->initializer = dip;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      remove_stop_token(tok_comma);
+    } while (loop_token(tok_comma));
+    remove_stop_token(tok_lbrace);
+  }  /* if */
+  /* Merge the three lists into one. */
+  if (direct_list != NULL) {
+    end_of_direct_list->next = cip_list;
+    cip_list = direct_list;
+  }  /* if */
+  if (virtual_list != NULL) {
+    end_of_virtual_list->next = cip_list;
+    cip_list = virtual_list;
+  }  /* if */
+  /* Make a pass over the new list, adding default constructors where
+     appropriate. */
+  for (cip = cip_list; cip != NULL; cip = cip->next) {
+    if (cip->initializer == NULL) {
+      array_type = NULL;
+      if (cip->kind == (a_constructor_init_kind)cik_field) {
+        tp = cip->variant.field->type;
+        if (is_array_type(tp)) {
+          array_type = tp;
+          do {
+            tp = skip_typerefs(tp->variant.array.element_type);
+          } while(is_array_type(tp));
+        }  /* while */
+      } else {
+        tp = cip->variant.base_class->type;
+      }  /* if */
+      if (is_class_struct_union_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
+        dip = NULL;
+        if (cssp->default_constructor == NULL) {
+          if (cssp->destructor == NULL) {
+            str_error(ec_no_default_constructor,
+                      cip->variant.base_class->type->source_corresp.name);
+          } else {
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          }  /* if */
+        } else {
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          dip->variant.constructor.routine = rp =
+                                 cssp->default_constructor->variant.routine;
+          rp->source_corresp.referenced = TRUE;
+          dip->variant.constructor.args = NULL;
+        }  /* if */
+        if (cssp->destructor != NULL) {
+          dip->destructor = rp = cssp->destructor->variant.routine;
+          /* Mark the destructor referenced. */
+          rp->source_corresp.referenced = TRUE;
+        }  /* if */
+        if (dip != NULL && array_type != NULL) {
+          ctor_dip = dip;
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          repeat_constructor_init(ctor_dip, dip,
+                                    array_type->size == 0 ? 1 :
+                                               array_type->size / tp->size);
+        }  /* if */
+        cip->initializer = dip;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    db_symbol((a_symbol_ptr)ctor_rout->source_corresp.assoc_info,
+              "constructor: ", 2);
+    for (cip = cip_list; cip != NULL; cip = cip->next) {
+      if (cip->kind == (a_constructor_init_kind)cik_field) {
+        sym = (a_symbol_ptr)cip->variant.field->source_corresp.assoc_info;
+      } else {
+        sym = (a_symbol_ptr)cip->variant.base_class->type->
+                                                source_corresp.assoc_info;
+      }  /* if */
+      db_symbol(sym, "  for: ", 4);
+      fputs("  initializer = ", f_debug);
+      if (cip->initializer == NULL) {
+        fputs("<null>", f_debug);
+      } else {
+        db_dynamic_initializer(cip->initializer, 6);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return cip_list;
+}  /* ctor_initializer */
 
 
 /******************************************************************************
