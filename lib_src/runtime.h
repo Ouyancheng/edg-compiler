@@ -22,7 +22,7 @@ Miscellaneous declarations for all runtime routines.
 #include <new>
 #include "error.h"
 #ifdef __EDG_IA64_ABI
-#include <cxxabi.h>
+#include "cxxabi.h"
 #endif /* ifdef __EDG_IA64_ABI */
 
 #ifdef __linux__
