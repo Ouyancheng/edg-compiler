@@ -1986,7 +1986,6 @@ Dump the definition ({...}) if body is TRUE.
 */
 {
   a_field_ptr   field;
-  unsigned long temp;
   a_targ_size_t curr_offset = 0;
 
   if (body && type->size == 0) {
@@ -2015,14 +2014,19 @@ Dump the definition ({...}) if body is TRUE.
                                     field_name(field),
                                     field->bit_size);
         }  /* if */
-        temp = field->bit_offset / TARG_CHAR_BIT;
-        (void)fprintf(f_C_output, ";  /* offset = %lu byte%s", temp, 
+        (void)fputc(';', f_C_output);
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          unsigned long temp = field->bit_offset / TARG_CHAR_BIT;
+          (void)fprintf(f_C_output, "  /* offset = %lu byte%s", temp, 
                                                               temp-1? "s": "");
-        temp = field->bit_offset % TARG_CHAR_BIT;
-        if (temp) {
-          (void)fprintf(f_C_output, ", %lu bit%s", temp, temp!=1? "s": "");
+          temp = field->bit_offset % TARG_CHAR_BIT;
+          if (temp) {
+            (void)fprintf(f_C_output, ", %lu bit%s", temp, temp!=1? "s": "");
+          }  /* if */
+          fputs(" */", f_C_output);
         }  /* if */
-        fputs(" */", f_C_output);
+#endif /* INCLUDE_ANNOTATIONS */
         /* Keep track of the expected bit offset of the next field. */
         curr_offset = field->bit_offset;
         if (field->bit_size != 0) {
