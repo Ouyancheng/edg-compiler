@@ -1,5 +1,20 @@
 Version 2.22
 
+2/22/94  static member function and inherited virtual function
+
+We now issue an error if a static member function seems to override a
+virtual function from a base class, e.g.:
+
+  class A {
+    virtual void f(int);
+  };
+  class B : public A {
+    static void f(int);      // Now an error is issued.
+  };
+
+We used to assume that there was a type mismatch between A::f and B::f
+because the implicit this parameters do not match.
+
 2/22/94  address_taken flag set more often by IL lowering
 
 IL lowering now sets the address_taken flag on variables whose address
@@ -61,6 +76,16 @@ A throw of an expression with void type is now diagnosed as an error.
 Using __INTADDR__(expr) in a not-evaluated context (e.g., sizeof)
 no longer causes an internal error.
 
+2/19/94  IL change: the type of a routine may be a typedef
+
+The type entry pointed to by a routine entry may now represent a typedef
+(as long as the routine is undefined).  This was the intent all along,
+but a bug in make_routine caused a skip_typerefs to be done when the
+type was being bound to the routine entry.  Here's an example:
+
+  typedef void (F)(int);
+  extern F f;             // routine "f" now points to a tk_typedef type
+
 2/18/94  Generating makefile dependency information using implicit inclusion
 
 When generating makefile dependency information (using the -M option)
@@ -108,6 +133,19 @@ control this feature.
   {
     A<1> a;
   }
+
+2/16/94  IL change: new field in a_routine_type_supplement
+
+A new field, suppress_diagnostic_on_incomplete_return_type (intended for
+front-end use only), has been added to a a_routine_type_supplement.  As a
+result, an error is issued only on the first call to a function with an
+incomplete return type.
+
+2/16/94  Error message change for incomplete return types
+
+Two messages, "a function may not return an incomplete type" and "a
+function with an incomplete return type may not be called", have been
+consolidated: the new message reads: "function return type is incomplete".
 
 2/16/94  Separate file for system specific predefined macros and assertions
 
@@ -384,8 +422,8 @@ prototype is not a local type but belongs to the file scope.
 
 1/24/94  IL change -- variable for implicit "this" parameter
 
-A new flag, implicit_this_param, is set in a variable entry when it
-represents an implicit "this" parameter.
+A new flag, is_this_param, is set in a variable entry when it represents
+an implicit "this" parameter.
 
 1/22/94  Implicit return value from main()
 
