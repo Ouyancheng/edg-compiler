@@ -1431,10 +1431,11 @@ the scope being pushed.
          in the process of being instantiated. */
       ssep->reactivated_class_being_defined = is_incomplete_type(assoc_type);
     }  /* if */
-    /* Pragma and instantiation scopes require that the slow lookup
-       algorithm be used because they require that certain symbols on the
-       active list not be considered. */
+    /* Pragma, template declaration and template instantiation scopes
+       require that the slow lookup algorithm be used because they require
+       that certain symbols on the active list not be considered. */
     if (kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_template_declaration ||
         kind == (a_scope_kind)sck_template_instantiation) {
       ssep->slow_lookup_required = TRUE;
     } else if (kind != (a_scope_kind)sck_file) {

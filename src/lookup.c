@@ -2649,7 +2649,7 @@ C and C++.
                          !do_dependent_name_processing &&
                          !lookup_state.is_friend_lookup &&
 			 !lookup_state.is_linkage_lookup &&
-                         depth_innermost_instantiation_scope != NO_SCOPE_DEPTH;
+                         is_template_dependent_context();
     if (C_mode() && lookup_state.must_be_tag) {
       lookup_state.required_name_space_kind = nsk_tag;
     }  /* if */

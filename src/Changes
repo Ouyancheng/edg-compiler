@@ -1,5 +1,24 @@
 Version 2.46
 
+6/12/01  Lookup of unqualified names in template contexts
+
+In default mode, when doing a lookup in a class with a dependent base
+class, an unqualified name that would not otherwise be found by
+a normal lookup is considered to be a member of the dependent base
+class.  This allows X to be used in the definition of class template B
+in the example below.  In version 2.43 a change was made that caused
+the lookup of X in the definition of B<T>::f to fail.  This resulted in
+spurious errors in examples like this one.  A change has been made to permit
+such use in the definition of a class template member that appears outside
+of the class.  Note that this kind of use is not permitted by the standard.
+The standard requires that such a reference be written as "typename T::X"
+or "typename B::X".
+
+  template <class T> struct B : T {
+    void f(X);
+  };
+  template <class T> void B<T>::f(X){}
+
 6/11/01  No source positions in compiler-generated cast expressions
 
 Compiler-generated implicit cast expressions no longer have source
