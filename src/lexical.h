@@ -260,9 +260,12 @@ typedef struct a_token_cache {
 			   there is any possibility that the cache may
 			   be resued. */
 #if DEBUG
-  long		count;
+  long		token_count;
 			/* The number of tokens in this cache.  Used for
 			   tracking memory usage. */
+  long		pragma_count;
+			/* The number of pragma entries pointed to by tokens
+			   in this cache.  Used for tracking memory usage. */
 #endif /* DEBUG */
 } a_token_cache;
 

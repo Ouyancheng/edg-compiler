@@ -274,6 +274,7 @@ static unsigned long
 		num_source_line_modifs_allocated,
 		num_cached_tokens_allocated,
                 num_cached_tokens_in_reusable_caches,
+                num_pragmas_in_reusable_caches,
 		num_cached_constants_allocated,
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
                 num_file_suffixes_allocated,
@@ -336,7 +337,8 @@ Initialize a token cache, presumably so tokens can be added to it.
   cache->last_token  = NULL;
   cache->is_reusable = reusable;
 #if DEBUG
-  cache->count = 0;
+  cache->token_count = 0;
+  cache->pragma_count = 0;
 #endif /* DEBUG */
 }  /* clear_token_cache */
 
@@ -425,11 +427,10 @@ When debugging code is not being generated the macro expands to nothing.
   if (cache->is_reusable) {						\
     num_cached_tokens_in_reusable_caches++;				\
   }  /* if */								\
-  cache->count++;
+  cache->token_count++;
 #else /* !DEBUG */
 #define incr_tokens_in_cache(cache)  /* */
 #endif /* DEBUG */
-
 
 /*
 Add the cached token pointed to by ctp to the end of the token cache
@@ -459,6 +460,19 @@ associated with the current token.
   ctp->variant.pragmas = curr_token_pragmas;
   ctp->token = (a_byte_token_kind)tok_error;
   add_cached_token_to_cache(ctp, cache);
+#if DEBUG
+  /* Increment the number of pragmas in reusable caches and the number of
+     pragmas in this particular cache. */
+  { a_pending_pragma_ptr	ppp = curr_token_pragmas;
+    long			count = 0;
+    while (ppp != NULL) {
+      count++;
+      ppp = ppp->next;
+    }  /* while */
+    if (cache->is_reusable) num_pragmas_in_reusable_caches += count;
+    cache->pragma_count += count;
+  }
+#endif /* DEBUG */
 }  /* add_pragma_entry_to_cache */
 
 
@@ -679,7 +693,8 @@ in the cache, nothing is done.
     /* Reset the flag so that any tokens added to the cache (as is done
        later in this routine) won't be considered reusable. */
     cache->is_reusable = FALSE;
-    num_cached_tokens_in_reusable_caches -= cache->count;
+    num_cached_tokens_in_reusable_caches -= cache->token_count;
+    num_pragmas_in_reusable_caches -= cache->pragma_count;
   }  /* if */
 #endif /* DEBUG */
   if (cache->first_token != NULL) {
@@ -817,7 +832,8 @@ tokens therein and clear the cache.
   if (cache->is_reusable) {
     /* Reset the flag just to be neat. */
     cache->is_reusable = FALSE;
-    num_cached_tokens_in_reusable_caches -= cache->count;
+    num_cached_tokens_in_reusable_caches -= cache->token_count;
+    num_pragmas_in_reusable_caches -= cache->pragma_count;
   }  /* if */
 #endif /* DEBUG */
   for (ctp = cache->first_token; ctp != NULL; ctp = ctp_next) {
@@ -6901,10 +6917,11 @@ Display and return the amount of space used for various lexical tables.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  /* Subtract the number of tokens used in reusable caches from the
-     total number of cached tokens allocated.  Reusable cached tokens
-     will be reported separately. */
+  /* Subtract the number of tokens and pragmas used in reusable caches from
+     the total number allocated.  Reusable cached tokens and pragmas will be
+     reported separately. */
   num_cached_tokens_allocated -= num_cached_tokens_in_reusable_caches;
+  num_pending_pragmas_allocated -= num_pragmas_in_reusable_caches;
 
   db_space_used_header("Lexical table use:");
 
@@ -6924,6 +6941,8 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("pending pragma entry", avail_pending_pragmas,
                      num_pending_pragmas_allocated,
                      a_pending_pragma);
+  db_space_used("pragmas in reusable caches",
+                 num_pragmas_in_reusable_caches, a_pending_pragma);
   db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
                 a_pragma_kind_description);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
@@ -6997,6 +7016,7 @@ of the front end.
   num_source_line_modifs_allocated = 0;
   num_cached_tokens_allocated = 0;
   num_cached_tokens_in_reusable_caches = 0;
+  num_pragmas_in_reusable_caches = 0;
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
   num_pending_pragmas_allocated = 0;
