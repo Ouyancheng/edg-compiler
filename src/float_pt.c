@@ -127,11 +127,11 @@ do nothing.
         double_flt_max = strtod_interface(FLT_MAX);
         check_assertion_str(errno == 0,
                             "store_double: error on conversion of FLT_MAX");
-      } /* if */
+      }  /* if */
       if ((temp >= 0.0) ? temp > double_flt_max : temp < -double_flt_max) {
         /* Overflow. */
         *err = TRUE;
-      } else {
+      }  /* if */
 #endif /* ifdef FLT_MAX */
       if (!*err) {
         /* Convert to float and store a float in float_value. */
