@@ -5947,6 +5947,9 @@ current scope.
     } else if (!locator_for_curr_id.is_qualified_name ||
                locator_for_curr_id.is_class_member) {
       error(ec_bad_name_in_using_decl);
+    } else if (sym->kind == (a_symbol_kind)sk_namespace) {
+      pos_error(ec_namespace_name_not_allowed,
+                &locator_for_curr_id.source_position);
     } else {
       check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
                       locator_for_curr_id.is_global_qualified_name);
