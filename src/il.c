@@ -4787,6 +4787,11 @@ put it on a list of constants).
        Those with assoc_info non-NULL were handled above.  For others, make a
        new copy every time. */
     scp = alloc_unshared_constant(cp);
+  } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* Don't share aggregate constants (they come up for compound literals
+       used to initialize static variables in gcc mode, when
+       RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE). */
+    scp = alloc_unshared_constant(cp);
   } else {
     /* The constant has no source correspondence. */
     /* If the current IL region is not the file scope region (i.e., it's

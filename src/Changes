@@ -1,5 +1,17 @@
 Version 3.1
 
+7/22/02  Abort in compare_constants: GNU C, RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+An abort in compare_constants ("bad constant kind") has been fixed.
+It came up in configurations with RECORD_CONSTANT_EXPRESSIONS_IN_IL
+set to TRUE (e.g., C++-generating back end versions), in GNU C mode,
+when compiling a compound literal surrounded by an extra set of
+parentheses that is used to initialize a non-automatic variable.
+
+  struct A { int i; };
+  struct A a = ((struct A){1});
+  struct A b = ((struct A){1});
+
 7/19/02  GNU C mode: Enumerator constant types
 
 In GNU C mode, enumerator constants take on the first type from the following
