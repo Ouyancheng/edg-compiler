@@ -7523,14 +7523,16 @@ of local variables (and types, etc.) of functions and in blocks.
   /* Set the flags for calling decl_specifiers. */
   decl_start = is_decl_start(/*expr_context=*/FALSE,
                              /*real_declarator_allowed=*/TRUE);
-  dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
-              DSI_TYPE_SPECIFIER_ALLOWED;
+  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED;
+  /* Within a non-block linkage specification no storage class is allowed
+     (inferred from ARM 7.4). */
+  if (!extern_implied) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   if (is_parameter) {
     dsi_flags |= DSI_IS_PARAMETER;
   } else if (function_definition_allowed) {
     dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
     /* "inline" is allowed only on function declarations at file scope. */
-    dsi_flags |= DSI_INLINE_ALLOWED;
+    if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
   } else {
     /* A "vacuous declaration" of a class, struct, or union only makes sense
        when we are not at file scope. */
@@ -7618,6 +7620,11 @@ continue_with_declaration:
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       type_ptr->source_corresp.referenced = TRUE;
+    } else if (extern_implied && is_enum_type(type_ptr)) {
+      /* This is a declaration like
+                      extern "C" enum E { e1, e2, e3 };
+         which is not allowed (inference from ARM 7.4). */
+      pos_error(ec_enum_not_allowed, &decl_start_pos);
     } else {
       if (storage_class == (a_storage_class)sc_typedef) {
         /* A case like "typedef int;" or "typedef struct { int i; };" */
