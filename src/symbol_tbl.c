@@ -6816,7 +6816,6 @@ End a name scope by popping an entry off the scope stack.
 #endif /* ORPHAN_PROCESSING_NEEDED */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
-    done_with_memory_region(old_memory_region_number);
     /* Clear out the shareable constants table for the file scope or a
        function scope. */
     if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
@@ -6824,6 +6823,7 @@ End a name scope by popping an entry off the scope stack.
     } else {
       empty_func_shareable_constants_table();
     }  /* if */
+    done_with_memory_region(old_memory_region_number);
   }  /* if */
   /* For any entities on the extern_type_fixup_list, restore the type of the
      variable or routine to what it was earlier.  This is used for cases like
