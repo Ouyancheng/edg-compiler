@@ -1017,6 +1017,19 @@ in the way described by octl.
       }  /* if */
     }  /* if */
     octl->output_str(")");
+    /* If the function type has a linkage that's not compatible with the
+       default, add the linkage string after the closing parenthesis.  This
+       is done only for non-compilable code. */
+    if (!octl->gen_compilable_code) {
+      a_name_linkage_kind linkage = rtsp->routine_name_linkage;
+      if (linkage != (a_name_linkage_kind)nlk_internal &&
+          linkage != (a_name_linkage_kind)nlk_none &&
+          !routine_linkages_are_compatible(linkage,
+                                           default_routine_name_linkage)) {
+        octl->output_str(" ");
+        octl->output_str(name_linkage_kind_names[linkage]);
+      }  /* if */
+    } /* if */
 #ifdef CFE
     /* Output a cv-qualifier for a member function, if there is one. */
     if (rtsp->implicit_this_param_type != NULL) {
