@@ -1861,7 +1861,7 @@ typedef struct a_routine_type_supplement {
 			   (though diagnostics on function definitions are not
 			   affected).  (Intended for front-end use only.) */
   unsigned int /* a_name_linkage_kind */
-		assoc_routine_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+		routine_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* If assoc_routine is non-NULL, the name linkage
 			   with which the routine was declared; otherwise, the
 			   name linkage, if any, to be assumed for any routine
