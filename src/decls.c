@@ -4682,8 +4682,6 @@ otherwise it is NULL.  The syntax is:
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
   is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
   parenthesized_initializer_allowed =
-                      (C_dialect == C_dialect_cplusplus && !is_constructor &&
-                       (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED));
   nonconstant_dimension_allowed =
                             (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
   if (!real_declarator_allowed) {
@@ -4698,6 +4696,12 @@ otherwise it is NULL.  The syntax is:
   bottom_pointer_derived_type = NULL;
   complete_type = pointer_declarator(specifiers_type,
                                      &bottom_pointer_derived_type);
+  parenthesized_initializer_allowed =
+                   (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED) &&
+                   (is_arithmetic_type(complete_type) ||
+                    is_ptr_or_ref_type(complete_type) ||
+                    is_class_struct_union_type(complete_type) ||
+                    is_ptr_to_member_type(complete_type));
   derived_type = NULL;
   bottom_derived_type = NULL;
   add_stop_token(tok_lbracket);
@@ -8336,10 +8340,7 @@ continue_with_declaration:
     /* Set the various flags for declarator processing. */
     di_flags = DI_REAL_DECLARATOR_ALLOWED;
     if (C_dialect == C_dialect_cplusplus) {
-      if (is_scalar_type(type_ptr) ||
-          is_class_struct_union_type(type_ptr)) {
-        di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
-      }  /* if */
+      di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
       if (storage_class != (a_storage_class)sc_typedef &&
           decl_scope_level == DEPTH_OF_FILE_SCOPE) {
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
