@@ -313,7 +313,8 @@ int main(int argc, char *argv[])
   /* Output the number of error codes to the error code file. */
   fprintf(codes_output_file, "#define NUMBER_OF_ERROR_CODES %0d\n",
           number_of_errors);
-  fprintf(data_output_file, "char *message_text[NUMBER_OF_ERROR_CODES] = {\n");
+  fprintf(data_output_file,
+          "static char *message_text[NUMBER_OF_ERROR_CODES] = {\n");
   for (i = 0; i < number_of_errors; ++i) {
     char	*ptr;
     /* If this is not the first time through, terminate the previous line. */
@@ -377,7 +378,7 @@ int main(int argc, char *argv[])
           number_of_tags);
   /* Generate the sorted list of tags and associated enumerators. */
   fprintf(data_output_file,
-          "an_error_tag_entry error_tags[NUMBER_OF_ERROR_TAGS] = {\n");
+          "static an_error_tag_entry error_tags[NUMBER_OF_ERROR_TAGS] = {\n");
   for (i = 0; i < number_of_tags; ++i) {
     /* If this is not the first time through, terminate the previous line. */
     if (i != 0) fprintf(data_output_file, ",\n");
