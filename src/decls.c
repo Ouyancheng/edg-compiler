@@ -2331,6 +2331,14 @@ diagnostics.
     if ((new_modifiers & modifier_value) != 0) {
       /* This bit is set. */
       switch (bit_number) {
+        case dmt_near:
+          /* near and far are incompatible. */
+          if (is_redecl && (old_modifiers & DM_FAR)) invalid_redecl = TRUE;
+          break;
+        case dmt_far:
+          /* near and far are incompatible. */
+          if (is_redecl && (old_modifiers & DM_NEAR)) invalid_redecl = TRUE;
+          break;
         case dmt_dllimport:
         case dmt_dllexport:
           /* Any previous declaration must have been declared
@@ -2399,6 +2407,14 @@ diagnostics.
     if ((new_modifiers & modifier_value) != 0) {
       /* This bit is set. */
       switch (bit_number) {
+        case dmt_near:
+          /* near and far are incompatible. */
+          if (is_redecl && (old_modifiers & DM_FAR)) invalid_redecl = TRUE;
+          break;
+        case dmt_far:
+          /* near and far are incompatible. */
+          if (is_redecl && (old_modifiers & DM_NEAR)) invalid_redecl = TRUE;
+          break;
         case dmt_dllimport:
         case dmt_dllexport:
           /* Any previous declaration must have been declared
@@ -2434,8 +2450,8 @@ diagnostics.
   /* Update the variable entry with any valid modifiers that were found. */
   variable->decl_modifiers |= new_modifiers;
 }  /* update_variable_decl_modifiers */
-#endif /* DECL_MODIFIERS_IN_USE */
 
+#endif /* DECL_MODIFIERS_IN_USE */
 
 static void check_for_linkage_conflict(a_storage_class    *old_storage_class,
                                        an_id_linkage_kind *linkage,
