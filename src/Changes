@@ -1,5 +1,10 @@
 Version 2.32
 
+2/13/96   C++-generating back end: no code for implicit casts for array decay
+
+The C++-generating back end no longer puts out casts that implement the
+implicit decay of arrays to pointers.
+
 2/13/96   Error on ambiguous operator delete for virtual destructor
 
 An error is now issued when a virtual destructor is defined (implicitly or
