@@ -1475,6 +1475,13 @@ EXTERN a_boolean
 			   that ABI. */
 
 EXTERN a_boolean
+		emulate_unsafe_gnu_abi_bugs;
+			/* TRUE if the IA-64 ABI implementation should
+			   emulate potentially dangerous GNU implementation
+			   bugs.  If TRUE, emulate_gnu_abi_bugs must also be
+			   TRUE. */
+
+EXTERN a_boolean
 		warn_about_tail_padding_use;
 			/* TRUE if a warning should be emitted when a field
 			   of a derived class is placed in the tail padding

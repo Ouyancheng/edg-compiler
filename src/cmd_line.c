@@ -1399,6 +1399,7 @@ static a_flag_name
   { "allow_anon_types_in_anon_unions", &allow_anon_types_in_anon_unions },
 #if IA64_ABI
   { "emulate_gnu_abi_bugs", &emulate_gnu_abi_bugs },
+  { "emulate_unsafe_gnu_abi_bugs", &emulate_unsafe_gnu_abi_bugs },
   { "warn_about_tail_padding_use", &warn_about_tail_padding_use },
   { "reuse_tail_padding", &targ_reuse_tail_padding },
 #endif /* IA64_ABI */
@@ -3699,6 +3700,13 @@ enable_microsoft_mode:
     }  /* if */
   }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+#if IA64_ABI
+  if (emulate_unsafe_gnu_abi_bugs) {
+    /* A request to emulate the unsafe GNU ABI bugs is also a request to
+       emulate the safer GNU ABI bugs. */
+    emulate_gnu_abi_bugs = TRUE;
+  }  /* if */
+#endif /* IA64_ABI */
   /* Check for consistent specification of dialects and language modes. */
   check_dialect_and_language_modes();
   /* Based on dialect and language mode settings, check for consistency of

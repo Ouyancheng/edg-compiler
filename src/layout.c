@@ -2005,7 +2005,7 @@ static void reposition_gnu_disconnected_virtual_bases(a_layout_block_ptr  lob)
 /*
 A GNU IA-64 layout bug can cause virtual bases to end up outside the space
 occupied by the complete object.  Since this can lead to strange memory
-corruption bugs, we do not allow the bug to be emulated in those cases.
+corruption bugs, we do not normally emulate this bug in those cases.
 Instead, such virtual bases are repositioned to the end of the object and
 a warning is issued.  This routine performs this adjustment (when needed).
 */
@@ -2018,11 +2018,19 @@ a warning is issued.  This routine performs this adjustment (when needed).
       /* This should never happen for virtual bases that are also direct
          bases (see: allocate_empty_base). */
       check_assertion(!bcp->direct);
-      pos_sy2_warning(
+      if (emulate_unsafe_gnu_abi_bugs) {
+        /* Emulate the bug after all, but issue a warning. */
+        pos_sy2_warning(
+                    ec_gnu_virtual_base_gap, &bcp->decl_position,
+                    (a_symbol_ptr)bcp->type->source_corresp.assoc_info,
+                    (a_symbol_ptr)lob->class_type->source_corresp.assoc_info);
+      } else {
+        pos_sy2_warning(
                     ec_no_gnu_virtual_base_gap, &bcp->decl_position,
                     (a_symbol_ptr)bcp->type->source_corresp.assoc_info,
                     (a_symbol_ptr)lob->class_type->source_corresp.assoc_info);
-      bcp->offset = lob->byte_offset;
+        bcp->offset = lob->byte_offset;
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* reposition_gnu_disconnected_virtual_bases */
