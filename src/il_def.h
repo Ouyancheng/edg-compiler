@@ -2352,17 +2352,22 @@ typedef struct a_type {
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
   unsigned int	definition_put_out:1;
-			/* Used in some cases to record whether the definition
-			   of a type has been put out by the
-			   C++-generating back end. */
+			/* Used to record whether the definition of a
+			   type has been put out by the C++-generating back
+			   end. */
+  unsigned int	declaration_put_out:1;
+			/* Used to record whether the declaration of a (tag)
+			   type has been put out by the C++-generating back
+			   end. */
   unsigned int	definition_delayed:1;
-			/* Used in some cases to indicate the definition of
-			   a type is required and should be put out at the
-			   first opportunity. */
+			/* Used to indicate the definition of a (tag) type
+			   is required and should be put out at the first
+			   opportunity.  Used only within the C++-generating
+			   back end. */
   unsigned int	elaborated_type_specifier_needed:1;
 			/* An elaborated type specifier (e.g., "class X")
-			   is needed when referring to this type.  Used within
-			   the C++-generating back end. */
+			   is needed when referring to this type.  Used only
+			   within the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   unsigned int	autonomous_primary_tag_decl:1;
