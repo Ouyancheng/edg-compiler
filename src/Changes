@@ -1,5 +1,33 @@
 Version 2.31
 
+11/25/95  Redundant instantiation of template class
+
+A bug has been fixed that caused the same template class to be
+instantiated more than once when a declaration involved an temporarily
+incomplete array.  Here's a example:
+
+  template <class T> struct A { T t; A(T); };
+  A<int> x = 0;
+  A<int> y[] = { 0,0,0 };     // a second instantiation of A<int> is no
+                              // longer performed
+
+11/25/95  Bug in hidden-name support
+
+For implementations using the C++-generating back end (or otherwise with
+RECORD_HIDDEN_NAMES_IN_IL set to TRUE), a bug has been fixed in the
+interaction among namespaces, delayed nested-class definitions, and hidden
+names.  For instance, in the following a hidden-name entry is no longer
+recorded for CN2:
+
+  namespace Y {
+    namespace Z {
+      struct C {
+        struct CN2;
+      };
+    };
+    struct Z::C::CN2 { };
+  }
+
 11/22/95  "Delayed" definition of classes nested within class templates
 
 As with normal classes, it is now possible to define a class nested
@@ -34,7 +62,6 @@ defined.  This has been fixed.
     struct B;
   };
   struct A::B : public C<X> {};  // Now finds A::X
-
 
 11/22/95  Elimination of unneeded IL entries
 
