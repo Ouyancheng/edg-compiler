@@ -5144,8 +5144,9 @@ than a constructor reference.
                X(const X&, int i = (throw xx, 1)) { }
              };
            In even more obscure cases, there may be more that one parameter
-           to examine. */
-        for (; ptp != NULL;ptp = ptp->next) {
+           to examine.  Note: the loop start with the second paramenter, if
+           there is one. */
+        for (ptp = ptp->next; ptp != NULL; ptp = ptp->next) {
           if (ptp->default_arg_expr == NULL) {
             is_cctor = FALSE;
             break;
