@@ -350,7 +350,8 @@ EXTERN_C void __call_unexpected(void);
 extern a_void_function_ptr set_unexpected(a_void_function_ptr);
 
 EXTERN a_void_function_ptr
-		__default_unexpected_routine initial_value(terminate);
+		__default_unexpected_routine
+                                       initial_value(STD_NAMESPACE::terminate);
 			/* Pointer to the unexpected routine to be used. */
 
 EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep);
