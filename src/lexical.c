@@ -259,6 +259,7 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[ilm_last + 1] = {
   /* ilm_namespace */           IDL_MUST_BE_NAMESPACE,
   /* ilm_typename */            IDL_TYPENAME_LOOKUP,
   /* ilm_class */  	        IDL_MUST_BE_CLASS,
+  /* ilm_linkage */  	        IDL_LINKAGE_LOOKUP,
   /* ilm_last */		IDL_NO_OPTIONS
 };
 

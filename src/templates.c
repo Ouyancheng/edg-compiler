@@ -4400,8 +4400,23 @@ instantiation.
 #if 0
     /* For member templates, is simplify_curr_class_qualified_name needed? */
 #endif /* 0 */
-    sym = coalesce_and_lookup_generalized_identifier
-                             (GID_CLASS_TEMPLATE_REQUIRED, ilm_normal, &err);
+    /* For friend declarations, or declarations in which the template name
+       is a qualified name, do a normal lookup.  For unqualified
+       references that are not in friend declarations, just look
+       in the current scope. */
+    if (is_template_friend || locator_for_curr_id.is_qualified_name) {
+      sym = coalesce_and_lookup_generalized_identifier
+                             (GID_CLASS_TEMPLATE_REQUIRED, ilm_linkage, &err);
+    } else {
+      /* Look up the symbol in the current scope.  To do this we must
+         temporarily change the decl. scope level to the effective
+         level for this declaration because decl_scope_level currently
+         points to the template declaration scope. */
+      a_scope_depth	saved_decl_scope_level = decl_scope_level;
+      decl_scope_level = effective_decl_level;
+      sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+      decl_scope_level = saved_decl_scope_level;
+    }  /* if */
     locator = locator_for_curr_id;
     next_tok = next_token();
   }  /* if */
@@ -4474,14 +4489,10 @@ instantiation.
                 &locator.source_position);
       suppress_redecl_error = TRUE;
     }  /* if */
-    if (!is_template_friend &&
-        sym->decl_scope != scope_stack[effective_decl_level].number) {
-      /* The symbol found by the lookup is not from the scope in which
-         this template is being declared.  Discard the symbol found
-         by the lookup. */
-      sym = NULL;
-      locator.specific_symbol = NULL;
-    }  /* if */
+    /* Unless this is a friend declaration, an unquaified name must refer
+       to a name from the current scope. */
+    check_assertion(is_template_friend || sym->decl_scope ==
+                                     scope_stack[effective_decl_level].number);
   } else if (locator.is_qualified_name && sym != NULL) {
 #if 0
     /* Class qualified name checks need to be added here for member
@@ -4508,6 +4519,11 @@ instantiation.
                      &locator.source_position, sym);
         err = TRUE;
       }  /* if */
+    } else if (class_declared_in != NULL) {
+      /* A definition using a qualified name in a class scope.  This is
+         not allowed. */
+      pos_error(ec_qualifier_in_member_declaration, &locator.source_position);
+      err = TRUE;
     } else if (!namespace_is_enclosed_by_scope(sym, ssep)) {
       /* This definition appears within a namespace scope in which the name
          cannot be defined -- it is a member (directly or indirectly) of a
