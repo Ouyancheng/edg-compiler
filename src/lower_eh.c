@@ -246,27 +246,28 @@ put the variable in the function scope instead of the current scope
 
 
 static a_variable_ptr make_init_unnamed_local_static_array_var(
-                                                  a_type_ptr elem_type,
-                                                  a_boolean  in_function_scope)
+                                              a_type_ptr     elem_type,
+                                              a_boolean      in_function_scope,
+                                              a_constant_ptr *aggr_con)
 /*
 Create an unnamed local static variable whose type is an array of elem_type,
 and return a pointer to the variable.  The array size is begun as [0] and
 will be adjusted as elements are added.  finish_array_var must be called
 sometime later to set the size on the type.  The variable will be initialized;
 to start the process, an aggregate constant is attached to the variable.
+A pointer to this aggregate constant is returned in *aggr_con.
 Initial values must be added under the aggregate.  If in_function_scope
 is TRUE, put the variable in the function scope instead of the current
 scope (which might be a block scope).
 */
 {
   a_variable_ptr var;
-  a_constant_ptr aggr_con;
 
   /* Make the variable with an array type. */
   var = make_unnamed_local_static_array_var(elem_type, in_function_scope);
   /* The initial value is an aggregate constant pointing to a list of
      aggregate constants. */
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  *aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   /* Attach the aggregate constant as the initial value of the variable. */
   /* Use a local-static-variable-init entry to indicate the initialization. */
   (void)alloc_local_static_variable_init(var, 
@@ -274,7 +275,7 @@ scope (which might be a block scope).
                                               nearest_function_scope :
                                               curr_context->scope,
                                          (an_init_kind)initk_static,
-                                         aggr_con, (a_dynamic_init_ptr)NULL);
+                                         *aggr_con, (a_dynamic_init_ptr)NULL);
   return var;
 }  /* make_init_unnamed_local_static_array_var */
 
@@ -290,16 +291,17 @@ Return the pre-incremented value (which is right as a subscript).
 }  /* incr_nelems_of_array_var */
 
 
-static a_targ_size_t add_elem_to_array_var(a_variable_ptr var,
-                                           a_constant_ptr con)
+static a_targ_size_t add_elem_to_array_var(a_constant_ptr con,
+                                           a_variable_ptr var,
+                                           a_constant_ptr aggr_con)
 /*
 Add the indicated constant as an initializer of an element of the array
-variable pointed to by var.  Increment the number of elements of the
-array.  Return the pre-incremented size (which is right as a subscript).
+variable pointed to by var.  aggr_con is the top-level aggregate constant
+that is the initial value of the variable.  Increment the number of
+elements of the array.  Return the pre-incremented size (which is right
+as a subscript).
 */
 {
-  a_constant_ptr aggr_con = var->initializer.constant;
-
   /* Add the constant to the aggregate initializer list. */
   if (aggr_con->variant.aggregate.first_constant == NULL) {
     aggr_con->variant.aggregate.first_constant = con;
@@ -321,10 +323,6 @@ known, so call set_type_size on the type.
 */
 {
   /* Finish off the array type by setting its size. */
-  /* Clear it to zero first; this is because the size gets set twice
-     for the region table variable shared between the file-scope
-     initialization routine and the file-scope termination routine. */
-  var->type->size = 0;
   set_type_size(var->type);
 }  /* finish_array_var */
 
@@ -398,7 +396,7 @@ allocated in the file scope memory region.
 {
   a_type_ptr       array_type;
   a_base_class_ptr bcp;
-  a_constant_ptr   aggr_con;
+  a_constant_ptr   aggr_con, sub_aggr_con;
   a_variable_ptr   typeinfo_var, bc_var;
   a_boolean        ovflo;
   a_constant_ptr   typeinfo_con, offset_con, flags_con;
@@ -466,11 +464,11 @@ allocated in the file scope memory region.
       /* Link the constants together and make an aggregate constant. */
       typeinfo_con->next = offset_con;
       offset_con->next = flags_con;
-      aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      aggr_con->variant.aggregate.first_constant = typeinfo_con;
-      aggr_con->variant.aggregate.last_constant = flags_con;
+      sub_aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      sub_aggr_con->variant.aggregate.first_constant = typeinfo_con;
+      sub_aggr_con->variant.aggregate.last_constant = flags_con;
       /* Add the constant to the aggregate initializer list. */
-      (void)add_elem_to_array_var(bc_var, aggr_con);
+      (void)add_elem_to_array_var(sub_aggr_con, bc_var, aggr_con);
     }  /* if */
   }  /* for */
   /* Put the BCS_LAST bit on in the last entry. */
@@ -1417,11 +1415,15 @@ associated variable if necessary) and return its index number.
 
 
 /*
-Pointer to the variable entry for the array table of a function.  NULL
+Pointer to the variable entry for the array table of a function, and to
+the top-level aggregate constant that is its initial value.  NULL
 until allocated.
 */
 static a_variable_ptr
 		array_table_var;
+static a_constant_ptr
+		array_table_aggr_con;
+
 
 static a_targ_size_t array_table_entry(a_cleanup_action_ptr cap,
                                        an_insert_location   *insert_location)
@@ -1452,7 +1454,8 @@ the size is not available in the region description entry).
     /* The variable is an array whose elements have type array_descr. */
     array_table_var =
           make_init_unnamed_local_static_array_var(make_array_descr_type(),
-                                                   /*in_function_scope=*/TRUE);
+                                                   /*in_function_scope=*/TRUE,
+                                                   &array_table_aggr_con);
   }  /* if */
   /* Make the aggregate constant for the entry in the array table.  It consists
      of the index in the object address table, the size of each element, and
@@ -1486,7 +1489,8 @@ the size is not available in the region description entry).
   aggr_con->variant.aggregate.first_constant = index_con;
   aggr_con->variant.aggregate.last_constant = size_con;
   /* Add the aggregate as an element of the object address table array. */
-  entry_number = add_elem_to_array_var(array_table_var, aggr_con);
+  entry_number = add_elem_to_array_var(aggr_con, array_table_var,
+                                       array_table_aggr_con);
   return entry_number;
 }  /* array_table_entry */
 
@@ -1712,10 +1716,13 @@ the region table entry for cap to point to the proper region.
 
 /*
 Pointer to the variable entry for the region table of a function (which
-contains information about destructible objects).  NULL until allocated.
+contains information about destructible objects), and to the top-level
+aggregate constant that is its initial value.  NULL until allocated.
 */
 static a_variable_ptr
 		region_table_var;
+static a_constant_ptr
+		region_table_aggr_con;
 
 
 static a_constant_ptr add_raw_region_table_entry(a_constant_ptr con_list,
@@ -1732,7 +1739,8 @@ a pointer to the aggregate constant created.
   aggr_con->variant.aggregate.first_constant = con_list;
   aggr_con->variant.aggregate.last_constant = end_con_list;
   /* Add the aggregate as an element of the region table array. */
-  (void)add_elem_to_array_var(region_table_var, aggr_con);
+  (void)add_elem_to_array_var(aggr_con, region_table_var,
+                              region_table_aggr_con);
   /* Increment the count of entries in the array. */
   next_region_number++;
   return aggr_con;
@@ -1870,7 +1878,8 @@ pointer can be examined.
     /* The variable is an array whose elements have type array_descr. */
     region_table_var =
           make_init_unnamed_local_static_array_var(make_region_descr_type(),
-                                                   /*in_function_scope=*/TRUE);
+                                                   /*in_function_scope=*/TRUE,
+                                                   &region_table_aggr_con);
   }  /* if */
   /* Make the destructor pointer. */
   if (cap->kind == (a_cleanup_action_kind)cak_new_allocation) {
@@ -2063,10 +2072,13 @@ remove_cleanup_action).
 }  /* remove_from_exception_cleanup_list */
 
 
-static a_variable_ptr make_exception_type_spec_array_var(void)
+static a_variable_ptr make_exception_type_spec_array_var(
+                                                      a_constant_ptr *aggr_con)
 /*
 Create a variable whose initial value will be an array of exception type
-specification entries, and return a pointer to the variable.
+specification entries, and return a pointer to the variable.  An empty
+aggregate constant is attached to the variable as its initial value, and
+a pointer to the aggregate constant is returned in *aggr_con.
 */
 {
   a_variable_ptr var;
@@ -2075,22 +2087,25 @@ specification entries, and return a pointer to the variable.
      entries. */
   var = make_init_unnamed_local_static_array_var(
                                               make_exception_type_spec_type(),
-                                              /*in_function_scope=*/FALSE);
+                                              /*in_function_scope=*/FALSE,
+                                              aggr_con);
   return var;
 }  /* make_exception_type_spec_array_var */
 
 
 static void add_exception_type_spec_array_entry(a_type_ptr     type,
-                                                a_variable_ptr var)
+                                                a_variable_ptr var,
+                                                a_constant_ptr aggr_con)
 /*
 Add an entry that describes the type "type" to the array of exception type
-specifications being built up as the initializer of the variable "var".
-If type is NULL, add an ellipsis entry.
+specifications being built up as the initializer of the variable var.
+aggr_con points to the top-level aggregate constant that is the initial
+value of the variable.  If type is NULL, add an ellipsis entry.
 */
 {
   a_variable_ptr typeinfo_var;
   unsigned long  flags_value;
-  a_constant_ptr typeinfo_con, flags_con, aggr_con;
+  a_constant_ptr typeinfo_con, flags_con, sub_aggr_con;
 
   /* Each element of the array is an exception_type_spec struct
      containing a pointer to the typeinfo information and a flags byte.
@@ -2113,30 +2128,31 @@ If type is NULL, add an ellipsis entry.
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(flags_con, flags_value,
                                 (an_integer_kind)ik_unsigned_char);
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  aggr_con->variant.aggregate.first_constant = typeinfo_con;
+  sub_aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  sub_aggr_con->variant.aggregate.first_constant = typeinfo_con;
   typeinfo_con->next = flags_con;
-  aggr_con->variant.aggregate.last_constant = flags_con;
+  sub_aggr_con->variant.aggregate.last_constant = flags_con;
   /* Add this aggregate constant to the list of constants under the aggregate
      constant for the array. */
-  (void)add_elem_to_array_var(var, aggr_con);
+  (void)add_elem_to_array_var(sub_aggr_con, var, aggr_con);
 }  /* add_exception_type_spec_array_entry */
 
 
-static void finish_exception_type_spec_array(a_variable_ptr var)
+static void finish_exception_type_spec_array(a_variable_ptr var,
+                                             a_constant_ptr aggr_con)
 /*
 Finish the definition of a variable whose value is an array of exception
-type specification entries.
+type specification entries.  var is the variable, and aggr_con is
+the aggregate constant that is its initial value.
 */
 {
-  a_constant_ptr array_aggr_con, aggr_con, flags_con;
+  a_constant_ptr sub_aggr_con, flags_con;
   unsigned long  flags_value;
   a_boolean      ovflo;
 
   /* Put the ETS_LAST bit on in the last entry. */
-  array_aggr_con = var->initializer.constant;
-  aggr_con = array_aggr_con->variant.aggregate.last_constant;
-  flags_con = aggr_con->variant.aggregate.last_constant;
+  sub_aggr_con = aggr_con->variant.aggregate.last_constant;
+  flags_con = sub_aggr_con->variant.aggregate.last_constant;
   flags_value = unsigned_value_of_integer_constant(flags_con, &ovflo);
   flags_value |= ETS_LAST;
   set_unsigned_integer_value(&flags_con->variant.integer_value, flags_value);
@@ -2228,7 +2244,7 @@ inserted at *insert_location.
 
 
 static a_variable_ptr exception_type_spec_array_from_throw_spec(
-                                          an_exception_specification_ptr throw_spec)
+                                     an_exception_specification_ptr throw_spec)
 /*
 Make an array that describes the throw specification indicated by throw_spec,
 and return a pointer to the variable for the array.  Return NULL if the
@@ -2237,6 +2253,7 @@ throw specification indicates that no types may be thrown.
 {
   a_variable_ptr                       var;
   an_exception_specification_type_ptr  espt;
+  a_constant_ptr                       aggr_con;
 
   espt = throw_spec->exception_specification_type_list;
   /* If the routine can throw nothing, return NULL. */
@@ -2246,15 +2263,15 @@ throw specification indicates that no types may be thrown.
     /* There are some types on the throw list, so an array of those will
        have to be built. */
     /* Make the variable. */
-    var = make_exception_type_spec_array_var();
+    var = make_exception_type_spec_array_var(&aggr_con);
     /* Fill the array with entries for the types that can be thrown. */
     for (;
          espt != NULL;
          espt = espt->next) {
-      add_exception_type_spec_array_entry(espt->type, var);
+      add_exception_type_spec_array_entry(espt->type, var, aggr_con);
     }  /* for */
     /* Finish off the array. */
-    finish_exception_type_spec_array(var);
+    finish_exception_type_spec_array(var, aggr_con);
   }  /* if */
   return var;
 }  /* exception_type_spec_array_from_throw_spec */
@@ -2436,9 +2453,10 @@ catch clauses on the indicated list.  Return a pointer to the variable.
 {
   a_variable_ptr var;
   a_handler_ptr  handler;
+  a_constant_ptr aggr_con;
 
   /* Make the variable. */
-  var = make_exception_type_spec_array_var();
+  var = make_exception_type_spec_array_var(&aggr_con);
   /* Fill the array with entries for the catch clause types. */
   for (handler = handlers;
        handler != NULL;
@@ -2450,10 +2468,10 @@ catch clauses on the indicated list.  Return a pointer to the variable.
     } else {
       handler_type = handler->parameter->type;
     }  /* if */
-    add_exception_type_spec_array_entry(handler_type, var);
+    add_exception_type_spec_array_entry(handler_type, var, aggr_con);
   }  /* for */
   /* Finish off the array. */
-  finish_exception_type_spec_array(var);
+  finish_exception_type_spec_array(var, aggr_con);
   return var;
 }  /* make_catch_array_var */
 
@@ -2719,7 +2737,9 @@ IL lowering for exceptions.
 {
   object_addr_table_var = NULL;
   array_table_var = NULL;
+  array_table_aggr_con = NULL;
   region_table_var = NULL;
+  region_table_aggr_con = NULL;
   next_region_number = 0;
   any_try_blocks_in_function = FALSE;
   destructor_wrapper_region_set_fixup_needed = FALSE;
