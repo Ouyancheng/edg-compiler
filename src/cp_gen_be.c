@@ -6288,7 +6288,7 @@ recorded with this particular header.
                               ->variant.template_param.extra_info
                               ->coordinates,
                            &param->source_corresp);
-      write_tok_str("typename ");
+      write_tok_str("class ");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       write_tok_str_if_nonnull(param->source_corresp.name);
