@@ -480,7 +480,7 @@ ec_new_array_size_must_be_nonnegative;;"the size of an array in \"new\" must be 
 ec_return_ref_init_requires_temp;;"returning reference to local temporary"
 ec_cfront_nonconst_ref_init;;"const qualifier dropped in initializing reference to non-const"
 ec_enum_not_allowed;;"\"enum\" declaration is not allowed"
-ec_qualifier_dropped_in_ref_init;;"initial value of reference has excess type qualifiers"
+ec_qualifier_dropped_in_ref_init;;"qualifiers dropped in binding reference of type %t1 to initializer of type %t2"
 ec_bad_nonconst_ref_init;;"initial value of reference to non-const has incorrect type"
 ec_delete_of_function_pointer;;"a pointer to function may not be deleted"
 ec_bad_conversion_function_decl;;"conversion function must be a nonstatic member function"

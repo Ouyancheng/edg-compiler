@@ -7549,7 +7549,9 @@ initializer has previously been found to be acceptable, and
                    /*is_implicit_cast=*/TRUE);
       if (dropping_qualifiers) {
         /* Type qualifiers were dropped on this binding. */
-        pos_error(ec_qualifier_dropped_in_ref_init, &source_operand->position);
+        pos_ty2_error(ec_qualifier_dropped_in_ref_init,
+                      &source_operand->position,
+                      dest_type, source_operand->type);
       } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
         /* Can't bind this reference to an rvalue. */
         an_error_severity err_severity = es_error;
@@ -7594,7 +7596,10 @@ initializer has previously been found to be acceptable, and
            cannot be used to drop the qualifiers.  cfront allows dropping
            qualifiers when passing nonclass arguments (class cases were
            handled above). */
-        error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
+        pos_ty2_error(ec_qualifier_dropped_in_ref_init,
+                      &source_operand->position,
+                      dest_type, source_operand->type);
+        conv_to_error_operand(source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
            if necessary.  source_operand is set to the address of the
