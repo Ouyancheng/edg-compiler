@@ -288,6 +288,88 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #endif /* IL_WALK_NEEDED */
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 
+#if !DO_IL_LOWERING
+
+static a_variable_ptr find_var_in_scope_with_type(a_type_ptr  type,
+                                                  a_scope_ptr scope)
+/*
+Look through the variables list of the indicated scope to see if there is a
+variable whose type is the indicated type.  If so, return a pointer to it;
+otherwise, return NULL.
+*/
+{
+  a_variable_ptr var;
+
+  for (var = scope->variables; var != NULL; var = var->next) {
+    if (var->type == type) break;
+  }  /* for */
+  if (var == NULL) {
+    for (var = scope->nonstatic_variables; var != NULL; var = var->next) {
+      if (var->type == type) break;
+    }  /* for */
+  }  /* if */
+  return var;
+}  /* find_var_in_scope_with_type */
+
+
+static a_variable_ptr find_var_in_function_scope_with_type(a_type_ptr  type,
+                                                           a_scope_ptr scope)
+/*
+Look through the variables lists of the indicated scope (a function or
+block scope) and all its subscopes to see if there is a variable whose type
+is the indicated type.  If so, return a pointer to it; otherwise, return
+NULL.
+*/
+{
+  a_variable_ptr var;
+
+  var = find_var_in_scope_with_type(type, scope);
+  if (var == NULL) {
+    /* Search block scopes. */
+    a_scope_ptr block_scope;
+    for (block_scope = scope->scopes;
+         block_scope != NULL;
+         block_scope = block_scope->next) {
+      var = find_var_in_function_scope_with_type(type, block_scope);
+      if (var != NULL) break;
+    }  /* if */
+  }  /* if */
+  return var;
+}  /* find_var_in_function_scope_with_type */
+
+
+static a_variable_ptr find_parent_var_of_anon_union_type(a_type_ptr type)
+/*
+type is a class type that is an anonymous union with kind auk_variable.
+Find the associated anonymous union variable and return a pointer to it.
+This routine is not very efficient, but it's used only in very strange
+cases (anonymous unions containing types).
+*/
+{
+  a_variable_ptr var;
+
+  if (!type->source_corresp.is_class_member &&
+      type->source_corresp.parent.namespace_ptr != NULL) {
+    /* The type is a member of a namespace.  Search the namespace variable
+       list. */
+    a_namespace_ptr nsp = type->source_corresp.parent.namespace_ptr;
+    check_assertion(!nsp->is_namespace_alias);
+    var = find_var_in_scope_with_type(type, nsp->variant.assoc_scope);
+  } else if (type->source_corresp.is_local_to_function) {
+    /* The type is local to a function.  Search the function and block
+       scopes. */
+    var = find_var_in_function_scope_with_type(type, innermost_function_scope);
+  } else {
+    /* This type must be in the file scope. */
+    var = find_var_in_scope_with_type(type, il_header.primary_scope);
+  }  /* if */
+  check_assertion_str(var != NULL,
+                      "find_parent_var_of_anon_union_type: var not found");
+  return var;
+}  /* find_parent_var_of_anon_union_type */
+
+#endif /* !DO_IL_LOWERING */
+    
 /* "needed" flag section: */
 
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */

@@ -3129,73 +3129,13 @@ is done, is that all the classes have to have been marked first.
   }  /* for */
 }  /* set_needed_flags_for_typedefs */
 
-#if !DO_IL_LOWERING
 
-static set_needed_flags_for_anon_union_parent_vars(a_scope_ptr  scope)
-/*
-Ensure that the "parent variables" associated with nonmember anonymous unions
-of the indicated scope are marked as "needed" if the associated type entry is
-so marked.
-*/
-{
-  a_namespace_ptr  nsp;
-  a_variable_ptr   vp;
-  a_scope_ptr      sp;
-
-  switch (scope->kind) {
-    case sck_file:
-    case sck_namespace:
-      /* Sweep the variables of nested namespace scopes. */
-      for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-        if (!nsp->is_namespace_alias) {
-          /* Nested namespace scope.  Apply the check to each of its types. */
-          set_needed_flags_for_anon_union_parent_vars(nsp->
-                                                        variant.assoc_scope);
-        }  /* if */
-      }  /* for */
-      goto check_variables;
-    case sck_function:
-    case sck_block:
-      /* Sweep the variables of nested block scopes. */
-      for (sp = scope->scopes; sp != NULL; sp = sp->next) {
-        set_needed_flags_for_anon_union_parent_vars(sp);
-      }  /* for */
-check_variables:
-      /* Traverse the linked list of variables associated with the current
-         scope. */
-      for (vp = scope->variables; vp != NULL; vp = vp->next) {
-        if (vp->is_anonymous_parent_object) {
-          /* The variable is an anonymous-union parent object. */
-          if (!vp->source_corresp.needed &&
-               vp->type->source_corresp.needed) {
-            /* It has not been marked as needed, but the associated type is
-               needed.  This can happen in cases like this:
-                 static union { typedef int T; };
-                 T x;
-               This is no longer allowed in strict mode, but we need to do
-               this for backward compatibility. */
-            vp->source_corresp.needed = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      break;
-    default:;
-      /* Ignore it. */
-  }  /* switch */
-}  /* set_needed_flags_for_anon_union_parent_vars */
-
-#endif /* !DO_IL_LOWERING */
-
-static void set_needed_flags_at_end_of_file_scope(
-                                     a_scope_ptr scope,
-                                     a_boolean   *check_anon_union_parent_vars)
+static void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope)
 /*
 scope is a pointer to the file scope, a namespace scope, or a class scope.
 Set the "needed" flags on classes, variables, and static data members now
 that processing for the file scope (including IL lowering, if applicable) has
-been completed.  Return *check_anon_union_parent_vars TRUE if, in scanning
-the variables of this scope, an anonymous union parent was encountered that
-was not marked as needed; it will be subject to a fixup pass later.
+been completed.
 */
 {
   a_type_ptr                   tp;
@@ -3215,8 +3155,7 @@ was not marked as needed; it will be subject to a fixup pass later.
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
       /* Nested namespace scope. */
-      set_needed_flags_at_end_of_file_scope(nsp->variant.assoc_scope,
-                                            check_anon_union_parent_vars);
+      set_needed_flags_at_end_of_file_scope(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
   /* Check for classes defined in the current scope. */
@@ -3235,8 +3174,7 @@ was not marked as needed; it will be subject to a fixup pass later.
       if (ctsp != NULL && ctsp->assoc_scope != NULL) {
         /* Check nested classes and static data members, too.  Note that this
            may be done even if the class definition itself is not needed. */
-        set_needed_flags_at_end_of_file_scope(ctsp->assoc_scope,
-                                              check_anon_union_parent_vars);
+        set_needed_flags_at_end_of_file_scope(ctsp->assoc_scope);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -3259,14 +3197,6 @@ was not marked as needed; it will be subject to a fixup pass later.
       vp->source_corresp.needed = FALSE;
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
     }  /* if */
-#if !DO_IL_LOWERING
-    if (vp->is_anonymous_parent_object &&
-        !vp->source_corresp.is_class_member) {
-      if (!vp->source_corresp.needed) {
-        *check_anon_union_parent_vars = TRUE;
-      }  /* if */
-    }  /* if */
-#endif /* !DO_IL_LOWERING */
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     if (rp->source_corresp.needed) {
@@ -3625,15 +3555,6 @@ End a name scope by popping an entry off the scope stack.
          cleared. */
       curr_routine->source_corresp.needed = FALSE;
       mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
-#if !DO_IL_LOWERING
-      /* Be sure the il-needed flag is set on variables marked as anonymous
-         union parents.  Usually this will already have been done, but there
-         are exceptions -- e.g.,
-           union { typedef int T };
-           T x;
-         This is not needed if IL lowering is done. */
-      set_needed_flags_for_anon_union_parent_vars(il_scope);
-#endif /* !DO_IL_LOWERING */
 #if DEBUG
     } else if (debug_level >= 3) {
       fprintf(f_debug, "Not calling mark_as_needed for \"");
@@ -3643,21 +3564,10 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DEBUG */
     }  /* if */
   } else if (kind == (a_scope_kind)sck_file) {
-    a_boolean  check_anon_union_parent_vars = FALSE;
-
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
     end_of_file_scope_needed_flags_phase = TRUE;
-    set_needed_flags_at_end_of_file_scope(il_scope,
-                                          &check_anon_union_parent_vars);
-#if !DO_IL_LOWERING
-    if (check_anon_union_parent_vars) {
-      /* There is at least one anonymous union parent variable that was not
-         yet marked as needed when it was encountered.  In case it and others
-         subsequently turn out to be needed, make a separate pass for them. */
-      set_needed_flags_for_anon_union_parent_vars(il_scope);
-    }  /* if */
-#endif /* !DO_IL_LOWERING */
+    set_needed_flags_at_end_of_file_scope(il_scope);
     end_of_file_scope_needed_flags_phase = FALSE;
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;

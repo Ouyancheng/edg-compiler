@@ -1919,6 +1919,28 @@ after_entry_from_class:
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
           clear_pointer_if_remapping(ptr->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#else /* !DO_IL_LOWERING */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+          if (ptr->anonymous_union_kind ==
+                                       (an_anonymous_union_kind)auk_variable) {
+            /* Deal with cases like
+                 static union { typedef int T; };
+                 T x;
+               (Defining types in an anonymous union is no longer allowed,
+               but we accept it for backwards compatibility.)
+               When the type is marked as needed, the variable for the
+               anonymous union must also be marked.  This is a problem only
+               for types in anonymous unions; references to data members will
+               include a reference to the variable. */
+            if (ptr->assoc_scope->types != NULL) {
+              a_variable_ptr anon_union_var;
+              /* Recall that entry_ptr is the class pointer. */
+              anon_union_var = find_parent_var_of_anon_union_type(
+                                                        (a_type_ptr)entry_ptr);
+              walk_ptr(anon_union_var, a_variable_ptr, iek_variable);
+            }  /* if */
+          }  /* if */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #endif /* DO_IL_LOWERING */
         }  /* if */
       }
