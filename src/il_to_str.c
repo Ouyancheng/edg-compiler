@@ -1421,8 +1421,14 @@ in the way described by octl.
   }  /* if */
   if (need_ptr_cast) {
     /* Start with a cast to the desired result type. */
+    a_type_ptr cast_type = orig_type;
     output_optional_open_paren(&need_parens, &need_ptr_cast_close_paren, octl);
-    form_cast(orig_type, octl);
+    /* For the do_indirection case, cast to a reference type instead of the
+       pointer type that's there. */
+    if (do_indirection) {
+      cast_type = make_reference_type(type_pointed_to(orig_type));
+    }  /* if */
+    form_cast(cast_type, octl);
     /* Look for cases where a pointer is implicitly cast to a strange type
        (e.g., "char").  The original code probably did this conversion
        as two casts, but the implicit_cast mechanism only retains
