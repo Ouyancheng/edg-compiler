@@ -1804,6 +1804,40 @@ table, since it is accessed from the associated function instantiation entry.
   return sym;
 }  /* make_template_function_symbol */
 
+
+static a_boolean 
+              current_instantiation_symbol_if_class_template(a_symbol_ptr *sym)
+/*
+If the symbol is a class template that is currently being instantiated,
+the symbol of the instantiation is returned in *sym, otherwise the original
+symbol is left unchanged.  If the symbol returned is not a class
+template symbol (either because the symbol passed by the caller was not
+a class template or because we succeeded in finding an instantiation) we
+return TRUE.  If the symbol is a class template with no current
+instantiation, we return FALSE.
+*/
+{
+  a_scope_depth  instantiation_depth;
+  a_boolean      found = TRUE;
+
+  if ((*sym)->kind == (a_symbol_kind)sk_class_template) {
+    found = FALSE;
+    /* Get the scope depth of the innermost instantiation of this class
+       template. */
+    instantiation_depth = (*sym)->variant.template.extra_info->
+                                             innermost_instantiation_scope;
+    if (instantiation_depth != NO_SCOPE_DEPTH) {
+      /* Get the instance symbol pointed to by the type from the scope
+         stack entry. */
+      *sym = (a_symbol_ptr)(scope_stack[instantiation_depth].assoc_type->
+                            source_corresp.assoc_info);
+      found = TRUE;
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* current_instantiation_symbol_if_class_template */
+
+
 a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                        a_source_position  *pos)
 /*
@@ -5976,18 +6010,28 @@ an instance of the class template.
 
   db_enter(3, "get_template_class");
 
-  /* If the next token is not a left angle bracket then just return
-     the symbol of the class template. */
-  if (next_token() != tok_lt) {
-    new_sym = template_symbol;
-    goto skip_processing;
-  }  /* if */
-  /* Always allocate template arguments at the file scope. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
   /* Save the current locator. */
   orig_locator = locator_for_curr_id;
+  if (next_token() != tok_lt) {
+     /* There is no template argument list.  If we are in a class
+        class instantiation, use the symbol associated with the innermost
+        instantiation of this class, otherwise just return the class
+        template symbol. */
+    new_sym = template_symbol;
+    if (current_instantiation_symbol_if_class_template(&new_sym)) {
+      /* We not have the symbol for the current instantiation of the
+         class template. */
+      goto normal_exit;
+    } else {
+      /* We still have the class template symbol.  Simply return this to
+         the caller. */
+      goto skip_processing;
+    }  /* if */
+  }  /* if */
+  /* Always allocate template arguments at the file scope. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
   add_stop_token(tok_gt);
   /* Get the angle bracket token. */
   (void)get_token();
@@ -6053,6 +6097,7 @@ an instance of the class template.
      scan the token after the closing angle because we update the current
      token below to represent the original identifier with the newly
      found template class symbol. */
+  set_err_pos_to_curr_token();
   if (curr_token != tok_gt) {
     syntax_error(ec_exp_gt);
     any_errors = TRUE;
@@ -6065,6 +6110,10 @@ an instance of the class template.
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);
   }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
+  remove_stop_token(tok_gt);
+
+normal_exit:
   /* When we return to the caller the current identifier should be an 
      identifier and the locator should point to the template class that we
      have just looked up. */
@@ -6085,8 +6134,6 @@ an instance of the class template.
   }  /* if */
 #endif /* DEBUG */
 
-  switch_back_to_original_region(region_to_switch_back_to);
-  remove_stop_token(tok_gt);
 skip_processing:
   db_exit();
   return new_sym;
