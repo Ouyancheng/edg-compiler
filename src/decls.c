@@ -1908,8 +1908,7 @@ in the file scope).
      region. */
   vp = alloc_variable(storage_class);
   vp->type = type_ptr;
-  add_to_variables_list(vp, at_file_scope ? DEPTH_OF_FILE_SCOPE :
-                                            decl_scope_level);
+  add_to_variables_list(vp, at_file_scope);
   return vp;
 }  /* make_variable */
 
