@@ -1198,8 +1198,13 @@ Generate a class qualifier (e.g., "A::B::") that identifies the indicated
 class type.
 */
 {
-  a_type_ptr parent_class = class_type->source_corresp.class_of_which_a_member;
+  a_type_ptr parent_class;
 
+  /* Ignore anonymous union levels. */
+  for (; class_type->variant.class_struct_union.extra_info->
+                    anonymous_union_kind == (an_anonymous_union_kind)auk_field;
+       class_type = class_type->source_corresp.class_of_which_a_member) {}
+  parent_class = class_type->source_corresp.class_of_which_a_member;
   /* Use recursion to handle multiple levels of nesting. */
   if (parent_class != NULL) {
     gen_class_qualifier(parent_class);
