@@ -314,7 +314,7 @@ compiled?  This flag should be set to TRUE externally when compiling the
 C-generating back end; here, it's set for the compilation of the front
 end (i.e., FALSE if the back end is not being called, as appropriate
 if the back end is being called).
-See also C_GEN_BE_GENERATES_ANSI_C in target.h.
+See also C_GEN_BE_GENERATES_ANSI_C in targ_def.h.
 */
 #ifndef BACK_END_IS_C_GEN_BE
 #if BACK_END_SHOULD_BE_CALLED
