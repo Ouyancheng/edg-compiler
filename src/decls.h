@@ -153,7 +153,8 @@ extern a_boolean is_declaration_not_expression(void);
 
 extern void type_name(a_type_ptr *type_ptr);
 
-extern void new_type_name(a_type_ptr        *type_ptr,
+extern void new_type_name(a_boolean         is_parenthesized,
+                          a_type_ptr        *type_ptr,
                           an_expr_node_ptr  *dimension_expr);
 
 extern a_boolean scan_conversion_operator(a_source_position  *pos);
@@ -257,6 +258,9 @@ typedef int a_decl_flag_set;
 #define DI_IS_CONSTRUCTOR 0x40
 			/* If this bit is set decl_specifiers has determined
 			   that the declaration is that of a constructor. */
+#define DI_DIMENSION_EXPRESSION_ALLOWED 0x80
+			/* If this bit is set the first dimension of an array
+			   declarator may be a nonconstant expression. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
@@ -360,7 +364,8 @@ extern void declarator(a_decl_flag_set   input_flags,
                        a_symbol_locator  *locator,
                        a_type_ptr        *p_complete_type,
                        a_type_ptr        *p_bottom_derived_type,
-                       a_func_info_block *func_info);
+                       a_func_info_block *func_info,
+                       an_expr_node_ptr  *dim_expr_ptr);
 
 extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
