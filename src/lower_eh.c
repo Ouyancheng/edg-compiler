@@ -1202,7 +1202,7 @@ Lower an enk_throw expression node.
        of the destruction. */
     dip->destructor = NULL;
     lower_dynamic_init(dip, &ipd,
-                       /*first_time_test_var=*/(a_variable_ptr)NULL,
+                       /*conditional_flag_var=*/(a_variable_ptr)NULL,
                        /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
@@ -1220,19 +1220,42 @@ static a_variable_ptr
 		object_addr_table_var;
 
 
-static a_targ_size_t object_addr_table_entry(
-                                        an_init_pos_descr_ptr ipdp,
-                                        an_insert_location    *insert_location)
+void init_object_addr_table_entry(an_init_pos_descr_ptr ipdp,
+                                  a_targ_size_t         entry_number,
+                                  an_insert_location    *insert_location)
 /*
-Add an entry to the object address table array (creating the table and its
-associated variable if necessary) for the object identified by ipdp.
-Return the index number into the object address table.  Also insert
-(at *insert_location) an assignment statement to set the entry of the
-object address array to the address of the object.
+Initialize entry entry_number of the object address table so that it
+points to the entity identified by ipdp.  Any code required is inserted
+at *insert_location and *insert_location is updated.
 */
 {
   an_expr_node_ptr object_addr_table_node, subsc_node, object_addr_node;
-  a_targ_size_t    entry_number;
+
+  /* Insert code to initialize the element of the table to the address of the
+     object, i.e.,
+       object_addr_table[n] = (void *)ipdp-address;
+  */
+  object_addr_table_node = array_var_lvalue_expr(object_addr_table_var);
+  object_addr_table_node->next = node_for_integer_constant((long)entry_number,
+                                                         TARG_SIZE_T_INT_KIND);
+  subsc_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
+                                  object_addr_table_node->type,
+                                  object_addr_table_node);
+  object_addr_node = add_cast_if_necessary(make_init_entity_node(ipdp),
+                                           void_star_type());
+  (void)insert_assignment_statement(subsc_node,
+                                    (an_expr_operator_kind)eok_passign,
+                                    object_addr_node, insert_location);
+}  /* init_object_addr_table_entry */
+
+
+static a_targ_size_t object_addr_table_index(void)
+/*
+Add an entry to the object address table array (creating the table and its
+associated variable if necessary) and return its index number.
+*/
+{
+  a_targ_size_t entry_number;
 
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
@@ -1252,23 +1275,8 @@ object address array to the address of the object.
   }  /* if */
   /* Add an element to the object address table array. */
   entry_number = incr_nelems_of_array_var(object_addr_table_var);
-  /* Insert code to initialize the element of the table to the address of the
-     object, i.e.,
-       object_addr_table[n] = (void *)ipdp-address;
-  */
-  object_addr_table_node = array_var_lvalue_expr(object_addr_table_var);
-  object_addr_table_node->next = node_for_integer_constant((long)entry_number,
-                                                         TARG_SIZE_T_INT_KIND);
-  subsc_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
-                                  object_addr_table_node->type,
-                                  object_addr_table_node);
-  object_addr_node = add_cast_if_necessary(make_init_entity_node(ipdp),
-                                           void_star_type());
-  (void)insert_assignment_statement(subsc_node,
-                                    (an_expr_operator_kind)eok_passign,
-                                    object_addr_node, insert_location);
   return entry_number;
-}  /* object_addr_table_entry */
+}  /* object_addr_table_index */
 
 
 /*
@@ -1303,9 +1311,9 @@ the size is not available in the region description entry).
      file scope memory region at this point. */
   /* Allocate the proper entry in the object address table. */
   check_assertion(is_object_cleanup_action(cap));
-  object_addr_index =
-                   object_addr_table_entry(&cap->variant.object.init_pos_descr,
-                                           insert_location);
+  object_addr_index = object_addr_table_index();
+  init_object_addr_table_entry(&cap->variant.object.init_pos_descr,
+                               object_addr_index, insert_location);
   /* Switch to the file scope memory region so the variable and initialization
      constants will be allocated there. */
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -1695,17 +1703,19 @@ pointer can be examined.
   } else {
     /* Non-array. */
     /* Allocate the proper entry in the object address table. */
-    handle_number =
-                   object_addr_table_entry(&cap->variant.object.init_pos_descr,
-                                           insert_location);
+    handle_number = object_addr_table_index();
+    init_object_addr_table_entry(&cap->variant.object.init_pos_descr,
+                                 handle_number, insert_location);
   }  /* if */
   /* Assign a region number to this entry. */
   cap->region_number = next_region_number++;
-  if (cap->variant.object.first_time_test_var != NULL) {
+  if (cap->variant.object.conditional_flag_var != NULL) {
     /* This entry needs a conditional flag.  More on this below. */
     an_init_pos_descr ipd;
-    set_var_init_pos_descr(cap->variant.object.first_time_test_var, &ipd);
-    conditional_handle_number = object_addr_table_entry(&ipd, insert_location);
+    set_var_init_pos_descr(cap->variant.object.conditional_flag_var, &ipd);
+    conditional_handle_number = object_addr_table_index();
+    /* The code to initialize the object address table entry is put out
+       by init_conditional_flag_var. */
     flags_value |= RDF_CONDITIONAL_FLAG;
     next_region_number++;
   }  /* if */
@@ -1760,7 +1770,7 @@ pointer can be examined.
   /* Make the region table entry. */
   add_region_table_entry(dtor_routine, handle_number, prev_region_number,
                          flags_value, &cap->prev_cleanup_region_constant);
-  if (cap->variant.object.first_time_test_var != NULL) {
+  if (cap->variant.object.conditional_flag_var != NULL) {
     /* Make the second region table entry. */
     add_region_table_entry((a_routine_ptr)NULL, conditional_handle_number,
                            max_region_number, (unsigned long)0,
@@ -2003,7 +2013,7 @@ is given by "scope".  Called only if exceptions are enabled.
      the routine. */
 #if 0
   /* This needs to be adjusted (main, ctor, dtor). */
-#endif
+#endif /* 0 */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* See if the routine has a throw specification. */
   routine = scope->variant.routine.ptr;
@@ -2205,7 +2215,7 @@ for the scope of the handler.
     set_block_start_insert_location(handler->statement, &insert_location);
     set_var_init_pos_descr(handler->parameter, &ipd);
     lower_dynamic_init(handler->dynamic_init, &ipd,
-                       /*first_time_test_var=*/(a_variable_ptr)NULL,
+                       /*conditional_flag_var=*/(a_variable_ptr)NULL,
                        /*is_expr_temporary=*/FALSE,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL,
