@@ -6389,7 +6389,7 @@ If the entry is already on the list the new entry is ignored.
       prev_fsp->next = fsp;
     }  /* if */
 #if DEBUG
-    if (debug_level >= 0) {
+    if (debug_level >= 5) {
       fprintf(f_debug, "Added \"%s\" to the suffix list.\n", fsp->suffix);
     }  /* if */
 #endif /* DEBUG */
