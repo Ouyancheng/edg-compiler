@@ -9401,7 +9401,8 @@ continue_with_declaration:
     }  /* if */
   } else if (dangling_type_specifier && (curr_token != tok_identifier ||
              ((next_tok = next_token()) != tok_semicolon &&
-              next_tok != tok_comma && next_tok != tok_assign))) {
+              next_tok != tok_comma && next_tok != tok_assign &&
+              next_tok != tok_lbracket && next_tok != tok_lparen))) {
     /* A class, struct, union, or enum declaration was followed by a
        a type specifier keyword or else by an identifier that is a type name
        and that is not followed by a comma, semicolon, or equal sign.  In
