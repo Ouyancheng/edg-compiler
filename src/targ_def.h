@@ -1216,9 +1216,9 @@ base classes at the same offset as other subobjects.
 
 /*
 A flag that is TRUE if an empty base that does not share its offset with
-another subobject (i.e., and "allocated base") should be padded according to
+another subobject (i.e., an "allocated base") should be padded according to
 its alignment instead of allocating just one byte for it.  This flag should be
-TRUE if the C generating back end is used, because a C compiler will pad the
+TRUE if the C-generating back end is used, because a C compiler will pad the
 fields of struct type representing allocated empty base subobjects if
 TARG_MINIMUM_STRUCT_ALIGNMENT is larger than one.
 */
