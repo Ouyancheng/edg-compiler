@@ -5349,8 +5349,8 @@ exit_loop:
          as in "typedef int A[2][3]; const A a;", which makes "a" an
          array of array of const int. */
       base_type = *type_ptr;
-      while (is_array_type(base_type)) {
-        base_type = array_element_type(base_type);
+      if (is_array_type(base_type)) {
+        base_type = underlying_array_element_type(base_type);
       }  /* while */
       if ((is_const_qualified && is_const_qualified_type(base_type)) ||
           (is_volatile_qualified && is_volatile_qualified_type(base_type))) {
@@ -6786,9 +6786,10 @@ continue_with_declaration:
                  warning for local variables (both static and automatic) here,
                  but the warning for static file scope variables is given
                  later. */
-              a_name_linkage_kind  name_linkage;
-              name_linkage = (a_name_linkage_kind)symbol_ptr->
-                                 variant.variable->source_corresp.name_linkage;
+              a_name_linkage_kind  name_linkage =
+                                           (a_name_linkage_kind)symbol_ptr->
+                                                 variant.variable->
+                                                 source_corresp.name_linkage;
               if (C_dialect == C_dialect_cplusplus) {
                 if (name_linkage == (a_name_linkage_kind)nlk_none ||
                     (name_linkage == (a_name_linkage_kind)nlk_internal &&
@@ -6801,6 +6802,33 @@ continue_with_declaration:
                 /* Ordinary C -- a warning, and only on local variables. */
                 if (name_linkage == (a_name_linkage_kind)nlk_none) {
                   warning(ec_missing_initializer_on_const);
+                }  /* if */
+              }  /* if */
+            } else if (symbol_ptr->variant.variable->storage_class !=
+                                              (a_storage_class)sc_extern) {
+              /* Check for an uninitialed variable that has members that
+                 ought to be initialized.  Issue a warning in such cases. */
+              a_type_ptr  tp = local_type_ptr;
+              if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+              tp = skip_typerefs(tp);
+              if (is_class_struct_union_type(tp)) {
+                /* The variable is a class-struct-union type or an array
+                   whose element type is a class-struct-union type.  Issue
+                   a warning if there is a const qualified field or a field
+                   of reference type.  Note that this check is not explicitly
+                   mandated by the ARM (though it is implied in 12.6.2:  "The
+                   argument list . . . is the only way to initialize nonstatic
+                   const and reference members").  Cfront issues an error on
+                   class declarations that contain nonstatic const or reference
+                   members and no constructor, but this seems to introduce an
+                   unnecessary incompatibility with C. */
+                if (tp->variant.class_struct_union.any_const_member) {
+                  pos_warning(ec_uninitialized_const_member,
+                              &declarator_pos);
+                }  /* if */
+                if (C_dialect == C_dialect_cplusplus &&
+                    symbol_supplement_for_class(tp)->any_ref_member) {
+                  pos_warning(ec_uninitialized_ref_member, &declarator_pos);
                 }  /* if */
               }  /* if */
             }  /* if */
