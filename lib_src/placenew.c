@@ -14,9 +14,10 @@ C++ operator new(size_t, void*);
 */
 
 #include <stddef.h>
+#include "new.h"
 
 
-void *operator new(size_t, void *ptr)
+void *operator new(size_t, void *ptr) throw()
 /*
 Return the value of ptr as the address of the new object.
 */
