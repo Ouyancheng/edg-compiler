@@ -408,8 +408,8 @@ the "text" field of *template_ptr to point to it.
     }  /* if */
   }  /* for */
   if (template_body_cache != NULL &&
-      (template_ptr->kind == templk_function ||
-       template_ptr->kind == templk_member_function)) {
+      (template_ptr->kind == (a_template_kind)templk_function ||
+       template_ptr->kind == (a_template_kind)templk_member_function)) {
     /* Function template definition -- no semicolon needed. */
   } else {
     /* Terminate the string with a semicolon (which will not have been
