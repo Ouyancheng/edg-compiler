@@ -33,7 +33,6 @@ incorporated:
     lexical.h
     mem_manage.h
     mem_tables.h
-    pragma.h
     symbol_tbl.h
     types.h
     targ_def.h
@@ -76,8 +75,10 @@ incorporated:
 /* Production of a string-form representation of IL entities. */
 #include "il_to_str.h"
 
+#if !STANDALONE_UTILITY_PROGRAM
 /* Symbol table declarations.  symbol_tbl.h also pulls in lexical.h. */
 #include "symbol_tbl.h"
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Type system support. */
 #include "types.h"
