@@ -72,10 +72,10 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			/* If this bit is set decl_specifiers is called for
 			   a template class or template function
                            declaration. */
-#define DSI_COLLECT_TYPE_QUALIFIERS (a_decl_flag_set)(0x800)
+#define DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS (a_decl_flag_set)(0x800)
 			/* If this bit is set decl_specifiers is called to
-			   scan a list of type qualifiers -- e.g., in the
-			   context of a pointer declarator.  What a token
+			   scan a list of type qualifiers in the
+			   context of a pointer declarator.  When a token
 			   other than a type qualifier is seen, return
 			   immediately, without issuing any diagnostics. */
 #define DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER (a_decl_flag_set)(0x1000)

@@ -2539,6 +2539,42 @@ Returns TRUE if there is an error in the specifiers.
           *qualifiers |= TQ_UNALIGNED;
         }  /* if */
         break;
+      case tok_near:
+        /* Microsoft "near" type qualifier. */
+        /* This qualifier applies only on pointer declarators and not in
+           normal type specifiers. */
+        if ((input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) == 0) {
+          goto something_unexpected;
+        }  /* if */
+        if (*qualifiers & TQ_NEAR) {
+          /* near may not appear more than once. */
+          warning(ec_dupl_mem_attrib);
+        } else if (*qualifiers & TQ_FAR) {
+          /* near and far are incompatible. */
+          error(ec_mem_attrib_incompatible);
+        } else {
+          non_restrict_qualifier_pos = pos_curr_token;
+          *qualifiers |= TQ_NEAR;
+        }  /* if */
+        break;
+      case tok_far:
+        /* Microsoft "far" type qualifier. */
+        /* This qualifier applies only on pointer declarators and not in
+           normal type specifiers. */
+        if ((input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) == 0) {
+          goto something_unexpected;
+        }  /* if */
+        if (*qualifiers & TQ_FAR) {
+          /* far may not appear more than once. */
+          warning(ec_dupl_mem_attrib);
+        } else if (*qualifiers & TQ_NEAR) {
+          /* near and far are incompatible. */
+          error(ec_mem_attrib_incompatible);
+        } else {
+          non_restrict_qualifier_pos = pos_curr_token;
+          *qualifiers |= TQ_FAR;
+        }  /* if */
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_friend:
 	/* "friend" specifier is allowed only in a C++ class declaration.
@@ -3320,10 +3356,14 @@ something_unexpected:
 no_get_token:
     num_specifiers++;
     /* Check for special conditions that will cause this loop to terminate. */
-    if (input_flags & DSI_COLLECT_TYPE_QUALIFIERS) {
-      /* We are only interested in scanning type qualifiers (e.g., in a
-         pointer declarator). */
-      if (!is_type_qualifier()) {
+    if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
+      /* We are only interested in scanning type qualifiers in a
+         pointer declarator. */
+      if (!is_type_qualifier()
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && !is_microsoft_declarator_qualifier()
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                 ) {
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&

@@ -4212,7 +4212,8 @@ class template.
 
     /* Look up the name. */
     sym = qualified_name_redecl_sym(locator, type_ptr, &effective_decl_level,
-                                    func_info->is_definition, is_friend_decl,
+                                    (a_boolean)func_info->is_definition,
+                                    is_friend_decl,
                                     &linkage, &homonym_symbol,
                                     &namespace_reactivated);
   }  /* if */
@@ -5067,6 +5068,7 @@ within this routine if is_parenthesized comes in FALSE.
                                        /*reference_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
+                                       (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
@@ -5186,6 +5188,7 @@ is no parent.
                                        /*reference_allowed=*/TRUE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
+                                       (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
@@ -6563,7 +6566,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
         if (is_qualified_type(type_ptr)) {
           diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
                        strict_ansi_error_severity : es_warning,
-                     ec_const_volatile_not_allowed);
+                     ec_type_qualifier_not_allowed);
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
         if (inline_specified) {
