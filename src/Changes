@@ -1,5 +1,14 @@
 Version 2.32
 
+1/31/96   Computing sequence number offsets while making template strings
+
+It has been reported that, under certain unspecified conditions, it is
+possible for the sequence number offset values computed while building
+template strings end up being negative numbers.  Because they are
+stored in an unsigned value, this would create a problem.  The
+computation of these offsets has been changed to ensure that they cannot
+be negative.
+
 1/31/96   Internal error or abort on invalid nested class in a class template
 
 2.31 introduced a bug what could cause an abort or internal error when
