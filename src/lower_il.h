@@ -183,7 +183,8 @@ typedef struct a_destructible_entity_descr {
 			   enabled, this is the cleanup state to establish
 			   as current when beginning the destruction.  It's
 			   the next destruction to process after this
-			   entity is destroyed. */
+			   entity is destroyed.  Maintained/used only when
+			   exceptions are enabled. */
 #if DO_UNORDERED_EH_PROCESSING
 			/* In the presence of unordered initializations in the
 			   IL, this indicates the first entry in a set of

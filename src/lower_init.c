@@ -5795,12 +5795,14 @@ static void initialize_dtor_init_for_cleanup(a_dynamic_init_ptr dip)
 Do cleanup initialization for the indicated destruction (from
 the constructor_inits list of a destructor) and to its successors.
 The is done early so the information is available when each entry
-is processed.
+is processed.  Called only when exceptions are enabled.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
 
+  check_assertion_str(exceptions_enabled,
+          "initialize_dtor_init_for_cleanup: called with exceptions disabled");
   dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
   /* Do a recursive call to process the rest of the list. */
   if (next_dip != NULL) initialize_dtor_init_for_cleanup(next_dip);
