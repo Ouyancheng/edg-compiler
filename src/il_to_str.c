@@ -2678,7 +2678,6 @@ confusion.  Do the output in the way described by octl.
 #ifdef CFE
     case ck_template_param:
       check_assertion(!octl->gen_compilable_code);
-      check_assertion(!is_reference_type(constant->type));
       switch (constant->variant.template_param.kind) {
         case tpck_param:
         case tpck_member:
