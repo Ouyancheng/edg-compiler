@@ -2991,6 +2991,7 @@ in the current IL memory region.
     case pk_test_next_decl:
     case pk_test_immediate:
     case pk_test_immediate_text:
+    case pk_test_immediate_pp_text:
     case pk_test_other:
     case pk_test_bind_next_pass:
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */

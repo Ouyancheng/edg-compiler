@@ -169,6 +169,12 @@ typedef struct a_pragma_kind_description {
 			   interpreted as C/C++ code.  Keywords should be
 			   recognized, and adjacent string literals
 			   concatenated together. */
+  a_bit_field	fetch_pp_tokens:1;
+			/* TRUE if the tokens for this pragma should be
+			   fetched as pp-tokens.  When this flag is TRUE,
+			   make_text_not_tokens must be TRUE, and
+			   expand_macros and processing_C_code must be
+			   FALSE. */
   a_bit_field	ignore_in_back_end:1;
 			/* TRUE if this pragma may be ignored if it is
 			   not recognized by the back end.  This allows the

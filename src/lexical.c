@@ -13338,6 +13338,8 @@ pragma scope to be used while scanning the pragma tokens.
 {
   /* Start a new stop token state. */
   push_stop_token_stack();
+  /* If the pragma was scanned as pp-tokens, go into pp-token mode now. */
+  fetch_pp_tokens = ppp->descr_ptr->fetch_pp_tokens;
   rescan_reusable_cache(&ppp->token_cache);
   /* Push a pragma scope.  This prevents names introduced by the pragma
      processing from polluting the current scope. */
@@ -13369,6 +13371,7 @@ is actived is popped here.
   }  /* if */
   /* Bypass the cache terminator. */
   (void)get_token();
+  fetch_pp_tokens = FALSE;
   /* Restore the stop token set as at entry. */
   pop_stop_token_stack();
   /* Pop the pragma scope. */

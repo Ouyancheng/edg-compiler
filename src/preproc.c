@@ -1414,7 +1414,7 @@ Microsoft __pragma operator.*/
   caching_pragma_tokens = TRUE;
   recognize_keywords_in_pragma = pkdp->processing_C_code;
   do_string_literal_concatenation = pkdp->processing_C_code;
-  fetch_pp_tokens = FALSE;
+  fetch_pp_tokens = pkdp->fetch_pp_tokens;
   /* Bypass the identifier that indicates the pragma kind. */
   (void)get_token();
   if (is_microsoft_pragma_operator) {

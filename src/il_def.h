@@ -3294,6 +3294,7 @@ enum a_pragma_kind_tag {
   pk_test_next_decl,
   pk_test_immediate,
   pk_test_immediate_text,
+  pk_test_immediate_pp_text,
   pk_test_other,
   pk_test_bind_next_pass,
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
@@ -3373,6 +3374,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_test_next_decl */		"test_next_decl",
 /* pk_test_immediate */		"test_immediate",
 /* pk_test_immediate_text */	"test_immediate_text",
+/* pk_test_immediate_pp_text */	"test_immediate_pp_text",
 /* pk_test_other */		"test_other",
 /* pk_test_bind_next_pass */	"test_bind_next_pass",
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */

@@ -91,6 +91,7 @@ static a_pragma_kind_description_ptr add_pragma_kind_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
+		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
 		       an_error_severity     error_severity)
@@ -128,6 +129,13 @@ but cannot be referenced by name in a pragma directive.
                        "add_pragma_kind_description:",
 		       "pragma flags not valid when using C/C++ gen. BE");
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  /* When fetching pp-tokens, processing_C_mode and expand_macros must be
+     FALSE and make_text_not_tokens must be TRUE. */
+  check_assertion_str2(!p_fetch_pp_tokens ||
+                       (!processing_C_code && !p_expand_macros &&
+                         make_text_not_tokens),
+                       "add_pragma_kind_description:",
+		       "flags not valid when fetching pp-tokens");
   /* Allocate a new entry. */
   pkdp = (a_pragma_kind_description_ptr)
 				alloc_fe(sizeof(a_pragma_kind_description));
@@ -166,6 +174,7 @@ but cannot be referenced by name in a pragma directive.
   pkdp->make_text_not_tokens = make_text_not_tokens;
   pkdp->expand_macros = p_expand_macros;
   pkdp->processing_C_code = processing_C_code;
+  pkdp->fetch_pp_tokens = p_fetch_pp_tokens;
   pkdp->ignore_in_back_end = ignore_in_back_end;
   pkdp->is_pseudo_pragma = is_pseudo_pragma;
   pkdp->il_info_is_complete = il_info_is_complete;
@@ -195,6 +204,7 @@ static a_pragma_kind_description_ptr add_next_construct_pragma_kind_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
+		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
 		       an_error_severity     error_severity)
@@ -214,7 +224,8 @@ used for creating pbk_next_construct pragmas.
             is_pseudo_pragma, may_bind_to_decl, may_bind_to_stmt,
 	    /*global=*/FALSE, automatically_include_in_il,
             make_text_not_tokens, p_expand_macros, processing_C_code,
-            ignore_in_back_end, il_info_is_complete, error_severity);
+            p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
+            error_severity);
 }  /* add_next_construct_pragma_kind_description */
 
 
@@ -228,6 +239,7 @@ static a_pragma_kind_description_ptr add_immediate_pragma_kind_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
+		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
 		       an_error_severity     error_severity)
@@ -242,7 +254,8 @@ used for creating pbk_immediate pragmas.
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
             make_text_not_tokens, p_expand_macros, processing_C_code,
-            ignore_in_back_end, il_info_is_complete, error_severity);
+            p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
+            error_severity);
 }  /* add_immediate_pragma_kind_description */
 
 
@@ -256,6 +269,7 @@ static a_pragma_kind_description_ptr add_other_pragma_kind_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     p_expand_macros,
 		       a_boolean	     processing_C_code,
+		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
 		       an_error_severity     error_severity)
@@ -270,7 +284,8 @@ used for creating pbk_other pragmas.
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
             make_text_not_tokens, p_expand_macros, processing_C_code,
-            ignore_in_back_end, il_info_is_complete, error_severity);
+            p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
+            error_severity);
 }  /* add_other_pragma_kind_description */
 
 
@@ -292,6 +307,7 @@ used for creating pbk_preproc_immediate pragmas.
 	    /*automatically_include_in_il=*/FALSE,
             /*make_text_not_tokens=*/FALSE, /*expand_macros=*/FALSE,
 	    /*processing_C_code=*/FALSE,
+            /*fetch_pp_tokens=*/FALSE,
             /*ignore_in_back_end=*/FALSE, /*il_info_is_complete=*/FALSE,
             /*error_severity=*/es_none);
 }  /* add_preproc_immediate_pragma_kind_description */
@@ -339,6 +355,7 @@ possible.
     case pk_test_next_decl:
     case pk_test_immediate:
     case pk_test_immediate_text:
+    case pk_test_immediate_pp_text:
     case pk_test_other:
     case pk_test_bind_next_pass:
       break;
@@ -1457,6 +1474,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_warning);
@@ -1470,6 +1488,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_warning);
@@ -1483,6 +1502,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_none);
@@ -1496,6 +1516,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_none);
@@ -1509,6 +1530,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_none);
@@ -1522,6 +1544,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1534,6 +1557,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1546,6 +1570,7 @@ Initialize the pragma description table.
 		 /*make_text_not_tokens=*/FALSE,
 		 /*expand_macros=*/TRUE,
 		 /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
 		 es_error);
@@ -1560,6 +1585,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1574,6 +1600,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1588,6 +1615,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1609,6 +1637,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/!BACK_END_IS_CP_GEN_BE, /*lint !e506*/
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1623,6 +1652,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/TRUE,
                  es_error);
@@ -1638,6 +1668,7 @@ Initialize the pragma description table.
                                          /*make_text_not_tokens=*/FALSE,
                                          /*expand_macros=*/FALSE,
                                          /*processing_C_code=*/FALSE,
+			                 /*fetch_pp_tokens=*/FALSE,
                                          /*ignore_in_back_end=*/FALSE,
                                          /*il_info_is_complete=*/TRUE,
                                          es_error);
@@ -1653,6 +1684,7 @@ Initialize the pragma description table.
                                          /*make_text_not_tokens=*/FALSE,
                                          /*expand_macros=*/FALSE,
                                          /*processing_C_code=*/FALSE,
+			                 /*fetch_pp_tokens=*/FALSE,
                                          /*ignore_in_back_end=*/FALSE,
                                          /*il_info_is_complete=*/TRUE,
                                          es_error);
@@ -1666,6 +1698,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1678,6 +1711,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1690,6 +1724,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1702,6 +1737,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1714,6 +1750,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1728,6 +1765,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1741,6 +1779,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1753,6 +1792,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1765,7 +1805,21 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_test_immediate_pp_text,
+                 (an_immediate_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*make_text_not_tokens=*/TRUE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/TRUE,
+		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
   (void)add_other_pragma_kind_description
@@ -1777,6 +1831,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_warning);
@@ -1790,6 +1845,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1805,6 +1861,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_none);
@@ -1819,6 +1876,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1831,6 +1889,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
@@ -1860,6 +1919,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,         /* Do not change. */
                  /*expand_macros=*/FALSE,		/* Do not change. */
                  /*processing_C_code=*/FALSE, /* Do not change. */
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_warning);
@@ -1886,6 +1946,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,         /* Do not change. */
                  /*expand_macros=*/FALSE,		/* Do not change. */
                  /*processing_C_code=*/FALSE, /* Do not change. */
+                 /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_warning);
