@@ -5185,11 +5185,9 @@ current routine, and also set *return_expr to point to an expression
 if a return value is implied, or NULL if not.
 
 If the return is from "main", and main returns "int", a return value
-of 0 is created.  That is the defined behavior in C++ when control
-reaches the end of the main routine.  That behavior is also used in C,
+of 0 is created.  That is the defined behavior in C++ and C99 when control
+reaches the end of the main routine.  That behavior is also used in C89,
 in which such a return is undefined.
-
-The return expression is also set for a return from a constructor.
 */
 {
   a_routine_ptr     rout;
