@@ -11294,8 +11294,9 @@ Check that this is a valid type and if so make member_type a friend.
            specifiers. */
         pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
       } else if (!(decl_info->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
-        char  *class_key_string;
-        switch (skip_typerefs(member_type)->kind) {
+        char         *class_key_string;
+        a_type_kind  kind = skip_typerefs(member_type)->kind;
+        switch (kind) {
           case tk_class:   class_key_string = "class";   break;
           case tk_struct:  class_key_string = "struct";  break;
           case tk_union:   class_key_string = "union";   break;
@@ -11311,6 +11312,27 @@ Check that this is a valid type and if so make member_type a friend.
                           ec_nonstd_friend_decl,
                           &locator_for_curr_id.source_position,
                           class_key_string);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (kind == (a_type_kind)tk_template_param) {
+          member_type = proxy_class_for_template_param(
+                                                  skip_typerefs(member_type));
+        }  /* if */
+        {
+          /* Since this type name did not involve an elaborated type name,
+             we do not yet have a source sequence entry for it. */
+          a_source_sequence_entry_ptr  ssep;
+          record_symbol_declaration(
+                         SRK_DECLARATION | SRK_FRIEND,
+                         (a_symbol_ptr)member_type->source_corresp.assoc_info,
+                         &locator_for_curr_id.source_position,
+                         (a_source_sequence_entry_ptr)NULL);
+          ssep = last_matching_source_sequence_entry((char *)member_type);
+          check_assertion(ssep != NULL &&
+                          ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+          ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)
+                                                 ->autonomous_tag_decl = TRUE;
+        }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       decl_friend_class(class_type, member_type);
     }  /* if */

@@ -1,5 +1,19 @@
 Version 3.3
 
+7/30/03  C++-generating back end: Nonstandard friend class declarations
+
+The C++-generating back end used to not render (nonstandard) friend class
+declarations that do not make use of an elaborated type specifier (because
+no source sequence entry was created for such friend declarations).
+For example:
+
+  struct F;
+  class C {
+    friend F;  // Used to be dropped in the C++-generating back end output.
+  };           // (Not accepted in strict mode.)
+
+This is now fixed.
+
 7/30/03  GNU mode: Additional built-in functions
 
 In GNU C and C++ modes, the front end now recognizes the built-in functions
