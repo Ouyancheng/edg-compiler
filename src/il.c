@@ -3187,27 +3187,29 @@ caller is responsible for sorting that out.)
     } else if (ssep->kind == (a_scope_kind)sck_func_prototype) {
       a_type_ptr              routine_type;
 
-      /* A prototype scope must be allocated -- allocated in the file scope
-         memory region because it is pointed to from the routine type
-         supplement, which is always at file scope. */
+      /* A prototype scope must be allocated.  It is always allocated in the
+         file scope memory region because it is pointed to from the routine
+         type supplement, which is always at file scope. */
       check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
       sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                        (a_routine_ptr)NULL);
       ssep->il_scope = sp;
-      routine_type = ssep->assoc_type;
       /* Call add_to_scopes_list only if this is a function prototype nested
-         within another function prototype. */
+         within another function prototype.  A function prototype scope that
+         is not nested is just pointed to from the routine type, not from the
+         function scope entry (which will not exist if the function is not
+         defined). */
       if ((ssep-1)->kind == (a_scope_kind)sck_func_prototype) {
         add_to_scopes_list(sp, ssep-1);
       }  /* if */
+      /* Link the routine type and the prototype scope entry to each other. */
+      routine_type = ssep->assoc_type;
 #if CHECKING
       if (routine_type == NULL) {
         internal_error("add_to_types_list: routine_type is NULL");
       }  /* if */
 #endif /* CHECKING */
-      /* Link the routine type to the prototype scope entry. */
       routine_type->variant.routine.extra_info->prototype_scope = sp;
-      /* Link the prototype scope entry to the routine type. */
       sp->variant.assoc_type = routine_type;
 #if CHECKING
     } else if (ssep->kind != (a_scope_kind)sck_pragma) {
@@ -3854,7 +3856,6 @@ scope_level.
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp;
-  a_memory_region_number  region_to_switch_back_to;
 
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[scope_level];
@@ -3873,9 +3874,7 @@ scope_level.
        int f(struct s {int b;} a);
 
      The prototype scope is hardly ever needed, and therefore it is not
-     allocated by default.  It is allocated here in this routine the first
-     time it is needed.  It is saved in il_scope of the current scope stack
-     entry and also under the associated routine type. */
+     allocated by default.  It is allocated in ensure_il_scope_exists. */
   sp = ensure_il_scope_exists(ssep);
   /* Add the type to the list of types for this scope. */
   if (sp->types == NULL) {
