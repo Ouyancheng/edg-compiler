@@ -1718,7 +1718,7 @@ Return TRUE if the given symbol locator looks like that for a constructor or
 destructor.  The answer can be TRUE even when an error symbol is given (in
 which case the symbol is never actually marked as being a special function).
 This is useful to inhibit some diagnostics that are not meaningful on
-contructors or destructors (e.g., missing return statements and implicit
+constructors or destructors (e.g., missing return statements and implicit
 return types).
 */
 {
