@@ -3,9 +3,10 @@ Version 2.31
 12/18/95  Calculating "reachability" at exit of switch statement
 
 In the following rather obscure case, "reachability" was computed
-incorrectly, and as a result a spurious statement-not-reached diagnostic
-was issued and, more seriously, the C-generating back end failed to put
-out code to call the destructor on "x".  Both problems have been fixed.
+incorrectly at the end of the switch statement; as a result a spurious
+statement-not-reached diagnostic was issued, and, more seriously, the
+lowered IL failed to specify the destruction of "x".  Both problems have
+been fixed.
 
   struct S {
     S();
