@@ -256,7 +256,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHlnsuvwrmpI:D:U:e:L:X:S:o:i:d:"
+#define COMMAND_LIST "AEPCKMHlnsuvwrmpVI:D:U:e:L:X:S:o:i:d:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -305,15 +305,15 @@ Process the arguments on the command line that invoked the compiler.
         error_threshold = es_error;
         break;
       case 'l':
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING
+#if DO_IL_LOWERING
 	/* Suppress IL-lowering */
 	suppress_il_lowering = TRUE;
 	break;
 #else
-        optind--;
+	optarg = "l";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
       case 'n':
         /* Suppress execution of back end. */
         suppress_back_end = TRUE;
@@ -326,6 +326,12 @@ Process the arguments on the command line that invoked the compiler.
         /* Use unsigned chars. */
         targ_has_signed_chars = FALSE;
         break;
+      case 'V':
+        /* Suppress generation of a virtual function table if unable to
+	   determine absolute means to avoid duplicate virtual function 
+	   table entries in separate compilations. */
+	suppress_virtual_function_table_definition = TRUE;
+	break; 
       case 'v':
         /* Print out compiler version. */
         fprintf(stderr, "Edison Design Group C++ Front End, version %s\n",
@@ -435,7 +441,7 @@ Process the arguments on the command line that invoked the compiler.
         module_list_for_union_init = optarg;
         break;
 #else /* !BACK_END_IS_C_GEN_BE */
-        optind--;
+	optarg = "i";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* BACK_END_IS_C_GEN_BE */
@@ -448,18 +454,18 @@ Process the arguments on the command line that invoked the compiler.
         init_debug_level = debug_level;
         break;
 #else /* !DEBUG */
-        optind--;
+	optarg = "d";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* DEBUG */
       default:
-#ifdef DID_GOTO_UNKNOWN_OPTION
-unknown_option:
-#endif /* ifdef DID_GOTO_UNKNOWN_OPTION */
         /* Get the option out in the case of an option requiring
            an argument where the argument is missing. */
         if (optind >= argc) optind = argc-1;
         optarg = argv[optind];
+#ifdef DID_GOTO_UNKNOWN_OPTION
+unknown_option:
+#endif /* ifdef DID_GOTO_UNKNOWN_OPTION */
         str_command_line_error("invalid option: ", optarg);
     }  /* switch */
   }  /* while */

@@ -97,14 +97,21 @@ EXTERN a_boolean
 			/* TRUE if the back end should not be called.  The
 			   -n option sets this to TRUE, and it is also TRUE
 			   whenever do_preprocessing_only is TRUE. */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING
+#if DO_IL_LOWERING
 EXTERN a_boolean
 		suppress_il_lowering /* = FALSE */;
 			/* TRUE if IL-lowering should not be done.  The -l
 			   option sets this to TRUE, and is only valid for
 			   a front end in which IL_SHOULD_BE_WRITTEN_TO_FILE
 			   is TRUE and DO_IL_LOWERING is TRUE. */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
+EXTERN a_boolean
+		suppress_virtual_function_table_definition /* FALSE */;
+			/* If the heuristic used to determine whether a virtual
+			   function table should be defined cannot
+			   conclusively make such a determination, TRUE
+			   indicates that the definition should NOT be
+			   made. */
 EXTERN a_boolean
 		targ_has_signed_chars
 #if VAR_INITIALIZERS
