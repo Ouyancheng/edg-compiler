@@ -2971,7 +2971,6 @@ Display the indicated using-directive entry.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);
-  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_using_directive */
 
