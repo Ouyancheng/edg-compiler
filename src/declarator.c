@@ -2281,19 +2281,11 @@ to FALSE if the entity being declared is not initializable.
     if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
       /* See if the name is a qualified name, like "A::x" or "::j". */
       if (locator_for_curr_id.is_qualified_name) {
-        sym = locator_for_curr_id.specific_symbol;
-        if (!namespace_is_enclosed_by_curr_scope(sym)) {
-          /* The current scope is a namespace scope in which sym cannot be
-             defined -- either because it is a member of a class declared at
-             file scope or because is a member (directly or indirectly) of a
-             namespace that is not enclosed by the current namespace scope
-             (see WP 7.3.1.4). */
-          sym_error(ec_bad_scope_for_definition, sym);
-          err = TRUE;
-        } else if ((*p_member_parent_type =
-                        qualifier_class_type(locator_for_curr_id)) != NULL) {
+        *p_member_parent_type = qualifier_class_type(locator_for_curr_id);
+        if (*p_member_parent_type  != NULL) {
           a_boolean     reactivate_scope = FALSE;
 
+          sym = locator_for_curr_id.specific_symbol;
           /* See if the name is the name of a member function. */
           if (sym->kind == (a_symbol_kind)sk_member_function ||
               sym->kind == (a_symbol_kind)sk_overloaded_function ||
@@ -2983,9 +2975,12 @@ function_lparen:
       if (scope_stack[depth_scope_stack].kind ==
                           (a_scope_kind)sck_class_reactivation) {
         pop_class_reactivation_scope();
-        /* Clear the flag, just to be neat. */
-        *output_flags &= ~(a_decl_flag_set)DO_SCOPE_DEACTIVATION_REQUIRED;
+      } else {
+        /* Must be a namespace reactivation. */
+        pop_namespace_reactivation_scope();
       }  /* if */
+      /* Clear the flag, just to be neat. */
+      *output_flags &= ~(a_decl_flag_set)DO_SCOPE_DEACTIVATION_REQUIRED;
     } else {
       /* Just pass the information up to the caller. */
     }  /* if */
