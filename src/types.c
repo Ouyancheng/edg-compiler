@@ -69,13 +69,14 @@ predicates.
 /* Array types are simply array types. */
 #define is_array(tp) ((tp)->kind == (a_type_kind)tk_array)
 
-/* Struct types are simply struct types. */
-#define is_struct(tp) ((tp)->kind == (a_type_kind)tk_struct)
+/* Struct types are simply struct types (or, in C++, class/struct types). */
+#define is_struct(tp)                                                 \
+  ((tp)->kind == (a_type_kind)tk_struct || (tp)->kind == (a_type_kind)tk_class)
 
 /* Union types are simply union types. */
 #define is_union(tp) ((tp)->kind == (a_type_kind)tk_union)
 
-/* Aggregate types are array and structure (but not union) types. */
+/* Aggregate types are array and class/struct (but not union) types. */
 #define is_aggregate(tp) (is_array(tp) || is_struct(tp))
 
 /* Union or aggregate types are simply unions or aggregates. */
@@ -329,8 +330,8 @@ unsigned char are all included.
 
 a_boolean is_struct_or_union_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a struct or union type.  Note that this
-includes incomplete struct or union types.
+Return TRUE if the given type is a class/struct or union type.  Note that
+this includes incomplete class/struct or union types.
 */
 {
   tp = skip_typerefs(tp);
@@ -340,7 +341,7 @@ includes incomplete struct or union types.
 
 a_boolean is_complete_struct_or_union_type(a_type_ptr tp)
 /*
-Return TRUE if the type is a complete struct or union type.
+Return TRUE if the type is a complete class/struct or union type.
 */
 {
   tp = skip_typerefs(tp);
@@ -351,8 +352,8 @@ Return TRUE if the type is a complete struct or union type.
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union or aggregate type (array, struct,
-or union; 3.1.2.5).  Note that this includes incomplete array, struct, and
-union types.
+or union; 3.1.2.5.  Also class, in C++).  Note that this includes incomplete
+array, class, struct, and union types.
 */
 {
   tp = skip_typerefs(tp);
@@ -685,9 +686,10 @@ set, leave it alone.  Also compute and set the alignment requirement.
         set_array_type_size(type_ptr);
         goto size_already_set;
 #if CHECKING
+      case tk_class:
       case tk_struct:
       case tk_union:
-        /* Struct and union sizes should be set when they are declared.
+        /* Class, struct and union sizes should be set when they are declared.
            See set_field_size_and_offset. */
       default:
         internal_error("set_type_size: bad type kind");
@@ -820,10 +822,13 @@ Return TRUE if the two given integer types have the same representation
 
 
 /*
-Return TRUE if the two struct/union types given are copies of one
+Return TRUE if the two class/struct/union types given are copies of one
 another, i.e., one of them is a file-scope copy of the other, made
 by make_file_scope_type.  type_1 and type_2 are evaluated more than once.
 */
+#if 0
+/* This needs to be changed to compare classes. */
+#endif
 #define copies_of_same_struct_union_type(type_1, type_2)              \
   ((type_1)->variant.class.field_list != NULL &&               \
    (type_2)->variant.class.field_list != NULL &&               \
@@ -913,13 +918,14 @@ does the initial test for exact pointer equality.
             identical = TRUE;
           }  /* if */
           break;
+        case tk_class:
         case tk_struct:
         case tk_union:
-          /* Generally, if structs or unions are not exactly the same
-             they are not compatible.  However, we may be comparing
-             a struct or union with a copy of that type at the file
+          /* Generally, if classes, structs, or unions are not exactly the
+             same they are not compatible.  However, we may be comparing
+             a class, struct, or union with a copy of that type at the file
              scope, made by make_file_scope_type.  If we didn't consider
-             those types identical, a cast to a struct or union type
+             those types identical, a cast to a class, struct, or union type
              would be generated. */
           if (copies_of_same_struct_union_type(type_1, type_2)) {
             identical = TRUE;
@@ -1046,12 +1052,15 @@ types_are_compatible, which does the initial test for exact pointer equality.
             }  /* if */
           }  /* if */
           break;
+        case tk_class:
         case tk_struct:
         case tk_union:
-          /* Generally, if structs or unions are not exactly the same
-             they are not compatible.  However, we may be comparing
-             a struct or union with a copy of that type at the file
-             scope, made by make_file_scope_type. */
+          /* Generally, if classes, structs, or unions are not exactly the
+             same they are not compatible.  However, we may be comparing
+             a class, struct, or union with a copy of that type at the file
+             scope, made by make_file_scope_type.  If we didn't consider
+             those types identical, a cast to a class, struct, or union type
+             would be generated. */
           if (copies_of_same_struct_union_type(type_1, type_2)) {
             compat = TRUE;
           }  /* if */
@@ -1342,11 +1351,13 @@ is allocated, it is allocated in the file scope.
         case tk_void:
         case tk_integer:
         case tk_float:
+        case tk_class:
         case tk_struct:
         case tk_union:
           /* Simple types.  The composite type is either of the types. */
-          /* The struct/union cases are here because a struct/union can
-             be compatible with a file-scope copy of itself. */
+          /* The class/struct/union cases are here because a
+             class/struct/union can be compatible with a file-scope
+             copy of itself. */
           comp_type = base_type_1;
           break;
         case tk_pointer:
@@ -1730,6 +1741,7 @@ so far, to avoid repeating work or getting into infinite loops.
         new_type->variant.array.number_of_elements =
                                     old_type->variant.array.number_of_elements;
         break;
+      case tk_class:
       case tk_struct:
       case tk_union:
         /* Copy the field list. */
@@ -1741,8 +1753,7 @@ so far, to avoid repeating work or getting into infinite loops.
           *new_field = *old_field;
           /* The source correspondence is NOT cleared.  The name is needed
              for IL output.  The copy still corresponds to the source
-             construct.  See also types_are_compatible, where structs/unions
-             are compared. */
+             construct. */
           new_field->type = file_scope_type(old_field->type, &history);
           new_field->assoc_class_type = new_type;
           new_field->next = NULL;
@@ -1754,6 +1765,13 @@ so far, to avoid repeating work or getting into infinite loops.
           end_new_field_list = new_field;
         }  /* for */
         new_type->variant.class.field_list = new_field_list;
+        if (old_type->variant.class.extra_info != NULL) {
+          /* Copy the supplement. */
+#if 0
+          internal_error(
+                    "file_scope_type: copy of class supplement unimplemented");
+#endif
+        }  /* if */
         /* Add the type to the file scope types list.  This is done after
            the fields are processed to get the file-scope types in the
            right order. */
