@@ -4266,7 +4266,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
         end_of_switch_clause_list = scp;
         if (err) {
           /* An error case; use an error constant instead. */
-          constant_ptr = alloc_error_constant();
+          constant_ptr = alloc_constant((a_constant_repr_kind)ck_error);
+          set_error_constant(constant_ptr);
         }  /* if */
         break;
       }  /* if */
