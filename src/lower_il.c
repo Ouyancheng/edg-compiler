@@ -6574,19 +6574,23 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
 {
   an_expr_node_ptr src = expr->variant.operation.operands, src_copy;
   an_expr_node_ptr vptr_expr, null_constant_node, compare_node;
-  an_expr_node_ptr desired_type_node, call_node;
+  an_expr_node_ptr desired_type_node, static_type_node, call_node;
   a_type_ptr       cast_type = expr->type, underlying_cast_type;
   a_constant       constant;
   a_boolean        reference_case;
 
   /* Rewrite the dynamic cast as
-       (src != NULL) ? __dynamic_cast    (src, vptr, desired_type) : NULL or
-       (src != NULL) ? __dynamic_cast_ref(src, vptr, desired_type) : NULL
+       (src != NULL) ? __dynamic_cast    (src, vptr, desired_type, static_type)
+                     : NULL or
+       (src != NULL) ? __dynamic_cast_ref(src, vptr, desired_type, static_type)
+                     : NULL
      The second form is for a cast to a reference type.  src is the
      expression being cast (or its address, in the reference case); vptr
      is the virtual function pointer for the class (note that it's protected
-     by the null-pointer check); and desired_type is a pointer to the
-     typeinfo for the desired class, or NULL for a dynamic cast to "void *". */
+     by the null-pointer check); desired_type is a pointer to the
+     typeinfo for the desired class, or NULL for a dynamic cast to "void *";
+     static_type is a pointer to the typeinfo for the class underlying
+     the static type of the source pointer. */
   /* Make the src argument for the call. */
   src_copy = make_reusable_copy(src, /*vars_can_change=*/FALSE);
   /* Make the vptr argument (the virtual function table pointer). */
@@ -6613,9 +6617,16 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
                                   /*set_address_taken_flag=*/TRUE);
   }  /* if */
   desired_type_node = alloc_node_for_constant(&constant);
+  /* Make the static_type argument. */
+  set_variable_address_constant(make_typeinfo_var(
+                                  f_skip_typerefs(type_pointed_to(src->type))),
+                                &constant,
+                                /*set_address_taken_flag=*/TRUE);
+  static_type_node = alloc_node_for_constant(&constant);
   /* Link the arguments together. */
   src_copy->next = vptr_expr;
   vptr_expr->next = desired_type_node;
+  desired_type_node->next = static_type_node;
   /* Generate the proper call. */
   if (reference_case) {
     call_node = make_runtime_rout_call("__dynamic_cast_ref",

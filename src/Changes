@@ -1,5 +1,16 @@
 Version 2.41
 
+2/25/99  Complete access checking on dynamic_cast
+
+The dynamic_cast operation requires a limited form of access checking
+at runtime.  Heretofore, the information provided to the runtime has
+not been sufficient to allow it to do all parts of the access check.
+To fix this, an additional parameter has been added to the __dynamic_cast
+and __dynamic_cast_ref runtime routines (this is an ABI CHANGE).
+This additional parameter is used to pass in the typeinfo entry
+of the underlying class type of the static type of the source
+pointer.
+
 2/25/99  Qualification conversion on throw of multi-level pointer
 
 The standard allows a qualification conversion on a throw of a pointer
