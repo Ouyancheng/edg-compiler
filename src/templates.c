@@ -15397,6 +15397,9 @@ that follows.
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
   clear_decl_pos_block(&decl_pos_block);
+  /* The pragmas were extracted before the "template <>" was scanned.
+     Reactivate them now. */
+  reactivate_curr_construct_pragmas(decl_state->pragmas_bound_to_template);
   /* First scan the decl-specifiers. */
   if (gpp_mode) {
     /* Recognize GNU attributes while scanning the decl-specifiers. */
@@ -15419,6 +15422,8 @@ that follows.
      except for Microsoft in-class specializations. */
   check_assertion(storage_class == (a_storage_class)sc_unspecified ||
 		  decl_state->is_member_decl);
+  /* Issue a diagnostic if there are any unapplied pragmas at this point. */
+  cannot_bind_to_curr_construct();
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
@@ -15676,6 +15681,7 @@ that follows.
         flush_tokens();
         remove_stop_token(tok_semicolon);
       }  /* if */
+      discard_curr_construct_pragmas();
     } else {
       /* The symbol is not NULL. */
       sym->decl_position = id_pos;
@@ -15690,6 +15696,8 @@ that follows.
           /* The IL referenced flag for defined functions is updated later. */
         }  /* if */
       }  /* if */
+      /* Apply any pragmas bound to this declaration. */
+      process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
       /* Update cross reference info, etc. */
       record_symbol_declaration(srk_flags, sym, &locator.source_position,
                                 declarator_ssep);

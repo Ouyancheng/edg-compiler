@@ -1,5 +1,16 @@
 Version 3.4
 
+1/28/04  Pragmas on explicit specializations
+
+Next-construct pragmas on explicit specializations did not get bound to
+the specialization, resulting in their being ignored in the front end and
+not being emitted by the C++-generating back end.  Now fixed.
+
+  template <class T> struct A { };
+  #pragma test_next_decl abc
+  template<> struct A<int> { };
+  A<int> c1;
+
 1/28/04  Exception specification mismatch on generated member functions
 
 In some cases involving multiple inheritance, the exception specifications

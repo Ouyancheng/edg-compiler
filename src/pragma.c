@@ -1294,6 +1294,7 @@ Restore a list of pragmas as the current token pragmas.
 */
 {
   a_pending_pragma_ptr  *scope_list_addr;
+  a_pending_pragma_ptr	ppp;
 
   db_enter(4, "reactivate_curr_construct_pragmas");
   scope_list_addr = curr_list_of_curr_construct_pragmas();
@@ -1302,7 +1303,15 @@ Restore a list of pragmas as the current token pragmas.
                        "pragma list not already empty");
   /* Make a copy of the list of pragmas associated with this template and
      set this scope's current construct list to point to the new copy. */
-  *scope_list_addr = make_copy_of_pragma_list(pragma_list);
+  ppp = make_copy_of_pragma_list(pragma_list);
+  *scope_list_addr = ppp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* The source sequence entries were cleared when the current construct
+     pragmas were extracted.  Create new source sequence entries now. */
+  for (; ppp != NULL; ppp = ppp->next) {
+    ppp->source_sequence_entry = add_empty_source_sequence_entry();
+  }  /* for */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
 }  /* reactivate_curr_construct_pragmas */
 
