@@ -1635,7 +1635,7 @@ initialized.  These are addressed in the course of the processing.
 */
 {
   a_boolean                     err, is_generated_cctor;
-  a_type_qualifier_set          required_qualifiers;
+  a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, init_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym, member_or_base_sym;
   a_constructor_init_ptr        cip, new_cip, prev_cip, next_cip;
@@ -2147,7 +2147,7 @@ scan_paren:
        with the constructor being called.  For fields it will be
        the same as the field type.  This is needed to check protected
        member access. */
-    a_type_ptr         object_class_type;
+    a_type_ptr            object_class_type;
 
     next_cip = cip->next;
     if (cip->initializer == NULL ||
@@ -2157,12 +2157,14 @@ scan_paren:
          any, has to be entered for exception handling support. */
       array_type = NULL;
       object_class_type = NULL;
+      object_qualifiers = TQ_NONE;
       cssp = NULL;
       is_const_qualified = FALSE;
       if (user_defined) err_pos = pos_curr_token;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         /* Get the field type.  For arrays, we want the element type. */
         tp = cip->variant.field->type;
+        object_qualifiers = get_type_qualifiers(tp);
         if (is_const_qualified_type(tp)) is_const_qualified = TRUE;
         tp = skip_typerefs(tp);
         if (is_array_type(tp)) {
@@ -2207,7 +2209,8 @@ scan_paren:
              to volatile and to other qualifiers, if any).  If construction
              by bitwise copy is allowed for this class, bitwise_copy will be
              returned TRUE. */
-          rp = select_copy_constructor(tp, required_qualifiers,
+          rp = select_copy_constructor(tp,
+                                       required_qualifiers | object_qualifiers,
                                        &err_pos, object_class_type,
                                        &bitwise_copy, /*evaluated=*/TRUE,
                                        /*suppress_access_check=*/FALSE);
