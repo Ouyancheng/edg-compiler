@@ -18354,10 +18354,12 @@ emitted in this translation unit.
     db_entity_info((char*)rout_ptr, iek_routine);
     fprintf(f_debug, "should_be_emitted=%d\n", result);
     fprintf(f_debug, "body_can_be_generated=%d\n", body_can_be_generated);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
     fprintf(f_debug, "in_request_file=%d\n",
             inline_function_in_request_file(rout_ptr));
     fprintf(f_debug, "is_nontemplate_routine...=%d\n",
             is_nontemplate_routine_from_exported_trans_unit(rout_ptr));
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 #endif /* DEBUG */
   return result;
