@@ -2430,6 +2430,60 @@ scopes.
 }  /* push_simple_instantiation_scope */
 
 
+static a_boolean is_nested_in_prototype_instantiation(
+                            a_symbol_ptr		template_sym)
+/*
+See if this is an instantiation scope nested with a prototype
+instantiation.  This could be the prototype instantiation of a member
+template that is defined inside of the enclosing template.  It could
+also be a partial instantiation of a member function template in a
+prototype instantiation (this can occur when a Microsoft mode in-class
+specialization of a member class template is declared).  In such cases
+the prototype instantiation of the enclosing template is still in
+progress.  When processing an instantiation nested within a prototype
+instantiation we simply push a new template instantiation scope onto
+the existing context and flag it as a nested instantiation.
+
+The caller is responsible for checking that the current scope has
+its "in_prototype_intantiation" flag set.
+
+template_sym is the template that is being instantiated.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_stack_entry_ptr	instantiation_ssep;
+  a_type_ptr			assoc_type = NULL;
+  a_boolean			result = FALSE;
+
+  /* Find the innermost instantiation scope, but stop searching
+     if we're inside a function. */
+  instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
+  for (ssep = &scope_stack[depth_scope_stack]; ssep != instantiation_ssep;
+       ssep = previous_scope_of(ssep)) {
+    if (ssep->kind == (a_scope_kind)sck_function) {
+      ssep = NULL;
+      break;
+    } else if (assoc_type == NULL) {
+      /* Save the type of the first class scope that we encounter. */
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
+          ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        assoc_type = ssep->assoc_type;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (assoc_type != NULL) {
+    /* If the class being instantiated is the same as the parent of the
+       template to be instantiated, this is nested in the enclosing
+       prototype instantiation. */
+    if (template_sym->is_class_member &&
+        template_sym->parent.class_type == assoc_type) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_nested_in_prototype_instantiation */
+
+
 
 void push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
@@ -2501,24 +2555,12 @@ is pushed here, and popped when the instantiation scope is popped.
     enclosing_assoc_type = assoc_type;
     enclosing_assoc_routine = assoc_routine;
   }  /* if */
-  /* See if this is an instantiation scope  nested with a prototype
-     instantiation.  This could be the prototype instantiation of a
-     member template that is defined inside of the enclosing template.  It
-     could also be a partial instantiation of a member function template in a
-     prototype instantiation (this can occur when a Microsoft mode in-class
-     specialization of a member class template is declared).  In such cases
-     the prototype instantiation of the enclosing template is still in
-     progress.  When processing an instantiation  nested within a prototype
-     instantiation we simply push a new template instantiation scope onto
-     the existing context and flag it as a nested instantiation. */
+  /* Determine whether this instantiation is a prototype instantiation of
+     something within another prototype instantiation.  This affects the
+     way that the scope stack is manipulated. */
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
-    if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-      if (template_sym->is_class_member &&
-          template_sym->parent.class_type == ssep->assoc_type) {
-        nested_in_prototype_instantiation = TRUE;
-      }  /* if */
-    }  /* if */
+    nested_in_prototype_instantiation = is_nested_in_prototype_instantiation(
+                                                                 template_sym);
   }  /* if */
 #if CHECKING
   /* Set a flag that indicates that the processing to push a new

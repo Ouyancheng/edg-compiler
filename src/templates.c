@@ -2559,6 +2559,7 @@ user later during real instantiations.
   a_template_cache_ptr		    tcp;
   a_func_info_block		    *func_info_ptr;
   a_template_instance_ptr	    tip;
+  a_boolean			    instantiation_scope_needed;
 
   db_enter(3, "function_prototype_instantiation");
   tssp = template_supplement_for_symbol(template_sym);
@@ -2569,6 +2570,12 @@ user later during real instantiations.
   tip = rout_sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
   tip->referencing_namespace = parent_namespace_for_symbol(rout_sym);
+  /* We don't need to push an instantiation scope if we are in the prototype
+     instantiation of the enclosing class, and the thing being instantiated
+     is a nontemplate member. */
+  instantiation_scope_needed =
+                    template_sym->kind != (a_symbol_kind)sk_member_function ||
+                    !scope_stack[depth_scope_stack].in_prototype_instantiation;
   if (rout_ptr->assoc_scope != NULL_region_number) {
     /* The routine is already defined (a duplicate definition error should
        have already been issued). */
@@ -2576,16 +2583,18 @@ user later during real instantiations.
     func_info_ptr = func_info_for_template(tssp);
     /* Push the template instantiation scope. */
     tcp = cache_for_template(tssp);
-    /* For member functions that are not member templates the argument
-       list comes from the enclosing class that is reactivated by
-       push_template_instantiation_scope and the value from the routine
-       entry (which should be NULL) is not used. */
-    push_template_instantiation_scope(tcp->decl_info,
-  				      (a_type_ptr)NULL, rout_ptr,
-  				      rout_sym, template_sym,
-  				      rout_ptr->template_arg_list,
-                                      /*push_stop_tokens=*/TRUE,
-                                      PS_PROTOTYPE_INSTANTIATION);
+    if (instantiation_scope_needed) {
+      /* For member functions that are not member templates the argument
+         list comes from the enclosing class that is reactivated by
+         push_template_instantiation_scope and the value from the routine
+         entry (which should be NULL) is not used. */
+      push_template_instantiation_scope(tcp->decl_info,
+ 				        (a_type_ptr)NULL, rout_ptr,
+  				        rout_sym, template_sym,
+  				        rout_ptr->template_arg_list,
+                                        /*push_stop_tokens=*/TRUE,
+                                        PS_PROTOTYPE_INSTANTIATION);
+    }  /* if */
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -2614,8 +2623,10 @@ user later during real instantiations.
     if (curr_token == tok_rbrace) (void)get_token();
     /* Process any pragmas that are to be bound to this instance. */
     process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
-    /* Pop the template instantiation scope. */
-    pop_template_instantiation_scope();
+    if (instantiation_scope_needed) {
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+    }  /* if */
     /* In the normal case the current token should be end_of_source, which was
        inserted to mark the end of the cached token stream. If necessary, keep
        flushing until end-of-source is found. */
@@ -2738,6 +2749,7 @@ user later during real instantiations.
   a_variable_ptr		    var_ptr;
   a_template_cache_ptr		    tcp;
   a_template_instance_ptr	    tip;
+  a_boolean			    instantiation_scope_needed;
 
   db_enter(3, "static_data_member_prototype_instantiation");
   var_ptr = template_sym->variant.static_data_member.variable;
@@ -2752,18 +2764,24 @@ user later during real instantiations.
   /* If the type of the static data member is a template class, make sure
      it is instantiated. */
   complete_type_is_needed(var_ptr->type);
-  /* Push a template instantiation scope.  For static data members, the
-     argument list comes from the enclosing class that is reactivated by
-     push_template_instantiation_scope. */
-  tcp = cache_for_template(tssp);
-  push_template_instantiation_scope(tcp->decl_info,
-                                    (a_type_ptr)NULL,
-                                    (a_routine_ptr)NULL,
-				    template_sym,
-                                    template_sym,
-                                    (a_template_arg_ptr)NULL,
-                                    /*push_stop_tokens=*/TRUE,
-                                    PS_PROTOTYPE_INSTANTIATION);
+  /* We don't need to push an instantiation scope if we are in the prototype
+     instantiation of the enclosing class. */
+  instantiation_scope_needed =
+                    !scope_stack[depth_scope_stack].in_prototype_instantiation;
+  if (instantiation_scope_needed) {
+    /* Push a template instantiation scope.  For static data members, the
+       argument list comes from the enclosing class that is reactivated by
+       push_template_instantiation_scope. */
+    tcp = cache_for_template(tssp);
+    push_template_instantiation_scope(tcp->decl_info,
+                                      (a_type_ptr)NULL,
+                                      (a_routine_ptr)NULL,
+				      template_sym,
+                                      template_sym,
+                                      (a_template_arg_ptr)NULL,
+                                      /*push_stop_tokens=*/TRUE,
+                                      PS_PROTOTYPE_INSTANTIATION);
+  }  /* if */
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_boolean  incomplete_type_error_reported;
@@ -2791,7 +2809,9 @@ user later during real instantiations.
     /* There's no explicit initializer. */
     (void)def_initializer(template_sym, &template_sym->decl_position);
   }  /* if */
-  pop_template_instantiation_scope();
+  if (instantiation_scope_needed) {
+    pop_template_instantiation_scope();
+  }  /* if */
   db_exit();
 }  /* static_data_member_prototype_instantiation */
 
@@ -10790,7 +10810,8 @@ resulting constant is stored in the pointer pointed to by "constant".
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  dependent_arg_list = template_arg_list_involves_template_param(arg_list);
+  dependent_arg_list = is_template_dependent_context() ||
+                       template_arg_list_involves_template_param(arg_list);
   /* If the argument list is dependent, flag this as a nonreal
      instantiation. */
   if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
@@ -10898,7 +10919,8 @@ existing type is simply used.
 
   /* Determine whether the template argument list depends on a template
      parameter type. */
-  dependent_arg_list = template_arg_list_involves_template_param(arg_list);
+  dependent_arg_list = is_template_dependent_context() ||
+                       template_arg_list_involves_template_param(arg_list);
   if (param_ptr->def_arg_involves_template_param) {
     if (pending_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
@@ -10971,7 +10993,8 @@ existing type is simply used.
 
   /* Determine whether the template argument list depends on a template
      parameter type. */
-  dependent_arg_list = template_arg_list_involves_template_param(arg_list);
+  dependent_arg_list = is_template_dependent_context() ||
+                       template_arg_list_involves_template_param(arg_list);
   if (param_ptr->def_arg_involves_template_param) {
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_scope is NULL because we don't yet know which instance

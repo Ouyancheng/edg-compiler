@@ -1,5 +1,18 @@
 Version 2.46
 
+2/20/01  Spurious error in member partial specialization declaration
+
+If a partially specialized class is declared in a class template,
+and the template parameter list of the primary template has a nontype
+template parameter with dependent type, a lookup error could occur
+when processing the definition of the partial specialization.  This
+has been fixed.
+
+  template < class T > class A {
+    template <typename T::X, class Z> class B {};
+    template <class T2> class B<1, T2> {};
+  };
+
 2/20/01  Sequence to physical line number translation can produce incorrect
          results
 
