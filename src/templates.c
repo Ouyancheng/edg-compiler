@@ -28,7 +28,9 @@ templates.c -- Support for C++ templates.
 #include "disambig.h"
 #include "folding.h"
 #include "trans_corresp.h"
+#if TEMPLATE_LOOKUP_NEEDED
 #include "lower_name.h"
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
