@@ -41,7 +41,7 @@ The default -- a large value -- has the effect of requesting the latest
 version of the ABI.
 */
 #ifndef ABI_COMPATIBILITY_VERSION
-#define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
+#define ABI_COMPATIBILITY_VERSION 228
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
 /*

@@ -20,6 +20,7 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+#define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
 
 #ifdef CP_GEN_BE_VERSION
 /*
