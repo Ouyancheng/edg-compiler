@@ -8860,6 +8860,12 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (follows_template && next_tok != tok_lt) {
+    /* A construct like "p->template f()".  The "template" keyword must be
+       followed by a template-id. */
+    diagnostic(strict_ansi_discretionary_severity,
+               ec_name_after_template_not_template_id);
+  }  /* if */
   if (might_be_qualifier) {
     /* Look up the identifier to see if it could be a class name.  Note that
        we don't consider the normal eclipsing rules.  A class or namespace
@@ -8960,6 +8966,17 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_sym = locator_for_curr_id.specific_symbol;
           err = TRUE;
         }  /* if */
+      }  /* if */
+      if (follows_template && qualifier_sym != NULL &&
+          next_tok == tok_lt &&
+          (!symbol_is_or_contains_template(qualifier_sym) ||
+           !qualifier_sym->is_class_member)) {
+        /* A construct like "p->template X< ...".  When the template keyword
+           is so used, "X" must be a member template.   The test of next_tok
+               is used to suppress this error if we already complained
+               about a missing template argument list.*/
+        diagnostic(strict_ansi_discretionary_severity,
+                   ec_invalid_name_after_template);
       }  /* if */
       if (qualifier_separator == tok_period) {
         if (qualifier_sym != NULL && is_class_symbol(qualifier_sym)) {
@@ -9112,6 +9129,12 @@ selection operator, in which case it points to the type of the left operand.
         }  /* if */
         next_tok = next_two_tokens_if_qualifier_delimiter
                                             (qualifier_separator, &next_tok_2);
+        if (is_template && next_tok != tok_lt) {
+          /* A construct like "p->X::template f()".  The "template" keyword
+             must be followed by a template-id. */
+          diagnostic(strict_ansi_discretionary_severity,
+                     ec_name_after_template_not_template_id);
+        }  /* if */
         if (curr_token != tok_identifier ||
             (next_tok != qualifier_separator && next_tok != tok_lt)) {
           /* Not an identifier followed by "::" or "<", so end the loop. */
@@ -9253,6 +9276,17 @@ selection operator, in which case it points to the type of the left operand.
                 err = TRUE;
               }  /* if */
             }  /* if */
+          }  /* if */
+          if (is_template && qualifier_sym != NULL &&
+              !err && next_tok == tok_lt &&
+              (!symbol_is_or_contains_template(qualifier_sym) ||
+               !qualifier_sym->is_class_member)) {
+            /* A construct like "p->A::template X< ...".  When the template
+               keyword is so used, "X" must be a member template. The test of
+               next_tok is used to suppress this error if we already complained
+               about a missing template argument list. */
+            diagnostic(strict_ansi_discretionary_severity,
+                       ec_invalid_name_after_template);
           }  /* if */
           if (qualifier_sym != NULL &&
               (is_class_template_or_injected_template_symbol(qualifier_sym) ||
