@@ -7466,9 +7466,10 @@ pointer type).
         /* The operand has a class type, so see if it can be converted to
            the pointer type. */
         /* If this operand is the one that suggested this pointer type,
-           we already know it is compatible.  This is a speed optimization. */
-        if (pointer_type_pattern_position == type_pattern_position ||
-            conversion_from_class_possible(&arg_operand->operand, pointer_type,
+           we already know it is compatible.  However, we still have to
+           call conversion_from_class_possible to get user_conversion set
+           so it can be recorded in the arg_match entry. */
+        if (conversion_from_class_possible(&arg_operand->operand, pointer_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            &user_conversion,
                                            &ambiguous,
@@ -8746,8 +8747,38 @@ just a cast.
 }  /* convert_operand */
 
 
+static void prep_for_known_possible_conversion(
+                                           an_operand         *operand,
+                                           a_user_conv_descr  *user_conversion,
+                                           an_expression_kind expression_kind)
+/*
+We have a case where a conversion has previously been determined to be
+possible, and information about the user-defined part of the conversion has
+been saved in user_conversion.  Now we have decided to actually do the
+conversion, and we have gotten to a point that uses conversion_possible
+to determine (again) whether or not the conversion can be done and how.
+Since we already know that, we can skip the call of conversion_possible.
+However, conversion_possible does some things (like conversion from
+lvalue to rvalue) that need to be done anyway.  This routine is called
+instead of conversion_possible and does those things.
+*/
+{
+  /* Convert array --> pointer and function --> pointer. */
+  do_operand_transformations(operand,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                             TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
+                             expression_kind);
+  if (!user_conversion->result_is_an_lvalue) {
+    /* Except when a user-defined conversion returns a reference and
+       we want an lvalue, force the operand to an rvalue. */
+    conv_lvalue_to_rvalue(operand, expression_kind);
+  }  /* if */
+}  /* prep_for_known_possible_conversion */
+
+
 static void prep_conversion_operand(an_operand         *source_operand,
                                     a_type_ptr         dest_type,
+                                    a_user_conv_descr  *user_conversion,
                                     a_boolean          is_initialization,
                                     an_expression_kind expression_kind,
                                     an_error_code      incompatible_err,
@@ -8757,19 +8788,34 @@ Convert source_operand to dest_type if that is possible.  If not, issue
 incompatible_err at *err_pos.  This routine is used for initialization
 (is_initialization == TRUE) and assignment (is_initialization == FALSE).
 source_operand may be an rvalue or an lvalue.  On return, it will
-always be an rvalue.
+always be an rvalue.  If user_conversion is non-NULL, the conversion
+has previously been found to be acceptable, and *user_conversion
+describes how to do the user-defined conversion part (if any) of
+any required conversion.
 */
 {
-  a_user_conv_descr user_conversion;
+  a_user_conv_descr local_user_conversion;
+  a_boolean         possible;
 
-  /* See if the source and destination types are compatible. */
-  if (conversion_possible(source_operand, dest_type, is_initialization,
-                          expression_kind,
-                          incompatible_err, err_pos, &user_conversion)) {
+  /* See if the conversion is possible.  If user_conversion is non-NULL,
+     we already know that the conversion is possible and how to do it. */
+  if (user_conversion != NULL) {
+    possible = TRUE;
+    prep_for_known_possible_conversion(source_operand, user_conversion,
+                                       expression_kind);
+  } else {
+    user_conversion = &local_user_conversion;
+    possible = conversion_possible(source_operand, dest_type,
+                                   is_initialization,
+                                   expression_kind,
+                                   incompatible_err, err_pos,
+                                   user_conversion);
+  }  /* if */
+  if (possible) {
     /* The types are compatible.  Do the conversion. */
     /* Force the result to be an rvalue. */
-    user_conversion.result_is_an_lvalue = FALSE;
-    convert_operand(source_operand, dest_type, &user_conversion,
+    user_conversion->result_is_an_lvalue = FALSE;
+    convert_operand(source_operand, dest_type, user_conversion,
                     expression_kind);
   }  /* if */
 }  /* prep_conversion_operand */
@@ -8980,18 +9026,26 @@ part of it, if any.
   a_routine_ptr     conversion_routine;
   an_expr_node_ptr  arg_expr_list;
   an_operand        orig_operand;
+  a_boolean         possible;
 
   *err = FALSE;
   orig_operand = *source_operand;
   /* See if the conversion is possible.  If user_conversion is non-NULL,
      we already know that the conversion is possible and how to do it. */
-  if (user_conversion != NULL ||
-      conversion_possible(source_operand, dest_type,
-                          /*is_initialization=*/TRUE,
-                          expression_kind,
-                          incompatible_err, &source_operand->position,
-                          (user_conversion = &local_user_conversion))) {
-    /* Yes. */
+  if (user_conversion != NULL) {
+    possible = TRUE;
+    prep_for_known_possible_conversion(source_operand, user_conversion,
+                                       expression_kind);
+  } else {
+    user_conversion = &local_user_conversion;
+    possible = conversion_possible(source_operand, dest_type,
+                                   /*is_initialization=*/TRUE,
+                                   expression_kind,
+                                   incompatible_err, &source_operand->position,
+                                   user_conversion);
+  }  /* if */
+  if (possible) {
+    /* Yes, the conversion is possible. */
     conversion_routine = user_conversion->routine;
     if (conversion_routine != NULL &&
         conversion_routine->special_kind ==
@@ -9254,7 +9308,7 @@ the initializer has previously been found to be acceptable, and
     }  /* if */
   } else {
     /* Normal case (not initializing a reference). */
-    prep_conversion_operand(source_operand, dest_type,
+    prep_conversion_operand(source_operand, dest_type, user_conversion,
                             /*is_initialization=*/TRUE,
                             expression_kind, incompatible_err,
                             &source_operand->position);
@@ -9410,6 +9464,7 @@ routine is only called for cases where bitwise copying applies.
   /* See if the source and destination types are compatible, and convert the
      source operand to the destination type. */
   prep_conversion_operand(source_operand, dest_type,
+                          (a_user_conv_descr_ptr)NULL,
                           /*is_initialization=*/FALSE,
                           expression_kind, incompatible_err, err_pos);
 }  /* prep_assignment_operand */
