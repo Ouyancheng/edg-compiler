@@ -738,6 +738,14 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  add_option_description(optk_const_string_literals,
+                         "const_string_literals",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_const_string_literals,
+                         "no_const_string_literals",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
