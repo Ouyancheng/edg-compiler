@@ -6964,10 +6964,6 @@ Return a pointer to the variable that is declared.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  update_decl_pos_info(&sym->variant.variable.ptr->source_corresp,
-                       &decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   mark_variable_value_set(sym);
   srk_flags = SRK_DECLARATION | SRK_DEFINITION;
   if (!missing_declarator && curr_token == tok_assign) {
@@ -6975,6 +6971,10 @@ Return a pointer to the variable that is declared.
   }  /* if */
   record_symbol_declaration(srk_flags, sym, &sym->decl_position,
                             declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  update_decl_pos_info(&sym->variant.variable.ptr->source_corresp,
+                       &decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (missing_declarator) {
     /* Now issue the error for the missing declarator. */
     syntax_error(ec_exp_declarator_in_condition_decl);
