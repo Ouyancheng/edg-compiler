@@ -3260,15 +3260,17 @@ done:;
 }  /* class_template_declaration */
 
 
-static void cache_function_template_body(a_token_cache  *p_token_cache,
-                                         a_boolean      is_constructor,
-                                         a_boolean      *defines_something)
+static void cache_function_template_body(a_token_cache     *p_token_cache,
+                                         a_boolean         is_constructor,
+                                         a_boolean         *defines_something,
+                                         a_symbol_ptr	   sym)
 /*
 Scan a function template body and cache the tokens (in *p_token_cache) so
 that they can be rescanned for the instantiation.  is_constructor is
 TRUE if the function is a constructor.  The current source position is
 immediately after the function declarator.  *defines_something is set
 to TRUE if either a ctor-initializer or a function body appears.
+"sym" is the symbol of the function being scanned.
 */
 {
   a_token_set_array  stop_tokens;
@@ -3300,6 +3302,8 @@ to TRUE if either a ctor-initializer or a function body appears.
         cache_curr_token(p_token_cache);
         /* A get_token is intentionally not done -- the caller will
            advance past the end of the template declaration. */
+      } else {
+        sym_error(ec_template_missing_closing_brace, sym);
       }  /* if */
       /* Add an end-of-source token to the end of the token cache to
          assure that we don't scan past the end of the cache in the actual
@@ -4005,7 +4009,7 @@ as the current token; otherwise, it is consumed.
         a_token_cache  local_token_cache;
         clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
         cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-                                     defines_something);
+                                     defines_something, sym);
         discard_token_cache(&local_token_cache);
       } else {
 	a_def_arg_expr_fixup_ptr  daefp;
@@ -4029,7 +4033,7 @@ as the current token; otherwise, it is consumed.
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
         cache_function_template_body(&tssp->token_cache,
                                      is_constructor_symbol(sym),
-                                     defines_something);
+                                     defines_something, sym);
 #if RECORD_TEMPLATES_IN_IL
         if (*defines_something) {
           /* Save a pointer to the token cache for function body. */
