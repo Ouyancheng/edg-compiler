@@ -175,10 +175,15 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
   a_boolean         equiv = (sym1 == sym2);
 
   if (!equiv) {
-    if (sym1->kind == sym2->kind) {
-      char *entry1 = il_entry_for_symbol_null_okay(sym1, &kind);
-      char *entry2 = il_entry_for_symbol_null_okay(sym2, &kind);
-      if (entry1 == entry2 && entry1 != NULL) equiv = TRUE;
+    sym1 = fundamental_symbol_of(sym1);
+    sym2 = fundamental_symbol_of(sym2);
+    equiv = sym1 == sym2;
+    if (!equiv) {
+      if (sym1->kind == sym2->kind) {
+        char *entry1 = il_entry_for_symbol_null_okay(sym1, &kind);
+        char *entry2 = il_entry_for_symbol_null_okay(sym2, &kind);
+        if (entry1 == entry2 && entry1 != NULL) equiv = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return equiv;
@@ -659,11 +664,13 @@ resolve ambiguities caused by a using-directive.  For example:
   old_sym_ptr = locator.specific_symbol;
   if (old_sym_ptr != NULL &&
       old_sym_ptr->synthesized_namespace_projection) {
-    hidden_class_or_namespace_member = TRUE;
-    tag_hidden_by_nontag = FALSE;
-    record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                  hidden_class_or_namespace_member,
-                                  sp, (a_symbol_ptr)NULL);
+    if (!symbols_are_equivalent(old_sym_ptr, sym_ptr)) {
+      hidden_class_or_namespace_member = TRUE;
+      tag_hidden_by_nontag = FALSE;
+      record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
+                                    hidden_class_or_namespace_member,
+                                    sp, (a_symbol_ptr)NULL);
+    }  /* if */
   }  /* if */
 }  /* resolve_using_directive_ambiguity */
 
