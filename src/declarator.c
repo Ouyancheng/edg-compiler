@@ -118,9 +118,8 @@ token is a qualifier).
   if (microsoft_mode) { dsi_flags |= DSI_INLINE_ALLOWED; }
   (void)decl_specifiers(dsi_flags, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
-                        &qualifiers,
-                        /*marked_as_gnu_extension=*/FALSE,
-			&dummy_decl_modifiers, &local_decl_pos_block);
+                        &qualifiers, &dummy_decl_modifiers,
+                        &local_decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1296,23 +1295,21 @@ declaration.
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
-        a_boolean            marked_as_gnu_extension = FALSE;
+        a_decl_flag_set      di_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
+                                        DSI_TYPE_SPECIFIER_ALLOWED |
+                                        DSI_IS_PARAMETER |
+                                        DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
         if (gcc_mode && curr_token == tok_extension) {
           /* Ignore the GNU C __extension__ annotation. */
           (void)get_token();
-          marked_as_gnu_extension = TRUE;
+          di_flags |= DSI_MARKED_AS_GNU_EXTENSION;
         }  /* if */
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */
-        (void)decl_specifiers((DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
-                               DSI_TYPE_SPECIFIER_ALLOWED |
-                               DSI_IS_PARAMETER |
-                               DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER),
-                              &dso_flags, &param_storage_class,
+        (void)decl_specifiers(di_flags, &dso_flags, &param_storage_class,
                               &param_type_ptr, &qualifiers, 
-                              marked_as_gnu_extension,
                               &decl_modifiers, &local_decl_pos_block);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;

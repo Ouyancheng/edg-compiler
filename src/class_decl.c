@@ -10669,7 +10669,6 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean            marked_as_gnu_extension = FALSE;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -10694,14 +10693,14 @@ the IL, the template header is passed via template_decl.
      omitted, e.g., for a function member with implicit type. */
 #if GNU_EXTENSIONS_ALLOWED
   if (gcc_mode && curr_token == tok_extension) {
-    marked_as_gnu_extension = TRUE;
+    dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
     (void)get_token();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &qualifiers, marked_as_gnu_extension,
-                        &decl_info.decl_modifiers,  &decl_info.decl_pos_block);
+                        &member_type, &qualifiers, &decl_info.decl_modifiers,
+                        &decl_info.decl_pos_block);
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {

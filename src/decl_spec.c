@@ -4233,7 +4233,6 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_storage_class            *storage_class,
                           a_type_ptr                 *type_ptr,
                           a_type_qualifier_set       *qualifiers,
-                          a_boolean                  marked_as_gnu_extension,
                           a_decl_modifiers_block_ptr decl_modifiers,
                           a_decl_pos_block_ptr       decl_pos_block)
 /*
@@ -4363,6 +4362,8 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  bad_type_name_error;
   a_decl_specifiers_set      decl_specifiers_seen;
   a_boolean                  any_decl_specifiers_seen = FALSE;
+  a_boolean                  marked_as_gnu_extension =
+                                  (input_flags & DSI_MARKED_AS_GNU_EXTENSION);
 
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;

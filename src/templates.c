@@ -7020,8 +7020,7 @@ information.
   }  /* if */
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
-                        &qualifiers, /*marked_as_gnu_extension=*/FALSE,
-			decl_modifiers, decl_pos_block);
+                        &qualifiers, decl_modifiers, decl_pos_block);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -10689,8 +10688,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
 			&dso_flags, &param_storage_class, param_type_ptr,
-			&qualifiers, /*marked_as_gnu_extension=*/FALSE,
-			&decl_modifiers, &decl_pos_block);
+			&qualifiers, &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
@@ -13807,7 +13805,6 @@ that follows.
                                   ? DSI_IS_MEMBER_DECLARATION
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        /*marked_as_gnu_extension=*/FALSE,
                         &decl_modifiers, &decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
@@ -15029,6 +15026,11 @@ the exported templates in that file.
 {
   a_translation_unit_ptr	saved_tup = curr_translation_unit;
 
+#if DEBUG
+  if (db_flag_is_set("load_tus")) {
+    fprintf(f_debug, "DBG> Loading secondary TU %s\n", etfp->source_file_name);
+  }  /* if */
+#endif /* DEBUG */
   /* Compile the specified translation unit. */
   process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE, etfp);
   /* Consider the exported template file to be in instantiation wrapup at
@@ -18002,7 +18004,6 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        /*marked_as_gnu_extension=*/FALSE,
                         &decl_modifiers, &decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */

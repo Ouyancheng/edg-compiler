@@ -7223,9 +7223,8 @@ In C++ mode an error is issued if a type definition appears in a type-name
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                        &storage_class, type_ptr, &qualifiers,
-                        /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
-			(a_decl_pos_block_ptr)NULL);
+			&storage_class, type_ptr, &qualifiers,
+                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -7334,8 +7333,7 @@ within this routine if is_parenthesized comes in FALSE.
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
-                        /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
-			&decl_pos_block);
+                        &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -7453,8 +7451,7 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
-                        /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
-			&decl_pos_block);
+                        &decl_modifiers, &decl_pos_block);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7530,8 +7527,7 @@ is no parent.
     clear_decl_pos_block(&decl_pos_block);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
-                          /*marked_as_gnu_extension=*/FALSE, &decl_modifiers,
-			  &decl_pos_block);
+                          &decl_modifiers, &decl_pos_block);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -8005,8 +8001,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
-                              &qualifiers, /*marked_as_gnu_extension=*/FALSE,
-                              &decl_modifiers, &decl_pos_block);
+                              &qualifiers, &decl_modifiers, &decl_pos_block);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -8366,8 +8361,7 @@ Return a pointer to the variable that is declared.
               DSI_IS_CONDITION_DECL;
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers, /*marked_as_gnu_extension=*/FALSE,
-                        &decl_modifiers, &decl_pos_block);
+                        &qualifiers, &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &decl_pos);
@@ -9904,10 +9898,13 @@ continue_with_declaration:
   /* Initialize source position information associated with this
      declaration. */
   clear_decl_pos_block(&decl_pos_block);
+  if (marked_as_gnu_extension) {
+    dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+  }  /* if */
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &qualifiers, marked_as_gnu_extension,
-                        &decl_modifiers, &decl_pos_block);
+                        &type_ptr, &qualifiers, &decl_modifiers,
+                        &decl_pos_block);
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
   if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
