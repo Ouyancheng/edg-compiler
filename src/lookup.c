@@ -2341,10 +2341,12 @@ as follows:
      to check each symbol to make sure we return the appropriate one. */
   for (; udp != NULL; udp = udp->next) {
     a_namespace_symbol_supplement_ptr	next_nssp;
-    next_nssp = namespace_supplement_for_namespace(udp->assoc_namespace);
+    a_namespace_ptr			assoc_namespace;
+    assoc_namespace = skip_namespace_aliases(udp->assoc_namespace);
+    next_nssp = namespace_supplement_for_namespace(assoc_namespace);
     /* Skip this namespace if we have already looked in it. */
     if (next_nssp->visited_by_qualified_lookup) continue;
-    sym = lookup_in_namespace(locator, udp->assoc_namespace, options,
+    sym = lookup_in_namespace(locator, assoc_namespace, options,
                               orig_ns_ptr, synth_sym, any_errors);
     if (sym != NULL && !sym->synthesized_namespace_projection) {
       /* If this lookup found a symbol, add it to the lookup set.
