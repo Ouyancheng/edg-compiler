@@ -1414,6 +1414,7 @@ by a command line option.
   end_of_line_comments_allowed = TRUE;
   IEEE_handling_on_float_operation_exceptions = FALSE;
   floating_point_template_parameters_allowed = TRUE;
+  null_chars_allowed_in_source = TRUE;
   if (!C_mode()) {
     /* Microsoft C++ mode. */
     if (!option_kind_used[(int)optk_bool_is_keyword]) {

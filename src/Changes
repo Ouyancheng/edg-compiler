@@ -91,7 +91,11 @@ C++ linkage (this is a generalization of the Changes entry of 6/28/00).
 
 The front end can now be configured to allow null (zero) characters
 in source lines, by setting DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE
-to TRUE.  In GNU C mode, the option is enabled automatically.
+to TRUE.  Null characters in string and character constants are
+preserved, and null characters elsewhere are discarded.  In GNU C
+mode, the option is always enabled.  In Microsoft mode, the option
+is always enabled, but null characters in strings and character
+constants are ignored rather than preserved.
 
 6/14/02  GNU C compatibility: Invalid flexible array members
 

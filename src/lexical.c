@@ -6187,10 +6187,15 @@ responsible for issuing error messages.
     } else if (ch == LE_ESCAPE) {
       if (curr_char_loc[1] == LE_NULL) {
         /* Null (zero) character -- keep in string. */
-        warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
-                                             ec_null_char_in_string,
-                            curr_char_loc);
-        nchars++;
+        /* In Microsoft mode, the character is thrown away. */
+        if (microsoft_mode) {
+          warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
+        } else {
+          warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
+                                               ec_null_char_in_string,
+                              curr_char_loc);
+          nchars++;
+        }  /* if */
         curr_char_loc += LE_ESCAPE_LEN;
       } else {
         /* Other lexical escape, e.g., newline.  The string is unterminated

@@ -540,12 +540,18 @@ are not enabled, and thus stays zero on all calls).
   a_boolean              unrecognized;
 
   lptr = *temp_ptr;
+get_another:
   targ_ch = (unsigned char)*lptr;
   if (targ_ch == LE_ESCAPE) {
     check_assertion(lptr[1] == LE_NULL);
     /* Null (zero) character, represented as an escape. */
     targ_ch = 0;
     lptr += LE_ESCAPE_LEN-1;
+    /* In Microsoft mode, such characters are thrown away. */
+    if (microsoft_mode) {
+      lptr++;
+      goto get_another;
+    }  /* if */
   }  /* if */
   if (*remaining_mbc_char_count != 0) {
     /* We are in the middle of a multibyte character sequence started on a
