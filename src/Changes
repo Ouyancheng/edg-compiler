@@ -12,7 +12,7 @@ directory are now included.
 
 10/8/97   Applying a cv-qualifier to a function type is not allowed in C++
 
-A discretionary error (a warning in Microsoft and cfront compatibility
+A discretionary error (a remark in Microsoft and cfront compatibility
 modes) is now issued when a cv-qualifier is applied to a function type
 in C++ mode.  For instance:
 
