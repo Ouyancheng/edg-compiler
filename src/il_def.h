@@ -1303,11 +1303,12 @@ typedef struct a_source_correspondence {
 			   a similar flag is present in the corresponding
 			   secondary source sequence entry.) */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
-  a_bit_field   has_gnu_deprecated_attribute:1;
-			/* TRUE if this entity was declared with the GNU
-			   "deprecated" attribute. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field   is_deprecated:1;
+			/* TRUE if this entity was marked as deprecated
+			   (using a GNU attribute or a Microsoft __declspec
+			   specifier). */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	externalized:1;
 			/* TRUE if this is a variable or routine that was
 			   originally static and has been made external, e.g.,

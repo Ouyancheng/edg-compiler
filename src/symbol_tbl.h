@@ -1254,11 +1254,14 @@ typedef struct a_decl_modifiers_block {
 			   but not extern "C" { A x; }).  Not copied into
 			   the IL. */
 #if GNU_EXTENSIONS_ALLOWED
-  a_bit_field  marked_as_gnu_extension:1;
+  a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the declaration was preceded by the GNU
 			   keyword __extension__. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_deprecated:1;
+			/* TRUE if the declaration was marked with
+			   __declspec(deprecated). */
   char		*uuid_string;
 			/* Pointer to a string representing the argument of
 			   a uuid decl-modifier (in Microsoft-compatibility

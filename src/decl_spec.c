@@ -297,7 +297,9 @@ declaration of a class member.
     while (curr_token == tok_identifier) {
       char *modifier;
       modifier = locator_for_curr_id.symbol_header->identifier;
-      if (strcmp(modifier, "dllexport") == 0) {
+      if (strcmp(modifier, "deprecated") == 0) {
+        decl_modifiers->is_deprecated = TRUE;
+      } else if (strcmp(modifier, "dllexport") == 0) {
         if (decl_modifiers->flags & DM_DLLIMPORT) {
           /* The dllimport and dllexport attributes are mutually
              exclusive. */
@@ -738,6 +740,9 @@ is a pointer to a source position used for diagnostics.
     } else {
       ctsp->uuid_string = extended_decl_info->decl_modifiers.uuid_string;
     }  /* if */
+  }  /* if */
+  if (extended_decl_info->decl_modifiers.is_deprecated) {
+    class_type->source_corresp.is_deprecated = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_extended_decl_info_for_class */
@@ -5297,6 +5302,9 @@ Returns TRUE if there is an error in the specifiers.
 
             new_modifiers = extended_decl_info.decl_modifiers;
             decl_modifiers->flags |= new_modifiers.flags;
+            if (new_modifiers.is_deprecated) {
+              decl_modifiers->is_deprecated = TRUE;
+            }  /* if */
             /* Check __declspec(property(...)) specifications. */
             if (new_modifiers.get_property_name != NULL) {
               if (decl_modifiers->get_property_name != NULL) {

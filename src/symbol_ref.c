@@ -1450,23 +1450,24 @@ created for this entity; otherwise, it is NULL.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 }  /* record_symbol_declaration */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static void check_use_of_deprecated_entities(a_source_correspondence_ptr  scp,
                                              a_source_position            *pos)
 /*
 The entity represented by the given source correspondence is referenced
 at the given position.  Issue a warning if the entity was declared with
-the GNU attribute "deprecated."
+the GNU attribute "deprecated" or the Microsoft "__declspec(deprecated)"
+specifier.
 */
 {
-  if (scp->has_gnu_deprecated_attribute) {
+  if (scp->is_deprecated) {
     check_assertion(scp->assoc_info != NULL);
     pos_sy_warning(ec_deprecated_entity, pos, (a_symbol_ptr)scp->assoc_info);
   }  /* if */
 }  /* check_use_of_deprecated_entities */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 void record_symbol_reference(a_symbol_reference_kind kind,
                              a_symbol_ptr            sym_ptr,
@@ -1737,12 +1738,12 @@ check_label_decl_seq:
       }  /* if */
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && scptr != NULL &&
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if ((gnu_mode || microsoft_mode) && scptr != NULL &&
       !(sym_ptr->kind == (a_symbol_kind)sk_type || is_tag_symbol(sym_ptr))) {
     check_use_of_deprecated_entities(scptr, source_position);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* record_symbol_reference */
 
 

@@ -2759,6 +2759,18 @@ allocate_segname is the segment name, or NULL if the modifier does not apply.
 }  /* gen_microsoft_allocate_declspec */
 
 
+static void gen_microsoft_deprecated_spec(a_source_correspondence_ptr  scp)
+/*
+If the "is_deprecated" flag is set in the given source correspondence,
+put out a "__declspec(deprecated)" specifier.
+*/
+{
+  if (scp->is_deprecated) {
+    write_tok_str("__declspec(deprecated) ");
+  }  /* if */
+}  /* gen_microsoft_deprecated_spec */
+
+
 static void gen_microsoft_class_decl_modifiers(a_type_ptr type)
 /*
 Put out declaration modifiers that apply to a class as a whole.
@@ -2778,6 +2790,7 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
     form_type_qualifier(ctsp->qualifiers, UPC_BLOCK_SIZE_NONE,
                         /*need_trailing_space=*/TRUE, &octl);
   }  /* if */
+  gen_microsoft_deprecated_spec(&type->source_corresp);
 }  /* gen_microsoft_class_decl_modifiers */
 
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
@@ -3171,7 +3184,7 @@ Write out attributes that apply to the indicated type.
     /* Output the "unused" attribute. */
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-  if (type->source_corresp.has_gnu_deprecated_attribute) {
+  if (type->source_corresp.is_deprecated) {
     /* Output the "deprecated" attribute. */
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
@@ -3286,7 +3299,7 @@ Write out attributes that apply to the indicated variable.
   if (var->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-  if (var->source_corresp.has_gnu_deprecated_attribute) {
+  if (var->source_corresp.is_deprecated) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
   if (var->is_not_common) {
@@ -3314,7 +3327,7 @@ static void write_field_attributes(a_field_ptr field)
 Write out attributes that apply to the indicated field.
 */
 {
-  if (field->source_corresp.has_gnu_deprecated_attribute) {
+  if (field->source_corresp.is_deprecated) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -3348,7 +3361,7 @@ Write out attributes that apply to the indicated routine.
   if (rout->has_gnu_used_attribute) {
     write_tok_str(" __attribute__((__used__))");
   }  /* if */
-  if (rout->source_corresp.has_gnu_deprecated_attribute) {
+  if (rout->source_corresp.is_deprecated) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
   if (rout->allocates_memory) {
@@ -4138,6 +4151,7 @@ declaration following this one is such a continuation.
     }  /* if */
     write_tok_str("))");
   }  /* if */
+  gen_microsoft_deprecated_spec(&field->source_corresp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
@@ -9517,6 +9531,7 @@ declaration following this one is such a continuation.
                                                          &var->source_corresp);
       gen_microsoft_decl_modifiers(decl_modifiers);
       gen_microsoft_allocate_declspec(var->allocate_segname);
+      gen_microsoft_deprecated_spec(&var->source_corresp);
     }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10233,6 +10248,7 @@ TRUE if the declaration following this one is such a continuation.
       suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
                                                         &rout->source_corresp);
       gen_microsoft_decl_modifiers(decl_modifiers);
+      gen_microsoft_deprecated_spec(&rout->source_corresp);
     }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -3106,6 +3106,9 @@ diagnostics.
     /* Only allowed for variables with static storage duration. */
     pos_error(ec_declspec_allocate_not_allowed, position);
   }  /* if */
+  if (new_modifiers->is_deprecated) {
+    routine->source_corresp.is_deprecated = TRUE;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_routine_decl_modifiers */
 
@@ -3196,6 +3199,9 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
       /* Copy the declared data segment name to the variable. */
       variable->allocate_segname = new_modifiers->allocate_segname;
     }  /* if */
+  }  /* if */
+  if (new_modifiers->is_deprecated) {
+    variable->source_corresp.is_deprecated = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (any_invalid_redecl) {
@@ -4539,11 +4545,6 @@ declaration.
   if (gnu_mode) {
     /* Apply the attributes to the variable declaration. */
     apply_attributes_to_variable(attributes, variable_ptr);
-    if (!variable_ptr->source_corresp.has_gnu_deprecated_attribute) {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_gnu_deprecated_type(type_ptr,
-                                            &locator->source_position);
-    }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
       if (is_register) {
@@ -4574,6 +4575,12 @@ declaration.
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(variable_ptr, decl_modifiers,
                                  &locator->source_position, redeclaration);
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (!variable_ptr->source_corresp.is_deprecated) {
+    /* Check if a deprecated type was involved in this declaration. */
+    warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* The name linkage has already been determined.  Apply it to the current
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
@@ -5867,11 +5874,6 @@ skip_overloading:;
     routine_ptr->suppress_inline_body = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  source_corresp_ptr = &routine_ptr->source_corresp;
-  update_routine_decl_modifiers(routine_ptr, decl_modifiers,
-                                &locator->source_position, redeclaration,
-                                is_function_def,
-                                (a_boolean)func_info->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && func_info->is_main_function) {
     /* main should use __cdecl calling convention.  If that's not the default
@@ -5924,6 +5926,7 @@ skip_overloading:;
   }  /* if */
   /* Set the source correspondence, but leave it pointing at an outer-scope
      symbol if there is one. */
+  source_corresp_ptr = &routine_ptr->source_corresp;
   if (source_corresp_ptr->assoc_info == NULL) {
     /* There is no symbol pointed to from the routine, so update it with the
        current symbol. */
@@ -5971,6 +5974,10 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
+  update_routine_decl_modifiers(routine_ptr, decl_modifiers,
+                                &locator->source_position, redeclaration,
+                                is_function_def,
+                                (a_boolean)func_info->is_inline);
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
       !redeclaration && !template_function_specific_decl &&
       !explicit_template_reference) {
@@ -6059,17 +6066,19 @@ skip_overloading:;
     if (attributes != NULL) {
       apply_attributes_to_routine(attributes, routine_ptr);
     }  /* if */
-    if (!routine_ptr->source_corresp.has_gnu_deprecated_attribute) {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_gnu_deprecated_type(type_ptr,
-                                            &locator->source_position);
-    }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
       routine_ptr->asm_name = asm_name;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (!routine_ptr->source_corresp.is_deprecated &&
+      !routine_ptr->compiler_generated) {
+    /* Check if a deprecated type was involved in this declaration. */
+    warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_function_def && qualifier_namespace_ptr(*locator) != NULL) {
     check_assertion(!is_friend_decl || locator->is_error);
     routine_ptr->defined_outside_of_parent = TRUE;
@@ -6837,13 +6846,14 @@ is not necessarily the canonical entry for the template being declared.
     if (attributes != NULL) {
       apply_attributes_to_routine(attributes, rout_ptr);
     }  /* if */
-    if (!rout_ptr->source_corresp.has_gnu_deprecated_attribute) {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_gnu_deprecated_type(type_ptr,
-                                            &locator->source_position);
-    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (!rout_ptr->source_corresp.is_deprecated) {
+    /* Check if a deprecated type was involved in this declaration. */
+    warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* Return the function template symbol. */
   *symbol_ptr = sym;
 #if DEBUG
@@ -7522,10 +7532,9 @@ return a pointer to it in *symbol_ptr.
       /* Applying attributes could change the underlying type. */
       apply_attributes_to_typedef(attributes, tp, linkage_name);
     }  /* if */
-    if (!tp->source_corresp.has_gnu_deprecated_attribute) {
+    if (!tp->source_corresp.is_deprecated) {
       /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_gnu_deprecated_type(type_ptr,
-                                            &locator->source_position);
+      warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -627,11 +627,11 @@ Display the indicated source correspondence entry.
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
-  if (scp->has_gnu_deprecated_attribute) { 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (scp->is_deprecated) { 
     disp_boolean("has_gnu_deprecated_attribute", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (scp->externalized) {
     disp_boolean("externalized", TRUE);
   }  /* if */

@@ -1277,7 +1277,7 @@ invalid attributes.
         vp->has_gnu_unused_attribute = TRUE;
         break;
       case ak_deprecated:
-        vp->source_corresp.has_gnu_deprecated_attribute = TRUE;
+        vp->source_corresp.is_deprecated = TRUE;
         break;
       case ak_mode:
       case ak_noreturn:
@@ -1365,7 +1365,7 @@ messages about any invalid attributes.
            apply_attributes_to_variable_type. */
         break;
       case ak_deprecated:
-        fp->source_corresp.has_gnu_deprecated_attribute = TRUE;
+        fp->source_corresp.is_deprecated = TRUE;
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
@@ -1442,7 +1442,7 @@ messages about any invalid attributes.
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
         break;
       case ak_deprecated:
-        rp->source_corresp.has_gnu_deprecated_attribute = TRUE;
+        rp->source_corresp.is_deprecated = TRUE;
         break;
       case ak_pure:
         rp->is_pure = TRUE;
@@ -1718,7 +1718,7 @@ a typedef, is_typedef is TRUE.
       type->variables_are_implicitly_referenced = TRUE;
       break;
     case ak_deprecated:
-      type->source_corresp.has_gnu_deprecated_attribute = TRUE;
+      type->source_corresp.is_deprecated = TRUE;
       break;
     case ak_noreturn:
     case ak_volatile:

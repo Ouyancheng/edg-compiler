@@ -6983,49 +6983,52 @@ referring to a variably modified type.
   return found;
 }  /* ttt_is_variably_modified_type */    
 
-#if GNU_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean ttt_warn_about_use_of_gnu_deprecated_type(
+static a_boolean ttt_warn_about_use_of_deprecated_type(
                                           a_type_ptr  type_ptr,
                                           a_boolean   *force_end_of_traversal)
 /*
-Return TRUE if the given type was marked as deprecated using a GNU attribute.
-Also set *force_end_of_traversal to TRUE in that case, and issue a warning.
+Return TRUE if the given type was marked as deprecated (either using a GNU
+attribute or using a Microsoft declspec specifier).  Also set
+*force_end_of_traversal to TRUE in that case, and issue a warning.
 */
 {
   a_boolean  found = FALSE;
 
-  if (type_ptr->source_corresp.has_gnu_deprecated_attribute) {
+  if (type_ptr->source_corresp.is_deprecated) {
     *force_end_of_traversal = found = TRUE;
-    /* The GNU deprecated attribute cannot be applied to unnamed types. */
-    check_assertion(type_ptr->source_corresp.assoc_info != NULL);
-    sym_warning(ec_deprecated_entity,
-                (a_symbol_ptr)type_ptr->source_corresp.assoc_info);
+    if (!in_deprecated_definition()) {
+      sym_warning(ec_deprecated_entity,
+                  (a_symbol_ptr)type_ptr->source_corresp.assoc_info);
+    }  /* if */
   }  /* if */
   return found;
-}  /* ttt_warn_about_use_of_gnu_deprecated_type */
+}  /* ttt_warn_about_use_of_deprecated_type */
 
 
-void warn_about_use_of_gnu_deprecated_type(a_type_ptr         type,
-                                           a_source_position  *pos)
+void warn_about_use_of_deprecated_type(a_type_ptr         type,
+                                       a_source_position  *pos)
 /*
-Warn if the given type has a component that has been marked as deprecated
-using a GNU attribute.  Components under typedefs are not considered.  The
-warning is issued for the given position.
+Warn if the given type has a component that has been marked as deprecated.
+Components under typedefs are not considered.  The warning is issued for
+the given position.
 */
 {
   a_source_position  saved_pos;
 
   saved_pos = error_position;
   error_position = *pos;
-  (void)traverse_type_tree(type, ttt_warn_about_use_of_gnu_deprecated_type,
+  (void)traverse_type_tree(type, ttt_warn_about_use_of_deprecated_type,
                            TTT_STOP_AT_TYPEDEFS |
                            TTT_RETURN_TYPE | TTT_PARAM_TYPES |
                            TTT_EXCEPTION_SPECS | TTT_TEMPLATE_ARGS);
   error_position = saved_pos;
-}  /* warn_about_use_of_gnu_deprecated_type */
+}  /* warn_about_use_of_deprecated_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,

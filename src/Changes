@@ -1,5 +1,19 @@
 Version 3.3
 
+6/27/03  Microsoft mode: __declspec(deprecated)
+
+In Microsoft mode, front end now supports the Microsoft __declspec(deprecated)
+specifier.  Using an entity marked with this specifier results in a warning
+(unless the use is for an entity that is itself deprecated).  For example:
+
+  struct __declspec(deprecated) X {};
+  void f(X);  // Warning: X is deprecated
+
+The IL representation of this specifier is identical to that for the GNU
+attribute "deprecated" (see Changes entry of 2/4/03; IL CHANGE: the field
+has_gnu_deprecated_attribute of a_source_correspondence has been renamed to
+is_deprecated).
+
 6/27/03  Microsoft __COUNTER__ macro
 
 The Microsoft __COUNTER__ macro, which returns an incrementing

@@ -7099,17 +7099,18 @@ otherwise these are NULL).
     if (attributes != NULL) {
       apply_attributes_to_routine(attributes, rtn);
     }  /* if */
-    if (!rtn->source_corresp.has_gnu_deprecated_attribute) {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_gnu_deprecated_type(member_type,
-                                            &locator->source_position);
-    }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
       rtn->asm_name = asm_name;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (!compiler_generated && !rtn->source_corresp.is_deprecated) {
+    /* Check if a deprecated type was involved in this declaration. */
+    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (compiler_generated) {
     rtn->compiler_generated = TRUE;
   } else {
@@ -8072,17 +8073,18 @@ otherwise these are NULL).
   if (gpp_mode) {
     /* Apply the attributes to the variable declaration. */
     apply_attributes_to_variable(attributes, var);
-    if (!var->source_corresp.has_gnu_deprecated_attribute) {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_gnu_deprecated_type(member_type,
-                                            &locator->source_position);
-    }  /* if */
     /* If applicable, record the asm-name. */
     if (asm_name != NULL) {
       var->asm_name_or_reg.name = asm_name;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (!var->source_corresp.is_deprecated) {
+    /* Check if a deprecated type was involved in this declaration. */
+    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
   if (curr_routine_fixup != NULL &&
@@ -9572,6 +9574,9 @@ specific information about the member declaration, respectively.
        bound to it. */
     cannot_bind_to_curr_construct();
   }  /* if */
+  if (decl_info->decl_modifiers.is_deprecated) {
+    field->source_corresp.is_deprecated = TRUE;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
@@ -9595,8 +9600,7 @@ specific information about the member declaration, respectively.
     /* Check if a deprecated type was involved in this declaration.
        Unlike other similar cases, the warning is issued even when the field
        itself is marked as deprecated. */
-    warn_about_use_of_gnu_deprecated_type(member_type,
-                                          &locator->source_position);
+    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
     /* We are done with the postfix attributes. */
     free_attribute_list(*last_attribute);
     *last_attribute = NULL;

@@ -2401,7 +2401,7 @@ static a_scope_depth find_depth_of_common_scope(a_namespace_ptr nsp)
 Find the innermost scope on the scope stack that is also either the
 namespace pointed to by nsp or is a parent of nsp.  Return the
 depth of the scope stack entry associated with the common scope or
-DEPTH_FILE_SCOPE if there is none.
+DEPTH_OF_FILE_SCOPE if there is none.
 */
 {
   a_scope_stack_entry_ptr	ssep = NULL;
@@ -2425,7 +2425,7 @@ DEPTH_FILE_SCOPE if there is none.
     /* If we found a match, exit the loop. */
     if (ssep != NULL) break;
   }  /* for */
-  /* Return DEPTH_FILE_SCOPE if there is no common namespace scope. */
+  /* Return DEPTH_OF_FILE_SCOPE if there is no common namespace scope. */
   common_depth = ssep != NULL ? scope_depth_of(ssep) : DEPTH_OF_FILE_SCOPE;
   return common_depth;
 }  /* find_depth_of_common_scope */
@@ -6352,6 +6352,51 @@ is called only in C++.
   depth_of_innermost_scope_that_affects_access_control =
                                     saved_innermost_scope_that_affects_access;
 }  /* pop_class_reactivation_scope */
+
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean in_deprecated_definition(void)
+/*
+Return TRUE if and only if we're inside the definition of an entity marked as
+deprecated.
+*/
+{
+  a_boolean      result = FALSE;
+  a_scope_depth  d = depth_scope_stack;
+
+  while (d > DEPTH_OF_FILE_SCOPE) {
+    switch (scope_stack[d].kind) {
+      case sck_namespace:
+      case sck_namespace_extension:
+        /* Namespace scopes cannot be marked as deprecated. */
+        goto done;
+      case sck_class_struct_union:
+      case sck_class_reactivation:
+        if (scope_stack[d].assoc_type->source_corresp.is_deprecated) {
+          result = TRUE;
+          goto done;
+        }  /* if */
+        break;
+      case sck_function:
+        if (scope_stack[d].assoc_routine->source_corresp.is_deprecated) {
+          result = TRUE;
+          goto done;
+        }  /* if */
+        break;
+      case sck_file:
+        unexpected_condition();
+      default:
+        /* Nothing to do. */
+        break;
+    }  /* switch */
+    --d;
+  }  /* while */
+done:
+  return result;
+}  /* in_deprecated_definition */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 #if DEBUG
 

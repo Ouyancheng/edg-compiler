@@ -1191,6 +1191,12 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_pointers_block_ptr	pointers_block,
                   a_boolean 	                is_namespace_wrapup);
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+extern a_boolean in_deprecated_definition(void);
+
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void scope_stk_one_time_init(void);
 
 extern void scope_stk_trans_unit_init(void);
