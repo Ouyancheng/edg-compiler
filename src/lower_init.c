@@ -6548,7 +6548,12 @@ have already had their designated initializers lowered.
       { a_type_ptr con_type = skip_typerefs(temp_con->type);
         a_type_ptr member_type = skip_typerefs(aggr_pos.member_type);
         check_assertion_str(
-                     identical_types(con_type, member_type),
+                     identical_types(con_type, member_type) ||
+                     /* A short string literal can initialize a longer
+                        char array. */
+                     (is_string_type(con_type) &&
+                      is_string_type(member_type) &&
+                      temp_con->kind == (a_constant_repr_kind)ck_string),
                      "lower_aggregate_designated_initializers: type mismatch");
       }
       last_con = con_pos.ptr;
