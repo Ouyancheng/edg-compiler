@@ -2226,7 +2226,10 @@ enum a_pragma_kind_tag {
 			   not recognized by the front end but are to be
 			   recorded as a character string and passed to
 			   the back end.  These will typically be emitted
-			   by the C or C++ generating back end. */
+			   by the C or C++ generating back end.  See the
+			   comments in pragma_init for information about
+			   the type of pragma that is created for an
+			   unrecognized pragma. */
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
 
   /* The preceding pragma kinds are required for the default

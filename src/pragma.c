@@ -1548,7 +1548,13 @@ Initialize the pragma description table.
      back end to output the pragma along with the entity to which it is
      bound but also means that unrecognized pragmas may only appear in
      contexts in which next-construct pragmas are allowed (i.e., immediately
-     before a declaration or statement). */
+     before a declaration or statement).  Furthermore, if the associated
+     entity is omitted (because it is unused) the pragma will also be
+     omitted.  If you want the pragma to come out even if the associated
+     entity is omitted, you can change the pragma to an "immediate" pragma.
+     This will, however, have the side-effect that the pragma will no longer
+     come out adjacent to the associated declaration.  All of the immediate
+     pragmas in a given scope will come out together. */
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
                  (a_next_construct_pragma_function_ptr)NULL,
