@@ -30,6 +30,9 @@ debug.c -- Debug routines.
 
 #ifndef STDLIB_H_INCLUDED
 EXTERN_C int atoi(char *);
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+EXTERN_C long atol(char *);
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #endif /* ifndef STDLIB_H_INCLUDED */
 
 /*
@@ -52,11 +55,14 @@ typedef enum /*a_debug_action*/ {
   da_increase_level,
   da_decrease_level,
   da_set_flag,
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+  da_alloc_seq,
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
   da_name
 } a_debug_action;
 
 /*
-A list of command line debug requests.
+A command line debug request.
 */
 typedef struct a_debug_request *a_debug_request_ptr;
 typedef struct a_debug_request {
@@ -72,6 +78,10 @@ typedef struct a_debug_request {
   a_boolean     do_not_print_message;
 			/* If TRUE, do not print the entry and exit
 			   messages. */
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+  unsigned long	alloc_seq_number;
+			/* An allocation sequence number to watch for. */
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 } a_debug_request;
 
 /*
@@ -127,6 +137,10 @@ Allocate and initialize a debug request record.
   ptr->name   = NULL;
   ptr->action = da_set_level;
   ptr->level  = 0;
+  ptr->do_not_print_message = FALSE;
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+  ptr->alloc_seq_number = 0;
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 
   return(ptr);
 }  /* alloc_debug_request */
@@ -384,67 +398,87 @@ a_boolean f_db_has_traced_name(a_source_correspondence *scp,
 Return TRUE if the indicated source correspondence has a name that
 is to be traced.  entry_kind indicates the IL entry kind.  If
 entry_kind indicates an entity that does not have a source
-correspondence, do nothing.
+correspondence, do nothing.  However, alloc-seq debug requests
+are recognized for all entry kinds.
 */
 {
   a_boolean           result = FALSE;
   a_debug_request_ptr request;
 
-  if (debug_requests != NULL &&
-      /* Only do this for declarative entries. */
-      source_corresp_for_il_entry((char *)scp, entry_kind) != NULL &&
-      scp->name != NULL) {
-    /* Get the entity name. */
-    char *name = db_name_str_full(scp, entry_kind,
-                                  /*include_func_params=*/FALSE);
-    unsigned long len_of_name_without_params = 0;
-    if (entry_kind == (an_il_entry_kind)iek_routine) {
-      len_of_name_without_params = strlen(name);
-      /* Generate a version with parameter types in case it's needed. */
-      name = db_name_str_full(scp, entry_kind, /*include_func_params=*/TRUE);
-    }  /* if */
-    /* Compare it against the list of debug requests. */
-    for (request = debug_requests; request != NULL; request = request->next) {
-      if (request->action == da_name) {
-        char      *eff_name = name;
-        char      *eff_request_name = request->name;
-        char      name_char_to_restore = '\0';
-        a_boolean restore_char = FALSE;
-        if (len_of_name_without_params != 0 &&
-            strchr(eff_request_name, '(') == NULL) {
-          /* The request has no left parenthesis, so compare against the
-             form of the name without parameter types.  Truncate the
-             name temporarily by inserting a null character at the right
-             place. */
-          name_char_to_restore = name[len_of_name_without_params];
-          name[len_of_name_without_params] = '\0';
-          restore_char = TRUE;
-        }  /* if */
-        if (eff_request_name[0] != '[') {
-          /* A name on the command line without a translation unit file
-             name matches any translation unit.  Skip past the translation
-             unit name on the generated name, if there is one. */
-          if (eff_name[0] == '[') {
-            eff_name = strchr(eff_name, ']');
-            check_assertion(eff_name != NULL);
-            eff_name++;
-          }  /* if */
-        } else if (eff_request_name[1] == ']') {
-          /* A name on the command line beginning with [] matches only
-             a name in the primary translation unit. */
-          if (eff_name[0] == '[') continue;
-          eff_request_name += 2;
-        }  /* if */
-        if (strcmp(eff_name, eff_request_name) == 0) {
-          /* A match. */
-          result = TRUE;
-          break;
-        }  /* if */
-        if (restore_char) {
-          name[len_of_name_without_params] = name_char_to_restore;
-        }  /* if */
+  if (debug_requests != NULL) {
+    /* Only do this for named declarative entries. */
+    if (source_corresp_for_il_entry((char *)scp, entry_kind) != NULL &&
+        scp->name != NULL) {
+      /* Get the entity name. */
+      char *name = db_name_str_full(scp, entry_kind,
+                                    /*include_func_params=*/FALSE);
+      unsigned long len_of_name_without_params = 0;
+      if (entry_kind == (an_il_entry_kind)iek_routine) {
+        len_of_name_without_params = strlen(name);
+        /* Generate a version with parameter types in case it's needed. */
+        name = db_name_str_full(scp, entry_kind, /*include_func_params=*/TRUE);
       }  /* if */
-    }  /* for */
+      /* Compare it against the list of debug requests. */
+      for (request = debug_requests;
+           request != NULL;
+           request = request->next) {
+        if (request->action == da_name) {
+          char      *eff_name = name;
+          char      *eff_request_name = request->name;
+          char      name_char_to_restore = '\0';
+          a_boolean restore_char = FALSE;
+          if (len_of_name_without_params != 0 &&
+              strchr(eff_request_name, '(') == NULL) {
+            /* The request has no left parenthesis, so compare against the
+               form of the name without parameter types.  Truncate the
+               name temporarily by inserting a null character at the right
+               place. */
+            name_char_to_restore = name[len_of_name_without_params];
+            name[len_of_name_without_params] = '\0';
+            restore_char = TRUE;
+          }  /* if */
+          if (eff_request_name[0] != '[') {
+            /* A name on the command line without a translation unit file
+               name matches any translation unit.  Skip past the translation
+               unit name on the generated name, if there is one. */
+            if (eff_name[0] == '[') {
+              eff_name = strchr(eff_name, ']');
+              check_assertion(eff_name != NULL);
+              eff_name++;
+            }  /* if */
+          } else if (eff_request_name[1] == ']') {
+            /* A name on the command line beginning with [] matches only
+               a name in the primary translation unit. */
+            if (eff_name[0] == '[') continue;
+            eff_request_name += 2;
+          }  /* if */
+          if (strcmp(eff_name, eff_request_name) == 0) {
+            /* A match. */
+            result = TRUE;
+            break;
+          }  /* if */
+          if (restore_char) {
+            name[len_of_name_without_params] = name_char_to_restore;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+    if (!result) {
+      /* Look for alloc-seq requests. */
+      for (request = debug_requests;
+           request != NULL;
+           request = request->next) {
+        if (request->action == da_alloc_seq) {
+          if (il_entry_prefix_of(scp).alloc_seq_number ==
+                                                   request->alloc_seq_number) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
   }  /* if */
   return result;
 }  /* f_db_has_traced_name */
@@ -529,9 +563,13 @@ the macro db_trace to call this function.
   a_boolean           any_name_requests = FALSE;
   a_boolean           any_flag_requests = FALSE;
 
-  /* See if there are any debug-name or flag requests. */
+  /* See if there are any debug-name, alloc-seq, or flag requests. */
   for (request = debug_requests; request != NULL; request = request->next) {
-    if (request->action == da_name) {
+    if (request->action == da_name
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+        || request->action == da_alloc_seq
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+                                          ) {
       any_name_requests = TRUE;
       if (any_flag_requests) break;
     } else if (request->action == da_set_flag) {
@@ -584,6 +622,30 @@ To select only a name from the primary translation unit, use [], e.g.,
   return FALSE;
 }  /* proc_debug_name_option */
 
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+
+a_boolean proc_debug_alloc_seq_option(char *debug_option)
+/*
+Parse the db_alloc_seq option (as received by proc_command_line) and enter
+information about it in the debug requests list.  Its format is
+
+  --db_alloc_seq=number
+
+Return TRUE if there was an error.
+*/
+{
+  a_debug_request_ptr request;
+
+  db_active = TRUE;
+  request = alloc_debug_request();
+  request->action = da_alloc_seq;
+  request->alloc_seq_number = atol(debug_option);
+  request->next = debug_requests;
+  debug_requests = request;
+  return FALSE;
+}  /* proc_debug_alloc_seq_option */
+
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 
 void debug_enter(int reporting_level, char *function_name)
 /*
@@ -635,7 +697,10 @@ what was done in the stack entry.
   request_ptr = debug_requests;
   for (request_ptr = debug_requests;
        request_ptr != NULL; request_ptr = request_ptr->next) {
-    if (strcmp(function_name, request_ptr->name) == 0) {
+    if ((request_ptr->action == da_set_level ||
+         request_ptr->action == da_increase_level ||
+         request_ptr->action == da_decrease_level) &&
+        strcmp(function_name, request_ptr->name) == 0) {
       /* What to do to the debug level. */
       switch (request_ptr->action) {
 	case da_set_level:
@@ -647,9 +712,6 @@ what was done in the stack entry.
 	case da_decrease_level:
 	  debug_level -= request_ptr->level;
 	  break;
-        case da_set_flag:
-          /* Ignore flags that may have the same name as a function. */
-          continue;
         default:
           unexpected_condition();
       }  /* switch */

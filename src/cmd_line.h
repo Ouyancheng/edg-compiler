@@ -205,6 +205,9 @@ typedef enum /*an_option_kind*/ {
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   optk_debug_name,
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+  optk_debug_alloc_seq,
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #endif /* DEBUG */
   optk_long_long,
   optk_context_limit,

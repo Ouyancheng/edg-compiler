@@ -359,6 +359,11 @@ Initialize the option information table.
   add_option_description(optk_debug_name, "db_name", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+  add_option_description(optk_debug_alloc_seq, "db_alloc_seq", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #if !EDG_WIN32
   /* This option is only available on Unix. */
   add_option_description(optk_time_limit, "time_limit", '\0',
@@ -2937,6 +2942,14 @@ Process the arguments on the command line that invoked the compiler.
 	  command_line_error(ec_cl_error_in_debug_option_argument);
 	}  /* if */
         break;
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+      case optk_debug_alloc_seq:
+        /* Set debug allocation sequence number to be traced. */
+        if (proc_debug_alloc_seq_option(opt_arg)) {
+          command_line_error(ec_cl_error_in_debug_option_argument);
+        }  /* if */
+        break;
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #if !EDG_WIN32
       case optk_time_limit:
         /* Debugging option to limit the amount of CPU time used
