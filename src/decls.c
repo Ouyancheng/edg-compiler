@@ -3051,7 +3051,7 @@ cross-reference output describing this declaration.
                             effective_decl_level, redecl_error_already_issued);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
-    if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
+    if (decl_scope_level == depth_innermost_namespace_scope &&
         storage_class == (a_storage_class)sc_unspecified &&
         is_const_qualified_type(type_ptr)) {
       /* In C++ all const qualified objects at file scope with no explicit
