@@ -1441,6 +1441,7 @@ the default constructor (if one exists) is called.
   a_dynamic_init                 local_di;
   a_routine_ptr                  rp;
   a_targ_size_t                  count;
+  a_memory_region_number         region_to_switch_back_to = NULL_region_number;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -1476,6 +1477,7 @@ the default constructor (if one exists) is called.
         if ((rp = select_default_constructor(tp, err_pos, tp)) != NULL) {
           a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
                                    variant.routine.extra_info->param_type_list;
+
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
           local_di.variant.constructor.routine = rp;
           /* A user defined default constructor may have default args that
@@ -1488,6 +1490,12 @@ the default constructor (if one exists) is called.
                (and destructor) can be called once for each element. */
             a_dynamic_init  *ctor_dip;
 
+            if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
+                var->storage_class == (a_storage_class)sc_static) {
+              /* Initializers for local static variables must appear in
+                 the file scope memory region. */
+              switch_to_file_scope_region(&region_to_switch_back_to);
+            }  /* if */
             /* Copy the dynamic init entry. */
             ctor_dip =
                     alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
@@ -1502,6 +1510,9 @@ the default constructor (if one exists) is called.
               count = var_type->size / tp->size;
             }  /* if */
             repeat_nonconstant_init(ctor_dip, tp, &local_di, count);
+            if (region_to_switch_back_to != NULL_region_number) {
+              switch_back_to_original_region(region_to_switch_back_to);
+            }  /* if */
           }  /* if */
           /* Build the repeat construct. */
           gen_dynamic_initialization(var, &local_di, err_pos);
@@ -1535,7 +1546,13 @@ the default constructor (if one exists) is called.
           if (var_type != tp) {
             /* The object has an array type. */
             a_dynamic_init  *dtor_dip;
-  
+
+            if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
+                var->storage_class == (a_storage_class)sc_static) {
+              /* Initializers for local static variables must appear in
+                 the file scope memory region. */
+              switch_to_file_scope_region(&region_to_switch_back_to);
+            }  /* if */
             /* Copy the dynamic init entry. */
             dtor_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             *dtor_dip = local_di;
@@ -1550,6 +1567,9 @@ the default constructor (if one exists) is called.
             }  /* if */
             /* Build the repeat construct. */
             repeat_nonconstant_init(dtor_dip, tp, &local_di, count);
+            if (region_to_switch_back_to != NULL_region_number) {
+              switch_back_to_original_region(region_to_switch_back_to);
+            }  /* if */
           }  /* if */
           gen_dynamic_initialization(var, &local_di, err_pos);
           /* Don't set def_init_performed.  A dik_none dynamic initialization
