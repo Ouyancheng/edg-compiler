@@ -1,5 +1,21 @@
 Version 2.46
 
+7/5/01   Prototype instantiation default argument information in IL tree
+
+In some cases, IL for prototype instantiations of default argument
+expressions was left in the IL tree even when prototype instantiations
+were not supposed to be kept in the IL.  This happened only when
+prototype instantiations for non-classes were enabled, e.g., in strict
+mode.  The incorrect IL could cause aborts (e.g., an IL write/read
+consistency error).  Now fixed.
+
+  template <class T> struct A {
+    ~A();
+    int f1();
+    int f2(int = A().f1());
+    virtual void vf3();
+  };
+
 7/3/01   C++-generating back end: qualification on overloaded member
          function accessed via using-declaration
 
