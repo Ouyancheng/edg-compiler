@@ -765,6 +765,16 @@ Do the output in the way described by octl.
     if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
       octl->output_str("&");
     } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (type->variant.pointer.base_variable != NULL) {
+        /* This is a Microsoft based pointer -- add "__based(var-name) "
+           before the asterisk. */
+        octl->output_str("__based(");
+        form_name(&type->variant.pointer.base_variable->source_corresp,
+                  iek_variable, octl);
+        octl->output_str(") ");
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
       octl->output_str("*");
 #ifdef CFE
