@@ -341,7 +341,7 @@ extern void cast_operand(a_type_ptr         new_type,
 extern void base_class_cast_operand(an_operand         *operand_1,
                                     a_base_class_ptr   bcp,
                                     a_boolean          is_arrow_operator,
-                                    a_boolean          is_implicit_cast,
+                                    a_boolean          check_cast_access,
                                     an_expression_kind expression_kind);
 
 extern void make_error_operand(an_operand *operand);
@@ -389,11 +389,6 @@ extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 
 extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 						   a_type_ptr   type);
-
-extern void add_base_class_casts(a_base_class_ptr  bcp,
-                                 a_boolean         is_implicit_cast,
-                                 an_expr_node_ptr  *p_node,
-                                 a_source_position *err_pos);
 
 extern void cast_node(an_expr_node_ptr  *node,
 		      a_type_ptr        type,
