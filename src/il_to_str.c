@@ -1427,12 +1427,15 @@ in the way described by octl.
     /* For the do_indirection case, cast to a reference type instead of the
        pointer type that's there. */
     if (do_indirection) {
-      check_assertion_str(orig_type->kind == (a_type_kind)tk_pointer &&
-                          !orig_type->variant.pointer.is_reference,
-                          "form_address_constant: not pointer type");
-      type_copy = *orig_type;
-      type_copy.variant.pointer.is_reference = TRUE;
-      cast_type = &type_copy;
+      /* Don't change the type if it's an error type. */
+      if (!is_error_type(con_type)) {
+        check_assertion_str(orig_type->kind == (a_type_kind)tk_pointer &&
+                            !orig_type->variant.pointer.is_reference,
+                            "form_address_constant: not pointer type");
+        type_copy = *orig_type;
+        type_copy.variant.pointer.is_reference = TRUE;
+        cast_type = &type_copy;
+      }  /* if */
     }  /* if */
     form_cast(cast_type, octl);
     /* Look for cases where a pointer is implicitly cast to a strange type
