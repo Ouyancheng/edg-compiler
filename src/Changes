@@ -1,5 +1,16 @@
 Version 3.4
 
+10/3/03  GNU compatibility: not-evaluated parts of constant expressions
+         can be non-constant
+
+The GNU gcc and g++ compilers allow not-evaluated parts of constant
+expressions to include things that ordinarily are not allowed
+in constant expressions, for example references to the values of
+variables.  This is now emulated in gcc and g++ mode.
+
+  int i;
+  int a[ 1 || i ];  // Accepted in gcc/g++ mode
+
 10/2/03  Template argument substitution problem with cv-qualified class types
 
 Template argument deduction would fail when it should have succeeded if

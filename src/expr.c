@@ -13986,6 +13986,9 @@ see expr.h).
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean         marked_as_gnu_extension = 
                                (local_options & EOPT_MARKED_AS_GNU_EXTENSION);
+  a_boolean         gnu_not_evaluated_case = FALSE;
+  an_expr_stack_entry
+                    expr_stack_entry;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_expr_full");
@@ -14010,6 +14013,20 @@ see expr.h).
      be restored on exit.  Start a new list for this expression. */
   saved_ref_list = curr_expr_ref_entries;
   curr_expr_ref_entries = NULL;
+
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode && curr_expr_kind_is_const() &&
+      !curr_expr_is_evaluated()) {
+    /* gcc/g++ allows non-constant expressions in not-evaluated parts
+       of constant expressions. */
+    gnu_not_evaluated_case = TRUE;
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    expr_stack->fold_constant_addr_exprs = TRUE;
+    check_assertion(!curr_expr_is_evaluated());
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   /* Scan first one of the following:
      1)  A leaf operand, like an identifier or literal constant.
@@ -14671,6 +14688,34 @@ bad_start_of_primary:
 #if GNU_EXTENSIONS_ALLOWED
   if (marked_as_gnu_extension) {
     mark_operand_as_gnu_extension(result);
+  }  /* if */
+  if (gnu_not_evaluated_case) {
+    /* This is a not-evaluated subexpression in a constant expression
+       in GNU mode.  It was scanned as a normal expression.
+       Check that the expression is constant, or make it a constant. */
+    if (is_constant_operand(result) && is_an_rvalue(result)) {
+      /* Already a constant. */
+    } else if (is_error_operand(result)) {
+      /* An error, leave alone. */
+    } else {
+      /* Discard the operand and replace it with a zero constant of the
+         same type.  GNU does this with operands of any type, but we
+         limit ourselves to those cases where we can make a constant of
+         the operand type, not, e.g., class types. */
+      if (is_scalar_type(result->type) ||
+          is_template_param_type(result->type)) {
+        a_constant constant;
+        make_zero_of_proper_type(result->type, &constant);
+        make_constant_operand(&constant, result);
+        result->position = local_result.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        result->end_position = local_result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      } else {
+        error_in_operand(ec_expr_not_constant, result);
+      }  /* if */
+    }  /* if */
+    pop_expr_stack();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
