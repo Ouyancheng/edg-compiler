@@ -151,14 +151,14 @@ This is the type used to represent the sequence number.
 */
 typedef unsigned long a_token_sequence_number;
 
-a_token_sequence_number
+EXTERN a_token_sequence_number
 		curr_token_sequence_number;
 			/* The sequence number associated with the
 			   current token.  A token retains its sequence
 			   number even when saved and restored from a
 			   token cache. */
 
-a_token_sequence_number
+EXTERN a_token_sequence_number
 		last_token_sequence_number_used;
 			/* The counter used to assign token sequence
 			   numbers. */
