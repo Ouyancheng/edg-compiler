@@ -7873,8 +7873,7 @@ appropriate.
 {
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
-  a_dynamic_init_ptr  local_dip;
-  a_boolean           err = FALSE;
+  a_boolean           okay = TRUE;
 
   db_enter(3, "scan_class_initializer_expression");
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
@@ -7882,17 +7881,12 @@ appropriate.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
-  prep_elision_initializer_operand(&result, required_type, &local_dip);
-  /* Copy the dynamic init entry to the space provided by the caller. */
-  if (local_dip != NULL) {
-    *dip = local_dip;
-  } else {
-    /* Some error. */
-    err = TRUE;
-  }  /* if */
+  prep_elision_initializer_operand(&result, required_type, dip);
+  /* *dip == NULL means there was an error. */
+  if (*dip == NULL) okay = FALSE;
   pop_expr_stack();
   db_exit();
-  return !err;
+  return okay;
 }  /* scan_class_initializer_expression */
 
 

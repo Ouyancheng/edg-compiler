@@ -9235,8 +9235,9 @@ An entity of type dest_type (a class type) is being initialized from
 source_operand.  The constructor or conversion function required to do the
 copy and/or conversion is given by *user_conversion.  Create a dynamic
 initialization entry to do the initialization (and any required
-destruction) and return a pointer to it in *dip.  dest_type is allowed
-to be a class having no constructors at all.
+destruction) and return a pointer to it in *dip (or return *dip == NULL
+for an error).  dest_type is allowed to be a class having no constructors
+at all.
 
 This routine does copy constructor elision, i.e., it checks for cases
 where a constructor or other routine can be called to generate its
@@ -9308,23 +9309,24 @@ happen only in C++ mode.
     }  /* if */
   }  /* if */
   /* Allocate the dynamic initialization entry. */
-  dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none,
-                                class_type, curr_expr_is_evaluated());
   if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
     prep_class_bitwise_copy_operand(source_operand, dest_type);
-    set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_expression);
+    dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_expression,
+                                  class_type, curr_expr_is_evaluated());
     dip->variant.expression = make_node_from_operand(source_operand);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
     /* Use a dik_constructor entry to call the constructor. */
     set_up_for_constructor_call(source_operand, conversion_routine,
                                 &arg_expr_list);
-    set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
+    dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_constructor,
+                                  class_type, curr_expr_is_evaluated());
     dip->variant.constructor.ptr = conversion_routine;
     dip->variant.constructor.args = arg_expr_list;
   } else {
     /* Some error. */
+    dip = NULL;
   }  /* if */
   *p_dip = dip;
 }  /* determine_dynamic_init_for_class_init */
