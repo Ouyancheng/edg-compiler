@@ -8543,8 +8543,7 @@ Return TRUE if the reference is invalid because either
 
 The symbol may be a top-level anonymous union (references to field symbols
 within that anonymous union result in the present routine being called
-with the sk_variable symbol for the union).  The symbol may be
-an sk_static_data_member symbol.
+with the sk_variable symbol for the union).
 */
 {
   a_boolean      bad_ref = FALSE;
@@ -8559,6 +8558,8 @@ an sk_static_data_member symbol.
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->is_class_member) {
       /* A reference to a class member is okay. */
+    } else if (sym_ptr->parent.namespace_ptr != NULL) {
+      /* A reference to a namespace member is okay. */
     } else {
       /* Get the variable for the symbol. */
       check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_variable,
