@@ -1,5 +1,11 @@
 Version 2.34
 
+11/19/96 Placement delete conditionally compiled
+
+The placement delete declarations in new.h are now guarded by an #ifdef
+of __PLACEMENT_DELETE, which is defined by the front end when placement
+delete is enabled.
+
 10/15/96 Placement delete enabled
 
 The placement delete declarations in new.h have been enabled.  They were
