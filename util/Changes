@@ -1,5 +1,10 @@
 Version 2.42
 
+6/23/99  Demangling of invalid name like x__1
+
+An invalid name like x__1 was demangled as ::x.  Now, an error is
+reported.
+
 6/2/99   Instantiation object suffix when not using the C-generating back end
 
 The prelinker removes instantiation object files that are no longer needed.

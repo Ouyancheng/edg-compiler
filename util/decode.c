@@ -1155,6 +1155,11 @@ controls output of extra information on template parameters.
   /* Here, end_ptr indicates the character after the end of the initial
      part of the name. */
   if (!is_special_name) {
+    if (ptr == end_ptr ||
+        (nchars != 0 && (end_ptr - ptr) != nchars)) {
+      /* A zero-length name, or one with the wrong length; error. */
+      bad_mangled_name(dctl);
+    }  /* if */
     /* Output the characters of the base name. */
     for (p = ptr; p < end_ptr; p++) write_id_ch(*p, dctl);
   }  /* if */
