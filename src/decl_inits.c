@@ -3916,8 +3916,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
       if (init_required) {
         if (sym != NULL) {
           /* Variable declaration -- display the symbol. */
-          an_error_code		code;
-          an_error_severity	severity;
+          an_error_code code;
           if (C_dialect == C_dialect_cplusplus) {
             code = ec_var_with_uninitialized_member;
             severity = es_discretionary_error;
