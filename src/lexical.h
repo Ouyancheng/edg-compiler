@@ -292,7 +292,7 @@ typedef struct a_pending_pragma *a_pending_pragma_ptr;
 /*
 Typedef used to declare pointers to pragma processing functions.
 */
-typedef void a_pragma_processing_function(a_pragma_kind
+typedef void a_pragma_processing_function(a_pragma_kind,
 				          a_pending_pragma_ptr);
 typedef a_pragma_processing_function *a_pragma_processing_function_ptr;
 
