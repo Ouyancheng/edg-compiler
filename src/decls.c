@@ -10792,43 +10792,51 @@ void scan_gnu_declarator_attributes(char*              *asm_name,
                                     a_storage_class    declared_storage,
                                     a_boolean          is_function)
 /*
-Scan asm_name constructs and attribute lists following a declarator.
-The resulting asm() symbol name tag is return through asm_name.
-The attributes are appended to the list pointed to by *attributes
-(and *new_attributes is set to TRUE if there are any).
+Scan asm name constructs and attribute lists following a declarator.
+The resulting asm() symbol name tag is returned through asm_name and
+the position of the string literal is stored in *asm_name_pos.  If
+asm_name is NULL, asm name constructs are not scanned.  The attributes
+are appended to the list pointed to by *attributes (and if new_attributes
+is non-NULL *new_attributes is set to TRUE if there are any).  
 */
 {
   char  *asm_sym_name = NULL;
 
   if (gnu_mode) {
-    /* Look for an asm() symbol name tag.  It is ignored on typedefs (with
-       a warning). */
-    a_source_position asm_start_pos;
-    asm_start_pos = pos_curr_token;
-    asm_sym_name = scan_asm_name(asm_name_pos);
-    if (asm_sym_name != NULL &&
-        declared_storage == (a_storage_class)sc_typedef) {
-      pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
-      asm_sym_name = NULL;
-    }  /* if */
-    if (asm_sym_name != NULL && !is_function &&
-        depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-        (declared_storage == (a_storage_class)sc_auto ||
-         declared_storage == (a_storage_class)sc_unspecified)) {
-      /* Automatic variables can only have an asm() name if they are
-         also declared with the "register" keyword. */
-      pos_warning(ec_asm_name_on_auto_variable, &asm_start_pos);
-      asm_sym_name = NULL;
+    if (asm_name != NULL) {
+      /* Look for an asm() symbol name tag.  It is ignored on typedefs (with
+         a warning). */
+      a_source_position asm_start_pos;
+      asm_start_pos = pos_curr_token;
+      asm_sym_name = scan_asm_name(asm_name_pos);
+      if (asm_sym_name != NULL &&
+          declared_storage == (a_storage_class)sc_typedef) {
+        pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
+        asm_sym_name = NULL;
+      }  /* if */
+      if (asm_sym_name != NULL && !is_function &&
+          depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+          (declared_storage == (a_storage_class)sc_auto ||
+           declared_storage == (a_storage_class)sc_unspecified)) {
+        /* Automatic variables can only have an asm() name if they are
+           also declared with the "register" keyword. */
+        pos_warning(ec_asm_name_on_auto_variable, &asm_start_pos);
+        asm_sym_name = NULL;
+      }  /* if */
     }  /* if */
     /* Look for optional (declarator) attributes. */
     if (curr_token == tok_attribute) {
       an_attribute_ptr  *last_declarator_attribute = 
                                               last_attribute_link(attributes);
       *last_declarator_attribute = scan_attributes();
-      *new_attributes = TRUE;
+      if (new_attributes != NULL) {
+        *new_attributes = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
-  *asm_name = asm_sym_name;
+  if (asm_name != NULL) {
+    *asm_name = asm_sym_name;
+  }  /* if */
 }  /* scan_gnu_declarator_attributes */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -11288,18 +11296,16 @@ continue_with_declaration:
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
-      /* Look for optional attributes, which are added to the specifier
-         attributes.  Note that the draft GCC manual for version 3.1
-         says that in the future, these attributes may apply only to
-         the next declarator, but that they presently apply to all
-         subsequent declarators. */
-      if (gnu_mode) {
-        /* Scan the attributes and add them to the specifier attributes. */
-        *last_specifier_attribute = scan_attributes();
-        /* Compute what's now the end of the specifier attributes. */
-        last_specifier_attribute =
-                                last_attribute_link(last_specifier_attribute);
-      }  /* if */
+      /* Scan prefix declarator attributes.  Note that those can only
+         appear after a comma separating two declarators.  Any attributes
+         prefixing a leading declarator will have been parsed as part of
+         the specifier attributes.  GNU versions prior to 3.1 treated all
+         prefix attributes as specifier attributes; we emulate the more
+         recent (GNU C/C++ 3.1 and later) behavior. */
+      scan_gnu_declarator_attributes((char*)NULL, &asm_name_pos,
+                                     &declarator_attributes,
+                                     (a_boolean*)NULL,
+                                     declared_storage_class, is_function);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the source position of the first token of the declarator. */
       declarator_start_pos = pos_curr_token;
