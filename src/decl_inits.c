@@ -2109,9 +2109,7 @@ returned set to TRUE.
       /* In ordinary C a struct or union variable may be initialized by an
          object of the same type as long as dynamic initialization is
          otherwise allowed. */
-      if (scan_class_initializer_expression(vp_type,
-                                            /*fill_in_dtor=*/TRUE,
-                                            &init_dip)) {
+      if (scan_class_initializer_expression(vp_type, &init_dip)) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (decl_pos_block != NULL) {
           decl_pos_block->var_init_range.end = curr_construct_end_position;
