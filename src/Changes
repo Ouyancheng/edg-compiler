@@ -1,5 +1,12 @@
 Version 3.4
 
+11/17/03 IL statement traversal routines, (...) handler
+
+The code in traverse_statement did not deal correctly with
+an exception handler clause with a null dynamic_init field,
+as happens for a (...) handler.  The failure to check for
+a null pointer caused an abort.  Now fixed.
+
 11/14/03 C++-generating back end: Spurious references to template parameters
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and/or

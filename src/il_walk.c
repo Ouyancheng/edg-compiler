@@ -2879,7 +2879,9 @@ as specified in the control block.
         for (handler = tsp->handlers;
              handler != NULL;
              handler = handler->next) {
-          traverse_dynamic_init(handler->dynamic_init, tblock);
+          if (handler->dynamic_init != NULL) {
+            traverse_dynamic_init(handler->dynamic_init, tblock);
+          }  /* if */
           if (tblock->terminate) goto end_of_routine;
           traverse_statement(handler->statement, tblock);
           if (tblock->terminate) goto end_of_routine;
