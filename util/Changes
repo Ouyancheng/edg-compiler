@@ -1,10 +1,55 @@
-Version 2.26, October 13, 1994
+Version 2.27
+
+10/24/94 Handling of nonlocal files by the prelinker
+
+The prelinker and the eccp script now provide several different
+options for the handling of nonlocal object files (i.e., object files
+that reside in another directory).
+
+Before this change, the prelinker would probably fail if an
+instantiation were assigned to a nonlocal object file.
+
+In the default mode, instantiations may now be assigned to nonlocal
+object files.  This will result in the nonlocal file being
+recompiled in the same directory as it was originally compiled in.
+The prelinker has been modified to always prefer assignments to
+local files.  In other words, assignments will only be made to
+nonlocal files when there is no local file that can supply the
+needed instantiation.
+
+If the --prelink_local_only option is specified, instantiations
+will not be assigned to nonlocal files.  Because the prelinker now
+assigns instantiations to local files whenever possible, this will
+result in link errors (because of missing instantiations) in cases
+in which nonlocal instantiations would otherwise be done.
+
+If the --prelink_copy_if_nonlocal option is specified, the
+prelinker will, instead of assigning an instantiation to a nonlocal
+file, copy the nonlocal .ii file to the local directory and
+recompiled the file locally.  This mode assumes that the same
+command line (except for the name of the file to be compiled) may
+be used to compile the file in both the nonlocal and local
+directories.
+
+The prelinker uses single character options instead of the keyword
+options now used by eccp.  The --prelink_local_only option
+is translated to the -D option to edg_prelink.  The
+--prelink_copy_if_nonlocal option is translated to -N.
+
+10/24/94 Change in handling of EDG_GEN_C_SUFFIX
+
+The handling of the EDG_GEN_C_SUFFIX variable has been expanded
+to allow the entire suffix to be specified.  Formerly, only
+the portion of the suffix that follows the .int could be specified.
 
 10/20/94 Order of -L options passed to the prelinker
 
 -L options were being passed to the prelinker in the wrong sequence.
 Specifically, the system directories were incorrectly placed at the
 front of the list instead of after any user specified directories.
+
+-------------------------------------------------------------------------------
+Version 2.26, October 13, 1994
 
 10/5/94 Generated C file suffix
 
