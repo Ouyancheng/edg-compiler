@@ -4261,6 +4261,7 @@ do_assignment:;
                to the constant, preceding any generated initialization code.
                This is done because we want the variable to be a tentative
                definition, which means it must be uninitialized. */
+            a_variable_ptr   temp_var;
             an_expr_node_ptr init_val_node;
             set_block_start_insert_location(block_stmt, &insert_location2);
             entity_node = make_init_entity_node(ipdp,
@@ -4268,9 +4269,14 @@ do_assignment:;
                                                 /*using_as_dest=*/TRUE);
             check_assertion(simple_constant->kind ==
                             (a_constant_repr_kind)ck_aggregate);
-            init_val_node = make_node_for_il_constant(simple_constant);
+            temp_var = make_lowered_temporary(variable->type);
+            temp_var->init_kind = (an_init_kind)initk_static;
+            temp_var->initializer.constant = simple_constant;
+            check_assertion(in_file_scope(simple_constant) ==
+                            in_file_scope(temp_var));
+            init_val_node = var_lvalue_expr(temp_var);
             (void)insert_assignment_statement(entity_node,
-                                            (an_expr_operator_kind)eok_sassign,
+                                            (an_expr_operator_kind)eok_bassign,
                                               init_val_node,
                                               &insert_location2);
             variable->init_kind = (an_init_kind)initk_none;
