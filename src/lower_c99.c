@@ -1341,14 +1341,15 @@ to the fixed-point runtime routines.
 
   if (is_fixed_point_type(type)) {
     type = lowered_integer_type_for_fixed_point_type(type);
-  }  /* if */
-  if (is_signed_integral_type(type)) {
-    /* For signed integral types, cast to the same-sized unsigned type
-       first before widening to avoid sign extension. */
-    a_type_ptr unsigned_type =
-                 other_signedness_integer_type(f_skip_typerefs(type)->
+    if (is_signed_integral_type(type)) {
+      /* For fixed-point types represented as signed integral types,
+         cast to the same-sized unsigned type first before widening to
+         avoid sign extension. */
+      a_type_ptr unsigned_type =
+                   other_signedness_integer_type(f_skip_typerefs(type)->
                                                      variant.integer.int_kind);
-    expr = add_cast_if_necessary(expr, unsigned_type);
+      expr = add_cast_if_necessary(expr, unsigned_type);
+    }  /* if */
   }  /* if */
   expr = add_cast_if_necessary(expr, fxvalue_type());
   return expr;
