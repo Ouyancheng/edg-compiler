@@ -1,5 +1,11 @@
 Version 3.4
 
+8/22/03  GNU mode: __builtin_va_start
+
+In GNU C and C++ modes, the front end now accepts __builtin_va_start as a
+synonym for __builtin_stdarg_start when GCC_BUILTIN_VARARGS is configured
+TRUE.  (The new notation was introduced in version 3.3 of the GNU compilers.)
+
 8/21/03  Abort while determining the correspondence of an unnamed class type
 
 Under some circumstances involving exported templates and an unnamed class
