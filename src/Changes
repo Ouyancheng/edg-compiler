@@ -1,5 +1,20 @@
 Version 3.2
 
+5/6/03   IA-64 ABI: pointer-to-data-member not set to -1 in casts
+
+The IA-64 ABI uses -1 for a NULL pointer-to-data-member value.
+When entities are "zeroed", pointer to data members must be set
+to -1.  This was not done for some cases involving casts to class
+types.  Now fixed.
+
+  struct A {
+    int A::*p;
+  };
+  const A &r = A();  // p was not set to -1
+  int main() {
+    A();  // p was not set to -1
+  }
+
 5/6/03   Missing bool normalization in IA-64 ABI __cxa_guard_acquire call
 
 In the IL, a tested boolean expression is supposed to be normalized

@@ -7128,22 +7128,25 @@ Do IL lowering of an enk_temp_init expression node.
          while lowering a compound literal. */
       add_stmk_init_for_compound_literal(temp_var, dip);
     }  /* if */
-    if (temp_var->init_kind == (an_init_kind)initk_zero &&
-        !has_static_storage_duration(temp_var->storage_class)) {
-      /* We need to zero an automatic temporary, which can't be done by
-         setting its init_kind to initk_zero, because we don't know that
-         the block of the temporary will be entered at the top.  Make
-         a zeroed static variable and copy it to the temporary. */
-      a_variable_ptr static_temp = make_temporary_in_scope(
-                                                        temp_type,
-                                                        (a_scope_ptr)NULL,
-                                                        /*force_static=*/TRUE);
-      static_temp->init_kind = (an_init_kind)initk_zero;
-      (void)insert_assignment_statement(var_lvalue_expr(temp_var),
-                                        (an_expr_operator_kind)eok_bassign,
-                                        var_lvalue_expr(static_temp),
-                                        &insert_location);
-      temp_var->init_kind = (an_init_kind)initk_none;
+    if (temp_var->init_kind == (an_init_kind)initk_zero) {
+      if (!has_static_storage_duration(temp_var->storage_class)) {
+        /* We need to zero an automatic temporary, which can't be done by
+           setting its init_kind to initk_zero, because we don't know that
+           the block of the temporary will be entered at the top. */
+        insert_call_to_zero_entity(temp_type, /*have_complete_object=*/TRUE,
+                                   var_lvalue_expr(temp_var),
+                                   (an_expr_node_ptr)NULL,
+                                   (a_targ_size_t)0,
+                                   &insert_location);
+        temp_var->init_kind = (an_init_kind)initk_none;
+#if IA64_ABI
+      } else {
+        /* static temporary.  Check for the need to change the initial
+           value to set pointers to data members to -1. */
+        lower_initializer(temp_var, &temp_var->init_kind,
+                          &temp_var->initializer, &insert_location);
+#endif /* IA64_ABI */
+      }  /* if */
     }  /* if */
     /* Optimization -- if the initialization is done by a constructor,
        and the enk_temp_init returns the address of the temporary,
