@@ -1,5 +1,14 @@
 Version 2.42
 
+6/27/99  Linkage of inline template functions
+
+If a function template was first declared without the inline specifier and
+was later redeclared inline (either explicitly or by virtual of being
+defined in a friend declaration in a class) any previously created instances
+were incorrectly marked as having internal linkage.  The should only have
+been so marked when the "extern inline" feature was disabled.  This has
+been fixed.
+
 6/25/99  C++-generating back end: field selection of static const member
 
 The C++-generating back end now generates a comma operation for a field

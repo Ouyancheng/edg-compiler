@@ -5603,12 +5603,10 @@ is not a template declaration scope.
     for (; tip != NULL; tip = tip->next) {
       rp = tip->instance_sym->variant.routine.ptr;
       if (rp->is_specialized) {
-#if 0
-        /* Must the inline setting of a specific definition of a function
-           template be consistent with that of the template? */
-#endif /* if 0 */
+        /* An explicit specialization is only inline if so declared. */
       } else {
-        if (rp->storage_class != (a_storage_class)sc_static) {
+        if (!extern_inline_allowed &&
+            rp->storage_class != (a_storage_class)sc_static) {
           /* Issue a warning on linkage inconsistency only on nonmember
              function templates. */
           if (!sym->is_class_member) {
