@@ -5330,6 +5330,73 @@ void namespace_declaration(a_boolean  extern_implied)
 }  /* namespace_declaration */
 
 
+static void using_directive()
+/*
+*/
+{
+  a_source_position              decl_start_pos;
+  a_symbol_ptr                   sym;
+  a_boolean                      err = FALSE;
+  a_using_directive_ptr          udp;
+  an_active_using_directive_ptr  audp;
+  a_scope_pointers_block_ptr     pointers_block;
+
+  decl_start_pos = pos_curr_token;
+  /* Bypass "using" and "namespace". */
+  (void)get_token();
+  (void)get_token();
+  add_stop_token(tok_semicolon);
+  if (!is_qualified_name_start()) {
+    syntax_error(ec_exp_identifier);
+  } else {
+    sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                     ilm_normal, &err);
+    if (err) {
+      /* A diagnostic has already been issued. */
+    } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
+      error(ec_missing_namespace_name);
+    } else {
+      udp = alloc_using_directive();
+      udp->position = decl_start_pos;
+      udp->assoc_namespace = sym->variant.namespace_info.ptr;
+      add_to_using_directives_list(udp);
+      audp = (an_active_using_directive_ptr)alloc_fe(
+                                         sizeof(an_active_using_directive));
+      audp->entry = udp;
+      pointers_block =
+                  assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
+      audp->next = pointers_block->active_using_directives;
+      pointers_block->active_using_directives = audp;
+    }  /* if */
+    (void)get_token();
+  }  /* if */
+  remove_stop_token(tok_semicolon);
+  required_token(tok_semicolon, ec_exp_semicolon);
+}  /* using_directive */
+
+
+void using_declaration()
+/*
+*/
+{
+  /* Bypass "using". */
+  (void)get_token();
+  add_stop_token(tok_semicolon);
+  if (!is_qualified_name_start()) {
+    syntax_error(ec_exp_identifier);
+  } else {
+    a_symbol_ptr               sym;
+    a_boolean                  err = FALSE;
+
+    sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                     ilm_normal, &err);
+    (void)get_token();
+  }  /* if */
+  remove_stop_token(tok_semicolon);
+  required_token(tok_semicolon, ec_exp_semicolon);
+}  /* using_declaration */
+
+
 /*
 Local macro for the routine "declaration".  Does any remove_stop_token
 calls that have not yet been done.  Useful in ensuring that all the stop
@@ -5483,6 +5550,15 @@ of local variables (and types, etc.) of functions and in blocks.
     } else if (curr_token == tok_namespace) {
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(extern_implied);
+      goto return_point;
+    } else if (curr_token == tok_using) {
+      /* A using-directive (which has the form "using namespace N;") or a
+         using-declaration ("using N::x;" or "using ::x;"); */
+      if (next_token() == tok_namespace) {
+        using_directive();
+      } else {
+        using_declaration();
+      }  /* if */
       goto return_point;
     } else if (check_for_overload_anachronism()) {
       /* We check for and discard declarations of the form "overload f;" --
