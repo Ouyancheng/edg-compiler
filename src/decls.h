@@ -69,6 +69,10 @@ typedef struct a_param_id {
 			   but is kept here also so we can be sure of
 			   associating the proper identifier and type
 			   in error cases. */
+  a_source_position
+		type_pos;
+			/* Source position of the start of the type
+			   specification of the parameter declaration. */
   a_storage_class
 		storage_class;
 			/* For a new- or old-style style function parameter,
