@@ -2016,7 +2016,7 @@ do_label:
     case stmk_asm:
       /* Asm statement. */
       (void)printf("stmk_asm\n");
-      disp_ptr("asm_entry", (char *)ptr->asm_entry, iek_asm_entry);
+      disp_ptr("asm_entry", (char *)ptr->variant.asm_entry, iek_asm_entry);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
