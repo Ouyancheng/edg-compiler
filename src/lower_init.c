@@ -2082,6 +2082,8 @@ later will be made conditional on the temporary.
   /* Make and insert an assignment statement to set the temporary to 1.
      The insertion is done before the indicated location, which is presumably
      the expression already generated to do the initialization. */
+  /* Note that lower_temp_init recognizes this assignment so it can
+     optimize around it. */
   insert_before_location = *insert_location;
 #if CHECKING
   if (!insert_before_location.expr_insert ||
@@ -3050,10 +3052,34 @@ Do IL lowering of an enk_temp_init expression node.
   if ((result_is_addr &&
       dip->kind == (a_dynamic_init_kind)dik_constructor) ||
       result_is_not_used) {
-    check_assertion(is_operation_node(expr) &&
-                    expr->variant.operation.kind ==
+    an_expr_node_ptr comma_expr = expr, first_operand;
+    check_assertion(is_operation_node(comma_expr) &&
+                    comma_expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_comma);
-    overwrite_node(expr, expr->variant.operation.operands);
+    if (num_conditional_exprs_inside_of != 0) {
+      /* If we are inside a conditional expression, an assignment may have
+         been added to set a flag to indicate that the construction was
+         done.  See add_conditional_destruction_temp.  The assignment is only
+         added if a destructor call will be needed later. */
+      an_expr_node_ptr second_operand =
+                                  comma_expr->variant.operation.operands->next;
+      if (is_operation_node(second_operand) &&
+          second_operand->variant.operation.kind ==
+                                            (an_expr_operator_kind)eok_comma) {
+        /* The assignment is present.  The second operand of the comma
+           operator should be the comma operator that contains the
+           constructor call and the address of the temporary. */
+        comma_expr = second_operand;
+      }  /* if */
+    }  /* if */
+    first_operand = comma_expr->variant.operation.operands;
+    check_assertion(is_operation_node(first_operand) &&
+                    first_operand->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_call &&
+                    result_is_addr ? 
+                      is_variable_address_node(first_operand->next) :
+                      is_variable_node(first_operand->next));
+    overwrite_node(comma_expr, first_operand);
   }  /* if */
 }  /* lower_temp_init */
 

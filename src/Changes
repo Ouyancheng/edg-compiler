@@ -1,5 +1,19 @@
 Version 2.19
 
+7/29/93  IL lowering: code generation error
+
+An optimization in the code generation for constructor calls resulted
+in the constructor call being dropped when it appeared inside a conditional
+operator (like "?") and a flag is set to indicate that a destructor must
+be called later.
+
+  struct sss { sss(); ~sss(); sss(const sss &); };
+  sss foo () {return sss();}
+  void m() {
+    int t = 1;
+    sss loc = t ? sss() : foo();
+  }
+
 7/9/93   cfront compatibility: extra macro arguments are just a warning
 
 In cfront compatibility mode, extra arguments in a macro invocation
