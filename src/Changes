@@ -1,5 +1,20 @@
 Version 2.27
 
+10/25/94 Conversion of Derived<T> to Base<T> on template match in strict mode
+
+The code example shown in the fix of 7/29/94 (below) is now accepted
+without error in strict mode as well as in default and cfront modes.
+The standards committee recently blessed this particular conversion,
+which was not allowed by the ARM.
+
+10/25/94 C++-generating back end output of nested template references
+
+The C++-generating back end output for a nested template reference like
+
+  A<A<int> >
+
+now contains the space shown, to avoid mistaking two ">"s for ">>".
+
 10/24/94 Prelinker, eccp, and .ii file format changes
 
 The instantiation information file (i.e., .ii file) format has
