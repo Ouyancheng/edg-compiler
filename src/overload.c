@@ -1575,7 +1575,11 @@ class or a derived class thereof (except for error cases).
                               /*try_user_conversions=*/FALSE,
                               /*is_match_for_this_param=*/TRUE,
                               this_match_summary);
-    if ((cfront_2_1_mode || microsoft_mode) &&
+    if ((cfront_2_1_mode
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                         || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                          ) &&
         this_match_summary->match_level == aml_none) {
       /* No match.  Try the cfront anachronism of calling a function that
          does not require a const "this" with a const selector.  See also
