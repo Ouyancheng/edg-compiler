@@ -1842,13 +1842,16 @@ one step instead of class-by-class, return TRUE.
 
 
 static void gen_designator(a_constant_ptr con,
-                           a_field_ptr    *field)
+                           a_field_ptr    *field,
+                           a_boolean      *repeated)
 /*
 Generate code for a ck_designator constant, i.e., a designator in a
 designated initializer.  If the designator is for a field, set *field to
-the field.
+the field.  If the designator is for a repeated initialization, return
+*repeated set to TRUE.
 */
 {
+  *repeated = FALSE;
   *field = con->variant.designator.field;
   if (*field != NULL) {
     /* Field designator. */
@@ -1858,6 +1861,14 @@ the field.
     /* Array element designator. */
     write_tok_ch('[');
     write_unsigned_num((unsigned long)con->variant.designator.array_element);
+    if (con->next->kind == (a_constant_repr_kind)ck_init_repeat) {
+      /* A repeated designator, e.g., "[1 ... 1000] = 0". */
+      a_targ_size_t last_elem = con->variant.designator.array_element +
+                                con->next->variant.init_repeat.count - 1;
+      *repeated = TRUE;
+      write_tok_str(" ... ");
+      write_unsigned_num((unsigned long)last_elem);
+    }  /* if */
     write_tok_ch(']');
   }  /* if */
   write_tok_str(" = ");
@@ -1906,12 +1917,16 @@ initialized is not a reference.
       check_assertion(array_case);
     } else {
       for (; sub_con != NULL;) {
+        a_constant_ptr eff_sub_con = sub_con;
         if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
           /* Put out the introduction for a designated initializer. */
-          gen_designator(sub_con, &field);
+          a_boolean repeated;
+          gen_designator(sub_con, &field, &repeated);
           sub_con = sub_con->next;
+          eff_sub_con = sub_con;
           check_assertion(sub_con != NULL &&
                           sub_con->kind!=(a_constant_repr_kind)ck_designator);
+          if (repeated) eff_sub_con = sub_con->variant.init_repeat.constant;
         }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
@@ -1921,7 +1936,7 @@ initialized is not a reference.
           sub_type = field->type;
           field = next_initializable_field(field->next);
         }  /* if */
-        gen_initializer_constant(sub_con, sub_type);
+        gen_initializer_constant(eff_sub_con, sub_type);
         sub_con = sub_con->next;
         /* Stop after the last constant. */
         if (sub_con == NULL) break;
