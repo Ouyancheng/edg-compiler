@@ -268,7 +268,7 @@ typedef int a_gen_name_options_set;
 			   "A::B::x"). */
 #define GN_BOUND_MEMBER 0x10
 			/* gen_name is invoked to emit the name of a member
-			   function of field.  In Microsoft mode, such a
+			   function or field.  In Microsoft mode, such a
 			   name cannot be qualified with a namespace name. */
 
 
@@ -3981,7 +3981,7 @@ this selection.
                                                        extra_info->assoc_scope;
       push_name_context(class_scope);
       need_context_pop = TRUE;
-      gen_class_qualifier(naming_class, GN_NO_OPTIONS, (a_boolean *)NULL);
+      gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
   gen_field_reference(field_expr);
