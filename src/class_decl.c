@@ -4566,6 +4566,30 @@ shares virtual function info.
                                    base_ctsp->highest_virtual_function_number;
 }  /* set_virtual_function_info_base_class */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_microsoft_IUnknown_type(a_type_ptr  type)
+/*
+Check whether the given class type is called IUnknown and has the uuid of
+the Microsoft COM base class IUnknown.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(is_immediate_class_type(type));
+  if (type->source_corresp.name != NULL &&
+      type->source_corresp.name[0] == 'I' &&  /* For speed. */
+      strcmp(type->source_corresp.name, "IUnknown") == 0) {
+    char  *uuid_str = type->variant.class_struct_union.extra_info->uuid_string;
+    if (uuid_str != NULL &&
+        strcmp(uuid_str, "00000000-0000-0000-c000-000000000046") == 0) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_microsoft_IUnknown_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_inheritance_kind(a_type_ptr           type_ptr,
                                   a_boolean            *is_virtual,
@@ -4833,7 +4857,8 @@ or struct definition.  The syntax is
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_interface_definition &&
           !base_class_type
-                        ->variant.class_struct_union.is_microsoft_interface) {
+                        ->variant.class_struct_union.is_microsoft_interface &&
+          !is_microsoft_IUnknown_type(base_class_type)) {
         error(ec_microsoft_interface_must_derive_from_interface);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
