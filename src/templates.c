@@ -18540,6 +18540,10 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     if (!flag_already_set) {
       /* Record the namespace from which this instantiation is first used. */
       tip->referencing_namespace = determine_referencing_namespace();
+    } else {
+      /* If the instantiation flag was already set the entry must already be
+         on the list. */
+      add_to_list = FALSE;
     }  /* if */
     if (use_master_instance &&
         !defer_inline && is_inline_template_function(tip, 
