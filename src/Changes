@@ -1,5 +1,13 @@
 Version 2.23
 
+4/25/94  Two cases involving arrays with qualified member types
+
+(1)  Initialization of a reference to an array with a qualified element
+type now deals properly with the qualifiers when it is done as part of
+overload resolution.  (2)  Assignment of a pointer to an array with a
+qualified element type to a pointer to an array with a more-qualified
+element type now works properly.
+
 4/25/94  targ_def.h and target.h -- target configuration
 
 The contents of target.h have been moved into a new file named targ_def.h,
@@ -9,7 +17,7 @@ are new, and replace #define values to control processing throughout the
 compiler; they are initialized by those #define values (which are
 upper-case versions of the same name).  For instance, targ_little_endian is
 initialized by TARG_LITTLE_ENDIAN and all references to the latter have
-been replace by references to the former.  Here is the set of configuration
+been replaced by references to the former.  Here is the set of configuration
 variables:
 
  targ_little_endian
@@ -52,7 +60,6 @@ available.  By default, however, the compiler works as before: the
 configuration variables simply retain the values established by the
 #defines.
 
-
 4/25/94  defines.h -- a file for specifying configuration parameters
 
 A new file named defines.h has been added.  defines.h is intended to
@@ -68,9 +75,10 @@ for comments).
 Formerly, the front end used trigraphs in error directives used to
 diagnose incorrectly set configuration parameters.  The trigraphs
 were used to prevent spurious errors from old-style preprocessors that
-don't recognize the "#error" directive.  Instead of trigraphs, the
-new error directives are indented by a single space.  This prevents
-errors when compiling with old-style preprocessors that require
+don't recognize the "#error" directive.  Unfortunately, they drew
+warnings from some ANSI C compilers.  Therefore, the "??=error" has
+been changed to "#error" indented by one space.  This prevents
+errors when compiling with old-style preprocessors, which require
 preprocessing directives to begin in the first column.
 
 4/21/94  Name mangling for local nested types
