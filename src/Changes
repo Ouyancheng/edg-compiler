@@ -1,5 +1,13 @@
 Version 2.41
 
+2/26/99  Microsoft compatibility: string in parentheses as initializer
+
+Microsoft mode now accepts a string literal in parentheses as the
+initializer for an array of characters.  This was previously
+accepted only in pcc mode and cfront mode.
+
+  static char c[] = ("abcdef");
+
 2/26/99  Partial ordering rules changed to conform to standard
 
 The partial ordering rules implemented by the front end conformed to the

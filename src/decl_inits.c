@@ -167,9 +167,11 @@ If there is an error, issue an error and return an error constant.
     if (curr_token == tok_string_literal) {
       is_string_init = TRUE;
     } else if (curr_token == tok_lparen) {
-      if ((any_cfront_mode() || C_dialect == C_dialect_pcc) &&
+      if ((any_cfront_mode() || C_dialect == C_dialect_pcc ||
+           microsoft_mode) &&
           next_token() == tok_string_literal) {
-        /* This is a special case that's accepted in K&R mode and by cfront:
+        /* This is a special case that's accepted in K&R mode, cfront mode,
+           and Microsoft mode:
              char a[] = ("hello");
            (Note: we only recognize this sort of case when there is a single
            set of parentheses surrounding the string -- both pcc and cfront
