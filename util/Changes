@@ -1,5 +1,10 @@
 Version 2.23
 
+4/5/94  eccp uses edg_decode to demangle the names in linker output
+
+The eccp script has been modified to use edg_decode to demangle
+names in the output of the linker.
+
 3/18/94 -L and -l options now supported by edg_prelink
 
 The -L and -l linker options are now passed from eccp to the prelinker so
