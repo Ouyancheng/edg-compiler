@@ -1885,9 +1885,11 @@ UNIX Version.
 #include <sys/types.h>
 #include <dirent.h>
 #ifndef __AIX__
-/* This file should not be included on IBM AIX. */
+#ifndef __osf__
+/* This file should not be included on IBM AIX or Digital UNIX. */
 #include <sys/dirent.h>
-#endif  /* ifndef __AIX__ */
+#endif /* ifndef __osf__ */
+#endif /* ifndef __AIX__ */
 
 /*ARGSUSED*/ /* <-- Because "curr_dir_name" is not used. */
 char *get_file_name_from_dir(a_boolean	first,
