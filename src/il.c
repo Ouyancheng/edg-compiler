@@ -12332,6 +12332,7 @@ in il_init.)
   register_trans_unit_variable(curr_fenv_access_state);
   register_trans_unit_variable(curr_cx_limited_range_state);
   register_trans_unit_variable(curr_object_lifetime);
+  register_trans_unit_variable(okay_to_eliminate_unneeded_il_entries);
 #if DO_IL_LOWERING
   register_trans_unit_variable(initial_value_for_il_lowering_flag);
 #endif /* DO_IL_LOWERING */
@@ -12356,6 +12357,12 @@ need initialization for every (primary and secondary) translation unit.
   curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_object_lifetime = NULL;
+  /* remove_unneeded_entities is the value, settable from the command line,
+     to which okay_to_eliminate_unneeded_il_entries should be initialized
+     with each new compilation unit (unneeded IL is not eliminated in
+     secondary translation units). */
+  okay_to_eliminate_unneeded_il_entries = is_primary_translation_unit ?
+                                             remove_unneeded_entities : FALSE;
 #if DO_IL_LOWERING
   initial_value_for_il_lowering_flag = 0;
 #endif /* DO_IL_LOWERING */
@@ -12391,6 +12398,7 @@ need initialization for every (primary and secondary) translation unit.
           sizeof(orphaned_file_scope_il_entries));
 #endif /* ORPHAN_PROCESSING_NEEDED */
   based_type_fixup_list = NULL;
+  any_function_scope_lifetime_entries = FALSE;
   il_reset();
 }  /* il_trans_unit_init */
 
@@ -12403,12 +12411,6 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-  /* Variables in il.h: */
-  /* remove_unneeded_entities is the value, settable from the command line,
-     to which okay_to_eliminate_unneeded_il_entries should be initialized
-     with each new translation unit. */
-  okay_to_eliminate_unneeded_il_entries = remove_unneeded_entities;
-
 #if DEBUG
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;
@@ -12418,7 +12420,6 @@ of the front end.
   num_get_based_type_calls               = 0;
   num_based_type_fixups_allocated        = 0;
 #endif /* DEBUG */
-  any_function_scope_lifetime_entries = FALSE;
   il_alloc_init();
 }  /* il_init */
 
