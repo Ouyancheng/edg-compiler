@@ -1,5 +1,19 @@
 Version 2.40
 
+9/9/98    Microsoft compatibility: improved support for inheritance kinds
+
+Support in Microsoft-compatibility mode for specifying the inheritance
+kinds of classes (which the Microsoft compiler uses to determine the
+representation of pointer-to-member types) has been improved:
+ -- The default inheritance kind is now __virtual_inheritance (which
+    corresponds to the most general pointer-to-member representation,
+    instead of __single_inheritance, the most restrictive).
+ -- An error is now issued when the inheritance kind for a class (either
+    as specified explicitly or as acquired based on the default) is too
+    restrictive compared to the actual inheritance of the class.
+ -- The C++-generating back end now puts out the inheritance kind on a
+    class declaration only when it appears explicitly in the source.
+
 9/8/98    Internal errors when source sequence lists included
           nonclass template instantiations
 
