@@ -7047,6 +7047,8 @@ C++ mode.
          that section. */
       /* Make an operand for the value of the "this" pointer. */
       make_this_variable_operand(this_var, result);
+      /* Get position right in case of errors below. */
+      result->position = *member_pos;
       if (bcp != NULL) {
         /* Cast the pointer to the base class of the member. */
         base_class_cast_operand(result, bcp, &is_arrow_operator,
