@@ -1891,13 +1891,14 @@ specified id-linkage block.
       prior_decl = NULL;
     }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-    if (prior_decl != NULL &&
-        is_object == (prior_decl->kind == (a_symbol_kind)sk_variable)) {
-      /* The current declaration matches the prior declaration, so the latter
-         can be used to determine the linkage of the former. */
-    } else {
-      /* Ignore the previous declaration. */
-      prior_decl = NULL;
+    if (prior_decl != NULL) {
+      if (is_object == (prior_decl->kind == (a_symbol_kind)sk_variable)) {
+        /* The current declaration matches the prior declaration, so the latter
+           can be used to determine the linkage of the former. */
+      } else {
+        /* Ignore the previous declaration. */
+        prior_decl = NULL;
+      }  /* if */
     }  /* if */
     if (prior_decl != NULL) {
       if ((prior_decl->kind == (a_symbol_kind)sk_routine ||
@@ -2116,6 +2117,8 @@ issued a similar error).  Return FALSE if there is some error.
   a_boolean                  is_routine;
   an_error_severity          severity;
   a_symbol_ptr               sym;
+  a_boolean                  compat;
+  a_boolean                  incompatible_linkage_spec = FALSE;
 
   db_enter(4, "reconcile_external_symbol_types");
   esdp = ext_sym->variant.extern_symbol_descr;
@@ -2127,10 +2130,20 @@ issued a similar error).  Return FALSE if there is some error.
        convention differences.  In C mode, overloading is not possible, so
        allow error type mismatches on routine types. */
     is_routine = ext_sym->kind == (a_symbol_kind)sk_extern_routine;
-    if (is_routine ? routine_types_are_compatible(old_type, type_ptr,
-                           C_mode() ? TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING :
-                                      TCF_NO_FLAGS) :
-                     types_are_redecl_compatible(old_type, type_ptr)) {
+    if (is_routine) {
+      if (C_mode()) {
+        compat = types_are_compatible(old_type, type_ptr);
+      } else {
+        compat = types_are_strictly_compatible(old_type, type_ptr);
+        if (!compat &&
+            routine_types_are_compatible(old_type, type_ptr, TCF_NO_FLAGS)) {
+          incompatible_linkage_spec = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      compat = types_are_redecl_compatible(old_type, type_ptr);
+    }  /* if */
+    if (compat) {
       /* The old and new types are compatible.  Form the composite of
          those types, and save that as the type of the external symbol. */
       esdp->type = composite_type(old_type, type_ptr);
@@ -2289,7 +2302,10 @@ issued a similar error).  Return FALSE if there is some error.
 issue_diagnostic:
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
-        pos_sy_diagnostic(severity, ec_decl_incompatible_with_previous_use,
+        pos_sy_diagnostic(severity,
+                          incompatible_linkage_spec ?
+                            ec_incompatible_linkage_specifier :
+                            ec_decl_incompatible_with_previous_use,
                           position, ext_sym);
       }  /* if */
     }  /* if */
@@ -2303,6 +2319,7 @@ static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_symbol_locator       *locator,
                             a_type_ptr             type_ptr,
                             an_id_linkage_kind     linkage,
+                            a_name_linkage_kind    name_linkage,
                             a_func_info_block_ptr  func_info,
                             a_boolean              redeclaration,
                             a_boolean              suppress_incompatible_error,
@@ -2336,7 +2353,6 @@ created; the caller must set it.
   a_boolean                  err = FALSE;
   a_boolean                  use_existing_il_entry = FALSE;
   a_type_ptr                 preexisting_type;
-  a_name_linkage_kind        name_linkage;
   a_boolean                  is_implicit_declaration;
   a_boolean                  is_function;
 
@@ -2349,17 +2365,6 @@ created; the caller must set it.
   } else {
     is_function = FALSE;
     ext_sym_kind = (a_symbol_kind)sk_extern_variable;
-  }  /* if */
-  /* Set the name linkage for the external symbol. */
-  if (linkage == idl_internal) {
-    name_linkage = (a_name_linkage_kind)nlk_internal;
-  } else if (C_dialect != C_dialect_cplusplus ||
-             (is_function && func_info->is_main_function)) {
-    /* "main" always has extern "C" linkage. */
-    name_linkage = (a_name_linkage_kind)nlk_external;
-  } else {
-    /* Use the default name linkage for the current declaration. */
-    name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
   }  /* if */
   if (is_error_locator(*locator)) err = TRUE;
   if (suppress_ext_sym_lookup || err) {
@@ -2411,20 +2416,20 @@ created; the caller must set it.
         /* Force creation of a new external symbol. */
         ext_sym = NULL;
       } else {
-        /* Both are variables, or both are routines.  Compare the old and new
-           types; they must be compatible. */
+        /* Both are variables, or both are routines.  Compare the old and
+           new types; they must be compatible. */
         err = !reconcile_external_symbol_types(ext_sym,
                                                &locator->source_position,
                                                type_ptr,
                                                suppress_incompatible_error);
         if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
-	  /* If this declaration is not the result of an implicit declaration,
-	     clear the is_implicit_declaration flag in the external
-	     symbol entry. */
-	  if (!is_implicit_declaration) {
-	    esdp->variant.routine.is_implicit_declaration = FALSE;
-	  }  /* if */
-	}  /* if */
+          /* If this declaration is not the result of an implicit
+             declaration, clear the is_implicit_declaration flag in the
+             external symbol entry. */
+          if (!is_implicit_declaration) {
+            esdp->variant.routine.is_implicit_declaration = FALSE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (is_function && !err) {
@@ -3171,7 +3176,7 @@ associated sk_external_variable or sk_external_routine symbol, if any.
           /* Mark the symbols as having an explicit linkage specifier to
              keep this error from occurring again later. */
           sym->explicit_linkage_specifier = TRUE;
-          ext_sym->explicit_linkage_specifier = TRUE;
+          if (ext_sym != NULL) ext_sym->explicit_linkage_specifier = TRUE;
         }  /* if */
       } else {
         /* Linkage is not the same, but it's no error as long as the current
@@ -3187,20 +3192,24 @@ associated sk_external_variable or sk_external_routine symbol, if any.
             idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
           scp->name_linkage = idlbp->name_linkage;
           sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
-          ext_sym->explicit_linkage_specifier =
-                     idlbp->name_linkage_is_explicit;
+          if (ext_sym != NULL && idlbp->name_linkage_is_explicit) {
+            ext_sym->explicit_linkage_specifier = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (err) {
         /* Neither functions nor variables are supposed to have inconsistent
            linkage specifications, but it's more of a problem for functions.
            Issue an error for functions, a warning for variables. */
+        a_symbol_ptr  sym = ext_sym;
+
+        if (sym == NULL) sym = idlbp->linked_symbol;
+        check_assertion(sym != NULL)
         pos_sy_diagnostic(is_function ? (an_error_severity)es_error :
                                           (strict_ansi_mode ?
                                               strict_ansi_error_severity :
                                               (an_error_severity)es_warning),
-                          ec_incompatible_linkage_specifier,
-                          error_pos, ext_sym);
+                          ec_incompatible_linkage_specifier, error_pos, sym);
       }  /* if */
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
@@ -3624,7 +3633,7 @@ cross-reference output describing this declaration.
                              redecl_error_already_issued);
   }  /* if */
   *ext_sym = NULL;
-  if (linkage != idl_none) {
+  if (linkage != idl_none && linked_symbol == NULL) {
     /* The symbol has external or internal linkage.  Find or create an
        external symbol entry for the identifier name, to check that the
        current declaration is compatible with any previous and future
@@ -3639,6 +3648,7 @@ cross-reference output describing this declaration.
     a_routine_ptr  dummy_rp;
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr, linkage,
+                                                 idlb.name_linkage,
                                                  (a_func_info_block_ptr)NULL,
                                                  redeclaration,
                                                  redecl_error_already_issued,
@@ -4552,10 +4562,11 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   *ext_sym = NULL;
-  if (linkage != idl_none) {
+  if (linkage != idl_none && linked_symbol == NULL) {
     a_variable_ptr  dummy_vp;
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr, linkage,
+                                                 idlb.name_linkage,
                                                  func_info, redeclaration,
                                                  redecl_error_already_issued,
                                                  suppress_ext_sym_lookup,
