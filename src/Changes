@@ -50,7 +50,7 @@ mode, but typically in default mode), there are some cases where
 a construct that could be a call was seen instead as a function type
 when it appears in a sizeof in a template.  This is additionally
 confusing because the construct is properly scanned as a call in
-struct mode (in that mode, without "implicit typename", the reference
+strict mode (in that mode, without "implicit typename", the reference
 is taken to be to a non-type because typename is not specified).
 Now fixed.
 
