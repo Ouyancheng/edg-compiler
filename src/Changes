@@ -1,5 +1,12 @@
 Version 2.42
 
+5/25/99  Standard conversion after user-defined conversion on non-direct
+         reference binding
+
+In the analysis in overload resolution of an argument of a call passed
+to a reference-to-const parameter, a standard conversion is now allowed
+after a user-defined conversion.
+
 5/25/99  near/far support: no warning on near/far function in C mode
 
 The following example got an incorrect warning about meaningless type

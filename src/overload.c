@@ -1567,7 +1567,10 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                                                /*need_lvalue_result=*/
                                                          !source_can_be_rvalue,
                                                /*is_copy_initialization=*/TRUE,
-                                               param_is_reference,
+                                               /* Following FALSE is correct:
+                                                  reference binding here is not
+                                                  direct. */
+                                               /*is_reference_binding=*/FALSE,
                                                &conversion,
                                                &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
