@@ -8083,7 +8083,7 @@ statement unless suppress_trailing_space is TRUE.
         write_tok_str("asm");
 #if GNU_EXTENSIONS_ALLOWED
         if (asm_entry->is_volatile &&
-            (aep->num_operands > 0 || aep->num_clobbers > 0)) {
+            (asm_entry->num_operands > 0 || asm_entry->num_clobbers > 0)) {
           write_tok_str(" volatile");
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
