@@ -1,4 +1,9 @@
-Version 2.08
+Version 2.09
+
+-------------------------------------------------------------------------------
+Version 2.08, August 25, 1992
+
+8/25/92  IL version number changed to 2.01.
 
 8/21/92  Handling of type qualifiers in reference initializations changed
 
