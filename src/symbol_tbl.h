@@ -522,11 +522,22 @@ typedef struct a_symbol {
 			   be overridden by a local symbol of the same name. */
     } projection;
     /* When kind = sk_overloaded_function: */
-    a_symbol_ptr
-		function_symbols;
+    struct {
+      a_symbol_ptr
+		symbols;
 			/* Pointer to one or more sk_member_function or
 			   sk_routine symbol entries that represent instances
 			   of an overloaded function name. */
+      unsigned int
+		mixed_static_nonstatic:1;
+			/* TRUE if some but not all the functions have been
+			   declared "static". */
+      unsigned int
+		mixed_access:1;
+			/* TRUE if the access specifications on the functions
+			   are not all the same; this would apply to
+			   sk_member_function overloading only. */
+    } overloaded_function;
   } variant;
 } a_symbol;
 
@@ -826,7 +837,8 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
 
 extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_locator *location,
-                                            a_symbol_ptr     old_sym_ptr);
+                                            a_symbol_ptr     old_sym_ptr,
+                                            a_symbol_ptr     *overload_sym);
 
 extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                               a_type_ptr         class_type,
