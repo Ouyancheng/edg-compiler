@@ -4325,41 +4325,6 @@ described by the list pointed to by "ipdp" to the constant pointed to by
 #endif /* ifdef CFE */
 #ifdef CFE
 
-static void dump_dynamic_init(a_dynamic_init_ptr dip)
-/*
-Dump code for a dynamic initialization operation.
-*/
-{
-  FILE *save_f_C_output;
-  int  save_indent;
-
-  if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-    /* Initialization to a constant. */
-    dump_init_assignment(dip->variable, (an_init_pos_descr_ptr)NULL,
-                         dip->variant.constant);
-  } else {
-#if CHECKING
-    if (dip->kind != (a_dynamic_init_kind)dik_expression) {
-      internal_error("dump_statement: bad dynamic init");
-    }  /* if */
-#endif /* CHECKING */
-    /* Initialization to an expression. */
-    /* The assignment is written to a temporary file, to be dumped out
-        at the appropriate time later.  Select the appropriate file,
-        and open it if necessary. */
-    set_init_file(dip->variable, &save_f_C_output, &save_indent);
-    startline(dip->variable->source_corresp.decl_position.seq);
-    dump_var_name(dip->variable);
-    fputs(" = ", f_C_output);
-    dump_expression(dip->variant.expression, /*need_parens=*/TRUE);
-    putc(';', f_C_output);
-    unset_init_file(save_f_C_output, save_indent);
-  }  /* if */
-}  /* dump_dynamic_init */
-
-#endif /* ifdef CFE */
-#ifdef CFE
-
 static void zero_variable(a_variable_ptr variable)
 /*
 Generate code to set the indicated variable entirely to zeros.
@@ -4830,10 +4795,21 @@ parameters.
   a_boolean       gen_assignments;
   char            *var_name;
   a_storage_class storage_class;
+  a_constant_ptr  init_con = NULL;
 
-  if (!dump_vars_without_initializers &&
-      variable->init_kind != (an_init_kind)initk_static) {
-    /* The variable has no (static) initializer, and we're not supposed to dump
+  /* Determine whether or not the variable has a constant initializer.
+     Non-constant initializers are handled by gen_dynamic_init. */
+  if (variable->init_kind == (an_init_kind)initk_static) {
+    /* The variable has a constant static initializer. */
+    init_con = variable->initializer.constant;
+  } else if (variable->init_kind == (an_init_kind)initk_dynamic &&
+             variable->initializer.dynamic->kind ==
+                                           (a_dynamic_init_kind)dik_constant) {
+    /* The variable has a constant dynamic initializer. */
+    init_con = variable->initializer.dynamic->variant.constant;
+  }  /* if */
+  if (!dump_vars_without_initializers && init_con == NULL) {
+    /* The variable has no initializer, and we're not supposed to dump
        variables without initializers. */
   } else {
 #ifdef FFE
@@ -4864,8 +4840,7 @@ parameters.
     } else
 #endif /* ifdef FFE */
     {
-      if (variable->init_kind == (an_init_kind)initk_static &&
-          !dump_initializers) {
+      if (init_con != NULL && !dump_initializers) {
         /* Do not dump storage class on first output of initialized variable.
            This is to suppress "static" on the first declaration of an 
            initialized static variable, because pcc will not allow two
@@ -4899,12 +4874,21 @@ parameters.
       {
         simple_type_reference(var_name, variable->type);
       }  /* if */
-      if (dump_initializers &&
-          variable->init_kind == (an_init_kind)initk_static) {
-        /* Dump the initializer if there is one. */
+      /* Dump the initializer if there is one. */
+      if (dump_initializers && init_con != NULL) {
+#ifdef CFE
+        /* Assignment statements (rather than an initializer) must be used
+           for automatic variables with union or aggregate type, since K&R
+           does not allow initializers for those. */
+        a_type_kind var_type_kind = skip_typerefs(variable->type)->kind;
+        gen_assignments = !static_storage_class(variable->storage_class) &&
+                          (var_type_kind == (a_type_kind)tk_struct ||
+                           var_type_kind == (a_type_kind)tk_union ||
+                           var_type_kind == (a_type_kind)tk_array);
+#else /* !defined(CFE) */
         gen_assignments = FALSE;
-        dump_initializer(variable, variable->type,
-                         variable->initializer.constant,
+#endif /* ifdef CFE */
+        dump_initializer(variable, variable->type, init_con,
                          &gen_assignments, /*separate_chars=*/FALSE,
                          (an_init_pos_descr_ptr)NULL);
       }  /* if */
@@ -6113,6 +6097,30 @@ Generate code for the I/O statement pointed to by iodp.
 }  /* dump_io_statement */
 
 #endif /* ifdef FFE */
+#ifdef CFE
+
+static void dump_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Dump code for a dynamic initialization operation.  This routine only emits
+code for non-constant initializations; the constant initializations are
+handled in declaration processing.
+*/
+{
+  if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+    /* Initialization to an expression. */
+    startline(dip->variable->source_corresp.decl_position.seq);
+    dump_var_name(dip->variable);
+    fputs(" = ", f_C_output);
+    dump_expression(dip->variant.expression, /*need_parens=*/TRUE);
+    putc(';', f_C_output);
+#if CHECKING
+  } else if (dip->kind != (a_dynamic_init_kind)dik_constant) {
+    internal_error("dump_statement: bad dynamic init");
+#endif /* CHECKING */
+  }  /* if */
+}  /* dump_dynamic_init */
+
+#endif /* ifdef CFE */
 
 static void dump_statement(a_statement_ptr statement)
 /*
