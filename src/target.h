@@ -982,7 +982,7 @@ EXTERN int	msvc_target_version
                                               = MSVC_TARGET_VERSION
 #endif /* VAR_INITIALIZERS */
                                                                    ;
-			/* The version number (i.e., 7 for 7.0) of the
+			/* The version number (i.e., 1300 for 7.0) of the
 			   Microsoft MSVC compiler being targeted. */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
