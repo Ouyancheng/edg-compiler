@@ -6649,16 +6649,14 @@ mode) at *err_pos if not.
                                     &ambiguous, &class_bitwise_copy);
   if (class_bitwise_copy) {
     /* A bitwise copy is allowed, so the "copy constructor" is accessible. */
+  } else if (ambiguous) {
+    /* More than one applicable copy constructor. */
+    pos_ty_diagnostic(severity, ec_ambiguous_copy_constructor,
+                      err_pos, class_type);
   } else if (cctor_sym == NULL) {
-    if (!ambiguous) {
-      /* No applicable copy constructor. */
-      pos_ty_diagnostic(severity, ec_no_suitable_copy_constructor,
-                        err_pos, class_type);
-    } else {
-      /* More than one applicable copy constructor. */
-      pos_ty_diagnostic(severity, ec_ambiguous_copy_constructor,
-                        err_pos, class_type);
-    }  /* if */
+    /* No applicable copy constructor. */
+    pos_ty_diagnostic(severity, ec_no_suitable_copy_constructor,
+                      err_pos, class_type);
   } else {
     if (!have_access_to_symbol(cctor_sym)) {
       /* The copy constructor is inaccessible. */
