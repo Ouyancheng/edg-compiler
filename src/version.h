@@ -25,11 +25,11 @@ The date and time that this version was built.  These variables will
 be defined when fe_init.c is compiled.
 */
 #ifndef __DATE__
-#define __DATE__ "date unknown"
+#define __DATE__ "[date unknown]"
 #endif /* ifndef __DATE__ */
 
 #ifndef __TIME__
-#define __TIME__ "time unknown"
+#define __TIME__ "[time unknown]"
 #endif /* ifndef __TIME__ */
 
 EXTERN char	*build_date
