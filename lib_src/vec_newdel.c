@@ -164,7 +164,20 @@ size_t	__array_new_prefix_size =
 		  ((sizeof(an_alloc_prefix) + MOST_STRICT_ALIGNMENT - 1) /
                                MOST_STRICT_ALIGNMENT) * MOST_STRICT_ALIGNMENT;
 #else /* defined(__EDG_IA64_ABI) */
+#ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+/*
+Define the type used for the array cookie.  The ARM EABI uses a variant
+version of the mechanism in the IA-64 ABI.
+*/
+typedef struct an_alloc_prefix {
+  size_t	element_size;
+			/* The size of an element. */
+  size_t	element_count;
+			/* The number of elements in the array. */
+} an_alloc_prefix;
+#else /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 typedef size_t an_alloc_prefix;
+#endif /* ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 typedef an_alloc_prefix *an_alloc_prefix_ptr;
 #endif /* defined(__EDG_IA64_ABI) */
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
@@ -247,16 +260,21 @@ prefix_size.
 
 #if !USE_PREFIX_FOR_ARRAY_ALLOC_INFO
 /*ARGSUSED*/ /* <-- "number_of_elements" is only used when
-                    USE_PREFIX_FOR_ARRAY_ALLOC_INFO is TRUE. */
+                    USE_PREFIX_FOR_ARRAY_ALLOC_INFO is TRUE.
+		    "element_size" is not used in that case. */
 #else /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 #ifdef __EDG_IA64_ABI
 /*ARGSUSED*/ /* <-- "size" is not used in that case. */
 #endif /* ifdef __EDG_IA64_ABI */
+#ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+/*ARGSUSED*/ /* <-- "element_size" is not used in that case. */
+#endif /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 #endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
 static inline a_boolean record_array_alloc_info(void*	array_ptr,
 	   				        size_t	size,
-					        int	number_of_elements)
+					        int	number_of_elements,
+						size_t	element_size)
 /*
 Record the size of the array so that it can be retrieved later using
 the array pointer.  Returns TRUE if an error occurred and the size
@@ -275,7 +293,12 @@ could not be recorded.
   app->encoded_number_of_elements = ~number_of_elements;
 #else /* defined(__EDG_IA64_ABI) */
   app = ((an_alloc_prefix_ptr)array_ptr) - 1;
+#ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
   *app = (an_alloc_prefix)number_of_elements;
+#else /* ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+  app->element_size = element_size;
+  app->element_count = number_of_elements;
+#endif /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 #endif /* defined(__EDG_IA64_ABI) */
   return FALSE;
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
@@ -309,12 +332,14 @@ could not be recorded.
                     USE_PREFIX_FOR_ARRAY_ALLOC_INFO is TRUE. */
 #endif /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 static inline size_t get_array_size(void*	array_ptr,
-			 	    size_t	element_size)
+			 	    size_t	element_size,
+				    size_t	*number_of_elements)
 /*
 Return the array size saved when the array was allocated.  The size is
 stored either in a prefix allocated immediately before the array or in
 a separate data structure.  array_ptr points to the start of the array
 whose size is to be determined.  element_size is the size of each element.
+The number of elements in the array is returned in *number_of_elements.
 */
 {
 #if USE_PREFIX_FOR_ARRAY_ALLOC_INFO
@@ -330,11 +355,17 @@ whose size is to be determined.  element_size is the size of each element.
      corrupted. */
   app = (an_alloc_prefix_ptr)(((char *)array_ptr) - __array_new_prefix_size);
   size = app->size;
-  size_to_check = element_size * (~(app->encoded_number_of_elements));
+  *number_of_elements = ~(app->encoded_number_of_elements);
+  size_to_check = element_size * *number_of_elements;
   if (size != size_to_check) _array_pointer_not_from_vec_new();
 #else /* defined(__EDG_IA64_ABI) */
   app = ((an_alloc_prefix_ptr)array_ptr) - 1;
-  size = *app * element_size;
+#ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+  *number_of_elements = app->element_count;
+#else /* ifndef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+  *number_of_elements = *app;
+#endif /* ifdef __EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+  size = *number_of_elements * element_size;
 #endif /* defined(__EDG_IA64_ABI) */
   return size;
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
@@ -453,7 +484,8 @@ use.
     /* Record the array size information so that the array can be properly
        freed later. */
     if (prefix_size != 0) {
-      err = record_array_alloc_info(array_ptr, array_size, number_of_elements);
+      err = record_array_alloc_info(array_ptr, array_size, number_of_elements,
+                                    element_size);
       if (err) goto error_exit;
     }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 300
@@ -862,7 +894,7 @@ an exception.
 /*ARGSUSED*/ /* terminate_immediately is used only in the IA-64 ABI. */
 #endif /* ifndef __EDG_IA64_ABI */
 static void array_delete_general(void                *array_ptr,
-                                 int                 number_of_elements,
+                                 int                 number_of_elements_param,
                                  size_t              element_size,
                                  size_t              prefix_size,
                                  a_destructor_ptr    dtor,
@@ -889,6 +921,7 @@ elements will be destroyed and the exception will be rethrown.
   int                   i;
   void                  *arr_ptr;
   size_t		array_size = 0;
+  size_t		number_of_elements = number_of_elements_param;
 
   /* If the address of the array is NULL, do nothing. */
   if (array_ptr != NULL ) {
@@ -909,11 +942,12 @@ elements will be destroyed and the exception will be rethrown.
     aaehi.terminate_immediately  = terminate_immediately;
 #endif /* defined(__EDG_IA64_ABI) */
 #endif /* EXCEPTION_HANDLING */
-    /* Determine the number of elements in the array, if unknown. */
-    if (number_of_elements == -1 && prefix_size != 0) {
+    /* Determine the number of elements in the array, if unknown.  Note that
+       number_of_elements_param is used because that value is signed. */
+    if (number_of_elements_param == -1 && prefix_size != 0) {
       /* Determine the number of elements from the memory allocation size. */
-      array_size = get_array_size(array_ptr, element_size);
-      number_of_elements = array_size / element_size;
+      array_size = get_array_size(array_ptr, element_size,
+                                  &number_of_elements);
     }  /* if */
 #if EXCEPTION_HANDLING
     aaehi.number_of_elements     = number_of_elements;
