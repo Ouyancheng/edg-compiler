@@ -1617,7 +1617,8 @@ error code.
       m = "dollar sign (\"$\") used in identifier";
       break;
     case ec_nonconst_ref_init_anachronism:
-      m = "incorrect initial value type for non-const reference (anachronism)";
+      m = 
+       "temporary used for initial value of non-const reference (anachronism)";
       break;
     case ec_qualifier_in_member_declaration:
       m = "qualified name is not allowed in member declaration";
