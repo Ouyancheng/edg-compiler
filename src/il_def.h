@@ -1464,9 +1464,10 @@ typedef struct a_pragma {
 			   the file scope) or locally (if it is on the pragma
 			   list for a nonfile scope). */
   a_source_position
-		decl_position;
-			/* Source position of the pragma-id in the declaration
-			   of this pragma. */
+		position;
+			/* Source position of the pragma in the declaration
+			   of this pragma.  Points to the beginning of the
+			   #pragma directive. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;

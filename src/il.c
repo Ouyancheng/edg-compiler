@@ -6705,7 +6705,7 @@ pointer to it.
   pp->ignore_in_back_end    = FALSE;
   pp->entity.kind           = (a_byte_il_entry_kind)iek_none;
   pp->entity.ptr            = NULL;
-  pp->decl_position         = null_source_position;
+  pp->position              = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -7002,7 +7002,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else if (kind == (an_il_entry_kind)iek_pragma) {
       a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
 
-      fprintf(f_debug, " (at %lu): %s", pp->decl_position.seq,
+      fprintf(f_debug, " (at %lu): %s", pp->position.seq,
                        pragma_ids[(int)pp->kind]);
     } else if (kind == (an_il_entry_kind)iek_switch_clause) {
       /* Nothing else to display. */

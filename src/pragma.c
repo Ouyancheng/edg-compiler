@@ -593,7 +593,7 @@ there is additional processing to be done.
     }  /* if */
     if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
     pp = alloc_pragma(ppp->descr_ptr->kind);
-    pp->decl_position = ppp->pragma_position;
+    pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
     pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
     if (entity_ptr != NULL) {
@@ -614,7 +614,7 @@ there is additional processing to be done.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
-                                &pp->decl_position,
+                                &pp->position,
                                 ppp->source_sequence_entry);
     /* The source sequence entry is now attached to the IL pragma entry.
        Clear the copy of the source_sequence_entry pointer in the pending

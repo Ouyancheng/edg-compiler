@@ -2563,10 +2563,10 @@ Display the indicated pragma entry.
   disp_ptr("next", (char *)ptr->next, iek_pragma);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-  disp_unsigned_long("decl_position.seq",
-                     (unsigned long)ptr->decl_position.seq);
-  disp_unsigned_long("decl_position.column",
-                     (unsigned long)ptr->decl_position.column);
+  disp_unsigned_long("position.seq",
+                     (unsigned long)ptr->position.seq);
+  disp_unsigned_long("position.column",
+                     (unsigned long)ptr->position.column);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);
