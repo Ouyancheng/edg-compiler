@@ -1846,8 +1846,9 @@ bit field in a trailing bit field container of one of its bases.
         /* A trailing base class: See if it has a trailing bit field. */
         a_targ_size_t  offset = bcp->offset;
         a_field_ptr    candidate = trailing_nonclass_field(bctp, &offset);
-        if (trailing_field == NULL ||
-            candidate->offset > trailing_field->offset) {
+        if (candidate != NULL &&
+            (trailing_field == NULL ||
+             candidate->offset > trailing_field->offset)) {
           trailing_field = candidate;
         }  /* if */
       }  /* if */
