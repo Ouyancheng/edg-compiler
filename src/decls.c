@@ -3633,11 +3633,18 @@ the symbol and its linkage (which is always "none").
        target of any initialization that may follow.  Create a dummy
        variable with an error type (to suppress semantic errors on the
        initialization, if any). */
-    a_type_ptr  tp = sym->class_of_which_a_member;
+    a_type_ptr           tp = sym->class_of_which_a_member;
+    a_symbol_header_ptr  hdr = locator->symbol_header;
+
+    /* "Enter" the symbol using an error locator -- this means a symbol
+       entry will be created but it will not be added to any lists.  Then
+       we'll restore the header to the new symbol, so that the correct name
+       will be available in diagnostics. */
     set_to_error_locator(*locator);
     sym = enter_symbol((a_symbol_kind)sk_static_data_member,
                        locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/TRUE);
+    sym->header = hdr;
     sym->variant.variable = make_variable(error_type(),
 					  (a_storage_class)sc_static,
 					  /*at_file_scope=*/TRUE);
@@ -3710,7 +3717,8 @@ on a prior declaration.
   }  /* if */
   if (sym == NULL || sym->defined) {
     /* Error case. */
-    a_routine_ptr  other_rp = NULL;
+    a_routine_ptr        other_rp = NULL;
+    a_symbol_header_ptr  hdr = locator->symbol_header;
 
     if (sym != NULL) {
       /* Type was okay, but this member function has a body. */
@@ -3728,10 +3736,15 @@ on a prior declaration.
     }  /* if */
     /* An error has been detected.  Make a "fake" symbol and routine entry so
        that the routine definition can proceed. */
+    /* "Enter" the symbol using an error locator -- this means a symbol
+       entry will be created but it will not be added to any lists.  Then
+       we'll restore the header to the new symbol, so that the correct name
+       will be available in diagnostics. */
     set_to_error_locator(*locator);
     sym = enter_local_symbol((a_symbol_kind)sk_routine, locator,
                              DEPTH_OF_FILE_SCOPE,
                              /*suppress_redecl_error=*/TRUE);
+    sym->header = hdr;
     sym->class_of_which_a_member = class_type;
     rp = make_routine(type_ptr, (a_storage_class)sc_static,
                       /*at_file_scope=*/TRUE);
