@@ -580,12 +580,22 @@ if the thrown type violates the throw specification.
 
   etsp = ehsep->variant.throw_specification;
   do {
+    a_boolean	match = FALSE;
     if (etsp->flags & ETS_IS_ELLIPSIS) {
-      result = FALSE;
+      match = TRUE;
     } else if (matching_types(etsp, typeinfo, is_pointer)) {
-      result = FALSE;
+      match = TRUE;
+    } else if (etsp->typeinfo->unique_id == NULL) {
+      /* No unique ID -- don't check any further.  No match. */
+    } else if (*(etsp->typeinfo->unique_id) == BCS_AMBIGUOUS) {
+      /* An ambiguous base class -- no match. */
+    } else if (((etsp->flags & ETS_IS_POINTER) != 0) == is_pointer &&
+               *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
+      /* A base class of the class that was thrown. */
+      match = TRUE;
     }  /* if */
-    if (!result) {
+    if (match) {
+      result = FALSE;
       break;
     }  /* if */
     done = etsp->flags & ETS_LAST;
