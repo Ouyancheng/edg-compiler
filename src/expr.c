@@ -6146,6 +6146,12 @@ be set to the source position of the type.
     /* We are in a prototype instantiation of a template.  The type is
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
+    if (curr_expr_kind_is_const() &&
+        is_class_struct_union_type(type_cast_to)) {
+      /* Do not allow a cast to a class type in a constant expression. */
+      error(ec_expr_not_constant);
+      err = TRUE;
+    }  /* if */
   } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to)) {
     /* This check catches incomplete enum types. */
     error(ec_incomplete_type_not_allowed);
