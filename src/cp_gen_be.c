@@ -2147,7 +2147,29 @@ is the one associated with the definition of the class.
 {
   a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_targ_alignment  pack_alignment = type->variant.class_struct_union.
+                                                       max_member_alignment;
 
+  /* If required, put out a #pragma pack directive to set the pack
+     alignment for the current class. */
+  if (pack_alignment > 0) {
+    if (pack_alignment == il_header.default_max_member_alignment) {
+      /* No need to put out a pragma to override the default value. */
+      pack_alignment = 0;
+    } else {
+      /* Put out a #pragma pack directive to indicate the special alignment
+         requirements for this struct. */
+      end_output_line_if_begun();
+      disable_line_wrapping();
+      write_str("#pragma pack(");
+      write_unsigned_num(pack_alignment);
+      write_str(")");
+      enable_line_wrapping();
+      end_output_line();
+    }  /* if */
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   type->declaration_put_out = TRUE;
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
@@ -2284,6 +2306,16 @@ is the one associated with the definition of the class.
 done:;
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (pack_alignment > 0) {
+    /* Restore the packing alignment to a default state. */
+    end_output_line_if_begun();
+    disable_line_wrapping();
+    write_str("#pragma pack()");
+    enable_line_wrapping();
+    end_output_line();
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* gen_class_definition */
 
 
