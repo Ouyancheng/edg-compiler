@@ -1631,8 +1631,11 @@ about potential template instantiations.
   sizeof_t       mangled_name_length, info_name_length;
   sizeof_t       prefix_length, alloc_length;
 
-  /* The name of the entity should be mangled already. */
-  check_assertion(source_corresp->name_has_been_mangled);
+  /* The name of the entity should be mangled already, if it needs to
+     be mangled.  Unfortunately, there's no easy way to test that
+     because some entities don't need name mangling (e.g., extern "C"
+     inline functions), and we don't have the information to tell whether
+     this entity needs mangling. */
   mangled_name = source_corresp->name;
 #if IA64_ABI
   /* Skip the '_Z' prefix. */

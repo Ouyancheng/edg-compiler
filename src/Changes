@@ -1,5 +1,22 @@
 Version 3.1
 
+9/4/02   Abort in make_global_var_with_prefixed_name
+
+In configurations using an old ABI (e.g., 2.28) and the old driver
+interface (using generated variables instead of a .ti file) it
+was possible to get a generic abort (internal error: assertion
+failed at: "lower_il.c", line 1635 -- which turns out to be in
+make_global_var_with_prefixed_name) on processing of an extern "C"
+inline function in a configuration that instantiates extern inline
+functions.  Now fixed.
+
+  extern "C" {
+    inline void f(int i) {}
+  }
+  int main() {
+    f(1);
+  }
+
 9/3/02   GNU mode: alias of undeclared entity
 
 Some GNU C compilers (notably on x86-based platforms) accept an alias
