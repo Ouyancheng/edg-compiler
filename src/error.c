@@ -842,6 +842,9 @@ error code.
     case ec_this_used_incorrectly:
       m = "\"this\" may only be used inside a nonstatic member function";
       break;
+    case ec_value_not_known_at_compile_time:
+      m = "constant value is not known at compile time";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
