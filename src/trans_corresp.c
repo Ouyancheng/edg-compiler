@@ -3372,6 +3372,9 @@ return FALSE.
     /* The type is already pointing to a corresponding entry in another
        translation unit.  We only need to check if type_2 is also in the
        set of corresponding entries. */
+  } else if (total_errors != 0) {
+    /* If correspondence errors already occurred, an attempt to compare
+       the structure of type_1 and type_2 may end up being meaningless. */
   } else {
     /* type_1 either hasn't been visited yet, or it was found not to have a
        correspondence.  Even in the latter case it is possible that type_2
