@@ -142,7 +142,7 @@ Return a pointer to a string describing the integer type indicated by kind.
     case ik_unsigned_long:   p = "unsigned long";   break;
     default:                 p = "<bad integer kind>";
   }  /* switch */
-  return (p);
+  return p;
 }  /* db_int_type_name */
 
 
@@ -159,7 +159,7 @@ Return a pointer to a string describing the float type indicated by kind.
     case fk_long_double:     p = "long double";     break;
     default:                 p = "<bad float kind>";
   }  /* switch */
-  return (p);
+  return p;
 }  /* db_float_type_name */
 
 
@@ -1673,13 +1673,7 @@ values, and return a pointer to it.
 a_constant_ptr fs_constant(a_constant_repr_kind kind)
 /*
 Same as alloc_constant, but allocates a constant in the file scope memory
-region.  This is useful for constants that are going to be reused, and
-therefore must be in that memory region so they will always be accessible.
-The constant is NOT put onto the file-scope constants list at this time,
-but the caller must put it there (now or eventually).  This allows
-shareable constants to use the "next" field for linkage in the shareable
-constants table.  At the end of the compilation, they are put on the
-file-scope constants list.
+region.
 */
 {
   a_constant_ptr         cp;
@@ -1688,7 +1682,7 @@ file-scope constants list.
   switch_to_file_scope_region(&region_to_switch_back_to);
   cp = alloc_constant(kind);
   switch_back_to_original_region(region_to_switch_back_to);
-  return (cp);
+  return cp;
 }  /* fs_constant */
 
 
@@ -1790,7 +1784,7 @@ bucket of the shareable_constants_table to use for the constant.
                      (unsigned int)hash_value);
   }  /* if */
 #endif /* DEBUG */
-  return (hash_value);
+  return hash_value;
 }  /* hash_constant */
 
 
@@ -1872,7 +1866,7 @@ Return TRUE if the two constants are identical.
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
-  return (eq);
+  return eq;
 }  /* eq_constants */
 
 
@@ -2082,7 +2076,7 @@ put it on a list of constants).
       *list_ptr = scp;
     }  /* if */
   }  /* if */
-  return (scp);
+  return scp;
 }  /* alloc_shareable_constant */
 
 
@@ -2206,7 +2200,7 @@ macros need to be there.
 #if DEBUG
   string_literal_text_space_allocated += size;
 #endif /* DEBUG */
-  return (alloc_il(size));
+  return alloc_il(size);
 }  /* alloc_text_of_string_literal */
 
 
@@ -2678,7 +2672,7 @@ associated variant fields to default values.
 #endif /* DEBUG */
   clear_type(tp, kind);
   db_exit();
-  return (tp);
+  return tp;
 }  /* alloc_type */
 
 
@@ -2699,7 +2693,7 @@ return a pointer to it.
     pit->variant.integer.int_kind = kind;
     set_type_size(pit);
   }  /* if */
-  return (pit);
+  return pit;
 }  /* integer_type */
 
 
@@ -2718,7 +2712,7 @@ pointer to the type entry.
     il_signed_int_type->variant.integer.explicitly_signed = TRUE;
     set_type_size(il_signed_int_type);
   }  /* if */
-  return (il_signed_int_type);
+  return il_signed_int_type;
 }  /* signed_int_type */
 
 
@@ -2739,7 +2733,7 @@ return a pointer to it.
     pft->variant.float_kind = kind;
     set_type_size(pft);
   }  /* if */
-  return (pft);
+  return pft;
 }  /* float_type */
 
 
@@ -2765,7 +2759,7 @@ and return a pointer to it.
       string_types[num_chars] = pst;
     }  /* if */
   }  /* if */
-  return (pst);
+  return pst;
 }  /* string_type */
 
 
@@ -2792,7 +2786,7 @@ and return a pointer to it.
       wide_string_types[num_chars] = pst;
     }  /* if */
   }  /* if */
-  return (pst);
+  return pst;
 }  /* wide_string_type */
 
 
@@ -2859,7 +2853,7 @@ Make or find a type entry for an void type, and return a pointer to it.
   if (il_void_type == NULL) {
     il_void_type = alloc_type((a_type_kind)tk_void);
   }  /* if */
-  return (il_void_type);
+  return il_void_type;
 }  /* void_type */
 
 
@@ -3424,7 +3418,7 @@ to it.
 #endif /* ifdef FIL */
 
   db_exit();
-  return (vp);
+  return vp;
 }  /* alloc_variable */
 
 
@@ -3571,7 +3565,7 @@ to it.
   fp->bit_size   = 0;
 
   db_exit();
-  return (fp);
+  return fp;
 }  /* alloc_field */
 
 
@@ -3609,7 +3603,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* ifdef FIL */
 
   db_exit();
-  return (rp);
+  return rp;
 }  /* alloc_routine */
 
 
@@ -3707,7 +3701,7 @@ to it.
 #endif /* ifdef FIL */
 
   db_exit();
-  return (lp);
+  return lp;
 }  /* alloc_label */
 
 
@@ -3815,7 +3809,7 @@ Allocate and initialize an expression node.
   clear_expr_node(ptr, kind);
 
   db_exit();
-  return (ptr);
+  return ptr;
 }  /* alloc_expr_node */
 
 
@@ -3847,7 +3841,7 @@ an operands list to it.
   node = alloc_expr_node((an_expr_node_kind)enk_operation);
   set_node_operator(node, kind, type, operands);
 
-  return (node);
+  return node;
 }  /* make_operator_node */
 
 
@@ -3861,7 +3855,7 @@ Make and return an expression node indicating an error.
   node = alloc_expr_node((an_expr_node_kind)enk_error);
   node->type = error_type();
 
-  return (node);
+  return node;
 }  /* error_node */
 
 
@@ -3907,8 +3901,7 @@ have_node:
   node->type = constant->type;
 
   db_exit();
-
-  return (node);
+  return node;
 }  /* alloc_node_for_constant */
 
 
@@ -4254,7 +4247,7 @@ to it.
   scp->next           = NULL;
   scp->constant_list  = NULL;
   scp->statements     = NULL;
-  return (scp);
+  return scp;
 }  /* alloc_switch_clause */
 
 
@@ -4334,7 +4327,7 @@ to it.  The statement kind is set as indicated.
   sp->next             = NULL;
   set_statement_kind(sp, stmt_kind);
   db_exit();
-  return (sp);
+  return sp;
 }  /* alloc_statement */
 
 
@@ -4431,7 +4424,7 @@ points to the associated routine if the kind is sck_function.
 #endif /* ifdef FIL */
 
   db_exit();
-  return (sp);
+  return sp;
 }  /* alloc_scope */
 
 
@@ -4516,7 +4509,7 @@ Display and return the amount of space used for various IL tables.
                      (double)num_searches_for_shareable_constants);
   }  /* if */
 
-  return (grand_total);
+  return grand_total;
 }  /* show_il_space_used */
 #endif /* DEBUG */
 
