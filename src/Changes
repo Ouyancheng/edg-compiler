@@ -1,5 +1,15 @@
 Version 3.4
 
+11/11/03 Microsoft compatibility: Explicit reduction of alignment ignored
+
+In Microsoft mode, the front end now ignores (with a warning) attempts to
+reduce the alignment of a type using a __declspec(align(...)) construct on
+a typedef declaration.  For example (assuming a 4-byte aligned int type):
+
+  struct S { int i; };                      // S is 4-byte aligned.
+  typedef __declspec(align(2)) struct S T;  // T is also 4-byte aligned
+                                            // (and a warning is issued).
+
 11/11/03 Microsoft compatibility: use of ambiguous template name accepted
 
 If a scope contains a declaration of a class template and a using-directive

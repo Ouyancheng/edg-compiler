@@ -7692,8 +7692,15 @@ NULL.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_modifiers != NULL && decl_modifiers->alignment != 0) {
-    set_declspec_align(tp, decl_modifiers->alignment,
-                       &locator->source_position);
+    if (decl_modifiers->alignment < type_ptr->alignment) {
+      /* Microsoft compilers ignore __declspec(align(...)) constructs that
+         attempt to reduce the alignment of the underlying type. */
+      pos_warning(ec_declspec_align_reduction_ignored,
+                  &locator->source_position);
+    } else {
+      set_declspec_align(tp, decl_modifiers->alignment,
+                         &locator->source_position);
+    }  /* if */
   }  /* if */
   if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
     apply_microsoft_attributes(p_ms_attributes, (char*)tp, iek_type,
