@@ -1258,6 +1258,9 @@ comparison (such as top level references).
 {
   a_boolean	result;
 
+  /* Remove any qualifiers that are present. */
+  param_type1 = skip_typerefs(param_type1);
+  param_type2 = skip_typerefs(param_type2);
   /* Remove any top level references. */
   if (is_reference_type(param_type1)) {
     param_type1 = type_pointed_to(param_type1);
@@ -1265,9 +1268,6 @@ comparison (such as top level references).
   if (is_reference_type(param_type2)) {
     param_type2 = type_pointed_to(param_type2);
   }  /* if */
-  /* Remove any qualifiers that are present. */
-  param_type1 = skip_typerefs(param_type1);
-  param_type2 = skip_typerefs(param_type2);
   result = matches_template_type(param_type1, param_type2, templ_arg_list,
                                  templ_param_list, MTT_NO_FLAGS);
   return result;

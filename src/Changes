@@ -1,5 +1,29 @@
 Version 2.41
 
+2/26/99  Partial ordering rules changed to conform to standard
+
+The partial ordering rules implemented by the front end conformed to the
+original rules proposed, but not the the final rules specified in the
+standard.  Specifically, the front end removed qualifiers under references
+while the standard does not remove such qualifiers.  The front end now
+implements the rules as described in the standard.  The following example
+illustrates cases that are now well-formed and now ill-formed as a result
+of this change.
+
+  template <class T> void f(T&);
+  template <class T> void f(const T&);
+
+  template <class T> struct A {};
+  template <class T> void g(const T&);
+  template <class T> void g(A<T>);
+
+  int main() {
+    const A<int>	aic;
+    A<int>		ai;
+    f(aic);  // ambiguous using original rules
+    g(ai);   // ambiguous using standard rules
+  }
+
 2/25/99  Microsoft compatibility: old-style concatenation macros
 
 MSVC++ (up to version 6.0, so far) allows the use of old-style
