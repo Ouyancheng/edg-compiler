@@ -1656,7 +1656,7 @@ them through remap_function.
   remap_orphan_entry_first(iek_constant);
   remap_orphan_entry_first(iek_param_type);
   remap_orphan_entry_first(iek_routine_type_supplement);
-  remap_orphan_entrylist_first(iek_based_type_list_member);
+  remap_orphan_entry_first(iek_based_type_list_member);
   remap_orphan_entry_first(iek_type);
   remap_orphan_entry_first(iek_variable);
 #ifdef CFE
