@@ -1,5 +1,18 @@
 Version 2.20
 
+10/6/93  Change in handling of instantiation information file
+
+Formerly, the driver was responsible for extracting the instantiation
+list from an instantiation information file and passing the name
+of the file containing the extracted list to the front end.
+
+The front end has been modified to read the instantiation list
+directly from the list file, skipping over the first N lines that
+are considered to be reserved for use by the driver and prelinker.
+The number of lines to be skipped is defined by a configuration
+parameter.  The prelinker has also been modified to use this parameter.
+The eccp script has been updated accordingly.
+
 10/4/93  Incorrect error output for types defined in template parameters
 
 The error position information provided when a type definition appears
