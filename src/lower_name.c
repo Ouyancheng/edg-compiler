@@ -1737,26 +1737,35 @@ to the information describing it.
                             /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
                             /*suppress_parent_encoding=*/!emulate_gnu_abi_bugs,
                             /*base_name_offset=*/(sizeof_t *)NULL, mctl);
-    } else if (rinfo != NULL) {
-      /* Not a routine entry, but it represents a routine (this might be
-         the address of an overloaded function, and we can't tell which
-         specific function is to be used). */
-      mangled_function_base_name(scp,
-                                 rinfo->special_kind,
-                                 rinfo->opname_kind,
-                                 /*num_operands=*/0,
-                                 rinfo->conversion_type,
-                                 mctl);
-      if (rinfo->template_arg_list != NULL) {
-        /* Put out the template argument list. */
-        mangled_template_arguments(rinfo->template_arg_list,
-                                   /*partial_spec=*/FALSE,
-                                   /*old_form=*/FALSE,
-                                   mctl);
-      }  /* if */
     } else {
-      /* Not a routine of any kind. */
-      mangled_name_with_length(unmangled_name_of(scp), mctl);
+      a_boolean need_nested_name_close = FALSE;
+      if (emulate_gnu_abi_bugs) {
+        /* g++ 3.2 puts a parent qualifier on member references. */
+        mangled_ia64_parent_qualifier(scp, iek_none,
+                                      &need_nested_name_close, mctl);
+      }  /* if */
+      if (rinfo != NULL) {
+        /* Not a routine entry, but it represents a routine (this might be
+           the address of an overloaded function, and we can't tell which
+           specific function is to be used). */
+        mangled_function_base_name(scp,
+                                   rinfo->special_kind,
+                                   rinfo->opname_kind,
+                                   /*num_operands=*/0,
+                                   rinfo->conversion_type,
+                                   mctl);
+        if (rinfo->template_arg_list != NULL) {
+          /* Put out the template argument list. */
+          mangled_template_arguments(rinfo->template_arg_list,
+                                     /*partial_spec=*/FALSE,
+                                     /*old_form=*/FALSE,
+                                     mctl);
+        }  /* if */
+      } else {
+        /* Not a routine of any kind. */
+        mangled_name_with_length(unmangled_name_of(scp), mctl);
+      }  /* if */
+      close_ia64_nested_name(need_nested_name_close, mctl);
     }  /* if */
   } else {
     /* Use a name as a literal instead of "sr", because the parent class
