@@ -5557,6 +5557,39 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
 
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
+static void wrap_throw(an_expr_node_ptr node,
+                       a_type_ptr       other_operand_type)
+/*
+node is a lowered throw expression under a "?" operator, and the other
+operand of the operation has type other_operand_type, which is a non-void
+type.  Wrap the throw in a comma expression to give it the same type as the
+other operand.
+*/
+{
+  a_boolean        nonscalar;
+  a_type_ptr       zero_type;
+  a_constant       null_constant;
+  an_expr_node_ptr node_copy, zero_node;
+
+  /* Make an operand that has the same type as the other operand.  If the
+     type is scalar, use a zero cast to that type.  Otherwise (e.g., if
+     it's a struct), indirect through a null pointer to the right kind. */
+  zero_type = other_operand_type;
+  nonscalar = !is_scalar_type(other_operand_type);
+  if (nonscalar) zero_type = make_pointer_type(other_operand_type);
+  make_zero_of_proper_type(zero_type, &null_constant);
+  zero_node = alloc_node_for_constant(&null_constant);
+  if (nonscalar) zero_node = add_indirection_to_node(zero_node);
+  /* Make a copy of the original throw node so the original node can be
+     overwritten by a comma node. */
+  node_copy = copy_node(node);
+  node_copy->next = zero_node;
+  /* Change the original node to a comma expression. */
+  change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
+                           other_operand_type, node_copy);
+}  /* wrap_throw */
+
+
 void lower_expr(an_expr_node_ptr expr,
                 a_boolean        is_lvalue)
 /*
@@ -5565,7 +5598,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 */
 {
   an_expr_operator_kind op;
-  an_expr_node_ptr      operand_node;
+  an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
   a_boolean             is_conditional_operator;
@@ -5635,6 +5668,26 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
              question mark itself is. */
           if (is_lvalue) is_lvalue_mask = 0x6;
           is_conditional_operator = TRUE;
+          /* Look for a "?" operator where one of the operands is a throw
+             expression and the other has a non-void type.  The throw
+             operation will be adjusted by putting a comma operation over
+             it to give that operand the right type. */
+          /* Note that we test now, before lowering, when it's easy to spot
+             a throw node, but we do the rewrite after lowering. */
+          throw_operand = NULL;
+          /* Rule out cases where both operands are throws or one is a throw
+             and the other one is void. */
+          if (!is_void_type(expr->type)) {
+            operand2 = operand_node->next;
+            operand3 = operand2->next;
+            if (operand2->kind == (an_expr_node_kind)enk_throw) {
+              /* operand2 is a throw and operand3 is not. */
+              throw_operand = operand2;
+            } else if (operand3->kind == (an_expr_node_kind)enk_throw) {
+              /* operand3 is a throw and operand2 is not. */
+              throw_operand = operand3;
+            }  /* if */
+          }  /* if */
         } else if (op == (an_expr_operator_kind)eok_comma) {
           /* Comma's second operand is an lvalue if the comma itself is. */
           if (is_lvalue) is_lvalue_mask = 0x2;
@@ -5698,6 +5751,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             /* If a field selection refers to an anonymous union field,
                adjust it to make the anonymous union reference(s) explicit. */
             adjust_field_selection_for_anonymous_union_references(expr);
+            break;
+          case eok_question:
+            /* If one operand is a throw and the other is non-void, wrap
+               the throw in a comma expression to give it the right type. */
+            if (throw_operand != NULL) wrap_throw(throw_operand, expr->type);
             break;
 #if ASSIGNMENT_TO_THIS_ALLOWED
           case eok_passign:
