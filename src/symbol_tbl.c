@@ -510,7 +510,7 @@ and indentation is the indentation desired.
       if (temp_type->variant.class_struct_union.is_specialized) {
         (void)sprintf(buffer, "%sspecialization",
                       temp_type->variant.class_struct_union.
-                         specialized_with_old_syntax ? "" : "old-style ");
+                             specialized_with_old_syntax ? "old-style " : "");
         put_string(buffer);
       }  /* if */
       break;
@@ -568,7 +568,7 @@ do_variable:
           if (var->is_specialized) {
             (void)sprintf(buffer, "%sspecialization",
                           var->specialized_with_old_syntax ?
-                                 "" : "old-style ");
+                                 "old-style " : "");
             put_string(buffer);
           }  /* if */
         } else {
@@ -615,7 +615,7 @@ do_variable:
         if (rp->is_template_function) put_string("is instance");
         if (rp->is_specialized) {
           (void)sprintf(buffer, "%sspecialization",
-                        rp->specialized_with_old_syntax ? "" : "old-style ");
+                        rp->specialized_with_old_syntax ? "old-style " : "");
           put_string(buffer);
         }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
@@ -796,7 +796,7 @@ do_variable:
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
             a_routine_ptr rp = tip->instance_sym->variant.routine.ptr;
-            fprintf(f_debug, "%*sinstantiation", indentation, "");
+            fprintf(f_debug, "%*sinstance", indentation, "");
             if (tip->instantiation_required || tip->specific_decl ||
                 rp->is_specialized) {
               char* comma = "";
@@ -807,12 +807,11 @@ do_variable:
               }  /* if */
               if (tip->specific_decl) {
                 fprintf(f_debug, "%sspecific decl", comma);
+                comma = ", ";
               }  /* if */
               if (rp->is_specialized) {
-                (void)sprintf(buffer, "%sspecialization",
-                              rp->specialized_with_old_syntax ?
-                                 "" : "old-style ");
-                put_string(buffer);
+                fprintf(f_debug, "%s%sspecialization", comma,
+                        rp->specialized_with_old_syntax ? "old-style " : "");
               }  /* if */
               fputc(')', f_debug);
             }  /* if */
