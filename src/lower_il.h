@@ -724,6 +724,8 @@ extern void clean_up_all_object_lifetimes(a_scope_ptr scope);
 extern unsigned long show_lowering_space_used(void);
 #endif /* DEBUG */
 
+extern void function_lower_init(void);
+
 extern void il_lower_one_time_init(void);
 
 extern void il_lower_init(void);

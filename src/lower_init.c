@@ -1804,9 +1804,11 @@ typedef struct a_generated_routine_context {
 		processing_file_scope_init_routine;
   a_return_memo_ptr
 		return_memo_list;
+  a_dynamic_init_ptr
+		curr_cleanup_state;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   a_local_static_variable_init_ptr
-                promoted_local_static_variable_inits;
+		promoted_local_static_variable_inits;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   an_eh_lowering_context
 		ehcontext;
@@ -1837,7 +1839,9 @@ grcontext is a local variable used to save state for later restoration.
                                             processing_file_scope_init_routine;
   processing_file_scope_init_routine = FALSE;
   grcontext->return_memo_list = return_memo_list;
-  return_memo_list = NULL;
+  /* return_memo_list is cleared by function_lower_init. */
+  grcontext->curr_cleanup_state = curr_cleanup_state;
+  /* curr_cleanup_state is cleared by function_lower_init. */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   grcontext->promoted_local_static_variable_inits = 
                                           promoted_local_static_variable_inits;
@@ -1846,8 +1850,8 @@ grcontext is a local variable used to save state for later restoration.
   save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
-  /* Initialize for exception handling lowering. */
-  eh_function_lower_init();
+  /* Initialize for lowering a function. */
+  function_lower_init();
 }  /* push_generated_routine_context */
 
 
@@ -1894,6 +1898,7 @@ Pop function corresponding to push_generated_routine_context.
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+  curr_cleanup_state = grcontext->curr_cleanup_state;
   free_return_memo_list(return_memo_list);
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =

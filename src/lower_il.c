@@ -10219,11 +10219,8 @@ Do IL lowering of the indicated scope and everything under it.
         add_destructor_params(scope);
       }  /* if */
     }  /* if */
-    /* Clear the list of return statements found in the routine.  This list
-       is built so that epilogue code can be added at each return. */
-    return_memo_list = NULL;
-    /* Initialize for exception handling lowering. */
-    eh_function_lower_init();
+    /* Initialize for lowering a function. */
+    function_lower_init();
     /* Lower the executable code. */
     if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
       /* For a constructor, add wrapper code around the user code, and also
@@ -10743,6 +10740,20 @@ Display and return the amount of space used for various IL lowering tables.
   return grand_total;
 }  /* show_lowering_space_used */
 #endif /* DEBUG */
+
+
+void function_lower_init(void)
+/*
+Do initialization at the beginning of lowering a function.
+*/
+{
+  curr_cleanup_state = NULL;
+  /* Clear the list of return statements found in the routine.  This list
+     is built so that epilogue code can be added at each return. */
+  return_memo_list = NULL;
+  /* Initialize for exception handling lowering. */
+  eh_function_lower_init();
+}  /* function_lower_init */
 
 
 void il_lower_one_time_init(void)

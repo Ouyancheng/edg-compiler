@@ -116,6 +116,7 @@ typedef struct an_eh_lowering_context {
 #if DO_FULL_PORTABLE_EH_LOWERING
   a_variable_ptr
 		object_addr_table_var;
+#define AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT 1
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #if GENERATE_EH_TABLES
   a_variable_ptr
@@ -128,9 +129,12 @@ typedef struct an_eh_lowering_context {
 		region_table_aggr_con;
   a_cleanup_region_number
 		next_avail_region_number;
+#define AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT 1
 #endif /* GENERATE_EH_TABLES */
-  a_dynamic_init_ptr
-		curr_cleanup_state;
+#ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT
+  char		dummy;	/* Dummy field if structure would otherwise be
+			   empty. */
+#endif /* ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT */
 } an_eh_lowering_context;
 
 extern void save_eh_lowering_context(an_eh_lowering_context *ehcontext);

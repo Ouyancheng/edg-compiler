@@ -3989,7 +3989,6 @@ restore_eh_lowering_context.
     ehcontext->next_avail_region_number = next_avail_region_number;
 #endif /* GENERATE_EH_TABLES */
   }  /* if */
-  ehcontext->curr_cleanup_state = curr_cleanup_state;
 }  /* save_eh_lowering_context */
 
 
@@ -4011,7 +4010,6 @@ global variables, from *ehcontext.
     next_avail_region_number = ehcontext->next_avail_region_number;
 #endif /* GENERATE_EH_TABLES */
   }  /* if */
-  curr_cleanup_state = ehcontext->curr_cleanup_state;
 }  /* restore_eh_lowering_context */
 
 
@@ -4033,7 +4031,6 @@ IL lowering for exceptions.
     next_avail_region_number = 0;
 #endif /* GENERATE_EH_TABLES */
   }  /* if */
-  curr_cleanup_state = NULL;
 }  /* eh_function_lower_init */
 
 
