@@ -428,11 +428,11 @@ void fold_base_class_cast(a_constant        *constant_1,
                           a_source_position *err_pos)
 /*
 Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
-an address of a class object.  It is converted to point to the class
-indicated by bcp, and the new constant is returned in *result.
+an address of a class object.  It is converted to a pointer to the base
+class indicated by bcp and the new constant is returned in *result.
 Do access control on the cast if check_cast_access is TRUE.  If the operation
 cannot be folded, *did_not_fold is returned TRUE.  If there is an error,
-issue it at *err_pos;
+issue it at *err_pos.
 */
 {
   a_boolean             access_okay;
@@ -492,72 +492,29 @@ issue it at *err_pos;
            that no overflow/object-size checking is needed, since the base
            class has to be within the underlying object. */
         set_pointer_offset(result, offset);
-        implicit_cast(result, make_pointer_type(curr_type));
       }  /* if */
     }  /* for */
     if (!access_okay) pos_error(ec_inaccessible_base_class, err_pos);
+    implicit_cast(result, make_pointer_type(curr_type));
   }  /* if */
 }  /* fold_base_class_cast */
-    
-
-static void fold_a_derived_class_cast(
-                                     a_type_ptr            new_type_pointed_to,
-                                     a_derivation_step_ptr dsp,
-                                     a_constant            *result)
-/*
-Helper routine for fold_derived_class_cast: folds casts of *result to change
-its type to new_type_pointed_to.  dsp points to the derivation list from
-the desired type to the current type (i.e., it's backwards from what's
-needed).
-*/
-{
-  a_targ_ptrdiff_t offset;
-
-  /* The code here looks like add_a_derived_class_cast. */
-  /* Use recursion to get to the bottom of the list and work upwards.
-     Fold casts to get the type we have to the type just below the type
-     we want. */
-  if (dsp->next != NULL) {
-    fold_a_derived_class_cast(dsp->base_class->type, dsp->next, result);
-  }  /* if */
-  /* Fold the node to do the final cast. */
-  offset = pointer_offset(result);
-  if (offset == 0 && base_object(result) == NULL) {
-    /* Preserve a NULL pointer. */
-  } else {
-#if CHECKING
-    if (dsp->base_class->any_virtual_steps_in_derivation) {
-      internal_error("fold_a_derived_class_cast: virtual base class");
-    }  /* if */
-#endif /* CHECKING */
-    /* Take the pointer offset, ... */
-    /* ... subtract the offset to the base class, ... */
-    offset -= dsp->base_class->offset;
-    /* ... and put the offset into the result pointer constant.  Note
-       that no overflow/object-size checking is needed, since the base
-       class has to be within the underlying object. */
-    set_pointer_offset(result, offset);
-    implicit_cast(result, make_pointer_type(new_type_pointed_to));
-  }  /* if */
-}  /* fold_a_derived_class_cast */
 
 
-void fold_derived_class_cast(a_constant        *constant_1,
-                             a_type_ptr        new_type_pointed_to,
-                             a_base_class      *bcp,
-                             a_constant        *result,
-                             a_boolean         *did_not_fold,
-                             a_source_position *err_pos)
+static void fold_derived_class_cast(a_constant        *constant_1,
+                                    a_base_class      *bcp,
+                                    a_constant        *result,
+                                    a_source_position *err_pos)
 /*
 Fold a C++ cast of a class pointer to a derived class pointer.  constant_1 is
-an address of a class object.  It is converted to point to the class
-indicated by new_type_pointed_to, and the new constant is returned in *result.
+an address of a class object.  It is converted to point to the pointer type
+indicated by result->type, and the new constant is returned in *result.
 bcp points to the base class entry for the current type relative to the
-desired derived type.  If the operation cannot be folded, *did_not_fold
-is returned TRUE.  If there is an error, it is issued at *err_pos;
+desired derived type.  If there is an error, it is issued at *err_pos.
 */
 {
-  *did_not_fold = FALSE;
+  a_type_ptr       new_type = result->type;
+  a_targ_ptrdiff_t offset;
+
   /* The code here looks like add_derived_class_casts. */
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
@@ -569,8 +526,25 @@ is returned TRUE.  If there is an error, it is issued at *err_pos;
     set_error_constant(result);
   } else {
     copy_constant(constant_1, result);
-    /* Use recursion to process the list backwards to generate casts. */
-    fold_a_derived_class_cast(new_type_pointed_to, bcp->derivation, result);
+    /* Determine the offset and adjust it for the cast. */
+    offset = pointer_offset(result);
+    if (offset == 0 && base_object(result) == NULL) {
+      /* Preserve a NULL pointer. */
+    } else {
+#if CHECKING
+      if (bcp->any_virtual_steps_in_derivation) {
+        internal_error("fold_derived_class_cast: virtual base class");
+      }  /* if */
+#endif /* CHECKING */
+      /* Take the pointer offset, ... */
+      /* ... subtract the offset to the base class, ... */
+      offset -= bcp->offset;
+      /* ... and put the offset into the result pointer constant.  Note
+         that no overflow/object-size checking is needed, since the base
+         class has to be within the underlying object. */
+      set_pointer_offset(result, offset);
+    }  /* if */
+    implicit_cast(result, new_type);
   }  /* if */
 }  /* fold_derived_class_cast */
 
@@ -631,13 +605,12 @@ been cast to an integral type, and so does not have pointer type.
     if (downward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
-      fold_base_class_cast(old_constant, bcp, new_constant,
-                           is_implicit_cast, did_not_fold, err_pos);
+      fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
+                           did_not_fold, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
-      fold_derived_class_cast(old_constant, type_pointed_to(new_type),
-                              bcp, new_constant, did_not_fold, err_pos);
+      fold_derived_class_cast(old_constant, bcp, new_constant, err_pos);
     }  /* if */
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
@@ -648,6 +621,128 @@ been cast to an integral type, and so does not have pointer type.
     implicit_cast(new_constant, new_type);
   }  /* if */
 }  /* conv_pointer_to_whatever */
+
+
+static void fold_pm_base_class_cast(a_constant        *constant_1,
+                                    a_base_class      *bcp,
+                                    a_constant        *result,
+                                    a_source_position *err_pos)
+/*
+Fold a C++ cast of a pointer to a member of a class to pointer to a member
+of a base class.  constant_1 is a pointer-to-member constant.  It is converted
+to a pointer-to-member for the base class indicated by bcp (given by
+result->type) and the new constant is returned in *result.  If there is an
+error, issue it at *err_pos.  Note that casts of this type always come from
+explicit casts, so checking for accessibility of base classes is not necessary.
+*/
+{
+  a_type_ptr new_type = result->type;
+
+  /* The code here looks like add_pm_base_class_casts. */
+  if (bcp->ambiguous) {
+    /* The base class is ambiguous. */
+    pos_error(ec_ambiguous_base_class, err_pos);
+    set_error_constant(result);
+  } else {
+    copy_constant(constant_1, result);
+    implicit_cast(result, new_type);
+  }  /* if */
+}  /* fold_pm_base_class_cast */
+
+
+static void fold_pm_derived_class_cast(a_constant        *constant_1,
+                                       a_base_class      *bcp,
+                                       a_constant        *result,
+                                       a_boolean         check_cast_access,
+                                       a_source_position *err_pos)
+/*
+Fold a C++ cast of a pointer to a member of a class to pointer to member
+of a derived class.  constant_1 is a pointer-to-member constant.  It is
+converted to a pointer-to-member for the derived class (given by
+result->type) and the new constant is returned in *result.  Do access
+control on the cast if check_cast_access is TRUE.  bcp points to the base
+class entry for the current type relative to the desired derived type.
+If there is an error, it is issued at *err_pos.
+*/
+{
+  a_type_ptr            new_type = result->type, curr_type;
+  a_derivation_step_ptr dsp;
+
+  /* The code here looks like add_pm_derived_class_casts. */
+  if (bcp->ambiguous) {
+    /* The cast is ambiguous. */
+    pos_error(ec_ambiguous_derived_class, err_pos);
+    set_error_constant(result);
+  } else if (bcp->any_virtual_steps_in_derivation) {
+    /* The base class is a virtual base of the derived class. */
+    pos_error(ec_derived_class_from_virtual_base, err_pos);
+    set_error_constant(result);
+  } else {
+    if (check_cast_access) {
+      /* Check the accessibility of the base class.  (Recall that casts
+         to derived types can be done implicitly.) */
+      curr_type = skip_typerefs(new_type)->variant.ptr_to_member.
+                                                       class_of_which_a_member;
+      for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+        /* Check that the base class is accessible from the current class. */
+        if (!is_accessible_base_class(dsp->base_class, curr_type)) {
+          pos_error(ec_inaccessible_base_class, err_pos);
+          break;
+        }  /* if */
+        curr_type = dsp->base_class->type;
+      }  /* for */
+    }  /* if */
+    copy_constant(constant_1, result);
+    implicit_cast(result, new_type);
+  }  /* if */
+}  /* fold_pm_derived_class_cast */
+
+
+static void conv_ptr_to_member_to_ptr_to_member(
+                                            a_constant        *old_constant,
+                                            a_constant        *new_constant,
+                                            a_boolean         is_implicit_cast,
+                                            a_source_position *err_pos,
+                                            an_error_code     *err_code,
+                                            an_error_severity *err_severity)
+/*
+Convert a pointer-to-member constant to a pointer-to-member constant of
+a different type.
+*/
+{
+  a_type_ptr       new_type = new_constant->type, new_class;
+  a_type_ptr       old_type = old_constant->type, old_class;
+  a_base_class_ptr bcp;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+  /* Basically, all that's needed is to change the type of the constant and
+     set implicit_cast.  However, one must also check for an ambiguous
+     cast and (when the cast is implicit) for accessibility. */
+  old_type = skip_typerefs(old_type);
+  new_type = skip_typerefs(new_type);
+  old_class = old_type->variant.ptr_to_member.class_of_which_a_member;
+  new_class = new_type->variant.ptr_to_member.class_of_which_a_member;
+  if (old_class == new_class) {
+    /* The classes are the same, so no error check is needed. */
+    /* The fact that the class types are the same does not mean the
+       pointer-to-member types are the same; the member type may be
+       changing. */
+    copy_constant(old_constant, new_constant);
+    implicit_cast(new_constant, new_type);
+  } else if ((bcp = find_base_class_of(old_class, new_class)) != NULL) {
+    /* Derived --> base (allowed only as an explicit cast).  Valid unless
+       the cast is ambiguous. */
+    fold_pm_base_class_cast(old_constant, bcp, new_constant, err_pos);
+  } else if ((bcp = find_base_class_of(new_class, old_class)) != NULL) {
+    /* Base --> derived (allowed as an implicit or explicit cast).  Valid
+       unless the cast is ambiguous, the base class is inaccessible (if
+       the cast is implicit), or the base class is a virtual base of the
+       derived class. */
+    fold_pm_derived_class_cast(old_constant, bcp, new_constant,
+                               is_implicit_cast, err_pos);
+  }  /* if */
+}  /* conv_ptr_to_member_to_ptr_to_member */
 
 
 static void conv_integer_to_pointer(a_constant        *old_constant,
@@ -676,6 +771,37 @@ Convert an integer constant to a pointer constant of type as specified by
   copy_constant(old_constant, new_constant);
   implicit_cast(new_constant, new_type);
 }  /* conv_integer_to_pointer */
+
+
+static void conv_integer_to_ptr_to_member(a_constant *old_constant,
+                                          a_constant *new_constant)
+/*
+Convert an integer constant to a pointer to member.
+*/
+{
+  a_type_ptr new_type, member_type;
+  a_boolean  is_function_ptr;
+
+#if CHECKING
+  /* The only valid constant is zero. */
+  if (old_constant->kind != (a_constant_repr_kind)ck_integer ||
+      old_constant->implicit_cast) {
+    internal_error("conv_integer_to_ptr_to_member: bad source constant");
+  }  /* if */
+#endif /* CHECKING */
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_ptr_to_member);
+  new_type = new_constant->type;
+  new_type = skip_typerefs(new_type);
+  member_type = new_type->variant.ptr_to_member.type;
+  new_constant->variant.ptr_to_member.is_function_ptr = is_function_ptr =
+                                                 is_function_type(member_type);
+  /* NULL pointer implies a NULL pointer-to-member constant. */
+  if (is_function_ptr) {
+    new_constant->variant.ptr_to_member.variant.routine = NULL;
+  } else {
+    new_constant->variant.ptr_to_member.variant.field = NULL;
+  }  /* if */
+}  /* conv_integer_to_ptr_to_member */
 
 
 static void issue_folding_diagnostic(an_error_code     err_code,
@@ -741,13 +867,15 @@ cannot be done.
     /* Changing to an error type, so produce an error constant as result.
        new_constant is already set appropriately. */
     goto exit;
-  } else if (identical_types(constant_type, new_type)) {
+  }  /* if */
+  if (identical_types(constant_type, new_type)) {
     /* The current and new types are the same, so no change is required. */
     copy_constant(constant, &new_constant);
     /* Put in the actual type wanted, as it may have qualifiers. */
     new_constant.type = new_type;
     goto exit;
-  } else if (constant->kind == (a_constant_repr_kind)ck_address) {
+  }  /* if */
+  if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* Any case where the constant is represented as an address should be
        converted by setting the implicit_cast flag.  This test has to be
        early -- like this -- to catch ((unsigned)((int)&x)).  That case
@@ -778,6 +906,10 @@ cannot be done.
           /* Converting integer to pointer. */
           conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
                                   &err_code, &err_severity);
+          break;
+        case tk_ptr_to_member:
+          /* Converting integer to pointer-to-member. */
+          conv_integer_to_ptr_to_member(constant, &new_constant);
           break;
 #if CHECKING
         default:
@@ -811,6 +943,13 @@ cannot be done.
       conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
                                did_not_fold, err_pos,
                                &err_code, &err_severity);
+      break;
+
+    case tk_ptr_to_member:
+      /* Converting from pointer-to-member to pointer-to-member. */
+      conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
+                                          is_implicit_cast, err_pos,
+                                          &err_code, &err_severity);
       break;
 
     case tk_error:
@@ -903,8 +1042,10 @@ Return TRUE if the given constant is a null pointer constant.
            Qualifiers are not allowed on the pointer or the void type
            pointed to (see 3.2.2.3; it says "void *" without mentioning
            the possibility of qualifiers). */
-        if (is_pointer_type(constant->type) &&
-            !is_qualified_type(constant->type)) {
+        if (C_dialect == C_dialect_cplusplus) {
+          /* In C++ (void *)0 is not a null pointer constant. */
+        } else if (is_pointer_type(constant->type) &&
+                   !is_qualified_type(constant->type)) {
           ptr_type = type_pointed_to(constant->type);
 	  if (is_void_type(ptr_type) && !is_qualified_type(ptr_type)) {
 	    is_null_pointer = TRUE;
