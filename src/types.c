@@ -896,9 +896,11 @@ set, leave it alone.  Also compute and set the alignment requirement.
         goto size_already_set;
       case tk_ptr_to_member:
         if (is_function_type(type_ptr->variant.ptr_to_member.type)) {
+          /* Pointer to nonstatic member function. */
           size = TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION;
           alignment = TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION;
         } else {
+          /* Pointer to nonstatic data member. */
           size = TARG_SIZEOF_PTR_TO_DATA_MEMBER;
           alignment = TARG_ALIGNOF_PTR_TO_DATA_MEMBER;
         }  /* if */
@@ -1259,12 +1261,11 @@ funcs_not_identical:;
         case tk_ptr_to_member:
           /* Pointer-to-member types are identical if they refer to the same
              class type and to the same member type. */
-          identical = (f_identical_types(type_1->variant.ptr_to_member.
-                                           class_of_which_a_member,
-                                         type_2->variant.ptr_to_member.
-                                           class_of_which_a_member) &&
+          identical = (type_1->variant.ptr_to_member.class_of_which_a_member ==
+                       type_2->variant.ptr_to_member.class_of_which_a_member &&
                        f_identical_types(type_1->variant.ptr_to_member.type,
-                                         type_2->variant.ptr_to_member.type));
+                                         type_2->variant.ptr_to_member.type,
+                                         il_identical));
           break;
 #if CHECKING
         default:
@@ -1490,10 +1491,8 @@ funcs_not_compatible:;
         case tk_ptr_to_member:
           /* Pointer-to-member types are compatible if they refer to the same
              class type and their member types are compatible. */
-          compat = (f_identical_types(type_1->variant.ptr_to_member.
-                                        class_of_which_a_member,
-                                      type_2->variant.ptr_to_member.
-                                        class_of_which_a_member) &&
+          compat = (type_1->variant.ptr_to_member.class_of_which_a_member ==
+                       type_2->variant.ptr_to_member.class_of_which_a_member &&
                     f_types_are_compatible(type_1->variant.ptr_to_member.type,
                                           type_2->variant.ptr_to_member.type));
           break;
