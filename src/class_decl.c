@@ -3814,7 +3814,7 @@ of assoc_field_object and assoc_var_object is defined.
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
-  a_type_ptr                     object_type;
+  a_type_ptr                     object_type, tp;
 
   db_enter(4, "check_anonymous_union_symbols");
   if (assoc_var_object != NULL) {
@@ -3848,42 +3848,73 @@ of assoc_field_object and assoc_var_object is defined.
         access_error_already_issued = TRUE;
       }  /* if */
     }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_field) {
-      /* Unlink the symbol from the inactive list and link it back into the
-         symbol table in the current scope. */
-      sym->class_of_which_a_member = class_type;
-      /* The fields of an anonymous union within a class take on the access
-         specifier of the anonymous union itself; the fields of a variable
-         anonymous union should be (i.e., should remain) public. */
-      sym->variant.field.ptr->source_corresp.access = assoc_object_access;
-      remove_from_inactive_symbols_list(sym);
-      reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-      if (assoc_var_object != NULL) {
-        /* Update the IL. */
-        sym->variant.field.anonymous_union_variable = assoc_var_object;
-      }  /* if */
-    } else if (is_member_function_symbol(sym)) {
-      /* This may be a compiler generated default assignment operator, which
-         is okay.  Any user-defined member function is illegal. */
-      if (!member_function_error_already_issued) {
-        if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-          mf_sym = sym->variant.overloaded_function.symbols;
-          is_overloaded = TRUE;
-        } else {
-          mf_sym = sym;
-          is_overloaded = FALSE;
+    switch (sym->kind) {
+      case sk_field:
+        /* Unlink the symbol from the inactive list and link it back into the
+           symbol table in the current scope. */
+        sym->class_of_which_a_member = class_type;
+        /* The fields of an anonymous union within a class take on the access
+           specifier of the anonymous union itself; the fields of a variable
+           anonymous union should be (i.e., should remain) public. */
+        sym->variant.field.ptr->source_corresp.access = assoc_object_access;
+        remove_from_inactive_symbols_list(sym);
+        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+        if (assoc_var_object != NULL) {
+          /* Update the IL. */
+          sym->variant.field.anonymous_union_variable = assoc_var_object;
         }  /* if */
-        for (; mf_sym != NULL; mf_sym = is_overloaded ? mf_sym->next : NULL) {
-          if (!mf_sym->variant.routine.ptr->compiler_generated) {
-            error(ec_anon_union_member_function);
-            member_function_error_already_issued = TRUE;
-            break;
+        break;
+      case sk_member_function:
+      case sk_overloaded_function:
+        /* This may be a compiler generated default assignment operator, which
+           is okay.  Any user-defined member function is illegal. */
+        if (!member_function_error_already_issued) {
+          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            mf_sym = sym->variant.overloaded_function.symbols;
+            is_overloaded = TRUE;
+          } else {
+            mf_sym = sym;
+            is_overloaded = FALSE;
           }  /* if */
-        }  /* for */
-      }  /* if */
-    } else {
-      /* A member that is a type?  Ignore it. */
-    }  /* if */
+          for (; mf_sym != NULL;
+                 mf_sym = is_overloaded ? mf_sym->next : NULL) {
+            if (!mf_sym->variant.routine.ptr->compiler_generated) {
+              error(ec_anon_union_member_function);
+              member_function_error_already_issued = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        break;
+      case sk_type:
+      case sk_class_or_struct_tag:
+      case sk_union_tag:
+      case sk_enum_tag:
+        /* Unlink the symbol from the inactive list and link it back into the
+           symbol table in the current scope. */
+        tp = type_symbol_type(sym);
+        tp->source_corresp.class_of_which_a_member = class_type;
+        sym->class_of_which_a_member = class_type;
+        /* The members of an anonymous union within a class take on the access
+           specifier of the anonymous union itself; the members of a variable
+           anonymous union should be (i.e., should remain) public. */
+        tp->source_corresp.access = assoc_object_access;
+        remove_from_inactive_symbols_list(sym);
+        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+        break;
+      case sk_constant:
+        /* An enum constant. */
+        sym->variant.constant->source_corresp.class_of_which_a_member =
+                                  sym->class_of_which_a_member = class_type;
+        sym->variant.constant->source_corresp.access = assoc_object_access;
+        remove_from_inactive_symbols_list(sym);
+        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+        break;
+#if CHECKING
+      default:
+        internal_error("check_anonymous_union_symbols: unexpected sym kind");
+#endif /* CHECKING */
+    }  /* switch */
   }  /* for */
   db_exit();
 }  /* check_anonymous_union_symbols */
