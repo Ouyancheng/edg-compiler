@@ -124,6 +124,8 @@ Flags to be set when using the KAI inliner.
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
+#define VLA_ALLOWED 1
+#define DEFAULT_VLA_ENABLED 0
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 

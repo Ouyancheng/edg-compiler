@@ -254,6 +254,31 @@ Borland).
 #endif /* !defined(ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS) */
 
 /*
+Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
+an array whose size is known only at execution time.  This extension
+implements proposal "Arrays of Variable Length", WG14/N637 (X3J11/96-101),
+and is supported in C mode only.  If VLA_ALLOWED is TRUE, support is enabled
+and disabled based on command-line options --[no_]vla, which controls global
+variable vla_enabled.
+*/
+#ifndef VLA_ALLOWED
+#define VLA_ALLOWED FALSE
+#endif /* VLA_ALLOWED */
+
+/*
+Flag that is used as the default setting for global variable vla_enabled.
+The variable can also been controlled from the command line by --[no_]vla.
+(Whatever the default, vla_enabled is always turned off in C++ mode.)
+*/
+#ifndef DEFAULT_VLA_ENABLED
+#define DEFAULT_VLA_ENABLED FALSE
+#else /* ifndef DEFAULT_VLA_ENABLED */
+#if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
+  #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
+#endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
+#endif /* ifndef DEFAULT_VLA_ENABLED */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.
