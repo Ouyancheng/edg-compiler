@@ -72,6 +72,7 @@ been included by the inclusion of fe_common.h.
 #include "symbol_ref.h"
 #include "sys_predef.h"
 #include "templates.h"
+#include "trans_corresp.h"
 
 #if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
@@ -639,6 +640,7 @@ after the command-line processing has been done.
   scope_stk_one_time_init();
   templates_one_time_init();
   trans_unit_one_time_init();
+  corresp_one_time_init();
 #if DO_IL_LOWERING
   /* IL lowering is initialized even when IL lowering is suppressed.  This
      is done because some of the variables that are initialized in IL
@@ -721,6 +723,7 @@ source file's compilation.
   def_arg_init();
   templates_init();
   trans_unit_init();
+  corresp_init();
   expr_init();
   lookup_init();
   macro_init();
@@ -955,6 +958,7 @@ when it is a secondary file.
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
   templates_trans_unit_init();
+  corresp_trans_unit_init();
   expr_trans_unit_init();
   il_trans_unit_init();
   statements_trans_unit_init();

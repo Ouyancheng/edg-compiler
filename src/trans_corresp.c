@@ -33,6 +33,7 @@ trans_corresp.c -- Routines  related to matching entities across
 
 /* Forward declarations. */
 static a_boolean verify_type_correspondence(a_type_ptr  type);
+static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 
 
 static char* f_canonical_il_entry_of(char *il_entry)
@@ -1251,21 +1252,24 @@ instantiation to the list of all instantiations of the corresponding
 template.
 */
 {
-  if (is_primary_translation_unit) {
+  if (total_errors != 0) {
+    /* Once errors have been detected correspondence checking is no
+       longer done so there's no need to maintain this list. */
+  } else if (is_primary_translation_unit) {
     a_symbol_list_entry_ptr  sym_entry = alloc_symbol_list_entry();
     sym_entry->next = tssp->all_instantiations;
     tssp->all_instantiations = sym_entry;
     sym_entry->symbol = inst;
-  } else {
-#if 0 /* FIXME: need code to handle instantiations created after the
-         correspondences have been tracked down. */
-    if (is_class_struct_union_tag(inst)) {
+  } else if (correspondence_checking_done) {
+    /* This is an instantiation in a secondary translation unit added
+       after correspondence checking has been completed, so do catch-up
+       correspondence processing. */
+    if (is_class_struct_union_symbol(inst)) {
       record_class_template_instantiation(inst);
     } else if (is_function_symbol(inst)) {
       record_function_template_instantiation(
                                           inst->variant.routine.instance_ptr);
     }  /* if */
-#endif /* FIXME */
   }  /* if */
 }  /* record_instantiation */
 
@@ -1663,7 +1667,7 @@ canonical entry.
 }  /* canonical_template_entry_of */
 
 
-void establish_trans_unit_correspondences_for_scope(a_scope_ptr  scope)
+static void establish_trans_unit_correspondences_for_scope(a_scope_ptr  scope)
 /*
 Establish correspondences for all the applicable entities in the given
 scope.  The process is repeated in nested class and namespace scopes.
@@ -1733,7 +1737,7 @@ scope.  The process is repeated in nested class and namespace scopes.
 }  /* establish_trans_unit_correspondences_for_scope */
 
 
-void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope)
+static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope)
 /*
 Verify correspondences for all the applicable entities in the given
 scope.  The process is repeated in nested scopes.
@@ -1744,6 +1748,56 @@ scope.  The process is repeated in nested scopes.
   verify_routine_correspondences_for_scope(scope);
   verify_variable_correspondences_for_scope(scope);
 }  /* verify_trans_unit_correspondences_for_scope */
+
+
+void set_trans_unit_correspondences(void)
+/*
+Establish correspondences between entities with linkage in the
+current (secondary) translation unit and ones in other translation
+units.
+*/
+{
+  a_scope_ptr  file_scope = curr_translation_unit->primary_scope;
+
+  correspondence_checking_underway = TRUE;
+  establish_trans_unit_correspondences_for_scope(file_scope);
+  verify_trans_unit_correspondences_for_scope(file_scope);
+  correspondence_checking_underway = FALSE;
+  correspondence_checking_done = TRUE;
+}  /* set_trans_unit_correspondences */
+
+
+void corresp_one_time_init(void)
+/*
+Do one-time initialization of variables related to correspondence
+checking.
+*/
+{
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(correspondence_checking_underway);
+  register_trans_unit_variable(correspondence_checking_done);
+}  /* corresp_one_time_init */
+
+
+void corresp_trans_unit_init(void)
+/* 
+Initialize things related to correspondence checking that must be
+re-initialized for each translation unit.
+*/
+{
+  correspondence_checking_underway = FALSE;
+  correspondence_checking_done = FALSE;
+}  /* corresp_trans_unit_init */
+
+
+void corresp_init(void)
+/* 
+Initialize things related to correspondence checking that must be initialized
+for each compilation.
+*/
+{
+}  /* corresp_init */
 
 
 /******************************************************************************

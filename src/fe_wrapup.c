@@ -102,9 +102,7 @@ Do any processing that is required at the end of a translation unit
      correspondences.  (If there were errors, the IL may be too
      damaged for reasonable results.) */
   if (!is_primary_translation_unit && total_errors == 0) {
-    a_scope_ptr  file_scope = curr_translation_unit->primary_scope;
-    establish_trans_unit_correspondences_for_scope(file_scope);
-    verify_trans_unit_correspondences_for_scope(file_scope);
+    set_trans_unit_correspondences();
   }  /* if */
 
   db_exit();
