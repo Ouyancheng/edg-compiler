@@ -1,5 +1,19 @@
 Version 2.44
 
+2/5/00   Allow expression like a.k or p->k, where k is a constant,
+         as constant expression in cfront mode
+
+An expression like a.k or p->k, where k is something like a member
+enumeration constant, is now allowed as a constant expression in
+cfront 2.1 and 3.0 modes.
+
+  struct {
+    enum E { e1, e2 };
+  } a;
+  void foo() {
+    int x[a.e2];
+  }
+
 2/5/00   Reference to nonstatic local variable of enclosing function allowed
          in sizeof in local class
 

@@ -1674,8 +1674,8 @@ bound with the function in *bound_function_selector.
              curr_expr_kind_is(ek_template_arg)) {
     /* Field selection is not allowed in integral constant expressions
        or template argument expressions. */
-    if (microsoft_mode && !C_mode()) {
-      /* ... except in Microsoft C++ mode, where something like
+    if (any_cfront_mode() || (microsoft_mode && !C_mode())) {
+      /* ... except in cfront or Microsoft C++ mode, where something like
            struct A { enum { e1 = 1 }; } a;
            int x[a.e1];
          is allowed.  The constant check is done at the end. */
@@ -1731,9 +1731,9 @@ bound with the function in *bound_function_selector.
     }  /* if */
     { an_expression_kind saved_expr_kind = expr_stack->expression_kind;
       if (allow_integral_constant_selection) {
-        /* For the Microsoft case that allows p->k in a constant expression,
-           treat the "p" momentarily as part of a non-constant expression
-           to get no error on the lvalue-to-rvalue conversion. */
+        /* For the cfront or Microsoft case that allows p->k in a constant
+           expression, treat the "p" momentarily as part of a non-constant
+           expression to get no error on the lvalue-to-rvalue conversion. */
         expr_stack->expression_kind = (an_expression_kind)ek_normal;
       }  /* if */
       /* Do implicit operand transformations.  In the "." case, keep an lvalue
@@ -10519,7 +10519,7 @@ variable:
                 !is_reference_type(var_ptr->type)) {
               /* Make an lvalue operand for the variable. */
               make_lvalue_variable_operand(var_ptr, result, rep);
-            } else if (microsoft_mode && !C_mode() &&
+            } else if ((any_cfront_mode() || (microsoft_mode && !C_mode())) &&
                        (curr_expr_kind_is(ek_integral_constant) ||
                         curr_expr_kind_is(ek_template_arg)) &&
                        ((is_class_struct_union_type(var_ptr->type) &&
@@ -10528,11 +10528,12 @@ variable:
                          is_class_struct_union_type(
                                              type_pointed_to(var_ptr->type)) &&
                          next_token() == tok_arrow))) {
-              /* In Microsoft C++ mode, allow a class variable identifier
-                 followed by a field selection dot, or a pointer to class
-                 variable identifier followed by "->".  This is needed because
-                 MSVC++ allows things like x.e, where e is something like an
-                 enumerator constant, as part of a constant expression. */
+              /* In cfront or Microsoft C++ mode, allow a class variable
+                 identifier followed by a field selection dot, or a pointer
+                 to class variable identifier followed by "->".  This is
+                 needed because cfront and MSVC++ allow things like x.e,
+                 where e is something like an enumerator constant, as part
+                 of a constant expression. */
               /* Make an lvalue operand for the variable. */
               make_lvalue_variable_operand(var_ptr, result, rep);
             } else if (!C_mode() && is_const_variable(var_ptr)) {
@@ -11033,9 +11034,9 @@ see expr.h).
         /* We're not inside a function. */
         error_and_make_error_operand(ec_this_used_incorrectly, &local_result);
       } else if (curr_expr_kind_is_const() &&
-                 /* Microsoft allows this->k, where k is a constant, in
-                    a constant expression. */
-                 !(microsoft_mode && !C_mode() &&
+                 /* cfront and Microsoft allow this->k, where k is a constant,
+                    in a constant expression. */
+                 !((any_cfront_mode() || (microsoft_mode && !C_mode())) &&
                    next_token() == tok_arrow &&
                    (curr_expr_kind_is(ek_integral_constant) ||
                     curr_expr_kind_is(ek_template_arg)))) {

@@ -4278,8 +4278,8 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
 
-  if (microsoft_mode && curr_expr_kind_is_const()) {
-    /* Accommodate the Microsoft extension that allows
+  if ((any_cfront_mode() || microsoft_mode) && curr_expr_kind_is_const()) {
+    /* Accommodate the cfront and Microsoft extension that allows
          struct A { enum { e1 = 1 }; } a;
          int x[a.e1];
        by throwing away the left operand. */
