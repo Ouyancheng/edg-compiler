@@ -4,14 +4,14 @@ Version 3.6
 
 When simultaneously processing multiple translation units in C mode, the front
 end sometimes aborted with an internal error if it encountered two incompatible
-definitions of a struct type used to declare an entity with external linkage.
-For example:
+definitions of an unnamed struct type used to declare an entity with external
+linkage.  For example:
 
   // File 1:
-  struct S { int i; } s;
+  struct { int i; } s;
 
   // File 2:
-  extern struct S { int j; } s;  // Incompatible field name.  Previously
+  extern struct { int j; } s;  // Incompatible field name.  Previously
                                  // caused an internal error.
 
 This is now fixed (a normal compatibility error is issued). 
