@@ -7569,50 +7569,56 @@ type support.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
-static void check_referenced_member_functions(a_type_ptr  class_type)
+static void check_referenced_member_functions(a_scope_ptr  scope,
+                                              a_boolean    is_function_local)
 /*
-Issue an error for member functions of class_type that have been referenced
-but are undefined and lack external linkage (i.e., inline member functions
-and member functions of local classes).  If class_type has nested classes,
-check their member functions, too. Only report instances in which the IL
-entry is marked "referenced", since symbols for virtual functions may be
-marked as referenced without the associated routine having actually been
-called.
+If scope is a class scope, issue an error for any of its member functions
+that have been referenced but are undefined and lack external linkage (i.e.,
+inline member functions and member functions of local classes); if the class
+has nested classes, check their member functions, too.  If it is not a class
+scope, apply that check to the member functions of each class declared in
+the scope.  is_function_local is TRUE if this scope belongs to a function
+body.  Only called in C++ mode.
 */
 {
   a_routine_ptr  rp;
   a_type_ptr     tp;
-  a_scope_ptr    sp;
-  a_boolean      is_local_class;
+  a_scope_ptr    class_scope;
+  a_symbol_ptr   sym;
 
-  sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
-  if (sp == NULL) {
-    /* Must be an undefined class. */
-  } else {
-    /* Check for nested classes. */
-    for (tp = sp->types; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp)) {
+  /* Examine each of the class types on the types list of the scope.  If
+     this is a class scope, it picks up the nested classes. */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (is_immediate_class_type(tp)) {
+      class_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) {
         /* Check the member functions of the nested class. */
-        check_referenced_member_functions(tp);
+        check_referenced_member_functions(class_scope, is_function_local);
       }  /* if */
-    }  /* for */
-    is_local_class = class_type->source_corresp.is_local_to_function;
+    }  /* if */
+  }  /* for */
+  /* If this is a file, function, or block scope, do nothing more.  If it's
+     a class scope, check its member functions. */
+  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
     /* Now go though each routine entry for the current class. */
-    for (rp = sp->routines; rp != NULL; rp = rp->next) {
+    for (rp = scope->routines; rp != NULL; rp = rp->next) {
       /* If the member function was referenced but not defined and was declared
          inline or is a local class member, it may need a diagnostic. */
       if (rp->source_corresp.referenced &&
           rp->assoc_scope == NULL_region_number &&
-          (is_local_class || rp->is_inline)) {
+          (is_function_local || rp->is_inline)) {
         /* Referenced but never defined. */
         if (rp->compiler_generated || rp->is_virtual) {
           /* These cases are handled elsewhere. */
         } else {
-          /* Put out the error. */
-          a_symbol_ptr  sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-          pos_sy_error(is_local_class ? ec_local_class_function_def_missing :
-                                        ec_never_defined,
-                       &sym->decl_position, sym);
+          sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+          if (sym != NULL) {
+            /* Put out the error. */
+            pos_sy_error(is_function_local ?
+                               ec_local_class_function_def_missing :
+                               ec_never_defined,
+                         &sym->decl_position, sym);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -7900,12 +7906,6 @@ NULL.
             add_to_types_list(type_ptr, depth_scope_stack);
           }  /* if */
         }  /* if */
-      } else if (!C_mode() && is_immediate_class_type(type_ptr) &&
-                 type_ptr->source_corresp.class_of_which_a_member == NULL) {
-        /* This is a class that is not a nested class.  Check for non-extern
-           member functions (its own and those of its nested classes) and
-           report any that were referenced but never defined. */
-        check_referenced_member_functions(type_ptr);
       }  /* if */
 #if CHECKING
       scp = &type_ptr->source_corresp;
@@ -8012,27 +8012,10 @@ NULL.
         }  /* for */
       }  /* if */
       break;
-#endif /* CHECKING */
     case sk_type:
-      if (!C_mode()) {
-        /* Check for referenced but undefined member functions of an
-           unnamed class that has acquired a name (sort of) through a
-           typedef -- e.g., typedef struct { void f(); ... } S; where S::f
-           is referenced but undefined.  Note: it isn't handled this way in
-           in cfront compatibility mode, since a tag symbol will have been
-           created. */
-        type_ptr = sym->variant.type->variant.typeref.type;
-        if (!any_cfront_mode() && is_immediate_class_type(type_ptr) &&
-            type_ptr->source_corresp.class_of_which_a_member == NULL &&
-            is_unnamed_class_symbol((a_symbol_ptr)type_ptr->
-                                         source_corresp.assoc_info)) {
-          check_referenced_member_functions(type_ptr);
-        }  /* if */
-      }  /* if */
-#if CHECKING
       scp = &sym->variant.type->source_corresp;
-#endif /* CHECKING */
       break;
+#endif /* CHECKING */
     case sk_class_template:
       {
       a_template_symbol_supplement_ptr  tssp;
@@ -8244,12 +8227,17 @@ End a name scope by popping an entry off the scope stack.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   }  /* for */
   il_scope = ssep->il_scope;
-  if (C_dialect == C_dialect_cplusplus) {
+  if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {
     if (kind == (a_scope_kind)sck_function ||
-        (kind == (a_scope_kind)sck_block && il_scope != NULL)) {
-      /* If there are any local classes, check for compiler-generated
-         virtual destructors for which bodies should be put out. */
-      generate_required_virtual_destructor_bodies(il_scope->types);
+        kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_file) {
+      if (kind != sck_file) {
+        /* If there are any local classes, check for compiler-generated
+           virtual destructors for which bodies should be put out. */
+        generate_required_virtual_destructor_bodies(il_scope->types);
+      }  /* if */
+      check_referenced_member_functions(il_scope,
+                                        kind != (a_scope_kind)sck_file);
     }  /* if */
   }  /* if */
   if (ssep->curr_construct_pragmas != NULL && total_errors != 0) {
