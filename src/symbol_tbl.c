@@ -5651,7 +5651,7 @@ least size_needed.  Called by ensure_ident_buffer_space.
   db_enter(4, "expand_ident_buffer");
   new_size = size_ident_buffer + IDENT_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  ident_buffer = realloc_general(ident_buffer, size_ident_buffer, new_size);
+  ident_buffer = realloc_buffer(ident_buffer, size_ident_buffer, new_size);
   size_ident_buffer = new_size;
   db_exit();
 }  /* expand_ident_buffer */
@@ -11045,7 +11045,7 @@ Assign the next scope number in sequence, and return it.
        is full.  Expand it by reallocating it. */
     sizeof_t new_size = size_of_trans_unit_for_scope +
                         TRANS_UNIT_FOR_SCOPE_INCREMENTAL_ALLOCATION;
-    trans_unit_for_scope = (a_translation_unit_ptr*)realloc_general(
+    trans_unit_for_scope = (a_translation_unit_ptr*)realloc_buffer(
                       (char *)trans_unit_for_scope,
                       (sizeof_t)(size_of_trans_unit_for_scope *
                                  sizeof(a_translation_unit_ptr)),

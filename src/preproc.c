@@ -401,7 +401,7 @@ Push a new entry on the preprocessing-if stack (pp_if_stack).
   if ((sizeof_t)pp_if_stack_depth+1 == size_pp_if_stack) {
     /* Stack is full; expand it. */
     sizeof_t new_size = size_pp_if_stack + PP_IF_STACK_INCREMENTAL_ALLOCATION;
-    pp_if_stack = (a_pp_if_stack_entry_ptr)realloc_general(
+    pp_if_stack = (a_pp_if_stack_entry_ptr)realloc_buffer(
                       (char *)pp_if_stack,
                       (sizeof_t)(size_pp_if_stack*sizeof(a_pp_if_stack_entry)),
                       (sizeof_t)(new_size*sizeof(a_pp_if_stack_entry)));
@@ -1310,7 +1310,7 @@ size is at least size_needed.  Called by ensure_pp_dir_string_buffer_space.
   new_size = size_pp_dir_string_buffer +
              PP_DIR_STRING_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  pp_dir_string_buffer = realloc_general(pp_dir_string_buffer,
+  pp_dir_string_buffer = realloc_buffer(pp_dir_string_buffer,
                                         size_pp_dir_string_buffer, new_size);
   size_pp_dir_string_buffer = new_size;
 }  /* expand_pp_dir_string_buffer */

@@ -43,6 +43,61 @@ extern char *realloc(char *ptr, unsigned size);
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/*
+Structure used to maintain a list of memory allocations.  This is used
+to free the memory when the front end is reset.  An initial set of
+memory allocation entries is statically allocated, because some memory
+allocations occur very early in front end processing, and to avoid
+interactions with precompiled header memory allocations.  If additional
+entries are needed, they are allocated out of general memory.
+*/
+typedef struct a_memory_allocation *a_memory_allocation_ptr;
+typedef struct a_memory_allocation {
+  a_memory_allocation_ptr
+		next;
+			/* Pointer to the next entry on the list of
+			   allocations. */
+  a_void_ptr	buffer;
+			/* Pointer to the memory allocated. */
+  sizeof_t	size;
+			/* Size of the memory allocated. */
+} a_memory_allocation;
+
+#define SIZE_MEMORY_ALLOCATION_TABLE 1024
+			/* The size of the array of preallocated memory
+			   allocation entries. */
+
+static a_memory_allocation
+		memory_allocation_table
+                                         [SIZE_MEMORY_ALLOCATION_TABLE];
+			/* The array of statically allocated memory allocation
+			   entries. */
+
+static int	next_memory_allocation_table_entry;
+			/* The number of the next preallocated memory
+			   allocation table entry to be used. */
+
+static a_memory_allocation_ptr
+		memory_allocation_list;
+			/* A list of memory blocks allocated in general
+			   memory.  Used to free the blocks at the end
+			   of compilation. */
+
+static a_memory_allocation_ptr
+		resizable_memory_allocation_list;
+			/* A list of resizable memory blocks allocated in
+			   general memory.  Used to free the blocks at the end
+			   of compilation.  This list is separate from the
+			   memory_allocation_list so that entries on the
+			   list can be found quickly when a block must be
+			   resized. */
+
+static a_text_buffer_ptr
+		text_buffer_list;
+			/* Pointer to a list of all allocated text buffers.
+			   Used to free the buffer memory at the end of
+			   compilation. */
+
 #ifdef USING_PURIFY
 #include "purify.h"
 
@@ -776,7 +831,7 @@ the number of entries indicated by region_number.
        compiled uses one entry). */
     old_size = size_of_mem_region_table;
     size_of_mem_region_table = region_number + 500;
-    mem_region_table = (a_mem_block_header_ptr *)realloc_with_check(
+    mem_region_table = (a_mem_block_header_ptr *)realloc_buffer(
                           (char *)mem_region_table,
                           (sizeof_t)(old_size*sizeof(a_mem_block_header_ptr)),
                           (sizeof_t)(size_of_mem_region_table*
@@ -787,7 +842,7 @@ the number of entries indicated by region_number.
                        sizeof(a_mem_block_header_ptr)));
     /* region_scope_entry is a parallel array to mem_region_table, and must
        be similarly expanded. */
-    il_header.region_scope_entry = (a_scope_ptr *)realloc_with_check(
+    il_header.region_scope_entry = (a_scope_ptr *)realloc_buffer(
                           (char *)il_header.region_scope_entry,
                           (sizeof_t)(old_size*sizeof(a_scope_ptr)),
                           (sizeof_t)(size_of_mem_region_table*
@@ -798,7 +853,7 @@ the number of entries indicated by region_number.
                        sizeof(a_scope_ptr)));
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     /* ... and also index_for_il_file. */
-    index_for_il_file = (a_file_position *)realloc_with_check(
+    index_for_il_file = (a_file_position *)realloc_buffer(
                           (char *)index_for_il_file,
                           (sizeof_t)(old_size*sizeof(a_file_position)),
                           (sizeof_t)(size_of_mem_region_table*
@@ -814,7 +869,7 @@ the number of entries indicated by region_number.
   /* Can't do this conditionally on db_active since db_active is not yet
      set when command line processing is done. */
   if (size_of_allocated_in_region < size_of_mem_region_table) {
-    allocated_in_region = (unsigned long *)realloc_with_check(
+    allocated_in_region = (unsigned long *)realloc_buffer(
                           (char *)allocated_in_region,
                           (sizeof_t)(size_of_allocated_in_region*
                                                         sizeof(unsigned long)),
@@ -965,19 +1020,95 @@ compilation of one subprogram in the front end.
 
 #endif /* ifdef FFE */
 
-char *alloc_general(sizeof_t size)
+
+static void add_memory_allocation(a_void_ptr	buffer,
+				  sizeof_t	size,
+				  a_boolean	resizable)
+/*
+Allocate a memory allocation entry, initialize its fields, and add it
+to the appropriate memory allocations list based on whether or not it
+is resizable.  In most cases, the entry will be element of the
+memory_allocation_table array, but if that array is exhausted, an entry
+in general memory will be allocated.
+*/
+{
+  a_memory_allocation_ptr	map;
+
+  if (next_memory_allocation_table_entry < SIZE_MEMORY_ALLOCATION_TABLE) {
+    map = &memory_allocation_table[++next_memory_allocation_table_entry];
+  } else {
+    map = (a_memory_allocation_ptr)malloc_with_check(
+                                                  sizeof(a_memory_allocation));
+  }  /* if */
+  map->next = NULL;
+  map->buffer = buffer;
+  map->size = size;
+  /* Add this entry to either the resizable memory allocations list or the
+     normal list. */
+  if (resizable) {
+    map->next = resizable_memory_allocation_list;
+    resizable_memory_allocation_list = map;
+  } else {
+    map->next = memory_allocation_list;
+    memory_allocation_list = map;
+  }  /* if */
+}  /* add_memory_allocation */
+
+
+static char *alloc_general_record_allocation(sizeof_t	size,
+					     a_boolean	record_allocation)
 /*
 Allocate and return "size" bytes of general storage.  This differs from
 alloc_fe in that the storage will last through execution of the back end
-if the back end is executed in the same program.
+if the back end is executed in the same program.  If record_allocation is
+TRUE, a memory allocation entry is created so that the memory will be
+freed at the end of compilation.  If record_allocation is FALSE, the caller
+is responsible for seeing that the memory is freed.
 */
 {
   char *ptr = malloc_with_check(size);
 #if DEBUG
   total_general_mem_allocated += size;
 #endif /* DEBUG */
+  if (record_allocation) {
+    add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/FALSE);
+  }  /* if */
+  return ptr;
+}  /* alloc_general_record_allocation */
+
+
+char *alloc_general(sizeof_t size)
+/*
+Interface to alloc_general_record_allocation that causes a memory allocation
+entry to be created.
+*/
+{
+  char *ptr;
+
+  ptr = alloc_general_record_allocation(size, /*record_allocation=*/TRUE);
   return ptr;
 }  /* alloc_general */
+
+
+static a_memory_allocation_ptr find_memory_allocation(
+					a_void_ptr	ptr,
+					a_boolean	resizable)
+/*
+Find the memory allocation entry for "ptr" and return it.  If resizable
+is TRUE, look on the resizable allocations list, otherwise look on the
+normal allocations list.
+*/
+{
+  a_memory_allocation_ptr	map;
+  for (map = resizable ? resizable_memory_allocation_list
+                       : memory_allocation_list;
+       map != NULL; map = map->next) {
+    if (map->buffer == ptr) break;
+  }  /* for */
+  check_assertion_str2(map != NULL, "find_memory_allocation:",
+                       "no previous allocation");
+  return map;
+}  /* find_memory_allocation */
 
 
 #if !DEBUG
@@ -989,31 +1120,99 @@ void free_general(a_void_ptr	ptr,
 Free a block of memory to general storage.
 */
 {
+  a_memory_allocation_ptr	map;
+
   free((char*)ptr);
 #if DEBUG
   total_general_mem_allocated -= size;
 #endif /* DEBUG */
+  /* Find the memory allocation entry for this memory and clear the pointer
+     so that it won't be freed again, or found by a subsequent search. */
+  map = find_memory_allocation(ptr, /*resizable=*/FALSE);
+  map->buffer = NULL;
+  map->size = 0;
 }  /* free_general */
 
 
-char *realloc_general(char     *old_ptr,
-                      sizeof_t old_size,
-                      sizeof_t new_size)
+a_void_ptr alloc_resizable_buffer(sizeof_t size)
+/*
+Allocate "size" bytes of storage that can be resized later using
+realloc_general.  Because these buffers can be resized, they can't be
+allocated in a memory region.  A list of these allocations is maintained so
+that the memory can be freed when the front end is reset.
+*/
+{
+  a_void_ptr			ptr;
+
+  ptr = malloc_with_check(size);
+  add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/TRUE);
+  return ptr;
+}  /* alloc_resizable_buffer */
+
+
+static char *realloc_general(char     *old_ptr,
+                             sizeof_t old_size,
+                             sizeof_t new_size)
 /*
 Reallocate the area pointed to by old_ptr, which currently has size old_size,
 so that it will have size new_size.  Return a pointer to the new area.
-The old space must have been allocated in general storage (by alloc_general
-or realloc_general).  If old_ptr == NULL, this routine acts like
-alloc_general.
+The old space must have been allocated in general storage by
+alloc_general_record_allocation (with record_allocation=FALSE) or
+realloc_general.  If old_ptr == NULL, this routine acts like
+alloc_general_record_allocation (with record_allocation=FALSE).
+
+In most cases, realloc_buffer should be used instead of realloc_general
+as realloc_buffer makes sure that the memory is freed at the end of
+compilation.  This routine should be used if the memory is freed in
+some other way.
 */
 {
-  char *ptr = realloc_with_check(old_ptr, old_size, new_size);
+  char *ptr;
+
+  if (old_ptr == NULL) {
+    ptr = alloc_general_record_allocation(new_size,
+                                          /*record_allocation=*/FALSE);
+  } else {
+    ptr = realloc_with_check(old_ptr, old_size, new_size);
+  }  /* if */
 #if DEBUG
   total_general_mem_allocated -= old_size;
   total_general_mem_allocated += new_size;
 #endif /* DEBUG */
   return ptr;
 }  /* realloc_general */
+
+
+char *realloc_buffer(char     *old_ptr,
+                     sizeof_t old_size,
+                     sizeof_t new_size)
+/*
+Reallocate the area pointed to by old_ptr, which currently has size old_size,
+so that it will have size new_size.  Return a pointer to the new area.
+The old space must have been allocated in general storage by
+alloc_resizable_buffer or realloc_buffer.  If old_ptr == NULL, this routine
+acts like alloc_resizable_buffer.
+*/
+{
+  char *ptr;
+
+  if (old_ptr == NULL) {
+    ptr = alloc_resizable_buffer(new_size);
+  } else {
+    a_memory_allocation_ptr	map;
+    /* Find the memory allocation entry for the original allocation so
+       that it can be updated with the new pointer and size. */
+    map = find_memory_allocation(old_ptr, /*resizable=*/TRUE);
+    check_assertion_str2(map->size == old_size, "realloc_general:",
+                         "old size incorrect");
+    ptr = realloc_general(old_ptr, old_size, new_size);
+    /* Update the memory allocation entry to reflect the resized memory. */
+    map->buffer = ptr;
+    map->size = new_size;
+  }  /* if */
+  return ptr;
+}  /* realloc_buffer */
+
 
 
 void free_memory_region(a_memory_region_number region_number)
@@ -1317,7 +1516,11 @@ they point to are allocated there.
   tbp->allocated_size = allocation_increment;
   tbp->allocation_increment = allocation_increment;
   tbp->size = 0;
-  tbp->buffer = (char *)alloc_general(allocation_increment);
+  tbp->buffer = (char *)alloc_general_record_allocation(
+                            allocation_increment, /*record_allocation=*/FALSE);
+  /* Add this to the list of all text buffers allocated. */
+  tbp->next = text_buffer_list;
+  text_buffer_list = tbp;
 #if DEBUG
   num_text_buffers_allocated++;
 #endif /* DEBUG */
@@ -1512,6 +1715,10 @@ This is done before command line processing.
   size_of_mem_alloc_history = 0;
   mem_alloc_history_entries_used = 0;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+  next_memory_allocation_table_entry = 0;
+  memory_allocation_list = NULL;
+  resizable_memory_allocation_list = NULL;
+  text_buffer_list = NULL;
 }  /* mem_manage_early_init */
 
 
@@ -1544,6 +1751,58 @@ must be initialized for each compilation.
   /* Initialize the memory region for file scope IL information. */
   init_memory_region(FILE_SCOPE_REGION_NUMBER, (sizeof_t)0);
 }  /* mem_manage_init */
+
+
+static void free_text_buffers(void)
+/*
+Free the buffer memory used for all of the text that were allocated.  The
+actual text buffer entries will be freed by the normal mechanism to
+free general storage.
+*/
+{
+  a_text_buffer_ptr	tbp;
+  for (tbp = text_buffer_list; tbp != NULL; tbp = tbp->next) {
+    /* Free the memory pointed to by the buffer. */
+    (void)free(tbp->buffer);
+    tbp->buffer = NULL;
+  }  /* for */
+  text_buffer_list = NULL;
+}  /* free_text_buffers */
+
+
+static void free_general_memory(a_memory_allocation_ptr	*list)
+/*
+Free the general memory specified by *list.
+*/
+{
+  a_memory_allocation_ptr	map;
+  a_memory_allocation_ptr	next_map;
+
+  for (map = *list; map != NULL; map = next_map) {
+    next_map = map->next;
+    (void)free((a_void_ptr)map->buffer);
+    if (map < &memory_allocation_table[0] &&
+        map > &memory_allocation_table[SIZE_MEMORY_ALLOCATION_TABLE]) {
+      /* This memory allocation entry is not part of the static memory
+         allocation table.  Free it now. */
+      free((a_void_ptr)map);
+    }  /* if */
+  } /* for */
+  /* Reset the list pointer. */
+  *list = NULL;
+}  /* free_general_memory */
+
+
+void mem_manage_wrapup(void)
+/*
+Free all memory used by the compilation.  This must be called at the
+very end of processing.
+*/
+{
+  free_text_buffers();
+  free_general_memory(&memory_allocation_list);
+  free_general_memory(&resizable_memory_allocation_list);
+}  /* mem_manage_wrapup */
 
 
 /******************************************************************************

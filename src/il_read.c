@@ -964,19 +964,19 @@ build the in-memory version.
   new_size_of_mem_region_table = highest_used_region_number+1;
   if (size_of_mem_region_table < new_size_of_mem_region_table) {
     mem_region_table = (a_mem_block_header_ptr *)
-                       realloc_general((char *)mem_region_table,
+                       realloc_buffer((char *)mem_region_table,
                                        (sizeof_t)(size_of_mem_region_table*
                                               sizeof(a_mem_block_header_ptr)),
                                        (sizeof_t)(new_size_of_mem_region_table*
                                               sizeof(a_mem_block_header_ptr)));
     il_header.region_scope_entry = (a_scope_ptr *)
-                       realloc_general((char *)il_header.region_scope_entry,
+                       realloc_buffer((char *)il_header.region_scope_entry,
                                        (sizeof_t)(size_of_mem_region_table*
                                                          sizeof(a_scope_ptr)),
                                        (sizeof_t)(new_size_of_mem_region_table*
                                                          sizeof(a_scope_ptr)));
     index_for_il_file = (a_file_position *)
-                       realloc_general((char *)index_for_il_file,
+                       realloc_buffer((char *)index_for_il_file,
                                        (sizeof_t)(size_of_mem_region_table*
                                                      sizeof(a_file_position)),
                                        (sizeof_t)(new_size_of_mem_region_table*

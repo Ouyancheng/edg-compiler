@@ -255,7 +255,7 @@ static a_scope_stack_entry_ptr
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static a_msg_segment_ptr
-	error_message_head = NULL;
+	error_message_head;
 				/* Pointer to the first segment in the current
 				   error message being formatted. */
 
@@ -434,7 +434,7 @@ end of the buffer.
       new_size = seg_ptr->max_length +
                  ((INCR_MSG_SEGMENT_SIZE > length_of_string)
                    ? INCR_MSG_SEGMENT_SIZE + 1 : length_of_string + 1);
-      new_buffer = realloc_general(seg_ptr->segment,
+      new_buffer = realloc_buffer(seg_ptr->segment,
                                   (sizeof_t)(seg_ptr->max_length + 1),
                                    new_size);
       /* Since first_quote and second_quote, if non-NULL, point into the
@@ -1734,7 +1734,7 @@ error_source_line for later use by diagnostic output functions.
          The same error_source_line buffer will be used over multiple
          compilations. */
       if (error_source_line == NULL) {
-        error_source_line = alloc_general(
+        error_source_line = alloc_resizable_buffer(
                                   ERROR_SOURCE_LINE_INITIAL_ALLOCATION + 1);
         after_end_of_error_source_line = error_source_line +
                                   ERROR_SOURCE_LINE_INITIAL_ALLOCATION;
@@ -1756,7 +1756,7 @@ error_source_line for later use by diagnostic output functions.
           /* As with the curr_source_line, add one more byte than required,
              so that a pointer past the end will not have the same address
              as a pointer to the next object. */
-          new_error_source_line = realloc_general(error_source_line,
+          new_error_source_line = realloc_buffer(error_source_line,
                                                   (sizeof_t)(old_size + 1),
                                                   (sizeof_t)(new_size + 1));
           /* Adjust the pointers to the old error_source_line */
@@ -4741,6 +4741,7 @@ line processing is done.
   do_not_wrap_diagnostics = FALSE;
   display_error_context_on_catastrophe =
                                   DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE;
+  error_message_head = NULL;
   /* Zeroing this array causes it to be set to es_default. */
   memzero(default_severity_for_error_code,
            sizeof(default_severity_for_error_code));

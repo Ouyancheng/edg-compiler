@@ -1692,7 +1692,7 @@ the scope being pushed.
   if (depth_scope_stack+1 == (int)size_scope_stack) {
     /* The stack is full; expand it by reallocating. */
     sizeof_t new_size = size_scope_stack + SCOPE_STACK_INCREMENTAL_ALLOCATION;
-    scope_stack = (a_scope_stack_entry_ptr)realloc_general(
+    scope_stack = (a_scope_stack_entry_ptr)realloc_buffer(
                       (char *)scope_stack,
                       (sizeof_t)(size_scope_stack*sizeof(a_scope_stack_entry)),
                       (sizeof_t)(new_size*sizeof(a_scope_stack_entry)));

@@ -595,7 +595,7 @@ the pointer to the next available position in that buffer.
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
-  new_aux_buffer_for_pcc_macros = realloc_general(aux_buffer_for_pcc_macros,
+  new_aux_buffer_for_pcc_macros = realloc_buffer(aux_buffer_for_pcc_macros,
                                                   (sizeof_t)(old_size+1),
                                                   (sizeof_t)(new_size+1));
   /* Update any pointers to the old aux_buffer_for_pcc_macros in the
@@ -675,7 +675,7 @@ ensure_arg_raw_text_space.
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
-  new_raw_text = realloc_general(map->raw_text, (sizeof_t)(old_size+1),
+  new_raw_text = realloc_buffer(map->raw_text, (sizeof_t)(old_size+1),
                                                 (sizeof_t)(new_size+1));
 have_space:
   /* Update any pointers to the old raw_text in the curr_source_line
@@ -749,7 +749,7 @@ ensure_arg_expanded_text_space.
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
-  new_expanded_text = realloc_general(map->expanded_text,
+  new_expanded_text = realloc_buffer(map->expanded_text,
                                       (sizeof_t)(old_size+1),
                                       (sizeof_t)(new_size+1));
 have_space:
@@ -861,7 +861,7 @@ and return a pointer to it.
     /* Allocate one more byte than required, so that a pointer past the end
        will not have the same address as a pointer to the next object in
        memory. */
-    map->raw_text = alloc_general((sizeof_t)(map->raw_alloc_len+1));
+    map->raw_text = alloc_resizable_buffer((sizeof_t)(map->raw_alloc_len+1));
 #if DEBUG
     macro_arg_text_space += map->raw_alloc_len;
 #endif /* DEBUG */
@@ -870,7 +870,8 @@ and return a pointer to it.
     /* Allocate one more byte than required, so that a pointer past the end
        will not have the same address as a pointer to the next object in
        memory. */
-    map->expanded_text = alloc_general((sizeof_t)(map->expanded_alloc_len+1));
+    map->expanded_text = alloc_resizable_buffer(
+                                        (sizeof_t)(map->expanded_alloc_len+1));
 #if DEBUG
     macro_arg_text_space += map->expanded_alloc_len;
 #endif /* DEBUG */
@@ -5968,7 +5969,7 @@ Do one-time initialization of variables related to macro processing.
     /* Allocate one more byte than required, so that a pointer past the end
        will not have the same address as a pointer to the next object in
        memory. */
-    aux_buffer_for_pcc_macros = alloc_general(
+    aux_buffer_for_pcc_macros = alloc_resizable_buffer(
                  (sizeof_t)(AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION+1));
     after_end_of_aux_buffer_for_pcc_macros = aux_buffer_for_pcc_macros +
                                 AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION;

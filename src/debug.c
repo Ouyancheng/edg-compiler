@@ -665,7 +665,7 @@ what was done in the stack entry.
       /* Double the size of the stack. */
       new_size = debug_stack_size * 2;
     }  /* if */
-    debug_stack = (a_debug_stack_entry_ptr)realloc_general(
+    debug_stack = (a_debug_stack_entry_ptr)realloc_buffer(
                       (char *)debug_stack,
                       (sizeof_t)(debug_stack_size*sizeof(a_debug_stack_entry)),
                       (sizeof_t)(new_size*sizeof(a_debug_stack_entry)));

@@ -105,10 +105,12 @@ extern char *alloc_general(sizeof_t size);
 /* Free space in "general" storage. */
 extern void free_general(a_void_ptr ptr,
                     sizeof_t   size);
+/* Allocate memory that can be resized later. */
+extern a_void_ptr alloc_resizable_buffer(sizeof_t size);
 /* Resize allocated space in "general" storage. */
-extern char *realloc_general(char     *old_ptr,
-                             sizeof_t old_size,
-                             sizeof_t new_size);
+extern char *realloc_buffer(char     *old_ptr,
+                            sizeof_t old_size,
+                            sizeof_t new_size);
 /* Allocate space in a given memory region. */
 extern char *alloc_in_region(a_memory_region_number number,
                              sizeof_t               size);
@@ -172,6 +174,9 @@ extern void mem_manage_one_time_init(void);
 /* Initialize memory management. */
 extern void mem_manage_trans_unit_init(void);
 extern void mem_manage_init(void);
+
+/* Free memory used by the compilation. */
+extern void mem_manage_wrapup(void);
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -296,6 +301,11 @@ are added.  The string may or may not be null-terminated, but if it is
 null-terminated, the null-terminator will be included in "size".
 */
 typedef struct a_text_buffer {
+  a_text_buffer_ptr
+		next;
+			/* Pointer to the next entry on a list of all buffers.
+			   Used to free the buffer memory at the end of
+			   compilation. */
   sizeof_t	allocated_size;
 			/* The size in bytes of the memory allocated for the
 			   buffer. */

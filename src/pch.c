@@ -306,7 +306,7 @@ size is at least size_needed.  Called by ensure_pch_buffer_space.
   new_size = size_pch_buffer +
              PCH_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  pch_buffer = realloc_general(pch_buffer, size_pch_buffer, new_size);
+  pch_buffer = realloc_buffer(pch_buffer, size_pch_buffer, new_size);
   size_pch_buffer = new_size;
 }  /* expand_pch_buffer */
 
@@ -354,7 +354,7 @@ size is at least size_needed.  Called by ensure_file_name_buffer_space.
 
   new_size = fnbp->size + FILE_NAME_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  fnbp->name = realloc_general(fnbp->name, fnbp->size, new_size);
+  fnbp->name = realloc_buffer(fnbp->name, fnbp->size, new_size);
   fnbp->size = new_size;
 }  /* expand_file_name_buffer */
 
@@ -2258,7 +2258,7 @@ void pch_one_time_init(void)
 Do one-time initialization of variables related to PCH processing.
 */
 {
-  pch_buffer = (char *)alloc_general(PCH_BUFFER_INITIAL_ALLOCATION);
+  pch_buffer = (char *)alloc_resizable_buffer(PCH_BUFFER_INITIAL_ALLOCATION);
   size_pch_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
   /* Do initial allocation of the file name buffer. */
   file_name_buffer.name = NULL;

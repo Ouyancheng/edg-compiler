@@ -994,14 +994,15 @@ correspondence entry.
     /* First find/create the appropriate depth/level: */
     if (template_param_map == NULL) {
       template_param_map_max_level = (coord->depth > 5) ? 2*coord->depth : 10;
-      template_param_map = (a_template_param_map_level_ptr)alloc_general(
+      template_param_map = (a_template_param_map_level_ptr)
+         alloc_resizable_buffer(
               sizeof(a_template_param_map_level)*template_param_map_max_level);
       memzero(template_param_map,
               sizeof(a_template_param_map_level)*template_param_map_max_level);
     } else if (coord->depth > template_param_map_max_level) {
       a_template_nesting_depth new_max_level = 2*coord->depth;
       template_param_map =
-          (a_template_param_map_level_ptr)realloc_general(
+          (a_template_param_map_level_ptr)realloc_buffer(
                (char*)template_param_map,
                sizeof(a_template_param_map_level)*template_param_map_max_level,
                sizeof(a_template_param_map_level)*new_max_level);
@@ -1014,13 +1015,14 @@ correspondence entry.
     /* Then add the new mapping at the right position: */
     if (level->max_position == 0) {
       level->max_position = (coord->position > 5) ? 2*coord->position : 10;
-      level->source_corresp = (a_source_correspondence_ptr*)alloc_general(
+      level->source_corresp = (a_source_correspondence_ptr*)
+                  alloc_resizable_buffer(
                       sizeof(a_source_correspondence_ptr)*level->max_position);
       memzero(level->source_corresp,
               sizeof(a_source_correspondence_ptr)*level->max_position);
     } else if (coord->position > level->max_position) {
       a_template_param_list_pos new_max_pos = 2*coord->position;
-      level->source_corresp = (a_source_correspondence_ptr*)realloc_general(
+      level->source_corresp = (a_source_correspondence_ptr*)realloc_buffer(
                        (char*)level->source_corresp,
                        sizeof(a_source_correspondence_ptr)*level->max_position,
                        sizeof(a_source_correspondence_ptr)*new_max_pos);

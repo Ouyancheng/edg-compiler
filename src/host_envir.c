@@ -1547,6 +1547,8 @@ Exit the compilation.  severity indicates the severity of the most
 severe diagnostic issued in this compilation.  This routine does not return.
 */
 {
+  /* Free all memory used by the compilation. */
+  mem_manage_wrapup();
 #if !USING_DRIVER && !STANDALONE_UTILITY_PROGRAM
   /* For the more serious severities, write a message about the abrupt
       termination. */

@@ -2342,7 +2342,7 @@ is at least size_needed.  Called by ensure_temp_text_buffer_space.
 
   new_size = size_temp_text_buffer + TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  temp_text_buffer = realloc_general(temp_text_buffer, size_temp_text_buffer,
+  temp_text_buffer = realloc_buffer(temp_text_buffer, size_temp_text_buffer,
                                      new_size);
   size_temp_text_buffer = new_size;
 }  /* expand_temp_text_buffer */
@@ -2416,7 +2416,7 @@ to be used.
   }  /* if */
   new_size = new_entries * sizeof(a_seq_number_lookup_entry_ptr);
   seq_number_lookup_table = (a_seq_number_lookup_entry_ptr*)
-                            realloc_general((char*)seq_number_lookup_table,
+                            realloc_buffer((char*)seq_number_lookup_table,
                                             old_size, new_size);
   seq_number_lookup_table_size = new_entries;
 }  /* expand_seq_number_lookup_table */

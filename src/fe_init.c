@@ -716,12 +716,12 @@ line processing is done.
      routine. */
   debug_early_init();
 #endif /* DEBUG */
-  /* Do host-specific initialization.  Except for debug initialization, this
-     must be done first in this routine. */
+  mem_manage_early_init();
+  /* Do host-specific initialization.  Except for debug and memory management
+     initialization, this must be done first in this routine. */
   host_envir_early_init();
   target_early_init();
   cmd_line_early_init();
-  mem_manage_early_init();
   error_early_init();
   pch_early_init();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE

@@ -2795,7 +2795,7 @@ reallocate raw_listing_buffer to make it bigger.
   old_size = after_end_of_raw_listing_buffer - raw_listing_buffer;
   /* Increase the size of raw_listing_buffer. */
   new_size = old_size * 2;
-  new_raw_listing_buffer = realloc_general(raw_listing_buffer,
+  new_raw_listing_buffer = realloc_buffer(raw_listing_buffer,
                                            old_size, new_size);
   loc_offset = loc_in_raw_listing_buffer - raw_listing_buffer;
   raw_listing_buffer = new_raw_listing_buffer;
@@ -3858,7 +3858,7 @@ used to find this file.
   if (depth_input_stack+1 == size_input_stack) {
     /* Expand the input stack by reallocating it. */
     int new_size = size_input_stack + INPUT_STACK_INCREMENTAL_ALLOCATION;
-    input_stack = (an_input_stack_entry_ptr)realloc_general(
+    input_stack = (an_input_stack_entry_ptr)realloc_buffer(
                    (char *)input_stack,
                    (sizeof_t)(size_input_stack*sizeof(an_input_stack_entry)),
                    (sizeof_t)(new_size*sizeof(an_input_stack_entry)));
@@ -4295,7 +4295,7 @@ reallocate curr_source_line to make it bigger.
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
-  new_curr_source_line = realloc_general(curr_source_line,
+  new_curr_source_line = realloc_buffer(curr_source_line,
                                          (sizeof_t)(old_size+1),
                                          (sizeof_t)(new_size+1));
   /* Update any pointers to the old curr_source_line in the
@@ -6944,7 +6944,7 @@ is at least size_needed.  Called by ensure_asm_func_body_buffer_space.
   new_size = size_asm_func_body_buffer +
                       ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  asm_func_body_buffer = realloc_general(asm_func_body_buffer,
+  asm_func_body_buffer = realloc_buffer(asm_func_body_buffer,
                                          size_asm_func_body_buffer, new_size);
   size_asm_func_body_buffer = new_size;
 }  /* expand_asm_func_body_buffer */
@@ -14104,7 +14104,7 @@ are handled in lexical_init.)
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
-  curr_source_line = alloc_general(
+  curr_source_line = alloc_resizable_buffer(
                             (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION+1));
   after_end_of_curr_source_line = curr_source_line +
                                     CURR_SOURCE_LINE_INITIAL_ALLOCATION;
@@ -14112,7 +14112,7 @@ are handled in lexical_init.)
   after_end_of_raw_listing_buffer = NULL;
   if (f_raw_listing != NULL) {
     /* Similar allocation for raw_listing_buffer.  Similar reasoning. */
-    raw_listing_buffer = alloc_general(
+    raw_listing_buffer = alloc_resizable_buffer(
                               (sizeof_t)RAW_LISTING_BUFFER_INITIAL_ALLOCATION);
     after_end_of_raw_listing_buffer = raw_listing_buffer +
                                         RAW_LISTING_BUFFER_INITIAL_ALLOCATION;
