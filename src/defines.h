@@ -1,7 +1,7 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
@@ -255,7 +255,7 @@ switches before this point.
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
