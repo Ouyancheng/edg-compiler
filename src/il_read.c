@@ -388,7 +388,7 @@ necessary to make it directly accessible in memory.
     entry_array_base_array_ptr = entry_array_base_array;
   }  /* if */
   /* The first entry of the array is skipped. */
-  fread_with_check((char *)(&entry_count_array_ptr[1]),
+  fread_with_check((char *)(entry_count_array_ptr+1),
                    sizeof(entry_count_array)-sizeof(an_il_entry_number));
   /* Allocate the space needed for the indicated number of entries.
      The space for all entries of a given kind is allocated contiguously,
@@ -468,7 +468,7 @@ necessary to make it directly accessible in memory.
     }  /* if */
 #endif /* DEBUG */
 #if CHECKING
-    if (byte_entry_kind <= (unsigned int)iek_none ||
+    if (byte_entry_kind == 0 ||
         byte_entry_kind >= (unsigned int)iek_last) {
       internal_error("read_memory_region: bad entry kind");
     }  /* if */
@@ -480,7 +480,7 @@ necessary to make it directly accessible in memory.
                    "read_memory_region: func scope bit wrong in entry number");
     }  /* if */
     trimmed_entry_number = entry_number & ~FUNC_ENTRY_NUMBER_BIT;
-    if (trimmed_entry_number <= 0 ||
+    if (trimmed_entry_number == 0 ||
         trimmed_entry_number > entry_count_array_ptr[byte_entry_kind]) {
       internal_error("read_memory_region: bad entry number");
     }  /* if */
@@ -816,7 +816,7 @@ Initialization routine for IL reading.
   { sizeof_t entry_size, prefix_size, fs_prefix_size;
     int      entry_kind;
 
-    for (entry_kind = 0; entry_kind < (unsigned int)iek_last; entry_kind++) {
+    for (entry_kind = 0; entry_kind < (int)iek_last; entry_kind++) {
       if (is_string_entry_kind((an_il_entry_kind)entry_kind)) {
         /* For string entries the "entry number" is really a byte offset, and
            the "entry size" is 1.  Things like space for the prefix have
