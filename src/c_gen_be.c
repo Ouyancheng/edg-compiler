@@ -7114,7 +7114,7 @@ The IL is already available when this routine is called.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* In C99 mode we want to see "_Bool" rather "bool" or the type underlying
      _Bool. */
-  octl.render_c99_bool = il_header.c99_mode;
+  octl.render_c99_bool = c99_mode;
 }  /* c_gen_be_one_time_init */
 
 
