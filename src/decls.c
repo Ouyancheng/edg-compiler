@@ -1755,11 +1755,20 @@ scope is that of a class definition.
                expression. */
             if (!default_arg_expr_allowed) {
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-            } else if (strict_ansi_mode && locator->is_operator_name) {
+            } else if (locator->is_operator_name) {
               /* This must be an operator()() declaration.  According to the
                  ARM a default argument is not allowed for any overloaded
-                 operators, but operator()() is an exception in common use. */
-              pos_warning(ec_nonstd_default_arg, &pos_curr_token);
+                 operators, but operator()() is an exception in common use.
+                 Accept this silently in cfront compatibility mode.
+                 Otherwise produce at least a warning and possibly an error
+                 in strict ANSI mode.  */
+              if (!cfront_compatibility_mode) {
+                an_error_severity    severity;
+                severity = strict_ansi_mode ? strict_ansi_error_severity :
+                                              es_warning;
+                pos_diagnostic(severity, ec_nonstd_default_arg,
+                               &pos_curr_token);
+              }  /* if */
             }  /* if */
             /* Advance past the equal sign. */
             (void)get_token();
