@@ -687,7 +687,7 @@ then
 #
 #     Link the executable
 #
-      $link_command $link_command_suffix 2>&1 | $EDG_DECODE
+      $link_command $link_command_suffix 2>&1 | $EDG_DECODE 1>&2
       status=$?
       if [ $status = 0 -a $cmode -eq 0 ]
       then
@@ -717,7 +717,7 @@ then
             exit $status
           fi
 #         Do the link again.
-          $link_command $tmpfile.o $link_command_suffix 2>&1 | $EDG_DECODE
+          $link_command $tmpfile.o $link_command_suffix 2>&1 | $EDG_DECODE 1>&2
           status=$?
           rm -f $tmpfile.c $tmpfile.o
         fi
