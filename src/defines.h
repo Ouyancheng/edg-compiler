@@ -136,6 +136,7 @@ Flags to be set when using the KAI inliner.
 #define DEFAULT_WCHAR_T_IS_KEYWORD 0
 #define DEFAULT_BOOL_IS_KEYWORD 0
 #define LONG_LONG_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
 #ifndef OPTIMIZED_VERSION
 #define OPTIMIZED_VERSION 1
 #endif /* !defined(OPTIMIZED_VERSION) */
