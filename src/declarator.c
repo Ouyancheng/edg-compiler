@@ -2874,7 +2874,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     /* See if there is a pointer declarator. */
     a_boolean another_pointer_declarator = FALSE;
     a_boolean ptr_to_member_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     a_boolean *p_microsoft_w64_seen = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean microsoft_w64_seen = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
