@@ -7,7 +7,7 @@
 #
 defines=${EDG_DEFAULT_DEFINES-"-Dsparc -Dunix -Dsun"}
 EDG_BASE=${EDG_BASE-/edg/cpfe}
-EDG_CBASE=${EDG_CBASE-/edg/cfe}
+EDG_CBASE=${EDG_CBASE-/edg/cpfe}
 #
 # Default include directories.  The default directories are specified by
 # EDG_DEFAULT_INCLUDE_DIRS.  If this variable is not set, then we
@@ -21,7 +21,7 @@ INCLDIR=$EDG_BASE/include
 #
 # Directory where the C include files are to be found.
 #
-CINCLDIR=$EDG_CBASE/usr/include
+CINCLDIR=$EDG_CBASE/include
 #
 # Directory where libC.a is to be found.
 #
