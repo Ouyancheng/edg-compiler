@@ -1712,7 +1712,11 @@ generate code for the GNU C compiler (gcc or g++).
 */
 #ifndef GCC_IS_GENERATED_CODE_TARGET
 #if defined(GCC_IS_C_GEN_BE_TARGET) && BACK_END_IS_C_GEN_BE
-#define GCC_IS_GENERATED_CODE_TARGET GCC_IS_C_GEN_BE_TARGET
+#if GCC_IS_C_GEN_BE_TARGET
+#define GCC_IS_GENERATED_CODE_TARGET TRUE
+#else /* !GCC_IS_C_GEN_BE_TARGET */
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
+#endif /* GCC_IS_C_GEN_BE_TARGET */
 #endif /* defined(GCC_IS_C_GEN_BE_TARGET) && BACK_END_IS_C_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
@@ -1923,8 +1927,25 @@ should be suppressed in the output.  This flag is only applicable if
 MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 */
 #ifndef SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+#if GCC_IS_GENERATED_CODE_TARGET
+#define SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE TRUE
+#else /* !GCC_IS_GENERATED_CODE_TARGET */
 #define SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE FALSE
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+/*
+If the C-generating or C++-generating back end is generating code for the
+GNU C compiler, Microsoft keywords should be suppressed.
+*/
+
+#if GCC_IS_GENERATED_CODE_TARGET && \
+    !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+ #error -- SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE must be TRUE when \
+           GCC_IS_GENERATED_CODE_TARGET is TRUE
+#endif /* GCC_IS_GENERATED_CODE_TARGET && !SUPPRESS_MICROSOFT_KEYWORDS... */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 /*
 Flag that is TRUE if the C++-generating back end should generate code for a

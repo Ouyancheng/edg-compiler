@@ -1410,6 +1410,10 @@ be a routine type.
     case cc_cdecl:
       write_tok_str(" __attribute__((__cdecl__))");
       break;
+    case cc_fastcall:
+      /* A Microsoft-only calling convention.  These aren't generated for
+         the GNU C compiler. */
+      break;
     case cc_stdcall:
       write_tok_str(" __attribute__((__stdcall__))");
       break;
