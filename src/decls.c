@@ -2308,28 +2308,37 @@ issued a similar error).  Return FALSE if there is some error.
             goto issue_diagnostic;
           }  /* if */
         }  /* if */
-      } else if (microsoft_mode && is_routine && C_mode()) {
-        if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
-          sym = NULL;
-        } else {
-          for (sym = ext_sym->header->symbol; sym != NULL; sym = sym->next) {
-            if (sym->kind == (a_symbol_kind)sk_routine &&
-                sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-              break;
-            }  /* if */
-          }  /* for */
+      } else if (microsoft_mode && is_routine) {
+        if (C_mode()) {
+          if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+            sym = NULL;
+          } else {
+            for (sym = ext_sym->header->symbol; sym != NULL; sym = sym->next) {
+              if (sym->kind == (a_symbol_kind)sk_routine &&
+                  sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          if (sym != NULL) {
+            /* The current declaration is a block extern declaration and
+               there has been a file-scope declaration of a function with the
+               same name.  Don't reset the external symbol. */
+          } else {
+            /* Force "abandonment" of the IL entry associated with the external
+               routine. */
+            esdp->variant.routine.ptr->superseded_external = TRUE;
+            esdp->variant.routine.ptr = NULL;
+          }  /* if */
+          okay = FALSE;
+        } else if (!incompatible_linkage_spec) {
+          /* In Microsoft C++ mode extern "C" routine declarations are
+             allowed to have incompatible types when they appear in
+             different namespaces. */
+          severity = es_warning;
+          okay = FALSE;
+          goto issue_diagnostic;
         }  /* if */
-        if (sym != NULL) {
-          /* The current declaration is a block extern declaration and
-             there has been a file-scope declaration of a function with the
-             same name.  Don't reset the external symbol. */
-        } else {
-          /* Force "abandonment" of the IL entry associated with the external
-             routine. */
-          esdp->variant.routine.ptr->superseded_external = TRUE;
-          esdp->variant.routine.ptr = NULL;
-        }  /* if */
-        okay = FALSE;
       }  /* if */
       severity = es_error;
       /* Record an error type as the external symbol's type, to avoid
