@@ -1,5 +1,21 @@
 Version 2.29
 
+3/24/95  Template instantiations using typedefs from prototype instantiations
+
+A bug has been fixed that could cause either an abort or the generation
+of invalid IL if a the initial reference to a class template instance
+included a template argument that was a typedef defined in a prototype
+instantiation.
+
+  template <class T> struct A {
+    T t;
+  };
+
+  template <class T> struct B {
+    typedef int x;
+    A<x> a;
+  };
+
 3/23/95  Slight improvement in adding indirections
 
 The routine add_indirection_to_node has been generalized by

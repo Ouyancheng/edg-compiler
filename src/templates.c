@@ -1395,7 +1395,8 @@ included in the search.
            not be part of the type signature of the template class itself,
            which is nonlocal.  Strip them off, if there are any. */
         if (tap->is_type) {
-          tap->variant.type = strip_local_typedefs(tap->variant.type);
+          tap->variant.type =
+                           strip_local_and_nonreal_typedefs(tap->variant.type);
         }  /* if */
       }  /* if */
     }  /* for */

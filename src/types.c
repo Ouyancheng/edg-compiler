@@ -4763,19 +4763,19 @@ typedef a_type_modifier_function *a_type_modifier_function_ptr;
 
 
 /*ARGSUSED*/ /* flags is not required but is part of the general interface. */
-static a_boolean tmtt_strip_local_typedef(
+static a_boolean tmtt_strip_local_and_nonreal_typedefs(
                                     a_type_ptr                      type,
                                     a_type_tree_traversal_flag_set  flags,
                                     a_type_ptr                      *new_type)
 /*
-Strip local typedef from type, returning TRUE if a modification was done.
-The modified type (or the original type if no modification was done) is
-returned in *new_type.
+Strip local and nonreal typedef from type, returning TRUE if a modification
+was done. The modified type (or the original type if no modification was done)
+is returned in *new_type.
 */
 {
-  *new_type = strip_local_typedefs(type);
+  *new_type = strip_local_and_nonreal_typedefs(type);
   return (type != *new_type);
-}  /* tmtt_strip_local_typedef */
+}  /* tmtt_strip_local_and_nonreal_typedefs */
 
 
 static a_type_ptr traverse_and_modify_type_tree(
@@ -4962,23 +4962,42 @@ make_new_type:
 }  /* traverse_and_modify_type_tree */
 
 
-a_type_ptr strip_local_typedefs(a_type_ptr  type)
+a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type)
 /*
-If type contains one or more typedefs that are local to a function (whether
-at the top level or embedded somewhere within the tree) remove them and
-return the modified type to the caller.  If no modification is done return
-the original type.
+If type contains one or more typedefs that are local to a function, or that
+were defined in a prototype instantiation (whether at the top level or
+embedded somewhere within the tree) remove them and return the modified type
+to the caller.  If no modification is done return the original type.
 */
 {
-  while (type->kind == (a_type_kind)tk_typeref &&
-         type->source_corresp.is_local_to_function) {
+  while (type->kind == (a_type_kind)tk_typeref) {
+    a_type_ptr cowam;
+    a_boolean  is_nonreal = FALSE;
+    a_boolean  is_local;
+    /* See if the type is local to a function. */
+    is_local = type->source_corresp.is_local_to_function;
+    if (!is_local) {
+      /* See if the type was defined in a prototype instantiation. */
+      cowam = type->source_corresp.class_of_which_a_member;
+      if (cowam != NULL) {
+        a_symbol_ptr cowam_sym;
+        cowam_sym = (a_symbol_ptr)cowam->source_corresp.assoc_info;
+        if (cowam_sym != NULL) {
+          is_nonreal = !is_real_class_symbol(cowam_sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Only continue processing this typedef if it is either a local typedef
+       or defined in a prototype instantiation. */
+    if (!is_local && !is_nonreal) break;
     /* The top level type is a local typedef. */
     check_assertion(!typeref_is_qualified(type));
     type = type->variant.typeref.type;
   }  /* while */
-  return traverse_and_modify_type_tree(type, tmtt_strip_local_typedef,
+  return traverse_and_modify_type_tree(type,
+				       tmtt_strip_local_and_nonreal_typedefs,
                                        TTT_NO_INPUT_FLAGS);
-}  /* strip_local_typedefs */
+}  /* strip_local_and_nonreal_typedefs */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
