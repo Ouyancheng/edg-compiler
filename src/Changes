@@ -1,5 +1,13 @@
 Version 2.43
 
+11/8/99  is_reinterpret_cast flag in IL a_constant entry
+
+The IL a_constant entry now has an is_reinterpret_cast flag that supplements
+the existing implicit_cast flag, indicating that a reinterpret_cast
+was used in the source form for the cast.  This is used in the il_to_str
+output routines to produce better output in some cases involving ambiguous
+base classes.
+
 11/8/99  Using declaration of type name in presence of compatible tag name
 
 The front end now allows a using-declaration to import a typedef name that is

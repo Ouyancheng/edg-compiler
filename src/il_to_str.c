@@ -1356,6 +1356,26 @@ by octl.
 }  /* form_cast */
 
 
+static void form_general_cast(
+                     a_type_ptr                            type,
+                     a_boolean                             is_reinterpret_cast,
+                     an_il_to_str_output_control_block_ptr octl)
+/*
+Output a cast to the indicated type.  If is_reinterpret_cast is TRUE,
+output a reinterpret_cast (note that a closing parenthesis will have to
+be output later).  Do the output in the way described by octl.
+*/
+{
+  if (is_reinterpret_cast) {
+    octl->output_str("reinterpret_cast<");
+    form_type(type, octl);
+    octl->output_str(">(");
+  } else {
+    form_cast(type, octl);
+  }  /* if */
+}  /* form_general_cast */
+
+
 static void output_optional_open_paren(
                        a_boolean                             *need_parens,
                        a_boolean                             *need_close_paren,
@@ -2221,6 +2241,8 @@ precedence confusion.  Do the output in the way described by octl.
   a_boolean        need_final_cast_close_paren = FALSE;
   a_boolean        need_offset_addition_close_paren = FALSE;
   a_boolean        need_char_star_cast_close_paren = FALSE;
+  a_boolean        reinterpret_cast_needed = FALSE;
+  a_boolean        need_reinterpret_cast_close_paren = FALSE;
   a_boolean        formed_useful_lvalue, need_char_star_cast = FALSE;
 
   con_type = skip_typerefs(orig_type);
@@ -2237,6 +2259,7 @@ precedence confusion.  Do the output in the way described by octl.
     desired_type = con_type;
     desired_type = type_pointed_to(desired_type);
   }  /* if */
+  if (constant->is_reinterpret_cast) reinterpret_cast_needed = TRUE;
   /* Examine the addressed entity (without generating any code) to
      determine how it will be put out as an lvalue.  This lets us decide
      on putting out a leading cast, etc. before the lvalue is put out. */
@@ -2324,7 +2347,8 @@ precedence confusion.  Do the output in the way described by octl.
                                &need_final_cast_close_paren, octl);
     if (!form_lvalue) {
       /* Forming an address, not an lvalue. */
-      form_cast(con_type, octl);
+      form_general_cast(con_type, reinterpret_cast_needed, octl);
+      if (reinterpret_cast_needed) need_reinterpret_cast_close_paren = TRUE;
       if (cast_to_nonpointer) {
         a_targ_alignment alignment;
         /* This is a case where the final type is a nonpointer.  See if an
@@ -2355,7 +2379,8 @@ precedence confusion.  Do the output in the way described by octl.
       } else {
         /* Offset is zero, so use reference cast. */
         type_copy.variant.pointer.is_reference = TRUE;
-        form_cast(&type_copy, octl);
+        form_general_cast(&type_copy, reinterpret_cast_needed, octl);
+        if (reinterpret_cast_needed) need_reinterpret_cast_close_paren = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2403,6 +2428,7 @@ precedence confusion.  Do the output in the way described by octl.
     form_num((a_host_large_integer)offset, octl);
     output_optional_close_paren(need_offset_addition_close_paren, octl);
   }  /* if */
+  if (need_reinterpret_cast_close_paren) octl->output_str(")");
   output_optional_close_paren(need_final_cast_close_paren, octl);
 }  /* form_address_constant */
 
@@ -2466,6 +2492,7 @@ confusion.  Do the output in the way described by octl.
   a_float_kind         fkind;
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, is_enum;
+  a_boolean            need_reinterpret_cast = FALSE;
   a_constant_ptr       equiv_constant;
   a_boolean            suppress_cast_on_integer_constant = FALSE;
 
@@ -2497,7 +2524,11 @@ confusion.  Do the output in the way described by octl.
       /* If the constant is implicitly cast to another type, prefix the
          constant with an explicit cast. */
       a_boolean need_cast = FALSE;
-      if (constant->implicit_cast) {
+      if (constant->is_reinterpret_cast) {
+        /* The source form used reinterpret_cast, so a cast is needed. */
+        need_cast = TRUE;
+        need_reinterpret_cast = TRUE;
+      } else if (constant->implicit_cast) {
         need_cast = TRUE;
         if (octl->gen_compilable_code && C_mode() &&
             is_directly_variably_modified_type(orig_type)) {
@@ -2525,9 +2556,9 @@ confusion.  Do the output in the way described by octl.
         need_cast = TRUE;
       }  /* if */
       if (need_cast) {
-        /* ... then prefix the constant with an explicit cast. */
+        /* Prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
-        form_cast(orig_type, octl);
+        form_general_cast(orig_type, need_reinterpret_cast, octl);
         suppress_cast_on_integer_constant = TRUE;
       }  /* if */
     }  /* if */
@@ -2800,6 +2831,7 @@ confusion.  Do the output in the way described by octl.
 #endif /* DEBUG */
       unexpected_condition_str("form_constant: bad constant kind");
   }  /* switch */
+  if (need_reinterpret_cast) octl->output_str(")");
   if (need_cast_close_paren) octl->output_str(")");
 }  /* form_constant */
 
