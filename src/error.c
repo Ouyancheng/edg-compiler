@@ -968,6 +968,13 @@ error code.
     case ec_inherited_member_not_allowed:
       m = "inherited member is not allowed";
       break;
+    case ec_indeterminate_overloaded_function:
+      m = "cannot determine which instance of overloaded function is intended";
+      break;
+    case ec_bound_function_must_be_called:
+      m =
+         "a pointer to a bound function may only be used to call the function";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
