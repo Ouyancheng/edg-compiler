@@ -10133,7 +10133,12 @@ object lifetime if it is an expr-temporary lifetime).
   an_object_lifetime_ptr  olp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
-  if (dip->destructor != NULL) {
+  if (dip->destructor != NULL &&
+      /* Do not save destructions in prototype instantiations unless we
+         are saving the prototype instantiations. */
+      (depth_scope_stack == NO_SCOPE_DEPTH ||
+       !is_template_dependent_context() ||
+       prototype_instantiations_in_il)) {
     /* This is a destructible entity. */
     if (static_lifetime) {
       /* Note that we do NOT use depth_innermost_function_scope, as it would
@@ -10191,9 +10196,9 @@ object lifetime if it is an expr-temporary lifetime).
        dynamic init entry to its destructions list. */
     add_to_destructions_list(dip, olp);
 #if DEBUG
-  if (debug_level >= 4) {
-    db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
-  }  /* if */
+    if (debug_level >= 4) {
+      db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
+    }  /* if */
 #endif /* DEBUG */
   }  /* if */
   db_exit();
