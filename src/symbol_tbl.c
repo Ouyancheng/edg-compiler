@@ -2241,6 +2241,8 @@ and return NULL.  If a bitwise copy is allowed, return NULL and
       }  /* if */
     }  /* for */
   }  /* if */
+  /* Return NULL if the copy constructor is ambiguous. */
+  if (*ambiguous) cctor_sym = NULL;
   return cctor_sym;
 }  /* find_copy_constructor */
 
