@@ -1,5 +1,13 @@
 Version 3.2
 
+3/11/03  IA-64 ABI: Virtual bases should not reuse the tail padding of
+         nonvirtual empty bases
+
+The EDG implementation of the IA-64 ABI used to allocate virtual base classes
+in the tail padding of trailing nonvirtual empty base classes under some
+circumstances.  However, this is not allowed by the IA-64 ABI specifications.
+This is an ABI CHANGE.
+
 3/10/03  Incorrect code for copy of empty base class in generated copy
          constructor
 
@@ -150,8 +158,7 @@ erroneous behavior of the GNU C++ 3.2 implementation of the IA-64 ABI
 when DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE.  (The GNU C++ 3.2 ABI is
 also used by default in later versions of GNU C++.)  These relatively
 subtle changes are all related to the alignment of virtual base class
-subobjects (which in GNU C++ may affect the size of a type when used
-as a base class).
+subobject.
 
 2/27/03  GNU C mode: Ignore anonymous union field name conflicts
 

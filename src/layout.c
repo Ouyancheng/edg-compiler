@@ -3718,19 +3718,20 @@ Reserve space at the end of the class object for virtual base classes.
     /* Record the size and alignment of the class before space is added for
        virtual base classes. */
     pad_bit_field(lob);
+#if IA64_ABI
+    if (lob->curr_base_extent >= lob->byte_offset) {
+      /* Tail padding from nonvirtual bases is not reused when allocating
+         virtual bases. */
+      lob->byte_offset = lob->curr_base_extent + 1;
+      ctsp->size_without_virtual_base_classes = lob->byte_offset;
+    }  /* if */
+#endif /* IA64_ABI */
     ctsp->size_without_virtual_base_classes = lob->byte_offset;
     ctsp->alignment_without_virtual_base_classes = lob->alignment;
 #if IA64_ABI
     if (emulate_gnu_abi_bugs) {
       /* Early GNU implementations for the IA-64 ABI force an alignment
          boundary before allocating trailing virtual bases. */
-      if (lob->curr_base_extent >= lob->byte_offset) {
-        /* Tail padding from nonvirtual bases is not reused when allocating
-           virtual bases.  The alignment boundary is forced after this tail
-           padding. */
-        lob->byte_offset = lob->curr_base_extent + 1;
-        ctsp->size_without_virtual_base_classes = lob->byte_offset;
-      }  /* if */
       if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&
           !lob->any_overflow) {
         error(struct_too_large_error());
