@@ -1,5 +1,15 @@
 Version 3.4
 
+1/6/04   GNU C++ mode: Class types with size zero
+
+In GNU C++ mode, struct containing only data members of zero-length array
+types now have size zero.  (Note that empty class types still have size 1.)
+For example:
+
+  struct S0 { int a[0]; };  // sizeof(S0) == 0 in GNU C++ mode.
+                            // (Previously, sizeof(S0) == 1 in GNU C++ mode.)
+  struct S1 {};             // sizeof(S1) == 1 in GNU C++ mode.
+
 1/6/04   Argument-dependent lookup was not suppressed by parentheses
 
 Argument-dependent lookup is supposed to be suppressed on a
