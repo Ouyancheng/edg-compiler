@@ -1,5 +1,11 @@
 Version 3.1
 
+9/18/02  GNU C++: Spurious errors on accesses to partial specializations
+
+An early (unreleased) version of the GNU C++ compatibility changes contained 
+a bug that caused the front end to issue spurious errors when accessing the
+members of certain partial specializations.  This is now fixed.
+
 9/18/02  Spurious access error on overloaded function in explicit instantiation
 
 Explicit instantiation directives are permitted to make use of inaccessible
