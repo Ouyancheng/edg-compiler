@@ -1539,13 +1539,14 @@ The position of the pragma ID is returned in id_position;
 {
   a_pragma_kind_description_ptr	pkdp = NULL;
 
+  (void)get_token();
   /* Save the position of the start of the token(s) that identify
      the kind of pragma being processed.  Save this position even if the
      identifier is missing -- it is still used if we include unrecognized
      pragmas in the IL. */
   *id_position = pos_curr_token;
   /* Identify the pragma that is being processed. */
-  if (get_token() == tok_identifier) {
+  if (curr_token == tok_identifier) {
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
        accepted. */
     check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
