@@ -1499,13 +1499,8 @@ already been lowered.
     an_expr_node_ptr entity_node_copy =
                                 make_reusable_copy(entity_node,
                                                    /*vars_can_change=*/FALSE);
-    /* In the IA64 ABI, ctor_routine may be an alternate entry point,
-       and the source correspondence for alternate entry points does
-       not indicate that they are a class members, so we must use this
-       more complex construction to get the class to which the
-       constructor applies.  */
     a_type_ptr       class_type =
-             type_pointed_to(implicit_this_param_type_of(ctor_routine->type));
+                    ctor_routine->type->variant.routine.extra_info->this_class;
 #if IA64_ABI
     if (contains_ptr_to_data_member(class_type)) {
       /* Pointers to data members must be initialized to -1. */
