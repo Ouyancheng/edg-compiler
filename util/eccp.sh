@@ -50,7 +50,7 @@ automatic_instantiation=1
 #
 if [ $automatic_instantiation -eq 1 ] ; then
   compile_command=$0
-  instantiation_libraries="/edg/cpfe/lib/libC.a"
+  instantiation_libraries="$LIBDIR/libC.a"
 fi
 #
 # Suffix to be applied to the standard C++ library names to select a
@@ -109,6 +109,10 @@ lfiles=
 # Were any library or object files specified on the command line?
 #
 any_l_or_o_files=0
+#
+# Were any source files specified on the command line?
+#
+any_c_files=0
 #
 # A list of options to pass to front end.
 #
@@ -409,12 +413,14 @@ do
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$1;
+      any_c_files=1
       add_to_instantiation_command=0
       ;;
     *\.C)
 #     Collect a list of .C files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$1;
+      any_c_files=1
       add_to_instantiation_command=0
       ;;
     *\.o)
@@ -442,6 +448,11 @@ do
   fi
   shift;
 done
+
+if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
+  echo "eccp: no source, object, or library files were specified"
+  error=1
+fi
 
 # Put the command name on the beginning of the instantiation command line.
 # This is done here because a different name can be supplied on the
