@@ -4801,6 +4801,7 @@ is the one associated with the template.
   /* Advance past the source sequence entry for the template. */
   adv_curr_source_sequence_entry();
   set_output_position(&tp->source_corresp.decl_position);
+  gen_member_access_specifier_for_decl_of(&tp->source_corresp);
   /* Write the template string. */
   write_code_string(tp->text);
 }  /* gen_template */
