@@ -869,8 +869,8 @@ Print the name of the indicated variable.
 #if !C_GEN_BE_GENERATES_ANSI_C
   } else if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
-             variable->source_corresp.name[0] == '_' /* For speed. */ &&
-             strcmp(variable->source_corresp.name, "__link") != 0) {
+             (variable->source_corresp.name[0] != '_' /* For speed. */ ||
+              strcmp(variable->source_corresp.name, "__link") != 0)) {
     /* Name is at file scope, but is not external.  Add a suffix so
        that it will not conflict with external names.  See dump_variable.
        Leave __link (used for C++ startup) alone. */
@@ -3964,6 +3964,7 @@ parameters.
   a_constant_ptr  init_con;
   a_type_ptr      var_type = variable->type;
   a_boolean       is_link;
+  char            *name;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean       forced_static;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -3973,10 +3974,12 @@ parameters.
   init_con = constant_initializer(variable);
   /* See if this is the special __link variable generated for "patch".
      It gets special handling. */
-  is_link = (variable->source_corresp.name[0] == '_' /* For speed. */ &&
+  name = variable->source_corresp.name;
+  is_link = (name != NULL &&
+             name[0] == '_' /* For speed. */ &&
              variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
-             strcmp(variable->source_corresp.name, "__link") == 0);
+             strcmp(name, "__link") == 0);
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* The variable __link and unnamed variables must be kept static even if
      they are initialized.  When generating ANSI C, variables are emitted
