@@ -210,7 +210,9 @@ a_boolean il_lowering_needed(void)
 /*
 Return TRUE if IL lowering is needed.  IL lowering is only needed in
 this compilation if the source language is C++, there are no errors, and
-lowering hasn't been suppressed.
+lowering hasn't been suppressed.  Note that this function considers
+only C++ lowering; there is also lowering done for C99 and GNU C,
+but this routine does not indicate that.
 */
 {
   a_boolean needed = (C_dialect == C_dialect_cplusplus &&
