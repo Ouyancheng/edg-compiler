@@ -8577,7 +8577,43 @@ dependent on it.  The routine entry itself is dealt with later.
             /* Definition of a class member outside the class definition or
                a namespace member outside the namespace definition.  Just
                drop the source sequence entry altogether. */
+            a_source_correspondence  *scp = &rp->source_corresp;
+
             drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+            /* The source-sequence entry pointer in the routine needs to be
+               reset as though the definition had never happened.  This means
+               finding its non-defining declaration within the class or
+               namespace definition. */
+            /* Start at the point in the source sequence list corresponding
+               to the beginning of the class or namespace definition. */
+            if (scp->is_class_member) {
+              ssep = scp->parent.class_type->
+                                   source_corresp.source_sequence_entry;
+            } else {
+              ssep = scp->parent.namespace_ptr->
+                                   source_corresp.source_sequence_entry;
+            }  /* if */
+            /* Loop through the list till a secondary declaration pointing to
+               same routine is found. */
+            for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
+              if (ssep->entity.kind ==
+                   (an_il_entry_kind)iek_src_seq_secondary_decl) {
+                sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+                if (sssdp->entity.ptr == (char *)rp) {
+                  /* A match.  Reset the source sequence entry pointer in the
+                     routine entry and break out of the loop. */
+                  scp->source_sequence_entry = ssep;
+                  break;
+                }  /* if */
+              }  /* if */
+#if CHECKING
+              if (ssep->next == NULL) {
+                unexpected_condition_str2(
+                                  "eliminate_bodies_of_unneeded_functions:",
+                                  "source sequence secondary decl not found");
+              }  /* if */
+#endif /* CHECKING */
+            }  /* for */
           } else {
             /* Turn the associated source sequence entry into a secondary-decl
                source sequence entry.  This is done even though the entry
