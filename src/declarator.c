@@ -107,14 +107,6 @@ allowed, issue a diagnostic and return FALSE.
       if (tp != NULL && is_function_type(tp)) {
         error_code = ec_restrict_pointer_to_function;
       }  /* if */
-    } else if (is_array_type(type)) {
-      if (scope_stack[depth_scope_stack].kind ==
-                              (a_scope_kind)sck_func_prototype) {
-        /* Since we are in the midst of a parameter declaration, this *may* be
-           okay -- if the array is "top-level".  It will be checked later. */
-      } else {
-        error_code = ec_restrict_not_allowed;
-      }  /* if */
     } else {
       error_code = ec_restrict_not_allowed;
     }  /* if */
@@ -755,6 +747,7 @@ scope is that of a class definition.
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
   a_func_info_block       local_func_info_block;
+  a_boolean               restrict_qualified = FALSE;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -922,17 +915,27 @@ scope is that of a class definition.
             /* Missing type specifier. */
             warning(ec_missing_type_specifier);
           }  /* if */
-          declarator(DI_REAL_DECLARATOR_ALLOWED |
-                       DI_ABSTRACT_DECLARATOR_ALLOWED, &do_flags,
-                     param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
+          declarator(DI_IS_PARAMETER_DECL |
+                       DI_REAL_DECLARATOR_ALLOWED |
+                       DI_ABSTRACT_DECLARATOR_ALLOWED,
+                     &do_flags, param_type_ptr,
+                     /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &bottom_derived_type,
                      &param_ssep, (a_func_info_block_ptr)NULL);
+#if RESTRICT_ALLOWED
+          restrict_qualified = 
+                (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
+#endif /* RESTRICT_ALLOWED */
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
+#if RESTRICT_ALLOWED
+          restrict_qualified = FALSE;
+#endif /* RESTRICT_ALLOWED */
         }  /* if */
         /* Check that the type is legal, and do required adjustments. */
-        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos);
+        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos,
+                                        restrict_qualified);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -1345,14 +1348,19 @@ scope is that of a class definition.
 
 
 void array_declarator(a_type_ptr *new_type_ptr,
-                      a_boolean  nonconstant_dimension_allowed)
+                      a_boolean  nonconstant_dimension_allowed,
+                      a_boolean  restrict_allowed,
+                      a_boolean  *restrict_seen)
 /*
 Scan an array declarator (3.5.4.2), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
 appropriate array type.  The initial opening bracket is the current
 token.  In C++ the dimension may sometimes be a nonconstant
 expression (e.g., with a new type name); that case is indicated by
-nonconstant_dimension_allowed.
+nonconstant_dimension_allowed.  When RESTRICT_ALLOWED is TRUE,
+restrict_allowed may be TRUE to indicate that this is a function parameter
+declaration for which the special restrict-array syntax is permitted.
+If "restrict" is seen, set *restrict_seen to TRUE.
 */
 {
   a_targ_size_t           num_of_elements;
@@ -1364,6 +1372,7 @@ nonconstant_dimension_allowed.
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
+  *restrict_seen = FALSE;
   /* Pass over the initial left bracket. */
   (void)get_token();
   add_stop_token(tok_rbracket);
@@ -1371,6 +1380,20 @@ nonconstant_dimension_allowed.
     /* Empty brackets, indicating an incomplete array type. */
     num_of_elements = 0;
   } else {
+#if RESTRICT_ALLOWED
+    if (curr_token == tok_restrict) {
+      if (restrict_allowed) {
+        /* This must be a declaration of a function parameter type, and
+           moreover it must be the top level declaration. */
+        *restrict_seen = TRUE;
+      } else {
+        /* Issue an error. */
+        pos_error(ec_restrict_not_allowed, &pos_curr_token);
+      }  /* if */
+      /* Advance past it. */
+      (void)get_token();
+    }  /* if */
+#endif /* RESTRICT_ALLOWED */
     /* Scan the array size. */
     if (nonconstant_dimension_allowed) {
       a_boolean  is_constant;
@@ -1772,6 +1795,11 @@ otherwise it is NULL.  The syntax is:
          of the top-level declarator is complete. */
       class_scope_deactivation_required = TRUE;
     }  /* if */
+#if RESTRICT_ALLOWED
+    if (local_do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) {
+      *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;
+    }  /* if */
+#endif /* RESTRICT_ALLOWED */
     /* A nonconstant dimension, if allowed at all, is allowed only on the
        topmost type (an interpretation of the language specification in ARM
        5.3.3).  Set the flag to FALSE for subsequent processing. */
@@ -2217,7 +2245,25 @@ function_lparen:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Left bracket, indicating array declarator. */
-      array_declarator(&new_type_ptr, nonconstant_dimension_allowed);
+      a_boolean  restrict_seen, restrict_allowed = FALSE;
+
+#if RESTRICT_ALLOWED
+      if ((input_flags & DI_IS_PARAMETER_DECL) && derived_type == NULL) {
+        /* This is a top-level array declarator -- that is, it will not be
+           embedded in the middle of a derived type.  Moreover, this is
+           a parameter declaration.  That means this array will decay into
+           pointer-to-element-type.  This is the situation in which the
+           special restrict-array syntax is allowed: e.g., x[restrict 10]. */
+        restrict_allowed = TRUE;
+      }  /* if */
+#endif /* RESTRICT_ALLOWED */
+      array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
+                       restrict_allowed, &restrict_seen);
+#if RESTRICT_ALLOWED
+      if (restrict_seen) {
+        *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;
+      }  /* if */
+#endif /* RESTRICT_ALLOWED */
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first

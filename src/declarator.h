@@ -112,7 +112,10 @@ abstract or real declarator.
 #define DI_IS_FRIEND_DECL 0x800
 			/* If this bit is set the declarator is part of a
 			   friend declaration. */
-#define DI_LAST DI_IS_FRIEND_DECL
+#define DI_IS_PARAMETER_DECL 0x1000
+			/* If this bit is set the declarator is part of a
+			   function parameter declaration. */
+#define DI_LAST DI_IS_PARAMETER_DECL
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
@@ -133,7 +136,13 @@ abstract or real declarator.
 			   used only when declarator is called recursively,
 			   lets the caller know that the scope needs to be
 			   popped. */
-#define DO_LAST DO_CLASS_SCOPE_DEACTIVATION_REQUIRED
+#define DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY 0x10
+			/* If this bit is set, the derived type constructed
+			   during declarator processing is an array type for
+			   which the restrict qualifier was specified.  This
+			   bit will only be set if DI_IS_PARAMETER_DECL was
+			   set and only if RESTRICT_ALLOWED is TRUE. */
+#define DO_LAST DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY
 			/* Last bit in the bit vector that is in use. */
 
 extern void declarator(a_decl_flag_set   input_flags,
@@ -152,7 +161,9 @@ extern a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
                                      a_boolean   reference_allowed);
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
-                             a_boolean  nonconstant_dimension_allowed);
+                             a_boolean  nonconstant_dimension_allowed,
+                             a_boolean  restrict_allowed,
+                             a_boolean  *restrict_seen);
 
 #if RESTRICT_ALLOWED
 extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,

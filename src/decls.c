@@ -253,14 +253,19 @@ declaration processing will continue as though "overload" had not been seen.
   return discard_declaration;
 }  /* f_check_for_overload_anachronism */
 
-
-void adjust_parameter_type(a_type_ptr *type_ptr)
+#if !RESTRICT_ALLOWED
+/*ARGSUSED*/ /* restrict_qualified is used only when "restrict" is allowed. */
+#endif /* !RESTRICT_ALLOWED */
+void adjust_parameter_type(a_type_ptr *type_ptr,
+                           a_boolean  restrict_qualified)
 /*
 *type_ptr points to the type of a parameter.  Modify the type if
 necessary.  See 3.7.1:  A declaration of a parameter as "array of
 type" shall be adjusted to "pointer to type", and the declaration of
 a parameter as "function returning type" shall be adjusted to
-"pointer to function returning type", as in 3.2.2.1.
+"pointer to function returning type", as in 3.2.2.1.  If restrict_qualified
+is TRUE, the pointer to which an array decays may be qualified as a
+restricted pointer.
 */
 {
   db_enter(4, "adjust_parameter_type");
@@ -269,6 +274,13 @@ a parameter as "function returning type" shall be adjusted to
   if (is_array_type(*type_ptr)) {
     /* Array, adjust to pointer to element type. */
     *type_ptr = make_pointer_type(array_element_type(*type_ptr));
+#if RESTRICT_ALLOWED
+    /* A parameter type that is restrict-qualified-array-of-T decays into
+       restrict-qualified-ptr-to-T. */
+    if (restrict_qualified) {
+      *type_ptr = make_qualified_type(*type_ptr, TQ_RESTRICT);
+    }  /* if */
+#endif /* RESTRICT_ALLOWED */
   } else if (is_function_type(*type_ptr)) {
     /* Function, adjust to pointer to function. */
     *type_ptr = make_pointer_type(*type_ptr);
@@ -304,7 +316,8 @@ Check to see if any type qualifiers that are specified are meaningful.
 
 
 void check_and_adjust_parameter_type(a_type_ptr         *type_ptr,
-                                     a_source_position  *error_pos)
+                                     a_source_position  *error_pos,
+                                     a_boolean          restrict_qualified)
 /*
 This routine is called for all function parameter declarations.  It does
 error checking and type adjustments as required.
@@ -312,7 +325,7 @@ error checking and type adjustments as required.
 {
   /* Adjust the type if necessary (for example, "array of x" becomes
      "pointer to x"). */
-  adjust_parameter_type(type_ptr);
+  adjust_parameter_type(type_ptr, restrict_qualified);
   /* Disallow "void" as a parameter type. */
   if (is_void_type(*type_ptr)) {
     pos_error(ec_void_param_not_allowed, error_pos);
@@ -3637,11 +3650,15 @@ syntax is:
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
     if (curr_token == tok_lbracket) {
-      array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE);
+      a_boolean  restrict_seen;
+
+      array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE,
+                       /*restrict_allowed=*/FALSE, &restrict_seen);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type);
       while (curr_token == tok_lbracket) {
-        array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE);
+        array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
+                         /*restrict_allowed=*/FALSE, &restrict_seen);
         /* Add the new type to the bottom of the existing derived type list.
            Note that this involves error checking. */
         add_to_derived_type_list(new_type_ptr,
@@ -4087,7 +4104,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           check_for_uninstantiated_template_class(type_ptr);
           /* Adjust the type if necessary (for example, "array of x"
              becomes "pointer to x"). */
-          adjust_parameter_type(&type_ptr);
+          adjust_parameter_type(&type_ptr, /*restrict_qualified=*/FALSE);
           if (is_incomplete_type(type_ptr)) {
             /* Incomplete type is not allowed. */
             pos_error(ec_incomplete_type_not_allowed, &decl_pos);
@@ -4408,6 +4425,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
   a_boolean		       access_checks_deferred = FALSE;
+  a_boolean                    restrict_qualified = FALSE;
 
   db_enter(3, "declaration");
 
@@ -4702,6 +4720,9 @@ continue_with_declaration:
     if (storage_class == (a_storage_class)sc_typedef) {
       di_flags |= DI_IS_TYPEDEF_DECLARATION;
     }  /* if */
+    if (is_old_style_param_decl) {
+      di_flags |= DI_IS_PARAMETER_DECL;
+    }  /* if */
     /* Scan the declarator list. */
     do {
       add_stop_token(tok_comma);
@@ -4878,7 +4899,12 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
           /* Check that the type is legal, and do required adjustments. */
-          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos);
+#if RESTRICT_ALLOWED
+          restrict_qualified = 
+                (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
+#endif /* RESTRICT_ALLOWED */
+          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
+                                          restrict_qualified);
           is_function = top_declarator_type_is_function = FALSE;
           /* For pcc compatibility, promote float parameters to double. */
           if (C_dialect == C_dialect_pcc) {

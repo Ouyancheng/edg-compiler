@@ -3451,7 +3451,7 @@ Scan the declaration of a single template nontype parameter.
              &declarator_ssep, (a_func_info_block_ptr)NULL);
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
-  adjust_parameter_type(param_type_ptr);
+  adjust_parameter_type(param_type_ptr, /*restrict_qualified=*/FALSE);
   /* Check for illegal nontype parameter types. */
   tp = skip_typerefs(*param_type_ptr);
   if (is_void_type(tp)) {
