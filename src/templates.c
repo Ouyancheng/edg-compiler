@@ -2509,91 +2509,6 @@ to represent the template parameters.
 }  /* scan_template_param_list */
 
 
-/* Forward declaration because of recursive invocation. */
-static a_boolean template_param_appears_in_param_list
-				(a_type_ptr  tparam_type,
-                                 a_type_ptr  rout_type,
-			         a_boolean   *only_used_in_default_args);
-
-
-static a_boolean template_param_appears_in_type_tree(a_type_ptr  tparam_type,
-                                                     a_type_ptr  tp)
-/*
-tparam_type is a tk_template_parameter type entry used in a template
-declaration.  Search the type tree represented by tp and return TRUE if
-tparam_type appears in the tree.  This routine traverses the type tree
-by means of recursive calls.
-*/
-{
-  a_boolean           found;
-  a_template_arg_ptr  tap;
-
-  tp = skip_typerefs(tp);
-  if (identical_types(tp, tparam_type)) {
-    found = TRUE;
-  } else {
-    switch (tp->kind) {
-      case tk_pointer:
-        /* Check the type pointed to. */
-        found = template_param_appears_in_type_tree(tparam_type,
-                                                    type_pointed_to(tp));
-        break;
-      case tk_array:
-        /* Check the type of an element of the array. */
-        found = template_param_appears_in_type_tree(
-                              tparam_type, underlying_array_element_type(tp));
-        break;
-      case tk_routine:
-        /* Check both the return type and all the parameter types.  Note that
-           cfront 3.0 does not consider a template parameter that appears in
-           return type of a pointer-to-function as a "use" in forming the
-           signature of the function template; we believe this is a cfront
-           bug. */
-        found = (template_param_appears_in_type_tree(
-                              tparam_type, tp->variant.routine.return_type) ||
-                 template_param_appears_in_param_list(tparam_type, tp,
-						      (a_boolean*)NULL));
-        break;
-      case tk_ptr_to_member:
-        /* Check both the member type and the class type. */
-        found = (template_param_appears_in_type_tree(tparam_type,
-                                                     pm_member_type(tp)) ||
-                 template_param_appears_in_type_tree(tparam_type,
-                                                     pm_class_type(tp)));
-        break;
-      case tk_class:
-      case tk_struct:
-      case tk_union:
-        /* If the class is an instantiation of a template, check the types
-           on which the instantiation is based. */
-        tap = tp->variant.class_struct_union.extra_info->template_arg_list;
-        found = FALSE;
-        for (; tap != NULL; tap = tap->next) {
-          if (tap->is_type) {
-            if (template_param_appears_in_type_tree(tparam_type,
-                                                    tap->variant.type)) {
-              found = TRUE;
-              break;
-            }  /* if */
-          }  /* if */
-        }  /* for */
-        break;
-      case tk_error:
-        /* We assume, with no justification other than to avoid apparently
-           spurious diagnostics, that the error (of which the error type is
-           a representation) involved the very type we are looking at. */
-        found = TRUE;
-        break;
-      default:
-        /* We have reached a leaf in the type tree without finding the
-           template parameter. */
-        found = FALSE;
-    }  /* switch */
-  }  /* if */
-  return found;
-}  /* template_param_appears_in_type_tree */
-
-
 static a_boolean template_param_appears_in_param_list
 				(a_type_ptr  tparam_type,
                                  a_type_ptr  rout_type,
@@ -2616,7 +2531,7 @@ arguments.
   ptp = rout_type->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
     if (ptp->type_involves_template_param) {
-      if (template_param_appears_in_type_tree(tparam_type, ptp->type)) {
+      if (is_or_contains_specific_template_param(ptp->type, tparam_type)) {
         found = TRUE;
         if (!ptp->has_default_arg) only_in_default_args = FALSE;
       }  /* if */
