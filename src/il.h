@@ -500,6 +500,9 @@ extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
 				      char          **full_name,
 				      a_line_number *line_number,
                                       a_boolean     *at_end_of_source);
+
+extern a_source_file_ptr eff_primary_source_file(void);
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 extern void conv_seq_to_physical_file_and_line(
