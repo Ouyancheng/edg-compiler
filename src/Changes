@@ -1,5 +1,16 @@
 Version 3.2
 
+4/15/03  IA-64 ABI: g++ bug emulation of mangling for reference to
+         member of template-dependent class
+
+The emulation for g++ IA-64 ABI name mangling bugs has been toned
+down in one case: a reference to a name like T::x, where T is
+a template parameter, was rendered incorrectly (the second
+operand of the "sr" scope-resolution operator was the full qualified
+name instead of just the member name).  g++ apparently generates
+the incorrect form only for members of non-dependent classes,
+e.g., &B::x where B is not a template parameter.
+
 4/15/03  IA-64 ABI: g++ bug emulation with mangling for array with
          dependent bound
 

@@ -1851,8 +1851,10 @@ describing it.
                             mctl);
     } else {
       a_boolean need_nested_name_close = FALSE;
-      if (emulate_gnu_abi_bugs) {
-        /* g++ 3.2 puts a parent qualifier on member references. */
+      if (emulate_gnu_abi_bugs &&
+          !is_template_dependent_type(parent_class)) {
+        /* g++ 3.2 puts a parent qualifier on member references if the
+           parent type is not a template parameter. */
         mangled_ia64_parent_qualifier(scp, kind,
                                       &need_nested_name_close, mctl);
       }  /* if */
