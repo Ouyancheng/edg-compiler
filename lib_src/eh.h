@@ -23,6 +23,10 @@ Declarations for exception handling.
 
 #if EXCEPTION_HANDLING
 
+#if USE_SYSTEM_JMP_BUF_DEFINITION
+#include <setjmp.h>
+#endif /* USE_SYSTEM_JMP_BUF_DEFINITION */
+
 #ifndef NULL
 #define NULL (0)
 #endif /* NULL */
@@ -244,12 +248,18 @@ typedef struct an_eh_stack_entry {
   union {
     /* When kind == ehsek_try_block. */
     struct {
+#if USE_SYSTEM_JMP_BUF_DEFINITION
+      jmp_buf	setjmp_buffer;
+			/* Buffer used by setjmp to save state information.
+			   The jmp_buf type is defined in setjmp.h. */
+#else /* !USE_SYSTEM_JMP_BUF_DEFINITION */
       __EDG_JMP_BUF_ELEMENT_TYPE
                 setjmp_buffer[__EDG_JMP_BUF_NUM_ELEMENTS];
 			/* Buffer used by setjmp to save state
 			   information.  The element type and size are
 			   passed from the front end using predefined
 			   macros. */
+#endif /* USE_SYSTEM_JMP_BUF_DEFINITION */
       an_exception_type_specification_ptr
 		catch_entries;
 			/* Pointer to an array of entries that describe the

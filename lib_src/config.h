@@ -176,6 +176,16 @@ The mangled name of the typeinfo record for a void type.
 #endif /* ifndef MANGLED_NAME_OF_VOID */
 #endif /* ! ABI_CHANGES_FOR_RTTI */
 
+/*
+Flag that is TRUE if the definition of jmp_buf from the setjmp.h header
+file should be used instead of the element type and array size passed
+by the front end.  This is useful on systems where the setjmp buffer
+is a structure instead of an array.
+*/
+#ifndef USE_SYSTEM_JMP_BUF_DEFINITION
+#define USE_SYSTEM_JMP_BUF_DEFINITION FALSE
+#endif /* ifndef USE_SYSTEM_JMP_BUF_DEFINITION */
+
 #endif /* EXCEPTION_HANDLING */
 
 /*
