@@ -1815,6 +1815,8 @@ diagnostic.
   a_template_ptr           tp;
 
   check_assertion(microsoft_mode);
+  /* Pragmas cannot bind to this "implicit template". */
+  cannot_bind_to_curr_construct();
   if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
     pos_error(ec_bad_friend_decl, &locator_for_curr_id.source_position);
     goto done;
