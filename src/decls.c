@@ -4920,11 +4920,13 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
-  if (overload_symbol != NULL) {
-    /* If a using-declaration has introduced a function name into this
-       scope that has the same type as the current function, it is an error.
-       We also remove the projection symbol from the overload set, to
-       avoid overload ambiguity errors later. */
+  if (overload_symbol != NULL &&
+      sym == overload_symbol->variant.overloaded_function.symbols) {
+    /* sym has been newly added to an overload set that may include symbols
+       introduced by using-declarations.  Check whether any of the latter
+       have the same type as the current function -- report the error and
+       remove the offending projection symbol(s) (to avoid overload ambiguity
+       errors later on). */
     check_for_conflicts_with_using_decls(overload_symbol,
                                          &locator->source_position);
   }  /* if */
