@@ -117,10 +117,6 @@ EXTERN unsigned long
 			   be tested and set by the "needed" flag
 			   processing. */
 
-extern void set_per_instantiation_needed_flag(char             *entry_ptr,
-                                              an_il_entry_kind entry_kind,
-                                              unsigned long    bit_number);
-
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 /* Macro to fetch the value of the needed flag. */

@@ -586,6 +586,41 @@ as needed.
   return prune;
 }  /* prune_needed_flag_il_walk */
 
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+static void set_per_instantiation_needed_flag(char             *entry_ptr,
+                                              an_il_entry_kind entry_kind,
+                                              unsigned long    bit_number)
+/*
+Set the per-instantiation "needed" bit numbered bit_number to indicate
+everything referenced from the indicated externally-defined entity
+(a variable or routine).  If bit_number is 0, the entity is not an
+instantiation with an associated bit; use bit number 1 (used for everything
+in the compilation excluding the instantiations).  The entity is
+expected to be defined already, so that its definition can be swept.
+*/
+{
+  unsigned long save_needed_flag_bit_number = needed_flag_bit_number;
+
+  if (bit_number == 0) bit_number = 1;
+  needed_flag_bit_number = bit_number;
+  mark_as_needed(entry_ptr, entry_kind);
+  if (entry_kind == iek_routine) {
+    /* Sweep the definition of a routine. */
+    a_scope_ptr   scope;
+    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+
+    check_assertion_str(rout->defined,
+                     "set_per_instantiation_needed_flag: routine not defined");
+    check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
+                     "set_per_instantiation_needed_flag: memory region gone");
+    scope = il_header.region_scope_entry[rout->assoc_scope];
+    mark_as_needed((char *)scope, iek_scope);
+  }  /* if */
+  needed_flag_bit_number = save_needed_flag_bit_number;
+}  /* set_per_instantiation_needed_flag */
+
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 void mark_as_needed(char             *entry_ptr,
                     an_il_entry_kind entry_kind)
@@ -634,44 +669,28 @@ references.
        externally-linked static data members and member functions. */
     mark_to_keep_in_il(entry_ptr, entry_kind);
   }  /* if */
-}  /* mark_as_needed */
-
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-
-void set_per_instantiation_needed_flag(char             *entry_ptr,
-                                       an_il_entry_kind entry_kind,
-                                       unsigned long    bit_number)
-/*
-Set the per-instantiation "needed" bit numbered bit_number to indicate
-everything referenced from the indicated externally-defined entity
-(a variable or routine).  If bit_number is 0, the entity is not an
-instantiation with an associated bit; use bit number 1 (used for everything
-in the compilation excluding the instantiations).  The entity is
-expected to be defined already, so that its definition can be swept.
-*/
-{
-  unsigned long save_needed_flag_bit_number = needed_flag_bit_number;
-
-  if (bit_number == 0) bit_number = 1;
-  needed_flag_bit_number = bit_number;
-  mark_as_needed(entry_ptr, entry_kind);
-  if (entry_kind == iek_routine) {
-    /* Sweep the definition of a routine. */
-    a_scope_ptr   scope;
-    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-
-    check_assertion_str(rout->defined,
-                     "set_per_instantiation_needed_flag: routine not defined");
-    check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
-                     "set_per_instantiation_needed_flag: memory region gone");
-    scope = il_header.region_scope_entry[rout->assoc_scope];
-    mark_as_needed((char *)scope, iek_scope);
+  if (one_instantiation_per_object && needed_flag_bit_number == 0) {
+    /* Determine a separate set of "needed" flags for each instantiation,
+       so each can be put out in a separate object file.  If this is
+       an externally-defined routine or variable, do the processing. */
+    if (entry_kind == (an_il_entry_kind)iek_routine) {
+      a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+      if (rout->storage_class == (a_storage_class)sc_unspecified &&
+          !rout->is_inline && rout->defined) {
+        set_per_instantiation_needed_flag(entry_ptr, entry_kind,
+                                        rout->instantiation_needed_bit_number);
+      }  /* if */
+    } else if (entry_kind == (an_il_entry_kind)iek_variable) {
+      a_variable_ptr var = (a_variable_ptr)entry_ptr;
+      if (var->storage_class == (a_storage_class)sc_unspecified) {
+        set_per_instantiation_needed_flag(entry_ptr, entry_kind,
+                                         var->instantiation_needed_bit_number);
+      }  /* if */
+    }  /* if */
   }  /* if */
-  needed_flag_bit_number = save_needed_flag_bit_number;
-}  /* set_per_instantiation_needed_flag */
-
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-
+}  /* mark_as_needed */
 
 /* "keep_in_il" flag section: */
 
