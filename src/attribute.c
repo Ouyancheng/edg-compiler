@@ -1201,8 +1201,7 @@ must make a copy if tp may already be shared.
         break;
       case ak_packed:
         if (is_typedef) {
-          pos_error(ec_packed_attribute_cannot_be_used_in_typedef,
-                    &ap->position);
+          pos_warning(ec_packed_attribute_ignored_in_typedef, &ap->position);
         } else if (is_enum_type(tp)) {
           /* A packed enumerated type can be smaller than an "int". */
           tp->variant.integer.packed = TRUE;
