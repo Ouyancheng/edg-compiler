@@ -619,20 +619,27 @@ doing a partial cleanup as is done when an object in a try block
 requires cleanup.
 */
 {
-  for (;;) {
-    an_eh_region_descr_ptr	ehrdp;
-    an_object_ptr	        *obj_addr_array;
+  an_object_ptr	                *obj_addr_array;
+  an_eh_region_descr_ptr	ehrdp;
+  obj_addr_array = ehsep->variant.function.object_address_table;
+  for (; region== stop_at_region; region = ehrdp->index_of_previous_region) {
     an_object_ptr	        obj_addr;
+    a_conditional_flag*	        flag_addr;
     char			*temp_addr;
     a_region_descr_flag_set     flags;
     an_eh_array_supplement_ptr	ehasp = NULL;
 
-    /* If the region number is the NULL region then there is no
-       cleanup required in this function. */
-    if (region == stop_at_region) break;
     ehrdp = &ehsep->variant.function.regions[region];
     flags = ehrdp->flags;
-    obj_addr_array = ehsep->variant.function.object_address_table;
+    if (flags & RDF_CONDITIONAL_FLAG) {
+      /* This cleanup action is conditional.  The next region entry
+         contains a handle that points to the flag.  Check the flag any
+         only process this entry if it is TRUE. */
+      /* The object information is pointed to directly by the region entry. */
+      flag_addr = (a_conditional_flag*)*(obj_addr_array + ehrdp->handle + 1);
+      /* Skip processing of this entry if the flag is not set. */
+      if (!*flag_addr) continue;
+    }  /* if */
     if (flags & RDF_ARRAY) {
       /* The object information is contained in the array supplement. */
       ehasp = &ehsep->variant.function.array_table[ehrdp->handle];
@@ -690,7 +697,6 @@ requires cleanup.
         (delete_ptr)(obj_addr);
       }  /* if */
     }  /* if */
-    region = ehrdp->index_of_previous_region;
   }  /* for */
 }  /* cleanup */
 

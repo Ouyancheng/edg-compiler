@@ -48,6 +48,10 @@ typedef void (*a_void_function_ptr)();
 typedef unsigned short an_object_offset;
 			/* Type used to store an offset into an object. */
 
+typedef int	a_conditional_flag;
+			/* Type of a flag used for conditional region
+			   entries. */
+
 
 /* Definitions of the values in the flags field of the region description
    entry. */
