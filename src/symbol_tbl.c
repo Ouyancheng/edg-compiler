@@ -6774,12 +6774,19 @@ updated but not removed from the list.
 */
 {
   a_symbol_ptr   sym;
+  a_type_ptr     class_type;
 
   if (value) {
     if (!tip->already_instantiated) {
       sym = tip->instance_sym;
-      if (is_function_symbol(sym) && sym->defined &&
-          sym->variant.routine.ptr->is_inline) {
+      if (sym == tip->template_sym) {
+        /* Somehow a member function of a nonreal class (e.g., a prototype
+           instantiation of a class template) has been referenced.  (This
+           can occur in a sizeof operation applied to the address of a
+           static member function -- anywhere else?).  Do not instantiate
+           the function. */
+      } else if (is_function_symbol(sym) && sym->defined &&
+                 sym->variant.routine.ptr->is_inline) {
         /* Inline (member or nonmember) functions are instantiated at the
            point of first use, in case the back end requires the function
            body immediately to perform inlining. */
