@@ -534,15 +534,13 @@ and indentation is the indentation desired.
           put_string("op= bitwise copy okay");
         }  /* if */
         if (cssp->class_template != NULL) {
-          if (debug_level >= 4) {
-            put_string("has class template ptr");
-          }  /* if */
-          if (!cssp->is_real_instantiation) {
-            put_string("non-real instance");
-          }  /* if */
-          if (!cssp->is_specific_template_def) {
-            put_string("specific def.");
-          }  /* if */
+          if (debug_level >= 4) put_string("has class template ptr");
+        }  /* if */
+        if (cssp->is_nonreal_class) {
+          put_string("nonreal");
+        }  /* if */
+        if (cssp->is_specific_template_def) {
+          put_string("specific template def");
         }  /* if */
       }
       break;
@@ -1142,7 +1140,7 @@ state.
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
         cssp->has_operator_new = FALSE;
         cssp->has_operator_delete = FALSE;
-        cssp->is_real_instantiation = FALSE;
+        cssp->is_nonreal_class = FALSE;
         cssp->is_specific_template_def = FALSE;
       }
       break;

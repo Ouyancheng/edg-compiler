@@ -480,14 +480,18 @@ typedef struct a_class_symbol_supplement {
   unsigned int  has_operator_delete:1;
 			/* TRUE if a member operator delete() has been declared
 			   for this class or a class from which it derived. */
-  unsigned int  is_real_instantiation:1;
-                        /* TRUE if the class is an instantiation of a class
-			   template and is a "real" instantiation.  A real
-			   instantiation is one in which none of the template
-			   arguments is a template parameter.  This will be
-			   FALSE in the case of the prototype instantiation
-			   and any other instantiations based on template
-			   parameters. */
+  unsigned int  is_nonreal_class:1;
+			/* TRUE if the class is an instantiation of a class
+			   template based on template arguments that include
+			   one or more template parameters.  For instance,
+			   for the class template declared by
+			      template <class T, int I> class vec;
+			   the prototype instantiation vec<T,I> is a "nonreal"
+			   class, but so is vec<T,3>, where T represents a
+			   template parameter, e.g., in the declaration:
+			      template <class T> void f(vec<T,3> *vp) { ... }
+                           In addition, classes that are nested within
+			   nonreal classes are marked as nonreal. */
   unsigned int	is_specific_template_def:1;
 			/* TRUE if the class is a specific definition of
 			   a template class instance.  FALSE if the
@@ -1602,25 +1606,24 @@ extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
 /* Return TRUE if a symbol is a class symbol, class template symbol,
    or a type template parameter.  This macro should only be used in
    C++ mode. */
-#define is_class_or_class_proxy_symbol(sym)                         \
-  ((sym)->kind == (a_symbol_kind)sk_class_template ||		    \
-   is_class_symbol(sym) ||                                          \
-   ((sym)->kind == (a_symbol_kind)sk_type &&                        \
+#define is_class_or_class_proxy_symbol(sym)                           \
+  ((sym)->kind == (a_symbol_kind)sk_class_template ||		      \
+   is_class_symbol(sym) ||                                            \
+   ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (sym)->variant.type->kind == (a_type_kind)tk_template_param))
 
 /* Return TRUE if the symbol is a template class symbol. */
-#define is_template_class_symbol(sym)				 	\
-  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||		\
-    (sym)->kind == (a_symbol_kind)sk_union_tag) &&			\
+#define is_template_class_symbol(sym)				      \
+  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||	      \
+    (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
    ((sym)->variant.class_struct_union.extra_info->class_template != NULL))
 
 /* Return TRUE if the symbol is a class symbol for either a normal
    (non-template) or a "real" instantiation of a template class.  */
-#define is_real_class_symbol(sym)				   \
-  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||		    \
-    (sym)->kind == (a_symbol_kind)sk_union_tag) &&			    \
-   ((sym)->variant.class_struct_union.extra_info->class_template == NULL || \
-   (sym)->variant.class_struct_union.extra_info->is_real_instantiation))
+#define is_real_class_symbol(sym)				      \
+  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
+    (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
+    !(sym)->variant.class_struct_union.extra_info->is_nonreal_class)
 
 /* Return TRUE if a symbol is a tag symbol.   A tag symbol is
    one defined as a class, struct, union, or enum (but not as a typedef

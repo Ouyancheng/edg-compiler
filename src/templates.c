@@ -69,7 +69,7 @@ able to if the template itself has not yet been defined.
     template_sym = cssp->class_template;
     if (template_sym == NULL) {
       /* Not a class based on a class template. */
-    } else if (!cssp->is_real_instantiation) {
+    } else if (cssp->is_nonreal_class) {
       /* Don't try to instantiate a template class without real template
          arguments. */
 #if CHECKING
@@ -525,12 +525,10 @@ no need to actually instantiate X<int> in the example above.
        template parameters and is therefore a "nonreal" instantiation, give it
        a size and alignment to permit it to pass through subsequent processing
        without causing spurious errors. */
-    sym->variant.class_struct_union.extra_info->is_real_instantiation = TRUE;
     for (tap = *new_list; tap != NULL; tap = tap->next) {
       if (tap->is_type) {
         if (tap->variant.type->kind == (a_type_kind)tk_template_param) {
-          sym->variant.class_struct_union.extra_info->
-                                               is_real_instantiation = FALSE;
+          sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
           break;
         }  /* if */
       } else {
@@ -556,7 +554,7 @@ no need to actually instantiate X<int> in the example above.
        members. */
     class_type->source_corresp.name_linkage =
                                         (a_name_linkage_kind)nlk_internal;
-    if (!sym->variant.class_struct_union.extra_info->is_real_instantiation) {
+    if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
     }  /* if */
@@ -763,9 +761,14 @@ make_new_type:
     case tk_struct:
     case tk_union:
       cssp = symbol_supplement_for_class(type);
-      if (cssp->class_template == NULL || cssp->is_real_instantiation) {
+      if (!cssp->is_nonreal_class) {
         /* Reuse the current type. */
         new_type = type;
+#if CHECKING
+      } else if (cssp->class_template == NULL) {
+        internal_error(
+                "copy_type_with_substitution: nonreal class with no template");
+#endif /* CHECKING */
       } else {
         /* The class is a template. The copy will be an instantiation of it.
            Build a new template arg list and call find_template_class. */
@@ -922,7 +925,7 @@ yet been created, extend the template argument list to include n entries.
           if (templ_cssp->class_template != NULL &&
               symbol_supplement_for_class(type)->class_template ==
                                              templ_cssp->class_template &&
-              !templ_cssp->is_real_instantiation) {
+              templ_cssp->is_nonreal_class) {
             /* The two classes refer to the same template, but templ_type
                is a nonreal instantiation -- i.e., one based on template
                parameter types instead of real types. */

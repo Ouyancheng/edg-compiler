@@ -4160,8 +4160,7 @@ is set to point to a symbol that provides the context information and
        need additional context information. */
     if (ssep->assoc_instantiation == NULL) {
       sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-      result = sym->variant.class_struct_union.extra_info->
-							is_real_instantiation;
+      result = !sym->variant.class_struct_union.extra_info->is_nonreal_class;
     } else {
       sym = ssep->assoc_instantiation->routine_sym;
       result = TRUE;
@@ -4181,7 +4180,7 @@ is set to point to a symbol that provides the context information and
   }  /* if */
 #if CHECKING
   if (result && sym == NULL) {
-    internal_error("include_in_context_output: no symbol for context information");
+    internal_error("include_in_context_output: no sym for context info");
   }  /* if */
 #endif /* CHECKING */
   return result;
