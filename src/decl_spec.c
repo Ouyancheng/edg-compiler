@@ -518,7 +518,7 @@ C mode.
 static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         is_friend_decl,
-                                  a_boolean         check_for_vacuous_decl,
+                                  a_boolean         *check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution)
@@ -530,7 +530,7 @@ that symbol; otherwise return NULL.  If there is no identifier or if there
 is an error, return NULL.
 
 is_friend_decl is TRUE when the declaration is of the form "friend class X;".
-check_for_vacuous_decl is TRUE when the context permits a declaration like
+*check_for_vacuous_decl is TRUE when the context permits a declaration like
 "struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
 inside a new expression.  *effective_decl_level will have been initialized
 to decl_scope_level by the caller; it may be changed in C++ for a forward
@@ -768,6 +768,11 @@ caution when modifying this routine.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (locator_for_curr_id.is_qualified_name) {
+    /* A "vacuous declaration" may not involve a qualified name: "struct x;"
+       is okay, but "struct A::x;" is not. */
+    *check_for_vacuous_decl = FALSE;
+  }  /* if */
   if (locator_for_curr_id.is_operator_name ||
       locator_for_curr_id.is_conversion_name) {
     /* Issue an error for something like "class operator+" or
@@ -793,7 +798,7 @@ caution when modifying this routine.
 
     /* Save the symbol locator for this identifier. */
     *locator = locator_for_curr_id;
-    if (next_tok == tok_semicolon && check_for_vacuous_decl &&
+    if (next_tok == tok_semicolon && *check_for_vacuous_decl &&
         C_dialect != C_dialect_pcc) {
       /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
          The effect of a vacuous declaration (unless we are in pcc mode) is
@@ -1188,7 +1193,8 @@ the template.
        error, also be on the lookout for a qualified name. */
     tag_id_present = curr_token == tok_identifier ||
                      (curr_token == tok_colon_colon &&
-                      next_token() == tok_identifier);
+                      next_token() == tok_identifier) ||
+                     curr_token == tok_operator;        /* Error case. */
   } else {
     /* class_specifier is called with is_friend_decl TRUE only when the name
        has not yet been declared; this happens in cfront compatibility mode
@@ -1208,12 +1214,9 @@ the template.
        a Plum Hall test that implies that. */
     tag_position = pos_curr_token;
     *declares_something = TRUE;
-    /* A "vacuous declaration" may not involve a qualified name: "struct x;"
-       is okay, but "struct A::x;" is not. */
-    if (locator_for_curr_id.is_qualified_name) vacuous_decl_allowed = FALSE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_sym = scan_tag_name(tag_kind, &locator, is_friend_decl,
-                            vacuous_decl_allowed, is_ref_within_new_expr,
+                            &vacuous_decl_allowed, is_ref_within_new_expr,
                             &effective_decl_level, &tag_resolution);
   }  /* if */
   if (tag_id_present) {
@@ -1905,7 +1908,7 @@ to indicate whether an enumeration is actually defined.
     *declares_something = TRUE;
     tag_position = pos_curr_token;
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
-                            /*is_friend_decl=*/FALSE, vacuous_decl_allowed,
+                            /*is_friend_decl=*/FALSE, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
                             &effective_decl_level, &tag_resolution);
     if (tag_resolution) {                            
