@@ -2097,16 +2097,18 @@ entry).  If add_const is TRUE, add an extra "const".
 
 
 static void gen_type_first_part(a_type_ptr type,
-                                a_boolean  need_paren,
+                                a_boolean  under_lhs_declarator,
                                 a_boolean  need_trailing_space,
                                 a_boolean  add_const)
 /*
 For the indicated type, output the specifiers and the part of the declarator
-that precedes the name.  If need_paren is TRUE, put a left parenthesis at
-the end of the first half of the declarator.  If need_trailing_space is TRUE,
-put a space at the end of the specifiers part (needed if the declarator part
-is not empty, because it contains a name or a derived type).  If add_const
-is TRUE, add an extra "const" on top of the type.
+that precedes the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
+If need_trailing_space is TRUE, put a space at the end of the specifiers
+part (needed if the declarator part is not empty, because it contains a
+name or a derived type).  If add_const is TRUE, add an extra "const" on
+top of the type.
 */
 {
   a_type_kind kind;
@@ -2121,7 +2123,7 @@ is TRUE, add an extra "const" on top of the type.
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
     gen_type_first_part(type->variant.pointer.type,
-                        /*need_paren=*/TRUE,
+                        /*under_lhs_declarator=*/TRUE,
                         /*need_trailing_space=*/TRUE,
                         /*add_const=*/FALSE);
     /* Output "*" or "&" for pointer or reference. */
@@ -2132,11 +2134,10 @@ is TRUE, add an extra "const" on top of the type.
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
     gen_pointer_type_qualifiers(qual_type, type, add_const);
-    if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     gen_type_first_part(type->variant.ptr_to_member.type,
-                        /*need_paren=*/TRUE,
+                        /*under_lhs_declarator=*/TRUE,
                         /*need_trailing_space=*/TRUE,
                         /*add_const=*/FALSE);
     /* Output Classname::*. */
@@ -2144,7 +2145,6 @@ is TRUE, add an extra "const" on top of the type.
     write_tok_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
     gen_pointer_type_qualifiers(qual_type, type, add_const);
-    if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
@@ -2152,20 +2152,24 @@ is TRUE, add an extra "const" on top of the type.
        (see is_not_yet_defined_typedef).  Drop all qualifiers here, always,
        to get around that.  They don't mean anything anyway. */
     gen_type_first_part(type->variant.routine.return_type,
-                        /*need_paren=*/TRUE,
+                        /*under_lhs_declarator=*/FALSE,
                         /*need_trailing_space=*/TRUE,
                         /*add_const=*/FALSE);
-    if (need_paren) write_tok_ch('(');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* A qualifier on an array type shouldn't be possible, period. */
     check_assertion_str(qual_type == type,
                         "gen_type_first_part: qualifier on array type");
     gen_type_first_part(type->variant.array.element_type,
-                        /*need_paren=*/TRUE,
+                        /*under_lhs_declarator=*/FALSE,
                         /*need_trailing_space=*/TRUE,
                         /*add_const=*/FALSE);
-    if (need_paren) write_tok_ch('(');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch('(');
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     if (add_const) write_tok_str("const ");
@@ -2360,11 +2364,12 @@ Generate an array declarator for the indicated array type.
 
 
 static void gen_type_second_part(a_type_ptr type,
-                                 a_boolean  need_paren)
+                                 a_boolean  under_lhs_declarator)
 /*
 Output the second part of a type reference, the part of the declarator
-that follows the name.  If need_paren is TRUE, put a closing parenthesis
-out first if anything is generated.
+that follows the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
 */
 {
   a_type_kind kind;
@@ -2376,25 +2381,28 @@ out first if anything is generated.
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
-    if (need_paren) write_tok_ch(')');
-    gen_type_second_part(type->variant.pointer.type, /*need_paren=*/TRUE);
+    gen_type_second_part(type->variant.pointer.type,
+                         /*under_lhs_declarator=*/TRUE);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    if (need_paren) write_tok_ch(')');
     gen_type_second_part(type->variant.ptr_to_member.type,
-                         /*need_paren=*/TRUE);
+                         /*under_lhs_declarator=*/TRUE);
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    if (need_paren) write_tok_ch(')');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch(')');
     gen_function_declarator(type, (a_scope_ptr)NULL);
     gen_type_second_part(type->variant.routine.return_type,
-                         /*need_paren=*/TRUE);
+                         /*under_lhs_declarator=*/FALSE);
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
-    if (need_paren) write_tok_ch(')');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_tok_ch(')');
     gen_array_declarator(type);
     gen_type_second_part(type->variant.array.element_type,
-                         /*need_paren=*/TRUE);
+                         /*under_lhs_declarator=*/FALSE);
   }  /* if */
 }  /* gen_type_second_part */
 
@@ -2405,11 +2413,11 @@ Output a reference to a type.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  gen_type_first_part(type, /*need_paren=*/FALSE,
+  gen_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                       /*need_trailing_space=*/FALSE,
                       /*add_const=*/FALSE);
   /* Write the second part of the declarator. */
-  gen_type_second_part(type, /*need_paren=*/FALSE);
+  gen_type_second_part(type, /*under_lhs_declarator=*/FALSE);
 }  /* gen_type */
 
 
@@ -2448,7 +2456,7 @@ declaration.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
-  gen_type_first_part(type, /*need_paren=*/FALSE,
+  gen_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                       /*need_trailing_space=*/(scp != NULL),
                       /*add_const=*/FALSE);
   /* Write the name if there is one. */
@@ -2462,7 +2470,7 @@ declaration.
     gen_name(scp, NO_TYPE);
   }  /* if */
   /* Write the second part of the declarator. */
-  gen_type_second_part(type, /*need_paren=*/FALSE);
+  gen_type_second_part(type, /*under_lhs_declarator=*/FALSE);
 }  /* gen_declaration_using_type */
 
 
@@ -2608,7 +2616,8 @@ source sequence entry is the one associated with the constant.
   /* Generate the constant type and name.  The type must be generated specially
      with an extra "const" on top, since the const is removed in the
      constant type. */
-  gen_type_first_part(constant->type, /*need_paren=*/FALSE,
+  gen_type_first_part(constant->type,
+                      /*under_lhs_declarator=*/FALSE,
                       /*need_trailing_space=*/TRUE,
                       /*add_const=*/TRUE);
   /* Set the source position for the name. */
@@ -2616,7 +2625,7 @@ source sequence entry is the one associated with the constant.
   /* Write the name. */
   gen_constant_name(constant);
   /* Write the second part of the declarator. */
-  gen_type_second_part(constant->type, /*need_paren=*/FALSE);
+  gen_type_second_part(constant->type, /*under_lhs_declarator=*/FALSE);
   write_tok_str(" = ");
   /* Generate the constant value. */
   gen_constant(constant);
@@ -3384,7 +3393,8 @@ Generate code for a new or delete operation.
                           "gen_new_delete: zero-sized type not array");
       elem_type = unqual_type->variant.array.element_type;
       elem_size = skip_typerefs(elem_type)->size;
-      gen_type_first_part(elem_type, /*need_paren=*/TRUE,
+      gen_type_first_part(elem_type,
+                          /*under_lhs_declarator=*/FALSE,
                           /*need_trailing_space=*/TRUE,
                           /*add_const=*/FALSE);
       write_tok_ch('[');
@@ -3401,7 +3411,7 @@ Generate code for a new or delete operation.
         write_unsigned_num(elem_size);
       }  /* if */
       write_tok_ch(']');
-      gen_type_second_part(elem_type, /*need_paren=*/TRUE);
+      gen_type_second_part(elem_type, /*under_lhs_declarator=*/FALSE);
     }  /* if */
     if (need_type_parens) write_tok_ch(')');
     if (ndsp->dynamic_init != NULL) {
@@ -5218,7 +5228,8 @@ declaration or definition.
     }  /* if */
     if (return_type_needed) {
       /* Write the type specifiers and the first part of the declarator. */
-      gen_type_first_part(rout_type, /*need_paren=*/FALSE,
+      gen_type_first_part(rout_type,
+                          /*under_lhs_declarator=*/FALSE,
                           /*need_trailing_space=*/TRUE,
                           /*add_const=*/FALSE);
     }  /* if */
@@ -5243,7 +5254,7 @@ declaration or definition.
     }  /* if */
     if (return_type_needed) {
       gen_type_second_part(rout_type->variant.routine.return_type,
-                           /*need_paren=*/TRUE);
+                           /*under_lhs_declarator=*/FALSE);
     }  /* if */
   }  /* if */
   if (!is_definition) {
