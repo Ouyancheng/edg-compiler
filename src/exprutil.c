@@ -3451,29 +3451,31 @@ is an lvalue if is_lvalue is TRUE.
   an_expr_operator_kind op;
   an_expr_node_ptr      expr1, expr2, expr3;
 
-  op = node->variant.operation.kind;
-  if (is_lvalue && op == (an_expr_operator_kind)eok_bit_field) {
-    is_bit_field = TRUE;
-  } else if (!is_lvalue &&
-             (op == (an_expr_operator_kind)eok_value_bit_field ||
-              op == (an_expr_operator_kind)eok_extract_bit_field)) {
-    is_bit_field = TRUE;
-  } else if (is_lvalue && op == (an_expr_operator_kind)eok_question) {
-    /* An lvalue-returning "?" operator; check its second and third
-       operands. */
-    expr1 = node->variant.operation.operands;
-    expr2 = expr1->next;
-    expr3 = expr2->next;
-    if (is_bit_field_expr(expr2, is_lvalue) ||
-        is_bit_field_expr(expr3, is_lvalue)) {
+  if (is_operation_node(node)) {
+    op = node->variant.operation.kind;
+    if (is_lvalue && op == (an_expr_operator_kind)eok_bit_field) {
       is_bit_field = TRUE;
-    }  /* if */
-  } else if (is_lvalue && op == (an_expr_operator_kind)eok_comma) {
-    /* An lvalue-returning "," operator; check its second operand. */
-    expr1 = node->variant.operation.operands;
-    expr2 = expr1->next;
-    if (is_bit_field_expr(expr2, is_lvalue)) {
+    } else if (!is_lvalue &&
+               (op == (an_expr_operator_kind)eok_value_bit_field ||
+                op == (an_expr_operator_kind)eok_extract_bit_field)) {
       is_bit_field = TRUE;
+    } else if (is_lvalue && op == (an_expr_operator_kind)eok_question) {
+      /* An lvalue-returning "?" operator; check its second and third
+         operands. */
+      expr1 = node->variant.operation.operands;
+      expr2 = expr1->next;
+      expr3 = expr2->next;
+      if (is_bit_field_expr(expr2, is_lvalue) ||
+          is_bit_field_expr(expr3, is_lvalue)) {
+        is_bit_field = TRUE;
+      }  /* if */
+    } else if (is_lvalue && op == (an_expr_operator_kind)eok_comma) {
+      /* An lvalue-returning "," operator; check its second operand. */
+      expr1 = node->variant.operation.operands;
+      expr2 = expr1->next;
+      if (is_bit_field_expr(expr2, is_lvalue)) {
+        is_bit_field = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_bit_field;

@@ -1,5 +1,11 @@
 Version 2.23
 
+4/12/94  is_bit_field_expr bug (in exprutil.c)
+
+A missing test has been added to is_bit_field_expr.  Without it, the
+front end was sometimes using random data as a pointer.  This bug was
+introduced in version 2.21.
+
 4/11/94  Name mangling for type "long long"
 
 Type "long long" has to date been mangled as "ll".  Unfortunately, this
