@@ -2557,6 +2557,7 @@ This form can be optimized by dump_rvalue_selection.
   return optimizable;
 }  /* optimizable_rvalue_selection */
 
+
 static void dump_rvalue_selection(an_expr_node_ptr expr)
 /*
 Dump an rvalue field selection, i.e., one where a field or bit field is
@@ -7305,6 +7306,29 @@ its subtree.
   }  /* if */
 }  /* dump_expr_prescan_temps */
 
+#ifdef CFE
+
+static void dump_dynamic_init_prescan_temps(a_dynamic_init_ptr dip)
+/*
+Dump declarations for any tempories required for the dynamic initializer
+expression and its subtree.
+*/
+{
+  switch (dip->kind) {
+    case dik_constant:
+      break;
+    case dik_expression:
+      dump_expr_prescan_temps(dip->variant.expression);
+      break;
+#if CHECKING
+    default:
+      internal_error("dump_dynamic_init_prescan_temps: bad kind");
+#endif /* CHECKING */
+  }  /* switch */
+}  /* dump_dynamic_init_prescan_temps */
+
+#endif /* CFE */
+
 #ifdef FFE
 
 static void dump_io_list_prescan_temps(an_io_list_item_ptr iolp)
@@ -7368,7 +7392,6 @@ its subtree.
       case stmk_label:
       case stmk_return:
 #ifdef CFE
-      case stmk_init:
 #if ASM_STATEMENT_ALLOWED
       case stmk_asm:
 #endif /* ASM_STATEMENT_ALLOWED */
@@ -7385,6 +7408,11 @@ its subtree.
 #endif /* ifdef FFE */
         /* No subtree of statements. */
         break;
+#ifdef CFE
+      case stmk_init:
+        dump_dynamic_init_prescan_temps(statement->variant.dynamic_init);
+        break;
+#endif /* CFE */
       case stmk_if:
         dump_prescan_temps(statement->variant.if_stmt.then_statement);
         dump_prescan_temps(statement->variant.if_stmt.else_statement);
