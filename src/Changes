@@ -1,5 +1,13 @@
 Version 2.39
 
+7/21/98   IL lowering: no null test for base-class cast under cast
+          used as lvalue
+
+IL lowering suppresses null-pointer-preservation code on related
+class casts that appear in lvalue contexts.  If, however, the related-class
+cast appears under a cast that adjusts cv-qualification on the pointer,
+the optimization was not done.  Now, it is.
+
 7/20/98   C++-generating back end:  hidden-name problem with reference
           to function template instance
 

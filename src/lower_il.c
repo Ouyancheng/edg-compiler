@@ -7846,6 +7846,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         } else if (op == (an_expr_operator_kind)eok_comma) {
           /* Comma's second operand is an lvalue if the comma itself is. */
           if (is_lvalue) is_lvalue_mask = 0x2;
+        } else if (op == (an_expr_operator_kind)eok_cast && is_lvalue) {
+          /* The operand of a cast is considered an lvalue if the result
+             of the cast is used as the address of an lvalue. */
+          is_lvalue_mask = 0x1;
         } else {
           /* Other operators.  See if the first operand is an lvalue. */
           if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
