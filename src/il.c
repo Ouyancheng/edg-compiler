@@ -9451,13 +9451,12 @@ static a_source_sequence_entry_ptr src_seq_check_for_non_autonomous_tag(
                                              a_source_sequence_entry_ptr ssep)
 /*
 ssep is an end-of-construct source sequence entry encountered while removing
-unneeded IL entries.  It is assumed to be end of a definition of a tag.
-If the type with which it is associated is not already marked as
-"autonomous", its definition is part of the declaration of another entity.
-But if it turns out that the latter should be removed from the IL, the tag
-itself should be made autonomous: that is the purpose of this routine.
-Since it may skip unneeded entities, it returns a pointer to the next in
-the list.
+unneeded IL entries.  If it is the end of a definition of a tag and if the
+type with which it is associated is not already marked as "autonomous", its
+definition is part of the declaration of another entity.  But if it turns
+out that the latter should be removed from the IL, the tag itself should be
+made autonomous: that is the purpose of this routine.  Since it may skip
+unneeded entities, it returns a pointer to the next in the list.
 */
 {
   a_source_sequence_entry_ptr     next_ssep = ssep->next;
@@ -9465,92 +9464,123 @@ the list.
   a_type_ptr                      tag_type, tp;
   a_src_seq_secondary_decl_ptr    sssdp;
 
+  db_enter(4, "src_seq_check_for_non_autonomous_tag");
   check_assertion(ss_entry_kind(ssep) ==
                            (an_il_entry_kind)iek_src_seq_end_of_construct);
   sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
-  check_assertion(sseocp->entity.kind == (a_byte_il_entry_kind)iek_type);
-  tag_type = (a_type_ptr)sseocp->entity.ptr;
-  if (!tag_type->autonomous_primary_tag_decl &&
-      !tag_type->declared_in_function_prototype) {
-    /* This is a nonautonomous tag definition.  The tag must be kept in the
-       IL -- but what if the entity to whose declaration it belongs is
-       eliminated?  We need special handling for cases like this:
-         static struct S { int i; } s;
-       where s can be eliminated but struct S must be kept.  Without s in the
-       IL we have to mark the entry for struct S as defined in an autonomous
-       declaration.  In C++ and usually in C, the entity is next in the
-       list. */
-    a_boolean  make_autonomous = FALSE;
-    a_boolean  okay_if_not_found = C_mode();
+  if (sseocp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+    tag_type = (a_type_ptr)sseocp->entity.ptr;
+    if (!tag_type->autonomous_primary_tag_decl &&
+        !tag_type->declared_in_function_prototype) {
+      /* This is a nonautonomous tag definition.  The tag must be kept in the
+         IL -- but what if the entity to whose declaration it belongs is
+         eliminated?  We need special handling for cases like this:
+           static struct S { int i; } s;
+         where s can be eliminated but struct S must be kept.  Without s in
+         the IL we have to mark the entry for struct S as defined in an
+         autonomous declaration.  In C++ and usually in C, the entity is
+         next in the list. */
+      a_boolean  make_autonomous = FALSE;
+      a_boolean  okay_if_not_found = C_mode();
 
-    for (;;) {
-      if (next_ssep == NULL) {
-        check_assertion(okay_if_not_found);
-        make_autonomous = TRUE;
-        break;
-      } else if (ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_pragma
-#if RECORD_MACROS_IN_IL
-                 || ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_macro
-#endif /* RECORD_MACROS_IN_IL */
-                                                                           ) {
-        /* No macros or pragmas that are added to the IL are eliminated;
-           skip over any that intervene between the struct/enum definition
-           and whatever follows. */
-        next_ssep = next_ssep->next;
-      } else {
-        /* See what kind of entity follows the tag definition; get the type
-           with which it was declared. */
-        switch (ss_entry_kind(next_ssep)) {
-          case iek_variable:
-            tp = ss_entry_ptr(next_ssep, a_variable_ptr)->type;
-            break;
-          case iek_routine:
-            tp = ss_entry_ptr(next_ssep, a_routine_ptr)->type;
-            break;
-          case iek_type:
-            tp = ss_entry_ptr(next_ssep, a_type_ptr);
-            break;
-          case iek_field:
-            tp = ss_entry_ptr(next_ssep, a_field_ptr)->type;
-            break;
-          case iek_src_seq_secondary_decl:
-            sssdp = ss_entry_ptr(next_ssep, a_src_seq_secondary_decl_ptr);
-            if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
-                sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine ||
-                sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-              tp = sssdp->declared_type;
-              break;
-            }  /* if */
-          default:
-            tp = NULL;
-        }  /* switch */
-        if (tp == NULL ||
-            find_bottom_of_type(tp) != tag_type) {
-          /* This is not an entity that was declared with the tag; the tag
-             should be marked as autonomous.  Sometimes this will not be quite
-             right -- some weird cases in C mode, such as
-               static void *x = (void *)(struct S { int i; }*)0;
-             but it doesn't really make any difference. */
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("non-automomous tag: ", f_debug);
+        db_source_sequence_entry(ssep);
+      }  /* if */
+#endif /* DEBUG */
+      for (;;) {
+        if (next_ssep == NULL) {
           check_assertion(okay_if_not_found);
           make_autonomous = TRUE;
           break;
-        } else if (il_entry_prefix_of(next_ssep).keep_in_il) {
-          /* make_autonomous = FALSE; */
-          break;
+        } else if (ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_pragma
+#if RECORD_MACROS_IN_IL
+                   || ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_macro
+#endif /* RECORD_MACROS_IN_IL */
+                                                                           ) {
+          /* No macros or pragmas that are added to the IL are eliminated;
+             skip over any that intervene between the struct/enum definition
+             and whatever follows. */
+#if DEBUG
+          if (debug_level >= 4) {
+            fputs("skipping: ", f_debug);
+            db_source_sequence_entry(next_ssep);
+          }  /* if */
+#endif /* DEBUG */
+          next_ssep = next_ssep->next;
         } else {
-          next_ssep = drop_from_fs_src_seq_list(next_ssep);
-          /* We continue searching the source sequence list.  In a case like
-               struct S { int i; } x, y, z;
-             it may be that x and y are both eliminated but z is not.  It's
-             not necessary to set the autonomous flag in this case.  Note that
-             this can happen in C++ as well as C; in C++ okay_if_not_found
-             is FALSE only on the first iteration of the loop. */
-          okay_if_not_found = TRUE;
+          /* See what kind of entity follows the tag definition; get the type
+             with which it was declared. */
+          switch (ss_entry_kind(next_ssep)) {
+            case iek_variable:
+              tp = ss_entry_ptr(next_ssep, a_variable_ptr)->type;
+              break;
+            case iek_routine:
+              tp = ss_entry_ptr(next_ssep, a_routine_ptr)->type;
+              break;
+            case iek_type:
+              tp = ss_entry_ptr(next_ssep, a_type_ptr);
+              break;
+            case iek_field:
+              tp = ss_entry_ptr(next_ssep, a_field_ptr)->type;
+              break;
+            case iek_src_seq_secondary_decl:
+              sssdp = ss_entry_ptr(next_ssep, a_src_seq_secondary_decl_ptr);
+              if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
+                  sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine ||
+                  sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+                tp = sssdp->declared_type;
+                break;
+              }  /* if */
+            default:
+              tp = NULL;
+          }  /* switch */
+          if (tp == NULL ||
+              find_bottom_of_type(tp) != tag_type) {
+            /* This is not an entity that was declared with the tag; the tag
+               should be marked as autonomous.  Sometimes this will not be
+               quite right -- some weird cases in C mode, such as
+                 static void *x = (void *)(struct S { int i; }*)0;
+               but it doesn't really make any difference. */
+            check_assertion(okay_if_not_found);
+            make_autonomous = TRUE;
+            break;
+          } else if (il_entry_prefix_of(next_ssep).keep_in_il) {
+            /* make_autonomous = FALSE; */
+            break;
+          } else {
+#if DEBUG
+            if (debug_level >= 4) {
+              fputs("dropping: ", f_debug);
+              db_source_sequence_entry(next_ssep);
+            }  /* if */
+#endif /* DEBUG */
+            next_ssep = drop_from_fs_src_seq_list(next_ssep);
+            /* We continue searching the source sequence list.  In a case like
+                 struct S { int i; } x, y, z;
+               it may be that x and y are both eliminated but z is not.  It's
+               not necessary to set the autonomous flag in this case.  Note
+               that this can happen in C++ as well as C -- in C++
+               okay_if_not_found is FALSE only on the first iteration of the
+               loop. */
+            okay_if_not_found = TRUE;
+          }  /* if */
         }  /* if */
+      }  /* for */        
+      if (make_autonomous) {
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("setting autonomous: ", f_debug);
+          db_type_name(tag_type);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        tag_type->autonomous_primary_tag_decl = TRUE;
       }  /* if */
-    }  /* for */        
-    if (make_autonomous) tag_type->autonomous_primary_tag_decl = TRUE;
+    }  /* if */
   }  /* if */
+  db_exit();
   return next_ssep;
 }  /* src_seq_check_for_non_autonomous_tag */
 
