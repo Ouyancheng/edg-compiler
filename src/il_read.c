@@ -147,36 +147,77 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
 
 #if ALTERNATE_IL_FILE_FORMAT
 
-sizeof_t entry_length_with_prefix(an_il_entry_kind entry_kind,
-                                  a_boolean        is_in_file_scope,
-                                  sizeof_t         *offset_to_entry)
 /*
-Determine the size of an IL entry of kind entry_kind, including the prefix,
-and return that size.  Also return in *offset_to_entry the offset of
-the entry proper relative to the start of the prefix.  For string
-entries, the size is 1 and the offset is 0.
+Helper macros to do the CHECKING code for m_remap_entry_number.
 */
-{
-  sizeof_t gross_entry_size;
+#if CHECKING
+#define decl_checking_array() an_il_entry_number *entry_count_array_ptr
+#else /* !CHECKING */
+#define decl_checking_array() /* Nothing */
+#endif /* CHECKING */
 
-  if (is_string_entry_kind(entry_kind)) {
-    /* For string entries the "entry number" is really a byte offset, and
-       the "entry size" is 1.  Things like space for the prefix have
-       been accounted for in the entry numbers/byte offsets assigned. */
-    gross_entry_size = 1;
-    *offset_to_entry = 0;
-  } else {
-    /* Non-string entry. */
-    *offset_to_entry = SPACE_FOR_IL_ENTRY_PREFIX;
-    if (is_in_file_scope) {
-      /* File-scope entries are preceded by an orphan list pointer. */
-      *offset_to_entry += SPACE_FOR_FS_ORPHAN_POINTER;
-    }  /* if */
-    gross_entry_size = sizeof_il_entry[(int)entry_kind] + *offset_to_entry;
-  }  /* if */
-  return gross_entry_size;
-}  /* entry_length_with_prefix */
+#if CHECKING
+#define fs_remap_checking() (entry_count_array_ptr = fs_entry_count_array)
+#else /* !CHECKING */
+#define fs_remap_checking() /* Nothing */
+#endif /* CHECKING */
 
+#if CHECKING
+#define non_fs_remap_checking()                                       \
+{ if (reading_file_scope_il) {                                        \
+    /* There shouldn't be any function-scope numbers in the file scope. */ \
+    internal_error("non_fs_remap_checking: func number in file scope"); \
+  }  /* if */                                                         \
+  entry_count_array_ptr = entry_count_array;                          \
+}  /* non_fs_remap_checking */
+#else /* !CHECKING */
+#define non_fs_remap_checking() /* Nothing */
+#endif /* CHECKING */
+
+#if CHECKING
+#define remap_limit_checking()                                        \
+{ if (entry_number > entry_count_array_ptr[(int)entry_kind]) {        \
+    internal_error("remap_limit_checking: bad entry number");    \
+  }  /* if */                                                         \
+}  /* remap_limit_checking */
+#else /* !CHECKING */
+#define remap_limit_checking() /* Nothing */
+#endif /* CHECKING */
+
+
+/*
+Macro to remap an entry number (entry_number), from the file scope if
+is_in_file_scope is TRUE, of kind entry_kind, and to return a pointer
+to the entry in ptr (a "char *" pointer).  This is a macro to avoid
+a few levels of subroutine call, which is necessary because this gets
+used a lot.
+*/
+#define m_remap_entry_number()                                        \
+{ char               **entry_array_base_array_ptr;                    \
+  decl_checking_array();                                              \
+  sizeof_t           gross_entry_size, prefix_size;                   \
+  if (is_in_file_scope) {                                             \
+    /* This is a file-scope entry number. */                          \
+    gross_entry_size = fs_entry_length_with_prefix[(int)entry_kind];  \
+    prefix_size = fs_length_of_entry_prefix[(int)entry_kind];         \
+    fs_remap_checking();                                              \
+    entry_array_base_array_ptr = fs_entry_array_base_array;           \
+  } else {                                                            \
+    /* This is a function-scope entry number. */                      \
+    gross_entry_size = entry_length_with_prefix[(int)entry_kind];     \
+    prefix_size = length_of_entry_prefix[(int)entry_kind];            \
+    non_fs_remap_checking();                                          \
+    entry_array_base_array_ptr = entry_array_base_array;              \
+  }  /* if */                                                         \
+  remap_limit_checking();                                             \
+  /* Compute the entry address by multiplying the entry number minus  \
+     one by the size of the entry, and adding the base address of     \
+     the array of entries of that kind. */                            \
+  ptr = entry_array_base_array_ptr[(int)entry_kind] +                 \
+                                 (entry_number-1) * gross_entry_size; \
+  /* Move past the prefix and orphan pointer to the entry proper. */  \
+  ptr += prefix_size;                                                 \
+}  /* m_remap_entry_number */
 
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #if ALTERNATE_IL_FILE_FORMAT
@@ -190,46 +231,10 @@ is entry_number.  The entry number is for the file scope if is_in_file_scope
 is TRUE.
 */
 {
-  char               *ptr;
-  char               **entry_array_base_array_ptr;
-#if CHECKING
-  an_il_entry_number *entry_count_array_ptr;
-#endif /* CHECKING */
-  sizeof_t           gross_entry_size, offset_to_entry;
+  char *ptr;
 
-  if (is_in_file_scope) {
-    /* This is a file-scope entry number. */
-#if CHECKING
-    entry_count_array_ptr = fs_entry_count_array;
-#endif /* CHECKING */
-    entry_array_base_array_ptr = fs_entry_array_base_array;
-  } else {
-    /* This is a function-scope entry number. */
-#if CHECKING
-    if (reading_file_scope_il) {
-      /* There shouldn't be any function-scope numbers in the file scope. */
-      internal_error("remap_entry_number_to_ptr: func number in file scope");
-    }  /* if */
-    entry_count_array_ptr = entry_count_array;
-#endif /* CHECKING */
-    entry_array_base_array_ptr = entry_array_base_array;
-  }  /* if */
-#if CHECKING
-  if (entry_number > entry_count_array_ptr[(int)entry_kind]) {
-    internal_error("remap_entry_number_to_ptr: bad entry number");
-  }  /* if */
-#endif /* CHECKING */
-  /* Determine the size of an entry of this kind including the prefix
-     and (if in file scope) the orphan pointer. */
-  gross_entry_size = entry_length_with_prefix(entry_kind, is_in_file_scope,
-                                              &offset_to_entry);
-  /* Compute the entry address by multiplying the entry number minus one
-     by the size of the entry, and adding the base address of the array of
-     entries of that kind. */
-  ptr = entry_array_base_array_ptr[(int)entry_kind] +
-                                           (entry_number-1) * gross_entry_size;
-  /* Move past the prefix and orphan pointer to the entry proper. */
-  ptr += offset_to_entry;
+  /* The macro does the real remapping work. */
+  m_remap_entry_number();
   return ptr;
 }  /* remap_entry_number_to_ptr */
 
@@ -255,8 +260,8 @@ number is encoded_number.
     /* Function-scope entry numbers have a tag bit turned on. */
     is_in_file_scope = ((encoded_number & FUNC_ENTRY_NUMBER_BIT) == 0);
     entry_number = encoded_number & ~FUNC_ENTRY_NUMBER_BIT;
-    ptr = remap_entry_number_to_ptr(entry_number, is_in_file_scope,
-                                    entry_kind);
+    /* The macro does the real remapping work. */
+    m_remap_entry_number();
   }  /* if */
   return ptr;
 }  /* remap_encoded_number_to_ptr */
@@ -271,8 +276,22 @@ Remap a pointer in entry number form to a real pointer.  The entry pointed
 to has kind entry_kind.
 */
 {
-  return (remap_encoded_number_to_ptr((an_encoded_entry_number)old_ptr,
-                                      entry_kind));
+  char                    *ptr;
+  a_boolean               is_in_file_scope;
+  an_il_entry_number      entry_number;
+  an_encoded_entry_number encoded_number = (an_encoded_entry_number)old_ptr;
+
+  if (encoded_number == 0) {
+    /* A zero encoded entry number means a NULL pointer. */
+    ptr = NULL;
+  } else {
+    /* Function-scope entry numbers have a tag bit turned on. */
+    is_in_file_scope = ((encoded_number & FUNC_ENTRY_NUMBER_BIT) == 0);
+    entry_number = encoded_number & ~FUNC_ENTRY_NUMBER_BIT;
+    /* The macro does the real remapping work. */
+    m_remap_entry_number();
+  }  /* if */
+  return ptr;
 }  /* remap_ptr_to_ptr */
 
 #endif /* ALTERNATE_IL_FILE_FORMAT */
@@ -420,11 +439,13 @@ necessary to make it directly accessible in memory.
   for (byte_entry_kind = 1+(int)iek_none;
        byte_entry_kind < (int)iek_last;
        byte_entry_kind++) {
-    sizeof_t offset_to_entry;
-    sizeof_t gross_entry_size =
-                    entry_length_with_prefix((an_il_entry_kind)byte_entry_kind,
-                                             reading_file_scope_il,
-                                             &offset_to_entry);
+    sizeof_t gross_entry_size;
+
+    if (reading_file_scope_il) {
+      gross_entry_size = fs_entry_length_with_prefix[byte_entry_kind];
+    } else {
+      gross_entry_size = entry_length_with_prefix[byte_entry_kind];
+    }  /* if */
     entry_array_base_array_ptr[byte_entry_kind] =
              alloc_in_region(region_number,
                              (sizeof_t)(entry_count_array_ptr[byte_entry_kind]*
@@ -735,6 +756,40 @@ necessary to make it directly accessible in memory.
 }  /* read_memory_region */
 
 
+static void il_read_init(void)
+/*
+Initialization routine for IL reading.
+*/
+{
+#if ALTERNATE_IL_FILE_FORMAT
+  /* Build a table of sizes of IL entries including the prefix. */
+  { sizeof_t entry_size, prefix_size, fs_prefix_size;
+    int      entry_kind;
+
+    for (entry_kind = 0; entry_kind < (int)iek_last; entry_kind++) {
+      if (is_string_entry_kind((an_il_entry_kind)entry_kind)) {
+        /* For string entries the "entry number" is really a byte offset, and
+           the "entry size" is 1.  Things like space for the prefix have
+           been accounted for in the entry numbers/byte offsets assigned. */
+        fs_prefix_size = prefix_size = 0;
+      } else {
+        /* Non-string entry. */
+        prefix_size = SPACE_FOR_IL_ENTRY_PREFIX;
+        /* If the entry is in the file scope memory region, it is preceded
+           by an orphan pointer. */
+        fs_prefix_size = prefix_size + SPACE_FOR_FS_ORPHAN_POINTER;
+      }  /* if */
+      entry_size = sizeof_il_entry[entry_kind];
+      entry_length_with_prefix   [entry_kind] = entry_size + prefix_size;
+      fs_entry_length_with_prefix[entry_kind] = entry_size + fs_prefix_size;
+      length_of_entry_prefix     [entry_kind] = prefix_size;
+      fs_length_of_entry_prefix  [entry_kind] = fs_prefix_size;
+    }  /* for */
+  }
+#endif /* ALTERNATE_IL_FILE_FORMAT */
+}  /* il_read_init */
+
+
 void il_read(FILE *il_file)
 /*
 Read the file-scope intermediate language from the indicated file and
@@ -749,6 +804,8 @@ build the in-memory version.
 
   /* Save the file identifier. */
   f_il_input = il_file;
+  /* Initialize. */
+  il_read_init();
 
   /* The file layout is as follows:
        magic string that identifies an IL file
