@@ -2128,6 +2128,7 @@ Return TRUE if the sequence number seq_number falls within an include file.
 }  /* seq_is_in_include_file */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
 #if ORPHAN_PROCESSING_NEEDED
 
 void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
@@ -2239,6 +2240,7 @@ and do the same processing.
 }  /* add_scope_orphaned_il_lists */
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
 void add_to_scopes_list(a_scope_ptr             scope_ptr,
