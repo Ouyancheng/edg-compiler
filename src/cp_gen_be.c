@@ -3114,6 +3114,33 @@ should be placed in the indicated section.
   write_string_argument_attribute("__section__", section);
 }  /* write_section_attribute */
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+static void write_ELF_visibility_attribute(an_ELF_visibility_kind  visibility)
+/*
+Write out the given visibility as an attribute specification (provided it is
+not evk_unspecified).
+*/
+{
+  switch (visibility) {
+    case evk_unspecified:
+      /* No visibility attribute. */
+      break;
+    case evk_hidden:
+      write_tok_str(" __attribute__((visibility(\"hidden\")))");
+      break;
+    case evk_protected:
+      write_tok_str(" __attribute__((visibility(\"protected\")))");
+      break;
+    case evk_internal:
+      write_tok_str(" __attribute__((visibility(\"internal\")))");
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* write_ELF_visibility_attribute */
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 static void write_mode_attribute(a_type_mode_kind mode)
 /* 
@@ -3137,6 +3164,9 @@ Write out attributes that apply to the indicated variable.
     write_alignment_attribute(var->alignment);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  write_ELF_visibility_attribute(var->ELF_visibility);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (var->is_weak) {
     write_tok_str(" __attribute__((__weak__))");
   }  /* if */
@@ -3175,33 +3205,6 @@ Write out attributes that apply to the indicated field.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* write_field_attributes */
 
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-
-static void write_ELF_visibility_attribute(an_ELF_visibility_kind  visibility)
-/*
-Write out the given visibility as an attribute specification (provided it is
-not evk_unspecified).
-*/
-{
-  switch (visibility) {
-    case evk_unspecified:
-      /* No visibility attribute. */
-      break;
-    case evk_hidden:
-      write_tok_str(" __attribute__((visibility(\"hidden\")))");
-      break;
-    case evk_protected:
-      write_tok_str(" __attribute__((visibility(\"protected\")))");
-      break;
-    case evk_internal:
-      write_tok_str(" __attribute__((visibility(\"internal\")))");
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-}  /* write_ELF_visibility_attribute */
-
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 static void write_routine_attributes(a_routine_ptr rout)
 /*

@@ -1121,6 +1121,11 @@ invalid attributes.
           vp->assoc_param_type->is_transparent = TRUE;
         }  /* if */
         break;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      case ak_visibility:
+        vp->ELF_visibility = ap->variant.ELF_visibility;
+        break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       default:
         /* This attribute is not applicable to variables. */
         pos_sy_warning(ec_attribute_does_not_apply,

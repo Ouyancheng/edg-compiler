@@ -1705,6 +1705,9 @@ to it.
 #if GNU_EXTENSIONS_ALLOWED
   vp->asm_name_or_reg.name        = NULL;
   vp->alignment                   = 0;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  vp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   vp->is_weak                     = FALSE;
   vp->unused                      = FALSE;
   vp->is_not_common               = FALSE;

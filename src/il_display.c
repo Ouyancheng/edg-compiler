@@ -1908,6 +1908,11 @@ Display the indicated variable.
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
+    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (ptr->is_weak) { 
     disp_boolean("is_weak", TRUE);
   }  /* if */
@@ -2347,6 +2352,7 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
   (void)printf(s);
 }  /* disp_builtin_function_kind_name */
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 static void disp_ELF_visibility_kind(an_ELF_visibility_kind  ELF_visibility)
 /*
@@ -2364,8 +2370,9 @@ Display an ELF_visibility field.
     default:              str = "**BAD ELF VISIBILITY KIND**";
   }  /* switch */
   (void)printf("%s\n", str);
-}  /* if */
+}  /* disp_ELF_visibility_kind */
 
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_class_list(char                   *name,
@@ -2551,9 +2558,11 @@ Display the indicated routine.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
     disp_ELF_visibility_kind(ptr->ELF_visibility);
   }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (ptr->is_initialization_routine) {
     disp_boolean("is_initialization_routine", TRUE);
   }  /* if */

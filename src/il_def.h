@@ -5467,6 +5467,22 @@ typedef struct a_vla_dimension {
 
 #endif /* ifdef CIL */
 
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+/*
+ELF visibility kinds (for the GNU C "visibility" attribute).
+*/
+enum an_ELF_visibility_kind_tag {
+  evk_unspecified,
+  evk_hidden,
+  evk_protected,
+  evk_internal
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_ELF_visibility_kind;
+
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
@@ -5541,6 +5557,11 @@ typedef struct a_variable {
 			/* The explicit alignment specified for the
 			   variable, or zero if there was no explicit
 			   alignment. */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  a_bit_field   ELF_visibility:2;
+			/* The visibility of the variable in the generated
+			   ELF object code. */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   a_bit_field   is_weak:1;
 			/* TRUE if this variable was declared with the
 			   weak attribute. */
@@ -6270,22 +6291,6 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 #endif /* VAR_INITIALIZERS */
 ;
 
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-
-/*
-ELF visibility kinds (for the GNU C "visibility" attribute).
-*/
-enum an_ELF_visibility_kind_tag {
-  evk_unspecified,
-  evk_hidden,
-  evk_protected,
-  evk_internal
-};
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_ELF_visibility_kind;
-
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if DO_IL_LOWERING && IA64_ABI

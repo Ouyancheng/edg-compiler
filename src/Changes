@@ -1,5 +1,12 @@
 Version 3.1
 
+8/21/02   GNU C compatibility: "visibility" attribute on variable declarations
+
+In GNU C mode, the front end now accepts the visibility attribute on
+variable declarations (see also the entry of 6/27/02).
+
+  int i __attribute__((visibility("hidden")));  // Accepted in GNU C mode
+
 8/21/02   Build problem when not using IEEE floating point
 
 The front end did not build properly when TARG_HAS_IEEE_FLOATING_POINT
