@@ -2299,13 +2299,6 @@ Display the indicated block.
 #ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
   disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (ptr->final_source_sequence_entry != NULL) {
-    disp_ptr("final_source_sequence_entry",
-             (char *)ptr->final_source_sequence_entry,
-             iek_source_sequence_entry);
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_boolean("end_of_block_reachable",
                (a_boolean)ptr->end_of_block_reachable);
 #endif /* ifdef CFE */

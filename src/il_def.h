@@ -3781,15 +3781,6 @@ typedef struct a_block {
 			   by the front end are not "real" and have this
 			   pointer NULL.  They are also not pointed to as
 			   parents. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-		final_source_sequence_entry;
-			/* Pointer to the source sequence entry that is the
-			   last one associated with this block.  All the
-			   source sequence entries for the entire function are
-			   on a single flat list; this entry aids in mapping
-			   the list to the IL's tree representation. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   unsigned int	end_of_block_reachable:1;
 			/* TRUE if the end of the block is reachable.  The
 			   safe setting is TRUE. */
