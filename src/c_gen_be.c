@@ -5037,12 +5037,15 @@ characters should be put out separately (to initialize a substring, probably).
         case tk_struct:
         case tk_union:
           ipdp->curr_field = type->variant.class_struct_union.field_list;
+          /* Avoid problems with empty ck_aggregate constants. */
+          if (elem_con != NULL) {
 #if CHECKING
-          if (ipdp->curr_field == NULL && elem_con != NULL) {
-            internal_error("dump_initializer_part: bad field");
-          }  /* if */
+            if (ipdp->curr_field == NULL) {
+              internal_error("dump_initializer_part: bad field");
+            }  /* if */
 #endif /* CHECKING */
-          elem_type = ipdp->curr_field->type;
+            elem_type = ipdp->curr_field->type;
+          }  /* if */
           break;
 #endif /* ifdef CFE */
 #ifdef FFE
