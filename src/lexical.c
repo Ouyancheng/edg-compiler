@@ -1794,8 +1794,8 @@ partially_process_line_splice:
 }  /* gen_raw_listing_output_for_curr_line */
 
 
-void push_input_stack (char                       *file_name,
-                       a_directory_name_entry_ptr search_path)
+void open_file_and_push_input_stack(char                       *file_name,
+                                    a_directory_name_entry_ptr search_path)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
@@ -1804,25 +1804,161 @@ list of directories to be tried, in order, or is NULL if there is no
 search path.  file_name must be allocated in IL storage.
 */
 {
+  char  *full_file_name;
+  FILE  *input_file;
+
+  db_enter(2, "open_file_and_push_input_stack");
+  input_file = open_file_for_input(file_name, search_path, 
+                                   /*suffixes=*/(char *)NULL, &full_file_name);
+  push_input_stack(input_file, file_name, full_file_name);
+  db_exit();
+}  /* open_file_and_push_input_stack */
+
+
+FILE *open_file_for_input(char                       *file_name,
+                          a_directory_name_entry_ptr search_path,
+                          char                       *suffixes,
+                          char                       **full_file_name)
+/*
+Try to open file_name, and return a pointer to the file if the open is
+successful.  file_name must be allocated in IL storage.  If suffixes is
+non-NULL, the suffix currently on file_name will be replaced by each
+suffix in turn, in the specified order.  If search_path is non-NULL,
+the search begins in the first directory on the path (for each suffix, if
+appropriate), and proceeds until a file is found;  if search_path is NULL,
+only the current directory is checked.  If the open is successful, the full
+name of the file that is opened is returned in *full_file_name.  If
+suffixes is NULL then the open must be successful and a catastrophic
+error will be issued if it is not; otherwise, a NULL file pointer will be
+returned.
+*/
+{
   a_directory_name_entry_ptr  curr_directory_name_entry;
   char                        *temp_file_name;
-  int                         isnum, times_name_appears;
+  FILE                        *new_input_file;
   a_boolean                   not_found = FALSE,
                               bad_format = FALSE,
-                              bad_name = FALSE,
-			      empty_search_path = FALSE;
+                              bad_name = FALSE;
   /* Buffer in which directory names and file names are combined.  Longer
-     names will bypass the buffer and be allocated directly via
-     alloc_il. */
+     names will bypass the buffer and be allocated directly via alloc_il. */
 #define BUFFER_SIZE 130
   char                        buffer[BUFFER_SIZE];
+
+  db_enter(2, "open_file_for_input");
+  new_input_file = NULL;
+  *full_file_name = NULL;
+  check_assertion((curr_ise == NULL) == (depth_input_stack == -1));
+  /* Open the new file. */
+  if (curr_ise == NULL && strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
+    /* Special code for stdin; no open needed. */
+    temp_file_name = file_name;
+    new_input_file = stdin;
+  } else if (curr_ise == NULL || is_absolute_file_name(file_name)) {
+    /* File name is absolute, so search path is not used. */
+    if (suffixes == NULL) {
+      /* Also used for primary source input file; search current directory. */
+      temp_file_name = file_name;
+      new_input_file = open_source_file(temp_file_name,
+                                        &not_found, &bad_format, &bad_name);
+    } else {
+      internal_error("open_file_for_input: suffixes not yet implemented");
+    }  /* if */
+  } else {
+    /* File name is relative, use search path. */
+    if (search_path == NULL) {
+      /* No search path, so file can't be found. */
+      if (suffixes == NULL) {
+        /* Issue a catastrophic error, since the file cannot be opened.
+           Use special message to make it clearer, since problem may be that
+           there are no -I options on the command line. */
+        str_catastrophe(ec_empty_include_search_path, file_name);
+      }  /* if */
+    } else {
+      curr_directory_name_entry = search_path;
+      while (curr_directory_name_entry != NULL) {
+        if (suffixes == NULL) {
+          /* Try opening the file name with this directory name. */
+          temp_file_name = combine_dir_and_file_name(
+                                          curr_directory_name_entry->dir_name,
+                                          file_name, buffer, BUFFER_SIZE);
+          /* Now try opening the file.  Exit the loop on success. */
+          new_input_file = open_source_file(temp_file_name, &not_found,
+                                            &bad_format, &bad_name);
+          if (new_input_file != NULL) {
+            /* The file was opened successfully.  Exit the loop. */
+            break;
+          } else if (not_found) {
+              /* The file could not be found.  Keep looking. */
+              curr_directory_name_entry = curr_directory_name_entry->next;
+          } else {
+            /* File could not be opened because of an error on the open. */
+            if (bad_format) {
+              str_catastrophe(ec_source_file_has_bad_format, file_name);
+            } else if (bad_name) {
+              str_catastrophe(ec_illegal_source_file_name, file_name);
+            } else {
+              /* Possibly some other reason. */
+              break;
+            }  /* if */
+          }  /* if */
+        } else {
+          internal_error("open_file_for_input: suffixes not yet implemented");
+        }  /* if */
+      }  /* while */
+    }  /* if */
+  }  /* if */
+  if (new_input_file == NULL) {
+    /* The file could not be opened. */
+    if (suffixes != NULL) {
+      /* It is okay to return a NULL file pointer. */
+    } else {
+      str_catastrophe(ec_source_file_could_not_be_opened, file_name);
+    }  /* if */
+  } else {
+    /* If the name is in "buffer", allocate it now.  The names are generated 
+       there first because many directory/file name combinations might be tried
+       before the right one is found.  We don't allocate space for the name 
+       until we find a file of that name. */
+    if (temp_file_name == buffer) {
+      temp_file_name = alloc_il((sizeof_t)(strlen(buffer)+1));
+      (void)strcpy(temp_file_name, buffer);
+    }  /* if */
+    *full_file_name = temp_file_name;
+  }  /* if */
+  db_exit();
+  return new_input_file;
+}  /* open_file_for_input */
+  
+
+void push_input_stack (FILE  *new_input_file,
+                       char  *file_name,
+                       char  *full_file_name)
+/*
+Push the indicated file onto the input stack.
+*/
+{
+  int                         isnum, times_name_appears;
 
   db_enter(2, "push_input_stack");
 #if DEBUG
   if (debug_level >= 2) {
-    fprintf(f_debug, "file_name = %s\n", file_name);
+    fprintf(f_debug, "file_name = %s\n", full_file_name);
   }  /* if */
 #endif /* DEBUG */
+  /* Check for recursion of #includes.  This is done by looking through the
+     stack for the file name we just opened. */
+  times_name_appears = 0;
+  for (isnum = depth_input_stack; isnum >= 0; isnum--) {
+    if (strcmp(input_stack[isnum].full_name, full_file_name) == 0) {
+      /* The entry in the input stack has the same file name as the
+         file we just opened.  This is okay once (it has to be), but
+         if it happens several times, it probably means recursion. */
+      times_name_appears++;
+      if (times_name_appears >= 10 /* Arbitrary, must be > 1 */) {
+        str_catastrophe(ec_include_recursion, full_file_name);
+      }  /* if */
+    }  /* if */
+  }  /* for */
   /* If preprocessing output is being generated, force out the previous
      source line before the input stack information is changed. */
   if (generate_pp_output) {
@@ -1833,15 +1969,14 @@ search path.  file_name must be allocated in IL storage.
   if (f_raw_listing != NULL) {
     gen_raw_listing_output_for_curr_line();
   }  /* if */
-
   /* Check for the need to expand the input stack. */
   if (depth_input_stack+1 == size_input_stack) {
     /* Expand the input stack by reallocating it. */
     int new_size = size_input_stack + INPUT_STACK_INCREMENTAL_ALLOCATION;
     input_stack = (an_input_stack_entry_ptr)realloc_general(
-                     (char *)input_stack,
-                     (sizeof_t)(size_input_stack*sizeof(an_input_stack_entry)),
-                     (sizeof_t)(new_size*sizeof(an_input_stack_entry)));
+                   (char *)input_stack,
+                   (sizeof_t)(size_input_stack*sizeof(an_input_stack_entry)),
+                   (sizeof_t)(new_size*sizeof(an_input_stack_entry)));
     size_input_stack = new_size;
     if (depth_input_stack >= 0) curr_ise = &input_stack[depth_input_stack];
   }  /* if */
@@ -1856,163 +1991,83 @@ search path.  file_name must be allocated in IL storage.
   }  /* if */
   /* Push the new input stack entry. */
   curr_ise = &input_stack[++depth_input_stack];
-  curr_ise->file        = NULL;
-  curr_ise->file_name   = file_name;
-  curr_ise->full_name   = NULL;
-  curr_ise->dir_name    = NULL;
+  curr_ise->file        = new_input_file;
   curr_ise->line_number = 0;
   curr_ise->position    = 0;
   curr_ise->actual_line = 0;
-  /* Open the new file. */
-  if (depth_input_stack == 0 && strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-    /* Special code for stdin; no open needed. */
-    temp_file_name = file_name;
-    curr_ise->file = stdin;
-  } else if (depth_input_stack == 0 || is_absolute_file_name(file_name)) {
-    /* File name is absolute, so search path is not used. */
-    /* Also used for primary source input file; search current directory. */
-    temp_file_name = file_name;
-    curr_ise->file = open_source_file(temp_file_name,
-                                      &not_found, &bad_format, &bad_name);
-  } else {
-    /* File name is relative, use search path. */
-    if (search_path == NULL) {
-      /* No search path, so file can't be found.  Use special message
-         to make it clearer, since problem may be that there are no -I
-         options on the command line. */
-      empty_search_path = TRUE;
-    } else {
-      curr_directory_name_entry = search_path;
-      while (curr_directory_name_entry != NULL) {
-        /* Try opening the file name with this directory name. */
-        temp_file_name = combine_dir_and_file_name(
-                                          curr_directory_name_entry->dir_name,
-                                          file_name, buffer, BUFFER_SIZE);
-        /* Now try opening the file.  Exit the loop on success. */
-        if ((curr_ise->file = 
-             open_source_file(temp_file_name, 
-                         &not_found, &bad_format, &bad_name)) != NULL) break;
-        /* File could not be opened.  If simply because the file was not found,
-           try the next directory on the search path.  For other errors, exit
-           the loop and give an error message. */
-        if (!not_found) break;
-        curr_directory_name_entry = curr_directory_name_entry->next;
-      }  /* while */
-    }  /* if */
-  }  /* if */
+  /* Update other variables describing the current state. */
   eof_read_on_curr_input_stream = FALSE;
   curr_input_stream = curr_ise->file;
-  if (curr_input_stream != NULL) {
-    /* The file was opened successfully. */
-    /* Check for recursion of #includes.  This is done by looking through the
-       stack for the file name we just opened. */
-    times_name_appears = 0;
-    for (isnum = depth_input_stack-1; isnum >= 0; isnum--) {
-      if (strcmp(input_stack[isnum].full_name, temp_file_name) == 0) {
-        /* The entry in the input stack has the same file name as the
-           file we just opened.  This is okay once (it has to be), but
-           if it happens several times, it probably means recursion. */
-        times_name_appears++;
-        if (times_name_appears >= 10 /* Arbitrary, must be > 1 */) {
-          str_catastrophe(ec_include_recursion, temp_file_name);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* If the name is in "buffer", allocate it now.  The names are generated 
-       there first because many directory/file name combinations might be tried
-       before the right one is found.  We don't allocate space for the name 
-       until we find a file of that name. */
-    if (temp_file_name == buffer) {
-      temp_file_name = alloc_il((sizeof_t)(strlen(buffer)+1));
-      (void)strcpy(temp_file_name, buffer);
-    }  /* if */
-    curr_ise->full_name = temp_file_name;
-    /* Save the full name also as the print form of the name. */
-    curr_ise->file_name = temp_file_name;
-    curr_ise->dir_name = directory_of(temp_file_name);
-    /* Create an intermediate file record describing this file.  It is
-       useful later in converting sequence numbers into file name/line
-       information. */
-    record_start_of_source_file(
-           depth_input_stack != 0 ? /* Parent file */
-             input_stack[depth_input_stack-1].assoc_il_file :
-             (a_source_file_ptr)NULL,
-           (a_seq_number)seq_number_last_read+1,
-           (a_line_number)1,
-           curr_ise->file_name,
-           temp_file_name,
-           &(curr_ise->assoc_il_file));
-    /* The two il file pointers start out the same.  They will be made to
-       point to distinct entries if a #line directive is processed:
-       assoc_il_file will point to the entry for the #line, and
-       assoc_actual_il_file will stay as it is (pointing to the entry
-       for the file actually being read). */
-    curr_ise->assoc_actual_il_file = curr_ise->assoc_il_file;
-    /* Initialize the source file index used by the diagnostic routines
-       to reread source lines when needed. */
-    curr_ise->next_index_point = initialize_file_index(
-                                              curr_ise->assoc_actual_il_file);
-    /* If generating preprocessing output, put out a line-identifying
-       directive for the new file. */
-    if (generate_pp_output) {
-      /* The entry into the primary source file should not be tagged with
-         "1"; that's the way cpp does it. */
-      if (depth_input_stack == 0) {
-        gen_pp_line_info(' ', 1);
-      } else {
-        gen_pp_line_info('1', 1);
-      }  /* if */
-    }  /* if */
-    /* If generating raw listing output (for input to a program that
-       will generate an interspersed listing), put out a line-information
-       record. */
-    if (f_raw_listing != NULL) {
-      /* The entry into the primary source file should not be tagged with
-         "1". */
-      if (depth_input_stack == 0) {
-        gen_rlisting_line_info(' ');
-      } else {
-        gen_rlisting_line_info('1');
-      }  /* if */
-    }  /* if */
-    /* If generating makefile dependency information (-M option), write a
-       line of the form
-
-       primaryfile.o: includefile.h
-
-       Note that the code here is executed also for the primary source
-       file, and we do want that dependency line as well. */
-    if (list_makefile_dependencies) {
-      fprintf(f_pp_output, "%s: %s\n", object_file_name, curr_ise->file_name);
-    }  /* if */
-    /* If generating a list of include files (-H option), put out the
-       file name.  Do not put out the name of the primary source file. */
-    if (list_included_files && depth_input_stack != 0) {
-      fprintf(f_pp_output, "%s\n", curr_ise->file_name);
-    }  /* if */
-    if (C_dialect == C_dialect_pcc) {
-      /* If in pcc mode, modify the search rules for #include directives
-         found within this source file, so that the directory containing
-         the current include file will be searched first. */
-      change_primary_include_search_dir(curr_ise->dir_name);
+  /* Save both the source form of the name and the full name. */
+  curr_ise->full_name = full_file_name;
+  curr_ise->file_name = full_file_name;
+  curr_ise->dir_name = directory_of(full_file_name);
+  /* Create an intermediate file record describing this file.  It is
+     useful later in converting sequence numbers into file name/line
+     information. */
+  record_start_of_source_file(depth_input_stack != 0 ? /* Parent file */
+                               input_stack[depth_input_stack-1].assoc_il_file :
+                              (a_source_file_ptr)NULL,
+                              (a_seq_number)seq_number_last_read+1,
+                              (a_line_number)1, file_name,
+                              full_file_name, &(curr_ise->assoc_il_file));
+  /* The two il file pointers start out the same.  They will be made to
+     point to distinct entries if a #line directive is processed:
+     assoc_il_file will point to the entry for the #line, and
+     assoc_actual_il_file will stay as it is (pointing to the entry
+     for the file actually being read). */
+  curr_ise->assoc_actual_il_file = curr_ise->assoc_il_file;
+  /* Initialize the source file index used by the diagnostic routines
+     to reread source lines when needed. */
+  curr_ise->next_index_point = initialize_file_index(
+                                            curr_ise->assoc_actual_il_file);
+  /* If generating preprocessing output, put out a line-identifying
+     directive for the new file. */
+  if (generate_pp_output) {
+    /* The entry into the primary source file should not be tagged with
+       "1"; that's the way cpp does it. */
+    if (depth_input_stack == 0) {
+      gen_pp_line_info(' ', 1);
     } else {
-      /* If not in pcc mode, keep the base of the preprocessing if stack
-         up to date.  Each file's #ifs are kept separate; an #if must
-         be ended in the same file in which it began. */
-      curr_ise->base_pp_if_stack_depth = base_pp_if_stack_depth =
-                                                            pp_if_stack_depth;
+      gen_pp_line_info('1', 1);
     }  /* if */
+  }  /* if */
+  /* If generating raw listing output (for input to a program that will
+     generate an interspersed listing), put out a line-information record. */
+  if (f_raw_listing != NULL) {
+    /* The entry into the primary source file should not be tagged with "1". */
+    if (depth_input_stack == 0) {
+      gen_rlisting_line_info(' ');
+    } else {
+      gen_rlisting_line_info('1');
+    }  /* if */
+  }  /* if */
+  /* If generating makefile dependency information (-M option), write a
+     line of the form
+
+     primaryfile.o: includefile.h
+
+     Note that the code here is executed also for the primary source
+     file, and we do want that dependency line as well. */
+  if (list_makefile_dependencies) {
+    fprintf(f_pp_output, "%s: %s\n", object_file_name, curr_ise->file_name);
+  }  /* if */
+  /* If generating a list of include files (-H option), put out the
+     file name.  Do not put out the name of the primary source file. */
+  if (list_included_files && depth_input_stack != 0) {
+    fprintf(f_pp_output, "%s\n", curr_ise->file_name);
+  }  /* if */
+  if (C_dialect == C_dialect_pcc) {
+    /* If in pcc mode, modify the search rules for #include directives
+       found within this source file, so that the directory containing
+       the current include file will be searched first. */
+    change_primary_include_search_dir(curr_ise->dir_name);
   } else {
-    /* The file could not be opened. */
-    if (bad_format) {
-      str_catastrophe(ec_source_file_has_bad_format, file_name);
-    } else if (bad_name) {
-      str_catastrophe(ec_illegal_source_file_name, file_name);
-    } else if (empty_search_path) {
-      str_catastrophe(ec_empty_include_search_path, file_name);
-    } else {
-      str_catastrophe(ec_source_file_could_not_be_opened, file_name);
-    }  /* if */
+    /* If not in pcc mode, keep the base of the preprocessing if stack
+       up to date.  Each file's #ifs are kept separate; an #if must
+       be ended in the same file in which it began. */
+    curr_ise->base_pp_if_stack_depth = base_pp_if_stack_depth =
+                                                          pp_if_stack_depth;
   }  /* if */
   db_exit();
 }  /* push_input_stack */
