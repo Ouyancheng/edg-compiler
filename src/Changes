@@ -1,5 +1,21 @@
 Version 2.46
 
+1/26/01  Mangled names for constructors in unnamed classes that get
+         names from typedefs
+
+The generated constructors of classes that are unnamed but get a name
+for linkage purposes from a typedef now get mangled names based on the
+linkage-name of the class.  Formerly, they were unnamed.
+
+  struct X {
+    X();
+    ~X();
+  };
+  typedef struct {
+    X x;
+  } A;
+  A a;
+
 1/26/01  Microsoft compatibility: __declspec specifiers on enum definitions
 
 In Microsoft mode, the front end now accepts the same __declspec specifiers

@@ -2851,8 +2851,12 @@ Mangle the name of the indicated function, if necessary.
   a_mangling_control_block mctl;
 
   error_position = routine->source_corresp.decl_position;
-  /* Compiler-generated routines have no name, and they are left alone. */
-  if (routine->source_corresp.name != NULL &&
+  /* Compiler-generated routines have no name, and they are left alone.
+     But constructors for unnamed classes that got a name for
+     linkage purposes should get mangled names. */
+  if ((routine->source_corresp.name != NULL ||
+       (routine->special_kind == (a_special_function_kind)sfk_constructor &&
+        has_name(routine->source_corresp.parent.class_type))) &&
       !routine->source_corresp.name_has_been_mangled) {
     if (function_name_mangling_needed(routine, &suppress_param_encoding)) {
       /* Mangle the function name. */
