@@ -27,11 +27,11 @@ configuration flag DEFAULT_DESIGNATORS_ALLOWED) the front end will correctly
 process the syntax proposed for the next revision of the C standard ("C9X").
 In particular, initializers for fields of struct objects and subobjects can be
 designated with syntax of the form ".field_name" and initializers for elements
-of array object and subobjects can be designated with syntax of the form
+of array objects and subobjects can be designated with syntax of the form
 "[subscript]".  For example:
 
   struct X { int a, b, c[10]; };
-  struct { struct X p, q } s = { .q = { 3, 4, 5, 6 }, .q.c[0] = 42 };
+  struct { struct X p, q; } s = { .q = { 3, 4, 5, 6 }, .q.c[0] = 42 };
 
 This example also shows that designators allow a subobject to be initialized
 multiple times: the last initializer's value is preserved (s.q.c[0] is set to
@@ -43,11 +43,27 @@ designator) and array range designators of the from "[i...j]".  Furthermore,
 the "=" is made optional after array element and array range designators.
 This allows for the following example (struct X as above):
 
-  struct { struct X p, q, r[5] } x = { p: { 7, 8 }, .q.c[2 ... 4] 78 };
+  struct { struct X p, q, r[5]; } x = { p: { 7, 8 }, .q.c[2 ... 4] 78 };
 
 When --microsoft is combined with designators, the designated subinitializers
 may contain a dynamic component (e.g., a function call), but an array range
 designator does not admit such a dynamic component in its subinitializer.
+
+IL CHANGE: Designators are represented in the IL by ck_designator
+constants.  The extended designator form "[i ... j]" is represented
+by a ck_designator constant (indicating the first element) followed by
+a ck_init_repeat constant that repeats the initializer constant the
+right number of times.  When LOWER_DESIGNATED_INITIALIZERS is TRUE,
+the IL for designated initializers is lowered to (mostly) standard C.
+The exceptions are: (1) when a designator is used to initialize a
+member of a union other than the first, a ck_designator constant will
+be left in the lowered IL to indicate the member to be initialized;
+(2) when an extended designator of the form "[i ... j]" is used, the
+ck_init_repeat constant that appears in the unlowered IL is passed
+through; and (3) when initialization skips over some elements of an
+array, a ck_init_repeat constant is inserted to indicate zero
+initialization for all the elements skipped over.  Note that this
+lowering is done in C mode.
 
 7/6/99   Diagnose referenced functions that are declared inside unnamed
          namespaces, but not defined
