@@ -8064,7 +8064,7 @@ is the template pointer of the corresponding template template parameter.
 err_pos is the position to be used to report any errors.
 */
 {
-  a_symbol_ptr				sym;
+  a_symbol_ptr				sym = NULL;
   a_boolean				err = FALSE;
   a_template_ptr			result = NULL;
   a_boolean				any_errors = FALSE;
