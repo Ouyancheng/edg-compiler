@@ -4991,59 +4991,55 @@ expression node.
 
 
 a_local_static_variable_init_ptr alloc_local_static_variable_init(
-                                                           an_init_kind  kind)
+                                                  a_variable_ptr     var,
+                                                  a_scope_ptr        var_scope,
+                                                  an_init_kind       init_kind,
+                                                  a_constant_ptr     con,
+                                                  a_dynamic_init_ptr dip)
 /*
-Allocate a local_static_variable_init entry of the specified initialization
-kind, clear it to default values, and return a pointer to it.
+Allocate a_local_static_variable_init entry for the indicated variable (which
+is a member of the scope var_scope), set its kind to init_kind, and use
+con or dip as appropriate to set one of the variant fields.  Add the
+entry to the list for the scope var_scope.  Set the initialization kind
+for the variable to initk_function_local.  Return a pointer to the entry.
+If var_scope is NULL, use the current scope in the scope stack.
 */
 {
-  a_local_static_variable_init_ptr  lsvip;
+  a_local_static_variable_init_ptr lsvip;
 
   db_enter(5, "alloc_local_static_variable_init");
+  if (var_scope == NULL) {
+    var_scope = scope_stack[decl_scope_level].il_scope;
+    check_assertion(var_scope != NULL);
+  }  /* if */
+  check_assertion(var_scope->kind == (a_scope_kind)sck_function ||
+                  var_scope->kind == (a_scope_kind)sck_block);
   check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
   lsvip = (a_local_static_variable_init_ptr)alloc_cil(
                                         sizeof(a_local_static_variable_init));
 #if DEBUG
   num_local_static_variable_inits_allocated++;
 #endif /* DEBUG */
-  lsvip->next = NULL;
-  lsvip->variable = NULL;
-  lsvip->init_kind = kind;
-  switch (kind) {
+  lsvip->next = var_scope->local_static_variable_inits;
+  var_scope->local_static_variable_inits = lsvip;
+  lsvip->variable = var;
+  var->init_kind = (an_init_kind)initk_function_local;
+  lsvip->init_kind = init_kind;
+  switch (init_kind) {
     case initk_static:
-      lsvip->initializer.constant = NULL;
+      lsvip->initializer.constant = con;
       break;
     case initk_dynamic:
-      lsvip->initializer.dynamic = NULL;
+      lsvip->initializer.dynamic = dip;
       break;
 #if CHECKING
     default:
       internal_error("alloc_local_static_variable_init: bad init kind");
 #endif /* CHECKING */
   }  /* switch */
-
   db_exit();
   return lsvip;
 }  /* alloc_local_static_variable_init */
-
-
-void add_to_local_static_variable_inits_list(
-                                   a_local_static_variable_init_ptr  lsvip,
-                                   a_scope_ptr                       scope)
-/*
-Add the indicated local static variable init entry to the list for the
-indicated scope.  If scope is NULL, add the entry to the current scope.
-*/
-{
-  if (scope == NULL) {
-    scope = scope_stack[decl_scope_level].il_scope;
-    check_assertion(scope != NULL);
-  }  /* if */
-  check_assertion(scope->kind == (a_scope_kind)sck_function ||
-                  scope->kind == (a_scope_kind)sck_block);
-  lsvip->next = scope->local_static_variable_inits;
-  scope->local_static_variable_inits = lsvip;
-}  /* add_to_local_static_variable_inits_list */
 
 
 a_local_static_variable_init_ptr find_local_static_variable_init(

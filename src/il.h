@@ -308,7 +308,11 @@ extern void record_end_of_lifetime_destruction(
                                          a_boolean           static_lifetime);
 
 extern a_local_static_variable_init_ptr alloc_local_static_variable_init(
-                                                          an_init_kind  kind);
+                                                  a_variable_ptr     var,
+                                                  a_scope_ptr        var_scope,
+                                                  an_init_kind       init_kind,
+                                                  a_constant_ptr     con,
+                                                  a_dynamic_init_ptr dip);
 
 extern a_local_static_variable_init_ptr find_local_static_variable_init(
                                                       a_variable_ptr  var,
@@ -318,10 +322,6 @@ extern void get_variable_initializer(a_variable_ptr     variable,
                                      a_scope_ptr        var_scope,
                                      an_init_kind       *init_kind,
                                      an_initializer_ptr *initializer);
-
-extern void add_to_local_static_variable_inits_list(
-                                   a_local_static_variable_init_ptr  lsvip,
-                                   a_scope_ptr                       scope);
 
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 
