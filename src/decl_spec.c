@@ -879,6 +879,28 @@ skip_tag_scan:
             /* Okay to define the nested class in this scope -- it is the
                scope in which the parent was defined. */
             delayed_nested_class_def = TRUE;
+          } else if (parent_sym->parent.namespace_ptr != NULL &&
+                     namespace_is_enclosed_by_curr_scope(parent_sym)) {
+            /* Also okay to define the nested class in this scope -- it is a
+               a scope (namespace- or file-scope) enclosing the namespace
+               scope in which the parent class was defined.  Handle this like
+               the case where the parent class itself is defined in such an
+               enclosing scope, so that we get the innermost namespace scope
+               and the effective declaration level right.  Here's an example:
+                 namespace NS1 {
+                   namespace NS2 {
+                     class A;
+                     class B { class N; };
+                   }
+                 }
+                 class NS1::NS2::A { class N; };   // Okay (handled above)
+                 class NS1::NS2::A::N { };         // Okay (handled here)
+                 class NS1::NS2::B::N { };         // Okay (handled here)
+               Specifically, push the namespace extension scope. */
+            push_namespace_extension_scope(parent_sym->parent.namespace_ptr);
+            namespace_extension_pushed = TRUE;
+            effective_decl_level = depth_scope_stack;
+            delayed_nested_class_def = TRUE;
           } else {
             pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
             tag_sym = NULL;
