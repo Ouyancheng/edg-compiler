@@ -1452,7 +1452,8 @@ execute the preprocessor directive.
   if (!building_pch_prefix) {
     switch ((int)dir_kind) {
       case ppd_not_valid:
-        error(ec_bad_pp_directive_keyword);
+        /* Unrecognized preprocessing directive. */
+        diagnostic(es_discretionary_error, ec_bad_pp_directive_keyword);
         some_error_in_curr_directive = TRUE;
         break;
       case ppd_if:

@@ -1,5 +1,11 @@
 Version 2.30
 
+8/24/95  Discretionary error on unrecognized preprocessing directive
+
+The error issued for an unrecognized preprocessing directive is now
+a discretionary error, which means it can be demoted to a warning or
+eliminated by the user.
+
 8/24/95  Nit in support of additional nonstandard linkage kinds
 
 The routine constant_references_non_external_entity has been fixed to
