@@ -6378,8 +6378,11 @@ from the list.
   /* See if a body has already been found for this function.  If so,
      don't set the instantiation flag to TRUE because we shouldn't
      generate an instantiation for something that has a specific
-     definition. */
-  if (fiep->routine_sym->variant.routine.ptr->assoc_scope !=
+     definition.   If the instantiation required flag is already set
+     then we could be here because of a recursive reference of this
+     function -- so don't reset the flag if it is already set. */
+  if (fiep->instantiation_required != TRUE &&
+      fiep->routine_sym->variant.routine.ptr->assoc_scope !=
       NULL_region_number) {
     value = FALSE;
 #if CHECKING
