@@ -1,5 +1,18 @@
 Version 3.3
 
+7/20/03  Abort in gcc mode on difference of pointers to array of empty struct
+
+The front end aborted in do_pdiff ("size of object pointed to is zero") or
+do_padd ("size is zero") when folding constant pointer operations
+on addresses in an array of empty structs in gcc mode.  gcc defines
+sizeof(...) as zero for an empty struct, so these cases involve
+multiplication or division by zero.  Aborts fixed; the pointer
+difference case (which uses division) now gets an error.
+
+  struct Empty {};
+  struct Empty a[3];
+  int b[&a[1] - &a[0]];
+
 7/20/03  Overloaded operator-> return value can have any type
 
 Years ago, the Working Paper for the C++ standard required that

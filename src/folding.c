@@ -3602,6 +3602,26 @@ the object.
 }  /* valid_address_constant */
 
 
+static a_targ_size_t gcc_stride_size(a_type_ptr type)
+/*
+Return the stride size to be used for a pointer operation on pointer-to-type
+in gcc mode.  gcc allows pointer addition and subtraction on pointer-to-void
+and pointer-to-function.
+*/
+{
+  a_targ_size_t size;
+
+  type = skip_typerefs(type);
+  if (is_void_type(type) ||
+      is_function_type(type)) {
+    size = 1;
+  } else {
+    size = type->size;
+  }  /* if */
+  return size;
+}  /* gcc_stride_size */
+
+
 static void do_padd(a_constant            *constant_1,
                     an_expr_operator_kind op,
 		    a_constant            *constant_2,
@@ -3638,13 +3658,16 @@ detected, or *err_code == ec_no_error if everything went fine.
     /* Get the size of the thing pointed to. */
     a_type_ptr  object_type =
                            f_skip_typerefs(type_pointed_to(constant_1->type));
-    if (gcc_mode && (is_void_type(object_type) ||
-                     is_function_type(object_type))) {
-      size = 1;
+    if (gcc_mode) {
+      size = gcc_stride_size(object_type);
     } else {
       size = object_type->size;
     }  /* if */
-    check_assertion_str(size != 0, "do_padd: size is zero");
+    if (size == 0) {
+      /* gcc mode allows empty classes with size zero, so pointers to
+         such classes produce size zero here. */
+      check_assertion_str(gcc_mode, "do_padd: size is zero");
+    }  /* if */
   }  /* if */
   /* Multiply the increment constant by the size. */
   set_unsigned_integer_value(&op2, size);
@@ -3745,17 +3768,19 @@ if everything went fine.
     if (!err) {
       /* Divide the difference by the size of the objects pointed to.
          The caller has already checked that the type pointed to is
-         not incomplete, so the size is not zero. */
+         not incomplete, so the size is not zero (except possibly
+         in gcc mode). */
       a_targ_size_t  object_size;
       object_type = type_pointed_to(constant_1->type);
       object_type = skip_typerefs(object_type);
-      if (gcc_mode && (is_void_type(object_type) ||
-                       is_function_type(object_type))) {
-        object_size = 1;
+      if (gcc_mode) {
+        object_size = gcc_stride_size(object_type);
       } else {
         object_size = object_type->size;
       }  /* if */
-      check_assertion_str(object_size != 0,
+      /* Division by zero can come up in gcc mode with pointers to empty class
+         types. */
+      check_assertion_str(object_size != 0 || gcc_mode,
                           "do_pdiff: size of object pointed to is zero");
       set_unsigned_integer_value(&size_intval, object_size);
       /* Note that we treat &difference as signed here even if it was unsigned
