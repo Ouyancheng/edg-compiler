@@ -186,68 +186,53 @@ this case and add it to the list for the current scope.
   a_symbol_ptr             sym;
   a_template_instance_ptr  tip;
 
-  if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-    switch (hidden_sym->kind) {
-      case sk_label:
-      case sk_keyword:
-      case sk_macro:
-      case sk_undefined:
-      case sk_extern_variable:
-      case sk_extern_routine:
-        /* Not in the same name space. */
-        break;
-      case sk_projection:
-        /* Ignore projection symbols. */
-        break;
-      case sk_overloaded_function:
-        /* Enter members of an overload set separately. */
-        for (sym = hidden_sym->variant.overloaded_function.symbols;
-             sym != NULL;
-             sym = sym->next) {
+  switch (hidden_sym->kind) {
+    case sk_label:
+    case sk_keyword:
+    case sk_macro:
+    case sk_undefined:
+    case sk_extern_variable:
+    case sk_extern_routine:
+      /* Not in the same name space. */
+      break;
+    case sk_projection:
+      /* Ignore projection symbols. */
+      break;
+    case sk_overloaded_function:
+      /* Enter members of an overload set separately. */
+      for (sym = hidden_sym->variant.overloaded_function.symbols;
+           sym != NULL;
+           sym = sym->next) {
+        record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
+                                      global_hidden_by_nonglobal, sp);
+      }  /* for */
+      break;
+    case sk_class_template:
+      for (sym = hidden_sym->variant.template_info->
+                                variant.class_template.instantiations;
+           sym != NULL;
+           sym = sym->next) {
+        if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
           record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
                                         global_hidden_by_nonglobal, sp);
-        }  /* for */
-        break;
-      case sk_class_template:
-        for (sym = hidden_sym->variant.template_info->
-                                variant.class_template.instantiations;
-             sym != NULL;
-             sym = sym->next) {
-          if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
-            record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                          global_hidden_by_nonglobal, sp);
-          }  /* if */
-        }  /* for */
-        break;
-      case sk_function_template:
-        for (tip = hidden_sym->variant.template_info->
-                                variant.function.instantiations;
-             tip != NULL;
-             tip = tip->next) {
-          if (!tip->specific_decl) {
-            record_defeatable_name_hiding(tip->instance_sym,
-                                          tag_hidden_by_nontag,
-                                          global_hidden_by_nonglobal, sp);
-          }  /* if */
-        }  /* for */
-        break;
-      case sk_routine:
-      case sk_member_function:
-      case sk_static_data_member:
-#if 0
-        if ((hidden_sym->kind == (a_symbol_kind)sk_static_data_member &&
-             hidden_sym->variant.static_data_member.instance_ptr != NULL) ||
-            hidden_sym->variant.routine.instance_ptr != NULL) {
-          /* Template support is not yet provided. */
-          break;
         }  /* if */
-#endif /* if 0 */
-      default:
-        /* The normal case.  First find the entity associated with the
-           symbol. */
-        create_hidden_name_entry = TRUE;
-    }  /* switch */
-    if (create_hidden_name_entry) {
+      }  /* for */
+      break;
+    case sk_function_template:
+      for (tip = hidden_sym->variant.template_info->
+                                variant.function.instantiations;
+           tip != NULL;
+           tip = tip->next) {
+        if (!tip->specific_decl) {
+          record_defeatable_name_hiding(tip->instance_sym,
+                                        tag_hidden_by_nontag,
+                                        global_hidden_by_nonglobal, sp);
+        }  /* if */
+      }  /* for */
+      break;
+    default:
+      /* The normal case.  First find the entity associated with the
+         symbol. */
       entity = il_entry_for_symbol(hidden_sym, &kind);
       if (entity != NULL) {
         if (sp == NULL) {
@@ -326,8 +311,7 @@ this case and add it to the list for the current scope.
           hnp->global_qualification_needed = TRUE;
         }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* if */
+  }  /* switch */
 }  /* record_defeatable_name_hiding */
 
 
@@ -357,13 +341,9 @@ hiding.
        are the ones that have been turned into variables. */
   } else if (is_unnamed_tag_symbol(sym_ptr)) {
     /* No name hiding for unnamed entities. */
-  } else if (
-#if 0
-             depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
-#endif /* if 0 */
-             depth_template_declaration_scope != NO_SCOPE_DEPTH ||
+  } else if (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
              scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* We don't deal with templates yet. */
+    /* We don't deal with class template definitions. */
   } else {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
