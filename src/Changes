@@ -1,5 +1,31 @@
 Version 2.23
 
+3/28/94  Storage-class-not-first diagnostic
+
+A remark is now issued (instead of a warning) when the storage class
+specifier is not first among the declaration specifiers, e.g.,
+
+  int static i;              // Now a remark
+
+3/28/94  Void function parameter type
+
+In C mode an error is now issued on a void function parameter type (as
+was already the case in C++ mode).
+
+3/28/94  C-mode abstract declarator in function param declaration
+
+In C mode a diagnostic (complaining about a useless declaration) was
+incorrectly issued on the following:
+
+  void f(struct {int i;});    // Spurious warning/error no longer issued
+
+3/28/94  Typedef declaration in function parameter list
+
+A fix has been added to correct a recent change that had caused the
+following to go undiagnosed:
+
+  void f(typedef int);        // Error now issued (again)
+
 3/28/94  Name mangling tweaks
 
 Names generated for base class special fields (e.g., virtual base class
@@ -7,11 +33,32 @@ pointers), type-as-subobject versions of class types, and virtual function
 tables now encode nested type names properly.  This matters only in
 very bizarre test programs.
 
+3/27/94  Error recovery on missing semicolon after a type definition
+
+Cases like the following are treated under the heading "dangling type
+specifier":
+
+  class A { /* ... */ }         // Missing semicolon
+  class B { /* ... */ };
+
+In general, it is better to complain about a missing semicolon than about
+the second "class" corrupting the declaration specifiers on the first
+line.  The code to deal with such cases has been simplified and made less
+bug prone.  As a result, for example, the following is now handled
+correctly:
+
+  class A {
+    void f();
+  };
+  class B : public A {
+    struct N { int i, j; } f;    // B::f is no longer confused with A::f
+  };
+
 3/26/94  C-mode extension for last field of a struct
 
-In C-mode the last field of a struct is allowed to be an array of unknown
-size.  There was a bug that permitted an array of incomplete element type
-as well, but that is now fixed.  For example:
+In C-mode the last field of a struct is allowed (as an extension) to be an
+array of unknown size.  There was a bug that permitted an array of
+incomplete element type as well, but that is now fixed.  For example:
 
   struct A {
     int x;
