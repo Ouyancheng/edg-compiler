@@ -11252,7 +11252,7 @@ instance record associated with this instantiation.
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
                                  &member_template_instance_type, instance,
-                                 /*template_decl=*/NULL,
+                                 (a_template_decl_ptr)NULL,
                                  (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
@@ -11906,7 +11906,7 @@ nested classes when their definition appears outside of the class template.
                                        &skip_semicolon_check,
                                        &dummy_type,
                                        (a_template_instance_ptr)NULL,
-                                       /*template_decl=*/NULL,
+                                       (a_template_decl_ptr)NULL,
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
