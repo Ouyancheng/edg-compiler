@@ -874,6 +874,12 @@ display_constant_value:
       (void)printf("ck_string\n");
       disp_host_large_unsigned(
                   "length", (a_host_large_unsigned)ptr->variant.string.length);
+#if DO_IL_LOWERING
+      if (ptr->variant.string.sequence_number) {
+        disp_host_large_unsigned("sequence_number",
+                   (a_host_large_unsigned)ptr->variant.string.sequence_number);
+      }  /* if */
+#endif /* DO_IL_LOWERING */
       disp_name("value");
       goto display_constant_value;
     case ck_float:

@@ -10732,6 +10732,7 @@ for space tracking purposes.
                         num_generated_entity_blocks_allocated,
                         a_generated_entity_block);
   grand_total = db_show_pch_space_used(grand_total);
+  grand_total = db_show_scope_stack_space_used(grand_total);
   grand_total = db_show_template_space_used(grand_total);
   grand_total = db_show_routine_fixups_used(grand_total);
   grand_total = db_show_class_fixups_used(grand_total);

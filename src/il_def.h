@@ -2014,6 +2014,22 @@ typedef struct a_constant {
                            into target computer binary values.  Note that
                            two or more string constants may point to the
                            same string text. */
+#if DO_IL_LOWERING
+      unsigned long
+		sequence_number;
+			/* A sequence number assigned to string literals used
+			   within function scopes.  This is used to permit
+			   string literals in inline functions to have
+			   a uniform address across a program.  It is also
+			   used for mangling of string literal names in
+			   the IA64 ABI.  Has a value of zero for string
+			   literals that require no special processing.  This
+			   field is set for functions for which there
+			   is the potential of having more than one copy of
+			   the function in a program (e.g., extern inline
+			   functions and templates in certain
+			   configurations). */
+#endif /* DO_IL_LOWERING */
     } string;
     /* When kind == ck_float: */
     an_internal_float_value

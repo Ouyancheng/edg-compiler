@@ -46,6 +46,15 @@ Variables and constants related to the scope_stack:
 			   allocation. */
 
 #if DEBUG
+#if DO_IL_LOWERING
+/*
+Counts of tables allocated, to track total use of memory.
+*/
+static unsigned long
+		num_string_literal_table_entries_allocated,
+		num_string_literal_tables_allocated;
+#endif /* DO_IL_LOWERING */
+
 int db_scope_kind(a_scope_kind sck)
 /*
 Put out a scope kind name (for debugging).
@@ -483,6 +492,171 @@ function-local entities in the IA-64 ABI.
 }  /* compute_name_collision_discriminator */
 
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
+
+#if DO_IL_LOWERING
+
+#define STRING_LITERAL_TABLE_SIZE 31
+
+/*
+Entry used to construct a hash table of string literal constants.
+*/
+typedef struct a_string_literal_table_entry *a_string_literal_table_entry_ptr;
+typedef struct a_string_literal_table_entry {
+  a_string_literal_table_entry_ptr
+		next;
+			/* Pointer to the next entry in the bucket, or on
+			   the available list. */
+  a_constant_ptr
+		constant;
+			/* Pointer to the string literal constant represented
+			   by this entry. */
+  unsigned long	sequence_number;
+			/* The sequence number assigned to this constant. */
+} a_string_literal_table_entry;
+
+/*
+A hash table used to assign sequence numbers to each unique string literal
+used within a function.
+*/
+typedef struct a_string_literal_table {
+  a_string_literal_table_ptr
+		next;	/* Pointer to the next available free list. */
+  a_string_literal_table_entry_ptr
+		buckets[STRING_LITERAL_TABLE_SIZE];
+			/* A list of string literals used in the
+			   function scope. */
+} a_string_literal_table;
+
+
+static a_string_literal_table_ptr avail_string_literal_tables;
+			/* A list of string literal tables that have been
+			   freed and are available for reuse. */
+
+static a_string_literal_table_entry_ptr avail_string_literal_table_entries;
+			/* A list of string literal table entries that have
+			   been freed and are available for reuse. */
+
+
+static void free_list_of_string_literal_table_entries(
+				a_string_literal_table_entry_ptr	sltep)
+/*
+Free the list of string literal table entries pointed to by "sltep" by
+placing them on the available list.   sltep may be NULL, in which case
+nothing is done.
+*/
+{
+  a_string_literal_table_entry_ptr	sltep_tail;
+  if (sltep != NULL) {
+    /* Find the last entry on the list. */
+    sltep_tail = sltep;
+    while (sltep_tail->next != NULL) sltep_tail = sltep_tail->next;
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    sltep_tail->next = avail_string_literal_table_entries;
+    avail_string_literal_table_entries = sltep;
+  }  /* if */
+}  /* free_list_of_string_literal_table_entries */
+
+
+static void initialize_string_literal_table(a_scope_stack_entry_ptr ssep)
+/*
+Allocate and initialize a string literal table for scope stack entry "ssep".
+*/
+{
+  a_string_literal_table_ptr	sltp;
+
+  if (avail_string_literal_tables == NULL) {
+    sltp = alloc_fe_of_type(a_string_literal_table);
+#if DEBUG
+    num_string_literal_tables_allocated++;
+#endif /* DEBUG */
+  } else {
+    sltp = avail_string_literal_tables;
+    avail_string_literal_tables = avail_string_literal_tables->next;
+  }  /* if */
+  memzero((char *)sltp->buckets, size_t_arg(sizeof(sltp->buckets)));
+  sltp->next = NULL;
+  ssep->string_literal_table = sltp;
+}  /* initialize_string_literal_table */
+
+
+static void free_string_literal_table(a_scope_stack_entry_ptr ssep)
+/*
+Free the string literal table for the scope stack entry "ssep".
+*/
+{
+  int					i;
+  a_string_literal_table_ptr		sltp = ssep->string_literal_table;
+  a_string_literal_table_entry_ptr	*buckets = sltp->buckets;
+
+  /* Go through each bucket and free its entries. */
+  for (i = 0;  i < STRING_LITERAL_TABLE_SIZE; ++i) {
+    if (buckets[i] != NULL) {
+      free_list_of_string_literal_table_entries(buckets[i]);
+    }  /* if */
+  }  /* for */
+  /* Return the table to the available list. */
+  sltp->next = avail_string_literal_tables;
+  avail_string_literal_tables = sltp;
+  ssep->string_literal_table = NULL;
+}  /* free_string_literal_table */
+
+
+void f_assign_string_literal_sequence_number(void)
+/*
+We have just completed scanning the token for a string literal, or have
+retrieved such a token from a token cache.  The macro that calls this routine
+has determined that we are inside of a function scope for which string
+literal sequence numbers are required.  If the constant associated with
+the string literal does not yet have a string literal sequence number,
+assign one now.
+*/
+{
+  a_constant_ptr		cp = &const_for_curr_token;
+  a_scope_stack_entry_ptr	ssep;
+
+  check_assertion(cp->kind == (a_constant_repr_kind)ck_string ||
+                  cp->kind == (a_constant_repr_kind)ck_error);
+  ssep = &scope_stack[depth_innermost_function_scope];
+  /* If this is the first string literal in the function, create the hash
+     table to be used. */
+  if (ssep->string_literal_table == NULL) {
+    initialize_string_literal_table(ssep);
+  }  /* if */
+  if (cp->kind == ck_error) {
+    /* An error constant.  No action is needed. */
+  } else if (cp->variant.string.sequence_number != 0) {
+    /* A sequence number has already been assigned.  No action is needed. */
+  } else {
+    /* Determine whether we have already assigned a sequence number for
+       this string literal by looking up the string in a hash table. */
+    int					bucket_number;
+    a_constant_hash_value		hash;
+    a_string_literal_table_entry_ptr	sltep;
+    a_string_literal_table_entry_ptr	*bucket;
+    hash = hash_constant(cp);
+    bucket_number = hash % STRING_LITERAL_TABLE_SIZE;
+    bucket = &ssep->string_literal_table->buckets[bucket_number];
+    for (sltep = *bucket; sltep != NULL; sltep = sltep->next) {
+      if (eq_constants(cp, sltep->constant)) break;
+    }  /* for */
+    if (sltep == NULL) {
+      /* No entry was found.  Create one now. */
+      sltep = alloc_fe_of_type(a_string_literal_table_entry);
+      sltep->constant = alloc_constant(ck_string);
+      copy_constant(cp, sltep->constant);
+      sltep->sequence_number = ++(ssep->string_literal_sequence_number);
+      sltep->next = *bucket;
+      *bucket = sltep;
+#if DEBUG
+      num_string_literal_table_entries_allocated++;
+#endif /* DEBUG */
+    }  /* if */
+    cp->variant.string.sequence_number = sltep->sequence_number;
+  }  /* if */
+}  /* f_assign_string_literal_sequence_number */
+
+#endif /* DO_IL_LOWERING */
 
 a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope)
 /*
@@ -1459,6 +1633,11 @@ the scope being pushed.
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
+#if DO_IL_LOWERING
+  ssep->assign_string_literal_sequence_numbers = FALSE;
+  ssep->string_literal_table = NULL;
+  ssep->string_literal_sequence_number = 0;
+#endif /* DO_IL_LOWERING */
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
@@ -1694,6 +1873,15 @@ the scope being pushed.
     depth_innermost_function_scope =
             ssep->depth_innermost_function_scope = depth_scope_stack;
     innermost_function_scope = sp;
+#if DO_IL_LOWERING
+    /* Determine whether this is a function for which we need to
+       compute string literal sequence numbers.  These are computed for
+       routines for which there is the potential of having multiple copies
+       in a program. */
+    check_assertion(assoc_routine != NULL);
+    ssep->assign_string_literal_sequence_numbers =
+                         routine_might_exist_in_multiple_copies(assoc_routine);
+#endif /* DO_IL_LOWERING */
   } else if (kind == (a_scope_kind)sck_file) {
     /* Note (1) depth_innermost_namespace_scope is set to the file scope's
        depth to give it the sense of "depth_innermost_global_scope", and (2)
@@ -5354,6 +5542,12 @@ End a name scope by popping an entry off the scope stack.
     free_local_name_collision_table(ssep);
   }  /* if */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
+#if DO_IL_LOWERING
+  /* If a string literal table was allocated for the scope, free it now. */
+  if (ssep->string_literal_table != NULL) {
+    free_string_literal_table(ssep);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   /* Pop the stack. */
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the
@@ -5974,6 +6168,32 @@ is called only in C++.
                                     saved_innermost_scope_that_affects_access;
 }  /* pop_class_reactivation_scope */
 
+#if DEBUG
+
+unsigned long db_show_scope_stack_space_used(unsigned long grand_total)
+/*
+Show space used by the scope_stack routines.  This is called by
+the symbol table space used routine.  The space used by the scope_stack
+routines is reported as part of the symbol table memory used.
+*/
+{
+#if DO_IL_LOWERING
+  unsigned long	num;
+  unsigned long	size;
+  unsigned long	total;
+
+  db_space_used_lost("string literal tables", avail_string_literal_tables,
+                     num_string_literal_tables_allocated,
+                     a_string_literal_table);
+  db_space_used_lost("string literal entries",
+                     avail_string_literal_table_entries,
+                     num_string_literal_table_entries_allocated,
+                     a_string_literal_table_entry);
+#endif /* DO_IL_LOWERING */
+  return grand_total;
+}  /* db_show_scope_stack_space_used */
+
+#endif /* DEBUG */
 
 void scope_stk_one_time_init(void)
 /*
@@ -5995,6 +6215,14 @@ are handled in scope_stk_init.)
 #if IA64_ABI && NEED_NAME_MANGLING
       pch_saved_var_array_elem(avail_collision_tables),
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
+#if DO_IL_LOWERING
+      pch_saved_var_array_elem(avail_string_literal_tables),
+      pch_saved_var_array_elem(avail_string_literal_table_entries),
+#if DEBUG
+      pch_saved_var_array_elem(num_string_literal_tables_allocated),
+      pch_saved_var_array_elem(num_string_literal_table_entries_allocated),
+#endif /* DEBUG */
+#endif /* DO_IL_LOWERING */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -6070,6 +6298,12 @@ of the front end.
 #if IA64_ABI && NEED_NAME_MANGLING
   avail_collision_tables = NULL;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
+#if DO_IL_LOWERING
+  avail_string_literal_tables = NULL;
+  avail_string_literal_table_entries = NULL;
+  num_string_literal_table_entries_allocated = 0;
+  num_string_literal_tables_allocated = 0;
+#endif /* DO_IL_LOWERING */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 

@@ -195,6 +195,16 @@ scope.  The type is defined in scope_stk.c.
 typedef union a_collision_table *a_collision_table_ptr;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
 
+#if DO_IL_LOWERING
+/*
+A hash table used to assign sequence numbers to each unique string literal
+used within a function.  The type is defined in scope_stk.c.
+*/
+typedef struct a_string_literal_table *a_string_literal_table_ptr;
+
+void f_assign_string_literal_sequence_number(void);
+#endif /* DO_IL_LOWERING */
+
 /* Scope stack, containing an entry for each currently-active scope. */
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
 typedef struct a_scope_stack_entry {
@@ -375,6 +385,12 @@ typedef struct a_scope_stack_entry {
 			/* File scopes can be pushed, popped, and then
 			   pushed again later.  This is TRUE when a file
 			   scope has been re-pushed. */
+#if DO_IL_LOWERING
+  a_bit_field	assign_string_literal_sequence_numbers:1;
+			/* TRUE if this is a function scope for which
+			   string literal sequence numbers should be
+			   assigned. */
+#endif /* DO_IL_LOWERING */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -757,6 +773,19 @@ typedef struct a_scope_stack_entry {
 			   The union type a_collision_table is defined in
 			   scope_stk.c. */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
+#if DO_IL_LOWERING
+  a_string_literal_table_ptr
+		string_literal_table;
+			/* A hash table of string literals used within a
+			   given function.  Used only for function scopes.
+			   This is used to assign sequence numbers to
+			   string literals and to detect multiple uses of
+			   the same string literal value. */
+  unsigned long	string_literal_sequence_number;
+			/* For function scopes, the highest sequence number
+			   that has already been used as a string literal
+			   sequence number. */
+#endif /* DO_IL_LOWERING */
 } a_scope_stack_entry;
 
 /*
@@ -1106,6 +1135,7 @@ extern void db_scope_stack(void);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void db_decl_pos_info(a_symbol_ptr sym);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+extern unsigned long db_show_scope_stack_space_used(unsigned long grand_total);
 #endif /* DEBUG */
 
 #endif /* ifndef SCOPE_STK_H */

@@ -3921,6 +3921,9 @@ bucket of the shareable_constants_table to use for the constant.
     case ck_string:
       /* String.  Hash all the characters. */
       hash_value = 100;
+#if DO_IL_LOWERING
+      hash_value += cp->variant.string.sequence_number;
+#endif /* DO_IL_LOWERING */
       for (length = cp->variant.string.length, p = cp->variant.string.value;
            length > 0;
            length--, p++) {
@@ -4296,7 +4299,13 @@ nonidentical.
         break;
       case ck_string:
         if (cp1->variant.string.length == cp2->variant.string.length) {
-          eq = (memcmp(cp1->variant.string.value, cp2->variant.string.value,
+          eq = 
+#if DO_IL_LOWERING
+               /* The sequence numbers must match, when present. */
+               cp1->variant.string.sequence_number ==
+                                       cp2->variant.string.sequence_number &&
+#endif /* DO_IL_LOWERING */
+               (memcmp(cp1->variant.string.value, cp2->variant.string.value,
                        size_t_arg(cp1->variant.string.length)) == 0);
         }  /* if */
         break;

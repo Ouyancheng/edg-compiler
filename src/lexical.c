@@ -7088,6 +7088,21 @@ current token.  Loop to pick up all the adjacent string literals.
 
 
 /*
+Macro that determines whether string literal sequence numbers might be
+needed, and if so, calls a routine to do the assignment.
+*/
+#if DO_IL_LOWERING
+#define assign_string_literal_sequence_number()				\
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&		\
+      scope_stack[depth_innermost_function_scope].			\
+                            assign_string_literal_sequence_numbers) {	\
+     f_assign_string_literal_sequence_number();				\
+   }  /* if */
+#else /* !DO_IL_LOWERING */
+#define assign_string_literal_sequence_number() /* nothing */
+#endif /* DO_IL_LOWERING */
+
+/*
 Remember that a token has been gotten from the current source line.
 Remember the start position (sequence number, column) of the token,
 and also put that into error_position.
@@ -7221,6 +7236,10 @@ to speed in some cases.
           ctoken = curr_token;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (ctoken == tok_string_literal) {
+        /* Give this string literal a sequence number, if needed. */
+        assign_string_literal_sequence_number();
+      }  /* if */
       goto return_from_token_scan;
     }  /* if */
   }  /* if */
@@ -8006,6 +8025,8 @@ concatenate_adjacent_string_literals:
   check_assertion_str(ctoken == tok_string_literal,
                       "get_token: concatenating string literal, bad token");
   concat_adjacent_string_literals(/*curr_token_set=*/FALSE);
+  /* Give this string literal a sequence number, if needed. */
+  assign_string_literal_sequence_number();
   goto return_from_token_scan;
 }  /* get_token */
 
