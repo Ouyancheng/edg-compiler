@@ -3011,7 +3011,8 @@ and for unnamed classes and enums.  Nested types are encoded as such.
 #endif /* IA64_ABI */
 
   /* cv-qualifiers are not allowed here. */
-  check_assertion(!is_qualified_type(type));
+  check_assertion(type->kind != (a_type_kind)tk_typeref ||
+                  typeref_is_typedef(type));
 #if IA64_ABI
   /* The caller has already checked to see if a substitution is available for
      this entire type.  Check here to see if the type is an instantiation of a
