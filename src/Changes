@@ -1,5 +1,18 @@
 Version 2.35
 
+1/31/97 Psuedo destructor calls using type keywords now nonstandard
+
+The Working Paper no longer permits type keywords to be used in psuedo
+destructor calls.  Consequently, an error is now issued on such usage in
+strict mode.
+
+  int main()   {
+    int *p;
+    typedef int I;
+    p->int::~int();  // no longer permitted
+    p->I::~I();      // still allowed
+  }
+
 1/30/97 IL lowering: duplicate wrapper routines created for virtual function
         with covariant return type
 

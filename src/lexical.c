@@ -7957,6 +7957,11 @@ selection operator, in which case it points to the type of the left operand.
                                                         &next_tok_2);
       if (next_tok == tok_colon_colon && next_tok_2 == tok_compl) {
         might_be_qualifier = TRUE;
+        if (strict_ansi_mode) {
+          /* A vacuous destructor reference is no longer permitted to
+             use a type keyword, only a typedef name. */
+          error(ec_exp_identifier);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8502,7 +8507,7 @@ selection operator, in which case it points to the type of the left operand.
                        locator_for_curr_id.symbol_header->identifier);
           err = TRUE;
 	}  /* if */
-      } else {
+      } else if (!strict_ansi_mode && (dtor_type = type_keyword())) {
 	/* A type keyword (e.g. int, long, etc.). Get the type
            associated with the keyword. */
         dtor_type = type_keyword();
@@ -8516,6 +8521,10 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_type = dtor_type;
         /* Make the current token a tok_identifier. */
         curr_token = tok_identifier;
+      } else {
+        /* The token after the "~" is not an identifier or a type name. */
+        error(ec_exp_identifier);
+        err = TRUE;
       }  /* if */
       locator_for_curr_id.is_destructor_name = TRUE;
       if (!err && field_sel_type != NULL) {
