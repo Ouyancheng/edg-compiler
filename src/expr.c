@@ -4422,7 +4422,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        operand;
   a_type_ptr        uuidof_type;
-  a_boolean         err = FALSE;
+  a_boolean         err = FALSE, template_case = FALSE;
 
   db_enter(4, "scan_uuidof_operator");
   /* Save the position of the __uuidof keyword. */
@@ -4488,9 +4488,11 @@ The value of the operation is an lvalue of type "const struct _GUID".
       uuidof_type = type_pointed_to(uuidof_type);
     }  /* if */
     uuidof_type = skip_typerefs(uuidof_type);
-    if (is_template_param_type(uuidof_type)) {
+    if (is_template_dependent_context() &&
+        is_or_contains_template_param(uuidof_type)) {
       /* A template parameter type.  We must be in a prototype
          instantiation. */
+      template_case = TRUE;
     } else if (!is_class_struct_union_type(uuidof_type) ||
                uuidof_type->variant.class_struct_union.extra_info->uuid_string
                                                                      == NULL) {
@@ -4513,7 +4515,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
     a_type_ptr const_guid_type = make_qualified_type(
                                                type_of_guid,
                                                (a_type_qualifier_set)TQ_CONST);
-    if (uuidof_type != NULL && is_template_param_type(uuidof_type)) {
+    if (template_case) {
       /* For __uuidof a template type, use a ck_template_param. */
       clear_constant(&uuidof_con, (a_constant_repr_kind)ck_template_param);
       set_template_param_constant_kind(&uuidof_con,
@@ -4647,7 +4649,8 @@ Syntax:
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
       }  /* if */
-    } else if (is_template_param_type(cast_type)) {
+    } else if (is_template_dependent_context() &&
+               is_or_contains_template_param(cast_type)) {
       /* Casting to a template parameter type is okay in a prototype
          instantiation. */
       cast_type_okay = TRUE;
@@ -4668,7 +4671,8 @@ Syntax:
     /* Check the type of the operand. */
     operand_type = operand.type;
     operand_type_okay = FALSE;
-    if (is_template_param_type(operand_type)) {
+    if (is_template_dependent_context() &&
+        is_or_contains_template_param(operand_type)) {
       /* An operand of unknown type, in a prototype instantiation. */
       operand_type_okay = TRUE;
       template_param_case = TRUE;
@@ -5641,7 +5645,8 @@ specification allow a variable-sized array as the top type.
       if (array_new) init_arg_expr_list = NULL;
       needs_initialization = (ctor_routine != NULL ||
                               unknown_dependent_ctor);
-    } else if (is_template_param_type(new_type)) {
+    } else if (is_template_dependent_context() &&
+               is_or_contains_template_param(new_type)) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
       scan_dependent_parenthesized_initializer(&dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6136,7 +6141,8 @@ be set to the source position of the type.
   /* Check the type to see if it's permissible. */
   if (is_error_type(type_cast_to)) {
     err = TRUE;
-  } else if (is_template_param_type(type_cast_to)) {
+  } else if (!C_mode() && is_template_dependent_context() &&
+             is_or_contains_template_param(type_cast_to)) {
     /* We are in a prototype instantiation of a template.  The type is
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
@@ -6273,8 +6279,9 @@ this routine is called.
   a_boolean  err = FALSE;
   a_type_ptr source_type = operand->type;
 
-  if (is_template_param_type(dest_type) ||
-      is_template_param_type(source_type)) {
+  if (!C_mode() && is_template_dependent_context() &&
+      (is_or_contains_template_param(dest_type) ||
+       is_or_contains_template_param(source_type))) {
     /* Casting to or from a template parameter (unknown) type.  Assume okay. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Only casts from arithmetic to integral or enum types are permitted in
@@ -6530,7 +6537,8 @@ C++ mode.
       /* Don't check for user-defined conversions when casting to void
          or a template parameter (unknown) type. */
       if (!is_void_type(type_cast_to) &&
-          !is_template_param_type(type_cast_to)) {
+          !(is_template_dependent_context() &&
+            is_or_contains_template_param(type_cast_to))) {
         if (user_defined_conversion_possible(operand, type_cast_to,
                                              /*need_lvalue_result=*/FALSE,
                                              /*is_copy_initialization=*/FALSE,
@@ -7052,7 +7060,8 @@ Syntax:
         /* Casting to a pointer or reference to an object type. */
         cast_type_okay = TRUE;
       }  /* if */
-    } else if (is_template_param_type(cast_type)) {
+    } else if (is_template_dependent_context() &&
+               is_or_contains_template_param(cast_type)) {
       /* A cast to a template parameter type is assumed to be okay. */
       cast_type_okay = TRUE;
     } else {
@@ -7770,7 +7779,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else if (!curr_expr_kind_is_const() &&
-             is_template_param_type(type_cast_to)) {
+             is_template_dependent_context() &&
+             is_or_contains_template_param(type_cast_to)) {
     /* A cast to an unknown type in a prototype instantiation.  This is
        handled specially because it may have more than one argument.
        In a constant expression, a cast to a class type is not allowed,
