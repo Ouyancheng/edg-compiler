@@ -3800,6 +3800,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       break;
     case tok_minus:
 #if C99_IL_EXTENSIONS_SUPPORTED
+      /* Note that imaginary types fall through to use the normal
+         floating-point operator. */
       if (is_complex_type(operand.type)) {
         op = (an_expr_operator_kind)eok_xnegate;
       } else
@@ -9444,6 +9446,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 #if C99_IL_EXTENSIONS_SUPPORTED
   a_boolean             imaginary_arithmetic = FALSE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
   db_enter(4, "scan_eq_operator");
 
   save_token = curr_token;
@@ -10937,8 +10940,10 @@ See section 3.3.16 of the standard.
       }  /* if */
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
 #if C99_IL_EXTENSIONS_SUPPORTED
-      if (is_imaginary_type(operand_1->type) ||
-          is_imaginary_type(operand_2.type)) {
+    if ((is_imaginary_type(operand_1->type) ||
+         is_imaginary_type(operand_2.type)) &&
+        !(is_complex_type(operand_1->type) ||
+          is_complex_type(operand_2.type))) {
         an_expr_operator_kind  op;
         do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
         prepare_imaginary_operation(save_token, operand_1, &operand_2,
