@@ -3488,6 +3488,13 @@ updated but not removed from the list.
         instantiate_template_function(tip);
       }  /* if */
       tip->instantiation_required = TRUE;
+    } else if (value == tip->instantiation_required) {
+      /* The instantiation required flag is already set to the desired
+         value.  This test is used to ensure that an entry that is already
+         on the instantiation required list won't be instantiated until
+         reached on the list.  This prevents things on the list from being
+         instantiated during the instantiation of other functions of entries
+         earlier on the list. */
     } else {
       /* If we are in instantiation wrapup then instantiate the function now
 	 instead of just adding it to the end of the list.  This makes
@@ -3530,7 +3537,7 @@ void create_or_remove_instantiation_information_file(void)
     ii_file_name = derived_name(primary_source_file_name,
                                 INSTANTIATION_FILE_SUFFIX);
     f_ii_file = fopen(ii_file_name, "r");
-    fclose(f_ii_file);
+    (void)fclose(f_ii_file);
     if (any_instantiations_required) {
       /* If the file does not exist, create it. */
       if (f_ii_file == NULL) {
@@ -3622,7 +3629,7 @@ list if an entry does not already exist.
     instance_lookup_table[bucket_number] = ilp;
     /* Allocate space for the name (including a null terminator) and make a
        copy of the name. */
-    ilp->name = (char *)alloc_fe(length + 1);
+    ilp->name = (char *)alloc_fe((sizeof_t)length + 1);
     strcpy(ilp->name, name);
   }  /* if */
 
@@ -3820,7 +3827,6 @@ is responsible for setting the appropriate flags.
      so that the flags are in their final state. */
   tip = instantiations_required;
   for (; tip != NULL; tip = tip->next_in_instantiation_list) {
-    char	*name;
     a_symbol_ptr			instance_sym = tip->instance_sym;
     a_routine_ptr			routine;
     a_variable_ptr			variable;
