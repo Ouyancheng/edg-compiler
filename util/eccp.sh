@@ -581,6 +581,8 @@ do
          --no_using_std | \
          --restrict | \
          --no_restrict | \
+         --special_subscript_cost | \
+         --no_special_subscript_cost | \
          --remove_unneeded_entities | \
          --no_remove_unneeded_entities | \
          --typename | \
