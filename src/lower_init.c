@@ -4723,6 +4723,11 @@ location is the insert_location2 value (after the assignment statement).
        make_runtime_rout_call("__cxa_guard_release", &guard_release_routine,
                              void_type(),
                              var_lvalue_expr(*test_var));
+    /* Add required "!= 0" test on acquire call. */
+    acquire_node->next = node_for_integer_constant(0L,
+                                                   (an_integer_kind)ik_int);
+    acquire_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                      acquire_node->type, acquire_node);
     set_block_start_insert_location(outer_then, &outer_block_insert_location);
     insert_if_statement(acquire_node, /*is_initialization_guard=*/TRUE,
                         &outer_block_insert_location, block_stmt,
