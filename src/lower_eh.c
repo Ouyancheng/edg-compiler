@@ -290,11 +290,11 @@ Make the typeinfo struct type (used to represent runtime type information)
 if it is not made already, and return a pointer to it.  Its definition is
 
   struct typeinfo {
-    type_info tinfo; // User type_info
-    char      *name; // Name
-    char      *id;   // Id object pointer
+    type_info  tinfo; // User type_info
+    const char *name; // Name
+    char       *id;   // Id object pointer
     base_class_spec
-              **bc;  // Pointer to base class array
+               **bc;  // Pointer to base class array
   };
 
 Note that this is the typeinfo implementation type, and it contains the
@@ -305,6 +305,8 @@ If PASS_DTOR_POINTER_TO_THROW is FALSE, there is also, following the id field:
 
     __vptp    dtor;  // Destructor
 
+Before 2.41, the name field was not const (it was made const when const
+string literals were implemented).
 */
 {
   a_field_ptr last_field;
@@ -320,9 +322,12 @@ If PASS_DTOR_POINTER_TO_THROW is FALSE, there is also, following the id field:
                        make_user_type_info_type(),
                        typeinfo_type, &last_field);
     typeinfo_tinfo_field = last_field;
-    /* field: char *name */
+    /* field: const char *name */
     make_lowered_field("name",
-                     make_pointer_type(integer_type((an_integer_kind)ik_char)),
+                       make_pointer_type(
+                            make_qualified_type(
+                                        integer_type((an_integer_kind)ik_char),
+                                        TQ_CONST)),
                        typeinfo_type, &last_field);
 #endif /* ABI_CHANGES_FOR_RTTI */
     /* field: char *id */
@@ -637,10 +642,13 @@ type, for use in typeinfo implementation constants.
   string_con = alloc_shareable_constant(&constant);
   /* Generate a constant for the address of the string. */
   set_constant_address_constant(string_con, &constant);
-  /* Do the array->pointer decay. */
+  /* Do the array->pointer decay.  Note that the field in the typeinfo
+     structure is const, and we also add const here if string literals
+     are not const. */
   implicit_cast(&constant,
-                make_pointer_type(
-                          array_element_type(type_pointed_to(constant.type))));
+                make_pointer_type(make_qualified_type(
+                                        integer_type((an_integer_kind)ik_char),
+                                        TQ_CONST)));
   addr_con = alloc_unshared_constant(&constant);
   return addr_con;
 }  /* make_typeinfo_name_constant */
