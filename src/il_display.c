@@ -822,41 +822,6 @@ Display the indicated based type list.
   }  /* if */
 }  /* disp_based_type_list */
 
-#if DECL_MODIFIERS_IN_USE
-
-static void disp_decl_modifiers(a_decl_modifier  dm)
-/*
-Display the indicated decl modifiers.
-*/
-{
-  if (dm != DM_NONE) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (dm & DM_NEAR) {
-      disp_boolean("near", TRUE);
-    }  /* if */
-    if (dm & DM_FAR) {
-      disp_boolean("far", TRUE);
-    }  /* if */
-    if (dm & DM_DLLIMPORT) {
-      disp_boolean("dllimport", TRUE);
-    }  /* if */
-    if (dm & DM_DLLEXPORT) {
-      disp_boolean("dllexport", TRUE);
-    }  /* if */
-    if (dm & DM_THREAD) {
-      disp_boolean("thread", TRUE);
-    }  /* if */
-    if (dm & DM_NAKED) {
-      disp_boolean("naked", TRUE);
-    }  /* if */
-    if (dm & DM_MICROSOFT_INLINE) {
-      disp_boolean("microsoft_inline", TRUE);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-}  /* disp_decl_modifiers */
-
-#endif /* DECL_MODIFIERS_IN_USE */
 
 static void disp_type(a_type_ptr ptr)
 /*
@@ -950,7 +915,6 @@ do_float_complex:
         disp_ptr("base_variable", (char *)ptr->variant.pointer.base_variable,
                  iek_variable);
       }  /* if */
-      disp_decl_modifiers(ptr->variant.pointer.modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_boolean("is_reference",
                    (a_boolean)ptr->variant.pointer.is_reference);
@@ -1150,6 +1114,35 @@ Display the name for the indicated storage class.
   (void)printf("%s\n", s);
 }  /* disp_storage_class_name */
 
+#if DECL_MODIFIERS_IN_USE
+
+static void disp_decl_modifiers(a_decl_modifier  dm)
+/*
+Display the indicated decl modifiers.
+*/
+{
+  if (dm != DM_NONE) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (dm & DM_DLLIMPORT) {
+      disp_boolean("dllimport", TRUE);
+    }  /* if */
+    if (dm & DM_DLLEXPORT) {
+      disp_boolean("dllexport", TRUE);
+    }  /* if */
+    if (dm & DM_THREAD) {
+      disp_boolean("thread", TRUE);
+    }  /* if */
+    if (dm & DM_NAKED) {
+      disp_boolean("naked", TRUE);
+    }  /* if */
+    if (dm & DM_MICROSOFT_INLINE) {
+      disp_boolean("microsoft_inline", TRUE);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* disp_decl_modifiers */
+
+#endif /* DECL_MODIFIERS_IN_USE */
 
 static void disp_initializer(an_init_kind        kind,
                              an_initializer_ptr  ptr)

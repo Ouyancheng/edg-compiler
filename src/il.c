@@ -636,16 +636,6 @@ Dump the contents of the indicated type entry, for debug purposes.
       fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
       break;
     case tk_pointer:
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      { a_decl_modifier modifiers = tp->variant.pointer.modifiers;
-        if (modifiers & DM_NEAR) {
-          fputs("near ", f_debug);
-        }  /* if */
-        if (modifiers & DM_FAR) {
-          fputs("far ", f_debug);
-        }  /* if */
-      }
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (tp->variant.pointer.is_reference) {
         fputs("ref to ", f_debug);
       } else {
@@ -847,9 +837,11 @@ class_struct_union:
         if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if ((tp->variant.typeref.qualifiers & TQ_UNALIGNED) != 0) {
-          fputs("__unaligned ", f_debug);
-        }  /* if */
+        { a_type_qualifier_set qualifiers = tp->variant.typeref.qualifiers;
+          if (qualifiers & TQ_UNALIGNED) fputs("__unaligned ", f_debug);
+          if (qualifiers & TQ_NEAR     ) fputs("__near ", f_debug);
+          if (qualifiers & TQ_FAR      ) fputs("__far ", f_debug);
+        }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         fputs("typeref ", f_debug);

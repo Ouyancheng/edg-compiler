@@ -835,12 +835,8 @@ to default values.
       pte->variant.pointer.type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.pointer.base_variable = NULL;
-      pte->variant.pointer.modifiers = DM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.pointer.is_reference = FALSE;
-#if CHECKING
-      pte->variant.pointer.avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
       break;
     case tk_array:
       pte->variant.array.element_type = NULL;
