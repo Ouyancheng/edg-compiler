@@ -12,7 +12,7 @@ corrected.
 
 10/7/98   Error recovery abort
 
-An "error recovery" abort occurred in the following code fragment, where
+An error recovery abort occurred on the following code fragment, where
 class D was recorded as having a base class even though it was incomplete.
 Now fixed.
 
