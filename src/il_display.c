@@ -3655,6 +3655,16 @@ Display the indicated source sequence secondary declaration entry.
 */
 {
   disp_source_position("decl_position", &sssdp->decl_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (sssdp->decl_pos_info != NULL) {
+    disp_source_range("identifier_range",
+                      &sssdp->decl_pos_info->identifier_range);
+    disp_source_range("specifiers_range",
+                      &sssdp->decl_pos_info->specifiers_range);
+    disp_source_range("declarator_range",
+                      &sssdp->decl_pos_info->declarator_range);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
   disp_ptr("declared_type", (char *)sssdp->declared_type, iek_type);

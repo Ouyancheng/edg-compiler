@@ -1876,6 +1876,28 @@ the template.
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!is_class_definition &&
+      (is_friend_decl ||
+       !is_redeclaration && tag_sym->kind != (a_symbol_kind)sk_type)) {
+    /* Update source range information in the secondary-decl entry. */
+    a_source_sequence_entry_ptr     ssep;
+    a_src_seq_secondary_decl_ptr    sssdp;
+    a_decl_position_supplement_ptr  dpsp;
+
+    ssep = last_matching_source_sequence_entry((char *)class_type);
+    if (ssep != NULL) {
+      check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+      sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+      dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+      dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
+      if (tag_id_present) {
+        dpsp->identifier_range = local_decl_pos_block.identifier_range;
+      }  /* if */
+      sssdp->decl_pos_info = dpsp;
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (err) {
     *type_ptr = error_type();

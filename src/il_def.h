@@ -580,6 +580,39 @@ typedef struct a_source_range {
 } a_source_range;
 
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+/* Additional source position information relating to the declaration of the
+   associated IL entry. */
+typedef struct a_decl_position_supplement *a_decl_position_supplement_ptr;
+typedef struct a_decl_position_supplement {
+  a_source_range
+		identifier_range;
+			/* If the associated IL entry has an explicitly
+			   declared name, the source positions corresponding
+			   to the start and end of the sequence of tokens that
+			   represent the identifier, as explicitly spelled in
+			   the source program (e.g., possibly including
+			   qualifiers and a template argument list, if they
+			   were specified explicitly).  Both positions may be
+			   null_source_position. */
+  a_source_range
+		specifiers_range;
+			/* If the declaration of the associated IL entry
+			   involves declaration-specifiers, the source
+			   positions corresponding to the start and end of the
+			   declaration-specifiers of the declaration.  Both
+			   positions may be null_source_position. */
+  a_source_range
+		declarator_range;
+			/* If the declaration of the associated IL entry
+			   involves a declarator, the source positions
+			   corresponding to the start and end of the
+			   declarator.  Both positions may be
+			   null_source_position. */
+} a_decl_position_supplement;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+
 /*
 The type "pointer-to-source-sequence-entry" is defined even if the
 underlying type is not, since interfaces will use it.
@@ -639,6 +672,13 @@ typedef struct a_src_seq_secondary_decl {
 			/* Source position of the declaration.  (The source
 			   position of the entity itself records where the
 			   primary declaration appeared.) */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_decl_position_supplement_ptr
+		decl_pos_info;
+			/* Points to a block containing additional source
+			   position information about the declaration.
+			   May be NULL. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_tagged_pointer
 		entity;
 			/* Entry identifying the kind of entity (type,
@@ -853,39 +893,6 @@ typedef struct a_per_instantiation_needed_flags_entry {
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 #endif /* ifdef CIL */
-
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-/* Additional source position information relating to the declaration of the
-   associated IL entry. */
-typedef struct a_decl_position_supplement *a_decl_position_supplement_ptr;
-typedef struct a_decl_position_supplement {
-  a_source_range
-		identifier_range;
-			/* If the associated IL entry has an explicitly
-			   declared name, the source positions corresponding
-			   to the start and end of the sequence of tokens that
-			   represent the identifier, as explicitly spelled in
-			   the source program (e.g., possibly including
-			   qualifiers and a template argument list, if they
-			   were specified explicitly).  Both positions may be
-			   null_source_position. */
-  a_source_range
-		specifiers_range;
-			/* If the declaration of the associated IL entry
-			   involves declaration-specifiers, the source
-			   positions corresponding to the start and end of the
-			   declaration-specifiers of the declaration.  Both
-			   positions may be null_source_position. */
-  a_source_range
-		declarator_range;
-			/* If the declaration of the associated IL entry
-			   involves a declarator, the source positions
-			   corresponding to the start and end of the
-			   declarator.  Both positions may be
-			   null_source_position. */
-} a_decl_position_supplement;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
 
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct

@@ -4632,7 +4632,24 @@ of the function, and again overloading is a possibility.
             a_src_seq_secondary_decl_ptr  sssdp;
             sssdp = set_src_seq_secondary_decl_type((char *)rp, function_type,
                                                   /*is_specialization=*/FALSE);
-            if (sssdp != NULL) sssdp->friend_decl = TRUE;
+            if (sssdp != NULL) {
+              sssdp->friend_decl = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              {
+              /* Update source range information in the secondary-decl
+                 entry. */
+              a_decl_position_supplement_ptr  dpsp;
+              dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+              dpsp->identifier_range =
+                                decl_info->decl_pos_block.identifier_range;
+              dpsp->specifiers_range =
+                                decl_info->decl_pos_block.specifiers_range;
+              dpsp->declarator_range =
+                                decl_info->decl_pos_block.declarator_range;
+              sssdp->decl_pos_info = dpsp;
+              }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+            }  /* if */
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -5579,7 +5596,20 @@ declared member functions.
                                               /*is_specialization=*/FALSE);
       /* A member function declaration within a class definition is always
          the initial declaration. */
-      if (sssdp != NULL) sssdp->first_declaration = TRUE;
+      if (sssdp != NULL) {
+        sssdp->first_declaration = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        {
+        /* Update source range information in the secondary-decl entry. */
+        a_decl_position_supplement_ptr  dpsp;
+        dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+        dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
+        dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
+        dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
+        sssdp->decl_pos_info = dpsp;
+        }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {
@@ -6259,8 +6289,22 @@ member declaration, respectively.
   }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  (void)set_src_seq_secondary_decl_type((char *)var, member_type,
-                                        /*is_specialization=*/FALSE);
+  {
+  a_src_seq_secondary_decl_ptr  sssdp;
+  sssdp = set_src_seq_secondary_decl_type((char *)var, member_type,
+                                          /*is_specialization=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (sssdp != NULL) {
+    /* Update source range information in the secondary-decl entry. */
+    a_decl_position_supplement_ptr  dpsp;
+    dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+    dpsp->identifier_range = decl_info->decl_pos_block.identifier_range;
+    dpsp->specifiers_range = decl_info->decl_pos_block.specifiers_range;
+    dpsp->declarator_range = decl_info->decl_pos_block.declarator_range;
+    sssdp->decl_pos_info = dpsp;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */

@@ -2432,6 +2432,9 @@ and return a pointer to it.
   num_src_seq_secondary_decls_allocated++;
 #endif /* DEBUG */
   sssdp->decl_position               = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  sssdp->decl_pos_info               = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sssdp->entity.kind                 = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr                  = NULL;
   sssdp->declared_type               = NULL;

@@ -2274,6 +2274,10 @@ after_entry_from_class:
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
+                 iek_decl_position_supplement);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }
       break;
     case iek_src_seq_end_of_construct:

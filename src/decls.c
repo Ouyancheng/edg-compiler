@@ -3656,8 +3656,22 @@ cross-reference output describing this declaration.
      is declared in a local scope and a sublist is generated). */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
     /* A variable declaration but not a definition. */
-    (void)set_src_seq_secondary_decl_type((char *)variable_ptr, declared_type,
-                                          /*is_specialization=*/FALSE);
+    a_src_seq_secondary_decl_ptr  sssdp;
+
+    sssdp = set_src_seq_secondary_decl_type((char *)variable_ptr,
+                                            declared_type,
+                                            /*is_specialization=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (sssdp != NULL && decl_pos_block != NULL) {
+      /* Update source range information in the secondary-decl entry. */
+      a_decl_position_supplement_ptr  dpsp;
+      dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+      dpsp->identifier_range = decl_pos_block->identifier_range;
+      dpsp->specifiers_range = decl_pos_block->specifiers_range;
+      dpsp->declarator_range = decl_pos_block->declarator_range;
+      sssdp->decl_pos_info = dpsp;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* The defining declaration of the variable.  Record the type.  */
     if (variable_ptr->declared_type == NULL) {
@@ -4524,6 +4538,17 @@ skip_overloading:;
       if (is_friend_decl) sssdp->friend_decl = TRUE;
       if (func_info->is_implicit_declaration) sssdp->implicit_decl = TRUE;
       if (first_decl) sssdp->first_declaration = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (decl_pos_block != NULL) {
+        /* Update source range information in the secondary-decl entry. */
+        a_decl_position_supplement_ptr  dpsp;
+        dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
+        dpsp->identifier_range = decl_pos_block->identifier_range;
+        dpsp->specifiers_range = decl_pos_block->specifiers_range;
+        dpsp->declarator_range = decl_pos_block->declarator_range;
+        sssdp->decl_pos_info = dpsp;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
