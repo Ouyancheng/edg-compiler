@@ -4,8 +4,8 @@ Version 3.6
 
 Microsoft C++ mode nows allows mixed void/non-void operands to the "?"
 operator, with a result type of void.  A previous emulation of this
-feature (see Changes entry of 7/1/96) was found to be accepted by
-MSVC++ only in C mode and only up to version 6.0, and therefore
+feature (see Changes entry of 7/1/96) was found to match the behavior
+of MSVC++ only in C mode and only up to version 6.0, and therefore
 the emulation of that quirk has now been turned off in other modes
 (and therefore certain cases that were previously accepted in C++
 mode are now rejected because the type of the "?" is now void).
