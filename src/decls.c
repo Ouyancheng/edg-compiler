@@ -2104,18 +2104,23 @@ scope is that of a class definition.
 }  /* function_declarator */
 
 
-static void array_declarator(a_type_ptr *new_type_ptr)
+static void array_declarator(a_type_ptr *new_type_ptr,
+                             a_boolean  nonconstant_dimension_allowed)
 /*
 Scan an array declarator (3.5.4.2), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
 appropriate array type.  The initial opening bracket is the current
-token.
+token.  In C++ the dimension may sometimes be a nonconstant
+expression (e.g., with a new type name); that case is indicated by
+nonconstant_dimension_allowed.
 */
 {
-  a_targ_size_t     num_of_elements;
-  a_constant        constant;
-  a_boolean         err = FALSE;
-  a_source_position start_pos;
+  a_targ_size_t           num_of_elements;
+  a_constant              constant;
+  a_boolean               err = FALSE;
+  a_source_position       start_pos;
+  an_expr_node_ptr        dim_expr = NULL;
+  a_memory_region_number  region_to_switch_back_to;
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -2127,20 +2132,55 @@ token.
     num_of_elements = 0;
   } else {
     /* Scan the array size. */
-    scan_integral_constant_expression(&constant);
-    if (is_error_constant(&constant)) {
-      err = TRUE;
+    if (nonconstant_dimension_allowed) {
+      a_boolean  is_constant;
+
+      scan_new_array_dimension_expression(&is_constant, &dim_expr, &constant);
+      check_assertion(is_constant == (dim_expr == NULL));
     } else {
-      /* Integral constant should have been returned. */
-      check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
-      /* Array size must be greater than zero. */
-      if (sign_of_integer_constant(&constant) <= 0) {
-        error(ec_array_size_must_be_positive);
-        err = TRUE;
-      } else {
-        num_of_elements = unsigned_value_of_integer_constant(&constant, &err);
-        if (err) error(ec_array_size_too_large);
-      }  /* if */
+      scan_integral_constant_expression(&constant);
+    }  /* if */
+    if (dim_expr == NULL) {
+      switch (constant.kind) {
+        case ck_integer:
+          /* Array size must be greater than zero. */
+          if (sign_of_integer_constant(&constant) <= 0) {
+            error(ec_array_size_must_be_positive);
+            err = TRUE;
+          } else {
+            num_of_elements =
+                        unsigned_value_of_integer_constant(&constant, &err);
+            if (err) error(ec_array_size_too_large);
+          }  /* if */
+          break;
+        case ck_template_param:
+          if (constant.variant.template_param.kind ==
+                          (a_template_param_constant_kind)tpck_expression) {
+            /* The template param constant already points to an expression
+               (namely, an expression involving the name of a nontype template
+               parameter -- e.g., in
+                 template <int I> class A { int a[I+1]; };
+               the expression "I+1" is folded to a tpck_expression template
+               param constant.) */
+            dim_expr = constant.variant.template_param.variant.expr;
+          } else {
+            /* The template param constant does not point to an expression,
+               so we need to make one. */
+            switch_to_file_scope_region(&region_to_switch_back_to);
+            dim_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
+            dim_expr->variant.constant = fs_constant(constant.kind);
+            copy_constant(&constant, dim_expr->variant.constant);
+            switch_back_to_original_region(region_to_switch_back_to);
+          }  /* if */
+          break;
+        case ck_error:
+          err = TRUE;
+          break;
+#if CHECKING
+        default:
+          internal_error("array declarator: bad constant kind");
+#endif /* if CHECKING */
+      }  /* switch */
     }  /* if */
   }  /* if */
   if (err) {
@@ -2148,8 +2188,14 @@ token.
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
     /* Store the array size. */
-    (*new_type_ptr)->variant.array.variant.number_of_elements =
+    if (dim_expr != NULL) {
+      /* Expression case. */
+      (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
+      (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
+    } else {
+      (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                            num_of_elements;
+    }  /* if */
     /* The size of the array (in bytes) is updated in 
        add_to_derived_type_list. */
   }  /* if */
@@ -2159,74 +2205,6 @@ token.
   copy_source_position(start_pos, error_position);
   db_exit();
 }  /* array_declarator */
-
-
-static void nonconstant_array_declarator(a_type_ptr       *new_type_ptr,
-                                         an_expr_node_ptr *dim_expr)
-/*
-Scan an array declarator for an operator new type-name.  The logic is
-much the same as that of array_declarator, except that if a nonconstant
-expression is found, a pointer to it is returned in *dim_expr and the
-size of the array created is zero.  When there is a constant, *dim_expr
-is set to NULL and the constant value is used for the size.
-*/
-{
-  a_targ_size_t     num_of_elements;
-  a_constant        constant;
-  a_boolean         err = FALSE, is_constant;
-  a_source_position start_pos;
-
-  db_enter(3, "nonconstant_array_declarator");
-  *dim_expr = NULL;
-  copy_source_position(pos_curr_token, start_pos);
-  /* Pass over the initial left bracket. */
-  (void)get_token();
-  add_stop_token(tok_rbracket);
-  if (curr_token == tok_rbracket) {
-    /* Empty brackets, indicating an incomplete array type. */
-    num_of_elements = 0;
-  } else {
-    /* Scan the array dimension. */
-    scan_new_array_dimension_expression(&is_constant, dim_expr, &constant);
-    if (is_constant) {
-      if (is_error_constant(&constant)) {
-        err = TRUE;
-      } else {
-        /* Integral constant > 0 should have been returned. */
-        check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
-        check_assertion(sign_of_integer_constant(&constant) > 0);
-        num_of_elements = unsigned_value_of_integer_constant(&constant, &err);
-        if (err) error(ec_array_size_too_large);
-      }  /* if */
-    } else {
-      /* An expression was returned.  Create an array whose element count
-         is zero; actual element count is in dim_expr and will be supplied
-         at run time. */
-      num_of_elements = 0;
-    }  /* if */
-  }  /* if */
-  if (err) {
-    *new_type_ptr = error_type();
-  } else {
-    *new_type_ptr = alloc_type((a_type_kind)tk_array);
-    /* Store the array size. */
-    if (*dim_expr != NULL) {
-      check_assertion(num_of_elements == 0);
-      (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
-      (*new_type_ptr)->variant.array.variant.element_count_expr = *dim_expr;
-    } else {
-      (*new_type_ptr)->variant.array.variant.number_of_elements =
-                                                            num_of_elements;
-    }  /* if */
-    /* The size of the array (in bytes) is updated in 
-       add_to_derived_type_list. */
-  }  /* if */
-  /* Check for closing right bracket. */
-  (void)required_token(tok_rbracket, ec_exp_rbracket);
-  remove_stop_token(tok_rbracket);
-  copy_source_position(start_pos, error_position);
-  db_exit();
-}  /* nonconstant_array_declarator */
 
 
 a_routine_ptr make_routine(a_type_ptr      type_ptr,
@@ -5409,15 +5387,17 @@ function_lparen:
         push_class_reactivation_scope(member_parent_type);
       }  /* if */
       /* Left bracket, indicating array declarator. */
+      array_declarator(&new_type_ptr, nonconstant_dimension_allowed);
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first
            dimension (ARM 5.3.3).  Subsequent dimension must be constants. */
-        nonconstant_array_declarator(&new_type_ptr, dim_expr_ptr);
+        if (is_array_type(new_type_ptr) &&
+            new_type_ptr->variant.array.is_variable_size_array) {
+          *dim_expr_ptr =
+                       new_type_ptr->variant.array.variant.element_count_expr;
+        }  /* if */
         nonconstant_dimension_allowed = FALSE;
-      } else {
-        /* The normal case. */
-        array_declarator(&new_type_ptr);
       }  /* if */
       if (is_member_def) {
         pop_class_reactivation_scope();
@@ -7523,11 +7503,16 @@ syntax is:
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
     if (curr_token == tok_lbracket) {
-      nonconstant_array_declarator(&new_type_ptr, dimension_expr);
+      array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE);
+      if (is_array_type(new_type_ptr) &&
+          new_type_ptr->variant.array.is_variable_size_array) {
+        *dimension_expr =
+                      new_type_ptr->variant.array.variant.element_count_expr;
+      }  /* if */
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type);
       while (curr_token == tok_lbracket) {
-        array_declarator(&new_type_ptr);
+        array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE);
         /* Add the new type to the bottom of the existing derived type list.
            Note that this involves error checking. */
         add_to_derived_type_list(new_type_ptr,
