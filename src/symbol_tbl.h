@@ -1169,13 +1169,14 @@ typedef struct a_template_symbol_supplement {
 			   to each instance generated from this template. */
   a_token_sequence_number
 		token_sequence_number;
-			/* This is used for member functions and static
-			   data members to match the declarations of
-			   the prototype instantiation (to which the
-			   template symbol supplement is attached) to
-			   declarations found inside real instantiations.
-			   This field contains the token sequence number
-			   of a certain token within the declaration. */
+			/* This is used for member functions, member
+			   function templates, and static data members
+ 			   to match the declarations of the prototype
+ 			   instantiation (to which the template symbol
+ 			   supplement is attached) to declarations
+ 			   found inside real instantiations.  This
+ 			   field contains the token sequence number of
+ 			   a certain token within the declaration. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes
@@ -1195,6 +1196,22 @@ typedef struct a_template_symbol_supplement {
 			   used to extract the definitions of member
 			   functions and nested classes from the bodies
 			   of class template definitions. */
+  a_symbol_ptr	prototype_template;
+			/* If this is a member template of a class template
+			   instance, this points to the template symbol for
+			   the original member template declaration in the
+			   prototype instantiation. */
+  a_symbol_list_entry_ptr
+		subordinate_templates;
+			/* If this is a member template of a prototype
+			   instantiation, this points to a list of template
+			   symbols for the templates generated from this
+			   template. */
+  a_bit_field
+		is_specific_definition:1;
+			/* TRUE if the template is a specific definition of
+			   a member template. */
+  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When symbol kind = sk_class_template: */
     struct {
@@ -1232,10 +1249,6 @@ typedef struct a_template_symbol_supplement {
 			   enclosing template because it is part of the
 			   declaration of some other entity in the enclosing
 			   class.  For example, "struct { ... } a;". */
-      a_bit_field
-		is_specific_definition:1;
-			/* TRUE if the template is a specific definition of
-			   a member class template. */
       a_bit_field /* an_access_specifier */
 		access:2;
 			/* If the template is a member of a class, this

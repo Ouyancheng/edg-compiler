@@ -1491,6 +1491,12 @@ and return a pointer to it.
   clear_template_cache(&tssp->cache, /*reusable=*/TRUE);
   tssp->befriending_classes = NULL;
   tssp->cache_segment = NULL;
+  tssp->prototype_template = NULL;
+  tssp->subordinate_templates = NULL;
+  tssp->is_specific_definition = FALSE;
+#if CHECKING 
+  tssp->avoid_codecenter_warnings = FALSE;
+#endif /* CHECKING */
   switch (kind) {
     case sk_class_template:
     case sk_class_or_struct_tag:
@@ -1504,7 +1510,6 @@ and return a pointer to it.
       tssp->variant.class_template.name_linkage =
                                             (a_name_linkage_kind)nlk_none;
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
-      tssp->variant.class_template.is_specific_definition = FALSE;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
