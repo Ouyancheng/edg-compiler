@@ -7296,6 +7296,7 @@ memory region.
         sublist->last_source_sequence_entry = new_ssep;
       }  /* if */
     }  /* if */
+    position_ssep->next = new_ssep;
   } else {
 #if 0
     /* Beefing up this routine would make it a lot more complex -- e.g., to
@@ -7342,6 +7343,7 @@ memory region.
         sublist->source_sequence_list = new_ssep;
       }  /* if */
     }  /* if */
+    position_ssep->prev = new_ssep;
   } else {
 #if 0
     /* Beefing up this routine would make it a lot more complex -- e.g., to
