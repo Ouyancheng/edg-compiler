@@ -4794,7 +4794,7 @@ will be TRUE.  This routine may only be called in C++ mode.
     }  /* if */
     /* If the class symbol is for a class template, process the argument
        list. */
-    class_symbol = check_for_class_template(class_symbol, err);
+    class_symbol = check_for_class_template(class_symbol, &err);
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
        template argument list. */
