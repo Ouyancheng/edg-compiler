@@ -570,13 +570,13 @@ mark_routine_referenced.
 
 void push_expr_stack(an_expression_kind      expression_kind,
                      an_expr_stack_entry_ptr new_entry,
-                     a_boolean               new_object_lifetime)
+                     a_boolean               force_object_lifetime)
 /*
 Push a new entry on the top of the expr_stack.  expression_kind indicates
 the kind of the expression.  new_entry is used as the new top-of-stack
 entry (the entries are local variables on the stack).  This is done
 at the start of a major expression.  An object lifetime is pushed
-if necessary for a full expression; that's forced by new_object_lifetime
+if necessary for a full expression; that's forced by force_object_lifetime
 TRUE (which is used to say that even if temporaries have lifetime to
 end-of-scope, this expression's temporaries need to be destroyed at
 the end of the expression, e.g., because it's an expression repeated
@@ -628,7 +628,7 @@ in a loop).
        lifetime.  Do so if the lifetime of temporaries is a full
        expression, or if the caller explicitly requests a lifetime.
        Don't push a lifetime in a constant expression. */
-    if ((!long_lifetime_temps || new_object_lifetime) &&
+    if ((!long_lifetime_temps || force_object_lifetime) &&
         !curr_expr_kind_is_const()) {
       push_object_lifetime(iek_none, (char *)NULL,
                            (an_object_lifetime_kind)olk_expr_temporary);
@@ -4043,7 +4043,7 @@ for errors (e.g., the function has an invalid return type).
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Make a node for the address of the function. */
   func_addr_node = function_addr_expr(rout, /*set_address_taken_flag=*/FALSE);
   /* Link the operands to the function address node. */

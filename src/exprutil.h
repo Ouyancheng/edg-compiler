@@ -492,7 +492,7 @@ extern void if_evaluating_mark_routine_referenced(a_routine_ptr  routine);
 
 extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry,
-                            a_boolean               new_object_lifetime);
+                            a_boolean               force_object_lifetime);
 
 extern void pop_expr_stack(void);
 
