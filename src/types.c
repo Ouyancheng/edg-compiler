@@ -115,55 +115,6 @@ should probably change those routines too.
 }  /* f_skip_typerefs */
 
 
-a_type_ptr make_qualified_type(a_type_ptr old_type,
-                               a_boolean  is_const,
-                               a_boolean  is_volatile)
-/*
-Make a version of the type old_type with the additional type qualifiers
-indicated by is_const and is_volatile.  The qualifiers are added only if
-they are not already present.
-*/
-{
-  a_type_ptr new_type;
-
-  /* Add only qualifiers not present already in the type. */
-  is_const = is_const && !is_const_qualified_type(old_type);
-  is_volatile = is_volatile && !is_volatile_qualified_type(old_type);
-  if (is_const || is_volatile) {
-    /* Type qualifiers are added by adding a typeref entry which includes
-       the type qualifiers.  The original type is not modified. */
-    if (in_file_scope((char *)old_type)) {
-      new_type = fs_type((a_type_kind)tk_typeref);
-    } else {
-      new_type = alloc_type((a_type_kind)tk_typeref);
-    }  /* if */
-    new_type->variant.typeref.type        = old_type;
-    new_type->variant.typeref.is_const    = is_const;
-    new_type->variant.typeref.is_volatile = is_volatile;
-  } else {
-    /* No qualifiers to add, so return original type. */
-    new_type = old_type;
-  }  /* if */
-  
-  return(new_type);
-}  /* make_qualified_type */
-
-
-a_type_ptr make_unqualified_type(a_type_ptr type)
-/*
-Return a type that is the unqualified version of the type given by type.
-*/
-{
-  /* Remove the minimum number of typerefs that will produce an unqualified
-     type, in order to save typedefs if possible. */
-  while (is_qualified_type(type)) {
-    type = type->variant.typeref.type;
-  }  /* while */
-
-  return(type);
-}  /* make_unqualified_type */
-
-
 a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.
@@ -1730,11 +1681,8 @@ so far, to avoid repeating work or getting into infinite loops.
     /* Clear the source correspondence (it refers to something not at file
        scope, if it refers to anything at all). */
     set_default_source_corresp(&new_type->source_corresp);
-    /* assoc_pointer_type can be retained if the associated type is
-       at the file scope.  Otherwise, clear the field. */
-    if (!in_file_scope((char *)old_type->assoc_pointer_type)) {
-      new_type->assoc_pointer_type = NULL;
-    }  /* if */
+    /* Clear the pointer to the array of types based on this type, if any. */
+    new_type->based_type_array = NULL;
     /* Copy the substructure of the type, if any. */
     switch(kind) {
       case tk_error:

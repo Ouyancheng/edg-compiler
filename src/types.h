@@ -28,10 +28,6 @@ types.h -- Declarations related to types.c (having to do with types).
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
 
 extern a_type_ptr f_skip_typerefs(a_type_ptr type_ptr);
-extern a_type_ptr make_qualified_type(a_type_ptr old_type,
-                                      a_boolean  is_const,
-                                      a_boolean  is_volatile);
-extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 
 extern a_boolean is_error_type(a_type_ptr tp);
 extern a_boolean is_function_type(a_type_ptr tp);
