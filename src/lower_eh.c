@@ -234,13 +234,36 @@ user sees returned from typeid.
 }  /* make_typeinfo_type */
 
 
+static a_variable_ptr find_existing_id_object_var(char *name)
+/*
+If there is an existing id object variable with the given name, return a
+pointer to it.  Otherwise, return NULL.
+*/
+{
+  a_variable_ptr var;
+
+  for (var = il_header.primary_scope->variables;
+       var != NULL;
+       var = var->next) {
+    if (var->source_corresp.name != NULL &&
+        var->source_corresp.name[0] == name[0] && /* For speed. */
+        strcmp(var->source_corresp.name, name) == 0 &&
+        var->storage_class == (a_storage_class)sc_unspecified) {
+      /* Found an existing variable. */
+      break;
+    }  /* if */
+  }  /* for */
+  return var;
+}  /* find_existing_id_object_var */
+
+
 static a_variable_ptr make_id_object_var(a_type_ptr type)
 /*
 Make an id object variable for the given type, and return a pointer to it.
 The id object variable is pointed to from the definition of the typeinfo for
 the type.  When static typeinfo objects are put out in multiple files,
 they will point to the same (external) id object, so one can tell that they
-all denote the same type.  type must be an externally-linked class type.
+all denote the same type.
 */
 {
   a_variable_ptr  id_object_var;
@@ -255,12 +278,16 @@ all denote the same type.  type must be an externally-linked class type.
   /* Build the mangled name. */
   (void)mangled_id_object_name(type, mangled_name);
   mangled_name[mangled_name_length] = '\0';
-  /* Make the variable. */
-  id_object_var = make_lowered_variable(mangled_name,
-                                        /*already_il_name=*/TRUE,
+  /* Find and reuse an existing id object for the same type if there is one. */
+  id_object_var = find_existing_id_object_var(mangled_name);
+  if (id_object_var == NULL) {
+    /* Make the variable. */
+    id_object_var = make_lowered_variable(mangled_name,
+                                          /*already_il_name=*/TRUE,
                                         integer_type((an_integer_kind)ik_char),
-                                        (a_storage_class)sc_unspecified);
-  id_object_var->source_corresp.name_has_been_mangled = TRUE;
+                                          (a_storage_class)sc_unspecified);
+    id_object_var->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
   return id_object_var;
 }  /* make_id_object_var */
 
@@ -529,6 +556,11 @@ change the typeinfo variable to static.
        This is probably already set. */
     typeinfo_var->source_corresp.referenced = TRUE;
   }  /* if */
+  if (!has_name(typeinfo_var)) {
+    /* An unnamed typeinfo variable cannot have linkage. */
+    typeinfo_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+    typeinfo_var->storage_class = (a_storage_class)sc_static;
+  }  /* if */
   /* The initial value of the typeinfo variable is an aggregate containing
      values as follows:
        1)  Id object: pointer to id object variable, or NULL if the class
@@ -711,14 +743,6 @@ type information.  It is always allocated in the file scope memory region.
   /* No need to create the variable if it exists already. */
   typeinfo_var = type->typeinfo_var;
   if (typeinfo_var == NULL) {
-    /* Determine the length of the mangled name. */
-    mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
-    /* Allocate space for the mangled name, including the final null. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    /* Build the mangled name. */
-    (void)mangled_typeinfo_name(type, mangled_name);
-    mangled_name[mangled_name_length] = '\0';
     if (is_immediate_class_type(type)) {
       /* typeinfo variables for classes are sometimes external, sometimes
          static, but we don't know which yet.  Start with external, and
@@ -728,6 +752,14 @@ type information.  It is always allocated in the file scope memory region.
          final pass to add definitions for these can be stopped when all
          of them have been found. */
       num_of_pending_class_typeinfo_vars++;
+      /* Determine the length of the mangled name. */
+      mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
+      /* Allocate space for the mangled name, including the final null. */
+      alloc_length = mangled_name_length + 1;
+      mangled_name = alloc_lowered_name_string(alloc_length);
+      /* Build the mangled name. */
+      (void)mangled_typeinfo_name(type, mangled_name);
+      mangled_name[mangled_name_length] = '\0';
     } else {
 #if ABI_CHANGES_FOR_RTTI
       /* typeinfo variables for non-classes are always static. */
@@ -738,6 +770,10 @@ type information.  It is always allocated in the file scope memory region.
          definitions (initialized to NULL/zero by default). */
       storage_class = (a_storage_class)sc_unspecified;
 #endif /* ABI_CHANGES_FOR_RTTI */
+      /* Static variables need not have names, and in fact we could have
+         problems with duplicate names if typeinfo variables are generated
+         for two copies of the same type. */
+      mangled_name = NULL;
     }  /* if */
     typeinfo_var = make_lowered_variable(mangled_name,
                                          /*already_il_name=*/TRUE,
@@ -759,7 +795,7 @@ type information.  It is always allocated in the file scope memory region.
     } else {
       /* typeinfo entries for non-class types do not depend on other
          information and can be defined immediately. */
-      define_typeinfo_var(type, /*force_static=*/TRUE);
+      define_typeinfo_var(type, /*force_static=*/FALSE);
 #endif /* ABI_CHANGES_FOR_RTTI */
     }  /* if */
   }  /* if */
