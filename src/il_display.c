@@ -1369,6 +1369,8 @@ Print the name of the C++ operator kind.
     case onk_none:                s = "onk_none";                  break;
     case onk_new:                 s = "onk_new";                   break;
     case onk_delete:              s = "onk_delete";                break;
+    case onk_array_new:           s = "onk_array_new";             break;
+    case onk_array_delete:        s = "onk_array_delete";          break;
     case onk_plus:                s = "onk_plus";                  break;
     case onk_minus:               s = "onk_minus";                 break;
     case onk_star:                s = "onk_star";                  break;
