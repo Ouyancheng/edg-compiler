@@ -858,8 +858,8 @@ ec_unexpected_end_of_default_arg;;"the parse of this expression has changed betw
 ec_default_init_of_reference;;"default-initialization of reference is not allowed"
 ec_uninitialized_field_with_const_member;;"uninitialized %n has a const member"
 ec_uninitialized_base_class_with_const_member;;"uninitialized base class %t has a const member"
-ec_missing_default_constructor_on_const;;"class %t requires an explicitly declared default constructor to initialize const %n"
-ec_missing_default_constructor_on_unnamed_const;;"class %t requires an explicitly declared default constructor to initialize const object"
+ec_missing_default_constructor_on_const;;"const %n requires an initializer -- class %t has no explicitly declared default constructor"
+ec_missing_default_constructor_on_unnamed_const;;"const object requires an initializer -- class %t has no explicitly declared default constructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
