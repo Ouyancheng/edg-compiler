@@ -9829,15 +9829,9 @@ Display the list of source-sequence entries pointed to by ssep, for debugging
 purposes.
 */
 {
-  a_source_sequence_entry_ptr  prev = NULL;
-
   for (; ssep != NULL; ssep = ssep->next) {
-    if (ssep->prev != prev) {
-      fputs("**BAD PREV PTR:", f_debug);
-    }  /* if */
     fputs("  ", f_debug);
     db_source_sequence_entry(ssep);
-    prev = ssep;
 #if RECORD_TEMPLATES_IN_IL
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* If ssep represents a class template definition, put out the
@@ -9878,6 +9872,7 @@ debugging purposes.
     }  /* if */
   }  /* if */
 }  /* db_ss_list_for_scope */
+
 
 void dump_ss(a_scope_ptr  sp,
              char         *str)
