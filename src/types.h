@@ -279,7 +279,9 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
    when an error type should be treated as compatible with any type; use
    types_are_strictly_compatible when an error type is incompatible with any
    type, including an error type; use types_are_compatible_ignoring_qualifiers
-   to check compatibility while ignoring first-level qualifiers. */
+   to check compatibility while ignoring first-level qualifiers; use
+   routine_types_are_compatible to check types of routines, ignoring
+   calling convention modifiers. */
 #define types_are_compatible(t1, t2) \
 	 ((t1) == (t2) ||            \
           f_types_are_compatible((t1), (t2),                          \
@@ -292,6 +294,15 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
    f_types_are_compatible((t1), (t2),                                 \
                           TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
                           TCF_IGNORE_TYPE_QUALIFIERS))
+#if MICROSOFT_KEYWORDS_ALLOWED
+#define routine_types_are_compatible(t1, t2)                          \
+         ((t1) == (t2) ||                                             \
+          f_types_are_compatible((t1), (t2), TCF_IGNORE_CALLING_CONVENTIONS))
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+#define routine_types_are_compatible(t1, t2)                          \
+         ((t1) == (t2) ||                                             \
+          f_types_are_compatible((t1), (t2), TCF_NO_FLAGS))
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
 extern a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,
