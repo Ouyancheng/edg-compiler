@@ -411,7 +411,13 @@ way described by octl.
       kind = (an_integer_kind)ik_char;
     }  /* if */
   }  /* if */
-  str = int_kind_name(kind);
+  if (kind == (an_integer_kind)ik_unsigned_int && octl->gen_compilable_code) {
+    /* When generating compilable code, use "unsigned" instead of
+       "unsigned int".  This is necessary when doing vacuous destructors. */
+    str = "unsigned";
+  } else {
+    str = int_kind_name(kind);
+  }  /* if */
 #if CHECKING
   if (*str == '*'
 #if DEBUG
