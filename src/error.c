@@ -18,6 +18,7 @@ error.c -- Error reporting routines.
 #include "host_envir.h"
 #include "cmd_line.h"
 #include "mem_manage.h"
+#include "float_pt.h"
 
 #include "il.h"
 #if !STANDALONE_UTILITY_PROGRAM
@@ -1863,30 +1864,101 @@ the length of the type qualifier added.
 }  /* form_type_qualifier */
 
 
+/* Forward declaration for recursive call. */
 static void form_class_name(a_type_ptr        type,
-                            a_msg_segment_ptr seg_ptr)
+                            a_msg_segment_ptr seg_ptr);
+
+
+static void form_constant(a_constant_ptr     cp,
+                          a_msg_segment_ptr  seg_ptr)
 /*
-Add the class name of the specified type followed by "::" to the message
-segment being constructed at *seg_ptr.  Use "<unnamed>" if the class
-has no user name.
+Add a string representing a constant value to a string being formed.
 */
 {
-  char 	*s;
+#define LOCAL_BUFFER_LEN 100
+  char                     buffer[LOCAL_BUFFER_LEN], *p_char;
+  a_source_correspondence  *scp;
+  int                      i;
+  a_float_kind             fkind;
 
-  if (type != NULL && C_dialect == C_dialect_cplusplus) {
-    /* Check for nested classes. */
-    if (type->source_corresp.class_of_which_a_member != NULL) {
-      form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
-    }  /* if */
-    if (type->source_corresp.name != NULL) {
-      s = type->source_corresp.name;
-    } else {
-      s = "<unnamed>";
-    }  /* if */
-    add_string_to_segment(s, seg_ptr);
-    add_string_to_segment("::", seg_ptr);
-  }  /* if */
-}  /* form_class_name */
+  switch (cp->kind) {
+    case ck_integer:
+      sprintf(buffer, "%ld", cp->variant.integer_value);
+      add_string_to_segment(buffer, seg_ptr);
+      break;
+    case ck_string:
+      buffer[0] = '"';
+      p_char = cp->variant.string.value;
+      for (i = 1; i < LOCAL_BUFFER_LEN; ++i, ++p_char) {
+        if (*p_char == 0) {
+          break;
+        } else if (isprint(*p_char)) {
+          buffer[i] = *p_char;
+        } else {
+          /* Print non-printable character in octal form.  Truncate
+             to right number of bits to avoid problems with signed chars. */
+          sprintf(&buffer[i], "\\%03o",
+                  (unsigned int)(*p_char & ((1<<TARG_CHAR_BIT)-1)));
+          i += 3;
+        }  /* if */
+        if (i > 20) {
+          sprintf(&buffer[i], "...");
+          i += 3;
+          break;
+        }  /* if */
+      }  /* for */
+      sprintf(&buffer[i], "\"");
+      add_string_to_segment(buffer, seg_ptr);
+      break;
+    case ck_float:
+      fkind = skip_typerefs(cp->type)->variant.float_kind;
+      add_string_to_segment(fp_to_string(fkind, &cp->variant.float_value),
+                            seg_ptr);
+      break;
+    case ck_address:
+      if (cp->variant.address.kind == (an_address_base_kind)abk_constant) {
+        form_constant(cp->variant.address.variant.constant, seg_ptr);
+      } else {
+        add_string_to_segment("&", seg_ptr);
+        if (cp->variant.address.kind == (an_address_base_kind)abk_routine) {
+          scp = &cp->variant.address.variant.routine->source_corresp;
+#if CHECKING
+        } else if (cp->variant.address.kind !=
+                                       (an_address_base_kind)abk_variable) {
+          internal_error("form_constant: bad address constant kind");
+#endif /* CHECKING */
+        } else {
+          scp = &cp->variant.address.variant.variable->source_corresp;
+        }  /* if */
+        add_string_to_segment(scp->name, seg_ptr);
+      }  /* if */
+      break;
+    case ck_ptr_to_member:
+      /* C++ pointer-to-member. */
+      add_string_to_segment("&", seg_ptr);
+      form_class_name(cp->variant.ptr_to_member.class_of_which_a_member,
+                      seg_ptr);
+      add_string_to_segment(".", seg_ptr);
+      if (cp->variant.ptr_to_member.is_function_ptr) {
+        scp = &cp->variant.ptr_to_member.variant.routine->source_corresp;
+      } else {
+        scp = &cp->variant.ptr_to_member.variant.field->source_corresp;
+      }  /* if */
+      add_string_to_segment(scp->name, seg_ptr);
+      break;
+    case ck_error:
+      add_string_to_segment("<error constant>", seg_ptr);
+      break;
+    case ck_aggregate:
+    default:
+#if CHECKING
+      internal_error("form_constant: bad constant kind");
+#else
+      add_string_to_segment("<unknown constant>", seg_ptr);
+#endif /* CHECKING */
+  }  /* switch */
+#undef LOCAL_BUFFER_LEN
+}  /* form_constant */
 
 
 static void form_type_specifier(a_type_ptr        type,
@@ -2134,6 +2206,63 @@ Add the parameter list of a function to the type string being formatted.
   }  /* if */
 #endif /* ifdef CFE */
 }  /* form_param_list */
+
+
+static void form_template_args(a_template_arg_ptr  template_arg,
+                               a_msg_segment_ptr   seg_ptr)
+/*
+*/
+{
+  if (template_arg != NULL) {
+    add_string_to_segment("<", seg_ptr);
+    for (;;) {
+      if (template_arg->is_type) {
+        form_type_first_part(template_arg->variant.type,
+                             /*need_parens=*/FALSE, seg_ptr);
+        form_type_second_part(template_arg->variant.type,
+                              /*need_parens=*/FALSE, seg_ptr);
+      } else {
+        form_constant(template_arg->variant.constant, seg_ptr);
+      }  /* if */
+      template_arg = template_arg->next;
+      if (template_arg == NULL) {
+        add_string_to_segment(">", seg_ptr);
+        break;
+      } else {
+        add_string_to_segment(",", seg_ptr);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* form_template_args */
+
+
+static void form_class_name(a_type_ptr        type,
+                            a_msg_segment_ptr seg_ptr)
+/*
+Add the class name of the specified type followed by "::" to the message
+segment being constructed at *seg_ptr.  Use "<unnamed>" if the class
+has no user name.
+*/
+{
+  char                         *s;
+  a_class_type_supplement_ptr  ctsp = NULL;
+
+  if (type != NULL && C_dialect == C_dialect_cplusplus) {
+    /* Check for nested classes. */
+    if (type->source_corresp.class_of_which_a_member != NULL) {
+      form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
+    }  /* if */
+    if (type->source_corresp.name != NULL) {
+      s = type->source_corresp.name;
+      ctsp = type->variant.class_struct_union.extra_info;
+    } else {
+      s = "<unnamed>";
+    }  /* if */
+    add_string_to_segment(s, seg_ptr);
+    if (ctsp != NULL) form_template_args(ctsp->template_arg_list, seg_ptr);
+    add_string_to_segment("::", seg_ptr);
+  }  /* if */
+}  /* form_class_name */
 
 
 static void form_type_summary(a_type_ptr        tp,
