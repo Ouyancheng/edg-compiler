@@ -1181,7 +1181,7 @@ itself recursively to process classes nested within this class.
     while (var != NULL) {
       sym = (a_symbol_ptr)var->source_corresp.assoc_info;
       tip = sym->variant.static_data_member.instance_ptr;
-      /* We makes sure tip is non-NULL to guard against potential error
+      /* We make sure tip is non-NULL to guard against potential error
          cases. */
       if (tip != NULL) {
         set_instance_required(sym, /*value=*/FALSE, SIR_DEFER_INLINE);
