@@ -483,12 +483,6 @@ classes, be contingent on the derivation selected.
   ((bcp)->paths_to_virtual_base_class)
 
 /* Return TRUE if bcp is a direct nonvirtual base class or a virtual base
-   class with exactly one derivation, which is direct. */
-#define sole_derivation_is_direct(bcp)                               \
-  ((bcp)->direct &&                                                  \
-   (!(bcp)->is_virtual || bcp->paths_to_virtual_base_class->next == NULL))
-
-/* Return TRUE if bcp is a direct nonvirtual base class or a virtual base
    class whose preferred derivation is direct. */
 #define preferred_derivation_is_direct(bcp)                          \
   ((bcp)->direct &&                                                  \
