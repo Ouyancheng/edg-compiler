@@ -1299,6 +1299,13 @@ the file scope, do not process it (but record an orphan in the latter case).
                        iek_source_sequence_entry);
         remap_ptr(ptr->prev, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
+#if CHECKING
+        /* Check for empty source sequence entries that remain in the IL. */
+        if (kind == (an_il_entry_kind)iek_none) {
+          internal_error(
+                        "walk_entry_and_subtree: empty source sequence entry");
+        }  /* if */
+#endif /* CHECKING */
         if (kind == iek_src_seq_secondary_decl ||
             kind == iek_src_seq_end_of_construct) {
           walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
