@@ -6132,18 +6132,26 @@ This routine may only be called in C++ mode.
         } else {
           /* Record the reference on the symbol. */
           mark_referenced(class_symbol, &pos_curr_token);
-          /* Do ambiguity and access control checking on the class symbol.
-	     Ambiguity errors will be issued but access errors will only
-	     be detected.  A pointer to the description of the access error, 
-	     if any, is returned in aedp.  If an error occurred, link the
-	     description onto the end of a list of errors. */
-	  aedp = NULL;
-	  member_check_ambiguity_verify_access_and_return_error_descr
-				(&locator_for_curr_id, &aedp);
-          if (aedp != NULL) {
-            if (last_aedp != NULL) last_aedp->next = aedp;
-            last_aedp = aedp;
-	    if (first_aedp == NULL) first_aedp = aedp;
+          if (class_symbol->class_of_which_a_member != NULL) {
+            /* Do ambiguity and access control checking on the class symbol.
+               Only do the check if the symbol points to a class member.
+               The requirement that the class symbol be a member also ensures
+               that the check will be suppressed for template parameters
+               (i.e., the T in T::X).  Access for template parameters should
+               be checked at the point at which the type is used as a 
+               template argument. Ambiguity errors will be issued but
+               access errors will only be detected.  A pointer to the
+               description of the access error,  if any, is returned in
+               aedp.  If an error occurred, link the description onto the
+               end of a list of errors. */
+            aedp = NULL;
+            member_check_ambiguity_verify_access_and_return_error_descr
+		                                (&locator_for_curr_id, &aedp);
+            if (aedp != NULL) {
+              if (last_aedp != NULL) last_aedp->next = aedp;
+              last_aedp = aedp;
+              if (first_aedp == NULL) first_aedp = aedp;
+            }  /* if */
           }  /* if */
           if (is_class_symbol(class_symbol)) {
             /* Get the type associated with the class symbol. */

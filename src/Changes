@@ -1,5 +1,24 @@
 Version 2.22
 
+2/21/94  Access checking of template parameters
+
+A spurious access error was issued when a template parameter
+that points to a private nested type was used in a qualified name.
+This has been corrected.
+
+  template <class T> struct A {
+    T t;
+    T::Cnest tc;  // We incorrectly said that T was not accessible
+  };
+  
+  class B {
+    class Bnest {
+      public:
+      class Cnest {};
+    };
+    A<Bnest> ab;
+  };
+
 2/21/94  Function linkage in -tlocal mode
 
 An interaction between automatic instantiation and -tlocal mode caused
