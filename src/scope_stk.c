@@ -2291,6 +2291,39 @@ The following fixups need to be performed:
 }  /* fixup_instantiation_scopes */
 
 
+void push_simple_instantiation_scope(
+                            a_template_decl_info_ptr	decl_info,
+                            a_type_ptr			assoc_type,
+                            a_routine_ptr		assoc_routine,
+                            a_symbol_ptr		instance_sym,
+                            a_symbol_ptr		template_sym,
+                            a_template_arg_ptr		template_arg_list,
+			    a_push_scope_options_set	options)
+/*
+Push a template instantiation scope, but not all of the surrounding context
+scopes.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			saved_innermost_scope_that_affects_access;
+
+  saved_innermost_scope_that_affects_access =
+                         depth_of_innermost_scope_that_affects_access_control;
+ (void)push_scope_full((a_scope_kind)sck_template_instantiation,
+                        decl_info->declaration_scope, assoc_type,
+                        assoc_routine, (a_namespace_ptr)NULL, instance_sym,
+                        template_sym, template_arg_list, decl_info, options);
+  ssep = scope_stack_entry_for(depth_scope_stack);
+  /* Template instantiation scopes need to record the scope depth before
+     the set of scopes that represent the instantiation is pushed.
+     The previous saved innermost access scope must also be recorded. */
+  ssep->orig_depth = depth_scope_stack-1;
+  ssep->saved_innermost_scope_that_affects_access =
+                                     saved_innermost_scope_that_affects_access;
+}  /* push_simple_instantiation_scope */
+
+
+
 void push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
@@ -4937,7 +4970,6 @@ the class symbol supplement points to the partial specialization).
   a_template_decl_info_ptr		decl_info;
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				class_sym;
-  a_push_scope_options_set		ps_options;
 
   /* Get the symbol associated with the class. */
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
@@ -4948,12 +4980,24 @@ the class symbol supplement points to the partial specialization).
   /* Get the template declaration information associated with the class. */
   tssp = template_supplement_for_symbol(template_sym);
   decl_info = cache_for_template(tssp)->decl_info;
-  ps_options = is_microsoft_specialization_scope ? PS_MICROSOFT_SPECIALIZATION
-                                                 : PS_NO_OPTIONS;
-  push_template_instantiation_scope(decl_info, class_type,
+  if (is_microsoft_specialization_scope) {
+    /* When pushing a Microsoft specialization scope, don't do the full
+       instantiation scope processing.  This is done because the enclosing
+       scopes should be visible for these cases (Microsoft specialization
+       scopes are pushed for class scopes for explicitly specialized classes,
+       and for class reactivation scopes for all template classes). */
+    push_simple_instantiation_scope(decl_info, class_type,
                                     (a_routine_ptr)NULL, class_sym,
                                     template_sym, template_arg_list,
-				    /*push_stop_tokens=*/FALSE, ps_options);
+				    PS_MICROSOFT_SPECIALIZATION);
+    scope_stack[depth_scope_stack].nested_instantiation = TRUE;
+  } else {
+    push_template_instantiation_scope(decl_info, class_type,
+                                      (a_routine_ptr)NULL, class_sym,
+                                      template_sym, template_arg_list,
+				      /*push_stop_tokens=*/FALSE,
+				      PS_NO_OPTIONS);
+  }  /* if */
 }  /* push_instantiation_scope_for_class */
 
 

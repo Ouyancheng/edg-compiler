@@ -1,5 +1,22 @@
 Version 2.44
 
+3/31/00  Microsoft compatibility: two sets of template parameter names
+         are visible in the definition of a member of class template
+
+In the definition of a member of a class template outside of its class
+both the template parameters of the enclosing class template and the
+template parameters used in the definition of the member are visible
+when using the Microsoft compiler (only the template parameters of
+the member definition should be visible).  We now emulate this behavior
+in Microsoft mode.
+
+  template <class T> struct A {
+    static int i[];
+  };
+  // Note that both T and T2 are visible
+  template <class T2> int A<T2>::i[] = { sizeof(T), sizeof(T2)};
+  int *x = A<int>::i;
+
 3/30/00  Allow function redeclaration involving typedef with incompatible
          calling convention
 
