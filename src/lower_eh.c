@@ -407,9 +407,7 @@ allocated in the file scope memory region.
       /* Make an address constant for a pointer to the base class typeinfo
          variable. */
       typeinfo_con = alloc_constant((a_constant_repr_kind)ck_address);
-      typeinfo_var = bcp->type->typeinfo_var;
-      check_assertion_str(typeinfo_var != NULL,
-                          "make_base_class_array_var: NULL typeinfo var");
+      typeinfo_var = make_typeinfo_var(bcp->type);
       set_variable_address_constant(typeinfo_var, typeinfo_con,
                                     /*set_address_taken_flag=*/TRUE);
       /* Make the offset constant. */
@@ -523,11 +521,12 @@ type, for use in typeinfo implementation constants.
 #endif /* ABI_CHANGES_FOR_RTTI */
 
 static void define_typeinfo_var(a_type_ptr type,
+                                a_boolean  definition_needed,
                                 a_boolean  force_static)
 /*
 Generate a definition for the typeinfo variable (used to provide runtime
-type information) associated with type "type".  If force_static is TRUE,
-change the typeinfo variable to static.
+type information) associated with type "type", if definition_needed
+is TRUE.  If force_static is TRUE, change the typeinfo variable to static.
 */
 {
   a_boolean      is_class_type = is_immediate_class_type(type);
@@ -543,9 +542,6 @@ change the typeinfo variable to static.
   a_constant_ptr name_con;
 #endif /* ABI_CHANGES_FOR_RTTI */
 
-  /* Switch to the file scope memory region so that initial values will
-     be allocated there. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Set the linkage on the typeinfo variable. */
   if (force_static) {
     /* When forced to by the flag force_static, change the storage class to
@@ -553,7 +549,7 @@ change the typeinfo variable to static.
     typeinfo_var->storage_class = (a_storage_class)sc_static;
     typeinfo_var->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;
-  } else {
+  } else if (definition_needed) {
     /* For an externally-linked class, change the variable to an external
        definition. */
     typeinfo_var->storage_class = (a_storage_class)sc_unspecified;
@@ -566,98 +562,105 @@ change the typeinfo variable to static.
     typeinfo_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
     typeinfo_var->storage_class = (a_storage_class)sc_static;
   }  /* if */
-  /* The initial value of the typeinfo variable is an aggregate containing
-     values as follows:
-       1)  Id object: pointer to id object variable, or NULL if the class
-           is internally linked.
-       2)  Destructor: pointer to destructor, or NULL.
-       3)  Base class array pointer: pointer to array containing pointers
-           to typeinfo structures for base classes, or NULL if there are
-           no base classes.
-       4)  Pointer to name string (only if ABI_CHANGES_FOR_RTTI is TRUE).
-  */
-  /* Id object pointer. */
-  id_con = alloc_constant((a_constant_repr_kind)ck_address);
-  curr_field = typeinfo_type->variant.class_struct_union.field_list;
-  curr_field_type = curr_field->type;
-  /* Note that we test for nlk_external and not nlk_cplusplus_external here
-     because the linkage has already been rewritten in the class case. */
-  if (is_class_type &&
-      type->source_corresp.name_linkage != (a_name_linkage_kind)nlk_external) {
-    /* Internally linked class; id object pointer is NULL. */
-    make_zero_of_proper_type(curr_field_type, id_con);
-  } else {
-    /* Externally linked class, or nonclass; make id object variable. */
-    set_variable_address_constant(make_id_object_var(type), id_con,
-                                  /*set_address_taken_flag=*/TRUE);
-  }  /* if */
-  /* Destructor pointer. */
-  curr_field = curr_field->next;
-  curr_field_type = curr_field->type;
-  dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
-  /* See if the class has a destructor. */
-  dtor_routine = NULL;
-  if (is_class_type) {
-    dtor_sym = symbol_supplement_for_class(type)->destructor;
-    if (dtor_sym != NULL) {
-      dtor_routine = dtor_sym->variant.routine.ptr;
-      if (dtor_routine->assoc_scope == NULL_region_number) {
-        /* The destructor is declared but not defined.  Use a null pointer. */
-        dtor_routine = NULL;
+  if (definition_needed) {
+    /* The initial value of the typeinfo variable is an aggregate containing
+       values as follows:
+         1)  Id object: pointer to id object variable, or NULL if an internally
+             linked class.
+         2)  Destructor: pointer to destructor, or NULL.
+         3)  Base class array pointer: pointer to array containing pointers
+             to typeinfo structures for base classes, or NULL if there are
+             no base classes.
+         4)  Pointer to name string (only if ABI_CHANGES_FOR_RTTI is TRUE).
+    */
+    /* Switch to the file scope memory region so that initial values will
+       be allocated there. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* Id object pointer. */
+    id_con = alloc_constant((a_constant_repr_kind)ck_address);
+    curr_field = typeinfo_type->variant.class_struct_union.field_list;
+    curr_field_type = curr_field->type;
+    /* Note that we test for nlk_external and not nlk_cplusplus_external here
+       because the linkage has already been rewritten in the class case. */
+    if (is_class_type &&
+        type->source_corresp.name_linkage !=
+                                           (a_name_linkage_kind)nlk_external) {
+      /* Internally linked class; id object pointer is NULL. */
+      make_zero_of_proper_type(curr_field_type, id_con);
+    } else {
+      /* Externally linked class, or nonclass; make id object variable. */
+      set_variable_address_constant(make_id_object_var(type), id_con,
+                                    /*set_address_taken_flag=*/TRUE);
+    }  /* if */
+    /* Destructor pointer. */
+    curr_field = curr_field->next;
+    curr_field_type = curr_field->type;
+    dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
+    /* See if the class has a destructor. */
+    dtor_routine = NULL;
+    if (is_class_type) {
+      dtor_sym = symbol_supplement_for_class(type)->destructor;
+      if (dtor_sym != NULL) {
+        dtor_routine = dtor_sym->variant.routine.ptr;
+        if (dtor_routine->assoc_scope == NULL_region_number) {
+          /* The destructor is declared but not defined.  Use a null
+             pointer. */
+          dtor_routine = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
-  if (dtor_routine == NULL) {
-    /* The class has no destructor, or the type is not a class; use a
-       NULL pointer. */
-    make_zero_of_proper_type(curr_field_type, dtor_con);
-  } else {
-    /* The class has a destructor.  Make a pointer to the routine. */
-    dtor_routine->source_corresp.referenced = TRUE;
-    set_routine_address_constant(dtor_routine, dtor_con,
-                                 /*set_address_taken_flag=*/TRUE);
-    implicit_cast(dtor_con, curr_field_type);
-  }  /* if */
-  /* Base class array pointer. */
-  curr_field = curr_field->next;
-  curr_field_type = curr_field->type;
-  bc_con = alloc_constant((a_constant_repr_kind)ck_address);
-  if (!is_class_type ||
-      type->variant.class_struct_union.extra_info->base_classes == NULL) {
-    /* The class has no base classes, or the type is not a class; use a
-       NULL pointer. */
-    make_zero_of_proper_type(curr_field_type, bc_con);
-  } else {
-    /* The class has base classes; make a variable whose initial value is
-       an array of pointers to the typeinfo information for the base classes,
-       and use its address here. */
-    a_variable_ptr bc_var = make_base_class_array_var(type);
-    set_variable_address_constant(bc_var, bc_con,
-                                  /*set_address_taken_flag=*/TRUE);
-    /* Make the type pointer-to-element instead of pointer-to-array. */
-    implicit_cast(bc_con, curr_field_type);
-  }  /* if */
+    if (dtor_routine == NULL) {
+      /* The class has no destructor, or the type is not a class; use a
+         NULL pointer. */
+      make_zero_of_proper_type(curr_field_type, dtor_con);
+    } else {
+      /* The class has a destructor.  Make a pointer to the routine. */
+      dtor_routine->source_corresp.referenced = TRUE;
+      set_routine_address_constant(dtor_routine, dtor_con,
+                                   /*set_address_taken_flag=*/TRUE);
+      implicit_cast(dtor_con, curr_field_type);
+    }  /* if */
+    /* Base class array pointer. */
+    curr_field = curr_field->next;
+    curr_field_type = curr_field->type;
+    bc_con = alloc_constant((a_constant_repr_kind)ck_address);
+    if (!is_class_type ||
+        type->variant.class_struct_union.extra_info->base_classes == NULL) {
+      /* The class has no base classes, or the type is not a class; use a
+         NULL pointer. */
+      make_zero_of_proper_type(curr_field_type, bc_con);
+    } else {
+      /* The class has base classes; make a variable whose initial value is
+         an array of pointers to the typeinfo information for the base classes,
+         and use its address here. */
+      a_variable_ptr bc_var = make_base_class_array_var(type);
+      set_variable_address_constant(bc_var, bc_con,
+                                    /*set_address_taken_flag=*/TRUE);
+      /* Make the type pointer-to-element instead of pointer-to-array. */
+      implicit_cast(bc_con, curr_field_type);
+    }  /* if */
 #if ABI_CHANGES_FOR_RTTI
-  /* Make the name constant. */
-  name_con = make_typeinfo_name_constant(type);
+    /* Make the name constant. */
+    name_con = make_typeinfo_name_constant(type);
 #endif /* ABI_CHANGES_FOR_RTTI */
-  /* Make the aggregate constant and attach it to the variable as its initial
-     value. */
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  aggr_con->variant.aggregate.first_constant = id_con;
-  id_con->next = dtor_con;
-  dtor_con->next = bc_con;
+    /* Make the aggregate constant and attach it to the variable as its initial
+       value. */
+    aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr_con->variant.aggregate.first_constant = id_con;
+    id_con->next = dtor_con;
+    dtor_con->next = bc_con;
 #if ABI_CHANGES_FOR_RTTI
-  bc_con->next = name_con;
-  aggr_con->variant.aggregate.last_constant = name_con;
+    bc_con->next = name_con;
+    aggr_con->variant.aggregate.last_constant = name_con;
 #else /* !ABI_CHANGES_FOR_RTTI */
-  aggr_con->variant.aggregate.last_constant = bc_con;
+    aggr_con->variant.aggregate.last_constant = bc_con;
 #endif /* ABI_CHANGES_FOR_RTTI */
-  typeinfo_var->init_kind = (an_init_kind)initk_static;
-  typeinfo_var->initializer.constant = aggr_con;
-  /* Return to the memory region that was current when this routine was
-     entered. */
-  switch_back_to_original_region(region_to_switch_back_to);
+    typeinfo_var->init_kind = (an_init_kind)initk_static;
+    typeinfo_var->initializer.constant = aggr_con;
+    /* Return to the memory region that was current when this routine was
+       entered. */
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
 }  /* define_typeinfo_var */
 
 
@@ -675,9 +678,9 @@ Visit all the class types of the indicated scope and look for typeinfo
 variables (generated earlier).  For each typeinfo variable, generate
 the appropriate definition if one is needed.  This must be done late
 in the lowering process, so that all necessary typeinfo variables have
-been created already, and so that the information needed to decide
-whether to define the typeinfo variable (the same information needed
-for the similar decision for virtual function tables) is available.
+been created already, and so that all virtual function tables have been
+defined if they will be (because some typeinfo entries are defined
+if and only if the associated virtual function table is defined).
 */
 {
   a_type_ptr  type;
@@ -695,30 +698,24 @@ for the similar decision for virtual function tables) is available.
        type = type->next) {
     if (is_immediate_class_type(type)) {
       /* Found a class type. */
-      /* If the type has an associated typeinfo variable, define it now. */
+      /* See if the class has an associated typeinfo variable. */
       if (type->typeinfo_var != NULL) {
-        /* If the class has a virtual function table, the typeinfo variable
-           is defined if and only if the virtual function table is defined. */
+        /* See if the class is polymorphic.  If so, the decision about
+           defining the typeinfo variable has been put off to this point. */
         a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
         if (vtbl_var != NULL) {
-          /* The typeinfo variable is static if the virtual function table
-             is static. */
+          /* The typeinfo variable is defined if and only if the virtual
+             function table is defined, and it is static if and only if the
+             virtual function table is static. */
           force_static =
                        (vtbl_var->storage_class == (a_storage_class)sc_static);
-          definition_needed =
-                (vtbl_var->storage_class == (a_storage_class)sc_unspecified) ||
-                force_static;
-        } else {
-          /* The class has no virtual function table (i.e., it's not
-             polymorphic), so its typeinfo variable must be defined and must
-             be static. */
-          definition_needed = force_static = TRUE;
+          definition_needed= (vtbl_var->init_kind != (an_init_kind)initk_none);
+          define_typeinfo_var(type, definition_needed, force_static);
+          num_of_pending_class_typeinfo_vars--;
         }  /* if */
-        if (definition_needed) define_typeinfo_var(type, force_static);
-        num_of_pending_class_typeinfo_vars--;
       }  /* if */
-      /* If the class has a definition, visit its members. */
+      /* If the class has a definition, visit the class members. */
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
       if (class_scope != NULL) define_scope_class_typeinfo_vars(class_scope);
     }  /* if */
@@ -738,25 +735,46 @@ a_variable_ptr make_typeinfo_var(a_type_ptr type)
 Make a typeinfo variable for the indicated type (if it does not exist
 already) and return a pointer to it.  The variable points to runtime
 type information.  It is always allocated in the file scope memory region.
+This is not the type_info structure that is visible to the programmer
+via the typeid operator.
 */
 {
   a_variable_ptr  typeinfo_var;
   char            *mangled_name;
   sizeof_t        mangled_name_length, alloc_length;
   a_storage_class storage_class;
+  a_boolean       define_now;
 
   /* No need to create the variable if it exists already. */
   typeinfo_var = type->typeinfo_var;
   if (typeinfo_var == NULL) {
+    /* The variable must be created. */
     if (is_immediate_class_type(type)) {
-      /* typeinfo variables for classes are sometimes external, sometimes
-         static, but we don't know which yet.  Start with external, and
-         change later if necessary. */
-      storage_class = (a_storage_class)sc_extern;
-      /* Keep a count of the number of class typeinfo variables so that the
-         final pass to add definitions for these can be stopped when all
-         of them have been found. */
-      num_of_pending_class_typeinfo_vars++;
+      /* Class type. */
+      if (type->variant.class_struct_union.extra_info->
+                                          virtual_function_table_var != NULL) {
+        /* Polymorphic class type.  The typeinfo is defined if and only if
+           the virtual function table is defined, and we can't know that yet,
+           so we start with the variable as external and fix it later. */
+        storage_class = (a_storage_class)sc_extern;
+        /* Keep a count of the number of class typeinfo variables so that the
+           final pass to add definitions for these can be stopped when all
+           of them have been found. */
+        num_of_pending_class_typeinfo_vars++;
+        define_now = FALSE;
+      } else {
+        /* Non-polymorphic class type.  Always put out the definition as
+           static. */
+        storage_class = (a_storage_class)sc_static;
+        define_now = TRUE;
+      }  /* if */
+      /* Determine the name for the typeinfo variable.  A name is required for
+         typeinfo variables that end up being externally linked.  A name is
+         not required for internally linked variables, but it turns out to be
+         helpful for the C-generating back end (the C-generating back end cannot
+         handle out-of-order initialization of unnamed static variables, and
+         we cannot be sure that the typeinfo variables for base classes will
+         be put out before those for derived classes). */
       /* Determine the length of the mangled name. */
       mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
       /* Allocate space for the mangled name, including the final null. */
@@ -766,18 +784,22 @@ type information.  It is always allocated in the file scope memory region.
       (void)mangled_typeinfo_name(type, mangled_name);
       mangled_name[mangled_name_length] = '\0';
     } else {
+      /* Non-class type. */
 #if ABI_CHANGES_FOR_RTTI
       /* typeinfo variables for non-classes are always static. */
       storage_class = (a_storage_class)sc_static;
+      define_now = TRUE;
 #else /* !ABI_CHANGES_FOR_RTTI */
       /* Old implementation: */
       /* typeinfo variables for non-classes are always external tentative
          definitions (initialized to NULL/zero by default). */
       storage_class = (a_storage_class)sc_unspecified;
+      define_now = FALSE;
 #endif /* ABI_CHANGES_FOR_RTTI */
-      /* Static variables need not have names, and in fact we could have
+      /* Static variables need not have names, and in fact we would have
          problems with duplicate names if typeinfo variables are generated
-         for two copies of the same type. */
+         for two copies of the same type within one compilation (e.g., two
+         pointer-to-member-function types). */
       mangled_name = NULL;
     }  /* if */
     typeinfo_var = make_lowered_variable(mangled_name,
@@ -787,21 +809,11 @@ type information.  It is always allocated in the file scope memory region.
     typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
     /* Remember the variable in the type. */
     type->typeinfo_var = typeinfo_var;
-    /* If the type is a class, we also need typeinfo variables for its
-       base classes. */
-    if (is_immediate_class_type(type)) {
-      a_base_class_ptr bcp;
-      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
-           bcp != NULL;
-           bcp = bcp->next) {
-        (void)make_typeinfo_var(bcp->type);
-      }  /* if */
-#if ABI_CHANGES_FOR_RTTI
-    } else {
-      /* typeinfo entries for non-class types do not depend on other
-         information and can be defined immediately. */
-      define_typeinfo_var(type, /*force_static=*/FALSE);
-#endif /* ABI_CHANGES_FOR_RTTI */
+    if (define_now) {
+      /* The typeinfo variable is supposed to be defined right now (for all
+         cases except polymorphic classes). */
+      define_typeinfo_var(type, /*definition_needed=*/TRUE,
+                          /*force_static=*/FALSE);
     }  /* if */
   }  /* if */
   return typeinfo_var;

@@ -3016,13 +3016,16 @@ static a_routine_ptr
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 static void add_vtbl_entry_init(a_targ_ptrdiff_t delta,
                                 a_routine_ptr    func_to_call,
+                                a_variable_ptr   typeinfo_var,
                                 a_constant_ptr   aggr_con,
                                 a_routine_ptr    first_virtual)
 /*
 Create a ck_aggregate constant and dependent constants to initialize
 an entry of a virtual function table to (delta, 0, func_to_call), and add the
 constant to the end of the aggr_con list.  func_to_call may be NULL;
-in that case, a NULL pointer is put out for the function.
+in that case, a NULL pointer is put out for the function unless
+typeinfo_var is non-NULL, in which case a pointer to the indicated
+typeinfo variable is put into the function pointer field.
 If first_virtual is non-NULL, it points to the virtual function that
 was used as the basis for a decision on whether or not to put out the
 virtual function table.
@@ -3046,9 +3049,20 @@ virtual function table.
      is vptp_type, previously built. */
   func_con = alloc_constant((a_constant_repr_kind)ck_address);
   if (func_to_call == NULL) {
-    /* No function.  Put a NULL pointer in the table.  This is used for the
-       [0] entry in the table. */
-    make_zero_of_proper_type(vptp_type, func_con);
+    if (typeinfo_var != NULL) {
+      /* A pointer to a typeinfo variable is put into the function pointer
+         field.  This is used for the [0] entry in the table when the RTTI
+         ABI changes are enabled. */
+      /* This requires that it be possible to put a variable pointer into
+         a function pointer.  Sorry about that. */
+      set_variable_address_constant(typeinfo_var, func_con,
+                                    /*set_address_taken_flag=*/TRUE);
+      implicit_cast(func_con, vptp_type);
+    } else {
+      /* Put a NULL pointer in the table.  This is used for the
+         [0] entry in the table and the last entry in cfront mode. */
+      make_zero_of_proper_type(vptp_type, func_con);
+    }  /* if */
   } else {
     if (func_to_call->pure_virtual) {
       /* A pure virtual function.  Put the address of runtime routine
@@ -3240,7 +3254,8 @@ whether or not to put out the virtual function table.
       func_to_call = primary_function;
     }  /* if */
     /* Create the initializing constants for this entry of the table. */
-    add_vtbl_entry_init(delta, func_to_call, aggr_con, first_virtual);
+    add_vtbl_entry_init(delta, func_to_call, (a_variable_ptr)NULL, 
+                        aggr_con, first_virtual);
     /* The functions are usually in order by number so set up for the
        next iteration in the common case. */
     primary_function = primary_function->next;
@@ -3277,24 +3292,14 @@ virtual function table.
   a_constant_ptr              aggr_con;
   a_virtual_function_number   next_entry_number;
   a_memory_region_number      region_to_switch_back_to;
-#if GENERATE_EH_TABLES
-  a_type_ptr                  class_whose_vtbl_is_being_made;
-#endif /* GENERATE_EH_TABLES */
 
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Find the appropriate virtual function table variable. */
   if (bcp == NULL) {
     /* We're doing the virtual function table for class_type itself. */
-#if GENERATE_EH_TABLES
-    class_whose_vtbl_is_being_made = class_type;
-#endif /* GENERATE_EH_TABLES */
     ctsp = class_type->variant.class_struct_union.extra_info;
     vtbl_var = ctsp->virtual_function_table_var;
   } else {
     /* We're doing the virtual function table for bcp in class_type. */
-#if GENERATE_EH_TABLES
-    class_whose_vtbl_is_being_made = bcp->type;
-#endif /* GENERATE_EH_TABLES */
     ctsp = bcp->type->variant.class_struct_union.extra_info;
     vtbl_var = bcp->virtual_function_table_var;
   }  /* if */
@@ -3325,37 +3330,49 @@ virtual function table.
     vtbl_var->storage_class = (a_storage_class)sc_unspecified;
     /* The variable can be referenced from another compilation unit. */
     vtbl_var->source_corresp.referenced = TRUE;
-#if GENERATE_EH_TABLES
+#if GENERATE_EH_TABLES && !ABI_CHANGES_FOR_RTTI
     /* If exceptions are enabled, force generation of the typeinfo variable
        for the type because it might be referenced from some other compilation
-       unit. */
-    if (exceptions_enabled) {
-      type_is_used_in_exception(class_whose_vtbl_is_being_made);
+       unit.  When RTTI is implemented, the virtual function table always
+       points to the typeinfo variable (see below), so this code is not needed. */
+    if (exceptions_enabled && bcp == NULL) {
+      (void)make_typeinfo_var(class_type);
     }  /* if */
-#endif /* GENERATE_EH_TABLES */
+#endif /* GENERATE_EH_TABLES && !ABI_CHANGES_FOR_RTTI */
   }  /* if */
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
   if (definition_needed) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
     /* Start the initialization by creating a ck_aggregate constant and
        making it the initial value of the variable. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     vtbl_var->init_kind = (an_init_kind)initk_static;
     vtbl_var->initializer.constant = aggr_con;
-    /* Put out the initialization for the [0] entry (skipped). */
-    add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con,
-                        first_virtual);
+    /* Put out the initialization for the [0] entry. */
+#if ABI_CHANGES_FOR_RTTI
+    /* The [0] entry includes the offset of the class whose vtbl is being
+       made in the complete class, and a pointer to the typeinfo entry for
+       the class. */
+    add_vtbl_entry_init((bcp != NULL) ? bcp->offset : (a_targ_ptrdiff_t)0,
+                        (a_routine_ptr)NULL,
+                        make_typeinfo_var(class_type),
+                        aggr_con, first_virtual);
+#else /* !ABI_CHANGES_FOR_RTTI */
+    add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
+                        (a_variable_ptr)NULL, aggr_con, first_virtual);
+#endif /* ABI_CHANGES_FOR_RTTI */
     /* Put out the body of the table. */
     fill_virtual_function_table(aggr_con, class_type, bcp, &next_entry_number,
                                 first_virtual);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* Put out the initialization for an extra zeroed entry at the end, for
        cfront compatibility. */
-    add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con,
-                        first_virtual);
+    add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
+                        (a_variable_ptr)NULL, aggr_con, first_virtual);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
 }  /* define_one_virtual_function_table */
 
 
