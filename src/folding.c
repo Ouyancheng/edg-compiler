@@ -507,8 +507,9 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
           /* The base class is inaccessible. */
           /* Keep going, and put out the error only the first time. */
           if (access_okay) {
-            pos_ty_error(ec_inaccessible_base_class, err_pos,
-                         base_class->type);
+            pos_ty_diagnostic(es_discretionary_error,
+                              ec_inaccessible_base_class, err_pos,
+                              base_class->type);
             access_okay = FALSE;
           }  /* if */
         }  /* if */
@@ -889,7 +890,8 @@ If there is an error, it is issued at *err_pos.
         /* Check that the base class is accessible from the current class. */
         base_class = dsp->base_class;
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
-          pos_ty_error(ec_inaccessible_base_class, err_pos, base_class->type);
+          pos_ty_diagnostic(es_discretionary_error, ec_inaccessible_base_class,
+                            err_pos, base_class->type);
           break;
         }  /* if */
         curr_type = base_class->type;

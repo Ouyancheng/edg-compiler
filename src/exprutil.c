@@ -1112,8 +1112,9 @@ routine is only used in C++ mode.
           /* The base class is inaccessible.  Keep going, but issue the
              error only once. */
           if (access_okay) {
-            pos_ty_error(ec_inaccessible_base_class, err_pos,
-                         base_class->type);
+            pos_ty_diagnostic(es_discretionary_error,
+                              ec_inaccessible_base_class, err_pos,
+                              base_class->type);
             access_okay = FALSE;
           }  /* if */
         }  /* if */
@@ -1303,7 +1304,8 @@ source position to be used for errors.  This routine is only used in C++ mode.
         base_class = dsp->base_class;
         /* Check that the base class is accessible from the current class. */
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
-          pos_ty_error(ec_inaccessible_base_class, err_pos, base_class->type);
+          pos_ty_diagnostic(es_discretionary_error, ec_inaccessible_base_class,
+                            err_pos, base_class->type);
           break;
         }  /* if */
         curr_type = base_class->type;
