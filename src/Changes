@@ -1,5 +1,20 @@
 Version 2.27
 
+10/20/94 Internal error after error on "?" operator with class rvalues
+
+An internal error no longer occurs after the (correct) error on compiling
+the following:
+
+  struct A {
+    A(const char* p);
+    A(const A& s);
+
+  };
+  class B : public A {};
+  extern int a;
+  extern B t;
+  A s(a==1 ? A("X") : A(a==2 ? t : "Y"));
+
 10/20/94 Destruction list for global/local statics
 
 The runtime cleanup of global and local static variables (and components

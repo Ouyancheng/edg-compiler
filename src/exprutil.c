@@ -3838,6 +3838,9 @@ the expression.
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
     }  /* if */
+  } else if (is_error_node(node)) {
+    /* An error node stays the same. */
+    possible = TRUE;
   }  /* if */
   /* If the node was transformed, its type is now a pointer to the type it
      had previously. */
