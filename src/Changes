@@ -38,9 +38,10 @@ defined in C++ mode.  They are now defined in C mode too.
 
 1/20/00  Possible abort on definition of nested class
 
-An invalid memory reference occurred when a nested class was declared
-and later defined.  This could potentially cause an abort or other
-unspecified behavior.  This has been fixed.
+A bug was introduced in version 2.43 that resulted in an invalid memory
+reference when a nested class was declared and later defined.  This could
+potentially cause an abort or other unspecified behavior.  This has been
+fixed.
 
   class A {
     class B;
