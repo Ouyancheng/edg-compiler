@@ -128,12 +128,6 @@ but cannot be referenced by name in a pragma directive.
                        "add_pragma_kind_description:",
 		       "pragma flags not valid when using C/C++ gen. BE");
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-  /* Pragmas scanned as text instead of tokens must not have macros expanded
-     or processing_C_code set. */
-  check_assertion_str2(make_text_not_tokens ?
-                       !p_expand_macros && !processing_C_code : TRUE,
-                       "add_pragma_kind_description:",
-		       "invalid make_text_not_tokens arguments");
   /* Allocate a new entry. */
   pkdp = (a_pragma_kind_description_ptr)
 				alloc_fe(sizeof(a_pragma_kind_description));
@@ -343,6 +337,7 @@ possible.
     case pk_test_next_statement:
     case pk_test_next_decl:
     case pk_test_immediate:
+    case pk_test_immediate_text:
     case pk_test_other:
     case pk_test_bind_next_pass:
       break;
@@ -1561,6 +1556,18 @@ Initialize the pragma description table.
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/TRUE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_test_immediate_text,
+                 (an_immediate_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code=*/TRUE,
 		 /*ignore_in_back_end=*/TRUE,

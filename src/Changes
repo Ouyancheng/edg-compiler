@@ -1,5 +1,12 @@
 Version 2.46
 
+8/8/01   Using expand_macros in pragmas saved as text strings
+
+The front end contained a number of assertion checks to make sure
+that a pragma did not have its expand_macros flag set if the
+make_text_not_tokens flag was also set.  These checks are no longer
+necessary and have been removed.
+
 8/7/01   File names containing "." and PCH usage
 
 The routine that reads directory entries did not handle file names with

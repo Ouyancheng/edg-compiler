@@ -1343,9 +1343,9 @@ there.
   expand_macros = pkdp->expand_macros;
   do_string_literal_concatenation = FALSE;
   fetch_pp_tokens = TRUE;
-  /* We expect expand_macros and caching_pragma_tokens to be FALSE when
-     building a string representation of the pragma. */
-  check_assertion_str2(!expand_macros && !caching_pragma_tokens,
+  /* We expect caching_pragma_tokens to be FALSE when building a string
+     representation of the pragma. */
+  check_assertion_str2(!caching_pragma_tokens,
 		       "convert_pp_directive_to_string:",
 		       "invalid token scanning mode");
   convert_pp_directive_to_string();
