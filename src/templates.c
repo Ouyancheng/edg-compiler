@@ -2626,6 +2626,9 @@ entry is pushed on the scope stack.
         /* Out-of-line definition of a member function of a class template.
            Don't impose requirements on the use of template parameters in the
            parameters. */
+      } else if (err) {
+        /* Avoid spurious errors -- skip the check for template params, since
+           this might have been intended to be a member function. */
       } else {
         /* Go back through the template params and be sure there are only
            type args.  The other kind is allowed only for class templates. */
