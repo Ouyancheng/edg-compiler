@@ -2207,7 +2207,7 @@ and standalone utility programs.
   } else if (type_1->kind == (a_type_kind)tk_ptr_to_member) {
     a_type_ptr  class_type_1 = pm_class_type(type_1);
     a_type_ptr  class_type_2 = pm_class_type(type_2);
-    if (same_entities(type_1, type_2)) {
+    if (same_entities(class_type_1, class_type_2)) {
       /* Continue at the next level for pointers to members. */
       types_match = types_match_ignoring_qualifiers(pm_member_type(type_1),
                                                     pm_member_type(type_2));
