@@ -557,18 +557,20 @@ and indentation is the indentation desired.
     char	  *full_name;
     a_line_number line_number;
     a_boolean	  at_end_of_source;
-    conv_seq_to_file_and_line(sym->decl_position.seq, &file_name, &full_name,
-                              &line_number, &at_end_of_source);
-    if (seq_is_in_include_file(sym->decl_position.seq)) {
-      (void)sprintf(buffer, "file %s", file_name);
+    if (sym->decl_position.seq > 0) {
+      conv_seq_to_file_and_line(sym->decl_position.seq, &file_name, &full_name,
+                                &line_number, &at_end_of_source);
+      if (seq_is_in_include_file(sym->decl_position.seq)) {
+        (void)sprintf(buffer, "file %s", file_name);
+        put_string(buffer);
+      }  /* if */
+      if (at_end_of_source) {
+        (void)sprintf(buffer, "line <end of source>");
+      } else {
+        (void)sprintf(buffer, "line %lu", (unsigned long)line_number);
+      }  /* if */
       put_string(buffer);
     }  /* if */
-    if (at_end_of_source) {
-      (void)sprintf(buffer, "line <end of source>");
-    } else {
-      (void)sprintf(buffer, "line %lu", (unsigned long)line_number);
-    }  /* if */
-    put_string(buffer);
   }
 
   (void)sprintf(buffer, "scope %ld", sym->decl_scope);
