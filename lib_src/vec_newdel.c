@@ -146,14 +146,14 @@ struct an_alloc_prefix {
 Compute the size in bytes of the prefix to be allocated.  This must
 be at least as large as an_alloc_prefix, but must also be a multiple
 of the most strict alignment. */
-const size_t	prefix_size =
+const size_t	__array_new_prefix_size =
 		  ((sizeof(an_alloc_prefix) + MOST_STRICT_ALIGNMENT - 1) /
                                MOST_STRICT_ALIGNMENT) * MOST_STRICT_ALIGNMENT;
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 /*
 No prefix is used in the alternate mode.
 */
-const size_t	prefix_size = 0;
+const size_t	__array_new_prefix_size = 0;
 #endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
 
@@ -167,7 +167,7 @@ save the array size.
 {
   void		*array_ptr;
   /* Increment the size to provide space for the prefix block. */
-  size += prefix_size;
+  size += __array_new_prefix_size;
   /* Allocate the memory using the appropriate new routine.  If a pointer
      was provided by the caller, use that one.  Otherwise, use the
      one specified by the ABI being used. */
@@ -182,7 +182,7 @@ save the array size.
   }  /* if */
   if (array_ptr != NULL) {
     /* Return a pointer to the part of the array after the prefix. */
-    array_ptr = (void*)(((char *)array_ptr) + prefix_size);
+    array_ptr = (void*)(((char *)array_ptr) + __array_new_prefix_size);
   }  /* if */
   return array_ptr;
 }  /* alloc_array */
@@ -199,9 +199,9 @@ save the array size.
 */
 {
   /* Increment the size to provide space for the prefix block. */
-  size += prefix_size;
+  size += __array_new_prefix_size;
   /* Adjust the pointer to point to the start of the prefix. */
-  array_ptr = (void*)(((char *)array_ptr) - prefix_size);
+  array_ptr = (void*)(((char *)array_ptr) - __array_new_prefix_size);
   /* Free the memory using the appropriate new routine.  If a pointer
      was provided by the caller, use that one.  Otherwise, use the
      one specified by the ABI being used. */
@@ -242,7 +242,7 @@ could not be recorded.
      The number of elements is saved as the compliment of the actual
      value.  This is done so that zeroing out the prefix (as might happen
      if the memory were overwritten) would not result in valid values. */
-  app = (an_alloc_prefix_ptr)(((char *)array_ptr) - prefix_size);
+  app = (an_alloc_prefix_ptr)(((char *)array_ptr) - __array_new_prefix_size);
   app->size = size;
   app->encoded_number_of_elements = ~number_of_elements;
   return FALSE;
@@ -291,7 +291,7 @@ inline size_t get_array_size(void*	array_ptr,
      compliment of the actual value.  If the two sizes do not agree,
      either the memory was not allocated by array_new, or the prefix was
      corrupted. */
-  app = (an_alloc_prefix_ptr)(((char *)array_ptr) - prefix_size);
+  app = (an_alloc_prefix_ptr)(((char *)array_ptr) - __array_new_prefix_size);
   size = app->size;
   size_to_check = element_size * (~(app->encoded_number_of_elements));
   if (size != size_to_check) _array_pointer_not_from_vec_new();
@@ -498,7 +498,7 @@ routine is one that requires two arguments.
 
 
 #if ABI_COMPATIBILITY_VERSION >= 234
-EXTERN_C void *__plcacement_array_new(
+EXTERN_C void *__placement_array_new(
 			   void				*array_ptr,
 			   int                          number_of_elements,
                            size_t                       element_size,
@@ -515,7 +515,7 @@ information and to call the constructor for each array element.
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
                             /*record_array_info=*/TRUE));
-}  /* __array_new */
+}  /* __placement_array_new */
 #endif /* ABI_COMPATIBILITY_VERSION >= 234 */
 
 
