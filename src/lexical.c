@@ -4149,7 +4149,7 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
           /* Search for the identifier in the given scope. */
           class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
                                                    class_scope,
-                                                   QIDL_MUST_BE_CLASS);
+                                                   IDL_MUST_BE_CLASS);
         }  /* if */
       } while (class_symbol != NULL && next_token() == tok_colon_colon);
       is_qualifier = TRUE;
@@ -4161,7 +4161,7 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
 }  /* get_class_qualifier */
 
 
-a_boolean get_qualified_name(a_qualified_id_lookup_options_set options)
+a_boolean get_qualified_name(an_id_lookup_options_set options)
 /*
 If the current token is an identifier, see if it is the start of a
 qualified name of the form

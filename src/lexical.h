@@ -727,7 +727,7 @@ extern a_token_kind next_token(void);
 extern a_boolean get_class_qualifier(a_scope_number *scope_number);
 /* Get a C++ qualified name, like "A::x". */
 /* See symbol_tbl.h for the options set definition. */
-extern a_boolean get_qualified_name(a_qualified_id_lookup_options_set options);
+extern a_boolean get_qualified_name(an_id_lookup_options_set options);
 
 /* Push a file onto the input stack. */
 extern void push_input_stack (char                       *file_name,
