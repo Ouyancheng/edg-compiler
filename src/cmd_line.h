@@ -414,9 +414,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		operator_overloading_on_enums_enabled
 #if VAR_INITIALIZERS
-                                                      = TRUE
+                                       = DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS
 #endif /* VAR_INITIALIZERS */
-                                                            ;
+                                                                              ;
 			/* TRUE if operator functions can be used to
 			   overload operations on enums. */
 
