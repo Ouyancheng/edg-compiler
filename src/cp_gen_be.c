@@ -9234,7 +9234,7 @@ declaration following this one is such a continuation.
                                                    GDO_FORCE_UNQUALIFIED_NAME :
                                                    GDO_NO_OPTIONS,
                                      name_ref);
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
   /* Emit any user-specified assembly symbol for this variable. */
   if (var->asm_name_is_valid) {
     write_asm_name(var->asm_name_or_reg.name);
@@ -9243,7 +9243,7 @@ declaration following this one is such a continuation.
   }  /* if */
   /* Emit attributes associated with this variable. */
   write_variable_attributes(var);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than

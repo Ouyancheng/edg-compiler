@@ -6076,7 +6076,7 @@ parameters.
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET
       /* Emit any user-specified assembly symbol for this variable. */
       if (variable->asm_name_is_valid) {
         write_asm_name(variable->asm_name_or_reg.name);
@@ -6085,7 +6085,7 @@ parameters.
       }  /* if */
       /* Emit attributes associated with this variable. */
       write_variable_attributes(variable);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
       /* Dump the initializer if there is a constant one or if the
          variable should be initialized to zero. */
       /* Don't initialize static arrays to zero, because it blows up
