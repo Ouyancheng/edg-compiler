@@ -4795,6 +4795,7 @@ class/struct/union is actually defined.
   an_extern_linkage       dummy_linkage;
   a_class_symbol_supplement_ptr
                           cssp;
+  a_boolean               is_definition_or_forward_reference = FALSE;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -4840,9 +4841,16 @@ class/struct/union is actually defined.
      declaration of a class, structure, or union. */
   tag_sym = NULL;
   if (curr_token == tok_lbrace ||
-      (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
-    /* This must be a declaration of a class, structure, or union.  It might
-       also be the resolution of a previous incomplete declaration. */
+      (C_dialect == C_dialect_cplusplus &&
+       (curr_token == tok_colon ||
+        (!is_friend_decl && curr_token == tok_semicolon)))) {
+    /* This must be a declaration of a class, structure, or union -- or else,
+       if the token is ";", a "vacuous" declaration (e.g., a forward
+       declaration of a nested class).  It might also be the resolution of
+       a previous incomplete declaration. */
+    is_definition_or_forward_reference = TRUE;
+  }   /* if */
+  if (is_definition_or_forward_reference) {
     if (assoc_symbol != NULL && !outer_scope_tag &&
         is_incomplete_type(assoc_symbol->variant.class_struct_union.type)) {
       /* Resolution of a previous incomplete declaration. */
@@ -4907,11 +4915,18 @@ class/struct/union is actually defined.
     /* Enter a new tag symbol, if a tag id was specified (a tag is not
        specified in something like "struct {int a; int b;}"). */
     if (tag_id_present) {
+      /* Except in class definitions and forward references to nested
+         classes, the name of the class being declared should be entered
+         in the innermost containing scope that is not a class or function
+         prototype scope. */
       a_scope_depth  effective_decl_level = decl_scope_level;
-
-      if (is_friend_decl) {
+      if (!is_definition_or_forward_reference) {
+        /* Pop out to the containing scope -- file scope, function scope, or
+           block scope. */
         while (scope_stack[effective_decl_level].kind ==
-                                     (a_scope_kind)sck_class_struct_union) {
+                                     (a_scope_kind)sck_class_struct_union ||
+               scope_stack[effective_decl_level].kind ==
+                                     (a_scope_kind)sck_func_prototype) {
           --effective_decl_level;
         }  /* while */
       }  /* if */
