@@ -77,13 +77,13 @@ and return the old value.
 }  /* set_unexpected */
 
 
-_bool uncaught_exception()
+__bool uncaught_exception()
 /*
 Return TRUE if an exception is in the process of being thrown.
 */
 {
   an_eh_stack_entry_ptr	ehsep;
-  _bool			result;
+  __bool		result;
 
   /* This function is used instead of simply using __curr_eh_stack_entry
      because of a problem using this variable in code that also uses

@@ -30,7 +30,7 @@ namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 
-_bool type_info::operator==(const type_info& rhs) const
+__bool type_info::operator==(const type_info& rhs) const
 /*
 Return TRUE if two type_info structures refer to the same type.
 */
@@ -44,7 +44,7 @@ Return TRUE if two type_info structures refer to the same type.
 }  /* type_info::operator== */
 
 
-_bool type_info::operator!=(const type_info& rhs) const
+__bool type_info::operator!=(const type_info& rhs) const
 /*
 Return TRUE if two type_info structures do not refer to the same type.
 */
@@ -58,7 +58,7 @@ Return TRUE if two type_info structures do not refer to the same type.
 }  /* type_info::operator!= */
 
 
-_bool type_info::before(const type_info& rhs) const
+__bool type_info::before(const type_info& rhs) const
 /*
 Return TRUE if the type_info for *this precedes the type_info for rhs using
 some implementation dependent collating sequence.
