@@ -10835,7 +10835,8 @@ continue_with_declaration:
             if (microsoft_mode && C_mode()) {
               /* No diagnostic in Microsoft C mode. */
             } else {
-              error(ec_param_id_list_needs_function_def);
+              diagnostic(gcc_mode ? es_warning : es_error,
+                         ec_param_id_list_needs_function_def);
             }  /* if */
           }  /* if */
         }  /* if */

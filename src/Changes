@@ -1,5 +1,13 @@
 Version 3.0
 
+3/20/02  GNU C compatibility: parameter names in unprototyped declarations
+
+The front end now accepts parameter names in unprototyped function declarations
+that are not definitions.  A warning is issued (in strict C mode an error is
+issued; in Microsoft mode, no diagnostic is issued at all).
+
+  void f(i);  /* Accepted with a warning in GNU C mode. */
+
 3/20/02  C++-generating back end, prototype instantiations, reference
          binding
 
