@@ -11021,6 +11021,8 @@ set, and its source sequence entry, if any, has been put out.)
                              ->variant.class_template.prototype_instantiation;
             il_template_entry->prototype_instantiation.type =
                                                   type_symbol_type(proto_sym);
+          } else {
+            il_template_entry->prototype_instantiation.type = NULL;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
@@ -11032,6 +11034,8 @@ set, and its source sequence entry, if any, has been put out.)
             il_template_entry->prototype_instantiation.routine =
                                   template_supplement_for_symbol(proto_sym)
                                                    ->variant.function.routine;
+          } else {
+            il_template_entry->prototype_instantiation.routine = NULL;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
@@ -11041,6 +11045,8 @@ set, and its source sequence entry, if any, has been put out.)
           if (prototype_instantiations_in_il) {
             il_template_entry->prototype_instantiation.routine =
                                                      sym->variant.routine.ptr;
+          } else {
+            il_template_entry->prototype_instantiation.routine = NULL;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
@@ -11050,6 +11056,8 @@ set, and its source sequence entry, if any, has been put out.)
           if (prototype_instantiations_in_il) {
             il_template_entry->prototype_instantiation.variable =
                                      sym->variant.static_data_member.variable;
+          } else {
+            il_template_entry->prototype_instantiation.variable = NULL;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
@@ -11061,6 +11069,8 @@ set, and its source sequence entry, if any, has been put out.)
           if (prototype_instantiations_in_il) {
             il_template_entry->prototype_instantiation.type =
                                                         type_symbol_type(sym);
+          } else {
+            il_template_entry->prototype_instantiation.type = NULL;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
