@@ -7,7 +7,9 @@ an lvalue result only if the operands have the same type BEFORE ANY
 IMPLICIT CONVERSIONS.  Those implicit conversions include array -->
 pointer and function --> pointer conversions.  Formerly, we tested
 for a type match after those conversions (and before the lvalue --> rvalue
-conversion).  Now, we test before those conversions.
+conversion).  Now, we test before those conversions.  Also, the test
+is now done before any implicit conversions from class types to
+built-in types.
 
 7/17/95  Macros that are defined more than once on the command line
 
