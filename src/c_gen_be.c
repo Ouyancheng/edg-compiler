@@ -2144,11 +2144,11 @@ Dump a single #pragma from the IL entry.
     disable_line_wrapping();
     octl.suppress_line_breaking = TRUE;
     if (pp->kind == (a_pragma_kind)pk_stdc) {
-      dump_stdc_pragma(pp->variant.stdc.kind, pp->variant.stdc.value);
+      /* STDC pragmas are emitted based on IL information. */
 #if UPC_EXTENSIONS_ALLOWED
     /* Check for #pragma upc. */
     } else if (pp->kind == (a_pragma_kind)pk_upc) {
-      dump_upc_pragma(pp->variant.upc.access_method);
+      /* UPC pragmas are emitted based on IL information. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */
