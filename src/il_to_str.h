@@ -81,6 +81,10 @@ typedef struct an_il_to_str_output_control_block {
 extern void clear_il_to_str_output_control_block(
                                    an_il_to_str_output_control_block_ptr octl);
 
+extern char *int_kind_name(an_integer_kind kind);
+
+extern char *float_kind_name(a_float_kind kind);
+
 extern void form_class_qualifier(
                           a_type_ptr                            class_type,
                           an_il_to_str_output_control_block_ptr octl);

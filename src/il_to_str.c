@@ -214,6 +214,34 @@ output in the way described by octl.
 }  /* form_name */
 
 
+char *int_kind_name(an_integer_kind kind)
+/*
+Return a string for the name of an integer kind.  Return a string beginning
+with "**BAD" for a bad integer kind.
+*/
+{
+  char *p;
+
+  switch (kind) {
+    case ik_char:               p = "char";               break;
+    case ik_signed_char:        p = "signed char";        break;
+    case ik_unsigned_char:      p = "unsigned char";      break;
+    case ik_short:              p = "short";              break;
+    case ik_unsigned_short:     p = "unsigned short";     break;
+    case ik_int:                p = "int";                break;
+    case ik_unsigned_int:       p = "unsigned int";       break;
+    case ik_long:               p = "long";               break;
+    case ik_unsigned_long:      p = "unsigned long";      break;
+#if LONG_LONG_ALLOWED
+    case ik_long_long:          p = "long long";          break;
+    case ik_unsigned_long_long: p = "unsigned long long"; break;
+#endif /* LONG_LONG_ALLOWED */
+    default:                    p = "**BAD-INT-KIND**";
+  }  /* switch */
+  return p;
+}  /* int_kind_name */
+
+
 static void form_int_kind_name(an_integer_kind                       kind,
                                an_il_to_str_output_control_block_ptr octl)
 /*
@@ -223,66 +251,48 @@ way described by octl.
 {
   char *str;
 
-  switch (kind) {
-    case ik_char:
-      str = "char";
-      break;
-    case ik_signed_char:
-      if (octl->gen_pcc_code) {
-        /* In pcc mode, "signed" doesn't exist, so this must be a plain
-           char. */
-        str = "char";
-      } else {
-        str = "signed char";
-      }  /* if */
-      break;
-    case ik_unsigned_char:
-      if (octl->gen_pcc_code &&
-          !il_header.plain_chars_are_signed) {
-        /* In pcc mode, "char" is turned into signed char or unsigned char.
-           If unsigned char is the default, we don't have to say "unsigned". */
-        str = "char";
-      } else {
-        str = "unsigned char";
-      }  /* if */
-      break;
-    case ik_short:
-      str = "short";
-      break;
-    case ik_unsigned_short:
-      str = "unsigned short";
-      break;
-    case ik_int:
-      str = "int";
-      break;
-    case ik_unsigned_int:
-      str = "unsigned int";
-      break;
-    case ik_long:
-      str = "long";
-      break;
-    case ik_unsigned_long:
-      str = "unsigned long";
-      break;
-#if LONG_LONG_ALLOWED
-    case ik_long_long:
-      str = "long long";
-      break;
-    case ik_unsigned_long_long:
-      str = "unsigned long long";
-      break;
-#endif /* LONG_LONG_ALLOWED */
-    default:
+  if (octl->gen_pcc_code) {
+    if (kind == (an_integer_kind)ik_signed_char) {
+      /* In pcc mode, "signed" doesn't exist, so this must be a plain
+         char. */
+      kind = (an_integer_kind)ik_char;
+    } else if (kind == (an_integer_kind)ik_unsigned_char &&
+               !il_header.plain_chars_are_signed) {
+      /* In pcc mode, "char" is turned into signed char or unsigned char.
+         If unsigned char is the default, we don't have to say "unsigned". */
+      kind = (an_integer_kind)ik_char;
+    }  /* if */
+  }  /* if */
+  str = int_kind_name(kind);
+#if CHECKING
+  if (*str == '*'
 #if DEBUG
-      if (octl->debug_output) {
-        str = "**BAD-INT-KIND**";
-        break;
-      }  /* if */
+      && !octl->debug_output
 #endif /* DEBUG */
-      unexpected_condition_str("form_int_kind_name: bad integer kind");
-  }  /* switch */
+                            ) {
+    internal_error("form_int_kind_name: bad integer kind");
+  }  /* if */
+#endif /* CHECKING */
   octl->output_str(str);
 }  /* form_int_kind_name */
+
+
+char *float_kind_name(a_float_kind kind)
+/*
+Return a string for the name of a float kind.  Return a string beginning
+with "**BAD" for a bad float kind.
+*/
+{
+  char *p;
+
+  switch (kind) {
+    case fk_float:       p = "float";              break;
+    case fk_double:      p = "double";             break;
+    case fk_long_double: p = "long double";        break;
+    default:             p = "**BAD-FLOAT-KIND**";
+  }  /* switch */
+  return p;
+}  /* float_kind_name */
 
 
 static void form_float_kind_name(a_float_kind                          kind,
@@ -294,25 +304,16 @@ way described by octl.
 {
   char *str;
 
-  switch (kind) {
-    case fk_float:
-      str = "float";
-      break;
-    case fk_double:
-      str = "double";
-      break;
-    case fk_long_double:
-      str = "long double";
-      break;
-    default:
+  str = float_kind_name(kind);
+#if CHECKING
+  if (*str == '*'
 #if DEBUG
-      if (octl->debug_output) {
-        str = "**BAD-FLOAT-KIND**";
-        break;
-      }  /* if */
+      && !octl->debug_output
 #endif /* DEBUG */
-      unexpected_condition_str("form_float_kind_name: bad float kind");
-  }  /* switch */
+                            ) {
+    internal_error("form_float_kind_name: bad float kind");
+  }  /* if */
+#endif /* CHECKING */
   octl->output_str(str);
 }  /* form_float_kind_name */
 
