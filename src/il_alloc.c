@@ -637,9 +637,9 @@ fields to default values.
     case ck_string:
       cp->variant.string.length = 0;
       cp->variant.string.value = NULL;
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       cp->variant.string.sequence_number = 0;
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       break;
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED

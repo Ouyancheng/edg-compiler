@@ -46,14 +46,14 @@ Variables and constants related to the scope_stack:
 			   allocation. */
 
 #if DEBUG
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 /*
 Counts of tables allocated, to track total use of memory.
 */
 static unsigned long
 		num_string_literal_table_entries_allocated,
 		num_string_literal_tables_allocated;
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 int db_scope_kind(a_scope_kind sck)
 /*
@@ -509,7 +509,7 @@ function-local entities in the IA-64 ABI.
 
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
 
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 
 #define STRING_LITERAL_TABLE_SIZE 31
 
@@ -672,7 +672,7 @@ assign one now.
   }  /* if */
 }  /* f_assign_string_literal_sequence_number */
 
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope)
 /*
@@ -1649,11 +1649,11 @@ the scope being pushed.
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   ssep->assign_string_literal_sequence_numbers = FALSE;
   ssep->string_literal_table = NULL;
   ssep->string_literal_sequence_number = 0;
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 #if CHECKING 
   ssep->avoid_codecenter_warnings    = FALSE;
 #endif /* CHECKING */
@@ -1892,7 +1892,7 @@ the scope being pushed.
     depth_innermost_function_scope =
             ssep->depth_innermost_function_scope = depth_scope_stack;
     innermost_function_scope = sp;
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
     if (!C_mode() && !ssep->in_prototype_instantiation) {
       /* Determine whether this is a function for which we need to
          compute string literal sequence numbers.  These are computed for
@@ -1902,7 +1902,7 @@ the scope being pushed.
       ssep->assign_string_literal_sequence_numbers =
                          routine_might_exist_in_multiple_copies(assoc_routine);
     }  /* if */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   } else if (kind == (a_scope_kind)sck_file) {
     /* Note (1) depth_innermost_namespace_scope is set to the file scope's
        depth to give it the sense of "depth_innermost_global_scope", and (2)
@@ -5567,12 +5567,12 @@ End a name scope by popping an entry off the scope stack.
     free_local_name_collision_table(ssep);
   }  /* if */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   /* If a string literal table was allocated for the scope, free it now. */
   if (ssep->string_literal_table != NULL) {
     free_string_literal_table(ssep);
   }  /* if */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   /* Pop the stack. */
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the
@@ -6202,7 +6202,7 @@ the symbol table space used routine.  The space used by the scope_stack
 routines is reported as part of the symbol table memory used.
 */
 {
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   unsigned long	num;
   unsigned long	size;
   unsigned long	total;
@@ -6214,7 +6214,7 @@ routines is reported as part of the symbol table memory used.
                      avail_string_literal_table_entries,
                      num_string_literal_table_entries_allocated,
                      a_string_literal_table_entry);
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   return grand_total;
 }  /* db_show_scope_stack_space_used */
 
@@ -6240,14 +6240,14 @@ are handled in scope_stk_init.)
 #if IA64_ABI && NEED_NAME_MANGLING
       pch_saved_var_array_elem(avail_collision_tables),
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       pch_saved_var_array_elem(avail_string_literal_tables),
       pch_saved_var_array_elem(avail_string_literal_table_entries),
 #if DEBUG
       pch_saved_var_array_elem(num_string_literal_tables_allocated),
       pch_saved_var_array_elem(num_string_literal_table_entries_allocated),
 #endif /* DEBUG */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -6323,14 +6323,14 @@ of the front end.
 #if IA64_ABI && NEED_NAME_MANGLING
   avail_collision_tables = NULL;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   avail_string_literal_tables = NULL;
   avail_string_literal_table_entries = NULL;
 #if DEBUG
   num_string_literal_table_entries_allocated = 0;
   num_string_literal_tables_allocated = 0;
 #endif /* DEBUG */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 

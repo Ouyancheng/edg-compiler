@@ -3773,7 +3773,7 @@ for the usual case.
            in the function scope memory region. */
         /* This also comes up in inlining, when we make a copy of a constant
            from one function scope memory region to another. */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
         if ((options & CE_REPLACE_STRINGS_BY_VARIABLES) &&
             old_constant_pointed_to->kind == (a_constant_repr_kind)ck_string &&
             old_constant_pointed_to->variant.string.sequence_number != 0) {
@@ -3781,7 +3781,7 @@ for the usual case.
              static variable. */
           rewrite_address_of_string_as_address_of_variable(new_constant);
         } else
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
         /* Do not insert code here. */
         {
           new_constant->variant.address.variant.constant =
@@ -3951,9 +3951,9 @@ bucket of the shareable_constants_table to use for the constant.
     case ck_string:
       /* String.  Hash all the characters. */
       hash_value = 100;
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       hash_value += cp->variant.string.sequence_number;
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       for (length = cp->variant.string.length, p = cp->variant.string.value;
            length > 0;
            length--, p++) {
@@ -4330,11 +4330,11 @@ nonidentical.
       case ck_string:
         if (cp1->variant.string.length == cp2->variant.string.length) {
           eq = 
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
                /* The sequence numbers must match, when present. */
                cp1->variant.string.sequence_number ==
                                        cp2->variant.string.sequence_number &&
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
                (memcmp(cp1->variant.string.value, cp2->variant.string.value,
                        size_t_arg(cp1->variant.string.length)) == 0);
         }  /* if */
@@ -4685,7 +4685,7 @@ region).
       break;
     case ck_string:
       /* String texts are always in the file scope. */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       /* However, string literals with assigned sequence numbers are
          specific to a function and must be allocated in the function
          scope memory region (we need to rewrite them in the context of
@@ -4693,7 +4693,7 @@ region).
       if (cp->variant.string.sequence_number != 0) {
         has_nfs_ref = TRUE;
       }  /* if */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       break;
     case ck_address:
       switch (cp->variant.address.kind) {

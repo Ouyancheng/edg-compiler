@@ -195,7 +195,7 @@ scope.  The type is defined in scope_stk.c.
 typedef union a_collision_table *a_collision_table_ptr;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
 
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 /*
 A hash table used to assign sequence numbers to each unique string literal
 used within a function.  The type is defined in scope_stk.c.
@@ -203,7 +203,7 @@ used within a function.  The type is defined in scope_stk.c.
 typedef struct a_string_literal_table *a_string_literal_table_ptr;
 
 void f_assign_string_literal_sequence_number(void);
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 /* Scope stack, containing an entry for each currently-active scope. */
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
@@ -385,12 +385,12 @@ typedef struct a_scope_stack_entry {
 			/* File scopes can be pushed, popped, and then
 			   pushed again later.  This is TRUE when a file
 			   scope has been re-pushed. */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   a_bit_field	assign_string_literal_sequence_numbers:1;
 			/* TRUE if this is a function scope for which
 			   string literal sequence numbers should be
 			   assigned. */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
@@ -774,7 +774,7 @@ typedef struct a_scope_stack_entry {
 			   The union type a_collision_table is defined in
 			   scope_stk.c. */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   a_string_literal_table_ptr
 		string_literal_table;
 			/* A hash table of string literals used within a
@@ -786,7 +786,7 @@ typedef struct a_scope_stack_entry {
 			/* For function scopes, the highest sequence number
 			   that has already been used as a string literal
 			   sequence number. */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 } a_scope_stack_entry;
 
 /*

@@ -7092,16 +7092,16 @@ current token.  Loop to pick up all the adjacent string literals.
 Macro that determines whether string literal sequence numbers might be
 needed, and if so, calls a routine to do the assignment.
 */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 #define assign_string_literal_sequence_number()				\
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&		\
       scope_stack[depth_innermost_function_scope].			\
                             assign_string_literal_sequence_numbers) {	\
      f_assign_string_literal_sequence_number();				\
    }  /* if */
-#else /* !DO_IL_LOWERING */
+#else /* !(DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS) */
 #define assign_string_literal_sequence_number() /* nothing */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 /*
 Remember that a token has been gotten from the current source line.

@@ -3641,6 +3641,8 @@ pointers to data members are properly initialized to -1 for NULL.
 
 #endif /* IA64_ABI */
 
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+
 void rewrite_address_of_string_as_address_of_variable(a_constant_ptr addr_con)
 /*
 addr_con is an address constant for the address of a string literal,
@@ -3711,6 +3713,7 @@ in extern inline functions).
   }
 }  /* rewrite_address_of_string_as_address_of_variable */
 
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 void lower_constant(a_constant_ptr constant)
 /*
@@ -3746,6 +3749,7 @@ Do IL lowering of the indicated constant and everything under it.
           case abk_constant:
             addressed_con = constant->variant.address.variant.constant;
             lower_os_constant(addressed_con);
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
             if (addressed_con->kind == (a_constant_repr_kind)ck_string) {
               /* Address of a string literal. */
               if (addressed_con->variant.string.sequence_number != 0) {
@@ -3754,7 +3758,10 @@ Do IL lowering of the indicated constant and everything under it.
                    Create a variable for it. */
                 rewrite_address_of_string_as_address_of_variable(constant);
               }  /* if */
-            } else if (check_for_troublesome_ptr_to_member_constant(
+            } else
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+            /* Do not insert code here. */
+            if (check_for_troublesome_ptr_to_member_constant(
                                                           addressed_con,
                                                           /*const_okay=*/FALSE,
                                                           &temp_var)) {

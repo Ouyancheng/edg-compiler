@@ -2014,7 +2014,7 @@ typedef struct a_constant {
                            into target computer binary values.  Note that
                            two or more string constants may point to the
                            same string text. */
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       unsigned long
 		sequence_number;
 			/* A sequence number assigned to string literals used
@@ -2029,7 +2029,7 @@ typedef struct a_constant {
 			   the function in a program (e.g., extern inline
 			   functions and templates in certain
 			   configurations). */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     } string;
     /* When kind == ck_float: */
     an_internal_float_value

@@ -185,6 +185,27 @@ whether C99 IL extensions are supported, and that is only known here.
 #endif /* ifndef LONG_LONG_ALLOWED */
 
 /*
+Flag that is TRUE if the front end should assign sequence numbers to
+string literals in routines that might exist in multiple copies in a
+program (this is true of inline functions and may also be true of
+template instantiations in certain configurations).  This causes the
+assignment of a sequence number that can be used to uniquely identify
+a given string literal within a function.  The flag is TRUE by default in
+the IA-64 ABI.  Sequence numbers are not used by default in the extended
+cfront ABI, and should only be used there with caution as they make the use
+of string literals in inline functions much more expensive at runtime.
+This expense can be avoided in implementations with a true back end,
+but only with modifications to IL lowering and support in the back end.
+*/
+#ifndef ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+#if IA64_ABI
+#define ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS TRUE
+#else /* !IA64_ABI */
+#define ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS FALSE
+#endif /* IA64_ABI */
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+
+/*
 Alignment required of pointers to malloc'd space (i.e., the maximum
 alignment required by the host computer).  Use "1" if there are no
 alignment requirements.  This must be defined as an actual constant

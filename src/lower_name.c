@@ -6300,7 +6300,7 @@ be embedded in other mangled names.
 {
   a_mangling_control_block mctl;
   a_boolean                is_string = FALSE;
-  unsigned long            sequence_number;
+  unsigned long            sequence_number = 0;
 
   check_assertion(kind == iek_variable ||
                   kind == iek_constant ||
@@ -6316,6 +6316,7 @@ be embedded in other mangled names.
       if (name != NULL) {
         scp->name = name;
       }  /* if */
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
     } else if (scp->name == NULL) {
       /* This should be a variable created to represent a string literal
          (see rewrite_address_of_string_as_address_of_variable). */
@@ -6329,6 +6330,7 @@ be embedded in other mangled names.
       check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
       sequence_number = string_con->variant.string.sequence_number;
       check_assertion(sequence_number != 0);
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     }  /* if */
   }  /* if */
   /* Leave the name alone if the entity is unnamed. */
