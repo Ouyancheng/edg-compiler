@@ -4366,6 +4366,10 @@ is set to NULL.
         if (is_list) db_symbol(sym, "", 4);
         fund_sym = fundamental_symbol_of(sym);
         if (sym != fund_sym) db_symbol(fund_sym, "  fund_sym:", 4);
+        if (secondary_translation_unit_seen()) {
+          fprintf(f_debug, "   canonical ptr: %p\n",
+                  db_canonical_ptr_for_symbol(fund_sym));
+        }  /* if */
         if (is_list) fprintf(f_debug, "\n");
       }  /* for */
     }  /* for */

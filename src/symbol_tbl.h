@@ -3863,6 +3863,8 @@ extern char *db_symbol_trans_unit(a_symbol_ptr sym);
 
 extern void db_symbol_name_trans_unit(a_symbol_ptr sym);
 
+extern char *db_canonical_ptr_for_symbol(a_symbol_ptr	sym);
+
 /*
 Information used to gather performance statistics related to symbol
 table processing that needs to be externally visible.

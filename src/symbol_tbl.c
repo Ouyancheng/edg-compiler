@@ -6649,6 +6649,25 @@ for the given symbol.  Return NULL if there isn't one.
            NULL : source_corresp_for_il_entry(entity_ptr, entity_kind));
 }  /* source_corresp_entry_for_symbol */
 
+#if DEBUG
+
+char *db_canonical_ptr_for_symbol(a_symbol_ptr	sym_ptr)
+/*
+If "sym_ptr" has an associated IL entry, return the canonical entry associated
+with the IL entry; otherwise return NULL.
+*/
+{
+  char              *entity_ptr;
+  an_il_entry_kind  entity_kind;
+
+  entity_ptr = il_entry_for_symbol_null_okay(sym_ptr, &entity_kind);
+  if (entity_ptr != NULL) {
+    entity_ptr = canonical_il_entry_of(entity_ptr);
+  }  /* if */
+  return entity_ptr;
+}  /* db_canonical_ptr_for_symbol */
+#endif /* DEBUG */
+
 
 an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr)
 /*
