@@ -1,5 +1,13 @@
 Version 2.31
 
+11/18/95  il_to_str output of pointer-to-member type qualifier
+
+The il_to_str output of a class qualifier for a pointer to member, e.g.,
+"A::*", formerly used the wrong name output routine, which sometimes
+output an elaborated type specifier, as in "class A::*".  Now fixed.
+This is significant mainly when using the C++-generating back end
+(for everyone else, it's only an aesthetic problem).
+
 11/16/95  IL lowering: bug in processing of outside-of-parent definitions
           of classes in a namespace
 
