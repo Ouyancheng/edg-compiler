@@ -8703,7 +8703,7 @@ a prior error) just do the scan.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/TRUE);
   expr_stack_entry.is_default_arg_expression = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST,
