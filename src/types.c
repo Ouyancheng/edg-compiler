@@ -3611,19 +3611,15 @@ static a_boolean ttt_contains_template_param_constant(
   an_expr_node_ptr    count;
   a_template_arg_ptr  tap;
   a_boolean           found = FALSE;
+  a_constant_ptr      cp;
 
   if (is_array(type_ptr)) {
     if (type_ptr->variant.array.is_variable_size_array) {
       count = type_ptr->variant.array.variant.element_count_expr;
-      if (count->kind == (an_expr_node_kind)enk_constant &&
-          count->variant.constant->kind ==
-                                (a_constant_repr_kind)ck_template_param) {
-        if (specific_template_param_constant == NULL ||
-            expr_tree_contains_template_param_constant(
+      if (expr_tree_contains_template_param_constant(
                                         count,
                                         specific_template_param_constant)) {
-          *force_end_of_traversal = found = TRUE;
-        }  /* if */
+        found = TRUE;
       }  /* if */
     }  /* if */
   } else if (is_class_struct_union(type_ptr)) {
@@ -3642,18 +3638,33 @@ static a_boolean ttt_contains_template_param_constant(
            used -- e.g.,
              template <class T, int I> class A { B<I> *b; . . . };
            where the template argument for B<I> is template para constant I. */
-        if (tap->variant.constant->kind ==
-                               (a_constant_repr_kind)ck_template_param &&
-            (specific_template_param_constant == NULL ||
-             expr_tree_contains_template_param_constant(
-                                         count,
-                                         specific_template_param_constant))) {
-          *force_end_of_traversal = found = TRUE;
-          break;
+        cp = tap->variant.constant;
+        if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+          /* Only a ck_template_param constant can be or contain a template
+             param constant, and it must. */
+          if (specific_template_param_constant == NULL) {
+            /* Any template param constant will do. */
+            found = TRUE;
+          } else if (cp->variant.template_param.kind ==
+                        (a_template_param_constant_kind)tpck_expression) {
+            /* Look for a particular template param constant in the expression
+               tree. */
+            if (expr_tree_contains_template_param_constant(
+                                      cp->variant.template_param.variant.expr,
+                                      specific_template_param_constant)) {
+              found = TRUE;
+            }  /* if */
+          } else if (eq_constants(cp, specific_template_param_constant)) {
+            /* Just compare the constant entries. */
+            found = TRUE;
+          }  /* if */
+          /* Exit the loop once a match is found. */
+          if (found) break;
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* switch */
+  if (found) *force_end_of_traversal = TRUE;
   return found;
 }  /* ttt_contains_template_param_constant */
 
@@ -3894,7 +3905,10 @@ in the type tree represented by tp.
                                                TTT_PARAM_TYPES |
                                                TTT_TEMPLATE_ARGS);
 
+  /* This indicates that only a specific template param constant may be
+     found. */
   specific_template_param_constant = cp;
+  specific_template_param_type = NULL;
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
