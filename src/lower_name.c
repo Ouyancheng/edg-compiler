@@ -202,6 +202,41 @@ arg_done:;
 }  /* mangled_encoding_for_function_type */
 
 
+static sizeof_t mangled_encoding_for_function_qualifiers(a_type_ptr type,
+                                                         char       *store_at)
+/*
+Determine the mangled encoding for the type qualifiers (if any) on the
+member function type "type".  Place the encoded form at *store_at if
+store_at != NULL, and (always) return the length of the encoding.
+*/
+{
+  sizeof_t   mangled_name_length = 0;
+  a_type_ptr this_param_type;
+
+  type = skip_typerefs(type);
+  this_param_type = type->variant.routine.extra_info->implicit_this_param_type;
+  if (this_param_type != NULL) {
+    /* The function is a nonstatic member function. */
+    this_param_type = type_pointed_to(this_param_type);
+    /* Add any qualifiers on the "this" parameter type (actually, the type
+       pointed to by the "this" parameter). */
+    if (is_const_qualified_type(this_param_type)) {
+      mangled_name_length++;
+      if (store_at != NULL) *store_at++ = 'C';
+    }  /* if */
+    if (is_volatile_qualified_type(this_param_type)) {
+      mangled_name_length++;
+      if (store_at != NULL) *store_at++ = 'V';
+    }  /* if */
+  } else {
+    /* Static member function. */
+    mangled_name_length++;
+    if (store_at != NULL) *store_at++ = 'S';
+  }  /* if */
+  return mangled_name_length;
+}  /* mangled_encoding_for_function_qualifiers */
+
+
 static sizeof_t literal_representation(a_constant_ptr con,
                                        char           *store_at)
 /*
@@ -755,7 +790,7 @@ Determine the mangled encoding for the type "type".  Place the encoding at
 See ARM 7.2.1c for name encoding.
 */
 {
-  a_type_ptr named_type, named_typedef;
+  a_type_ptr named_type, named_typedef, pm_base_type;
   sizeof_t   mangled_name_length, section_length;
   char       *s;
   a_boolean  is_const, is_volatile;
@@ -870,8 +905,7 @@ See ARM 7.2.1c for name encoding.
         /* More of this below -- int[10] is put out as A10_i. */
         break;
       case tk_routine:
-        /* Function.  Put out the this-parameter-type (if any), "F",
-           and the argument types. */
+        /* Function.  Put out "F" and the argument types. */
         mangled_name_length = mangled_encoding_for_function_type(type,
                                                                  store_at);
         if (store_at != NULL) store_at += mangled_name_length;
@@ -916,10 +950,19 @@ See ARM 7.2.1c for name encoding.
                                                    store_at);
         mangled_name_length += section_length;
         if (store_at != NULL) store_at += section_length;
+        pm_base_type = type->variant.ptr_to_member.type;
+        if (is_function_type(pm_base_type)) {
+          /* This is a pointer to member function.  Put out the type qualifiers
+             (if any) on the member function type. */
+          section_length = mangled_encoding_for_function_qualifiers(
+                                                                  pm_base_type,
+                                                                  store_at);
+          mangled_name_length += section_length;
+          if (store_at != NULL) store_at += section_length;
+        }  /* if */
         /* Put out the type pointed to. */
-        mangled_name_length +=
-                    mangled_encoding_for_type(type->variant.ptr_to_member.type,
-                                              store_at);
+        mangled_name_length += mangled_encoding_for_type(pm_base_type,
+                                                         store_at);
         break;
       case tk_array:
         /* Put out the array size, an underscore, and then the element type,
@@ -1099,7 +1142,7 @@ types; just put out the base encoded name.
 {
   sizeof_t     mangled_name_length, section_length;
   char         *name;
-  a_type_ptr   class_type, conversion_type, routine_type, this_param_type;
+  a_type_ptr   class_type, conversion_type, routine_type;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
      but this routine handles:
@@ -1180,27 +1223,12 @@ types; just put out the base encoded name.
   }  /* if */
   if (!suppress_param_encoding) {
     if (class_type != NULL) {
-      /* Member function. */
-      this_param_type = routine_type->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-      if (this_param_type != NULL) {
-        /* The function is a nonstatic member function. */
-        this_param_type = type_pointed_to(this_param_type);
-        /* Add any qualifiers on the "this" parameter type (actually, the type
-           pointed to by the "this" parameter). */
-        if (is_const_qualified_type(this_param_type)) {
-          mangled_name_length++;
-          if (store_at != NULL) *store_at++ = 'C';
-        }  /* if */
-        if (is_volatile_qualified_type(this_param_type)) {
-          mangled_name_length++;
-          if (store_at != NULL) *store_at++ = 'V';
-        }  /* if */
-      } else {
-        /* Static member function. */
-        mangled_name_length += 1;
-        if (store_at != NULL) *store_at++ = 'S';
-      }  /* if */
+      /* Member function.  Put out the qualifiers on the member function
+         type. */
+      section_length = mangled_encoding_for_function_qualifiers(routine_type,
+                                                                store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
     }  /* if */
     /* Now output the function type, including the parameter types. */
     section_length = mangled_encoding_for_function_type(routine_type,
