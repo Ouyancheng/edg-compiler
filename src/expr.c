@@ -7616,6 +7616,56 @@ C++ mode.
 }  /* scan_new_array_dimension_expression */
 
 
+static a_boolean constant_references_non_external_entity(
+                                                       a_constant_ptr constant)
+/*
+Return TRUE if the indicated constant references a non-external entity,
+e.g., a local variable.
+*/
+{
+  a_boolean               refs_non_ext = FALSE;
+  a_source_correspondence *scp;
+
+  if (constant->kind == (a_constant_repr_kind)ck_address) {
+    /* An address constant.  See if the object referenced is external. */
+    /* Get a pointer to the source correspondence for the entity. */
+    switch (constant->variant.address.kind) {
+      case abk_routine:
+        scp = &constant->variant.address.variant.routine->source_corresp;
+        break;
+      case abk_variable:
+        scp = &constant->variant.address.variant.variable->source_corresp;
+        break;
+      case abk_constant:
+        scp = &constant->variant.address.variant.constant->source_corresp;
+        break;
+#if CHECKING
+      default:
+        internal_error(
+                  "constant_references_non_external_entity: bad address kind");
+#endif /* CHECKING */
+    }  /* switch */
+    if (scp->class_of_which_a_member != NULL) {
+      /* The entity is a class member.  If the class is a local class,
+         the entity is non-external.  Otherwise, the class will be forced
+         to be external by this reference. */
+      a_type_ptr class_type = scp->class_of_which_a_member;
+#if 0
+      /* Set flag to force the class to be external, when the flag gets
+         added. */
+#endif /* 0 */
+      if (class_type->source_corresp.is_local_to_function) refs_non_ext = TRUE;
+    } else {
+      /* Not a class member. */
+      refs_non_ext = (scp->name_linkage != (a_name_linkage_kind)nlk_external &&
+                      scp->name_linkage !=
+                                  (a_name_linkage_kind)nlk_cplusplus_external);
+    }  /* if */
+  }  /* if */
+  return refs_non_ext;
+}  /* constant_references_non_external_entity */
+
+
 void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                 a_constant *constant)
 /*
@@ -7667,6 +7717,12 @@ Return the constant in *constant.
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
     extract_constant_from_operand(&result, constant);
+    /* Make the sure that the constant does not use any local variables,
+       etc., since the template will be created at the file scope. */
+    if (constant_references_non_external_entity(constant)) {
+      pos_error(ec_nonexternal_entity_in_template_arg, &result.position);
+      set_error_constant(constant);
+    }  /* if */
   } else {
     /* Some error. */
     if (arg_summary.match_level == aml_error || is_error_operand(&result)) {

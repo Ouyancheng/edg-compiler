@@ -1792,6 +1792,9 @@ error code.
     case ec_initializer_list_for_empty_class_object:
       m = "initializer list for variable of empty %n is not allowed";
       break;
+    case ec_nonexternal_entity_in_template_arg:
+      m = "a template argument may not reference a non-external entity";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

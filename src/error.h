@@ -515,7 +515,8 @@ typedef enum /*an_error_code*/ {
   ec_not_a_tag_member,
   ec_ptr_to_member_typedef,
   ec_bad_use_of_ptr_to_member_typedef,
-  ec_initializer_list_for_empty_class_object
+  ec_initializer_list_for_empty_class_object,
+  ec_nonexternal_entity_in_template_arg
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
