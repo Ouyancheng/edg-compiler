@@ -6534,7 +6534,11 @@ to indicate whether an enumeration is actually defined.
                constraints) */
             if (!in_range_for_integer_kind(&constant, &constant,
                                            (an_integer_kind)ik_int)) {
-              if (!strict_ansi_mode &&
+              a_boolean		conversion_allowed = TRUE;
+              if (strict_ansi_mode) {
+                conversion_allowed = strict_ansi_error_severity != es_error;
+              }  /* if */
+              if (conversion_allowed &&
                   f_skip_typerefs(constant.type)->size <= TARG_SIZEOF_INT) {
                 /* In non-strict mode, allow unsigned constants that can be
                    coerced into an int. */
@@ -6544,9 +6548,10 @@ to indicate whether an enumeration is actually defined.
                                      /*constant_context=*/TRUE,
                                      &did_not_fold,
                                      &error_position);
-              } else {
-                error(ec_enum_value_out_of_int_range);
-                err = TRUE;
+              }  /* if */
+              if (strict_ansi_mode) {
+                diagnostic(strict_ansi_error_severity,
+                           ec_enum_value_out_of_int_range);
               }  /* if */
             }  /* if */
           }  /* if */

@@ -1,5 +1,12 @@
 Version 2.22
 
+2/22/94  Enum values larger than int in strict ANSI warning mode
+
+Examples such as this were incorrectly causing an error to be issued
+in -a mode where only a warning is appropriate.
+
+  enum E {ee = 0x80000001};
+
 2/22/94  static member function and inherited virtual function
 
 We now issue an error if a static member function seems to override a
