@@ -635,50 +635,53 @@ if there's no overflow TRUE is returned.
   /* Set the size and alignment for the field's type, if necessary. */
   field_type = skip_typerefs(field->type);
   set_type_size(field_type);
-  /* Check for a bit-field. */
-  if (field->bit_size != 0) {
-    if (field->bit_size == UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE) {
-      /* A special value was used to mark the field entry as representing
-         an unnamed zero-length bit field.  Restore bit_size to zero. */
-      field->bit_size = 0;
-      unnamed_zero_length_bit_field = TRUE;
-    }  /* if */
-    /* Do any necessary alignment for a bit-field. */
-    overflow = !align_offsets_for_bit_field((int)field->bit_size,
-                                            p_byte_offset, p_bit_offset,
-					    &field_alignment, field_type);
-  } else {
-    /* Do any necessary alignment for a normal field. */
-    field_alignment = field_type->alignment;
-    overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
-  }  /* if */
-  if (!overflow) {
-    /* Remember the most stringent alignment requirement as the alignment
-       requirement for the overall struct. */
-    if (field_alignment > *p_alignment) {
-      *p_alignment = field_alignment;
-    }  /* if */
-    /* Save the current byte_offset and bit_offset values.  The bit_offset
-       value for the field is not updated until after increment_field_offsets
-       is called because the latter performs overflow checking. */
-    save_byte_offset = *p_byte_offset;
-    save_bit_offset = *p_bit_offset;
-    /* Increment the current offsets to account for the field. */
-    if (field->bit_size != 0 || unnamed_zero_length_bit_field) {
-      /* For a bit-field. */
-      overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
-                                          (a_targ_size_t)0,
-			 		  (int)field->bit_size);
+  if (!is_error_type(field_type)) {
+    /* Check for a bit-field. */
+    if (field->bit_size != 0) {
+      if (field->bit_size == UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE) {
+        /* A special value was used to mark the field entry as representing
+           an unnamed zero-length bit field.  Restore bit_size to zero. */
+        field->bit_size = 0;
+        unnamed_zero_length_bit_field = TRUE;
+      }  /* if */
+      /* Do any necessary alignment for a bit-field. */
+      overflow = !align_offsets_for_bit_field((int)field->bit_size,
+                                              p_byte_offset, p_bit_offset,
+                                              &field_alignment, field_type);
     } else {
-      /* For a normal field. */
-      overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
-                                          (a_targ_size_t)field_type->size, 0);
+      /* Do any necessary alignment for a normal field. */
+      field_alignment = field_type->alignment;
+      overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
     }  /* if */
     if (!overflow) {
-      /* Now compute the field's bit offset within the struct.  We know the
-         sum will fit in the bit_offset field because increment_field_offsets
-         did not report overflow. */
-      field->bit_offset = (save_byte_offset * TARG_CHAR_BIT) + save_bit_offset;
+      /* Remember the most stringent alignment requirement as the alignment
+         requirement for the overall struct. */
+      if (field_alignment > *p_alignment) {
+        *p_alignment = field_alignment;
+      }  /* if */
+      /* Save the current byte_offset and bit_offset values.  The bit_offset
+         value for the field is not updated until after increment_field_offsets
+         is called because the latter performs overflow checking. */
+      save_byte_offset = *p_byte_offset;
+      save_bit_offset = *p_bit_offset;
+      /* Increment the current offsets to account for the field. */
+      if (field->bit_size != 0 || unnamed_zero_length_bit_field) {
+        /* For a bit-field. */
+        overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
+                                            (a_targ_size_t)0,
+                                            (int)field->bit_size);
+      } else {
+        /* For a normal field. */
+        overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
+                                           (a_targ_size_t)field_type->size, 0);
+      }  /* if */
+      if (!overflow) {
+        /* Now compute the field's bit offset within the struct.  We know the
+           sum will fit in the bit_offset field because increment_field_offsets
+           did not report overflow. */
+        field->bit_offset =
+                        (save_byte_offset * TARG_CHAR_BIT) + save_bit_offset;
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
