@@ -4213,12 +4213,6 @@ front of the list.
        btlmp != NULL;
        prev_btlmp = btlmp, btlmp = btlmp->next) {
     if (btlmp->kind == kind) {
-      /* When searching for a pointer-to-member type, also make sure that
-         the class is the right one.  (There may be several btk_ptr_to_member
-         entries on the list.)  The code here must work right even if
-         the class_of_which_a_member pointer in the pointer-to-member type
-         is NULL, because some strange pointers to members based on template
-         parameter types are eliminated by setting the class type to NULL. */
       if (kind != (a_based_type_kind)btk_ptr_to_member ||
           btlmp->based_type->variant.ptr_to_member.class_of_which_a_member
                                                         == class_type) {

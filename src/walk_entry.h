@@ -393,18 +393,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* DO_IL_LOWERING */
             break;
           case tk_ptr_to_member:
-            /* Some template param types leak out of the front end in
-               pointer-to-member types on the based types list.  Clear the
-               class pointer for such cases to avoid problems later.  This
-               of course makes an invalid pointer-to-member type, but we're
-               assuming the type is only used on the based types list, and
-               the find routine for the based types list will have no
-               problem with the null class pointer (i.e., it will never
-               choose it, but it won't abort). */
-            if (ptr->variant.ptr_to_member.class_of_which_a_member->kind ==
-                                              (a_type_kind)tk_template_param) {
-              ptr->variant.ptr_to_member.class_of_which_a_member = NULL;
-            }  /* if */
             remap_ptr(ptr->variant.ptr_to_member.class_of_which_a_member,
                       a_type_ptr, iek_type);
             walk_ptr(ptr->variant.ptr_to_member.type, a_type_ptr, iek_type);
