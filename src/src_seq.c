@@ -2162,9 +2162,9 @@ list.  This function performs that task.
        macros nor pragmas (and hence irrelevant in the global scope). */
     end = end->next;
     while (start != end) {
-      if (start->entity.kind != iek_macro &&
-          start->entity.kind != iek_pragma) {
-        drop_from_fs_src_seq_list(start);
+      if (start->entity.kind != (a_byte_il_entry_kind)iek_macro &&
+          start->entity.kind != (a_byte_il_entry_kind)iek_pragma) {
+        (void)drop_from_fs_src_seq_list(start);
         start = file_ssep;
       } else {
         file_ssep = start;
