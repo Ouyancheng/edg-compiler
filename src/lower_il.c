@@ -6657,7 +6657,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
       fprintf(f_debug, "common_lifetime:\n");
       db_object_lifetime(common_lifetime);
 #endif /* DEBUG */
-      unexpected_condition_str2("gen_goto_cleanup_actions: ",
+      unexpected_condition_str2("gen_goto_cleanup_actions:",
                        "curr_object_lifetime is NULL, common_lifetime is not");
     }  /* if */
 #endif /* CHECKING */
@@ -6675,7 +6675,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
           db_object_lifetime_stack();
 #endif /* DEBUG */
           unexpected_condition_str2(
-                                "gen_goto_cleanup_actions: common lifetime ",
+                                "gen_goto_cleanup_actions: common lifetime",
                                 "not found in curr lifetime parents");
         }  /* if */
 #endif /* CHECKING */
