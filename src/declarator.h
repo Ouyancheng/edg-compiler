@@ -54,7 +54,9 @@ that can appear in a declarator in Microsoft mode.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_declarator_keyword()                             \
-  (is_microsoft_calling_convention() || is_microsoft_memory_attribute())
+  (is_microsoft_calling_convention() ||                               \
+   is_microsoft_memory_attribute() ||                                 \
+   curr_token == tok_based)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_microsoft_declarator_keyword() FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
