@@ -1143,23 +1143,27 @@ typedef struct a_base_class {
 			   compatibility with AT&T's cfront is required. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   a_targ_size_t	pointer_offset;
-			/* If the base class is both directly inherited and
-			   virtual, the byte offset from the start of the
-			   current derived class to a pointer to the data
-			   section of the base class; otherwise undefined. */
+			/* If is_virtual is TRUE, the byte offset from the
+			   start of derived_class to a pointer to the data
+			   section of this virtual base class; otherwise
+			   undefined. */
   a_base_class_ptr
 		pointer_base_class;
-			/* If is_virtual is TRUE and direct is TRUE, a pointer
-			   to a base class containing a pointer to the data
-			   section for this virtual base class; NULL if the
-			   derived class has its own pointer to the virtual
-			   base class data section.  (In either case
-			   pointer_offset specifies the pointer's location.)
-			   The virtual base class pointer will be shared
-			   between the derived class and one of its base
-			   classes only when the derived class is both
-			   directly and indirectly derived from this virtual
-			   base class. */
+			/* If is_virtual is TRUE, a pointer to a another base
+			   class (direct or indirect) of derived_class, the
+			   data section of which contains the pointer to the
+			   data section for this virtual base class; NULL if
+			   the pointer to the data section for this virtual
+			   base class resides in derived_class itself (which
+			   is usually the case for direct virtual base classes
+			   and sometimes the case for indirect virtual base
+			   classes). This field is defined in conjunction with
+			   pointer_offset:  when pointer_base_class is NULL,
+			   pointer_offset specifies the offset of a pointer
+			   field to be allocated in derived_class itself;
+			   when pointer_base_class is non-NULL, pointer_offset
+			   specifies the offset (within derived_class) of a
+			   pointer field in the base class pointed to. */
   a_derivation_step_ptr
 		derivation;
 			/* Pointer to the "casting path" from derived_class
