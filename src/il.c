@@ -2603,14 +2603,29 @@ void set_integer_constant(a_constant      *cp,
                           an_integer_kind kind)
 /*
 Set the constant entry *cp to the integer constant given by value.
-Its integer kind is as given by kind.
+Its integer kind is as given by kind.  Note that the kind is not restricted
+to be a signed kind.
 */
 {
-  db_enter(5, "set_integer_constant");
   clear_constant(cp, (a_constant_repr_kind)ck_integer);
-  set_value_of_integer_constant(cp, value, integer_type(kind));
-  db_exit();
+  cp->type = integer_type(kind);
+  set_integer_value(&cp->variant.integer_value, value);
 }  /* set_integer_constant */
+
+
+void set_unsigned_integer_constant(a_constant      *cp,
+                                   unsigned long   value,
+                                   an_integer_kind kind)
+/*
+Set the constant entry *cp to the integer constant given by value.
+Its integer kind is as given by kind.  Note that the kind is not restricted
+to be an unsigned kind.
+*/
+{
+  clear_constant(cp, (a_constant_repr_kind)ck_integer);
+  cp->type = integer_type(kind);
+  set_unsigned_integer_value(&cp->variant.integer_value, value);
+}  /* set_unsigned_integer_constant */
 
 
 void make_zero_of_proper_type(a_type_ptr desired_type,

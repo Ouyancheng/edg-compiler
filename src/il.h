@@ -286,6 +286,10 @@ extern void set_integer_constant(a_constant      *cp,
                                  long            value,
                                  an_integer_kind kind);
 
+extern void set_unsigned_integer_constant(a_constant      *cp,
+                                          unsigned long   value,
+                                          an_integer_kind kind);
+
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);
 
