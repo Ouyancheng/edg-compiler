@@ -6642,10 +6642,12 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
                              opt
 */
 {
-  an_operand        operand;
-  a_source_position start_position;
-  a_boolean         err = FALSE, expr_present;
-  an_expr_node_ptr  node, throw_node;
+  an_operand         operand;
+  a_source_position  start_position;
+  a_boolean          err = FALSE, expr_present;
+  an_expr_node_ptr   node, throw_node;
+  a_dynamic_init_ptr dip;
+  a_type_ptr         throw_type;
 
   db_enter(4, "scan_throw_operator");
 
@@ -6692,22 +6694,40 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     /* Operator not allowed in this kind of expression. */
     make_error_operand(result);
   } else {
-    if (expr_present) {
-      /* There is a throw expression. */
-      do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-      node = make_node_from_operand(&operand);
-      /* Mark the type as having been used in an exception.  (Also, if it
-         "contains" any classes, they are marked as requiring external
-         linkage.) */
-      set_used_in_exception_flag(node->type);
-    } else {
-      /* There is no throw expression (i.e., this is a rethrow). */
-      node = NULL;
-    }  /* if */
     /* Build the throw node. */
     throw_node = alloc_expr_node((an_expr_node_kind)enk_throw);
     throw_node->type = void_type();
-    throw_node->variant.throw_object = node;
+    if (expr_present) {
+      /* There is a throw expression. */
+      if (is_class_struct_union_type(operand.type)) {
+        /* For a class type operand, generate a dynamic initalization that
+           copies the value to an undesignated location. */
+        throw_type = operand.type;
+        prep_elision_initializer_operand(&operand, operand.type, &dip);
+      } else {
+        /* For a nonclass operand, generate an expression and then make a
+           dynamic initialization entry for the expression. */
+        do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+        node = make_node_from_operand(&operand);
+        throw_type = node->type;
+        dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_expression,
+                                      throw_type,
+                                      curr_expr_is_evaluated(),
+                                      /*in_return_by_cctor_expression=*/FALSE,
+                                      &operand.position);
+        dip->variant.expression = node;
+      }  /* if */
+      throw_node->variant.throw_info->dynamic_init = dip;
+      throw_node->variant.throw_info->type = throw_type;
+      /* Mark the type as having been used in an exception.  (Also, if it
+         "contains" any classes, they are marked as requiring external
+         linkage.) */
+      set_used_in_exception_flag(throw_type);
+    } else {
+      /* There is no throw expression (i.e., this is a rethrow). */
+      /* Discard the throw supplement. */
+      throw_node->variant.throw_info = NULL;
+    }  /* if */
     /* Make an operand for the result. */
     make_expression_operand(throw_node, throw_node->type, result);
   }  /* if */
