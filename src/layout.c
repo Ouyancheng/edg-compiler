@@ -4423,6 +4423,16 @@ of nonzero size (such classes actually have size zero).
     for (field = type->variant.class_struct_union.field_list;
          field != NULL; 
          field = field->next) {
+#if GNU_EXTENSIONS_ALLOWED
+      if (gpp_mode) {
+        /* Zero-length array fields do not make a GNU C++ class non-empty. */
+        a_type_ptr  field_type = skip_typerefs(field->type);
+        if (field_type->kind == (a_type_kind)tk_array &&
+            field_type->variant.array.bound_is_zero) {
+          continue;
+        }  /* if */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (!field->is_bit_field || field->bit_size != 0) {
         result = FALSE;
         break;
@@ -4533,6 +4543,39 @@ into the base classes of class_type.
 }  /* compute_primary_base_classes */
 
 #endif /* IA64_ABI */
+
+static a_boolean gnu_zero_length_array_subobjects_only(a_type_ptr  type)
+/*
+Return TRUE if the given class type has no base classes and only zero-length
+array fields; return FALSE otherwise.  (Such classes are sometimes given
+size zero by GNU C++ compilers.)
+*/
+{
+  a_boolean    result = TRUE;
+  a_field_ptr  fp;
+
+  type = skip_typerefs(type);
+  fp = type->variant.class_struct_union.field_list;
+  if (fp == NULL) {
+    /* At least one zero-length array field must be present. */
+    result = FALSE;
+  } else {
+    for (; fp != NULL; fp = fp->next) {
+      if (!is_array_type(fp->type) ||
+          skip_typerefs(fp->type)->size != 0) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (result && type->variant.class_struct_union.extra_info != NULL &&
+      base_classes_of(type) != NULL) {
+    /* If the class has base classes, return FALSE. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* gnu_zero_length_array_subobjects_only */
+
 
 void do_class_layout(a_type_ptr  class_type)
 /*
@@ -4737,7 +4780,8 @@ for handling virtual bases and functions.
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    if (!gcc_mode) {
+    if (!(gcc_mode ||
+          (gpp_mode && gnu_zero_length_array_subobjects_only(class_type)))) {
       class_type->size = 1;
     }  /* if */
   }  /* if */
@@ -4759,9 +4803,9 @@ set_size_for_complete_object:
   /* The alignment for the class is (by definition) no less than
      targ_minimum_struct_alignment, but its size may have been computed to be
      smaller (e.g., for an empty class).  Adjust the size if appropriate. */
-  if (gcc_mode && class_type->size == 0) {
-    /* This rule does not apply to empty GNU C structs and unions (even if
-       the alignment was set explicitly). */
+  if (class_type->size == 0 && gnu_mode) {
+    /* This rule does not apply to empty GNU C structs and unions (even if the
+       alignment was set explicitly), nor to certain GNU C++ class types. */
   } else if (class_type->size < class_type->alignment) {
     class_type->size = class_type->alignment;
 #if TARG_PAD_ALLOCATED_EMPTY_BASE

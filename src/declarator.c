@@ -2397,13 +2397,18 @@ expression can be a multiple of the special UPC THREADS constant.
         /* Normal constant bound. */
         (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                               num_of_elements;
-        if (((gnu_mode && is_constant_bound) ||
-             (gpp_mode && top_level_field_decl)) &&
-             num_of_elements == 0) {
-          /* Record the fact that we saw a GNU C zero-length array.  GNU C++
-             compilers treat flexible array members ([]) as zero-length arrays
-             ([0]). */
-          (*new_type_ptr)->variant.array.bound_is_zero = TRUE;
+        if (num_of_elements == 0) {
+          /* [] or [0]. */
+          if ((gnu_mode && is_constant_bound) ||
+              (gpp_mode && top_level_field_decl)) {
+            /* Record the fact that we saw a GNU C zero-length array.  GNU C++
+               compilers treat flexible array members ([]) as zero-length
+               arrays ([0]). */
+            (*new_type_ptr)->variant.array.bound_is_zero = TRUE;
+          } else {
+            /* A normal incomplete array type ([]). */
+            (*new_type_ptr)->is_incomplete = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       switch_back_to_original_region(region_to_switch_back_to);
