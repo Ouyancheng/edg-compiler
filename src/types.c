@@ -2043,10 +2043,6 @@ and a diagnostic is issued (unless suppress_error is TRUE).
     elem_type = skip_typerefs(elem_type);
     if (is_array_type(elem_type)) {
       set_type_size(elem_type);
-    } else if (is_abstract_class_type(elem_type)) {
-      /* error_position should already be set correctly. */
-      report_abstract_class_error(ec_array_of_abstract_class, elem_type,
-                                  &error_position);
     }  /* if */
     /* Determine whether the array is now complete.  (Note that, in somewhat
        unusual cases, this may turn a previously complete array type back

@@ -4568,6 +4568,15 @@ function_lparen:
     add_to_derived_type_list(complete_type,
                              &derived_type, &bottom_derived_type,
                              (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
+    if (is_array_type(derived_type) && is_abstract_class_type(complete_type)) {
+      /* An array type cannot have its element type be an abstract class type.
+         An exception in some modes are parameter type (since they are always
+         transformed into pointer types). */
+      if (!((input_flags & DI_IS_PARAMETER_DECL) && gpp_mode)) {
+        report_abstract_class_error(ec_array_of_abstract_class, complete_type,
+                                    &declarator_pos);
+      }  /* if */
+    }  /* if */
     complete_type = derived_type;
   } else {
     if (derived_type != NULL) complete_type = derived_type;
