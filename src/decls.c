@@ -6514,33 +6514,67 @@ continue_with_declaration:
             { ... }
       */
       error(ec_decl_should_be_of_param);
-    } else {
-      /* The specifiers should have declared something or this declaration
-         is pointless.  An example would be
-            int ;
-         An example of a useful declaration with a null declarator is
-            struct x {int a;};
-         since it declares something (namely x). */
-      if (!declares_something) {
-        if (C_dialect == C_dialect_cplusplus && defines_something &&
-            type_ptr->kind == (a_type_kind)tk_union &&
-            storage_class != (a_storage_class)sc_typedef) {
+    } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
+               defines_something && type_ptr->kind == (a_type_kind)tk_union &&
+               storage_class != (a_storage_class)sc_typedef) {
+      /* Special C++ case:  the declaration of an anonymous union.   Do the
+         required error checking and special processing, including creation
+         of a variable which will represent the anonymous union and with
+         which its fields will be aliased. */
 #if CHECKING
-          if (!is_unnamed_class_symbol(
-                        (a_symbol_ptr)(type_ptr->source_corresp.assoc_info))) {
-            internal_error("declaration: nameless symbol expected");	
-          }  /* if */
+      if (!is_unnamed_class_symbol(
+                       (a_symbol_ptr)(type_ptr->source_corresp.assoc_info))) {
+        internal_error("declaration: nameless symbol expected");	
+      }  /* if */
 #endif /* CHECKING */
-          /* Special C++ case:  the declaration of an anonymous union.   Do
-             the required error checking and special processing, including the
-             creation of a variable to represent the anonymous union and with
-             which its fields will be aliased. */
-          make_anonymous_union_variable(type_ptr, storage_class);
+      make_anonymous_union_variable(type_ptr, storage_class);
+    } else {
+      if (storage_class == (a_storage_class)sc_typedef) {
+        set_err_pos_to_curr_token();
+        if (C_dialect == C_dialect_cplusplus) {
+          error(ec_missing_typedef_name);
         } else {
+          warning(ec_missing_typedef_name);
+        }  /* if */
+      } else if (!declares_something) {
+        if (defines_something &&
+            (storage_class != (a_storage_class)sc_unspecified ||
+             is_qualified_type(type_ptr))) {
+          set_err_pos_to_curr_token();
+          if (C_dialect == C_dialect_cplusplus) {
+            error(ec_missing_object_name);
+          } else {
+            warning(ec_missing_object_name);
+          }  /* if */
+        } else {
+          /* The specifiers should have declared something or this declaration
+             is pointless.  An example would be
+                int ;
+             An example of a useful declaration with a null declarator is
+                struct x {int a;};
+             since it declares something (namely x). */
           /* ANSI probably thinks of this as an error, but that seems a bit
              extreme, so we make it a warning.  pcc allows this, so the most
              we can issue in that case is a warning. */
           warning(ec_useless_decl);
+        }  /* if */
+      } else {
+        /* Since declares_something is TRUE, this must be a class, struct,
+           union, or enum declaration.  A storage class or qualifier is not
+           allowed. */
+        if (storage_class != (a_storage_class)sc_unspecified) {
+          if (C_dialect == C_dialect_cplusplus) {
+            error(ec_storage_class_not_allowed);
+          } else {
+            warning(ec_storage_class_not_allowed);
+          }  /* if */
+        }  /* if */
+        if (is_qualified_type(type_ptr)) {
+          if (C_dialect == C_dialect_cplusplus) {
+            error(ec_const_volatile_not_allowed);
+          } else {
+            warning(ec_const_volatile_not_allowed);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
