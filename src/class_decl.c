@@ -6653,6 +6653,9 @@ Update the flags in the class symbol supplement accordingly.
 }  /* check_member_decl_is_copy_constructor */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes and asm_name are not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_type_ptr              class_type,
                                  a_type_ptr              member_type,
@@ -7544,6 +7547,9 @@ unnamed class.
 }  /* is_or_is_nested_within_unnamed_class */
     
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes and asm_name are not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_type_ptr              class_type,
                                     a_type_ptr              member_type,
