@@ -1457,6 +1457,19 @@ issue an error if a default argument expression is encountered.
     stop_token_array[(int)tok_assign] = t2;
   }
   remove_stop_token(tok_rparen);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* If this function type was declared with an ellipsis, its calling
+       convention is required to be __cdecl.  If this isn't already the
+       default for the compilation, set it in the type.  (Ordinarily, the
+       setting in the type reflects an explicit specification of the calling
+       convention.) */
+    if (extra_info->has_ellipsis &&
+        default_calling_convention != (a_calling_convention)cc_cdecl) {
+      extra_info->calling_convention = (a_calling_convention)cc_cdecl;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
     a_type_qualifier_set  qualifiers;
@@ -1774,8 +1787,9 @@ information.  Otherwise, determine whether the calling convention
 information should be ignored or if an error should be issued.
 */
 {
-  a_calling_convention	calling_convention;
-  a_boolean		discard = FALSE;
+  a_calling_convention           calling_convention;
+  a_boolean                      discard = FALSE;
+  a_routine_type_supplement_ptr  rtsp;
 
   calling_convention = p_calling_convention->call_conv;
   if (*type == NULL) {
@@ -1803,7 +1817,20 @@ information should be ignored or if an error should be issued.
         pos_error(ec_calling_convention_not_allowed, decl_pos);
       } else {
         check_assertion(tp->kind == (a_type_kind)tk_routine);
-        tp->variant.routine.extra_info->calling_convention= calling_convention;
+        rtsp = tp->variant.routine.extra_info;
+        if (rtsp->has_ellipsis) {
+          /* Calling convention for functions with variable argument lists
+             is always __cdecl.  Whether or not __cdecl was explicitly
+             specified, add it to the type. */
+          rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+          if (calling_convention != (a_calling_convention)cc_cdecl) {
+            /* Issue a diagnostic to indicate that whatever was explicitly
+               specified is being ignored. */
+            discard = TRUE;
+          }  /* if */
+        } else {
+          rtsp->calling_convention = calling_convention;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
