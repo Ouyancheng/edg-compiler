@@ -4743,6 +4743,7 @@ characters should be put out separately (to initialize a substring, probably).
           /* Need to generate some zeros to skip some initialization.  For
              a tk_farray, each zero initializes one array element; for an
              association, each zero initializes one byte. */
+          start_initializer_constants();
           if (type->kind == (a_type_kind)tk_farray) {
             num_zeros /= elem_type->size;
             /* If initializing complex elements, we need two zeros per
