@@ -1313,6 +1313,10 @@ typedef struct a_template_instance {
 			   sequence entry is generated to record the declared
 			   type.)  NULL when default arg fixup is not
 			   appropriate. */
+  a_param_id_ptr
+		param_id_list;
+			/* List of entries giving parameter names, NULL if
+			   there were none. */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		partial_instantiation;

@@ -1,5 +1,18 @@
 Version 2.44
 
+2/8/00   Accurate declared_type for parameters of template functions
+
+The declared_type field of parameter variables in the IL definitions of
+template functions is now set correctly.  Previously, the decayed type
+was recorded instead.
+
+  template <class T> T f(T a[10]) { return a[0]; }
+  main() {
+    int x[10] = { 0 };
+    int i = f(x); // IL for f<int> definition now has variable "a" with
+                  // declared_type int[10]; previously: int*
+  }
+
 2/8/00   IL lowering: unnecessary temporaries in generated code
 
 In some cases, IL lowering used more temporaries than required.  This

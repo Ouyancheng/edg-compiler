@@ -6391,6 +6391,11 @@ type based on the template argument list and the template parameter list
       /* Set the declared type immediately, before the func_info block is
          discarded. */
       tip->declared_type = form_declared_type(rout_type, &func_info);
+      /* Also save the parameter-id list to later reconstruct the declared
+         types of parameters for the associated parameter variables. */
+      tip->param_id_list = func_info.param_id_list;
+      /* Clear the func_info field to prevent deallocation: */
+      func_info.param_id_list = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       done_with_func_info(func_info);
 #if DECL_MODIFIERS_IN_USE
