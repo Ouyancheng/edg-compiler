@@ -221,10 +221,6 @@ static a_boolean
 			   that will be defined later.  This is used to check
 			   that processing of prototype scope types was done
 			   correctly. */
-static unsigned long
-		processing_prototyped_func_declarator;
-			/* != 0 while processing a prototyped function
-			   declarator. */
 #endif /* CHECKING */
 
 /*
@@ -1735,14 +1731,13 @@ cases the definition of the type is generated (rather than just a reference).
 {
   /* The size != 0 check is to avoid problems with structs for which there
      is no definition. */
-  if (!type->definition_put_out && type->size != 0) {
+  if (type->declared_in_function_prototype &&
+      !type->definition_put_out && type->size != 0) {
     /* Put out the definition on the first use if it has not yet been
        put out.  This happens inside function prototypes that aren't
        simply part of function declarations, e.g.,
          typedef int (*f)(struct A {int i;} p);
     */
-    check_assertion_str(processing_prototyped_func_declarator,
-                        "dump_tag_use: tag type used before definition");
     /* Types inside function prototypes attached to function definitions
        are supposed to get put out outside the function declaration. */
     check_assertion_str(!processing_declaration_of_defined_function,
@@ -1969,7 +1964,6 @@ is non-NULL, in which case that is the function scope.
     }  /* if */
   } else {
     /* Prototyped list. */
-    processing_prototyped_func_declarator++;
 #if !C_GEN_BE_GENERATES_ANSI_C
     /* This is not the definition of the function.  If we're not writing
        annotations, there's nothing to put out.  If we are, everything
@@ -2028,7 +2022,6 @@ is non-NULL, in which case that is the function scope.
       end_comment();
     }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-    processing_prototyped_func_declarator--;
   }  /* if */
   write_tok_ch(')');
 }  /* dump_function_declarator */
@@ -5175,9 +5168,7 @@ if this routine has a body (dump nothing if it has no body).
 #if CHECKING
       /* If the routine has a definition, set a flag to allow checking that
          all prototype scope types were dumped out ahead of time. */
-      if (has_defn) {
-        processing_declaration_of_defined_function = TRUE;
-      }  /* if */
+      if (has_defn) processing_declaration_of_defined_function = TRUE;
 #endif /* CHECKING */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
 #if CHECKING
@@ -5486,7 +5477,6 @@ Initialize for the C-generating back end.
   curr_function_scope = NULL;
 #if CHECKING
   processing_declaration_of_defined_function = FALSE;
-  processing_prototyped_func_declarator = 0;
 #endif /* CHECKING */
 }  /* init_c_gen_be */
 
