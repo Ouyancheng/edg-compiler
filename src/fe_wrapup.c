@@ -352,6 +352,15 @@ already been copied over.
       fix_type_list_ordering_problems();
     }  /* if */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
+#if DO_IL_LOWERING
+    if (il_lowering_needed()) {
+      /* Do final name mangling, which can make names that can no longer
+         be embedded in other names, and therefore must be done very late.
+         In particular, it must be done after
+         make_statics_referenced_from_instantiations_external. */
+      do_final_name_mangling();
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     /* Check for memory regions that were not written out but now should
        be.  Among other things, this deals with functions that have
        keep_definition_in_il set but not definition_needed, and inline

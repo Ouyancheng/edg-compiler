@@ -11634,7 +11634,7 @@ with the outermost enclosing class, for later promotion out of the class
 #endif /* DEBUG */
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&type->source_corresp, /*is_type=*/TRUE,
+      mangle_promoted_entity_name(&type->source_corresp, /*final=*/FALSE,
                                   routine, scope);
       /* The is_local_to_function flag in the type is not cleared yet.  That
          happens at the end of lowering. */
@@ -11666,7 +11666,7 @@ with the outermost enclosing class, for later promotion out of the class
              enum_con != NULL;
              enum_con = enum_con->next) {
           mangle_promoted_entity_name(&enum_con->source_corresp,
-                                      /*is_type=*/FALSE, routine, scope);
+                                      /*final=*/TRUE, routine, scope);
           enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
       }  /* if */
@@ -11706,7 +11706,7 @@ scope that is part of the indicated routine) to the file scope.
       scope->variables = variable->next;
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&variable->source_corresp, /*is_type=*/FALSE,
+      mangle_promoted_entity_name(&variable->source_corresp, /*final=*/FALSE,
                                   routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
 #if LOWER_EXTERN_INLINE
@@ -12713,6 +12713,10 @@ files can reference it.
   { a_boolean dummy;
     if (scp->name_has_been_mangled) {
       /* Okay, mangling already done. */
+      /* Compression and truncation shouldn't have been done already,
+         however. */
+      check_assertion_str(!scp->mangled_name_cannot_be_included_in_other_name,
+              "externalize_source_correspondence: mangled name already final");
     } else if (is_variable ?
                            variable_name_mangling_needed((a_variable_ptr)scp) :
                            function_name_mangling_needed((a_routine_ptr)scp,

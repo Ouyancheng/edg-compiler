@@ -84,7 +84,7 @@ extern char *mangled_id_object_name(a_type_ptr type);
 #if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
-                                        a_boolean               is_type,
+                                        a_boolean               final,
                                         a_routine_ptr           routine,
                                         a_scope_ptr             scope);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
@@ -100,6 +100,8 @@ extern void mangle_covariant_return_type_entry_name(
 extern void do_class_name_mangling(void);
 
 extern void do_all_name_mangling(void);
+
+extern void do_final_name_mangling(void);
 
 extern void name_lower_one_time_init(void);
 

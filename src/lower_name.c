@@ -2965,7 +2965,10 @@ variable.
       variable_name_mangling_needed(variable)) {
     start_mangling(&mctl);
     mangled_member_variable_name(variable, &mctl);
-    (void)end_mangling(&variable->source_corresp, /*final=*/TRUE, &mctl);
+    /* Note final=FALSE to prevent compression and truncation at this
+       time, in case the name is externalized later.  do_final_name_mangling
+       will do the compression or truncation if necessary. */
+    (void)end_mangling(&variable->source_corresp, /*final=*/FALSE, &mctl);
   }  /* if */
 }  /* mangle_member_variable_name */
 
@@ -3038,6 +3041,23 @@ the orphan lists for function-local entities are also processed.
     }  /* for */
   }  /* if */
 }  /* do_scope_other_name_mangling */
+
+
+void do_all_name_mangling(void)
+/*
+Do any required name mangling.  This is called at the beginning of lowering of
+the file scope.  It processes everything in the file scope and also
+function-local entities that require mangling (they are accessed through the
+orphan lists).  Final name mangling is not done yet -- see
+do_final_name_mangling.
+*/
+{
+  /* Mangle class names, not including final mangling on type names. */
+  do_class_name_mangling();
+  /* Do function, namespace, and static data member name mangling, not
+     including some final mangling. */
+  do_scope_other_name_mangling(il_header.primary_scope);
+}  /* do_all_name_mangling */
 
 
 static void final_entity_name_mangling(a_source_correspondence *scp)
@@ -3123,7 +3143,8 @@ static void do_scope_final_name_mangling(a_scope_ptr scope);
 static void do_type_list_final_name_mangling(a_type_ptr type_list)
 /*
 Do final name mangling for the types on the indicated type list
-and subscopes thereunder.  Functions in the subscopes are also processed.
+and subscopes thereunder.  Functions and variables in the subscopes are
+also processed.
 */
 {
   a_type_ptr  type;
@@ -3158,13 +3179,14 @@ and subscopes thereunder.  Functions in the subscopes are also processed.
 
 static void do_scope_final_name_mangling(a_scope_ptr scope)
 /*
-Do final name mangling for all type and function names in the indicated
-scope (a file, namespace, or class scope) and all subscopes in the
+Do final name mangling for all type, function, and variable names in the
+indicated scope (a file, namespace, or class scope) and all subscopes in the
 file-scope memory region.
 */
 {
   a_namespace_ptr nsp;
   a_routine_ptr   routine;
+  a_variable_ptr  variable;
 
   /* Process the types in the scope. */
   do_type_list_final_name_mangling(scope->types);
@@ -3178,15 +3200,21 @@ file-scope memory region.
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     final_entity_name_mangling(&routine->source_corresp);
   }  /* for */
+  /* Visit all variables. */
+  for (variable = scope->variables;
+       variable != NULL;
+       variable = variable->next) {
+    final_entity_name_mangling(&variable->source_corresp);
+  }  /* for */
 }  /* do_scope_final_name_mangling */
 
 
-static void do_final_name_mangling(void)
+void do_final_name_mangling(void)
 /*
-Do final name mangling for all type and function names.  This must be done
-separately from and later than normal name mangling because the simple form
-of the name must remain available for use in mangled names (e.g.,
-virtual function table variable names).
+Do final name mangling for all type, function, and variable names.  This
+must be done separately from and later than normal name mangling because
+the simple form of the name must remain available for use in mangled names
+(e.g., virtual function table variable names).
 */
 {
   a_scope_orphaned_list_header_ptr solhp;
@@ -3201,26 +3229,6 @@ virtual function table variable names).
     do_type_list_final_name_mangling(solhp->orphaned_types);
   }  /* for */
 }  /* do_final_name_mangling */
-
-
-void do_all_name_mangling(void)
-/*
-Do any required name mangling.  This is called at the beginning of lowering of
-the file scope.  It processes everything in the file scope and also
-function-local entities that require mangling (they are accessed through the
-orphan lists).
-*/
-{
-  /* Mangle class names, not including final mangling on type names. */
-  do_class_name_mangling();
-  /* Do function, namespace, and static data member name mangling. */
-  do_scope_other_name_mangling(il_header.primary_scope);
-  /* Do final mangling on type names, but only in the primary
-     translation unit. */
-  if (is_primary_translation_unit) {
-    do_final_name_mangling();
-  }  /* if */
-}  /* do_all_name_mangling */
 
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
 
@@ -3622,7 +3630,7 @@ returned.
 
 
 void mangle_promoted_entity_name(a_source_correspondence *scp,
-                                 a_boolean               is_type,
+                                 a_boolean               final,
                                  a_routine_ptr           routine,
                                  a_scope_ptr             scope)
 /*
@@ -3630,7 +3638,9 @@ scp points to the source correspondence field of an entity that is being
 promoted out of the routine "routine" (or one of its block scopes) to
 the file scope.  scope indicates the scope out of which the entity is
 being promoted (a function or block scope).  Give the entity a mangled
-name if necessary.  If is_type is TRUE, the entity is a type.
+name if necessary.  If final is TRUE, do the final name mangling,
+which may produce a name that can no longer be embedded in other
+mangled names.
 */
 {
   a_mangling_control_block mctl;
@@ -3677,7 +3687,7 @@ name if necessary.  If is_type is TRUE, the entity is a type.
                               &mctl);
       }  /* if */
     }  /* if */
-    (void)end_mangling(scp, /*final=*/!is_type, &mctl);
+    (void)end_mangling(scp, final, &mctl);
   }  /* if */
 }  /* mangle_promoted_entity_name */
 
