@@ -2044,29 +2044,9 @@ pointers-to-members).
             use_comdat = TRUE;
           } else {
             if (type->source_corresp.is_local_to_function) {
-              a_routine_ptr enclosing_routine = NULL;
-              /* For members of local classes, go up through all the containing
-                 classes to get to the class declared directly in the
-                 function. */
-              while (type->source_corresp.is_class_member) {
-                type = type->source_corresp.parent.class_type;
-              }  /* while */
-              /* For an enum or class, see what function the type is
-                 declared in. */
-              if (is_enum_type(type)) {
-                a_symbol_ptr enum_sym =
-                                 (a_symbol_ptr)type->source_corresp.assoc_info;
-                check_assertion(enum_sym != NULL);
-                enclosing_routine = enum_sym->variant.enumeration.extra_info
-                                                           ->enclosing_routine;
-                check_assertion(enclosing_routine != NULL);
-              } else if (is_immediate_class_type(type)) {
-                enclosing_routine =
-                          symbol_supplement_for_class(type)->enclosing_routine;
-                check_assertion(enclosing_routine != NULL);
-              }  /* if */
-              if (enclosing_routine != NULL &&
-                  routine_might_exist_in_multiple_copies(enclosing_routine)) {
+              a_routine_ptr enclosing_routine =
+                                        enclosing_routine_for_local_type(type);
+              if (routine_might_exist_in_multiple_copies(enclosing_routine)) {
                 use_comdat = TRUE;
               }  /* if */
             } /* if */

@@ -1034,24 +1034,7 @@ type is a local type.  Output the prefix indicating the routine containing
 the type, for the IA-64 ABI.
 */
 {
-  a_routine_ptr  enclosing_routine;
-
-  check_assertion(type->source_corresp.is_local_to_function);
-  /* For members of local classes, go up through all the containing
-     classes to get to the class declared directly in the function. */
-  while (type->source_corresp.is_class_member) {
-    type = type->source_corresp.parent.class_type;
-  }  /* while */
-  /* Get the surrounding function. */
-  if (is_enum_type(type)) {
-    a_symbol_ptr  enum_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-    check_assertion(enum_sym != NULL);
-    enclosing_routine = enum_sym->variant.enumeration.extra_info
-                                ->enclosing_routine;
-  } else {
-    check_assertion(is_immediate_class_type(type));
-    enclosing_routine = symbol_supplement_for_class(type)->enclosing_routine;
-  }  /* if */
+  a_routine_ptr enclosing_routine = enclosing_routine_for_local_type(type);
   add_prefix_for_local_entity(enclosing_routine, mctl);
 }  /* add_prefix_for_local_type */
 
@@ -3205,8 +3188,8 @@ should be put out.
       !type->source_corresp.is_class_member) {
     /* This is a local name. */
     a_class_symbol_supplement_ptr ssp = symbol_supplement_for_class(type);
-    add_local_name_suffix(ssp->local_class_number, ssp->enclosing_routine,
-                          mctl);
+    a_routine_ptr enclosing_routine = enclosing_routine_for_local_type(type);
+    add_local_name_suffix(ssp->local_class_number, enclosing_routine, mctl);
   }  /* if */
 #else /* IA64 */
   add_discriminator_if_necessary(&type->source_corresp, mctl);

@@ -1,5 +1,16 @@
 Version 3.2
 
+4/3/03   Abort in r_mangled_parent_qualifier, with exported templates
+
+In come complicated test cases involving exported templates,
+the front end aborted in r_mangled_parent_qualifier
+("parent class has no body").  This came up during name mangling
+for a local class used in a typeid, when the reference is
+in a secondary translation unit and some combination of
+circumstances causes the local class to be needed in the
+secondary translation unit while the enclosing inline function's
+body is not.  Now fixed.
+
 4/3/03   Internal error when using insert_string_into_token_stream
 
 A problem with insert_string_into_token_stream could result in an

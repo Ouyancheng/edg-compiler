@@ -14592,6 +14592,40 @@ with the outermost enclosing class, for later promotion out of the class
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
+a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type)
+/*
+Given a function-local type, return a pointer to the outermost
+function that encloses it.
+*/
+{
+  a_routine_ptr enclosing_routine;
+
+  check_assertion(type->source_corresp.is_local_to_function);
+  /* For members of local classes, go up through all the containing
+     classes to get to the class declared directly in the function. */
+  while (type->source_corresp.is_class_member) {
+    type = type->source_corresp.parent.class_type;
+  }  /* while */
+  /* Get the surrounding function. */
+  if (is_enum_type(type)) {
+    a_symbol_ptr enum_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    check_assertion(enum_sym != NULL);
+    enclosing_routine = enum_sym->variant.enumeration.extra_info
+                                                           ->enclosing_routine;
+  } else {
+    check_assertion(is_immediate_class_type(type));
+    enclosing_routine = symbol_supplement_for_class(type)->enclosing_routine;
+  }  /* if */
+  check_assertion(enclosing_routine != NULL);
+  /* A local type copied from a secondary translation unit still points
+     to a symbol from the secondary translation unit, which means that
+     the routine it points to is also in a secondary translation unit.
+     Remap it to the canonical routine. */
+  enclosing_routine = (a_routine_ptr)canonical_il_entry_of(enclosing_routine);
+  return enclosing_routine;
+}  /* enclosing_routine_for_local_type */
+
+
 static a_boolean is_or_will_be_extern_inline(a_routine_ptr routine)
 /*
 Return TRUE if the indicated function is or will be extern inline.
@@ -14619,12 +14653,12 @@ is instantiated in every translation unit that uses it.
 
   /* For member functions of local classes, move out to the ultimate
      enclosing function. */
-  while (rout->source_corresp.is_local_to_function) {
+  if (rout->source_corresp.is_local_to_function) {
     check_assertion(rout->source_corresp.is_class_member &&
                     !rout->is_template_function);
-    rout = symbol_supplement_for_class(
-                    rout->source_corresp.parent.class_type)->enclosing_routine;
-  }  /* while */
+    rout = enclosing_routine_for_local_type(
+                                       rout->source_corresp.parent.class_type);
+  }  /* if */
   if (!C_mode() && is_or_will_be_extern_inline(rout)) {
     /* An extern inline routine might be expanded in more than one
        translation unit.  This might be true even if extern inline
