@@ -6590,7 +6590,7 @@ qualified name.
   a_boolean            		might_be_qualifier;
   a_token_kind         		qualifier_separator = tok_colon_colon;
   a_boolean                     qualifier_is_type = TRUE;
-  a_boolean			qualifier_type_is_class;
+  a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace;
   a_token_sequence_number	start_seq_number;
 
@@ -6844,6 +6844,7 @@ qualified name.
           }  /* if */
           qualifier_is_type = TRUE;
           qualifier_type = NULL;
+          qualifier_type_is_class = FALSE;
         } else {
           /* Record the reference on the symbol. */
           mark_referenced(qualifier_sym, &pos_curr_token);
@@ -7004,7 +7005,8 @@ qualified name.
 	(e.g., int::~int). */
      is_nonclass_dtor = is_vacuous_dtor;
      if (!is_vacuous_dtor && can_be_vacuous_dtor &&
-         (is_qualified_name && qualifier_is_type)) {
+         (is_qualified_name && qualifier_is_type) &&
+         qualifier_type_is_class && !err) {
        /* So far this looks like a normal destructor reference (i.e.,
           the qualified name represents a class, not some other type).
           See if the class has a destructor.  If it does not, this is a
