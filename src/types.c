@@ -1349,8 +1349,27 @@ which do the initial test for exact pointer equality.
         case tk_class:
         case tk_struct:
         case tk_union:
-          /* Classes, structs, and unions that aren't the same type
-             aren't identical. */
+          /* In general, classes, structs, and unions that aren't the same
+             type aren't identical.  The exception is with template classes.
+             Two template classes are identical if they are based on the
+             same class template and have identical template arguments. */
+          if (C_dialect == C_dialect_cplusplus) {
+            a_class_symbol_supplement_ptr cssp_1, cssp_2;
+            cssp_1 = symbol_supplement_for_class(type_1);
+            if (cssp_1->class_template != NULL) {
+              cssp_2 = symbol_supplement_for_class(type_2);
+              if (cssp_1->class_template == cssp_2->class_template) {
+                if (equiv_template_arg_lists(
+                             type_1->variant.class_struct_union.extra_info->
+                                                            template_arg_list,
+                             type_2->variant.class_struct_union.extra_info->
+                                                            template_arg_list,
+                             /*if_func_template=*/FALSE)) {
+                  identical = TRUE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
           break;
         case tk_routine:
           /* For functions, the return types must be identical, the
@@ -1615,6 +1634,15 @@ the initial test for exact pointer equality.
         case tk_union:
           /* Classes, structs, and unions that aren't the same type
              aren't compatible. */
+          if (C_dialect != C_dialect_cplusplus) {
+            /* The simple type comparison was enough. */
+          } else {
+            /* There's a complication with template classes.  Use the code
+               in f_identical_types to determine whether two apparently
+               distinct template classes are actually the same. */
+            compat = f_identical_types(type_1, type_2,
+                                       /*il_compatible=*/FALSE);
+          }  /* if */
           break;
         case tk_routine:
           /* For functions, the return types must be compatible, the parameter
