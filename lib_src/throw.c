@@ -755,20 +755,18 @@ a try block with a catch that matches the type of the object thrown.
         }  /* if */
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
-      /* Check for violations of throw specifications. */
+      /* Check for violations of throw specifications.  If a throw
+         specification is violated we cleanup until we reach the
+         violated throw specification and then call unexpected. */
       if (violates_throw_spec(ehsep, thrown_typeinfo, is_pointer)) {
-        __call_unexpected();
+        destination_ehsep = ehsep;
+        break;
       }  /* if */
     } else {
       unexpected_condition();
     }  /* if */
     ehsep = ehsep->next;
   }  /* while */
-
-  if (destination_ehsep == NULL) {
-    /* If no handler was found call the terminate function. */
-   __call_terminate();
-  }  /* if */
 
   ehsep = __curr_eh_stack_entry;
   while (ehsep != destination_ehsep) {
@@ -802,15 +800,31 @@ a try block with a catch that matches the type of the object thrown.
     }  /* if */
     ehsep = ehsep->next;
   }  /* while */
-  if (destination_ehsep != NULL) {
+
+   /* Set the current stack entry to point to the appropriate location
+      after all actions have taken place. */
+   __curr_eh_stack_entry = destination_ehsep;
+
+  if (destination_ehsep == NULL) {
+    /* If no handler was found call the terminate function. */
+   __call_terminate();
+  }  /* if */
+
+  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     __catch_clause_number = destination_catch_value;
-    __curr_eh_stack_entry = destination_ehsep;
     __caught_object_address = object_ptr;
    /* Update the pointer in the try block to point to the throw stack entry
       for the thrown object. */
    destination_ehsep->variant.try_block.catch_info =
                                                (void*)curr_throw_stack_entry;
    longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
+  } else if (destination_ehsep->kind ==
+                                (an_eh_stack_entry_kind)ehsek_throw_spec) {
+    /* A destination stack entry indicates that a throw specification was
+       violated.  Call unexpected.  Remove the throw specification entry
+       from the stack so that it won't be used to check subsequent throws. */
+    __curr_eh_stack_entry = __curr_eh_stack_entry->next;
+    __call_unexpected();
   }  /* if */
   return 0;
 }  /* __throw */

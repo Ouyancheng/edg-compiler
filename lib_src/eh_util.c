@@ -51,10 +51,10 @@ and return the old value.
 
 void unexpected()
 /*
-The default unexpected routine.
+The default unexpected routine.  This routine calls terminate.
 */
 {
-  abort();
+  __default_terminate_routine();
 }  /* unexpected */
 
 
