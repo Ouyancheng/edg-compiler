@@ -1,5 +1,13 @@
 Version 2.42
 
+6/17/99  Support for oversized bit fields
+
+In C++ a bit field may now be declared with a bit count that exceeds the
+size its underlying type.  The excess bits are ignored, and a warning is
+issued.  In addition, the configuration variable TARG_MAX_BIT_FIELD_SIZE
+has been removed; the maximum number of bits a bit field may have is now
+simply a function of its type.
+
 6/17/99  operator void() is allowed
 
 An error is no longer issued when operator void() is declared (in keeping
