@@ -1,5 +1,14 @@
 Version 3.6
 
+3/25/05  GNU C++ mode: do-nothing reinterpret_cast allowed
+
+In GNU C++ mode, a do-nothing reinterpret_cast is now allowed even
+if it's not one of the cases allowed by the standard.  A warning is
+issued.
+
+  int x;
+  int y = reinterpret_cast<int>(x);  // Allowed in g++ mode
+
 3/25/05  Microsoft compatibility: Implicit destruction of property fields
 
 In Microsoft C++ mode, the front previous incorrectly created IL to destroy a

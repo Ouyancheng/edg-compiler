@@ -1446,6 +1446,7 @@ ec_microsoft_parenthesized_member;;"parenthesized member declaration is nonstand
 ec_white_space_inside_splice;;"white space between backslash and newline in line splice ignored"
 ec_dll_interface_conflict_none_assumed;;"dllexport/dllimport conflict with %nod; dllimport/dllexport dropped"
 ec_bad_nonstd_anonymous_union_field;;"invalid member for anonymous member class -- class %t has a disallowed member function"
+ec_nonstd_reinterpret_cast;;"nonstandard reinterpret_cast"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
