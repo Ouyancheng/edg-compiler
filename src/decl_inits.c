@@ -2147,7 +2147,7 @@ initialized.  These are addressed in the course of the processing.
           /* Old-style base class initializer.  It is assumed to apply the
              the direct base class (further assuming that there is exactly
              one direct base class). */
-          if (direct_base_class_count != 1) {
+          if (!allow_anachronisms || direct_base_class_count != 1) {
             /* Either no base classes or more than one. */
             error(ec_missing_base_class_or_member_name);
             init_type = error_type();
@@ -2159,11 +2159,10 @@ initialized.  These are addressed in the course of the processing.
             bcp = new_cip->variant.base_class;
             check_assertion(bcp->direct);
             init_type = bcp->type;
+            type_diagnostic(anachronism_error_severity,
+                            ec_base_class_init_anachronism, init_type);
             if (new_cip->initializer != NULL) {
               type_error(ec_base_class_already_initialized, init_type);
-            } else {
-              type_diagnostic(anachronism_error_severity,
-                              ec_base_class_init_anachronism, init_type);
             }  /* if */
           }  /* if */
           /* Back up so that the left paren will be rescanned. */
