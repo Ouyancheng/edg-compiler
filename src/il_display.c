@@ -302,15 +302,6 @@ be written.
           name = tp->source_corresp.name;
           break;
         }  /* if */
-      case iek_scope:
-        if ((a_scope_ptr)entry_ptr)->kind ==
-                                (a_scope_kind)sck_class_struct_union) {
-          tp = ((a_scope_ptr)entry_ptr)->variant.assoc_type;
-          if (tp != NULL) {
-            name = tp->source_corresp.name;
-            break;
-          }  /* if */
-        }  /* if */
       default:
         name = NULL;
     }  /* switch */
@@ -455,24 +446,23 @@ Display the indicated source correspondence entry.
                        (unsigned long)scp->decl_position.column);
   }  /* if */
 #ifdef CFE
-  if (scp->scope_of_which_a_member != NULL) {
-    disp_ptr("  scope_of_which_a_member", (char *)scp->scope_of_which_a_member,
-             iek_scope);
+  if (scp->is_class_member) {
+    disp_boolean("  is_class_member", TRUE);
+    disp_ptr("  parent.class_type", (char *)scp->parent.class_type,
+             iek_type);
     disp_access("  access", (an_access_specifier)scp->access);
   }  /* if */
 #endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
   if (scp->is_local_to_function) {
-    disp_boolean("  is_local_to_function",
-                 (a_boolean)scp->is_local_to_function);
+    disp_boolean("  is_local_to_function", TRUE);
   }  /* if */
   if (scp->name != NULL) {
     disp_name_linkage("  name_linkage",
                       (a_name_linkage_kind)scp->name_linkage);
   }  /* if */
   if (scp->has_associated_pragma) {
-    disp_boolean("  has_associated_pragma",
-                 (a_boolean)scp->has_associated_pragma);
+    disp_boolean("  has_associated_pragma", TRUE);
   }  /* if */
 #if DO_IL_LOWERING
   /* Do not print out ptr->name_has_been_mangled, which is used only during
