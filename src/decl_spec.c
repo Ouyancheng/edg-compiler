@@ -170,7 +170,7 @@ parenthesis of the property list as the current token.
       /* Loop if a comma is next. */
     } while (loop_token(tok_comma));
     /* Check for closing parenthesis. */
-    required_token_no_advance(tok_rparen, ec_exp_rparen);
+    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   }  /* if */
 }  /* scan_declspec_property */
