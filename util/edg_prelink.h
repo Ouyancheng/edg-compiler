@@ -36,6 +36,12 @@ Declarations for EDG template prelink utility.
    assumption that we've encountered an instantiation loop. */
 #define PL_MAX_ITERATIONS	30
 
+/* Indicates that the object file should be removed when the .ii file
+   is updated.  This can be useful if the compilation is terminated
+   before the new object file has been written since it will prevent the
+   .ii file and .o file from getting out of sync. */
+#define PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION TRUE
+
 /* Function that executes "command" and directs its output to the
    returned file pointer. */
 extern FILE* popen(char *command, char *mode);

@@ -1536,7 +1536,7 @@ the file is flagged as requiring recompilation.
 	     the list and recompile the file. */
           remove_from_info_file = TRUE;
           recompile_file = TRUE;
-        } else if (psp->defined_in != NULL && psp->defined_in != pifp) {
+        } else if (psp->defined_in == NULL || psp->defined_in != pifp) {
           /* Either the symbol is undefined or it is now defined in a
              different file.  In either case it should be removed from the
              instantiation list for this file.  This will be the case
@@ -1703,6 +1703,9 @@ has changed then write the updated list of instantiations to the file.
       if (!suppress_compilation) {
 	/* This depends on the command line being in the first reserved
 	   line. */
+#if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
+        (void)unlink(pifp->filename);
+#endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
         return_status = pl_recompile_file(reserved_lines[0]);
         /* Stop if an error occurs. */
         if (return_status != 0) break;
