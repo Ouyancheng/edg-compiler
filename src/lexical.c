@@ -12344,6 +12344,7 @@ done to determine whether a precompiled header may be used.
     /* These must be reset here after the PCH prefix has been read. */
     curr_seq_number = 0;
     seq_number_last_read = 0;
+    last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
   }  /* if */
   orig_line_modif_list = NULL;
   end_orig_line_modif_list = NULL;
@@ -12363,7 +12364,6 @@ done to determine whether a precompiled header may be used.
   reusable_cache_stack = NULL;
   any_initial_get_token_tests_needed = FALSE;
   treat_newline_as_token = FALSE;
-  last_token_sequence_number_used = NO_TOKEN_SEQUENCE_NUMBER;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;

@@ -10079,6 +10079,8 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
         for (; sym != NULL; sym = sym->next) {
           if (sym->kind == curr_sym->kind) {
             cssp = sym->variant.class_struct_union.extra_info;
+            /* Note that a translation unit test is not needed because
+               token sequence numbers uniquely identify a translation unit. */
             if (cssp->prototype_token_sequence_number ==
                                                 curr_token_sequence_number) {
               corresp_prototype_tag_sym = sym;
