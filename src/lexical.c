@@ -373,6 +373,11 @@ for pp-tokens.
 {
   a_cached_token_ptr ctp;
 
+#if CHECKING
+  if (fetch_pp_tokens) {
+    internal_error("cache_curr_token: called with fetch_pp_tokens TRUE");
+  }  /* if */
+#endif /* CHECKING */
   /* Check to see if the current lint comment/pragma state is different
      than the last known state reflected in the cache.  If it is, put
      an entry to reflect the change on the end of the cache list. */
@@ -4052,28 +4057,12 @@ Return the next token after the current one while leaving the current
 token unchanged.  This is used in recursive-descent parsing routines
 to peek ahead at the next token and decide on a path through the syntax.
 This routine cannot be used when fetching raw preprocessing tokens.
-It can be called more than once.  It works by saving the information for
-the current token, fetching the next token, then restoring the information
-for the current token.  On the next call of get_token, the trapped token
-will be released instead of scanning a new token.  Note that the current
-settings of the "exp_" flags (e.g., exp_header) and expand_macros (etc.)
-will affect the scanning of the next token.  The input file position
-and the preprocessing macros symbol table are not restored after the
-call to get_token.
-This scheme must be used, rather than just skipping forward and looking at
-the start of the next token, because getting the proper next token might
-involve macro expansion or scanning of a preprocessing directive.
 */
 {
   a_token_cache cache;
   a_token_kind  ntoken;
 
   db_enter(3, "next_token");
-#if CHECKING
-  if (fetch_pp_tokens) {
-    internal_error("next_token: called with fetch_pp_tokens TRUE");
-  }  /* if */
-#endif /* CHECKING */
   /* Put the current token into a token cache so it can be rescanned. */
   clear_token_cache(&cache);
   cache_curr_token(&cache);
@@ -4088,6 +4077,27 @@ involve macro expansion or scanning of a preprocessing directive.
 }  /* next_token */
 
 
+static void unget_token(void)
+/*
+"Unget" the current token, i.e., put it back on the input list so that
+it will be fetched again on the next get_token.  On return, the current
+token is still the same.  This is intended for use with unusual errors,
+so efficiency is not a prime concern.
+*/
+{
+  a_token_cache cache;
+
+  db_enter(3, "unget_token");
+  /* Create a token cache containing a copy of the current token. */
+  clear_token_cache(&cache);
+  cache_curr_token(&cache);
+  /* Push the cache.  This pushes two copies of the original token,
+     and fetches one of them as the current token. */
+  rescan_cached_tokens(&cache);
+  db_exit();
+}  /* unget_token */
+
+
 a_boolean get_class_qualifier(a_scope_number *scope_number)
 /*
 Scan an optional class qualifier, e.g., "A::B::" (note that the final
@@ -4095,17 +4105,22 @@ identifier of a qualified name is not scanned here; see get_qualified_name).
 Return TRUE if there was a qualifier, FALSE if not.  If there was a qualifier,
 set *scope_number to the scope number for the class indicated by the
 qualifier.  On return (if there was a qualifier) the current token will be
-tok_identifier if the qualifier is followed by an identifier, and
-tok_colon_colon otherwise.  This routine should only be called in C++ mode.
+the token following the last "::".  This routine should only be called
+in C++ mode.
 */
 {
   a_boolean         is_qualifier = FALSE;
-  a_symbol_ptr      class_symbol, first_symbol_in_class;
   a_scope_number    class_scope;
+  a_symbol_ptr      class_symbol;
   a_source_position start_position;
+  a_boolean         err = FALSE;
 
-  if (curr_token == tok_identifier) {
-    /* Look up the symbol to see if it could be a class name.  Note that
+  /* See if we have an identifier followed by "::". */
+  if (curr_token == tok_identifier && next_token() == tok_colon_colon) {
+    /* This is a qualifier. */
+    is_qualifier = TRUE;
+    copy_source_position(pos_curr_token, start_position);
+    /* Look up the identifier to see if it could be a class name.  Note that
        we don't consider the normal eclipsing rules.  A class can be found
        even when hidden by something else:
          class A {int i;};
@@ -4115,43 +4130,33 @@ tok_colon_colon otherwise.  This routine should only be called in C++ mode.
          }
     */
     class_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
-    if (class_symbol != NULL && next_token() == tok_colon_colon) {
-      /* This is a qualifier. */
-      copy_source_position(pos_curr_token, start_position);
-      /* Keep looping while there are more levels of class qualification.
-         Stop on something that is not a class name followed by "::". */
-      do {
-        /* Skip over the class-name, i.e., get the "::". */
-        (void)get_token();
+    for (;;) {
+      /* Keep looping while there are more levels of class qualification. */
+      if (class_symbol == NULL) {
+        /* The identifier is followed by a "::" but is not a class symbol. */
+        if (!err) {
+          error(ec_id_must_be_class_name);
+          err = TRUE;
+        }  /* if */
+        class_scope = NO_SCOPE_NUMBER;
+      } else {
         /* Determine the scope number for the class. */
-        first_symbol_in_class =
-                              class_symbol->variant.class_struct_union.symbols;
-        if (first_symbol_in_class == NULL) {
-          /* There are no members of the class, so we cannot determine the
-             scope number. */
-          class_scope = NO_SCOPE_NUMBER;
-        } else {
-          class_scope = first_symbol_in_class->decl_scope;
-        }  /* if */
-        /* Clear class_symbol to end the loop unless another class name
-           is found. */
-        class_symbol = NULL;
-        /* See if there is an identifier next, but do not do a get_token
-           if the identifier is not there. */
-        if (next_token() == tok_identifier) {
-          /* The next thing is an identifier.  See if the identifier could be 
-             a class name, indicating further qualification, as in A::B::x. */
-          (void)get_token();
-          /* Search for the identifier in the given scope. */
-          class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                                   class_scope,
-                                                   IDL_MUST_BE_CLASS);
-        }  /* if */
-      } while (class_symbol != NULL && next_token() == tok_colon_colon);
-      is_qualifier = TRUE;
-      *scope_number = class_scope;
-      copy_source_position(start_position, error_position);
-    }  /* if */
+        class_scope = class_type_scope_number(
+                                class_symbol->variant.class_struct_union.type);
+      }  /* if */
+      /* Skip over the class-name, and the "::". */
+      (void)get_token();
+      if (get_token() != tok_identifier || next_token() != tok_colon_colon) {
+        /* Not an identifier followed by "::", so end the loop. */
+        break;
+      }  /* if */
+      /* There is another level of qualification.  Search for the identifier
+         in the given scope. */
+      class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
+                                               class_scope, IDL_MUST_BE_CLASS);
+    }  /* for */
+    *scope_number = class_scope;
+    copy_source_position(start_position, error_position);
   }  /* if */
   return is_qualifier;
 }  /* get_class_qualifier */
@@ -4172,9 +4177,8 @@ for the qualified identifier, and return TRUE.  This is recognized only
 in C++ mode.  If a qualified name is not next, leave specific_symbol
 set to NULL and return FALSE.  options is a set of special options,
 as a bit set; they control the lookup of (only) the final identifier in the
-qualified name.  They can include
-IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL
-and IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL.
+qualified name.  They can include IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL and
+IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
 */
 {
   a_boolean         is_qualified_name = FALSE, okay = FALSE;
@@ -4198,27 +4202,15 @@ and IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL.
           start_position = error_position;
           set_err_pos_to_curr_token();
           /* The current token must now be the final identifier of the
-             qualified name, e.g., "x" in "A::B::x".  Note that
-             get_class_qualifier did not get the next token after
-             the qualifier if it's not an identifier.  That allows us
-             to preserve the next token in the case that the identifier
-             is missing. */
+             qualified name, e.g., "x" in "A::B::x". */
           if (curr_token != tok_identifier) {
-            /* The final identifier is missing.  The current token is the
-               final "::" of the qualifier.  Construct a fake
-               tok_identifier token. */
-            /* Get the source position of the next token (where the identifier
-               would have been). */
-#if CHECKING
-            if (cached_token_rescan_list == NULL) {
-              internal_error("get_qualified_name: cannot get position");
-            }  /* if */
-#endif /* CHECKING */
-            error_position = cached_token_rescan_list->source_position;
-            /* syntax_error is deliberately not called. */
-            error(ec_exp_identifier);
+            /* The final identifier is missing.  Unget the current token
+               and construct a fake tok_identifier token. */
+            unget_token();
             curr_token = tok_identifier;
             /* The locator is set below. */
+            /* syntax_error is deliberately not called. */
+            error(ec_exp_identifier);
           } else {
             /* The final identifier is present.  Look it up in the class
                scope. */
@@ -4242,16 +4234,14 @@ and IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL.
                symbol of kind sk_undefined. */
             set_to_error_locator(locator_for_curr_id);
             locator_for_curr_id.specific_symbol =
-                        enter_symbol((a_symbol_kind)sk_undefined,
-                                     &locator_for_curr_id,
-                                     decl_scope_level,
-                                     /*suppress_error=*/TRUE);
+                                      enter_symbol((a_symbol_kind)sk_undefined,
+                                                   &locator_for_curr_id,
+                                                   decl_scope_level,
+                                                   /*suppress_error=*/TRUE);
           }  /* if */
           locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;
           error_position = start_position;
-          /* Since we're returning a pseudo-token, set pos_curr_token.
-             This is desirable so token caching does not have to save two
-             positions. */
+          /* Since we're returning a pseudo-token, set pos_curr_token. */
           pos_curr_token = start_position;
         }  /* if */
       }  /* if */
