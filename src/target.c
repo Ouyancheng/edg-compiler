@@ -284,7 +284,7 @@ to match the source dialect.
 {
 #if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
   check_assertion_str(!gcc_is_generated_code_target &&
-                      !msvc_is_generated_code_target,
+                      !microsoft_dialect_is_generated_code_target,
                       "Target dialect already set.");
   check_assertion(!(gnu_mode && microsoft_mode));
   if (gnu_mode) {
