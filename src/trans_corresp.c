@@ -80,7 +80,7 @@ pointed to by trace_corresp_ptr is modified.
 #define trace_corresp_check(ptr)                                       \
   if (ptr == trace_corresp_ptr) { corresp_intercept(); }
 
-static void db_corresp(void *ptr)
+void db_corresp(void *ptr)
 /*
 Report correspondence pointer for given entry.
 */
