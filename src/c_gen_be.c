@@ -5587,6 +5587,20 @@ Write a header at the beginning of the generated file, containing any
 definitions needed to support the generated code.
 */
 {
+  char *p;
+
+  /* Put out a tentative definition of a variable that identifies the
+     version number.  This also ensures that the generated file has at
+     least one declaration when generating ANSI C. */
+  (void)fprintf(f_C_output, "int __EDGCPFE__");
+  for (p = il_header.compiler_version; *p != '\0'; p++) {
+    char ch = *p;
+    /* Replace non-alhanumeric characters in the version number with
+       an underscore. */
+    if (!isalnum((unsigned int)ch)) ch = '_';
+    (void)fputc(ch, f_C_output);
+  }  /* for */
+  (void)fprintf(f_C_output, ";\n");
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Routine/macro needed to adjust the signedness of bit field accesses
      (pcc doesn't support signed bit fields). */
