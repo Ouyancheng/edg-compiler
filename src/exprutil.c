@@ -5592,9 +5592,10 @@ transformations.
 a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 			  a_type_ptr type_cast_to)
 /*
-In pcc, SVR4, and Microsoft modes certain lvalues when cast remain as lvalues
+In pcc, SVR4, and Microsoft C modes certain lvalues when cast remain as lvalues
 after the cast.  Return TRUE if a cast with the before/after types given
-should leave its result still an lvalue.
+should leave its result still an lvalue.  This routine is called only in
+C mode.
 */
 {
   a_boolean is_still_an_lvalue = FALSE;
@@ -5602,6 +5603,7 @@ should leave its result still an lvalue.
   type_before_cast = skip_typerefs(type_before_cast);
   type_cast_to = skip_typerefs(type_cast_to);
 
+  check_assertion(C_mode());
   /* The result stays an lvalue if the result type size is the same as the
      source type size.  However, casts involving floats require actual
      changes in representation, and are not lvalue-preserving. */
@@ -5609,11 +5611,6 @@ should leave its result still an lvalue.
     /* Same type, operand stays an lvalue.  This applies in pcc mode,
        SVR4 C mode, and in both C and C++ in Microsoft mode. */
     is_still_an_lvalue = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && !C_mode()) {
-    /* The remaining cases are not allowed in Microsoft C++ mode. */
-    /* is_still_an_lvalue = FALSE; -- already set. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_floating_type(type_before_cast) ||
              is_floating_type(type_cast_to)) {
     /* The source or destination types are floating types, so there's
@@ -5625,7 +5622,7 @@ should leave its result still an lvalue.
        and alignment. */
     is_still_an_lvalue = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && C_mode() &&
+  } else if (microsoft_mode &&
              is_integral_or_enum_type(type_before_cast) &&
              is_integral_or_enum_type(type_cast_to)) {
     /* In Microsoft C mode lvalue casts involving integral types of different

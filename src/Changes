@@ -574,6 +574,9 @@ For example:
   int i;
   int &r = (int)i;  // Got internal error in Microsoft C++ mode
 
+(6/11/97: an additional change was made for the case of casting
+an lvalue to the same type but with more or fewer top-level cv-qualifiers.)
+
 5/9/97    Microsoft compatibility: missing closing parenthesis on defined(...)
 
 The Microsoft compiler allows the closing parenthesis on the preprocessor

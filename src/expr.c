@@ -6258,11 +6258,16 @@ and C++ functional-notation type conversions.
           if (warning_suggested != ec_no_error) {
             pos_warning(warning_suggested, start_position);
           }  /* if */
-          if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
-              (microsoft_mode && (C_mode() || microsoft_bugs))) &&
-              is_an_lvalue(operand) &&
-              still_an_lvalue(source_type, type_cast_to)) {
-            /* In pcc, SVR4 C, or Microsoft mode, some lvalues cast to
+          if (microsoft_bugs && is_an_lvalue(operand) &&
+              identical_types(source_type, type_cast_to)) {
+            /* In Microsoft mode, a cast of an lvalue to the same type
+               is just ignored, and the operand stays an lvalue.  Note that
+               this applies in C++ as well as C. */
+          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+                      (microsoft_mode && C_mode())) &&
+                     is_an_lvalue(operand) &&
+                     still_an_lvalue(source_type, type_cast_to)) {
+            /* In pcc, SVR4 C, or Microsoft C mode, some lvalues cast to
                other types remain lvalues (e.g., int to unsigned). */
             /* Use a special "lvalue cast" operator.  Always do the cast on
                an expression node, even if the lvalue address is currently
@@ -6274,11 +6279,7 @@ and C++ functional-notation type conversions.
                the code in conv_lvalue_to_rvalue that removes the cast if
                the cast lvalue is then converted to an rvalue (the usual
                case). */
-            /* Skip the lvalue cast if the cast doesn't change the type.
-               That's the only case that should come up in C++. */
-            if (!identical_types(source_type, type_cast_to)) {
-              lvalue_cast(type_cast_to, operand);
-            }  /* if */
+            lvalue_cast(type_cast_to, operand);
           } else {
             /* Not an lvalue cast. */
             /* Convert lvalue --> rvalue unless casting to a reference type
