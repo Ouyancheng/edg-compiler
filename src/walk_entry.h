@@ -1074,6 +1074,9 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
                      iek_expr_node);
             break;
+          case enk_runtime_sizeof:
+            walk_ptr(ptr->variant.sizeof_type, a_type_ptr, iek_type);
+            break;
           case enk_address_of_ellipsis:
             /* No pointers. */
             break;
@@ -1320,6 +1323,14 @@ do_set_proper_definition_needed_flag:
             /* No pointers */
             break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          case stmk_set_vla_size:
+            remap_ptr(ptr->variant.vla_dimension, a_vla_dimension_ptr,
+                      iek_vla_dimension);
+            break;
+          case stmk_alloc_vla_variable:
+            remap_ptr(ptr->variant.vla_variable, a_variable_ptr,
+                      iek_variable);
+            break;
 #endif /* ifdef CFE */
 #ifdef FFE
           case stmk_fentry:
@@ -1565,6 +1576,7 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->local_static_variable_inits,
                   a_local_static_variable_init_ptr,
                   iek_local_static_variable_init);
+        walk_list(ptr->vla_dimensions, a_vla_dimension_ptr, iek_vla_dimension);
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
 #if RECORD_TEMPLATES_IN_IL
@@ -1862,6 +1874,15 @@ do_set_proper_definition_needed_flag:
         walk_initializer(ptr->init_kind, ptr->initializer);
         remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
+      }
+      break;
+    case iek_vla_dimension:
+      {
+        a_vla_dimension_ptr ptr = (a_vla_dimension_ptr)entry_ptr;
+
+        remap_next_ptr(ptr->next, a_vla_dimension_ptr, iek_vla_dimension);
+        walk_ptr(ptr->type, a_type_ptr, iek_type);
+        walk_ptr(ptr->dimension_expr, an_expr_node_ptr, iek_expr_node);
       }
       break;
 #if !NEEDED_FLAG_WALK

@@ -84,6 +84,8 @@ extern a_dynamic_init_ptr alloc_dynamic_init(a_dynamic_init_kind kind);
 
 extern a_local_static_variable_init_ptr alloc_local_static_variable_init(void);
 
+extern a_vla_dimension_ptr alloc_vla_dimension(void);
+
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 
 extern a_field_ptr alloc_field(void);

@@ -369,6 +369,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_dynamic_init,	/* a_dynamic_init */
   iek_local_static_variable_init,
 			/* a_local_static_variable_init */
+  iek_vla_dimension,    /* a_vla_dimension */
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
   iek_derivation_step,  /* a_derivation_step */
@@ -493,7 +494,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_using_decl */			"using-decl",
 /* iek_dynamic_init */			"dynamic-init",
 /* iek_local_static_variable_init */	"local-static-variable-init",
-/* iek_overriding_virtual_function */ 	"overriding-virtual-function",
+/* iek_vla_dimension */			"vla-dimension",
+/* iek_overriding_virtual_function */	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
 /* iek_base_class_derivation */		"base-class-derivation",
 /* iek_base_class */			"base-class",
@@ -3371,14 +3373,21 @@ typedef struct a_type {
       a_type_ptr
                 element_type;
                         /* Type of the elements of the array type. */
-      a_byte_boolean
-		is_variable_size_array;
+      a_bit_field
+		is_variable_size_array:1;
 			/* TRUE if the array size depends on the evaluation of
 			   an expression, either at compile time (in the case
 			   of an array bound defined in terms of a template
 			   parameter constant) or at run time (for a new with
-			   a nonconstant first bound).  This field will never
+			   a nonconstant first bound or for a variable length
+			   array).  Except for VLAs, this field will never
 			   be TRUE in the IL passed to the back end. */
+      a_bit_field
+		has_assoc_vla_dimension:1;
+			/* TRUE if the variable length array has an associated
+			   vla_dimension entry.  FALSE for cases like [*].
+			   (C mode only, and only when is_variable_size_array
+			   is TRUE.)  */
       union {
         /* When is_variable_size_array is FALSE: */
         a_targ_size_t
@@ -3389,8 +3398,11 @@ typedef struct a_type {
 	an_expr_node_ptr
 		element_count_expr;
 			/* An expression representing the number of elements
-			   in the array.  This field is used in front-end
-			   processing only. */
+			   in the array.  This field is used only in front-end
+			   processing, and only in C++.  NULL in C mode when
+			   is_variable_size_array is TRUE: the expression that
+			   represents the nonconstant dimension for a VLA
+			   is recorded in a_vla_dimension construct. */
       } variant;
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */
@@ -3771,6 +3783,35 @@ typedef struct a_local_static_variable_init {
 
 #endif /* ifdef CIL */
 
+#ifdef CIL
+
+typedef struct a_vla_dimension *a_vla_dimension_ptr;
+typedef struct a_vla_dimension {
+  /* Description of the number of elements in a variable length array.  The
+     VLA type itself cannot point at its dimension expression, since the
+     latter will be in the function scope memory region, and so this
+     construct is used to represent the array dimension.  These entries are
+     always allocated in the function scope memory region and appear on a
+     list pointed to by the function scope. */
+  a_vla_dimension_ptr
+		next;
+			/* Pointer to the next in a linked list of entries
+			   identifying VLA dimension expressions in the
+			   current function. */
+  a_type_ptr
+		type;
+			/* Pointer to a tk_array type entry for which the
+			   is_variable_size_array and has_assoc_vla_dimension
+			   flags are TRUE. */
+  an_expr_node_ptr
+		dimension_expr;
+			/* An expression representing the number of elements
+			   in the array. */
+} a_vla_dimension;
+
+#endif /* ifdef CIL */
+
+
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
 #ifdef FIL
@@ -3947,6 +3988,14 @@ typedef struct a_variable {
 			   whose type is incompatible with that of another
 			   file-scope variable with the same name, where the
 			   latter is treated as the "official" variable. */
+  a_bit_field   vla_requires_deallocation:1;
+                        /* TRUE if this variable is a VLA that requires
+                           deallocation.  Deallocation should occur at the end
+                           of the scope in which the VLA was allocated and/or
+			   at a return statement.  (There is no statement
+                           for VLA deallocation that corresponds to
+                           stmk_alloc_vla_variable, which is generated for
+			   allocation of VLA variables. */
 #if DO_IL_LOWERING
   a_bit_field	initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
@@ -4679,6 +4728,9 @@ enum an_expr_node_kind_tag {
 			   node is not necessarily the top node in the
 			   expression tree.  C++ only. */
   enk_typeid,		/* C++ typeid expression. */
+  enk_runtime_sizeof,	/* A sizeof expression that cannot be evaluated
+                           until runtime.  Used in C to determine the size
+                           of a type involving a variable length array. */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -5365,6 +5417,10 @@ typedef struct an_expr_node {
 			   this is the lvalue expression specified (i.e.,
 			   its value is the address); otherwise NULL. */
     } typeid_info;
+    /* When kind == enk_runtime_sizeof: */
+    a_type_ptr  sizeof_type;
+                        /* A pointer to the type whose size is to be
+                           evaluated at runtime. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
     struct {
@@ -5470,6 +5526,12 @@ enum a_statement_kind_tag {
   stmk_decl,		/* One or more consecutive declarations within a
 			   given function or block scope. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  stmk_set_vla_size,	/* Set the size of a VLA type. */
+  stmk_alloc_vla_variable,
+			/* Allocate storage for a variable of VLA type.
+			   (Note: there is no corresponding deallocation
+			   statement.  See the vla_requires_deallocation
+			   field in a_variable. */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,		/* Code label for an ENTRY. */
@@ -6124,6 +6186,16 @@ typedef struct a_statement {
     a_microsoft_try_supplement_ptr
 		microsoft_try;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* When kind == stmk_set_vla_size: */
+    a_vla_dimension_ptr
+                vla_dimension;
+                        /* The VLA dimension whose number of elements is
+                           fixed at this point. */
+    /* When kind == stmk_alloc_vla_variable: */
+    a_variable_ptr
+                vla_variable;
+                        /* Pointer to variable having VLA type which is
+                           allocated memory at this point. */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */
@@ -6851,6 +6923,12 @@ typedef struct a_scope {
 			   scope.  Only dynamic and aggregate-constant
 			   initializations are represented.  The order of
 			   entries on the list is not meaningful. */
+  a_vla_dimension_ptr
+		vla_dimensions;
+			/* List of dimension expressions for VLAs declared
+			   within a given function -- sck_function scopes in
+			   C mode only; NULL otherwise.  The order of entries
+			   on the list is not significant. */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be

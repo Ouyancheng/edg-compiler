@@ -1289,6 +1289,7 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_using_decl);
   remap_orphan_entry_first(iek_dynamic_init);
   remap_orphan_entry_first(iek_local_static_variable_init);
+  remap_orphan_entry_first(iek_vla_dimension);
   remap_orphan_entry_first(iek_overriding_virtual_function);
   remap_orphan_entry_first(iek_derivation_step);
   remap_orphan_entry_first(iek_base_class_derivation);
@@ -1380,6 +1381,7 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_using_decl);
   remap_orphan_entry_last(iek_dynamic_init);
   remap_orphan_entry_last(iek_local_static_variable_init);
+  remap_orphan_entry_last(iek_vla_dimension);
   remap_orphan_entry_last(iek_overriding_virtual_function);
   remap_orphan_entry_last(iek_derivation_step);
   remap_orphan_entry_last(iek_base_class_derivation);

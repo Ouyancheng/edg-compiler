@@ -928,9 +928,14 @@ do_float_complex:
       disp_ptr("element_type", (char *)ptr->variant.array.element_type,
                iek_type);
       if (ptr->variant.array.is_variable_size_array) {
-        disp_ptr("element_count_expr",
-                 (char *)ptr->variant.array.variant.element_count_expr,
-                 iek_expr_node);
+        disp_boolean("is_variable_size_array", TRUE);
+        if (ptr->variant.array.has_assoc_vla_dimension) {
+          disp_boolean("has_assoc_vla_dimension", TRUE);
+        } else {
+          disp_ptr("element_count_expr",
+                   (char *)ptr->variant.array.variant.element_count_expr,
+                   iek_expr_node);
+        }  /* if */
       } else {
         disp_unsigned_long("number_of_elements",
                            (unsigned long)ptr->
@@ -1264,6 +1269,9 @@ Display the indicated variable.
   }  /* if */
   if (ptr->superseded_external) {
     disp_boolean("superseded_external", TRUE);
+  }  /* if */
+  if (ptr->vla_requires_deallocation) {
+    disp_boolean("vla_requires_deallocation", TRUE);
   }  /* if */
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
@@ -2072,6 +2080,10 @@ do_variable:
       disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
       disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
       break;
+    case enk_runtime_sizeof:
+      (void)printf("enk_runtime_sizeof\n");
+      disp_ptr("sizeof_type", (char *)ptr->variant.sizeof_type, iek_type);
+      break;
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");
       break;
@@ -2436,6 +2448,16 @@ do_label:
       (void)printf("stmk_decl\n");
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    case stmk_set_vla_size:
+      (void)printf("stmk_set_vla_size\n");
+      disp_ptr("vla_dimension", (char *)ptr->variant.vla_dimension,
+               iek_vla_dimension);
+      break;
+    case stmk_alloc_vla_variable:
+      (void)printf("stmk_alloc_vla_variable\n");
+      disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
+               iek_variable);
+      break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case stmk_fentry:
@@ -2753,6 +2775,10 @@ do_assoc_type:
     disp_ptr("local_static_variable_inits",
              (char *)ptr->local_static_variable_inits,
              iek_local_static_variable_init);
+  }  /* if */
+  if (ptr->kind == (a_scope_kind)sck_function &&
+      il_header.source_language != (a_source_language)sl_Cplusplus) {
+    disp_ptr("vla_dimensions", (char *)ptr->vla_dimensions, iek_vla_dimension);
   }  /* if */
 #endif /* ifdef CFE */
   disp_ptr("pragmas", (char *)ptr->pragmas, iek_pragma);
@@ -3198,6 +3224,17 @@ Display the indicated local_static_variable_init entry.
   disp_initializer(ptr->init_kind, &ptr->initializer);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_local_static_variable_init */
+
+
+static void disp_vla_dimension(a_vla_dimension_ptr ptr)
+/*
+Display the indicated vla_dimension entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_vla_dimension);
+  disp_ptr("type", (char *)ptr->type, iek_type);
+  disp_ptr("dimension_expr", (char *)ptr->dimension_expr, iek_expr_node);
+}  /* disp_vla_dimension */
 
 
 static void disp_overriding_virtual_function (
@@ -3709,6 +3746,9 @@ This routine is called during IL walking.
         case iek_local_static_variable_init:
           disp_local_static_variable_init(
                                  (a_local_static_variable_init_ptr)entry_ptr);
+          break;
+        case iek_vla_dimension:
+          disp_vla_dimension((a_vla_dimension_ptr)entry_ptr);
           break;
         case iek_overriding_virtual_function:
           disp_overriding_virtual_function(
