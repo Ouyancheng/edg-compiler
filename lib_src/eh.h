@@ -291,6 +291,14 @@ EXTERN a_void_function_ptr
 		__default_terminate_routine initial_value(terminate);
 			/* Pointer to the terminate routine to be used. */
 
+EXTERN void unexpected(void);
+
+extern a_void_function_ptr set_unexpected(a_void_function_ptr);
+
+EXTERN a_void_function_ptr
+		__default_unexpected_routine initial_value(unexpected);
+			/* Pointer to the unexpected routine to be used. */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -40,6 +40,27 @@ and return the old value.
   return old_func;
 }  /* set_terminate */
 
+
+void unexpected()
+/*
+The default unexpected routine.
+*/
+{
+  abort();
+}  /* unexpected */
+
+
+a_void_function_ptr set_unexpected(a_void_function_ptr new_func)
+/*
+Set the unexpected routine pointer to the value passed by the caller
+and return the old value.
+*/
+{
+  a_void_function_ptr	old_func = __default_unexpected_routine;
+  __default_unexpected_routine = new_func;
+  return old_func;
+}  /* set_unexpected */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
