@@ -2747,7 +2747,7 @@ user later during real instantiations.
   instantiation_scope_needed =
                     template_sym->kind != (a_symbol_kind)sk_member_function ||
                     !scope_stack[depth_scope_stack].in_prototype_instantiation;
-  if (rout_ptr->assoc_scope != NULL_region_number) {
+  if (routine_has_been_defined(rout_ptr)) {
     /* The routine is already defined (a duplicate definition error should
        have already been issued). */
   } else {
@@ -3192,7 +3192,7 @@ Instantiate the body of the template function associated with tip.
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
   rout_ptr = rout_sym->variant.routine.ptr;
-  if (rout_ptr->assoc_scope != NULL_region_number) {
+  if (routine_has_been_defined(rout_ptr)) {
     /* Already instantiated. */
     goto done;
   }  /* if */
@@ -14311,7 +14311,7 @@ the template from which the routine would be generated must be checked.
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
     result =  rout->is_inline;
     if (!result && !rout->is_specialized) {
-      if (rout->assoc_scope == NULL_region_number) {
+      if (!routine_has_been_defined(rout)) {
         a_template_symbol_supplement_ptr	tssp;
         tssp = template_supplement_for_symbol(tip->template_sym);
         result = tssp->variant.function.routine->is_inline ||
