@@ -1587,7 +1587,6 @@ entry.
         dip->destruction_is_for_partially_constructed_aggregate ? "EH-" : "");
   if (dtor != NULL) {
     db_name_full(&dtor->source_corresp, iek_routine);
-    fputs("()", f_debug);
   } else {
     fputs("<NULL>", f_debug);
   }  /* if */
