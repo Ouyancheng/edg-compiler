@@ -1216,6 +1216,48 @@ errors are still generated for type mismatches.
 #endif /* BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C */
 #endif /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
 
+#if NEED_NAME_MANGLING
+
+/*
+Default value for name_mangling_for_templates_distinct_from_nontemplates.
+Controls whether the signatures for template functions can match those
+for non-template functions.  In the modern C++ language, a normal
+function cannot be used to satisfy the need for a template instance.
+For example, a function "void f(int)" could not be used to satisfy
+the need for an instantiation of a template "void f(T)" with T set to
+int.  In older versions of the language, the name mangling for templates
+was the same as for nontemplates, and a nontemplate function could
+satisfy the need for a template function.
+*/
+#ifndef DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION < 232 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES FALSE
+#else /* !(ABI_COMPATIBILITY_VERSION < 232 || ...) */
+#define DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES TRUE
+#endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
+#endif /* ifndef DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_... */
+
+/*
+Default value for special_mangling_for_user_specializations.
+Controls whether the mangled name for a user-written specialization
+is different from the mangling that the compiler-generated version
+would get.  Having a difference allows detection of certain errors
+at link time.
+*/
+#ifndef DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION < 232 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS FALSE
+#else /* !(ABI_COMPATIBILITY_VERSION < 232 || ...) */
+#define DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS TRUE
+#endif /* ABI_COMPATIBILITY_VERSION < 232 || ... */
+#endif /* ifndef DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS */
+
+#endif /* NEED_NAME_MANGLING */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */

@@ -644,6 +644,27 @@ EXTERN a_targ_alignment
 			   reconfigurable. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+#if NEED_NAME_MANGLING
+EXTERN a_boolean
+		name_mangling_for_templates_distinct_from_nontemplates
+#if VAR_INITIALIZERS
+               = DEFAULT_NAME_MANGLING_FOR_TEMPLATES_DISTINCT_FROM_NONTEMPLATES
+#endif /* VAR_INITIALIZERS */
+                                                                      ;
+			/* If TRUE, template functions are given mangled names
+			   that are distinct from the names for nontemplate
+			   functions. */
+EXTERN a_boolean
+		special_mangling_for_user_specializations
+#if VAR_INITIALIZERS
+                            = DEFAULT_SPECIAL_MANGLING_FOR_USER_SPECIALIZATIONS
+#endif /* VAR_INITIALIZERS */
+                                                         ;
+			/* If TRUE, user-written specializations get different
+			   name mangling than the corresponding compiler-
+			   generated instantiation would get. */
+#endif /* NEED_NAME_MANGLING */
+
 #if DO_IL_LOWERING
 
 EXTERN a_boolean
