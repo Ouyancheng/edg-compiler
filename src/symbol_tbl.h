@@ -528,6 +528,9 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if the class is a specific definition of
 			   a template class instance.  FALSE if the
 			   instance was generated from the class template. */
+  unsigned int  any_nonstatic_data_members:1;
+			/* TRUE if the class or any of its base classes has
+			   one or more nonstatic data members. */
 } a_class_symbol_supplement;
 
 
