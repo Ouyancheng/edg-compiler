@@ -9839,7 +9839,7 @@ successor of ssep.
        autonomous declaration.  In C++ and usually in C, the entity is
        next in the list. */
     /* Note: we only examine the first entry after the class/struct/union
-       or nameded enum tag declaration or definition.  For instance, in a
+       or named enum tag declaration or definition.  For instance, in a
        case like this:
          static struct S { int i; } x, y, z;
        (where x is eliminated) it will be treated as though it had originally
