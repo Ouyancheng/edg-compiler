@@ -102,11 +102,11 @@ present (i.e., the caller must have already checked that the current
 token is a qualifier).
 */
 {
-  a_decl_flag_set       dso_flags;
-  a_storage_class       dummy_storage_class;
-  a_type_ptr            dummy_type_ptr;
-  a_decl_modifier	dummy_decl_modifiers;
-  a_type_qualifier_set  qualifiers;
+  a_decl_flag_set         dso_flags;
+  a_storage_class         dummy_storage_class;
+  a_type_ptr              dummy_type_ptr;
+  a_decl_modifiers_block  dummy_decl_modifiers;
+  a_type_qualifier_set    qualifiers;
 
   (void)decl_specifiers(DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
@@ -929,7 +929,7 @@ issue an error if a default argument expression is encountered.
   a_type_ptr              param_type_ptr;
   a_decl_flag_set         dso_flags;
   a_type_qualifier_set    qualifiers;
-  a_decl_modifier	  decl_modifiers;
+  a_decl_modifiers_block  decl_modifiers;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
   a_source_sequence_entry_ptr
@@ -2074,14 +2074,16 @@ encountered, they are scanned and thrown away with a warning.
          and ignore __declspec declarations that appear during declarator
          processing -- there is no evidence that the decl-modifiers are ever
          actually applied to the function or variable being declared. */
-      a_boolean             local_err;
-      a_type_qualifier_set  local_qualifiers = TQ_NONE;
+      a_boolean              local_err;
+      a_type_qualifier_set   local_qualifiers = TQ_NONE;
+      a_decl_modifiers_block local_decl_modifiers;
 
       /* Issue a warning that it's being ignored. */
       warning(ec_decl_modifiers_ignored);
-      (void)scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                                                    &local_qualifiers,
-                                                    &local_err);
+      clear_decl_modifiers_block(&local_decl_modifiers);
+      scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                                             &local_decl_modifiers,
+                                             &local_qualifiers, &local_err);
     } else {
       /* Something else; exit the loop. */
       break;

@@ -23,20 +23,21 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 #endif /* ifndef DECLS_H */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_decl_modifier scan_microsoft_extended_decl_modifiers(
-                                            a_boolean            is_class_decl,
-                                            a_type_qualifier_set *qualifiers,
-                                            a_boolean            *err);
+extern void scan_microsoft_extended_decl_modifiers(
+                                    a_boolean                   is_class_decl,
+                                    a_decl_modifiers_block_ptr  decl_modifiers,
+                                    a_type_qualifier_set        *qualifiers,
+                                    a_boolean                   *err);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_constructor_decl(a_type_ptr  class_type);
 
-extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
-				 a_decl_flag_set      *output_flags,
-				 a_storage_class      *storage_class,
-				 a_type_ptr           *type_ptr,
-                                 a_type_qualifier_set *qualifiers,
-                                 a_decl_modifier_ptr  decl_modifiers);
+extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
+				 a_decl_flag_set             *output_flags,
+				 a_storage_class             *storage_class,
+				 a_type_ptr                  *type_ptr,
+                                 a_type_qualifier_set        *qualifiers,
+                                 a_decl_modifiers_block_ptr  decl_modifiers);
 
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */

@@ -3876,20 +3876,20 @@ declared and before the partial instantiation of the function was done.
 
 
 static void scan_template_declaration(
-				a_boolean         	is_initial_decl,
-                                a_boolean         	is_member_decl,
-                                a_type_ptr		parent_class,
-				a_boolean         	decl_scope_err,
-				a_boolean		is_specialization,
-                                a_decl_flag_set   	*dso_flags,
-                                a_decl_flag_set   	*do_flags,
-                                a_symbol_locator  	*locator,
-                                a_type_ptr        	*type,
-                                a_func_info_block	*func_info,
-                                a_storage_class		*storage_class,
-                                a_decl_modifier		*decl_modifiers,
-                                a_routine_ptr		templ_rout,
-				a_template_instance_ptr	tip)
+				a_boolean         	   is_initial_decl,
+                                a_boolean         	   is_member_decl,
+                                a_type_ptr		   parent_class,
+				a_boolean         	   decl_scope_err,
+				a_boolean		   is_specialization,
+                                a_decl_flag_set   	   *dso_flags,
+                                a_decl_flag_set   	   *do_flags,
+                                a_symbol_locator  	   *locator,
+                                a_type_ptr        	   *type,
+                                a_func_info_block	   *func_info,
+                                a_storage_class		   *storage_class,
+                                a_decl_modifiers_block_ptr decl_modifiers,
+                                a_routine_ptr		   templ_rout,
+				a_template_instance_ptr	   tip)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
 a function or static data member.  is_initial_decl is TRUE if this
@@ -4179,11 +4179,11 @@ type based on the template argument list and the template parameter list
       /* We should get the locator position returned. */
 #endif
     } else {
-      a_decl_flag_set	 do_flags;
-      a_func_info_block	 func_info;
-      a_storage_class    storage_class;
-      a_symbol_locator	 locator;
-      a_decl_modifier	 decl_modifiers;
+      a_decl_flag_set	      do_flags;
+      a_func_info_block	      func_info;
+      a_storage_class         storage_class;
+      a_symbol_locator	      locator;
+      a_decl_modifiers_block  decl_modifiers;
 
       clear_func_info(&func_info);
       scan_template_declaration(/*is_initial_decl=*/FALSE,
@@ -4228,9 +4228,16 @@ type based on the template argument list and the template parameter list
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
-    update_routine_decl_modifiers(rp, templ_rout->decl_modifiers,
-                                  &locator_position,
+#if DECL_MODIFIERS_IN_USE
+    {
+    a_decl_modifiers_block  decl_modifiers;
+
+    clear_decl_modifiers_block(&decl_modifiers);
+    decl_modifiers.flags = templ_rout->decl_modifiers;
+    update_routine_decl_modifiers(rp, &decl_modifiers, &locator_position,
                                   /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
+    }
+#endif /* DECL_MODIFIERS_IN_USE */
     /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
        is passed in to cause the scope to be computed. */
     add_to_routines_list(rp, NO_SCOPE_DEPTH);
@@ -6795,7 +6802,7 @@ Scan the declaration of a single template nontype parameter.
   a_decl_flag_set              do_flags;
   a_decl_flag_set              dso_flags;
   a_type_qualifier_set         qualifiers;
-  a_decl_modifier              decl_modifiers;
+  a_decl_modifiers_block       decl_modifiers;
   a_storage_class              param_storage_class;
   a_source_position            param_pos;
   a_source_sequence_entry_ptr  declarator_ssep;
@@ -7946,14 +7953,14 @@ declaration (following any template clauses).
 
 
 static a_symbol_ptr function_template_declaration(
-                               a_tmpl_decl_state_ptr	decl_state,
-                               a_symbol_locator         *locator,
-                               a_func_info_block        *func_info,
-                               a_storage_class          storage_class,
-                               a_decl_modifier          decl_modifiers,
-                               a_type_ptr               type,
-			       a_decl_flag_set		dso_flags,
-			       a_source_position	*start_pos)
+                               a_tmpl_decl_state_ptr	   decl_state,
+                               a_symbol_locator            *locator,
+                               a_func_info_block           *func_info,
+                               a_storage_class             storage_class,
+                               a_decl_modifiers_block_ptr  decl_modifiers,
+                               a_type_ptr                  type,
+			       a_decl_flag_set		   dso_flags,
+			       a_source_position	   *start_pos)
 /*
 Scan a function template declaration or the declaration of a member function
 of a class template.  locator identifies the function template being
@@ -8311,14 +8318,14 @@ any non-empty template parameter lists that were scanned.
       } /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
     } else {
-      a_type_ptr         type;
-      a_symbol_locator   locator;
-      a_decl_flag_set    do_flags;
-      a_decl_flag_set    dso_flags;
-      a_func_info_block  func_info;
-      a_storage_class    storage_class;
-      a_decl_modifier    decl_modifiers;
-      a_source_position	 decl_start_pos;
+      a_type_ptr              type;
+      a_symbol_locator        locator;
+      a_decl_flag_set         do_flags;
+      a_decl_flag_set         dso_flags;
+      a_func_info_block       func_info;
+      a_storage_class         storage_class;
+      a_decl_modifiers_block  decl_modifiers;
+      a_source_position	      decl_start_pos;
 
       /* Scan the decl. specifiers and the declaration. */
       decl_start_pos = pos_curr_token;
@@ -8362,7 +8369,7 @@ any non-empty template parameter lists that were scanned.
       } else if (is_function_type(type)) {
         sym = function_template_declaration(decl_state, &locator,
                                             &func_info, storage_class,
-                                            decl_modifiers, type, dso_flags,
+                                            &decl_modifiers, type, dso_flags,
 					    &decl_start_pos);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);
@@ -8692,7 +8699,7 @@ that follows.
   a_symbol_locator              locator;
   a_decl_flag_set               do_flags, dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
-  a_decl_modifier	        decl_modifiers;
+  a_decl_modifiers_block        decl_modifiers;
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
@@ -10658,7 +10665,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_symbol_locator              locator;
   a_decl_flag_set               do_flags, dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
-  a_decl_modifier	        decl_modifiers;
+  a_decl_modifiers_block        decl_modifiers;
   a_symbol_ptr                  new_sym;
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;

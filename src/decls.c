@@ -2359,11 +2359,11 @@ created; the caller must set it.
 
 
 #if DECL_MODIFIERS_IN_USE
-void update_routine_decl_modifiers(a_routine_ptr	routine,
-				   a_decl_modifier	new_modifiers,
-				   a_source_position	*position,
-                                   a_boolean		is_redecl,
-                                   a_boolean	        is_definition)
+void update_routine_decl_modifiers(a_routine_ptr               routine,
+                                   a_decl_modifiers_block_ptr  new_modifiers,
+                                   a_source_position           *position,
+                                   a_boolean                   is_redecl,
+                                   a_boolean                   is_definition)
 /*
 Update the decl_modifiers field of the routine entry to reflect the
 modifiers specified in new_modifiers.  If this is a redeclaration or
@@ -2373,19 +2373,19 @@ by routine.  position is used as the error position for any
 diagnostics.
 */
 {
-  a_boolean		any_invalid_redecl = FALSE;
-  a_decl_modifier	old_modifiers;
-  int			bit_number;
-  a_decl_modifier	modifier_value = 1;
+  a_boolean        any_invalid_redecl = FALSE;
+  int              bit_number;
+  a_decl_modifier  modifier_value = 1;
 
-  if (is_redecl) old_modifiers = routine->decl_modifiers;
-  /* Loop through the bits of the new_modifiers field and process
-     the modifiers associated with the bits that are set. */
-  for (bit_number = 0; bit_number < (int)dmt_last;
+  /* Loop through the bits in the new_modifiers bit vector and process the
+     modifiers associated with the bits that are set. */
+  for (bit_number = 0;
+       bit_number < (int)dmt_last;
        ++bit_number, modifier_value <<= 1) {
-    a_boolean		invalid_modifier = FALSE;
-    a_boolean		invalid_redecl = FALSE;
-    if ((new_modifiers & modifier_value) != 0) {
+    a_boolean  invalid_modifier = FALSE;
+    a_boolean  invalid_redecl = FALSE;
+
+    if ((new_modifiers->flags & modifier_value) != 0) {
       /* This bit is set. */
       switch (bit_number) {
         case dmt_dllimport:
@@ -2393,7 +2393,7 @@ diagnostics.
           /* Any previous declaration must have been declared
              with either dllimport or dllexport. */
           if (is_redecl &&
-              (old_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) == 0) {
+              !(routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
             invalid_redecl = TRUE;
           }  /* if */
           break;
@@ -2409,7 +2409,7 @@ diagnostics.
       }  /* switch */
       /* If this modifier is invalid, reset the bit in the new modifiers. */
       if (invalid_modifier || invalid_redecl) {
-        new_modifiers &= (~modifier_value);
+        new_modifiers->flags &= (~modifier_value);
       }  /* if */
       if (invalid_modifier) {
         pos_st_diagnostic(es_discretionary_error,
@@ -2425,14 +2425,14 @@ diagnostics.
                    position);
   }  /* if */
   /* Update the routine entry with any valid modifiers that were found. */
-  routine->decl_modifiers |= new_modifiers;
+  routine->decl_modifiers |= new_modifiers->flags;
 }  /* update_routine_decl_modifiers */
 
 
-void update_variable_decl_modifiers(a_variable_ptr	variable,
-		  		    a_decl_modifier	new_modifiers,
-				    a_source_position	*position,
-                                    a_boolean		is_redecl)
+void update_variable_decl_modifiers(a_variable_ptr              variable,
+                                    a_decl_modifiers_block_ptr  new_modifiers,
+                                    a_source_position           *position,
+                                    a_boolean                   is_redecl)
 /*
 Update the decl_modifiers field of the variable entry to reflect the
 modifiers specified in new_modifiers.  If this is a redeclaration or a
@@ -2443,19 +2443,18 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
 */
 {
   a_boolean		any_invalid_redecl = FALSE;
-  a_decl_modifier	old_modifiers;
   int			bit_number;
   a_decl_modifier	modifier_value = 1;
 
-  if (is_redecl) old_modifiers = variable->decl_modifiers;
-  /* Loop through the bits of the new_modifiers field and process
+  /* Loop through the bits of the new_modifiers bit vector and process
      the modifiers associated with the bits that are set. */
-  for (bit_number = 0; bit_number < (int)dmt_last;
+  for (bit_number = 0;
+       bit_number < (int)dmt_last;
        ++bit_number, modifier_value <<= 1) {
-    if ((new_modifiers & modifier_value) != 0) {
+    if ((new_modifiers->flags & modifier_value) != 0) {
       /* This bit is set. */
-      a_boolean		invalid_modifier = FALSE;
-      a_boolean		invalid_redecl = FALSE;
+      a_boolean	 invalid_modifier = FALSE;
+      a_boolean	 invalid_redecl = FALSE;
 
       switch (bit_number) {
         case dmt_dllimport:
@@ -2463,7 +2462,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
           /* Any previous declaration must have been declared
              with either dllimport or dllexport. */
           if (is_redecl &&
-              (old_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) == 0) {
+              !(variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
             invalid_redecl = TRUE;
           }  /* if */
           break;
@@ -2475,7 +2474,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
       }  /* switch */
       /* If this modifier is invalid, reset the bit in the new modifiers. */
       if (invalid_modifier || invalid_redecl) {
-        new_modifiers &= (~modifier_value);
+        new_modifiers->flags &= (~modifier_value);
       }  /* if */
       if (invalid_modifier) {
         pos_st_diagnostic(es_discretionary_error,
@@ -2491,7 +2490,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
                    position);
   }  /* if */
   /* Update the variable entry with any valid modifiers that were found. */
-  variable->decl_modifiers |= new_modifiers;
+  variable->decl_modifiers |= new_modifiers->flags;
 }  /* update_variable_decl_modifiers */
 
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -3161,7 +3160,7 @@ void decl_variable(a_symbol_locator             *locator,
                    a_type_ptr                   type_ptr,
                    a_source_sequence_entry_ptr  declarator_ssep,
                    a_symbol_reference_kind      srk_flags,
-                   a_decl_modifier              decl_modifiers,
+                   a_decl_modifiers_block_ptr   decl_modifiers,
                    a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
                    a_type_ptr                   *old_type,
@@ -3543,7 +3542,7 @@ void decl_routine(a_symbol_locator             *locator,
                   a_func_info_block_ptr        func_info,
                   a_source_sequence_entry_ptr  declarator_ssep,
                   a_symbol_reference_kind      srk_flags,
-                  a_decl_modifier              decl_modifiers,
+                  a_decl_modifiers_block_ptr   decl_modifiers,
                   a_symbol_ptr                 *symbol_ptr,
                   an_id_linkage_kind           *linkage_ptr,
                   a_type_ptr                   *old_type,
@@ -4282,14 +4281,14 @@ skip_overloading:;
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
-void decl_function_template(a_symbol_locator     *locator,
-                            a_type_ptr           type_ptr,
-                            a_func_info_block    *func_info,
-                            a_symbol_ptr         *symbol_ptr,
-                            a_storage_class      storage_class,
-                            a_decl_modifier	 decl_modifiers,
-                            a_template_param_ptr templ_param_list,
-                            a_scope_depth        orig_decl_level)
+void decl_function_template(a_symbol_locator            *locator,
+                            a_type_ptr                  type_ptr,
+                            a_func_info_block           *func_info,
+                            a_symbol_ptr                *symbol_ptr,
+                            a_storage_class             storage_class,
+                            a_decl_modifiers_block_ptr  decl_modifiers,
+                            a_template_param_ptr        templ_param_list,
+                            a_scope_depth               orig_decl_level)
 /*
 Roughly speaking, this routine does for function templates what
 decl_routine does for ordinary functions.  Look up and reuse or else
@@ -5112,6 +5111,7 @@ symbol has already been entered as an undefined symbol.
   a_symbol_locator       locator;
   a_memory_region_number region_to_switch_back_to;
   a_func_info_block      func_info;
+  a_decl_modifiers_block decl_modifiers;
 
   db_enter(4, "decl_default_function");
   /* Change the symbol kind to routine.  Note that the symbol has already
@@ -5156,9 +5156,10 @@ symbol has already been entered as an undefined symbol.
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
+  clear_decl_modifiers_block(&decl_modifiers);
   decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL,
-               (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE, &symbol_ptr,
+               (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, &symbol_ptr,
                &linkage, &old_type, &ext_sym);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
@@ -5407,7 +5408,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
-  a_decl_modifier	       decl_modifiers;
+  a_decl_modifiers_block       decl_modifiers;
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
@@ -5476,15 +5477,14 @@ parenthesis for such a construct.  The parenthesis is also checked for
 within this routine if is_parenthesized comes in FALSE.
 */
 {
-  a_type_ptr            complete_type, new_type_ptr;
-  a_type_ptr            derived_type, bottom_derived_type;
-  a_decl_flag_set       dso_flags, do_flags;
-  a_type_qualifier_set  qualifiers;
-  a_decl_modifier	decl_modifiers;
-  a_source_position     start_pos;
-  a_storage_class       storage_class;
-  a_source_sequence_entry_ptr
-                        declarator_ssep = NULL;
+  a_type_ptr                  complete_type, new_type_ptr;
+  a_type_ptr                  derived_type, bottom_derived_type;
+  a_decl_flag_set             dso_flags, do_flags;
+  a_type_qualifier_set        qualifiers;
+  a_decl_modifiers_block      decl_modifiers;
+  a_source_position           start_pos;
+  a_storage_class             storage_class;
+  a_source_sequence_entry_ptr declarator_ssep = NULL;
 
   db_enter(3, "new_type_name");
   /* Check for the parenthesized form. */
@@ -5585,12 +5585,12 @@ resulting type.  This is called in Microsoft mode for function-style casts
 where the type involves more than one token -- e.g., "unsigned int(x)".
 */
 {
-  a_decl_flag_set       dso_flags;
-  a_storage_class       storage_class;
-  a_type_ptr            type_ptr;
-  a_type_qualifier_set  qualifiers;
-  a_decl_modifier       decl_modifiers;
-  a_source_position     pos;
+  a_decl_flag_set             dso_flags;
+  a_storage_class             storage_class;
+  a_type_ptr                  type_ptr;
+  a_type_qualifier_set        qualifiers;
+  a_decl_modifiers_block      decl_modifiers;
+  a_source_position           pos;
 
   check_assertion(microsoft_mode);
   pos = pos_curr_token;
@@ -5619,15 +5619,15 @@ to a class, it is FALSE if parent points to a namespace or if there
 is no parent.
 */
 {
-  a_storage_class           storage_class;
-  a_decl_flag_set           dso_flags;
-  a_type_qualifier_set      qualifiers;
-  a_decl_modifier	    decl_modifiers;
-  a_type_ptr                specifiers_type, complete_type;
-  a_source_position         type_pos;
-  a_boolean                 is_conversion_operator;
-  a_boolean		    class_reactivated = FALSE;
-  a_boolean		    namespace_reactivated = FALSE;
+  a_storage_class             storage_class;
+  a_decl_flag_set             dso_flags;
+  a_type_qualifier_set        qualifiers;
+  a_decl_modifiers_block      decl_modifiers;
+  a_type_ptr                  specifiers_type, complete_type;
+  a_source_position           type_pos;
+  a_boolean                   is_conversion_operator;
+  a_boolean		      class_reactivated = FALSE;
+  a_boolean		      namespace_reactivated = FALSE;
 
   db_enter(3, "scan_conversion_operator");
   /* Push a class or namespace reactivation scope if the class or namespace
@@ -6050,7 +6050,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
-  a_decl_modifier	       decl_modifiers;
+  a_decl_modifiers_block       decl_modifiers;
   a_symbol_ptr                 sym;
   a_symbol_locator             locator;
   a_source_position            decl_pos;
@@ -6438,7 +6438,7 @@ Return a pointer to the variable that is declared.
   a_type_ptr                   type_ptr = NULL;
   a_decl_flag_set              dsi_flags, dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
-  a_decl_modifier	       decl_modifiers;
+  a_decl_modifiers_block       decl_modifiers;
   a_symbol_ptr                 sym;
   a_variable_ptr               vp;
   a_symbol_locator             locator;
@@ -6500,7 +6500,8 @@ Return a pointer to the variable that is declared.
                      /*suppress_redecl_error=*/FALSE);
   /* Allocate the variable and bind the symbol to it. */
   vp = make_variable(type_ptr, storage_class, decl_scope_level);
-  update_variable_decl_modifiers(vp, decl_modifiers, &locator.source_position,
+  update_variable_decl_modifiers(vp, &decl_modifiers,
+                                 &locator.source_position,
                                  /*is_redecl=*/FALSE);
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
@@ -7468,7 +7469,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean	               defines_something;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
-  a_decl_modifier	       decl_modifiers, local_decl_modifiers;
+  a_decl_modifiers_block       decl_modifiers, local_decl_modifiers;
   a_decl_flag_set              dsi_flags, di_flags;
   a_symbol_ptr                 symbol_ptr, ext_sym;
   a_boolean	               decl_specifiers_omitted = FALSE;
@@ -8031,7 +8032,7 @@ continue_with_declaration:
           (void)function_definition(&locator, local_type_ptr, &func_info,
                                     local_storage_class,
                                     has_explicit_type_specifier,
-                                    decl_modifiers);
+                                    &decl_modifiers);
           done_with_func_info(func_info);
           /* The presence of a final '}' will already have been checked for. */
           check_assertion(curr_token == tok_rbrace ||
@@ -8240,13 +8241,13 @@ continue_with_declaration:
         if (microsoft_mode) {
           /* "selectany" is allowed only on variables that have static
               initialization and external linkage. */
-          if (has_initializer && (local_decl_modifiers & DM_SELECTANY)) {
+          if (has_initializer && (local_decl_modifiers.flags & DM_SELECTANY)) {
             /* Postpone the checking until the initializer is scanned. */
-            local_decl_modifiers &= ~DM_SELECTANY;
+            local_decl_modifiers.flags &= ~DM_SELECTANY;
           }  /* if */
         }  /* if */
         /* Copy the decl-modifiers into the routine entry. */
-        update_variable_decl_modifiers(var_ptr, local_decl_modifiers,
+        update_variable_decl_modifiers(var_ptr, &local_decl_modifiers,
                                        &locator.source_position,
                                        /*is_redecl=*/TRUE);
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -8254,7 +8255,7 @@ continue_with_declaration:
         /* A function declaration with no body. */
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
-                     local_decl_modifiers, &symbol_ptr, &linkage, &old_type,
+                     &local_decl_modifiers, &symbol_ptr, &linkage, &old_type,
                      &ext_sym);
       } else {
         /* A variable declaration. */
@@ -8318,17 +8319,18 @@ continue_with_declaration:
         if (microsoft_mode) {
           /* "selectany" is allowed only on variables that have static
               initialization and external linkage. */
-          if (has_initializer && (local_decl_modifiers & DM_SELECTANY) &&
+          if (has_initializer &&
+              (local_decl_modifiers.flags & DM_SELECTANY) &&
               depth_innermost_function_scope == NO_SCOPE_DEPTH &&
               (local_storage_class == (a_storage_class)sc_unspecified ||
                local_storage_class == (a_storage_class)sc_extern)) {
             /* Postpone the checking until the initializer is scanned. */
-            local_decl_modifiers &= ~DM_SELECTANY;
+            local_decl_modifiers.flags &= ~DM_SELECTANY;
           }  /* if */
         }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE */
         decl_variable(&locator, local_storage_class, local_type_ptr,
-                      declarator_ssep, srk_flags, local_decl_modifiers,
+                      declarator_ssep, srk_flags, &local_decl_modifiers,
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
@@ -8395,7 +8397,8 @@ continue_with_declaration:
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
 #if DECL_MODIFIERS_IN_USE
         if (microsoft_mode &&
-            (decl_modifiers & ~local_decl_modifiers & DM_SELECTANY)) {
+            (decl_modifiers.flags &
+             ~(local_decl_modifiers.flags) & DM_SELECTANY)) {
           /* Checking for the "selectany" decl-modifier was deferred. */
           if (var_ptr->init_kind == (an_init_kind)initk_static) {
             /* Flag the variable. */

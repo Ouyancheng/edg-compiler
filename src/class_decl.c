@@ -509,7 +509,7 @@ typedef struct a_member_decl_info {
   a_type_qualifier_set
 		qualifiers;
 			/* Type qualifiers returned from decl_specifiers. */
-  a_decl_modifier
+  a_decl_modifiers_block
 		decl_modifiers;
 			/* Decl-modifiers returned from decl_specifiers
 			   (Microsoft compatibility mode only). */
@@ -574,7 +574,7 @@ static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
   mdip->dso_flags = DSO_NO_OUTPUT_FLAGS;
   mdip->do_flags = DO_NO_OUTPUT_FLAGS;
   mdip->qualifiers = TQ_NONE;
-  mdip->decl_modifiers = DM_NONE;
+  clear_decl_modifiers_block(&mdip->decl_modifiers);
   mdip->storage_class = (a_storage_class)sc_unspecified;
   mdip->is_first_in_declarator_list = TRUE;
   mdip->is_constructor = FALSE;
@@ -4207,7 +4207,7 @@ of the function, and again overloading is a possibility.
         storage_class = (a_storage_class)sc_static;
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
-                   declarator_ssep, srk_flags, decl_info->decl_modifiers,
+                   declarator_ssep, srk_flags, &decl_info->decl_modifiers,
                    &sym, &linkage, &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
@@ -4987,7 +4987,7 @@ is TRUE when this is called for a member function definition.
   if (class_decl_modifiers != DM_NONE) {
     check_assertion_str(class_decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT),
                         "merge_decl_modifiers: unexpected class modifiers");
-    decl_modifiers = decl_info->decl_modifiers;
+    decl_modifiers = decl_info->decl_modifiers.flags;
     if (decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) {
       /* If there are dll modifiers on the class, they cannot appear on the
          member declaration, too. */
@@ -5004,7 +5004,7 @@ is TRUE when this is called for a member function definition.
       /* Merge the sets of flags. */
       decl_modifiers |= class_decl_modifiers;
     }  /* if */
-    decl_info->decl_modifiers = decl_modifiers;
+    decl_info->decl_modifiers.flags = decl_modifiers;
   }  /* if */
 }  /* merge_decl_modifiers */
 
@@ -5344,7 +5344,7 @@ declared member functions.
        member, check for consistency and use the union of the two. */
     merge_decl_modifiers(class_type, decl_info,
                          (a_boolean)func_info->is_definition);
-    update_routine_decl_modifiers(rtn, decl_info->decl_modifiers,
+    update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition);
@@ -5545,7 +5545,7 @@ in-class member function declarations.)
     merge_decl_modifiers(class_type, decl_info,
                          (a_boolean)func_info->is_definition);
 #endif /* if 0 */
-    update_routine_decl_modifiers(rtn, decl_info->decl_modifiers,
+    update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition);
@@ -5842,7 +5842,7 @@ member declaration, respectively.
   /* If decl-modifiers were declared for the class and/or for the member,
      check for consistency and use the union of the two. */
   merge_decl_modifiers(class_type, decl_info, /*is_definition=*/FALSE);
-  update_variable_decl_modifiers(var, decl_info->decl_modifiers,
+  update_variable_decl_modifiers(var, &decl_info->decl_modifiers,
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -29,10 +29,11 @@ decl_spec.c -- Scanning of declaration specifiers.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-a_decl_modifier scan_microsoft_extended_decl_modifiers(
-                                            a_boolean            is_class_decl,
-                                            a_type_qualifier_set *qualifiers,
-                                            a_boolean            *err)
+void scan_microsoft_extended_decl_modifiers(
+                                    a_boolean                   is_class_decl,
+                                    a_decl_modifiers_block_ptr  decl_modifiers,
+                                    a_type_qualifier_set        *qualifiers,
+                                    a_boolean                   *err)
 /*
 Scan the Microsoft __declspec specifier, which has the form
 
@@ -60,8 +61,6 @@ When this routine is called, the current token must be the __declspec
 keyword (or a memory attribute keyword).
 */
 {
-  a_decl_modifier modifiers = DM_NONE;
-
   if (is_class_decl) *qualifiers = TQ_NONE;
   for (;;) {
     if (is_class_decl && is_microsoft_memory_attribute()) {
@@ -95,20 +94,20 @@ keyword (or a memory attribute keyword).
             char *modifier;
             modifier = locator_for_curr_id.symbol_header->identifier;
             if (strcmp(modifier, "dllexport") == 0) {
-              if (modifiers & DM_DLLIMPORT) {
+              if (decl_modifiers->flags & DM_DLLIMPORT) {
                 /* The dllimport and dllexport attributes are mutually
                    exclusive. */
                 warning(ec_bad_combination_of_dll_attributes);
               } else {
-                modifiers |= DM_DLLEXPORT;
+                decl_modifiers->flags |= DM_DLLEXPORT;
               }  /* if */
             } else if (strcmp(modifier, "dllimport") == 0) {
-              if (modifiers & DM_DLLEXPORT) {
+              if (decl_modifiers->flags & DM_DLLEXPORT) {
                 /* The dllimport and dllexport attributes are mutually
                    exclusive. */
                 warning(ec_bad_combination_of_dll_attributes);
               } else {
-                modifiers |= DM_DLLIMPORT;
+                decl_modifiers->flags |= DM_DLLIMPORT;
               }  /* if */
             } else if (strcmp(modifier, "thread") == 0) {
               if (is_class_decl) {
@@ -116,7 +115,7 @@ keyword (or a memory attribute keyword).
                 pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                                &pos_curr_token, modifier);
               } else {
-                modifiers |= DM_THREAD;
+                decl_modifiers->flags |= DM_THREAD;
               }  /* if */
             } else if (strcmp(modifier, "naked") == 0) {
               if (is_class_decl) {
@@ -124,7 +123,7 @@ keyword (or a memory attribute keyword).
                 pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                                &pos_curr_token, modifier);
               } else {
-                modifiers |= DM_NAKED;
+                decl_modifiers->flags |= DM_NAKED;
               }  /* if */
             } else if (strcmp(modifier, "selectany") == 0) {
               if (is_class_decl) {
@@ -132,7 +131,7 @@ keyword (or a memory attribute keyword).
                 pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                                &pos_curr_token, modifier);
               } else {
-                modifiers |= DM_SELECTANY;
+                decl_modifiers->flags |= DM_SELECTANY;
               }  /* if */
             } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
               if (is_class_decl) {
@@ -140,7 +139,59 @@ keyword (or a memory attribute keyword).
                 pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                                &pos_curr_token, modifier);
               } else {
-                modifiers |= DM_NOTHROW;
+                decl_modifiers->flags |= DM_NOTHROW;
+              }  /* if */
+            } else if (!C_mode() && strcmp(modifier, "uuid") == 0 &&
+                       next_token() == tok_lparen) {
+              if (!is_class_decl) {
+                /* "uuid" is allowed only on a class declaration. */
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                /* The syntax is
+                     uuid ( string-literal )
+                   where the string-literal optionally begins and ends with
+                   braces and is of the form
+                     hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+                   where "h" is any hex digit and the hyphens are required. */
+
+
+#if 0
+                a_token_kind  next_tok = next_token();
+                if (next_tok == tok_rparen || next_tok == tok_identifier) {
+                  /* 
+                   Note: support for the "uuid" attribute is incomplete. */
+#endif /* if 0 */
+
+
+                if (next_token() != tok_rparen) {
+                  /* Advance past "uuid" to the left paren. */
+                  (void)get_token();
+                  /* Temporary: if the next token is a left paren, flush all
+                     tokens till the matching right paren is found. */
+                  if (required_token_no_advance(tok_lparen, ec_exp_lparen)) {
+                    flush_until_matching_token();
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+            } else if (strcmp(modifier, "property") == 0) {
+              if (is_class_decl) {
+                /* "property" is not allowed on a class declaration. */
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                /* The syntax is
+                     property ( get=..., put=... )
+                   Note: support for the "property" attribute is incomplete. */
+                if (next_token() != tok_rparen) {
+                  /* Advance past "property" to the left paren. */
+                  (void)get_token();
+                  /* Temporary: if the next token is a left paren, flush all
+                     tokens till the matching right paren is found. */
+                  if (required_token_no_advance(tok_lparen, ec_exp_lparen)) {
+                    flush_until_matching_token();
+                  }  /* if */
+                }  /* if */
               }  /* if */
             } else {
               str_error(ec_bad_declspec_modifier, modifier);
@@ -158,7 +209,6 @@ keyword (or a memory attribute keyword).
       break;
     }  /* if */
   }  /* for */
-  return modifiers;
 }  /* scan_microsoft_extended_decl_modifiers */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -784,7 +834,7 @@ the template.
   a_boolean               is_redeclaration;
   a_boolean               is_template_specific_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier         decl_modifiers = DM_NONE;
+  a_decl_modifiers_block  decl_modifiers;
   a_type_qualifier_set    class_qualifiers = TQ_NONE;
   an_inheritance_kind     inheritance_kind = (an_inheritance_kind)ihk_none;
   a_source_position       inheritance_kind_pos;
@@ -818,16 +868,17 @@ the template.
     }  /* if */
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    clear_decl_modifiers_block(&decl_modifiers);
     if (microsoft_mode && !C_mode() &&
         (curr_token == tok_declspec || is_microsoft_memory_attribute())) {
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_function_definition and applied to each member
          declaration, where appropriate. */
       a_boolean  local_err;
-      decl_modifiers =
-             scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
-                                                    &class_qualifiers,
-                                                    &local_err);
+
+      scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                             &decl_modifiers,
+                                             &class_qualifiers, &local_err);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If there is an identifier next, it is a tag.  It can be the declaration
@@ -837,7 +888,7 @@ the template.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && !C_mode() && tag_id_present &&
         !locator_for_curr_id.is_qualified_name &&
-        decl_modifiers == DM_NONE && class_qualifiers == TQ_NONE) {
+        decl_modifiers.flags == DM_NONE && class_qualifiers == TQ_NONE) {
       /* Check for a Microsoft "inheritance kind" -- i.e.,
            __single_inheritance
            __multiple_inheritance
@@ -1433,7 +1484,7 @@ the template.
     if (is_class_definition) {
       /* If there were any class-wide modifiers or memory attributes
          specified, record them in the class type supplement. */
-      ctsp->decl_modifiers = decl_modifiers;
+      ctsp->decl_modifiers = decl_modifiers.flags;
       ctsp->qualifiers = class_qualifiers;
     }  /* if */
     if (inheritance_kind != (an_inheritance_kind)ihk_none) {
@@ -2665,12 +2716,12 @@ typedef long a_decl_specifiers_set;
 			/* "void" was scanned as the very first specifier. */
 
 
-a_boolean decl_specifiers(a_decl_flag_set       input_flags,
-                          a_decl_flag_set       *output_flags,
-                          a_storage_class       *storage_class,
-                          a_type_ptr            *type_ptr,
-                          a_type_qualifier_set  *qualifiers,
-                          a_decl_modifier_ptr    decl_modifiers)
+a_boolean decl_specifiers(a_decl_flag_set            input_flags,
+                          a_decl_flag_set            *output_flags,
+                          a_storage_class            *storage_class,
+                          a_type_ptr                 *type_ptr,
+                          a_type_qualifier_set       *qualifiers,
+                          a_decl_modifiers_block_ptr decl_modifiers)
 /*
 Scan a list of declaration specifiers.  Specifically, scan a
 declaration-specifiers (3.5), a specifier_qualifier_list (3.5.2.1), or
@@ -2801,7 +2852,7 @@ Returns TRUE if there is an error in the specifiers.
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
   *qualifiers = TQ_NONE;
-  *decl_modifiers = DM_NONE;
+  clear_decl_modifiers_block(decl_modifiers);
   decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
@@ -2830,7 +2881,7 @@ Returns TRUE if there is an error in the specifiers.
                  extern "C" void f();      // MSVC++ issues no error
                Therefore, we throw away any decl-modifiers that were
                accumulated to this point. */
-            *decl_modifiers = DM_NONE;
+            clear_decl_modifiers_block(decl_modifiers);
             warning(ec_decl_modifiers_ignored);
             /* Advance to the string token. */
             (void)get_token();
@@ -2995,24 +3046,26 @@ Returns TRUE if there is an error in the specifiers.
            allows these in some nonstandard places such as on
            linkage declarations (e.g., extern "C" declarations). */
         {
-          a_decl_modifier	new_modifiers;
-          a_source_position	specifier_start_pos;
-          a_boolean             is_declspec = FALSE;
+          a_decl_modifiers_block  new_modifiers;
+          a_source_position       specifier_start_pos;
+          a_boolean               is_declspec = FALSE;
 
+          clear_decl_modifiers_block(&new_modifiers);
           specifier_start_pos = pos_curr_token;
           /* A Microsoft storage class modifier.  If this is a __declspec,
              scan the list of declaration modifiers. */
           switch (curr_token) {
             case tok_declspec:
-              new_modifiers = scan_microsoft_extended_decl_modifiers(
+              scan_microsoft_extended_decl_modifiers(
                                                /*is_class_decl=*/FALSE,
+                                               &new_modifiers,
                                                (a_type_qualifier_set *)NULL,
                                                &err);
               decl_specifiers_seen |= DS_DECLSPEC;
               is_declspec = TRUE;
               break;
             case tok_microsoft_inline:
-	      new_modifiers = DM_MICROSOFT_INLINE;
+	      new_modifiers.flags = DM_MICROSOFT_INLINE;
               decl_specifiers_seen |= DS_MICROSOFT_INLINE;
               break;
             default:
@@ -3028,7 +3081,7 @@ Returns TRUE if there is an error in the specifiers.
           } else {
             /* There were no errors; update decl_modifiers to reflect
                this specifier. */
-            *decl_modifiers |= new_modifiers;
+            decl_modifiers->flags |= new_modifiers.flags;
             if (is_parameter) {
               /* For parameters, warn if a storage class modifier is used. */
               pos_warning(ec_bad_param_storage_class, &specifier_start_pos);

@@ -926,6 +926,26 @@ typedef struct a_template_decl_info {
 
 
 /*
+Structure that contains non-standard declarative information (e.g., as used
+in Microsoft-compatibility mode).  This block is passed around during
+declaration processing; its contents may be copied into IL entries after
+the appropriate checking is done.
+*/
+typedef struct a_decl_modifiers_block *a_decl_modifiers_block_ptr;
+typedef struct a_decl_modifiers_block {
+  a_decl_modifier
+		flags;
+			/* A bit-vector of flags representing additional
+			   declarative information (e.g.,  via the __declspec
+			   mechanism in Microsoft compatibility mode). */
+  char		*uuid_string;
+			/* Pointer to a string representing the argument of
+			   a uuid decl-modifier (in Microsoft-compatibility
+			   mode). */
+} a_decl_modifiers_block;
+
+
+/*
 Structure that contains a token cache that represents a template or
 part of a template, and the information needed to recreate the context
 in which the tokens should be rescanned.
@@ -2604,6 +2624,7 @@ extern void clear_func_info(a_func_info_block *func_info);
 #define done_with_func_info(func_info)                                 \
   free_param_id_list(&(func_info.param_id_list))
 
+extern void clear_decl_modifiers_block(a_decl_modifiers_block *decl_modifiers);
 
 extern void add_to_param_id_list(a_symbol_locator            *locator,
                                  a_type_ptr                  type_ptr,

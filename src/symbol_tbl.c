@@ -4482,6 +4482,7 @@ how to form the function's signature.
   a_routine_type_supplement_ptr  extra_info;
   an_id_linkage_kind             linkage;
   a_func_info_block              func_info;
+  a_decl_modifiers_block         decl_modifiers;
 
   /* Create a routine type. */
   rout_type = alloc_type((a_type_kind)tk_routine);
@@ -4505,12 +4506,13 @@ how to form the function's signature.
   extra_info->prototyped = TRUE;
   set_routine_calling_method_flag(rout_type, &null_source_position);
   clear_func_info(&func_info);
+  clear_decl_modifiers_block(&decl_modifiers);
   /* Create the symbol and routine entry.  Note that the routine entry
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
   decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
-               (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION, DM_NONE,
-               &sym, &linkage, &old_type, &ext_sym);
+               (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION,
+               &decl_modifiers, &sym, &linkage, &old_type, &ext_sym);
   sym->variant.routine.ptr->compiler_generated = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -7596,6 +7598,15 @@ Clear the fields of a function information block to default values.
   func_info->max_member_alignment           = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* clear_func_info */
+
+
+void clear_decl_modifiers_block(a_decl_modifiers_block_ptr  decl_modifiers)
+/*
+*/
+{
+  decl_modifiers->flags = DM_NONE;
+  decl_modifiers->uuid_string = NULL;
+}  /* clear_decl_modifiers_block */
 
 
 void add_to_dependent_type_fixup_list(a_type_ptr                   type_ptr,

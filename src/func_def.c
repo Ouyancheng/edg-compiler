@@ -989,14 +989,14 @@ and for the instantiation of template functions.
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
-static void define_member_function(a_symbol_locator   *locator,
-				   a_type_ptr         type_ptr,
-                                   a_func_info_block  *func_info,
-				   a_symbol_ptr       *symbol_ptr,
-                                   an_id_linkage_kind *linkage_ptr,
-                                   a_decl_modifier    decl_modifiers,
-				   a_type_ptr	      *old_type,
-				   a_symbol_ptr	      *ext_sym)
+static void define_member_function(a_symbol_locator            *locator,
+				   a_type_ptr                  type_ptr,
+                                   a_func_info_block           *func_info,
+				   a_symbol_ptr                *symbol_ptr,
+                                   an_id_linkage_kind          *linkage_ptr,
+                                   a_decl_modifiers_block_ptr  decl_modifiers,
+				   a_type_ptr	               *old_type,
+				   a_symbol_ptr	               *ext_sym)
 /*
 This routine is called in the case of a member function definition.  Its
 function is similar to that of decl_routine, which is called for
@@ -1261,12 +1261,13 @@ on a prior declaration.
 }  /* define_member_function */
 
 
-a_symbol_ptr function_definition(a_symbol_locator  *locator,
-                                 a_type_ptr        rout_type,
-                                 a_func_info_block *func_info,
-                                 a_storage_class   storage_class,
-                                 a_boolean         has_explicit_type_specifier,
-                                 a_decl_modifier   decl_modifiers)
+a_symbol_ptr function_definition(
+                        a_symbol_locator           *locator,
+                        a_type_ptr                 rout_type,
+                        a_func_info_block          *func_info,
+                        a_storage_class            storage_class,
+                        a_boolean                  has_explicit_type_specifier,
+                        a_decl_modifiers_block_ptr decl_modifiers)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
