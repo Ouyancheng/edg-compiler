@@ -3619,6 +3619,15 @@ list of a template function.  Returns TRUE if a match is found.
           }  /* if */
         }  /* if */
       }  /* if */
+      /* A expression involving nontype parameters is a "nondeduced" context.
+         This means that template parameters do not have their values deduced
+         from this context, but instead use values deduced elsewhere.  The
+         code above is still necessary though, because it permits a template
+         parameter to be deduced from that context (which is important if
+         that is the only reference to the template parameter from which
+         it can be deduced).  Whether or not that succeeded, consider this
+         a match for the time being. */
+      match = TRUE;
     }  /* if */
   } else {
     /* The template constant does not involve a template parameter.
@@ -5854,8 +5863,25 @@ type should not be used in the matching process.
      on other template parameters agree with the types of the deduced
      values. */
   if (match) {
-    match = wrapup_function_template_argument_deduction(
-                         *templ_arg_list, templ_sym, templ_param_list) != NULL;
+    a_type_ptr	new_type;
+    /* Make sure the final type, after substitution of nondeduced contexts,
+       is correct. */
+    new_type = wrapup_function_template_argument_deduction(
+                                *templ_arg_list, templ_sym, templ_param_list);
+    match = FALSE;
+    if (new_type != NULL) {
+      if (is_decl_context) {
+        /* In declaration contexts we do not yet know whether the type
+           has an implicit this type.  Consequently, a NULL implicit this
+           type should be considered a match for a non-NULL one in the
+           routine we are matching with. */
+        match = unknown_implicit_this_identical_types(curr_type, new_type);
+      } else {
+        /* In nondeclarative contexts, the implicit this parameter types must
+           match exactly. */
+        match = identical_types(curr_type, new_type);
+     }  /* if */
+    }  /* if */
   }  /* if */
   if (match) {
     /* Look for a previously created instance with a matching set of template

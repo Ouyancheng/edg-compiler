@@ -1,5 +1,18 @@
 Version 2.38
 
+11/20/97  Expressions involving nontype template parameters handled
+          incorrectly in template argument deduction
+
+The Draft Standard now specifies that expressions involving nontype
+template parameters are "nondeduced" contexts that use the values
+of template parameters deduced elsewhere.  Previously, template
+parameters could not be deduced if they were used in expressions.
+The new rules are now implemented.
+
+  template <int I> struct A {};
+  template <int I> A<I-1> f(A<I>){}
+  template A<0> f(A<1>);  // now accepted
+
 11/19/97  C++-generating back end, Microsoft compatibility: no qualified name
           on reference to member within class definition
 
