@@ -1,5 +1,17 @@
 Version 2.46
 
+1/26/02  C++-generating back end: calls to functions only declared as friends
+
+In Microsoft mode, functions only declared as friends are visible in the
+namespace scope surrounding that friend declaration.  As a result, such
+functions can be referred to using qualified names.  For configurations
+that accept Microsoft extensions (MICROSOFT_EXTENSIONS_ALLOWED is TRUE)
+but generate C++ code for compilers that do not visibly inject friend
+declarations in the surrounding namespace, a new configuration option
+TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES is now available
+to force the use of unqualified names to refer to functions only declared
+as friend functions.
+
 1/26/02  Name mangling performance improvement
 
 The name mangling code in lower_name.c has been reworked (again)

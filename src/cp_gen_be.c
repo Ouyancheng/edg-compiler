@@ -476,7 +476,23 @@ hidden names in C, so there's no point in maintaining this information).
          their former values at the end of the current name context. */
       alloc_hidden_name_fixup(hnp->entity);
       /* Set the flags to the new values. */
-      scp->qualification_needed = hnp->qualification_needed;
+#if MICROSOFT_EXTENSIONS_ALLOWED &&                            \
+    TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES
+      if ((an_il_entry_kind)(hnp->entity.kind) == iek_routine &&
+          ((a_routine_ptr)scp)->declared_only_as_friend) {
+        /* The source code was parsed in Microsoft mode (where friend function
+           names are visibly injected in the surrounding namespace scope, and
+           therefore can be accessed with a qualified name), but we are
+           generating code for a C++-generating compiler where friend function
+           declarations are not visibly injected in the surround namespace.
+           For such compilers, qualification can never be right. */
+        scp->qualification_needed = FALSE;
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && TARG_CPP_COMPILER_... */
+      /* Do not insert code here. */
+      {
+        scp->qualification_needed = hnp->qualification_needed;
+      }  /* if */
       scp->partially_hidden_by_microsoft_injected_class_name =
                         hnp->partially_hidden_by_microsoft_injected_class_name;
       if (type != NULL) {

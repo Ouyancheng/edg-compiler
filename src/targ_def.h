@@ -1922,6 +1922,18 @@ MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 
 /*
+Flag that is TRUE if the C++-generating back end should generate code for a
+compiler that does not visibly inject friend function declarations in the
+surrounding namespace scope.  This flag is only applicable if
+MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE
+#ifndef TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES
+#define TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES FALSE
+#endif /* ifndef TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE */
+
+/*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
 C++/C-generating back end (cp_gen_be) is run, near and far should be
 suppressed in the output.  This flag is only applicable if
