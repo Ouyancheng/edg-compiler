@@ -780,7 +780,7 @@ shift count is a legal value.
   second_part_shift = BITS_IN_INT_VALUE_PART - first_part_shift;
   /* fill_value contains the bits to be shifted in from the left.  It is
      zero for positive numbers and -1 (0xffff...) for negative numbers. */
-  if (is_signed & sign_extend) {
+  if (is_signed && sign_extend) {
     fill_value = -(int)sign_of(*op_1) & MAX_UINT_VALUE_PART;
   } else {
     fill_value = 0;
