@@ -2692,7 +2692,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     opstr = opname_names[(int)opname];
     /* For "new" and "delete", a blank is needed between the "operator"
        and the opname. */
-    blank_needed = (isalpha(opstr[1]) != 0);
+    blank_needed = (isalpha((unsigned char)opstr[1]) != FALSE);
     opname_length = OPERATOR_LEN + strlen(opstr) + blank_needed;
     hdr_ptr->identifier_length = opname_length;
     hdr_ptr->identifier = str = alloc_il((sizeof_t)(opname_length + 1));
