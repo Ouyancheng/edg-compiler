@@ -1295,7 +1295,7 @@ extern void il_init(void);
 
 #define upc_dynamic_threads() (upc_num_threads == 0)
 
-extern a_boolean upc_block_size_too_large(a_upc_block_size  block_size);
+extern a_boolean upc_block_size_too_large(a_host_large_unsigned  block_size);
 
 EXTERN a_upc_block_size
 		max_upc_block_size

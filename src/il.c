@@ -14114,7 +14114,7 @@ Display and return the amount of space used for various IL tables.
 
 #if UPC_EXTENSIONS_ALLOWED
 
-a_boolean upc_block_size_too_large(a_upc_block_size  block_size)
+a_boolean upc_block_size_too_large(a_host_large_unsigned  block_size)
 /*
 If the block size is too large, issue an error and return TRUE; otherwise,
 return FALSE.
@@ -14122,7 +14122,7 @@ return FALSE.
 {
   a_boolean  result = FALSE;
 
-  if (block_size > max_upc_block_size) {
+  if (block_size > (a_host_large_unsigned)max_upc_block_size) {
     char  size_buf[20];
     (void)sprintf(size_buf, "%ld", max_upc_block_size);
     str_error(ec_shared_block_size_too_large, size_buf);

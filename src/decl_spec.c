@@ -4465,13 +4465,15 @@ type qualifier.  This routine also scans the enclosing brackets.  E.g.,
             error(ec_shared_block_size_must_be_positive);
             *err = TRUE;
           } else {
-            block_size = unsigned_value_of_integer_constant(&constant, err);
+            a_host_large_unsigned  const_value =
+                           unsigned_value_of_integer_constant(&constant, err);
+            block_size = (a_upc_block_size)const_value;
             if (!*err) {
-              if (block_size == 0) {
+              if (const_value == 0) {
                 block_size = UPC_BLOCK_SIZE_INDEFINITE;
               } else {
                 /* An error will be issued if the block size is too large. */
-                *err = upc_block_size_too_large(block_size);
+                *err = upc_block_size_too_large(const_value);
               }  /* if */
             }  /* if */
           }  /* if */

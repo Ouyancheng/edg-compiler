@@ -1142,9 +1142,10 @@ based (through array and pointer constructs only).
              !typeref_is_shared_qualified(elem_type)) {
         elem_type = elem_type->variant.typeref.type;
       }  /* while */
-      /* upc_block_size_too_large issues an error is the given block size
+      /* upc_block_size_too_large issues an error if the given block size
          is too large. */
-      bad_block_size = upc_block_size_too_large(num_elements);
+      bad_block_size = upc_block_size_too_large(
+                                         (a_host_large_unsigned)num_elements);
       elem_type->variant.typeref.upc_block_size =
                                             bad_block_size ? 1 : num_elements;
     }  /* if */
