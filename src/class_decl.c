@@ -2846,7 +2846,8 @@ function symbols.
       /* A member function by this name has already been entered into the
          symbol table.  This could be a redeclaration, which is illegal for
          class members.  Check for that first by looking for a type match. */
-      if (member_function_redecl_sym(sym, type) == NULL) {
+      new_sym = member_function_redecl_sym(sym, type);
+      if (new_sym == NULL) {
         /* The previously declared function with the same name (or, if it is
            already overloaded, any instance of it) does not have a matching
            type, so sym remains a candidate for overloading. */
@@ -2854,7 +2855,6 @@ function symbols.
         /* This is a redeclaration.  Just return to old symbol entry, setting
            sym to NULL to avoid overload processing.  The caller will
            do some consistency checking and issue a warning. */
-        new_sym = sym;
         sym = NULL;
       }  /* if */
     }  /* if */
