@@ -591,6 +591,11 @@ Display the indicated source correspondence entry.
   if (scp->has_associated_pragma) {
     disp_boolean("  has_associated_pragma", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (scp->has_associated_attribute) {
+    disp_boolean("  has_associated_attribute", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEED_NAME_MANGLING
   /* Do not print out name_has_been_mangled,
      mangled_name_cannot_be_included_in_other_name, and
