@@ -1208,13 +1208,14 @@ created for this entity; otherwise, it is NULL.
   /* If appropriate, set a flag in the symbol header to indicate that at
      least one declaration with this name was a tag name and/or appeared in
      the file scope or a namespace scope.  The information is used in
-     building the hidden name table. */
+     building the hidden name table.  Command-line macro definitions should
+     not be considered as appearing in file scope. */
   if (!sym_ptr->is_error && sym_ptr->kind != (a_symbol_kind)sk_undefined) {
     a_symbol_header_ptr  hdr = sym_ptr->header;
 
     if (is_tag_symbol(sym_ptr)) hdr->any_tag_decl = TRUE;
     if (!sym_ptr->is_class_member &&
-        sym_ptr->kind != (a_symbol_kind)sk_macro) {
+        curr_command_line_macro_def == NULL) {
       if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
           sym_ptr->parent.namespace_ptr != NULL) {
         hdr->any_decl_in_file_or_namespace_scope = TRUE;
