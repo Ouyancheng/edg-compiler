@@ -422,6 +422,41 @@ Instantiate the body of the template function associated with fiep.
 }  /* instantiate_template_function */
 
 
+void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
+/*
+*/
+{
+  a_symbol_ptr                      static_data_member_sym;
+  a_template_symbol_supplement_ptr  tssp;
+
+  db_enter(3, "define_template_static_data_member");
+  tssp = sdmdp->template_sym->variant.template_info;
+  static_data_member_sym = sdmdp->static_data_member_sym;
+#if CHECKING
+  if (!sdmdp->template_sym->defined || tssp->parameters == NULL) {
+    internal_error("define_template_static_data_member: undef'd template");
+  } else if (static_data_member_sym->defined) {
+    internal_error("define_template_static_data_member: sym already def'd");
+  }  /* if */
+#endif /* CHECKING */
+  static_data_member_sym->defined = TRUE;
+  if (tssp->token_cache.first_token != NULL) {
+#if 0
+    /* Not yet implemented. */
+    push_scope(...);
+    initializer(...);
+    pop_scope(...);
+#endif /* if 0 */
+  } else {
+#if 0
+    /* Not yet implemented. */
+    def_initializer(...);
+#endif /* if 0 */
+  }  /* if */
+  db_exit();
+}  /* define_template_static_data_member */
+
+
 a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
                                    a_template_arg_ptr  list2,
                                    a_boolean           is_func_template)
@@ -1725,7 +1760,7 @@ void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
   /* The static data member is eligible for a compiler-generated definition
      only if a template definition appears in the source.  That may have
      aleady occurred, or it may happen later. */
-  if (tssp->parameters != NULL) {
+  if (sym->defined) {
     /* A template definition has appeared.  Enter the definition entry onto
        the instantiations_required list.  The definition will be generated
        as part of instantiation_wrapup. */
@@ -2006,6 +2041,8 @@ done:;
 static void cache_function_template_tokens(a_token_cache  *p_token_cache,
                                            a_boolean      is_constructor)
 /*
+Scan a function body and cache the tokens so that they can be rescanned
+for the instantiation.
 */
 {
   db_enter(3, "cache_function_template_tokens");
@@ -2042,7 +2079,7 @@ static void cache_function_template_tokens(a_token_cache  *p_token_cache,
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
   db_exit();
-}  /* function_template_declaration */
+}  /* cache_function_template_tokens */
 
 
 static a_template_param_ptr scan_template_param_list(void)
@@ -2378,17 +2415,43 @@ entry is pushed on the scope stack.
     }  /* if */
     if (!is_function_type(type) && sym != NULL &&
         sym->kind == (a_symbol_kind)sk_static_data_member_template) {
-      sym->variant.template_info->parameters = template_param_list;
-      /* Special processing for static data member declarations. */
-      if (curr_token == tok_assign) {
-        (void)get_token();
-        add_stop_token(tok_semicolon);
-#if 0
-        cache_initializer_tokens(sym);
-#endif /* if 0 */
-        remove_stop_token(tok_semicolon);
+      /* Special processing for static data member template declarations. */
+      /* Check for prior definition. */
+      if (sym->defined) {
+        pos_sy_error(ec_already_defined, &locator.source_position, sym);
+        /* Flush tokens to end of declaration. */
+        (void)required_token(tok_semicolon, ec_exp_semicolon);
+      } else {
+        a_static_data_member_def_ptr  sdmdp;
+
+        sym->defined = TRUE;
+        tssp = sym->variant.template_info;
+        /* Update the param list ptr, which should be non-null when the
+           symbol is defined. */
+        tssp->parameters = template_param_list;
+        /* Scan the initializer expression, if any, and cache its tokens. */
+        if (curr_token == tok_assign) {
+          /* Bypass the "=". */
+          (void)get_token();
+          add_stop_token(tok_semicolon);
+          clear_token_cache(&tssp->token_cache);
+          cache_token_stream(&tssp->token_cache);
+          remove_stop_token(tok_semicolon);
+          if (curr_token == tok_semicolon) {
+            terminate_token_cache(&tssp->token_cache);
+          }  /* if */
+        }  /* if */
+        required_token(tok_semicolon, ec_exp_semicolon);
+        /* If there have already been instantiations of the parent template
+           class, update the instantiations_required list for each instance
+           of the static data member. */
+        for (sdmdp = tssp->variant.static_data_member.definitions;
+             sdmdp != NULL;
+             sdmdp = sdmdp->next) {
+          add_to_instantiations_required_list(
+                              (a_function_instantiation_entry_ptr)NULL, sdmdp);
+        }  /* for */
       }  /* if */
-      required_token(tok_semicolon, ec_exp_semicolon);
     } else if (is_function_type(type)) {
       a_boolean  err = FALSE;
 
