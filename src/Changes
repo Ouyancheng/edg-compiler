@@ -1,5 +1,11 @@
 Version 2.30
 
+5/26/95  delete with a pointer-to-const operand
+
+In strict ANSI mode a delete expression with a pointer-to-const operand
+used to be an error; now it's allowed, in accord with a recent change to
+the Working Paper.
+
 5/26/95  mutable
 
 Support for the mutable keyword has been added.  A new flag, is_mutable,
