@@ -6,16 +6,15 @@ A problem in the C++-generating back end has been corrected.  It caused
 an abort on handling a pragma bound to the dependent statement of an
 if, while, do-while, or for.
 
-10/5/95  Diagnostics on variables of empty-class type
+10/5/95  Used-before-set warning on variables of empty-class type
 
-Some diagnostics complaining about uninitialized variables of empty-class
-type have been suppressed in default mode.
+We no longer issue a warning when an "unset" variable of empty-class type
+is used -- for example:
 
   class A { };
-  const A x[10];     // No missing-initializer diagnostic in default mode
   A f() {
     A y;
-    return y;        // No used-before-set warning in default mode
+    return y;        // No used-before-set warning
   }
 
 10/5/95  Pragma on dependent statement of loop with condition
