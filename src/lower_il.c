@@ -633,6 +633,13 @@ IL lowering.
 }  /* alloc_lowered_name_string */
 
 
+/*
+Macro to test for a zero-length bit field.
+*/
+#define field_is_zero_length_bit_field(field)                         \
+  ((field)->is_bit_field && (field)->bit_size == 0)
+
+
 static void add_field(char          *field_name,
                       a_type_ptr    field_type,
                       a_targ_size_t field_offset,
@@ -641,7 +648,7 @@ static void add_field(char          *field_name,
 Make a field with the given type and add it at the right spot in the
 list of fields attached to struct_type.  field_name gives the field name
 (already allocated in the IL memory region).  field_offset gives the byte
-offset for the field.
+offset for the field.  The field allocated is not a bit field.
 */
 {
   a_field_ptr   prev_field, next_field;
@@ -657,20 +664,24 @@ offset for the field.
   /* Find the spot at which to insert the field. */
   for (prev_field = NULL,
                next_field = struct_type->variant.class_struct_union.field_list;
-       next_field != NULL && next_field->bit_offset < bit_offset;
-       prev_field = next_field, next_field = next_field->next) {}
+       next_field != NULL && next_field->bit_offset <= bit_offset;
+       prev_field = next_field, next_field = next_field->next) {
 #if CHECKING
-  if (next_field != NULL && next_field->bit_offset == bit_offset) {
+    /* Check for fields with the same offset, but watch out for zero-length
+       bit fields. */
+    if (next_field->bit_offset == bit_offset &&
+        !field_is_zero_length_bit_field(next_field)) {
 #if DEBUG
-    db_abbreviated_type(struct_type);
-    fprintf(f_debug, ", bit offset = %lu, new field = %s, old field = ",
-                     (unsigned long)bit_offset, field_name);
-    db_name(&next_field->source_corresp);
-    fputc('\n', f_debug);
+      db_abbreviated_type(struct_type);
+      fprintf(f_debug, ", bit offset = %lu, new field = %s, old field = ",
+                       (unsigned long)bit_offset, field_name);
+      db_name(&next_field->source_corresp);
+      fputc('\n', f_debug);
 #endif /* DEBUG */
-    internal_error("add_field: two fields have the same offset");
-  }  /* if */
+      internal_error("add_field: two fields have the same offset");
+    }  /* if */
 #endif /* CHECKING */
+  }  /* for */
   /* Insert the field at the right spot. */
   if (prev_field == NULL) {
     struct_type->variant.class_struct_union.field_list = field_ptr;
@@ -1597,7 +1608,10 @@ class type.
       internal_error("field_at_offset: field not found");
     }  /* if */
 #endif /* CHECKING */
-    if (field_ptr->bit_offset == bit_offset) break;
+    /* Don't pick a zero-length bit field as the answer.  The field
+       following it is probably what's wanted. */
+    if (field_ptr->bit_offset == bit_offset &&
+        !field_is_zero_length_bit_field(field_ptr)) break;
   }  /* for */
   return field_ptr;
 }  /* field_at_offset */
