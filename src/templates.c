@@ -17672,7 +17672,7 @@ correspondence information established first.
 }  /* set_master_instance_information */
 
 
-void instantiation_wrapup_setup(void)
+static void instantiation_wrapup_setup(void)
 /*
 Do the per-compilation (not per-translation unit) setup processing required
 before the per-translation unit processing can be done.
@@ -17701,7 +17701,7 @@ before the per-translation unit processing can be done.
 }  /* instantiation_wrapup_setup */
 
 
-void finalize_instantiation_wrapup(void)
+static void finalize_instantiation_wrapup(void)
 /*
 Do the per-compilation (not per-translation unit) processing required
 after instantiation_wrapup has been done for all of the translation units.
@@ -17723,7 +17723,7 @@ after instantiation_wrapup has been done for all of the translation units.
 }  /* finalize_instantiation_wrapup */
 
 
-void trans_unit_instantiation_setup(void)
+static void trans_unit_instantiation_setup(void)
 /*
 Performs end-of-compilation processing for template instantiation.  An
 instantiation will be done if an explicit instantiation has been
@@ -17798,6 +17798,8 @@ specific definition that made it unnecessary.
   db_exit();
 }  /* trans_unit_instantiation_setup */
 
+/* Forward declaration. */
+static void inline_function_wrapup(void);
 
 void template_and_inline_function_wrapup(void)
 /*
@@ -17964,7 +17966,7 @@ the body should be emitted by the back end.
 
 #endif /* INSTANTIATE_EXTERN_INLINE */
 
-void inline_function_wrapup(void)
+static void inline_function_wrapup(void)
 /*
 Determine which extern inline functions should have bodies emitted in the
 current translation unit.  This routine is used when extern inline functions

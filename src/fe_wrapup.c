@@ -24,7 +24,6 @@ fe_wrapup.c - End of front end processing.
 
 #include "fe_wrapup.h"
 #include "class_decl.h"
-#include "func_def.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

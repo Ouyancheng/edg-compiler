@@ -3350,7 +3350,7 @@ and doing any required expansions, the diagnostic is written.
           /* When resuming the display of contexts, indicate the number of
              entries not shown. */
           if (contexts_skipped > 0) {
-            char	buffer[50];
+            static char	buffer[50];
             init_error_params();
             (void)sprintf(buffer, "%d", contexts_skipped);
             error_msg_strings[1] = buffer;

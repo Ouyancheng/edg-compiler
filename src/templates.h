@@ -376,15 +376,7 @@ extern void set_master_instance_for_new_canonical_variable(
 
 extern void set_master_instance_information(void);
 
-extern void instantiation_wrapup_setup(void);
-
-extern void finalize_instantiation_wrapup(void);
-
-extern void instantiation_wrapup(void);
-
 extern void template_and_inline_function_wrapup(void);
-
-extern void inline_function_wrapup(void);
 
 extern a_boolean any_exported_templates(void);
 
