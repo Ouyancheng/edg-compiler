@@ -6647,10 +6647,10 @@ next_declaration:
       /* Issue a warning on a class with no constructor and with one or more
          members with reference or const type. */
       if (any_const_or_ref_fields && cssp->constructor == NULL) {
-        sym_warning(ec_no_ctor_but_const_or_ref_member, tag_sym);
-#if 0
-        /* List each of the uninitialized const or ref member. */
         a_symbol_ptr  sym;
+        pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+                             &error_position, tag_sym);
+        /* List each of the uninitialized const or ref member. */
         for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
           if (sym->kind == (a_symbol_kind)sk_field) {
             a_type_ptr  tp = sym->variant.field.ptr->type;
@@ -6661,7 +6661,7 @@ next_declaration:
             }  /* if */
           }  /* if */
         }  /* for */
-#endif /* if 0 */
+        end_error();
       }  /* if */
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
