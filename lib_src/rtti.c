@@ -288,6 +288,12 @@ following information:
   offset_to_complete_object = vtbl_ptr->delta;
   complete_object_ptr =
                      (void*)(((char *)class_ptr) - offset_to_complete_object);
+#if DEBUG
+  if (__debug_level >= 3) {
+    fprintf(__f_debug, "dynamic_cast: orig ptr=%p, complete obj=%p\n",
+            class_ptr, complete_object_ptr);
+  }  /* if */
+#endif /* DEBUG */
   /* Get the pointer to the type_info associated with the source object. 
      This is stored in the function pointer field of the vtbl entry. */
   object_tiip = (a_type_info_impl_ptr)vtbl_ptr->function;
