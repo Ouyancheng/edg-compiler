@@ -898,13 +898,12 @@ to by the projection.
 }  /* reduce_projection_symbol_to_fundamental_symbol */
 
 /*
-Extract the fundamental symbol from a locator.
+Return the fundamental symbol for a given symbol.
 */
-#define fundamental_symbol_from_locator(locator)                      \
-  ((locator)->specific_symbol->kind == (a_symbol_kind)sk_projection ? \
-         (locator)->specific_symbol->variant.projection.extra_info->  \
-                                                 fundamental_symbol : \
-         (locator)->specific_symbol)
+#define fundamental_symbol_of(symbol)                                 \
+  (((symbol)->kind == (a_symbol_kind)sk_projection) ?                 \
+        (symbol)->variant.projection.extra_info->fundamental_symbol : \
+        (symbol))
 
 
 extern a_symbol_ptr project_into_class(a_symbol_ptr basis_sym,
