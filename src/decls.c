@@ -5232,6 +5232,10 @@ otherwise it is NULL.  The syntax is:
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
+#if 0
+  a_type_ptr      static_data_member_type;
+  a_boolean       lparen_must_introduce_initializer;
+#endif /* if 0 */
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -5598,26 +5602,85 @@ otherwise it is NULL.  The syntax is:
      If a nested declarator was scanned above, there may already be
      a derived type list, and the new entries are added to its end.
   */
+#if 0
+  static_data_member_type = NULL;
+  if (parenthesized_initializer_allowed) {
+    /* When a left parenthesis is encountered, we have to decide whether it
+       introduces an initializer or a function parameter list.  In the case of
+       the definition of a static data member, we can rule out the latter and
+       conclude that the left paren must introduce an initializer. */
+    lparen_must_introduce_initializer = FALSE;
+    if (locator->specific_symbol != NULL &&
+        locator->specific_symbol->kind ==
+                                    (a_symbol_kind)sk_static_data_member) {
+      static_data_member_type =
+                       locator->specific_symbol->variant.variable.ptr->type;
+      if (is_pointer_type(static_data_member_type) &&
+          is_function_type(type_pointed_to(static_data_member_type))) {
+        /* It's a static data member with type ptr-to-function, so it may
+           be necessary to call function_declarator -- for instance:
+             void (*A::pf)(int);
+           Moreover, a parenthesized initializer could appear on the next
+           iteration of the loop:
+             void (*A::pf)(int)(0);   // Ugly but legal
+        */
+      } else if (is_ptr_to_member_type(static_data_member_type) &&
+                 is_function_type(pm_member_type(static_data_member_type))) {
+        /* Similar to ptr-to-function case -- for instance:
+             void (A::* A::pmf)(int);
+           which again could be initalized. */
+      } else {
+        /* A left paren (if we find one) should be interpreted as introducing
+           an initializer, since this can't be a function declaration. */
+        lparen_must_introduce_initializer = TRUE;
+      }  /*  if */
+    }  /* if */
+  }  /* if */
+#endif /* if 0 */
   while (curr_token == tok_lparen || curr_token == tok_lbracket) {
     if (curr_token == tok_lparen) {
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer (C++ only). */
       /* Advance past the left parenthesis. */
       (void)get_token();
-      if (!parenthesized_initializer_allowed) {
-        /* Must be a function. */
-      } else if (locator->specific_symbol != NULL &&
-                 (locator->specific_symbol->kind ==
-                                 (a_symbol_kind)sk_static_data_member ||
-                  locator->specific_symbol->kind ==
-                                 (a_symbol_kind)sk_variable)) {
-        /* Can't be a function, so the "(" must introduce a parenthesized
-           initializer. */
-        *output_flags |= DO_PARENTHESIZED_INITIALIZER;
-        /* Function_declarator should not be called, so exit the loop. */
-        break;
-      } else if (parenthesized_initializer_allowed &&
-                 curr_token != tok_rparen && curr_token != tok_ellipsis) {
+#if 0
+      if (static_data_member_type != NULL) {
+        /* This is the redeclaration of a static data member.  However, the
+           need to call function_declarator may not have been ruled out yet. */
+        if (!lparen_must_introduce_initializer) {
+          if (derived_type != NULL) {
+            a_type_ptr  tp = NULL;
+            if (is_pointer_type(static_data_member_type)) {
+              /* The static data member is of type ptr-to-function.  See if
+                 the derived type constructed so far is, too. */
+              if (is_pointer_type(derived_type)) {
+                tp = type_pointed_to(derived_type);
+              }  /* if */
+            } else {
+              /* The static data member is of type ptr-to-member-function.
+                 See if the derived type constructed so far is, too. */
+              if (is_ptr_to_member_type(derived_type)) {
+                tp = pm_member_type(derived_type);
+              }  /* if */
+            }  /* if */
+            if (tp != NULL && is_function_type(tp)) {
+              /* The derived type is ptr-to-function or ptr-to-member-function
+                 and so the type of the static data member has been completed.
+                 That means the current left parenthesis must introduce an
+                 initializer. */
+              lparen_must_introduce_initializer = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (lparen_must_introduce_initializer) {
+          *output_flags |= DO_PARENTHESIZED_INITIALIZER;
+          /* Function_declarator should not be called, so exit the loop. */
+          break;
+        }  /* if */
+      }  /* if */
+#endif /* if 0 */
+      if (parenthesized_initializer_allowed &&
+          curr_token != tok_rparen && curr_token != tok_ellipsis) {
         /* The context and other information we have about the declarator do
            not preclude a parenthesized initializer, nor does the token that
            follows the left paren.  Be sure the declarator type (which has not
@@ -9457,7 +9520,13 @@ continue_with_declaration:
         if (is_function) {
           /* A qualified name that identifies a function is allowed only when
              the function body is present. */
-          pos_error(ec_member_function_redecl_outside_class, &declarator_pos);
+          if (is_member_function_symbol(locator.specific_symbol)) {
+            pos_error(ec_member_function_redecl_outside_class,
+                      &declarator_pos);
+          } else {
+            pos_sy_error(ec_not_compatible_with_previous_decl,
+                         &declarator_pos, locator.specific_symbol);
+          }  /* if */
           set_to_error_locator(locator);
         } else {
           /* Assume that qualified names that are not functions refer to static
