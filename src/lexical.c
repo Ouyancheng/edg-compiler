@@ -6219,10 +6219,10 @@ any upper case characters in the UCN are converted to lower case.
   if (ucn_buffer == NULL) ucn_buffer = alloc_text_buffer(128);
   reset_text_buffer(ucn_buffer);
   for (src = identifier; src <= end_pos;) {
-    int			ucn_chars;
+    sizeof_t		ucn_chars;
     unsigned long	ucn_value;
     char		ucn[8];
-    int			j;
+    sizeof_t		j;
     if (*src == '\\' && (*(src+1) == 'u' || *(src+1) == 'U')) {
       /* Scan the universal character.  We pass in FALSE for is_identifier,
          etc., because those are only used when diagnosing errors. */
