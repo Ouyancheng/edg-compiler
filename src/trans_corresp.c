@@ -2915,27 +2915,19 @@ given type.
       /* This is presumably the first class body instantiation. */
       clear_class_type_correspondence(type, /*visited=*/TRUE);
     } else {
-      a_boolean  canon_defined = type_has_definition(canon);
-#if /* FIXME */0
-      if (!canon_defined || !in_secondary_trans_unit(type)) {
+      if (!type_has_definition(canon) || !in_secondary_trans_unit(type)) {
         /* The canonical entry is about to change. */
         new_canon = TRUE;
         /* Prefer definitions as canonical entries, and definitions in primary
            translation units in particular. */
         change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
-        if (!canon_defined) {
-          clear_class_type_correspondence(type, /*visited=*/TRUE);
-        }  /* if */
+        clear_class_type_correspondence(type, /*visited=*/TRUE);
         /* Work from the noncanonical entry to set the correspondences of
            members. */
         type = canon;
       }  /* if */
       establish_trans_unit_correspondences_for_class(type);
       if (new_canon) {
-#endif /*FIXME*/
-      set_type_corresp(type, canon);
-      if ((a_type_ptr)canonical_il_entry_of(type) != canon &&
-          (!canon_defined || !in_secondary_trans_unit(type))) {
         /* Since the canonical entry has changed, extra actions may be needed.
            Force the verification of the previous canonical entry against the
            new one. */
