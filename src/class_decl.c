@@ -7158,10 +7158,12 @@ is set to NULL by this function.
     if (!is_error_locator(*locator)) {
       /* If decl-modifiers were declared for the class and/or for the
          member, check for consistency and use the union of the two. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (!sun_mode) {
         merge_decl_modifiers(class_type, decl_info,
                              (a_boolean)func_info->is_definition);
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
                                     &locator->source_position,
                                     /*is_redecl=*/FALSE,
