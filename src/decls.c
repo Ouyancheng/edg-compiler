@@ -9973,8 +9973,6 @@ of local variables (and types, etc.) of functions and in blocks.
   } else if (!function_definition_allowed) {
     /* Called while processing a routine -- select_curr_construct_pragmas
        will already have been called. */
-  } else if (curr_token == tok_template) {
-    /* Will be done in template_declaration. */
   } else {
     /* Move cached #pragma declarations (if any) to the current scope stack
        entry so they can be examined and acted upon in subsequent
@@ -10199,6 +10197,7 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* if */
+    discard_curr_construct_pragmas();
   } else if (dangling_type_specifier) {
     /* A class, struct, union, or enum definition was followed by a type
        specifier keyword.  Issue a missing-semicolon error, since the type
@@ -10223,6 +10222,7 @@ continue_with_declaration:
        Shows up in old pre-void-keyword code.  Ignored in pcc mode. */
     set_err_pos_to_curr_token();
     warning(ec_decl_of_void_ignored);
+    discard_curr_construct_pragmas();
     (void)get_token();
   } else {
     /* Set the various flags for declarator processing. */
