@@ -1,5 +1,15 @@
 Version 2.32
 
+4/9/96  IL lowering bug when lowering is used for C code in Microsoft mode
+
+In Microsoft C mode, brace-enclosed initializers for a local aggregate can
+include expressions (and not merely constants).  If the configuration
+switch LOWER_MICROSOFT_NONCONSTANT_AGGREGATE is TRUE, part of IL lowering
+is called to lower the aggregate initialization to standard C.  There
+was a bug in adjust_field_selection_for_anonymous_union_references that
+caused an abort, due to the fact that the class type supplement pointer
+is NULL in C mode.
+
 4/8/96  Bug when handling #pragma ident
 
 A null-pointer dereference no longer occurs when a #pragma ident appears
