@@ -267,11 +267,22 @@ the instantiation flags in the object file and in libraries in which
 the object file may be placed.
 
 This feature requires support from the driver used to invoke the front
-end.  A new configuration flags named DRIVER_COMPATIBILITY_VERSION has
+end.  A new configuration flag named DRIVER_COMPATIBILITY_VERSION has
 been added so that the front end can be easily configured to be
 compatible with a driver intended to work with an earlier version of
 the front end.  DRIVER_COMPATIBILITY_VERSION can be set to a value less
 than 237 to select the old behavior.
+
+The DRIVER_COMPATIBILITY_VERSION flags directly or indirectly affects
+the default values used for the following driver interface configuration
+flags:
+
+	USE_TEMPLATE_INFO_FILE
+	INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE
+	INSTANTIATION_REQUEST_LINES_RESERVED
+
+See the configuration section section of the internal documentation for
+more information.
 
 10/9/97   Equivalent type names found via using-directives
 
