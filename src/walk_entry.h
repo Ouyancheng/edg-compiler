@@ -409,6 +409,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                                        (a_based_type_list_member_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_based_type_list_member_ptr,
                        iek_based_type_list_member);
+        /* Do walk_ptr instead of remap_ptr because the reference might
+           be to an entity not otherwise in the IL tree, e.g., a front-end-only
+           type. */
         walk_ptr(ptr->based_type, a_type_ptr, iek_type);
       }
       break;
@@ -1032,8 +1035,11 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_hidden_name_ptr ptr = (a_hidden_name_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_hidden_name_ptr, iek_hidden_name);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        /* Do walk_ptr instead of remap_ptr because the reference might
+           be to an unneeded entity removed from the IL tree when
+           MAINTAIN_NEEDED_FLAGS is TRUE. */
+        walk_ptr(ptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)ptr->entity.kind);
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
@@ -1549,7 +1555,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_class_list_entry_ptr ptr = (a_class_list_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_class_list_entry_ptr,
                        iek_class_list_entry);
-        remap_ptr(ptr->class_type, a_type_ptr, iek_type);
+        /* Do walk_ptr instead of remap_ptr because the reference might
+           be to an unneeded entity removed from the IL tree when
+           MAINTAIN_NEEDED_FLAGS is TRUE. */
+        walk_ptr(ptr->class_type, a_type_ptr, iek_type);
       }
       break;
     case iek_routine_list_entry:
@@ -1557,7 +1566,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_routine_list_entry_ptr ptr = (a_routine_list_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_routine_list_entry_ptr,
                        iek_routine_list_entry);
-        remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
+        /* Do walk_ptr instead of remap_ptr because the reference might
+           be to an unneeded entity removed from the IL tree when
+           MAINTAIN_NEEDED_FLAGS is TRUE. */
+        walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
       }
       break;
     case iek_class_type_supplement:
