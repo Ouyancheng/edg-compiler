@@ -2459,7 +2459,10 @@ or struct definition.  The syntax is
             check_assertion(bcp->shares_virtual_function_info);
             ctsp->virtual_function_info_base_class = bcp;
           }  /* if */
-          new_direct_bcp->shares_virtual_function_info = TRUE;
+          if (base_class_type->
+                           variant.class_struct_union.any_virtual_functions) {
+            new_direct_bcp->shares_virtual_function_info = TRUE;
+          }  /* if */
           /* Advance the virtual function count so that any new virtual
              functions will be tacked on at the end of the shared virtual
              function info block.  (Redeclarations will use the slot
