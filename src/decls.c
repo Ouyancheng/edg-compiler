@@ -4153,9 +4153,9 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
   a_boolean                invalid_scope_for_new_or_delete = FALSE;
   a_boolean                set_invisible = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
   a_boolean                first_decl = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   an_id_linkage_block      idlb;
 
   db_enter(3, "decl_routine");
@@ -4612,6 +4612,9 @@ on for use in generating cross-reference output describing this declaration.
                                 /*preserve_rout_type=*/TRUE,
                                 /*preserve_type_ptr=*/FALSE);
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
+      first_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (explicit_template_reference) {
       /* A reference to a template instance in a friend declaration.
          Such a declaration cannot be a definition. */
@@ -4733,6 +4736,10 @@ skip_overloading:;
       /* Replace the routine pointed to from the extern-routine symbol with
          the new one. */
       (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
+    } else {
+      first_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
     sym->variant.routine.instance_ptr =
                                 linked_symbol->variant.routine.instance_ptr;
@@ -4776,9 +4783,9 @@ skip_overloading:;
          no error is issued. */
       routine_ptr->superseded_external = TRUE;
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
     first_decl = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* There is an existing IL entry that we are reusing. */
     /* Check for internal linkage on the old but not the new, or
@@ -4989,7 +4996,7 @@ skip_overloading:;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (is_function_def || !redeclaration) {
+  if (is_function_def || first_decl) {
     update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

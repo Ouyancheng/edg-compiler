@@ -1,5 +1,16 @@
 Version 2.42
 
+6/7/99   Extra source positions for block-extern redeclaration
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source positions associated
+a nonmember function declared in its own scope and then redeclared in a
+local scope are now recorded properly.
+
+  void f(int);
+  void g() {
+    extern void f(int);    // decl_pos_info is now updated correctly
+  }
+
 6/4/99   Checking of elaborated type-specifiers in class-scope
 
 The following example used to incorrectly trigger a diagnostic about
