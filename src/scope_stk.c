@@ -1488,6 +1488,9 @@ scopes.
     depth_innermost_namespace_scope = instantiation_prev_scope;
     check_assertion(scope_stack[instantiation_prev_scope].assoc_namespace ==
                                                                    parent_nsp);
+    /* Set the active using flags for the newly created context. */
+    set_active_using_list_scope_depths(depth_scope_stack,
+                                       /*set_value=*/TRUE);
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
       fprintf(f_debug, "Pushed instantiation scope for: ");
