@@ -3882,7 +3882,7 @@ routine body is generated at this time.
      object by value.  This call should be superfluous; it is included just
      to be safe, in case the rules change on when the flag needs to be set. */
   set_routine_calling_method_flag(rout_type);
-  if (sfkind != sfk_operator) {
+  if (sfkind != (a_special_function_kind)sfk_operator) {
     extra_info->constructor_or_destructor = TRUE;
   }  /* if */
   /* Create a locator for the symbol that will be created. */

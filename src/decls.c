@@ -852,7 +852,8 @@ operator kinds.  Issue a diagnostic if an error is found.
                 routine_type_is_nonstatic_member_function(rout->type);
 #if CHECKING
     if (is_nonstatic_member_function &&
-        (opname == onk_new || opname == onk_delete)) {
+        (opname == (an_opname_kind)onk_new ||
+         opname == (an_opname_kind)onk_delete)) {
       internal_error(
                "check_operator_function_params: new or delete is nonstatic");
     }  /* if */
@@ -6722,12 +6723,12 @@ continue_with_declaration:
                  warning for local variables (both static and automatic) here,
                  but the warning for static file scope variables is given
                  later. */
-              a_name_linkage_kind  linkage =
-                          (a_name_linkage_kind)symbol_ptr->
+              a_name_linkage_kind  name_linkage;
+              name_linkage = (a_name_linkage_kind)symbol_ptr->
                                  variant.variable->source_corresp.name_linkage;
               if (C_dialect == C_dialect_cplusplus) {
-                if (linkage == nlk_none ||
-                    (linkage == nlk_internal &&
+                if (name_linkage == (a_name_linkage_kind)nlk_none ||
+                    (name_linkage == (a_name_linkage_kind)nlk_internal &&
                      decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
                   /* In C++ const qualified variables that are internally
                      linked must be initialized (ARM 7.1.6). */
@@ -6735,7 +6736,7 @@ continue_with_declaration:
                 }  /* if */
               } else {
                 /* Ordinary C -- a warning, and only on local variables. */
-                if (linkage == nlk_none) {
+                if (name_linkage == (a_name_linkage_kind)nlk_none) {
                   warning(ec_missing_initializer_on_const);
                 }  /* if */
               }  /* if */

@@ -566,7 +566,7 @@ char *name_of_symbol(a_symbol_ptr  sym)
 #endif /* CHECKING */
 #endif /* if 0 */
   }  /* switch */
-  str = alloc_fe(strlen(buffer));
+  str = alloc_fe((sizeof_t)strlen(buffer));
   (void)strcpy(str, buffer);
   return str;
 }  /* name_of_symbol */
