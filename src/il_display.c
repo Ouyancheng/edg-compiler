@@ -3051,7 +3051,7 @@ Display the indicated asm entry.
                     iek_string_text,
                     (sizeof_t)ptr->variant.asm_func_body.length);
   } else {
-    disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
+    disp_ptr("asm_string", (char *)ptr->variant.asm_string, iek_constant);
   }  /* if */
 }  /* disp_asm_entry */
 
