@@ -987,6 +987,13 @@ typedef struct a_trans_unit_corresp {
 } a_trans_unit_corresp;
 
 
+/*
+Macro that returns the trans_unit_corresp for an IL entry that has a source
+correspondence.
+*/
+#define trans_unit_corresp_of(ptr)					\
+  ((ptr)->source_corresp.trans_unit_corresp)
+
 
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
 typedef struct a_source_correspondence {
