@@ -978,6 +978,9 @@ error code.
     case ec_duplicate_typedef:
       m = "typedef name has already been declared (with same type)";
       break;
+    case ec_function_redefinition:
+      m = "this function has already been defined";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
