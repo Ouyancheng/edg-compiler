@@ -1580,8 +1580,7 @@ error code.
       m = "a destructor may not have parameters";
       break;
     case ec_bad_constructor_param:
-      m =
-      "a constructor parameter may not have the type of the constructed class";
+      m = "copy constructor for class %t may not have a parameter of type %t";
       break;
     case ec_incomplete_return_type_not_allowed:
       m = "a function with an incomplete return type may not be called";
