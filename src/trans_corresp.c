@@ -1951,7 +1951,8 @@ is in fact valid.
       templ = templ->canonical_template->definition_template;
       corresp_templ = corresp_templ->canonical_template->definition_template;
       if (templ != NULL && corresp_templ != NULL) {
-        if (templ->cache_checksum != corresp_templ->cache_checksum) {
+        if (templ->cache_checksum != corresp_templ->cache_checksum &&
+            !suppress_inline_corresp_check) {
           match = FALSE;
           process_bad_trans_unit_corresp(iek_routine, routine);
         }  /* if */

@@ -207,6 +207,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* DEBUG */
   optk_long_long,
   optk_context_limit,
+  optk_set_flag,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1435,6 +1436,12 @@ EXTERN a_boolean
 			   FALSE.  In such cases, the syntax is be accepted
 			   but a diagnostic is given indicating that the
 			   feature is not enabled. */
+
+EXTERN a_boolean
+		suppress_inline_corresp_check;
+			/* TRUE if the bodies of inline templates should not
+			   be compared by the correspondence checking
+			   routines. */
 
 EXTERN a_boolean
 		IEEE_handling_on_float_operation_exceptions

@@ -940,6 +940,12 @@ Initialize the option information table.
   add_option_description(optk_context_limit, "context_limit", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_set_flag, "set_flag", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_set_flag, "clear_flag", '\0',
+                         /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1308,6 +1314,51 @@ Process a preinclude or preinclude_macros option (determined by
   preinclude_file_name = arg;
   is_macro_preinclude = (kind == optk_preinclude_macros);
 }  /* process_preinclude_option */
+
+
+/*
+Structure used for an array of flag names that can be set using a
+command-line option.
+*/
+typedef struct a_flag_name *a_flag_name_ptr;
+typedef struct a_flag_name {
+  char		*name;
+			/* Name used to set the flag. */
+  a_boolean	*variable;
+			/* Pointer to the variable to be set. */
+} a_flag_name;
+
+
+/*
+Array of flag names that may be set on the command-line.
+*/
+static a_flag_name
+		flag_names[] = {
+  { "suppress_inline_corresp_check", &suppress_inline_corresp_check },
+  { NULL, NULL }  /* must be last */
+};
+
+
+static void set_flag_value(char		*flag_name,
+			   a_boolean	value)
+/*
+Set or clear the flag specified by "flag_name".  "value" is the value to
+be given to the flag.
+*/
+{
+  a_flag_name_ptr	fnp;
+  a_boolean		*flag_var = NULL;
+
+  for (fnp = flag_names; fnp->name != NULL; fnp++) {
+    if (strcmp(fnp->name, flag_name) == 0) {
+      flag_var = fnp->variable;
+    }  /* if */
+  }  /* for */
+  if (flag_var == NULL) {
+    str_command_line_error(ec_cl_invalid_flag_name, flag_name);
+  }  /* if */
+  *flag_var = value;
+}  /* set_flag_value */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3338,6 +3389,10 @@ enable_microsoft_mode:
            limit/2 lines of initial and trailing context so we can only
            really handle even numbers. */
         context_limit = context_limit & (~1);
+        break;
+      case optk_set_flag:
+        /* Set the value of a specified flag name. */
+        set_flag_value(opt_arg, opt_value);
         break;
       default:
         /* It should not be possible to get here. */
