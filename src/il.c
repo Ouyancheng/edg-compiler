@@ -9478,8 +9478,9 @@ created for its default arguments have been removed, too.
   a_param_type_ptr        ptp;
   an_expr_node_ptr        def_arg_expr;
   an_object_lifetime_ptr  olp;
+  a_type_ptr              tp = skip_typerefs(rp->type);
 
-  for (ptp = rp->type->variant.routine.extra_info->param_type_list;
+  for (ptp = tp->variant.routine.extra_info->param_type_list;
        ptp != NULL;
        ptp = ptp->next) {
     def_arg_expr = ptp->default_arg_expr;
