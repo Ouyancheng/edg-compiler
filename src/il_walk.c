@@ -476,7 +476,6 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_needed
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-#define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 
 
@@ -691,10 +690,21 @@ only the entries marked as "needed" are marked to keep in the IL.
       walk_orphaned_file_scope_il_entries();
     } /* if */
   }  /* if */
-  walk_remap_func = NULL;
 
   /* Walk the IL tree. */
   walk_entry_and_subtree(entry_ptr, entry_kind);
+
+  /* Walk the orphaned list for routines, marking only those entries that
+     correspond to needed routines. */
+  { a_scope_orphaned_list_header_ptr *ptr_ptr =
+                                        &il_header.scope_orphaned_list_headers;
+    for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) {
+      if ((*ptr_ptr)->assoc_routine->source_corresp.needed) {
+        walk_ptr(*ptr_ptr, a_scope_orphaned_list_header_ptr,
+                 iek_scope_orphaned_list_header);
+      }  /* if */
+    }  /* for */
+  }
 
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
