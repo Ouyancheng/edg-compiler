@@ -215,6 +215,11 @@ typedef struct a_source_correspondence {
 			   classes have the flag set to TRUE, and objects
 			   declared at file scope and within nonlocal classes
 			   have it set to FALSE. */
+#if DO_IL_LOWERING
+  unsigned int	name_has_been_mangled:1;
+			/* TRUE if the name of the entity has been changed
+			   to the "mangled" form of the name (C++). */
+#endif /* DO_IL_LOWERING */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;

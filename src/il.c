@@ -1958,6 +1958,7 @@ Set the given source correspondence struct to default values.
   sc->il_walk_flag            = curr_initial_il_walk_flag_setting;
   sc->name_linkage            = (a_name_linkage_kind)nlk_none;
   sc->is_local_to_function    = FALSE;
+  sc->name_has_been_mangled   = FALSE;
 #if RECORD_SCOPE_DEPTH_IN_IL
   sc->scope_depth             = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
