@@ -2830,9 +2830,10 @@ End a name scope by popping an entry off the scope stack.
     }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  /* Set the initial name lookup scope to the previous scope pointed
-     to by the scope being popped. */
-  depth_of_initial_lookup_scope = ssep->previous_scope;
+  /* Set the initial name lookup scope to the previous scope on the
+     stack.  Note that this could be different than the previous scope
+     value in the scope stack entry. */
+  depth_of_initial_lookup_scope = depth_scope_stack-1;
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
   /* Pop the stack. */
