@@ -1117,7 +1117,7 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
-extern void clear_function_body(a_routine_ptr  rp);
+extern void clear_function_body(a_scope_ptr sp);
 
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);

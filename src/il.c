@@ -10992,17 +10992,39 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 
 #endif /* RECORD_MACROS_IN_IL */
  
-void clear_function_body(a_routine_ptr  rp)
+void clear_function_body(a_scope_ptr sp)
 /*
-rp points to a routine whose definition is being eliminated.  Reset the entry
-to an undefined state and free the associated memory region.
+sp is the scope for a routine.  Eliminate the routine definition by
+resetting the routine entry to an undefined state and freeing the
+associated memory region.
 */
 {
+  a_routine_ptr           rp = sp->variant.routine.ptr;
   a_memory_region_number  n = rp->assoc_scope;
 
+#if DEBUG
+  if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+    fprintf(f_debug, "Removing function body for ");
+    db_name(&rp->source_corresp);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
   /* Reset the routine entry to undefined state.
      (Note that the corresponding symbol remains marked as "defined" so that
       duplicate definitions can be caught.) */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  eliminate_function_body_source_sequence_entries(sp);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (vla_enabled) {
+    /* Any vla-dimension entries associated with this routine will
+       point to file-scope types that are flagged as having an
+       associated vla-dimension.  Clear those flags. */
+    a_vla_dimension_ptr  vdp;
+
+    for (vdp = sp->vla_dimensions; vdp != NULL; vdp = vdp->next) {
+      vdp->type->variant.array.has_assoc_vla_dimension = FALSE;
+    }  /* for */
+  }  /* if */
   rp->defined = FALSE;
   rp->defined_in_friend_decl = FALSE;
   rp->assoc_scope = NULL_region_number;
@@ -11421,29 +11443,8 @@ dependent on it.  The routine entry itself is dealt with later.
       }  /* if */
       check_assertion(sp->kind == (a_scope_kind)sck_function);
       if (!sp->variant.routine.ptr->keep_definition_in_il) {
-        /* An unneeded routine definition. */
-#if DEBUG
-        if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
-          fprintf(f_debug, "Removing function body for ");
-          db_name(&sp->variant.routine.ptr->source_corresp);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        eliminate_function_body_source_sequence_entries(sp);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (vla_enabled) {
-          /* Any vla-dimension entries associated with this routine will
-             point to file-scope types that are flagged as having an
-             associated vla-dimension.  Clear those flags. */
-          a_vla_dimension_ptr  vdp;
-
-          for (vdp = sp->vla_dimensions; vdp != NULL; vdp = vdp->next) {
-            vdp->type->variant.array.has_assoc_vla_dimension = FALSE;
-          }  /* for */
-        }  /* if */
-        /* Reset the routine entry to undefined state. */
-        clear_function_body(sp->variant.routine.ptr);
+        /* An unneeded routine definition.  Delete it. */
+        clear_function_body(sp);
       }  /* if */
     }  /* if */
   }  /* for */
