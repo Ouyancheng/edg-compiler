@@ -4494,6 +4494,9 @@ type conversions.
         }  /* if */
       }  /* if */
     }  /* if */
+    /* The result of a cast to a reference type is considered to have come
+       from a reference. */
+    if (cast_to_reference) operand->came_from_reference = TRUE;
   }  /* if */
   if (err) make_error_operand(operand);
   operand->position = *start_position;
