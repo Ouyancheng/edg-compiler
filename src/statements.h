@@ -126,12 +126,8 @@ typedef struct a_struct_stmt_stack_entry {
 		end_reachable;
 			/* Indicates whether or not the end of the structured
 			   statement is reachable. */
-  unsigned long
-		init_count;
-			/* If kind == ssk_compound, a count of initializing
-			   declarations that have appeared within the
-			   block. */
 } a_struct_stmt_stack_entry;
+
 EXTERN a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack
 #if VAR_INITIALIZERS
