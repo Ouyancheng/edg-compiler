@@ -43,7 +43,7 @@ extern a_boolean set_field_size_and_offset(a_field_ptr      field,
                                            int              *p_bit_offset,
                                            a_targ_alignment *p_alignment);
 
-extern a_boolean class_specifier(a_boolean  first_specifier,
+extern a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,
                                  a_type_ptr *type_ptr,
                                  a_boolean  *declares_something,
