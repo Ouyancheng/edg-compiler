@@ -3773,32 +3773,25 @@ skip_overloading:;
     }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
     if (is_function_def) {
-#if 0
-      /* This is temporary. */
-#endif /* if 0 */
-      if (routine_ptr->source_corresp.parent.namespace_ptr == NULL) {
-        a_boolean saved_referenced_flag;
-        /* If this is a definition, unlink the routine entry and relink it
-           at the end of the routines list, so that routines appear in the
-           order that their bodies appear. */
-        remove_from_routines_list(routine_ptr);
-        add_to_routines_list(routine_ptr, /*at_file_scope=*/TRUE);
-        /* Put in the storage class for the definition (static or 
-           unspecified). */
-        routine_ptr->storage_class = storage_class;
-        /* If the IL entry was previously referenced, the symbol should
-           be considered to have been referenced as well. */
-        saved_referenced_flag = routine_ptr->source_corresp.referenced;
-        if (saved_referenced_flag) sym->referenced = TRUE;
-        /* Reset the source correspondence to the definition symbol. */
-        set_source_corresp(&routine_ptr->source_corresp, sym);
-        /* Keep an indication of any references so far (the referenced
-           flag is reset by the set_source_corresp call). */
-        routine_ptr->source_corresp.referenced = saved_referenced_flag;
-#if 0
-      /* This is temporary. */
-#endif /* if 0 */
-      }  /* if */
+      a_boolean saved_referenced_flag;
+
+      /* If this is a definition, unlink the routine entry and relink it
+         at the end of the routines list, so that routines appear in the
+         order that their bodies appear. */
+      remove_from_routines_list(routine_ptr);
+      add_to_routines_list(routine_ptr, /*at_file_scope=*/TRUE);
+      /* Put in the storage class for the definition (static or 
+         unspecified). */
+      routine_ptr->storage_class = storage_class;
+      /* If the IL entry was previously referenced, the symbol should
+         be considered to have been referenced as well. */
+      saved_referenced_flag = routine_ptr->source_corresp.referenced;
+      if (saved_referenced_flag) sym->referenced = TRUE;
+      /* Reset the source correspondence to the definition symbol. */
+      set_source_corresp(&routine_ptr->source_corresp, sym);
+      /* Keep an indication of any references so far (the referenced
+         flag is reset by the set_source_corresp call). */
+      routine_ptr->source_corresp.referenced = saved_referenced_flag;
       if (func_info->is_inline && !routine_ptr->is_inline) {
         changed_to_inline = TRUE;
       }  /* if */
