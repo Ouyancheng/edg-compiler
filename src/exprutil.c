@@ -6102,17 +6102,28 @@ function entry.  This routine is only used in C++ mode.
     compatible = FALSE;
     std_conversion_needed = FALSE;
     return_type = conv_routine_type->variant.routine.return_type;
+    /* Drop type qualifiers for the normal case, when the return value
+       is an rvalue. */
     return_type = skip_typerefs(return_type);
     /* If the conversion function returns a reference type, drop the 
        reference. */
     if (is_reference_type(return_type)) {
       return_type = type_pointed_to(return_type);
+      /* In this case, the return value is an lvalue, and type qualifiers
+         are not dropped. */
     }  /* if */
     if (dest_type != NULL) {
       /* We're looking for a specific type. */
-      if (types_are_compatible(dest_type, return_type)) {
-        /* This conversion function returns exactly the type we want. */
-        compatible = TRUE;
+      if (types_are_compatible(skip_typerefs(dest_type),
+                               skip_typerefs(return_type))) {
+        /* This conversion function returns the type we want, ignoring
+           type qualifiers.  See if the type qualifiers are okay. */
+        if (type_qualifiers_match(dest_type, return_type) ||
+            !any_qualifier_missing(dest_type, return_type)) {
+          /* The type qualifiers on the desired type are the same as or a
+             proper superset of what the conversion function returns.  Okay. */
+          compatible = TRUE;
+        }  /* if */
       } else if (impl_conversion_possible(return_type,
                                           /*source_is_constant=*/FALSE,
                                           (a_constant_ptr)NULL, dest_type,
