@@ -3122,6 +3122,9 @@ user later during real instantiations.
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
     }  /* if */
+    /* Notify the correspondence routines that a definition of this function
+       is now present. */
+    establish_function_instantiation_corresp(rout_ptr);
     /* In the normal case the current token should be end_of_source, which was
        inserted to mark the end of the cached token stream. If necessary, keep
        flushing until end-of-source is found. */
@@ -3720,6 +3723,9 @@ Instantiate the body of the template function associated with tip.
        declarations. */
     check_for_definition_in_friend_declaration(tssp, rout_ptr);
   }  /* if */
+  /* Notify the correspondence routines that a definition of this function
+     is now present. */
+  establish_function_instantiation_corresp(rout_ptr);
 done:;
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
