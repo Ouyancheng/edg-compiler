@@ -1320,8 +1320,9 @@ returned set to TRUE.
   if (!var_err) {
     vp_type = vp->type;
     if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-        linkage != idl_none && vp->source_corresp.is_local_to_function) {
-      /* Block scope variable with internal or external linkage --
+        linkage != idl_none &&
+        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* "Block extern" variable with internal or external linkage --
          not allowed to be initialized.  (3.5.7 Constraints) */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
