@@ -2978,6 +2978,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                         (an_expr_operator_kind)eok_pre_decr;
     template_unary_operation(op, save_token, &operand,
                              result, &start_position);
+    result->state = (an_operand_state)os_lvalue;
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(&operand);
@@ -3197,6 +3198,14 @@ operation is a pointer-to-member (see ARM 5.3).
       /* Operator is not allowed in this kind of expression. */
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(&operand);
+    } else if (is_template_param_type(operand.type)) {
+      /* The operand has a template parameter type, so we cannot
+         check its type.  Just produce an expression with a generic
+         operator.  (Note that there is a generic "&" operator, but
+         no standard IL "&" operator. */
+      template_unary_operation((an_expr_operator_kind)eok_address,
+                               tok_ampersand, &operand,
+                               result, &start_position);
     } else {
       if (C_dialect == C_dialect_cplusplus &&
           is_overloadable_type_operand(&operand) &&
@@ -3330,6 +3339,14 @@ See section 3.3.3.2 of the standard.
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
+  } else if (is_template_param_type(operand.type)) {
+    /* The operand has a template parameter type, so we cannot
+       check its type.  Just produce an expression with a generic
+       operator. */
+    template_unary_operation((an_expr_operator_kind)eok_indirect,
+                             tok_star, &operand,
+                             result, &start_position);
+    result->state = (an_operand_state)os_lvalue;
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_overloadable_type_operand(&operand)) {
@@ -9617,6 +9634,15 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
+  } else if (is_template_param_type(operand_1->type) ||
+             is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    template_binary_operation((an_expr_operator_kind)eok_assign,
+                              operand_1, &operand_2,
+                              result, &operator_position);
+    result->state = (an_operand_state)os_lvalue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_property_ref_operand(operand_1)) {
     /* The operand is a field selection for a field declared with the
@@ -9721,6 +9747,7 @@ See section 3.3.16 of the standard.
   an_operand            operand_1_clone;
   a_boolean             operand_1_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  an_expr_operator_kind op;
 
   db_enter(4, "scan_compound_assignment_operator");
 
@@ -9798,6 +9825,48 @@ See section 3.3.16 of the standard.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
+  } else if (is_template_param_type(operand_1->type) ||
+             is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    switch (save_token) {
+      case tok_plus_assign:
+        op = (an_expr_operator_kind)eok_add_assign;
+        break;
+      case tok_minus_assign:
+        op = (an_expr_operator_kind)eok_subtract_assign;
+        break;
+      case tok_times_assign:
+        op = (an_expr_operator_kind)eok_multiply_assign;
+        break;
+      case tok_divide_assign:
+        op = (an_expr_operator_kind)eok_divide_assign;
+        break;
+      case tok_remainder_assign:
+        op = (an_expr_operator_kind)eok_remainder_assign;
+        break;
+      case tok_shift_left_assign:
+        op = (an_expr_operator_kind)eok_shiftl_assign;
+        break;
+      case tok_shift_right_assign:
+        op = (an_expr_operator_kind)eok_shiftr_assign;
+        break;
+      case tok_and_assign:
+        op = (an_expr_operator_kind)eok_and_assign;
+        break;
+      case tok_or_assign:
+        op = (an_expr_operator_kind)eok_or_assign;
+        break;
+      case tok_excl_or_assign:
+        op = (an_expr_operator_kind)eok_xor_assign;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
+    result->state = (an_operand_state)os_lvalue;
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||
