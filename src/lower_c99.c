@@ -2551,6 +2551,13 @@ in C99 mode to represent a compound literal.
   if (keep_dynamic_init) {
     add_stmk_init_for_compound_literal(var, dip);
   }  /* if */
+  if (var->init_kind == (an_init_kind)initk_zero &&
+      !has_static_storage_duration(var->storage_class)) {
+    /* If an automatic temporary ends up with initk_zero initialization,
+       insert code to do the zeroing because we can't count on the block
+       being entered at the top. */
+    zero_automatic_temporary(var, expr);
+  }  /* if */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   if (vla_inits != NULL) {
     /* Be sure to compute any needed VLA dimension variables before any

@@ -139,6 +139,9 @@ extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
 
 extern void lower_new_delete(an_expr_node_ptr expr);
 
+extern void zero_automatic_temporary(a_variable_ptr   temp_var,
+                                     an_expr_node_ptr expr);
+
 extern void lower_temp_init(an_expr_node_ptr expr);
 
 extern void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,

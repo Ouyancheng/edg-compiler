@@ -7701,6 +7701,29 @@ Do IL lowering of an enk_new_delete expression node, used for a "new" or
 }  /* lower_new_delete */
 
 
+void zero_automatic_temporary(a_variable_ptr   temp_var,
+                              an_expr_node_ptr expr)
+/*
+temp_var is a temporary variable with automatic storage duration
+and initk_zero intialization kind.  Insert code to zero the variable,
+placing it before "expr", and set the variable's initialization kind
+to initk_none.  This is necessary because we don't know that the
+block of the temporary will be entered at the top.
+*/
+{
+  an_insert_location insert_location;
+
+  set_expr_insert_location(expr, &insert_location);
+  set_variable_address_taken(temp_var);
+  insert_call_to_zero_entity(temp_var->type, /*have_complete_object=*/TRUE,
+                             var_lvalue_expr(temp_var),
+                             (an_expr_node_ptr)NULL,
+                             (a_targ_size_t)0,
+                             &insert_location);
+  temp_var->init_kind = (an_init_kind)initk_none;
+}  /* zero_automatic_temporary */
+
+
 void lower_temp_init(an_expr_node_ptr expr)
 /*
 Do IL lowering of an enk_temp_init expression node.
@@ -7806,16 +7829,10 @@ Do IL lowering of an enk_temp_init expression node.
     }  /* if */
     if (temp_var->init_kind == (an_init_kind)initk_zero) {
       if (!has_static_storage_duration(temp_var->storage_class)) {
-        /* We need to zero an automatic temporary, which can't be done by
-           setting its init_kind to initk_zero, because we don't know that
-           the block of the temporary will be entered at the top. */
-        set_variable_address_taken(temp_var);
-        insert_call_to_zero_entity(temp_type, /*have_complete_object=*/TRUE,
-                                   var_lvalue_expr(temp_var),
-                                   (an_expr_node_ptr)NULL,
-                                   (a_targ_size_t)0,
-                                   &insert_location);
-        temp_var->init_kind = (an_init_kind)initk_none;
+        /* If an automatic temporary ends up with initk_zero initialization,
+           insert code to do the zeroing because we can't count on the block
+           being entered at the top. */
+        zero_automatic_temporary(temp_var, expr);
 #if IA64_ABI
       } else {
         /* static temporary.  Check for the need to change the initial
