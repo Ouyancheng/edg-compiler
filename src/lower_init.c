@@ -8851,10 +8851,12 @@ have already had their designated initializers lowered.
         check_assertion_str(
                      identical_types(con_type, member_type) ||
                      /* A short string literal can initialize a longer
-                        char array. */
+                        char array.  Also an array of non-const chars
+                        can initialize an array of const chars. */
                      (is_string_type(con_type) &&
                       is_string_type(member_type) &&
-                      temp_con->kind == (a_constant_repr_kind)ck_string) ||
+                      (temp_con->kind == (a_constant_repr_kind)ck_string ||
+                       temp_con->kind == (a_constant_repr_kind)ck_aggregate))||
                      /* In GNU C mode, zero-length array fields can be
                         initialized with arbitrary-length arrays. */
                      (gcc_mode && is_array_type(con_type) &&
