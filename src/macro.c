@@ -215,7 +215,7 @@ new address for the area.
   a_source_line_modif_ptr    slmp;
   a_macro_arg_ptr            map;
   a_pointer_registration_ptr prp;
-  char                       *old_after_end_plus_1 = old_after_end_ptr + 1;
+  char                       *old_after_end_plus_1;
 
 /* Macro to adjust a single pointer if it needs it.  Include the address
    just past the end of the area moved, since a pointer to there should be
@@ -226,7 +226,7 @@ new address for the area.
 { /* Suppress the warning on use of the expired pointer value in CodeCenter. \
      Version 3.1.1 warning number. */                                 \
   /*SUPPRESS 29*/                                                     \
-  if (ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) {             \
+  if (ptr != NULL && ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) { \
     ptr = ptr - old_ptr + new_ptr;                                    \
   }  /* if */                                                         \
 }  /* fix_ptr */
@@ -244,11 +244,14 @@ Walk a list of source line modifications and fix up each one.
 }  /* fix_source_line_modif_list */
 
   db_enter(4, "adjust_curr_source_line_structure_after_realloc");
+
+  check_assertion(old_ptr != NULL);  
   /* If the area didn't move, it's not necessary to walk the structure. */
   /* Suppress the warning on use of the expired pointer value in CodeCenter.
      Version 3.1.1 warning number. */
   /*SUPPRESS 29*/
   if (old_ptr != new_ptr) {
+    old_after_end_plus_1 = old_after_end_ptr + 1;
     /* Walk the original line modif list (which represents trigraphs and
        line splices).  This is only necessary if it's curr_source_line
        that has been relocated, but it doesn't cost much to do it in all
@@ -1194,6 +1197,7 @@ off the end is not allowed.
      continuing into the surrounding source line. */
   main_slmp->is_isolated_text = TRUE;
   sequence_id = main_slmp->sequence_id;
+  check_assertion(aux_buffer_for_pcc_macros != NULL);
   pos_in_aux_buffer = aux_buffer_for_pcc_macros;
   last_token_of_expansion = tok_end_of_source;
   while (arg_get_token(&any_white_space_skipped) != tok_end_of_source) {
@@ -4363,7 +4367,7 @@ are handled in macro_init.)
      memory. */
   macro_buffer = alloc_general((sizeof_t)(MACRO_BUFFER_INITIAL_ALLOCATION+1));
   after_end_of_macro_buffer = macro_buffer + MACRO_BUFFER_INITIAL_ALLOCATION;
-  if (pcc_preprocessing_mode) {
+  if (pcc_preprocessing_mode || microsoft_mode) {
     /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
        the full text of a first-level macro expansion so that the token
        pasting can match pcc's. */
