@@ -6161,18 +6161,18 @@ typedef struct a_scope {
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
 			   scope, in the order they should be done (C++ only).
-                           Used only at file scope scope; in a function
-			   or block scope, where initializations may occur
-			   anywhere, stmk_init statements are used to indicate
-			   the points within the code where each initialization
-			   should be done. */
+                           Used only at file scope or namespace scope; in a
+			   function or block scope, where initializations may
+			   occur anywhere, stmk_init statements are used to
+			   indicate the points within the code where each
+			   initialization should be done. */
   a_local_static_variable_init_ptr
 		local_static_variable_inits;
 			/* List of local static variable initializations in
-			   function or block scope; always NULL at file scope.
-			   Only dynamic and aggregate-constant initializations
-			   are represented.  The order of entries on the list
-			   is not meaningful. */
+			   function or block scope; NULL at file or namespace
+			   scope.  Only dynamic and aggregate-constant
+			   initializations are represented.  The order of
+			   entries on the list is not meaningful. */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
