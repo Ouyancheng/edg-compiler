@@ -160,7 +160,11 @@ typedef struct a_symbol_locator {
 			   by normal_id_lookup). */
   a_type_ptr	qualifier_class_type;
 			/* If is_qualified_name is TRUE, this points to the
-			   type specified by the qualifier, if any. */
+			   type specified by the qualifier, if any.
+			   If is_vacuous_destructor is TRUE this points
+			   to the type of the qualifier, which may not
+			   actually be a class type (e.g., for int::~int
+			   this will point to the type "int". */
   an_access_error_descr_ptr
 		access_errors;
 			/* If is_qualified_name is TRUE, this points to a
