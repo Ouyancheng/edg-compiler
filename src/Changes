@@ -1,5 +1,10 @@
 Version 2.30
 
+5/26/95  mutable
+
+Support for the mutable keyword has been added.  A new flag, is_mutable,
+has been added to a_field.
+
 5/25/95  Incorrect diagnostic in invalid instantiation
 
 If a template parameter dependent base class attempts to use the
