@@ -4417,9 +4417,10 @@ skip_overloading:;
   } else if (!redeclaration && !template_function_specific_decl) {
     /* Record a reference to the outer-scope symbol of the same name,
        but do not set the IL entity referenced flag. */
-    reference_to_symbol(SRK_REFERENCE,
-                        (a_symbol_ptr)source_corresp_ptr->assoc_info,
-                        &locator->source_position, /*update_il_entry=*/FALSE);
+    record_symbol_reference(SRK_REFERENCE,
+                            (a_symbol_ptr)source_corresp_ptr->assoc_info,
+                            &locator->source_position,
+                            /*update_il_entry=*/FALSE);
   }  /* if */
   if (changed_to_inline) {
     if (routine_ptr->called) {

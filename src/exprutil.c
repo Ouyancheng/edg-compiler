@@ -116,8 +116,8 @@ Record the symbol reference described by the reference entry rep.
 {
   /* Do not record the reference if it has already been recorded. */
   if (!rep->already_recorded) {
-    reference_to_symbol(rep->kind, rep->symbol, &rep->position,
-                        /*update_il_entry=*/TRUE);
+    record_symbol_reference(rep->kind, rep->symbol, &rep->position,
+                            /*update_il_entry=*/TRUE);
     rep->already_recorded = TRUE;
   }  /* if */
 }  /* record_reference */
@@ -249,8 +249,8 @@ recorded right away and no entry is created; NULL is returned.
   if (!ref_kind_can_be_affected_by_context || !evaluated) {
     /* The kind of reference is independent of context, so record it right
        away and do not build an entry. */
-    reference_to_symbol(SRK_REFERENCE, sym_ptr, source_position,
-                        /*update_il_entry=*/evaluated);
+    record_symbol_reference(SRK_REFERENCE, sym_ptr, source_position,
+                            /*update_il_entry=*/evaluated);
     rep = NULL;
   } else {
     /* The kind of reference can be affected by context, so build an entry

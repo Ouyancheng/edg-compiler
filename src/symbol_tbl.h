@@ -2171,10 +2171,10 @@ extern void record_symbol_declaration(
                             a_source_position            *source_position,
                             a_source_sequence_entry_ptr  ssep);
 
-extern void reference_to_symbol(a_symbol_reference_kind  kind,
-                                a_symbol_ptr             sym_ptr,
-                                a_source_position        *source_position,
-                                a_boolean                update_il_entry);
+extern void record_symbol_reference(a_symbol_reference_kind  kind,
+                                    a_symbol_ptr             sym_ptr,
+                                    a_source_position        *source_position,
+                                    a_boolean                update_il_entry);
 
 #define mark_defined(sym, pos)                                          \
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, (sym),    \
@@ -2184,8 +2184,8 @@ extern void reference_to_symbol(a_symbol_reference_kind  kind,
                             (a_source_sequence_entry_ptr)NULL)
 
 #define mark_referenced(sym, err_pos)                                   \
-  reference_to_symbol(SRK_REFERENCE, (sym), (err_pos),                  \
-                      /*update_il_entry=*/TRUE)
+  record_symbol_reference(SRK_REFERENCE, (sym), (err_pos),              \
+                          /*update_il_entry=*/TRUE)
 
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 

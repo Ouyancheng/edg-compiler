@@ -8003,10 +8003,10 @@ created for this entity; otherwise, it is NULL.
 }  /* record_symbol_declaration */
 
 
-void reference_to_symbol(a_symbol_reference_kind kind,
-                         a_symbol_ptr            sym_ptr,
-                         a_source_position       *source_position,
-                         a_boolean               update_il_entry)
+void record_symbol_reference(a_symbol_reference_kind kind,
+                             a_symbol_ptr            sym_ptr,
+                             a_source_position       *source_position,
+                             a_boolean               update_il_entry)
 /*
 Record a reference of the indicated kind to the indicated symbol.  Set the
 referenced flag in the symbol entry.  If update_il_entry is TRUE, also
@@ -8163,7 +8163,7 @@ check_label_decl_seq:
       mark_variable_value_set(sym_ptr);
     }  /* if */
   }  /* if */
-}  /* reference_to_symbol */
+}  /* record_symbol_reference */
 
 
 an_extern_type_fixup_ptr alloc_etype_fixup(void)

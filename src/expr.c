@@ -3646,8 +3646,8 @@ at *delete_position, but the IL entry is not marked as referenced.
                   operator_delete_symbol->kind ==
                                             (a_symbol_kind)sk_member_function);
   /* Mark the routine symbol referenced, but not the IL entry (yet). */
-  reference_to_symbol(SRK_REFERENCE, operator_delete_symbol,
-                      delete_position, /*update_il_entry=*/FALSE);
+  record_symbol_reference(SRK_REFERENCE, operator_delete_symbol,
+                          delete_position, /*update_il_entry=*/FALSE);
   return operator_delete_symbol->variant.routine.ptr;
 }  /* select_delete_routine */
 

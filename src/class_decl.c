@@ -5038,8 +5038,8 @@ control checking is done.
     /* Non-virtual call. */
     mark_routine_referenced(rp);
     /* Update the symbol and the cross-reference listing. */
-    reference_to_symbol((SRK_REFERENCE | SRK_IMPLICIT), sym, pos,
-                         /*update_il_entry=*/FALSE);
+    record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), sym, pos,
+                            /*update_il_entry=*/FALSE);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 

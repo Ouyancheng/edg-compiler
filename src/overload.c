@@ -2782,8 +2782,8 @@ if an access control checking error was detected.
          "new" call can be folded into a constructor call).  Mark the symbol
          as referenced, but not the IL entry. */
       check_assertion(operand == NULL);
-      reference_to_symbol(SRK_REFERENCE, function_symbol, call_position,
-                          /*update_il_entry=*/FALSE);
+      record_symbol_reference(SRK_REFERENCE, function_symbol, call_position,
+                              /*update_il_entry=*/FALSE);
     } else {
       /* The reference is not elided. */
       if (operand == NULL) {
