@@ -1,5 +1,18 @@
 Version 2.35
 
+2/21/97  No deduction of cv-qualified function types
+
+cv-qualified function types are not allowed, so type deduction for
+templates should not produce cv-qualified function types.  The following
+case now gets an appropriate error instead of an internal error:
+
+  struct ZZZ {};
+  void* xxx(ZZZ);
+  template <class T> void f(const T*) {}
+  void g() {
+    f(xxx); 
+  }
+
 2/21/97  Partially-lowered EH: address of local static guard variable
 
 When IL lowering generates partially-lowered code for exception handling,

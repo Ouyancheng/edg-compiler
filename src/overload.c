@@ -2475,9 +2475,13 @@ evaluated (but not checked to see if the match is good enough).
         pointer_case = TRUE;
         arg_type = type_pointed_to(arg_type);
         param_type = type_pointed_to(param_type);
-        /* Check and adjust the top-level type qualifiers. */
-        check_template_arg_type_qualifiers(&arg_type, &param_type,
-                                           &type_qualifiers_added);
+        /* Function types are not allowed to have type qualifiers, so
+           do not allow deduction that puts type qualifiers over them. */
+        if (!is_function_type(arg_type)) {
+          /* Check and adjust the top-level type qualifiers. */
+          check_template_arg_type_qualifiers(&arg_type, &param_type,
+                                             &type_qualifiers_added);
+        }  /* if */
       }  /* if */
       /* Note that we haven't checked that the underlying types are compatible.
          That happens later. */
