@@ -2090,15 +2090,34 @@ the proper insert location.
       insert_after->next = sym_ptr;
     }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
-    /* If the current declaration hides a declaration at file scope, record
-       that information in the IL. */
+#if 0
+/* The following can be improved (but made more fragile, with only a little
+   gain) by minimizing the number of hidden-name entries put out.  For
+   instance, we can skip to the file scope when the instantiation scope is
+   encountered.  Also, we should only mark the innermost non-file-scope tag
+   symbol as unhidable by an elaborated type specifier.  Other cases?  But
+   is it worth the trouble? */
+#endif /* if 0 */
+    /* If the current declaration hides a declaration at a containing scope,
+       record that information in the IL. */
     if (!C_mode() && scope_depth > DEPTH_OF_FILE_SCOPE) {
       a_scope_number  file_scope_number =
                                    scope_stack[DEPTH_OF_FILE_SCOPE].number;
+      a_boolean       check_for_tag_sym = !is_tag_symbol(sym_ptr);
+
       for (old_sym_ptr = sym_ptr->next;
            old_sym_ptr != NULL;
            old_sym_ptr = old_sym_ptr->next) {
+        if (check_for_tag_sym && is_tag_symbol(old_sym_ptr)) {
+          /* The current symbol is a nontag symbol, and the hidden symbol is
+             a tag symbol.  The latter can be unhidden by an elaborated type
+             specifier. */
+          record_defeatable_name_hiding(old_sym_ptr,
+                                        /*tag_hidden_by_nontag=*/TRUE);
+        }  /* if */
         if (old_sym_ptr->decl_scope == file_scope_number) {
+          /* The hidden symbol is file-scope entity.  It can be unhidden by
+             global qualification ("::"). */
           record_defeatable_name_hiding(old_sym_ptr,
                                         /*tag_hidden_by_nontag=*/FALSE);
         }  /* if */
