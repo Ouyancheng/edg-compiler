@@ -2272,6 +2272,12 @@ typedef struct a_class_member_using_decl {
 		entity;
 			/* The entity (field, function, member type, etc.)
 			   specified in the using declaration. */
+  a_type_ptr
+		class_specified_in_qualifier;
+			/* The class that was actually specified in the
+			   qualified name that appeared in the source code;
+			   not necessarily the same as the parent of the
+			   base-class member referred to by entity.ptr. */
 } a_class_member_using_decl;
 
 

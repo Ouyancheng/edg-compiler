@@ -687,10 +687,11 @@ pointer to it.
 #if DEBUG
   num_class_member_using_decls_allocated++;
 #endif /* DEBUG */
-  cmudp->next        = NULL;
-  cmudp->access      = (an_access_specifier)as_public;
-  cmudp->entity.kind = (a_byte_il_entry_kind)kind;
-  cmudp->entity.ptr  = (char *)NULL;
+  cmudp->next                         = NULL;
+  cmudp->access                       = (an_access_specifier)as_public;
+  cmudp->entity.kind                  = (a_byte_il_entry_kind)kind;
+  cmudp->entity.ptr                   = (char *)NULL;
+  cmudp->class_specified_in_qualifier = NULL;
 
   return cmudp;
 }  /* alloc_class_member_using_decl */

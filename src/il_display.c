@@ -3076,6 +3076,8 @@ Display the indicated class_member_using_decl entry.
   disp_access("access", ptr->access);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
+  disp_ptr("class_specified_in_qualifier",
+           (char *)ptr->class_specified_in_qualifier, iek_type);
 }  /* disp_class_member_using_decl */
 
 

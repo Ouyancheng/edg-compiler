@@ -1709,6 +1709,7 @@ do_set_proper_definition_needed_flag:
                        iek_class_member_using_decl);
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
+        remap_ptr(ptr->class_specified_in_qualifier, a_type_ptr, iek_type);
       }
       break;
     case iek_overriding_virtual_function:
