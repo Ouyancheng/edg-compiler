@@ -10765,6 +10765,7 @@ returned to the caller.
   } else if (sym->defined) {
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
+    sym = NULL;
     err = TRUE;
   } else if (!types_are_redecl_compatible(type,
                                           sym->variant.static_data_member.
@@ -10773,6 +10774,7 @@ returned to the caller.
        the declaration in the class. */
     pos_sy_error(ec_not_compatible_with_previous_decl,
 		 &locator->source_position, sym);
+    sym = NULL;
     err = TRUE;
   } else {
     /* This is a template definition of a static data member of a
