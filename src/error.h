@@ -456,7 +456,8 @@ typedef enum /*an_error_code*/ {
   ec_no_constructor_for_conversion,
   ec_ambiguous_constructor_for_conversion,
   ec_ambiguous_conversion_function,
-  ec_ambiguous_conversion_to_builtin
+  ec_ambiguous_conversion_to_builtin,
+  ec_nonstd_default_arg
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1463,6 +1463,9 @@ error code.
       m =
         "more than one conversion function from %t to a built-in type applies";
       break;
+    case ec_nonstd_default_arg:
+      m = "this use of a default argument is nonstandard";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
