@@ -1618,7 +1618,7 @@ error code.
       break;
     case ec_nonconst_ref_init_anachronism:
       m = 
-       "temporary used for initial value of non-const reference (anachronism)";
+    "temporary used for initial value of reference to non-const (anachronism)";
       break;
     case ec_qualifier_in_member_declaration:
       m = "qualified name is not allowed in member declaration";
@@ -1637,6 +1637,12 @@ error code.
       break;
     case ec_enum_not_allowed:
       m = "\"enum\" declaration not allowed";
+      break;
+    case ec_qualifier_dropped_in_ref_init:
+      m = "reference has fewer const/volatile qualifiers than initial value";
+      break;
+    case ec_bad_nonconst_ref_init:
+      m = "initial value of reference to non-const has incorrect type";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

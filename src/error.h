@@ -472,7 +472,9 @@ typedef enum /*an_error_code*/ {
   ec_new_array_size_must_be_nonnegative,
   ec_return_ref_init_requires_temp,
   ec_cfront_nonconst_ref_init,
-  ec_enum_not_allowed
+  ec_enum_not_allowed,
+  ec_qualifier_dropped_in_ref_init,
+  ec_bad_nonconst_ref_init
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
