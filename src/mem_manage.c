@@ -680,7 +680,7 @@ Free the storage associated with the indicated memory block.
            leave the loop. */
         if (okay_to_free_mem_blocks && hdr->malloc_size > 0 &&
             hdr->malloc_size ==
-              (sizeof_t)(hdr->after_end_of_block - hdr->start_of_block)) {
+                           (sizeof_t)(hdr->after_end_of_block - (char *)hdr)) {
           free_complete_block(hdr);
           goto freed_it;
         }  /* if */

@@ -1,5 +1,12 @@
 Version 2.38
 
+12/17/97  Bug in freeing rejoined memory blocks
+
+Due to a bug in free_mem_block, when partial memory blocks are freed
+and reassembled into a full memory block they were not freed back to
+the operating system.  They were, however, properly kept on the list
+of available memory blocks, so the impact was minimal.
+
 12/17/97  Integral promotion on long wchar_t when sizeof(long) == sizeof(int)
 
 If wchar_t is defined as long (or unsigned long), and sizeof(long) ==
