@@ -5732,7 +5732,7 @@ Display the IL for the file scope in human-readable form.
   disp_ptr("nontag_types_used_in_exception_or_rtti",
            (char *)il_header.nontag_types_used_in_exception_or_rtti,
            iek_type);
-  disp_ptr("sequence number lookup entries",
+  disp_ptr("seq_number_lookup_entries",
            (char *)il_header.seq_number_lookup_entries,
            iek_seq_number_lookup_entry);
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
