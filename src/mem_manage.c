@@ -1133,7 +1133,9 @@ are handled in mem_manage_init.)
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if USE_MMAP_FOR_MEMORY_REGIONS
   mmap_initialized = FALSE;
-  okay_to_free_mem_blocks = FALSE;
+  /* When doing precompiled header processing, we allocate memory blocks
+     in mapped memory, which cannot be freed. */
+  okay_to_free_mem_blocks = !precompiled_header_processing_required;
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 }  /* mem_manage_one_time_init */
 
