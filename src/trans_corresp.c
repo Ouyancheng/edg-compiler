@@ -54,7 +54,7 @@ entry in another translation unit.
     if (!in_secondary_trans_unit(il_entry)) {
       break;
     } else {
-      char *canonical_ptr = trans_unit_corresp_pointer_of(il_entry);
+      char *canonical_ptr = checked_trans_unit_corresp_pointer_of(il_entry);
       if (canonical_ptr == NULL || canonical_ptr == il_entry) {
         break;
       } else {
