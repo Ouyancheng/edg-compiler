@@ -73,12 +73,12 @@ extern "C" void _exit(int status);
 
 void exit(int status)
 /*
-This is used on systems that don't support an protocol such as the 
+This is used on systems that don't support a protocol such as the 
 ANSI C "atexit" or the SunOS "on_exit" functions.  This version of exit
 should be used instead of the normal OS exit routine.  Which means that
 the library containing this routine needs to be linked in ahead of
 the standard C library (such as libc.a).  Using this version of exit
-means that some processing done my special versions of exit (such as the
+means that some processing done by special versions of exit (such as the
 profiling version) will not be done.
 */
 {
