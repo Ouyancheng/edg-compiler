@@ -1,5 +1,37 @@
 Version 2.18
 
+5/27/93 Inherited names in member function definitions, friend declarations
+
+We used to issue a confusing error message when an inherited name appeared
+in an out-of-line member function definition or in a friend declaration.
+The appropriate error is now put out.  Here's an example:
+
+  class A {
+    void f();
+  };
+  class B : public A {
+    friend void B::f();    // Appropriate error is now issued
+  };
+  void B::f() { }          // Appropriate error is now issued
+
+5/27/93 Pointless friend declaration
+
+A warning (or in strict ANSI mode an error) is now issued on a friend
+declaration that refers to a member function of the "befriending" class.
+For instance:
+
+  class A {
+    void f();
+    friend void A::f();      // Warning now issued
+    friend class A;          // Warning now issued
+  };
+
+In addition, an error was missed that is now reported:
+
+  class A {
+    friend void A::f();      // Error -- no A::f
+  };
+
 5/26/93 Elaborated-type-specifier using template param name (again)
 
 The use of a template parameter in an elaborated type specifier is once
