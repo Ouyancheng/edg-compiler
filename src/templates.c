@@ -724,7 +724,7 @@ might not be able to if the template itself has not yet been defined.
 }  /* f_instantiate_template_class */
 
 
-void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
+void check_for_uninstantiated_template_class(a_type_ptr  tp)
 /*
 tp is an incomplete type.  If it is a class in need of instantiation or an
 array whose underlying element type is such a class, instantiate it.
@@ -737,7 +737,7 @@ Otherwise, do nothing.
   }  /* if */
   if (is_class_struct_union_type(tp)) f_instantiate_template_class(tp);
 done:;
-}  /* f_check_for_uninstantiated_template_class */
+}  /* check_for_uninstantiated_template_class */
 
 
 #if DEBUG
