@@ -6613,6 +6613,27 @@ next_declaration:
        since symbols may be inherited. */
     cssp->symbols = scope_stack[depth_scope_stack].symbols;
     if (C_dialect == C_dialect_cplusplus) {
+      /* Issue a warning on a class with no user-defined constructor and with
+         one or more members with reference or const type.  Note that this
+         check is done before compiler-generated constructors, if any, are
+         entered. */
+      if (any_const_or_ref_fields && cssp->constructor == NULL) {
+        a_symbol_ptr  sym;
+        pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+                             &error_position, tag_sym);
+        /* List each of the uninitialized const or ref member. */
+        for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+          if (sym->kind == (a_symbol_kind)sk_field) {
+            a_type_ptr  tp = sym->variant.field.ptr->type;
+            if (is_reference_type(tp)) {
+              sym_add_diag_info(ec_reference_member, sym);
+            } else if (type_or_element_type_is_const_qualified(tp)) {
+              sym_add_diag_info(ec_const_member, sym);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        end_error();
+      }  /* if */
       /* Create compiler-generated default constructor, copy constructor,
          destructor, and assignment operator, if any is needed. */
       check_special_member_functions(class_type);
@@ -6645,25 +6666,6 @@ next_declaration:
          "aggregate" objects (ARM 8.4.1). */
       if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
         cssp->is_class_aggregate = TRUE;
-      }  /* if */
-      /* Issue a warning on a class with no constructor and with one or more
-         members with reference or const type. */
-      if (any_const_or_ref_fields && cssp->constructor == NULL) {
-        a_symbol_ptr  sym;
-        pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
-                             &error_position, tag_sym);
-        /* List each of the uninitialized const or ref member. */
-        for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-          if (sym->kind == (a_symbol_kind)sk_field) {
-            a_type_ptr  tp = sym->variant.field.ptr->type;
-            if (is_reference_type(tp)) {
-              sym_add_diag_info(ec_reference_member, sym);
-            } else if (type_or_element_type_is_const_qualified(tp)) {
-              sym_add_diag_info(ec_const_member, sym);
-            }  /* if */
-          }  /* if */
-        }  /* for */
-        end_error();
       }  /* if */
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
