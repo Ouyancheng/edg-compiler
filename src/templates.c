@@ -5446,7 +5446,7 @@ Otherwise, return FALSE.  This is done by rescanning the tokens from
 the declaration token cache.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean		result = FALSE;
 
   rescan_reusable_cache(token_cache);
   if (curr_token == tok_friend) (void)get_token();
@@ -5458,6 +5458,10 @@ the declaration token cache.
       if (curr_token == tok_end_of_source) {
         result = TRUE;
       }  /* if */
+    } else if (curr_token == tok_end_of_source) {
+      /* A class template declaration with a missing identifier.  Return
+         TRUE for better error recovery. */
+      result = TRUE;
     }  /* if */
   }  /* if */
   /* Flush and remaining tokens from the reusable cache. */
