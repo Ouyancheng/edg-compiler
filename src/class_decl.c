@@ -5926,6 +5926,28 @@ when exception support is enabled.
 }  /* form_exception_specification_for_generated_function */
 
 
+static a_boolean compatible_functions_with_c_linkage(a_symbol_ptr sym1,
+                                                     a_symbol_ptr sym2)
+/*
+Return TRUE if the two given function symbols have C linkage and identical
+types; otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+  a_routine_ptr  rp1 = sym1->variant.routine.ptr,
+                 rp2 = sym2->variant.routine.ptr;
+
+  if (identical_types(rp1->type, rp2->type) &&
+      rp1->type->variant.routine.extra_info->routine_name_linkage ==
+                                          (a_name_linkage_kind)nlk_external &&
+      rp2->type->variant.routine.extra_info->routine_name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* compatible_functions_with_c_linkage */
+
+
 a_boolean conflicts_with_previous_function_decl(a_symbol_ptr       using_sym,
                                                 a_symbol_ptr       sym,
                                                 a_source_position  *pos)
@@ -5961,7 +5983,14 @@ as the error position.
         /* Check for a conflict between the type of the previously declared
            function (sym) and the type for which a projection symbol is about
            to be created (using_sym). */
-        if (types_of_decl_and_using_decl_conflict(sym, using_sym, &err)) {
+        if (microsoft_mode && using_sym->kind == (a_symbol_kind)sk_routine &&
+            compatible_functions_with_c_linkage(using_sym, sym)) {
+          /* In Microsoft mode, extern "C" functions from different namespaces
+             create different entities even if they have the same name and
+             type.  However, two such entities do not conflict if they are
+             brought in the same scope with a using-declaration. */
+        } else if (types_of_decl_and_using_decl_conflict(
+                                                      sym, using_sym, &err)) {
           /* Unless using_sym is a member function being hidden and/or
              overridden by the previous declaration, an error is issued. */
           if (err) {
