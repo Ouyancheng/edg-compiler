@@ -7952,6 +7952,66 @@ respective linked lists.
 }  /* remove_sublist_header_and_parent */
 
 
+a_source_sequence_entry_ptr last_matching_source_sequence_entry(char  *entity)
+/*
+Find the tail-most source sequence entry in the current source-sequence-list
+that refers to the IL entity identified by entity and entity_kind.
+*/
+{
+  a_source_sequence_entry_ptr  ssep, prev_ssep;
+  char                         *temp;
+  a_boolean                    check_sublist;
+
+  if (source_sequence_entries_disallowed) {
+    ssep = NULL;
+  } else {
+    /* Determine whether the source-sequence entry we are looking for will
+       be on the main list of the current source-sequence-list scope or on
+       a sublist. */
+    check_sublist = (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE &&
+                     in_file_scope(entity));
+    /* Find the last source sequence entry that was created, and loop backwards
+       from there. */
+    ssep = scope_stack[depth_innermost_ss_list_scope].
+                                               last_source_sequence_entry;
+    for (; ssep != NULL; ssep = prev_ssep) {
+      prev_ssep = ssep->prev;
+      if (check_sublist) {
+        /* Only look at sublists -- ignore all the rest of the list. */
+        if (is_sublist_parent(ssep)) {
+          /* Scan from the end of the sublist. */
+          ssep = (assoc_sublist_of(ssep))->last_source_sequence_entry;
+          for (; ssep != NULL; ssep = ssep->prev) {
+            /* Stop if ssep refers to entity either directly or through a
+               secondary-decl entry. */
+            temp = ssep->entity.ptr;
+            if (temp == entity ||
+                ((ss_entry_kind(ssep) ==
+                         (an_il_entry_kind)iek_src_seq_secondary_decl) &&
+                 ((a_src_seq_secondary_decl_ptr)temp)->entity.ptr == entity)) {
+              goto done;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      } else {
+        /* Stop if ssep refers to entity either directly or through a
+           secondary-decl entry. */
+        temp = ssep->entity.ptr;
+        if (temp == entity ||
+            ((ss_entry_kind(ssep) ==
+                     (an_il_entry_kind)iek_src_seq_secondary_decl) &&
+             ((a_src_seq_secondary_decl_ptr)temp)->entity.ptr == entity)) {
+          goto done;
+        }  /* if */
+      }  /* if */
+      /* Back up to the preceding entry on the main list. */
+    }  /* for */
+  }  /* if */
+done:
+  return ssep;
+}  /* last_matching_source_sequence_entry */
+
+
 void set_autonomous_tag_decl_flag(a_type_ptr  type,
                                   a_boolean   is_definition)
 /*
@@ -7971,27 +8031,15 @@ entry, if there is one.
   } else {
     /* This is a class or enum declaration, possibly a "vacuous"
        declaration. */
-    /* Find the last source sequence entry that was created. */
-    ssep = scope_stack[depth_innermost_ss_list_scope].
-                                                   last_source_sequence_entry;
+    ssep = last_matching_source_sequence_entry((char *)type);
     if (ssep != NULL) {
-      if (is_sublist_parent(ssep)) {
-        ssep = (assoc_sublist_of(ssep))->last_source_sequence_entry;
-      }  /* if */
-      /* ssep is the last source sequence entry added to the list for the
-         currently active scope.  It ought to be the one we're looking for. */
-      if (ss_entry_ptr(ssep, a_type_ptr) == type) {
-        /* Even though this is not a definition, this source sequence entry
-           represents (at least temporarily) the primary declaration. */
+      if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_type) {
         type->autonomous_primary_tag_decl = TRUE;
-      } else if (ssep->entity.kind ==
-                           (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-        /* The source sequence entry found is represents a secondary
-           declaration.  If it refers to the same type, set the flag. */
+      } else {
+        check_assertion(ss_entry_kind(ssep) ==
+                            (an_il_entry_kind)iek_src_seq_secondary_decl);
         sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-        if (sssdp->entity.ptr == (char *)type) {
-          sssdp->autonomous_tag_decl = TRUE;
-        }  /* if */
+        sssdp->autonomous_tag_decl = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
