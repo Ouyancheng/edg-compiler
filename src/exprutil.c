@@ -29,6 +29,9 @@ exprutil.c -- Expression scanning utility routines.
 #include "pch.h"
 #include "func_def.h"
 
+/* Forward declaration required: */
+static void conv_array_rvalue_to_lvalue(an_operand *operand);
+
 
 /*
 Information on references to symbols, held until the kind of reference to
@@ -2365,6 +2368,23 @@ See 3.2.1.1 in the standard.  The operand must be an rvalue.
 }  /* promote_operand */
 
 
+static void conv_array_rvalue_operand_to_pointer_operand(an_operand *operand)
+/*
+operand is an array rvalue in C mode.  Convert it to a pointer to the
+first element of the array.  This is nonstandard.  A diagnostic is issued
+in strict mode.
+*/
+{
+  if (strict_ansi_mode) {
+    pos_diagnostic(strict_ansi_discretionary_severity,
+                   ec_bad_rvalue_array, &operand->position);
+  }  /* if */
+  /* Convert the array rvalue to a pointer to the first element. */
+  conv_array_rvalue_to_lvalue(operand);
+  conv_array_operand_to_pointer_operand(operand);
+}  /* conv_array_rvalue_operand_to_pointer_operand */
+
+
 void arg_default_promote_operand(an_operand *argument_operand)
 /*
 Do default argument promotions on an argument operand.  If the operand is
@@ -2376,6 +2396,13 @@ an lvalue, it is converted to an rvalue before doing the promotions.
   /* Convert the operand to an rvalue if necessary. */
   do_operand_transformations(argument_operand, TOPT_NO_OPTIONS);
   arg_type = argument_operand->type;
+  if (C_mode() && is_array_type(arg_type)) {
+    /* Catch array rvalues in C.  In strict mode they are not allowed.
+       Otherwise, do the special array --> pointer decay as an extension. */
+    check_assertion(is_an_rvalue(argument_operand));
+    conv_array_rvalue_operand_to_pointer_operand(argument_operand);
+    arg_type = argument_operand->type;
+  }  /* if */
   /* Do the integral promotions part of the default argument promotions
      directly on the operand because of the special case with 
      bit-fields (which can't be handled from just the type). */
@@ -3019,8 +3046,13 @@ Return FALSE and issue an error message if the operand is not a pointer type.
 If there is an error, make "operand" into an error operand.
 */
 {
-  register a_boolean okay = TRUE;
+  a_boolean okay = TRUE;
 
+  if (C_mode() && is_an_rvalue(operand) && is_array_type(operand->type)) {
+    /* Attempt to use an array rvalue in C.  This is nonstandard.
+       Convert it to a pointer to the first element of the array. */
+    conv_array_rvalue_operand_to_pointer_operand(operand);
+  }  /* if */
   if (is_error_operand(operand)) {
     /* If it is an error operand, an error message has already been issued. */
     okay = FALSE;
@@ -5251,9 +5283,9 @@ static an_expr_node_ptr conv_array_rvalue_expr_to_object_pointer(
                                                          an_expr_node_ptr expr)
 /*
 expr is an expression tree for an array rvalue.  Make an expression for
-an object pointer to the array, and return a pointer to it.  Used only in
-C++.  Calls itself recursively with expressions from the subtree, some
-of which will no longer have array type.
+an object pointer to the array, and return a pointer to it.  Can be called
+in both C++ and C modes.  Calls itself recursively with expressions from the
+subtree, some of which will no longer have array type.
 */
 {
   if (is_operation_node(expr) &&
@@ -5273,15 +5305,55 @@ of which will no longer have array type.
     expr->type = make_pointer_type(expr->type);
     expr->variant.operation.kind = (an_expr_operator_kind)eok_field;
   } else {
-    /* We should have worked our way up to a class rvalue. */
-    an_operand operand;
+    /* We should have worked our way up to a class rvalue, because the only
+       way to produce an array rvalue is to select one out of a class
+       rvalue. */
+    a_type_ptr expr_type = expr->type;
+    check_assertion(is_class_struct_union_type(expr->type));
+    if (!C_mode()) {
+      /* C++ mode.  Use the normal mechanism to get a pointer to the
+         class object. */
+      an_operand operand;
 
-    make_expression_operand(expr, expr->type, &operand);
-    conv_class_operand_to_object_pointer(&operand);
-    expr = make_node_from_operand(&operand);
+      make_expression_operand(expr, expr_type, &operand);
+      conv_class_operand_to_object_pointer(&operand);
+      expr = make_node_from_operand(&operand);
+    } else {
+      /* C mode.  Create a temporary variable, copy the class rvalue to it,
+         and return the address of the variable. */
+      a_variable_ptr   var = alloc_temporary_variable(expr_type);
+      an_expr_node_ptr var_lvalue_node, assign_node, var_addr_node;
+
+      /* Make "var = expr". */
+      var_lvalue_node = var_lvalue_expr(var);
+      var_lvalue_node->next = expr;
+      assign_node = make_operator_node((an_expr_operator_kind)eok_sassign,
+                                       expr_type, var_lvalue_node);
+      /* Make "(var = expr), &var". */
+      var_addr_node = var_lvalue_expr(var);
+      assign_node->next = var_addr_node;
+      expr = make_operator_node((an_expr_operator_kind)eok_comma,
+                                var_addr_node->type, assign_node);
+    }  /* if */
   }  /* if */
   return expr;
 }  /* conv_array_rvalue_expr_to_object_pointer */
+
+
+static void conv_array_rvalue_to_lvalue(an_operand *operand)
+/*
+operand is an array rvalue.  Convert it to an lvalue for the array.
+*/
+{
+  an_expr_node_ptr expr;
+
+  check_assertion(is_expression_operand(operand) && is_an_rvalue(operand) &&
+                  is_array_type(operand->type));
+  expr = operand->variant.expression;
+  expr = conv_array_rvalue_expr_to_object_pointer(expr);
+  make_expression_operand(expr, expr->type, operand);
+  conv_object_pointer_to_lvalue(operand);
+}  /* conv_array_rvalue_to_lvalue */
 
 
 void conv_array_operand_to_pointer_operand(an_operand *operand)
@@ -5297,21 +5369,11 @@ are left alone.
   an_operand orig_operand;
 
   if (is_array_type(operand->type)) {
-    if (is_an_rvalue(operand)) {
-      /* An array rvalue. */
-      if (C_mode()) {
-        /* Error in C mode. */
-        error_in_operand(ec_bad_rvalue_array, operand);
-      } else {
-        /* C++ -- valid.  Convert the operand to an lvalue for the array. */
-        an_expr_node_ptr expr;
-
-        check_assertion(is_expression_operand(operand));
-        expr = operand->variant.expression;
-        expr = conv_array_rvalue_expr_to_object_pointer(expr);
-        make_expression_operand(expr, expr->type, operand);
-        conv_object_pointer_to_lvalue(operand);
-      }  /* if */
+    if (is_an_rvalue(operand) && !C_mode()) {
+      /* In C++ (but not in C), an array rvalue is converted to a pointer
+         to its first element.  Make an lvalue so the conversion below
+         will apply. */
+      conv_array_rvalue_to_lvalue(operand);
     }  /* if */
     if (is_an_lvalue(operand)) {
       /* An array lvalue -- convert to a pointer. */
