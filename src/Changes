@@ -1,5 +1,16 @@
 Version 2.26
 
+10/5/94  C++-generating back end: .* operator
+
+The C++-generating back end now handles the .* operator correctly
+when the left operand is a temporary.
+
+10/5/94  C++-generating back end: reference initialized to array
+
+The C++-generating back end now puts out the initializer for a
+reference to an array correctly in the case where the initializer
+is a string constant cast to another char array type.
+
 10/5/94  C++-generating back end: fields of variable anonymous unions
 
 The C++-generating back end now correctly puts out references to fields 
