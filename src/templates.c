@@ -15415,12 +15415,18 @@ added, FALSE if it was already on the list.
 }  /* add_to_instantiations_required_list */
 
 
-static a_boolean is_inline_template_function(a_template_instance_ptr tip)
+#if !DO_IL_LOWERING || !IA64_ABI
+/*ARGSUSED*/ /* <-- in_class is not used in that case. */
+#endif /* !DO_IL_LOWERING || !IA64_ABI */
+static a_boolean is_inline_template_function(a_template_instance_ptr tip,
+                                             a_boolean               in_class)
 /*
 Determines whether a template instance pointer refers to a function that
 is inline.  This involves more than simply checking the is_inline flag
 in the routine entry because, if the function has not yet been instantiated,
-the template from which the routine would be generated must be checked.
+the template from which the routine would be generated must be checked.  If
+in_class is TRUE, the routine is only considered inline if it is declared
+inline in the class definition.
 */
 {
   a_boolean	result = FALSE;
@@ -15434,13 +15440,31 @@ the template from which the routine would be generated must be checked.
        the class template, whereas the flag in the func_info block reflects
        the function template definition, if any. */
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-    result =  rout->is_inline;
+#if DO_IL_LOWERING && IA64_ABI
+    if (in_class) {
+      result = rout->inline_in_class_definition;
+    } else 
+#endif /* DO_IL_LOWERING && IA64_ABI */
+    /* Do not add code here. */
+    {
+      result =  rout->is_inline;
+    }  /* if */
     if (!result && !rout->is_specialized) {
       if (!routine_has_been_defined(rout)) {
         a_template_symbol_supplement_ptr	tssp;
         tssp = template_supplement_for_symbol(tip->template_sym);
-        result = tssp->variant.function.routine->is_inline ||
-                 func_info_for_template(tssp)->is_inline;
+#if DO_IL_LOWERING && IA64_ABI
+        if (in_class) {
+          result = tssp->variant.function.routine->
+                                                 inline_in_class_definition ||
+                   func_info_for_template(tssp)->is_inline;
+        } else 
+#endif /* DO_IL_LOWERING && IA64_ABI */
+        /* Do not add code here. */
+        {
+          result = tssp->variant.function.routine->is_inline ||
+                   func_info_for_template(tssp)->is_inline;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -15448,11 +15472,14 @@ the template from which the routine would be generated must be checked.
 }  /* is_inline_template_function */
 
 
-a_boolean rout_is_inline_template_function(a_routine_ptr	rout)
+a_boolean rout_is_inline_template_function(a_routine_ptr	rout,
+                                           a_boolean            in_class)
 /*
 Interface to is_inline_template_function that takes a routine pointer
 as its argument.  rout must be a pointer to an instance of a function
-template or a member function of a template class.
+template or a member function of a template class.  If in_class is TRUE,
+the routine is only considered inline if it is marked as inline in the class
+definition.
 */
 {
   a_symbol_ptr			sym;
@@ -15462,7 +15489,7 @@ template or a member function of a template class.
   check_assertion(sym != NULL && is_function_symbol(sym));
   tip = sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
-  return is_inline_template_function(tip);
+  return is_inline_template_function(tip, in_class);
 }  /* rout_is_inline_template_function */
 
 
@@ -15479,7 +15506,7 @@ data member is a member of an unnamed namespace.
   a_boolean     result = FALSE;
   a_symbol_ptr	sym = tip->instance_sym;
 
-  if (is_inline_template_function(tip)) {
+  if (is_inline_template_function(tip, /*in_class=*/FALSE)) {
     result = TRUE;
   } else if (any_exported_templates()) {
     /* In the presence of exported templates we cannot assume that any
@@ -17329,7 +17356,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       tip->referencing_namespace = determine_referencing_namespace();
     }  /* if */
     if (use_master_instance &&
-        !defer_inline && is_inline_template_function(tip)) {
+        !defer_inline && is_inline_template_function(tip, 
+                                                     /*in_class=*/FALSE)) {
       if (!mip->already_instantiated &&
           should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
         /* Inline (member or nonmember) functions are instantiated at the
@@ -18719,7 +18747,7 @@ instantiated.  Pure virtual functions cannot be instantiated.
       if (issue_errors) {
         sym_error(ec_instantiation_requested_and_specialized, sym);
       }  /* if */
-    } else if (is_inline_template_function(tip)) {
+    } else if (is_inline_template_function(tip, /*in_class=*/FALSE)) {
       /* An inline function is allowed in an explicit instantiation, but not
          in a pragma.  The Sun compiler does not instantiate inline functions
          when a class instantiation directive is used. */

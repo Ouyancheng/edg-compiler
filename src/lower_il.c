@@ -3726,8 +3726,19 @@ have one yet.
              inline until it is fully instantiated, so we have to call
              a function to see whether it is really inline. */
           (routine->is_template_function ?
-                                  !rout_is_inline_template_function(routine) :
-                                  !routine->is_inline)) {
+                       !rout_is_inline_template_function(routine,
+#if IA64_ABI
+                                                         /*in_class=*/TRUE
+#else /* !IA64_ABI */
+                                                         /*in_class=*/FALSE
+#endif /* !IA64_ABI */
+                                                                            ) :
+#if IA64_ABI
+                       !routine->inline_in_class_definition
+#else /* !IA64_ABI */
+                       !routine->is_inline
+#endif /* !IA64_ABI */
+                                                            )) {
         /* This is the first non-inline virtual non-pure member function in
            the class.  If it is defined in this compilation, we should put
            out the virtual function tables here. */

@@ -153,7 +153,8 @@ extern a_src_seq_secondary_decl_ptr
 
 extern a_symbol_ptr primary_template_of(a_symbol_ptr sym);
 
-extern a_boolean rout_is_inline_template_function(a_routine_ptr	rout);
+extern a_boolean rout_is_inline_template_function(a_routine_ptr rout,
+                                                  a_boolean     in_class);
 
 extern a_boolean template_arg_list_involves_template_param(
 					a_template_arg_ptr	tap);

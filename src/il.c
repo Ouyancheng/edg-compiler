@@ -600,12 +600,14 @@ base class itself), for debug purposes.
   fputs("[[ virtual ", f_debug);
   db_access_control(preferred_derivation_of(bcp)->access);
   fprintf(f_debug, " base class %s", bcp->type->source_corresp.name);
+#if !IA64_ABI
   fprintf(f_debug, " (pointer offset = %lu",
           (unsigned long)bcp->pointer_offset);
   if (bcp->pointer_base_class != NULL) {
     fprintf(f_debug, ", in %s",
             bcp->pointer_base_class->type->source_corresp.name);
   }  /* if */
+#endif /* IA64_ABI */
   fputs(") ]]", f_debug);
 }  /* db_virtual_base_class_ptr */
 
@@ -646,6 +648,7 @@ Dump a direct base class entry, for debug purposes.
   fprintf(f_debug, " base class %s%s", tp->source_corresp.name,
           bcp->is_optimized_empty_base ? " (opt)" : "");
   if (bcp->is_virtual) {
+#if !IA64_ABI
     fprintf(f_debug, " (pointer offset = %lu",
             (unsigned long)bcp->pointer_offset);
     if (bcp->pointer_base_class != NULL) {
@@ -653,6 +656,7 @@ Dump a direct base class entry, for debug purposes.
               bcp->pointer_base_class->type->source_corresp.name);
     }  /* if */
     fputc(')', f_debug);
+#endif /* !IA64_ABI */
   } else {
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     if (complete_subobject) fputs(" (complete subobj)", f_debug);
@@ -14000,7 +14004,8 @@ Exists to avoid difficulties with referring to a function in
 templates.c from a macro (rout_is_inline) in il.h.
 */
 {
-  return in_front_end && rout_is_inline_template_function(rout);
+  return in_front_end && rout_is_inline_template_function(rout,
+                                                          /*in_class=*/FALSE);
 }  /* intf_rout_is_inline_template_function */
 
 
