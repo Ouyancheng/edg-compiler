@@ -1,5 +1,12 @@
 Version 2.24
 
+6/24/94 Obsolete source files removed
+
+A number of files that are no longer used have been removed from the
+front end source directory.  trans_lims.h and mem_tables.c have been
+removed completely.  getopt.h, which is no longer used by the front end but
+is still used by the utility programs, has been moved to the util directory.
+
 6/23/94 IL CHANGE: declared_type in routine and variable entries
 
 When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, a new field, declared_type,
