@@ -6410,15 +6410,14 @@ Scan the body of a class definition, including the base classes list.
               } else if (is_union_type(class_type)) {
                 /* Unions are not allowed to have static data members. */
                 pos_error(ec_static_not_allowed, &decl_start_pos);
+                member_storage_class = (a_storage_class)sc_unspecified;
               } else if (is_local_class) {
                 /* Static data members are not allowed in local classes. */
                 pos_error(ec_static_not_allowed, &decl_start_pos);
-                /* Set the type for this invalid static member to error_type.
-                   This will assure "proper" (or unobtrusive) behavior later,
-                   if a definition is encountered.  It also eliminates semi-
-                   spurious error messages if there are references to it. */
-                local_type = error_type();
+                member_storage_class = (a_storage_class)sc_unspecified;
               }  /* if */
+            }  /* if */
+            if (member_storage_class == (a_storage_class)sc_static) {
               decl_static_data_member(&locator, class_type, local_type,
                                       access, is_anonymous_union,
                                       is_nonreal_instantiation,
