@@ -306,7 +306,8 @@ typedef enum /*an_error_code*/ {
   ec_missing_initializer_on_const,
   ec_this_used_incorrectly,
   ec_constant_value_not_known,
-  ec_missing_type_specifier
+  ec_missing_type_specifier,
+  ec_missing_access_specifier
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -364,6 +365,8 @@ extern void pos_st_warning(an_error_code     error_code,
                            char              *error_string);
 extern void pos_warning(an_error_code     error_code,
                         a_source_position *error_pos);
+extern void str_warning(an_error_code error_code,
+                        char          *error_string);
 extern void warning(an_error_code error_code);
 extern void pos_st_error(an_error_code     error_code,
                          a_source_position *error_pos,

@@ -848,6 +848,9 @@ error code.
     case ec_missing_type_specifier:
       m = "explicit type specifier is missing";
       break;
+    case ec_missing_access_specifier:
+      m = "access control not specified (\"%s\" by default)";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -1456,6 +1459,17 @@ Report the indicated warning at the indicated position.
 {
   pos_st_warning(error_code, error_pos, (char *)NULL);
 }  /* pos_warning */
+
+
+void str_warning(an_error_code error_code,
+                 char          *error_string)
+/*
+Report the indicated warning (with the indicated fill-in string) at the
+position indicated by error_position.
+*/
+{
+  pos_st_warning(error_code, &error_position, error_string);
+}  /* str_warning */
 
 
 void warning(an_error_code error_code)
