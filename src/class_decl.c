@@ -208,8 +208,6 @@ constructor initializer is present, a colon.
     cache_curr_token(&token_cache);
     success = TRUE;
   }  /* if */
-  /* The lint "argsused" and "varargs" flags last only one declaration. */
-  clear_decl_lint_and_pragma_globals();
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
   terminate_token_cache(&token_cache);
@@ -5743,9 +5741,6 @@ Scan the body of a class definition, including the base classes list.
      virtual base classes, virtual functions, or base classes or fields
      for which bitwise copy is not allowed. */
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
-  /* The lint "argsused" and "varargs" flags don't persist into the class
-     body, so clear them before consuming the left brace. */
-  clear_decl_lint_and_pragma_globals();
   if (curr_token == tok_colon && C_dialect == C_dialect_cplusplus) {
     /* Scan the list of base specifiers. */
     add_stop_token(tok_lbrace);
@@ -5910,9 +5905,6 @@ Scan the body of a class definition, including the base classes list.
           pos_diagnostic(strict_ansi_mode ?
                            strict_ansi_error_severity : es_warning,
                          ec_extra_semicolon, &pos_curr_token);
-          /* The lint "argsused" and "varargs" flags last only one
-             declaration; clear them before consuming the semicolon. */
-          clear_decl_lint_and_pragma_globals();
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
           goto next_declaration;
@@ -5935,9 +5927,6 @@ Scan the body of a class definition, including the base classes list.
             (void)coalesce_and_lookup_qualified_name(GID_DTOR_RECOGNIZED,
                                                      ilm_normal, &err);
             access_adjustment_decl(access, class_type);
-            /* The lint "argsused" and "varargs" flags last only one
-               declaration; clear them before consuming the semicolon. */
-            clear_decl_lint_and_pragma_globals();
             /* Advance to the semicolon and past it. */
             (void)get_token();
             (void)get_token();
@@ -6112,9 +6101,6 @@ Scan the body of a class definition, including the base classes list.
                                            local_defines_something);
             }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-            /* The lint "argsused" and "varargs" flags last only one
-               declaration; clear them before consuming the semicolon. */
-            clear_decl_lint_and_pragma_globals();
             /* Bypass the semicolon and skip to the next declaration. */
             (void)get_token();
             goto next_declaration;
@@ -6149,9 +6135,6 @@ Scan the body of a class definition, including the base classes list.
                      !is_destructor && !is_declarator_start()) {
             remove_stop_token(tok_comma);
             remove_stop_token(tok_colon);
-            /* The lint "argsused" and "varargs" flags last only one
-               declaration; clear them before consuming the semicolon. */
-            clear_decl_lint_and_pragma_globals();
             syntax_error(ec_exp_declaration);
             if (curr_token == tok_semicolon) {
               /* Advance past the semicolon. */
@@ -6528,9 +6511,6 @@ Scan the body of a class definition, including the base classes list.
                 goto next_declaration;
               } else {
                 /* Not a function definition. */
-                /* The lint "argsused" and "varargs" flags last only one
-                   declaration; clear them before consuming the semicolon. */
-                clear_decl_lint_and_pragma_globals();
                 if (curr_token == tok_assign) {
                   /* Look for a pure specifier ("= 0"), which may appear on
                      virtual functions. */
@@ -6776,9 +6756,6 @@ Scan the body of a class definition, including the base classes list.
           first_declarator = FALSE;
           /* Loop for additional declarators. */
         } while (loop_token(tok_comma));
-        /* The lint "argsused" and "varargs" flags last only one declaration;
-           clear them before consuming the semicolon. */
-        clear_decl_lint_and_pragma_globals();
         /* Check for and ignore the semicolon following the member declaration.
            It's optional after the last declaration (that's an extension in
            ANSI mode). */

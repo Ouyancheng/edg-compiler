@@ -8946,9 +8946,6 @@ and for the instantiation of template functions.
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
   rtsp->assoc_routine = rout_ptr;
-  /* The lint "argsused" and "varargs" flags last only one declaration;
-     clear them before entering the function body. */
-  clear_decl_lint_and_pragma_globals();
   /* If return value optimization may be possible (i.e., if the routine
      returns a class value via a copy constructor) set the flag to TRUE.
      (It is also required that all the return statements return a single local
@@ -10791,9 +10788,6 @@ continue_with_declaration:
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
-  /* The lint "argsused" and "varargs" flags last only one declaration;
-     clear them before consuming the semicolon. */
-  clear_decl_lint_and_pragma_globals();
   /* Check for final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
 
