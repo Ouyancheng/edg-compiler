@@ -28,10 +28,7 @@ represented as a bit set:
                                    things that, in C++, may precede a ::. */
 #define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
 				   or enum (not a typedef of one of those). */
-#define IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR 0x4
-				/* Suppress the error on a qualified name
-				   not being found on lookup. */
-#define IDL_TENTATIVE_TYPE_LOOKUP 0x8
+#define IDL_TENTATIVE_TYPE_LOOKUP 0x4
                                 /* We are looking up a symbol to see if it is
 				   a type name.  This mode suppresses the
 				   introduction of new symbols as a consequence
@@ -45,7 +42,7 @@ represented as a bit set:
 				   This flag also suppresses the out of
 				   scope declaration lookup in SVR4 C
 				   compatibility mode. */
-#define IDL_SKIP_CURR_SCOPE	0x10
+#define IDL_SKIP_CURR_SCOPE	0x8
 				/* Causes normal_id_lookup to skip over the
 				   innermost scope entry.  (This is used to
 				   look up the identifiers used in constructor
@@ -55,40 +52,40 @@ represented as a bit set:
 				   hidden-name processing to find a name in
 				   the innermost scope enclosing the current
 				   scope.) */
-#define IDL_DO_NOT_ADD_TO_NONREAL_CLASS 0x20
+#define IDL_DO_NOT_ADD_TO_NONREAL_CLASS 0x10
 				/* When a name is being looked up in
 				   a proxy or nonreal class, this flag
 				   suppresses the creation of a new
 				   symbol if the name is not found in the
 				   class. */
-#define IDL_LINKAGE_LOOKUP 0x40
+#define IDL_LINKAGE_LOOKUP 0x20
 				/* A special lookup used for determining
 				   identifier linkage.  This lookup stops
 				   at the first namespace scope and suppresses
 				   some of the special lookups (such as
 				   the using directive lookup). */
-#define IDL_PROJ_SYMBOL_ALLOWED 0x80
+#define IDL_PROJ_SYMBOL_ALLOWED 0x40
 				/* Causes curr_scope_id_lookup to consider
 				   projection symbols (but not synthesized
 				   namespace projections). */
-#define IDL_SKIP_CLASS_SCOPES 0x100
+#define IDL_SKIP_CLASS_SCOPES 0x80
 				/* Causes class and class reactivation scopes
 				   to be ignored. */
-#define IDL_INSTANTIATION_CONTEXT 0x200
+#define IDL_INSTANTIATION_CONTEXT 0x100
 				/* Used within normal_id_lookup to create
 				   synthesized namespace projection symbols
 				   for instantiation context lookups. */
-#define IDL_MUST_BE_NAMESPACE 0x400
+#define IDL_MUST_BE_NAMESPACE 0x200
 				/* The symbol must be a namespace. */
-#define IDL_TYPENAME_LOOKUP   0x800
+#define IDL_TYPENAME_LOOKUP   0x400
 				/* When a name is being looked up in a
 				   proxy or nonreal class, this flag forces
 				   any symbol that may be created to be a
 				   type symbol. */
-#define IDL_MUST_BE_CLASS     0x1000
+#define IDL_MUST_BE_CLASS     0x800
 				/* The symbol must be a class, struct, union,
                                    or a typedef of one of those. */
-#define IDL_DIRECT_CLASS_MEMBERS_ONLY 0x2000
+#define IDL_DIRECT_CLASS_MEMBERS_ONLY 0x1000
 				/* For a class-qualified lookup, indicates
 				   that only real members of the class, or
 				   declarations made visible in the class by
@@ -98,14 +95,14 @@ represented as a bit set:
 				   creation of a conversion operator function
 				   based on a template that matches the
 				   specified type. */
-#define IDL_TREAT_AS_TEMPLATE_ID 0x4000
+#define IDL_TREAT_AS_TEMPLATE_ID 0x2000
 				/* For a class-qualified lookup, indicates
 				   that if a proxy class member is created
 				   for this lookup, the member created
 				   should be a template, and that the
 				   template argument list that follows
 				   the identifier should be coalesced. */
-#define IDL_FRIEND_LOOKUP 0x8000
+#define IDL_FRIEND_LOOKUP 0x4000
 				/* For lookup of an unqualified name in a
 				   friend declaration, indicates (1) that the
 				   lookup does not go beyond the innermost
@@ -114,19 +111,19 @@ represented as a bit set:
 				   enclosing function or block scope), and
 				   (2) that using-directives are ignored. May
 				   be combined with IDL_MUST_BE_TAG. */
-#define IDL_TENTATIVE_TEMPLATE_LOOKUP 0x10000
+#define IDL_TENTATIVE_TEMPLATE_LOOKUP 0x8000
 				/* This is similar to a tentative type lookup
 				   but for template names.  In other words,
 				   a new symbol (i.e., projection symbol) will
 				   not be created unless it is for a
 				   template. */
-#define IDL_USING_DECLARATION	0x20000
+#define IDL_USING_DECLARATION	0x10000
 				/* Indicates that the name being looked up
 				   is the name in a using-declaration.
 				   For member using-declarations this
 				   suppresses the special conversion template
 				   lookup. */
-#define IDL_HIDDEN_NAME_LOOKUP	0x40000
+#define IDL_HIDDEN_NAME_LOOKUP	0x20000
 				/* Indicates that the name is being looked
 				   up as part of the hidden name table
 				   processing.  This suppresses the creation
