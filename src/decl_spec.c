@@ -820,8 +820,12 @@ caution when modifying this routine.
       /* In a friend class declaration a semicolon will always follow the
          identifier.  It doesn't here -- maybe it's something like:
            friend class X *f();
-         i.e., the "friend" specifier doesn't apply to the class. */
-      *is_friend_decl = FALSE;
+         i.e., the "friend" specifier doesn't apply to the class.  Also allow
+         for the case where the friend class declaration is a definition
+         (which is an error reported elsewhere). */
+      if (next_tok != tok_colon && next_tok != tok_lbrace) {
+        *is_friend_decl = FALSE;
+      }  /* if */
     }  /* if */
     if (is_tag_definition || is_vacuous_declaration) {
       /* Look for a tag symbol in the current scope.  If the tag kind does
