@@ -18,6 +18,18 @@ within another inline-function instantiation: the order sometimes failed to
 correspond to the dependency between the two functions.  This has now been
 fixed.
 
+9/7/95   Overloading based on linkage specification
+
+A bug has been fixed that caused an internal error when attempting to
+overload two functions based on linkage-specifier alone.  For example:
+
+  extern "C++" void f();
+  extern "XXX" void f();
+
+These are treated as distinguishable members of an overload set, assuming
+that support for "XXX" linkage has been added and that "C++" and "XXX"
+linkages are treated as incompatible (see routine_linkages_are_compatible).
+
 9/7/95   Avoiding trigraphs in generated string and character literals
 
 The il_to_str routines have been changed to avoid accidental output
