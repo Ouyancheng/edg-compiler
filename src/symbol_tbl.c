@@ -7602,6 +7602,18 @@ NULL.
     case sk_variable:
       /* Variable or parameter. */
       var_ptr = sym->variant.variable.ptr;
+#if CHECKING
+      /* Be sure the defined flag in the variable is set correctly.  It should
+         be the same as the defined flag in the symbol unless sym represents
+         a block extern declaration and the variable it refers to was already
+         defined. */
+      check_assertion_str2(sym->defined ? var_ptr->defined :
+                                          (!var_ptr->defined ||
+                                           sym != (a_symbol_ptr)var_ptr->
+                                                    source_corresp.assoc_info),
+                           "end_of_scope_symbol_check:",
+                           "defined flags in symbol and variable don't match");
+#endif /* CHECKING */
       storage_class = var_ptr->storage_class;
       if (storage_class == (a_storage_class)sc_unspecified) {
         /* Note that if this test succeeds (i.e., the variable has
