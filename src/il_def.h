@@ -6477,8 +6477,9 @@ typedef struct a_routine {
     struct {
       a_routine_list_entry_ptr
 		alternate_entry_points;
-			/* When ctor_or_dtor_kind == cdk_none, the other
-			   constructor and destructor entry points. */
+			/* When ctor_dtor_kind == cdk_none, the other
+			   constructor and destructor entry points.
+			   Only valid within the front end. */
       sizeof_t	base_name_offset;
 			/* Once the name has been mangled, the offset into
 			   the mangled name for this constructor/destructor
