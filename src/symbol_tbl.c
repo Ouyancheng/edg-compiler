@@ -4401,6 +4401,9 @@ the error is issued immediately.
       sym->variant.projection.ambiguous) {
     pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
     set_to_error_locator(*locator);
+  } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Suppress access checking during prototype instantiations.  Access
+       checking cannot be done for a template, only for instances. */
   } else if (fundamental_symbol_of(sym)->kind !=
 	                            (a_symbol_kind)sk_overloaded_function &&
              !have_access_to_symbol(sym)) {
