@@ -3458,9 +3458,10 @@ to this value.
     a_boolean  err = FALSE;
     imaginary_unit = fs_constant((a_constant_repr_kind)ck_imaginary);
     imaginary_unit->type = imaginary_type((a_float_kind)fk_float);
-    fp_string_to_float((a_float_kind)fk_float, "1",
-                       &imaginary_unit->variant.float_value,
-                       &err);
+    fp_host_large_integer_to_float((a_float_kind)fk_float,
+                                   (a_host_large_integer)1,
+                                   &imaginary_unit->variant.float_value,
+                                   &err);
     check_assertion(!err);
     add_to_constants_list(imaginary_unit, /*at_file_scope=*/TRUE);
   }  /* if */
