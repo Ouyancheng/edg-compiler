@@ -677,7 +677,7 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_src_seq_secondary_decl:
       case iek_template:
       case iek_namespace:
-      case iek_using_directive:
+      case iek_using_decl:
         /* This is a declaration. */
         is_decl = TRUE;
         break;
@@ -2530,70 +2530,6 @@ declaration following this one is such a continuation.
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_field_decl */
 
-
-static void gen_class_member_using_decl(void)
-/*
-Generate a using declaration or an access adjustment declaration. The current
-source sequence entry is the one associated with the class-member-using-decl
-entry.
-*/
-{
-  a_class_member_using_decl_ptr using_decl =
-                                   ss_entry_ptr(curr_source_sequence_entry,
-                                                a_class_member_using_decl_ptr);
-  a_source_correspondence       *scp = NULL;
-  an_il_entry_kind              entry_kind;
-
-  /* Advance past the source sequence entry for the adjustment. */
-  adv_curr_source_sequence_entry();
-  /* Put out an access specifier if necessary to change the current access. */
-  gen_member_access_specifier(using_decl->access);
-  entry_kind = (an_il_entry_kind)using_decl->entity.kind;
-  /* Get the source correspondence entry for the entity. */
-  scp = source_corresp_for_il_entry(using_decl->entity.ptr, entry_kind);
-  check_assertion(scp != NULL);
-  /* Always put out an access declaration instead of a "using" declaration,
-     for the sake of old compilers that don't accept "using" declarations.
-     If the underlying compiler accepts both, they mean the same thing.
-     If the underlying compiler accepts only access declarations, then
-     valid access declarations as input should produce valid access
-     declarations as output. */
-  /* Write the access declaration, which is just a qualified name. */
-  gen_class_qualifier(using_decl->class_specified_in_qualifier);
-  gen_unqualified_name(scp, entry_kind);
-  write_tok_ch(';');
-  write_space();
-  /* For overloaded functions, there is a class-member-using-decl entry and
-     a source sequence entry for each function in the set.  If that is the
-     case here, advance over the other entries. */
-  if (entry_kind == (an_il_entry_kind)iek_routine) {
-    a_routine_ptr using_routine = (a_routine_ptr)using_decl->entity.ptr;
-    while (curr_source_sequence_entry != NULL &&
-           ss_entry_kind(curr_source_sequence_entry) ==
-                                                 iek_class_member_using_decl) {
-      a_class_member_using_decl_ptr  extra_using_decl;
-      a_routine_ptr                  extra_using_routine;
-      extra_using_decl = ss_entry_ptr(curr_source_sequence_entry,
-                                      a_class_member_using_decl_ptr);
-      /* Keep going on using declarations for routines with the same name
-         and the same class. */
-      if ((an_il_entry_kind)extra_using_decl->entity.kind != iek_routine ||
-          extra_using_decl->class_specified_in_qualifier !=
-                using_decl->class_specified_in_qualifier) {
-        break;
-      }  /* if */
-      extra_using_routine = (a_routine_ptr)extra_using_decl->entity.ptr;
-      if (extra_using_routine->source_corresp.name !=
-                using_routine->source_corresp.name ||
-          extra_using_routine->source_corresp.parent.class_type !=
-                using_routine->source_corresp.parent.class_type) {
-        break;
-      }  /* if */
-      /* Advance past the source sequence entry for the using declaration. */
-      adv_curr_source_sequence_entry();
-    }  /* while */  
-  }  /* if */
-}  /* gen_class_member_using_decl */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
@@ -4883,23 +4819,85 @@ Generate code for a namespace definition or namespace alias declaration.
 }  /* gen_namespace */
 
 
-static void gen_using_directive(void)
+static void gen_using_directive(a_using_decl_ptr  udp)
 /*
 Generate code for a namespace "using" directive.
 */
 {
-  a_using_directive_ptr udp = ss_entry_ptr(curr_source_sequence_entry,
-                                           a_using_directive_ptr);
+  a_namespace_ptr  nsp = (a_namespace_ptr)udp->entity.ptr;
 
   /* Advance past the source sequence entry for the "using" directive. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the "using" position. */
   set_output_position(&udp->position);
   write_tok_str("using namespace ");
-  gen_name(&udp->assoc_namespace->source_corresp, iek_namespace,
+  gen_name(&nsp->source_corresp, iek_namespace,
            /*force_qualified_name=*/FALSE);
   write_tok_ch(';');
 }  /* gen_using_directive */
+
+
+static void gen_using_declaration(a_using_decl_ptr  udp)
+/*
+Generate code for a class member or nonmember using-declaration.
+*/
+{
+  a_source_correspondence  *scp = NULL;
+  an_il_entry_kind         entry_kind;
+  a_namespace_ptr          nsp;
+
+  /* Advance past the source sequence entry for the "using" directive. */
+  adv_curr_source_sequence_entry();
+  /* Position the output file to the "using" position. */
+  set_output_position(&udp->position);
+  /* Get the source correspondence entry for the entity. */
+  entry_kind = (an_il_entry_kind)udp->entity.kind;
+  scp = source_corresp_for_il_entry(udp->entity.ptr, entry_kind);
+  check_assertion(scp != NULL);
+  if (udp->is_class_member) {
+    /* A class member using-declaration. */
+    /* Put out an access specifier if necessary to change the current
+       access. */
+    gen_member_access_specifier(udp->access);
+    /* Always put out an access declaration instead of a class member
+       using-declaration, for the sake of old compilers that don't accept
+       them.  If the underlying compiler accepts both, they mean the same
+       thing. If the underlying compiler accepts only access declarations,
+       then valid access declarations as input should produce valid access
+       declarations as output. */
+    /* Write the access declaration, which is just a qualified name. */
+    gen_class_qualifier(udp->qualifier.class_type);
+  } else {
+    /* A nonmember using-declaration. */
+    write_tok_str("using ");
+    nsp = udp->qualifier.namespace_ptr;
+    if (nsp == NULL) {
+      write_tok_str("::");
+    } else {
+      gen_namespace_qualifier(nsp);
+    }  /* if */
+  }  /* if */
+  gen_unqualified_name(scp, entry_kind);
+  write_tok_ch(';');
+}  /* gen_using_decl */
+
+
+static void gen_using_directive_or_declaration(void)
+/*
+Generate code for a using-directive or a using-declaration.
+*/
+{
+  a_using_decl_ptr udp = ss_entry_ptr(curr_source_sequence_entry,
+                                      a_using_decl_ptr);
+
+  if (udp->is_using_directive) {
+    /* Using directive. */
+    gen_using_directive(udp);
+  } else {
+    /* Using declaration (member or nonmember). */
+    gen_using_declaration(udp);
+  }  /* if */
+}  /* gen_using_directive_or_declaration */
 
 
 static void gen_instantiation_directive(void)
@@ -6405,11 +6403,8 @@ that case) and old-style parameter declarations.
       case iek_namespace:
         gen_namespace();
         break;
-      case iek_using_directive:
-        gen_using_directive();
-        break;
-      case iek_class_member_using_decl:
-        gen_class_member_using_decl();
+      case iek_using_decl:
+        gen_using_directive_or_declaration();
         break;
       case iek_instantiation_directive:
         gen_instantiation_directive();
