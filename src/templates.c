@@ -3701,6 +3701,14 @@ that make up the declaration and do a prototype instantiation.
          error down the line. */
       sym = coalesce_and_lookup_generalized_identifier
                                (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+      if (sym != NULL && !is_template_friend &&
+          sym->decl_scope != scope_stack[effective_decl_level].number) {
+        /* The symbol found by the lookup is not from the scope in which
+           this template is being declared.  Discard the symbol found
+           by the lookup. */
+        sym = NULL;
+        locator_for_curr_id.specific_symbol = NULL;
+      }  /* if */
       locator = locator_for_curr_id;
       /* Cache the identifier and advance past it so we can discriminate
          between a class template and a function template.  Clear the
@@ -4716,6 +4724,8 @@ its source correspondence entry, if any, has been put out.)
 	   should not be set, since the parent class of a member function or
 	   static data member template is generally not a real class. */
 	set_source_corresp(&il_template_entry->source_corresp, sym);
+        set_membership_in_source_corresp(&il_template_entry->source_corresp,
+                                         sym);
 	/* Create the string that represents the template declaration. */
 	make_template_string(il_template_entry, template_param_list_cache,
 			     decl_token_cache, p_template_body_cache);
