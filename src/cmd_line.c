@@ -255,7 +255,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHNOabnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:t:"
+#define COMMAND_LIST "AEPCKMHNOabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -405,6 +405,10 @@ Process the arguments on the command line that invoked the compiler.
         /* Compile C++. */
         C_dialect = C_dialect_cplusplus;
         break;
+      case 'x':
+        /* Disable support for exceptions. */
+        exceptions_disallowed = TRUE;
+        break;
       case 'I':
         /* Include file directory, add to list. */
         if (*optarg == '-') {
@@ -531,6 +535,10 @@ unknown_option:
     if (instantiation_mode_string != NULL) {
       command_line_error(
       "instantiation mode (-t) can only be used when compiling C++");
+    }  /* if */
+    if (exceptions_disallowed) {
+      command_line_error(
+        "support for exceptions can be disabled (-x) only when compiling C++");
     }  /* if */
   }  /* if */
   if (strict_ansi_mode) {

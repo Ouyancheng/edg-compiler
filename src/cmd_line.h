@@ -137,6 +137,15 @@ EXTERN a_boolean
 			   indicates that the definition should NOT be
 			   made. */
 EXTERN a_boolean
+		exceptions_disallowed /* = FALSE */;
+			/* TRUE if a C++ source program should be compiled
+			   without any support for exception handling.  If an
+			   exception construct is encountered (a try block, a
+			   throw expression, or a throw specification on a
+			   function declaration) an error will be issued.  In
+			   C++ mode it is FALSE by default but is set to TRUE
+			   by the -x option; it has no meaning in C mode. */
+EXTERN a_boolean
 		targ_has_signed_chars
 #if VAR_INITIALIZERS
                                       = DEFAULT_TARG_HAS_SIGNED_CHARS
