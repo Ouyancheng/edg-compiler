@@ -2593,16 +2593,19 @@ such things---and record the outcome in the type.
       type->variant.class_struct_union.any_virtual_functions) {
     result = FALSE;
   } else {
-    /* Also check that every base class is similarly empty: */
+    /* Also check that every base class is similarly empty
+       (except in C mode, where there is no class type supplement): */
     a_base_class_ptr bcp;
 
     result = TRUE;
-    for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
-      if (!bcp->type->variant.class_struct_union.is_empty_class) {
-        result = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
+    if (!C_mode()) {
+      for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+        if (!bcp->type->variant.class_struct_union.is_empty_class) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   type->variant.class_struct_union.is_empty_class = result;
 }  /* compute_empty_class_bit */
