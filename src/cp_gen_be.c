@@ -3517,10 +3517,11 @@ is the one associated with the definition of the class.
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     /* The type is an anonymous union, so suppress the name. */
-  } else if (!has_name_before_mangling(type) &&
-             type->autonomous_primary_tag_decl) {
-    /* The type is an unnamed autonomous tag.  This covers the nonstandard
-       anonymous union cases in C. */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  } else if (type->variant.class_struct_union.is_nonstd_anonymous_union) {
+    /* The type is a nonstandard anonymous union or struct, so suppress
+       the name. */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   } else if (type->variant.class_struct_union.originally_unnamed &&
              has_name_before_mangling(type)) {
     /* The type was unnamed but got a name from a typedef, so suppress the
@@ -3579,9 +3580,11 @@ is the one associated with the definition of the class.
     push_name_context(ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
        when necessary. */
-    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field ||
-        (!has_name_before_mangling(type) &&
-                                         type->autonomous_primary_tag_decl)) {
+    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+        || type->variant.class_struct_union.is_nonstd_anonymous_union
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+                                                                     ) {
       /* An anonymous union starts with the same access as the enclosing
          class.  (Also nonstandard anonymous unions.) */
       curr_name_context->access = curr_name_context->next->access;
