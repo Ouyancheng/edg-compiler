@@ -1,5 +1,17 @@
 Version 2.23
 
+4/29/94  Floating point template parameters are no longer allowed
+
+At the 3/94 X3J16 meeting the committee disallowed floating point
+template parameters.  An error is now issued on an attempt to
+declare a template parameter of a floating point type.
+
+4/29/94  Qualifiers missing on conversion operators in diagnostic messages
+
+When a conversion operator symbol was used as a fill-in in a diagnostic
+message, any qualifiers associated with the implicit this parameter were not
+included in the output.  This has been corrected.
+
 4/28/94  Generating "const" in ANSI C output
 
 The C-generating back end has been changed so that it will generate

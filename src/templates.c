@@ -2984,9 +2984,7 @@ Scan the declaration of a single template nontype parameter.
     error(ec_void_template_parameter);
   } else if (tp->kind == tk_float) {
     /* A floating point parameter type of void is no longer permitted. */
-    an_error_severity	severity;
-    severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
-    diagnostic(severity, ec_float_template_parameter);
+    error(ec_float_template_parameter);
   }  /* if */
 }  /* scan_a_template_parameter_declaration */
 

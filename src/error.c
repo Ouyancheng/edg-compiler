@@ -2196,7 +2196,7 @@ error code.
       m = "array of abstract class is not allowed";
       break;
     case ec_float_template_parameter:
-      m = "floating point template parameter is nonstandard";
+      m = "a template parameter may not have a floating point type";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
