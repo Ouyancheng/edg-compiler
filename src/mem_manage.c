@@ -487,7 +487,7 @@ precompiled headers is suppressed.
 
 a_mem_block_header_ptr alloc_mem_block(a_memory_region_number region_number,
                                        sizeof_t               min_size,
-                                       a_void_ptr	      desired_addr)
+                                       char                   *desired_addr)
 /*
 Add a new memory block to the existing blocks for the indicated region.
 The memory block must have at least "min_size" bytes available in it.
@@ -821,7 +821,7 @@ special "front end" memory region.
 {
   init_memory_region_without_initial_allocation(region_number);
   /* Allocate the initial memory block. */
-  (void)alloc_mem_block(region_number, min_size, (a_void_ptr)NULL);
+  (void)alloc_mem_block(region_number, min_size, (char *)NULL);
 }  /* init_memory_region */
 
 
@@ -889,7 +889,7 @@ is used for allocation of general front end memory (i.e., not IL).
        space at the end of the current last block, and start a new block. */
     trim_mem_block(hdr);
     hdr = alloc_mem_block(region_number, size + HOST_ALIGNMENT_REQUIRED,
-                          (a_void_ptr)NULL);
+                          (char *)NULL);
   }  /* for */
 
   /* Take the required space out of the current block. */
