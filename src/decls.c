@@ -2897,7 +2897,18 @@ created; the caller must set it.
           /* There is a routine entry we can reuse. */
           use_existing_il_entry = TRUE;
           preexisting_type = (*routine_ptr)->type;
-          (*routine_ptr)->type = type_ptr;
+          if (skip_typerefs(preexisting_type)
+                        ->variant.routine.extra_info->assoc_routine == NULL ||
+              decl_scope_level != depth_innermost_namespace_scope) {
+            /* In general we avoid modifying the routine type if it is already
+               the type entry associated with the definition.  However, if
+               we're not declaring in the function in the current namespace
+               scope, the routine type may need to be temporarily changed to
+               (e.g.) pick up default arguments during template instantiations.
+               In those cases, a fixup entry will be created (below) to later
+               restore the original type. */
+            (*routine_ptr)->type = type_ptr;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

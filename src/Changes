@@ -1,5 +1,16 @@
 Version 3.1
 
+11/26/02  IL write-read error on extern "C" redeclaration
+
+In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front
+end sometimes aborted with an IL write-read error if an extern "C" function
+was declared in two different namespaces.  For example:
+
+  namespace N { extern "C" void f(int x) {} }  // Used to trigger an
+  extern "C" void f(int);                      // IL read-write error.
+
+This is now fixed.
+
 11/25/02 Precision of output of long double constants, with 128-bit
          long doubles
 
@@ -47,17 +58,6 @@ but overload resolution was not aware of that relaxation.
     char* p = 0;
     a(p);   // Now accepted in Microsoft bugs mode.
   }
-
-11/21/02  IL write-read error on extern "C" redeclaration
-
-In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front
-end sometimes aborted with an IL write-read error if an extern "C" function
-was declared in two different namespaces.  For example:
-
-  namespace N { extern "C" void f(int x) {} }  // Used to trigger an
-  extern "C" void f(int);                      // IL read-write error.
-
-This is now fixed.
 
 11/21/02  Spurious error of template friend declaration
 
