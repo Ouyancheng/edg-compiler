@@ -5155,11 +5155,15 @@ extend_namespace).
     a_scope_stack_entry_ptr	ssep;
     push_instantiation_scope_for_class(class_type,
                                        is_microsoft_specialization_scope);
-    if (initial_scope_is_template_decl) {
+    ssep = scope_stack_entry_for(depth_scope_stack);
+    if (initial_scope_is_template_decl &&
+        !class_type->source_corresp.is_class_member) {
       /* In Microsoft mode, if a specialization instantiation scope is
          pushed inside a template declaration scope, the previous pointers
          need to be updated in order for name lookup to consider the
-         template declaration scope at the appropriate time. */
+         template declaration scope at the appropriate time.  This is not
+         done for member classes, because it will have already been done for
+         the parent class. */
       set_template_decl_lookup_sequence(initial_depth);
     }  /* if */
     push_single_class_reactivation_scope(class_type);
