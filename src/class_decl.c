@@ -5766,11 +5766,12 @@ Scan the body of a class definition, including the base classes list.
           if (is_qualified_name_start() &&
 	      locator_for_curr_id.qualifier_class_type != class_type &&
 	      !locator_for_curr_id.is_global_qualified_name &&
-              coalesce_and_lookup_qualified_name
-                  (GID_DTOR_RECOGNIZED, ilm_normal, &err) &&
+              locator_for_curr_id.is_qualified_name &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct. */
+            coalesce_and_lookup_qualified_name(GID_DTOR_RECOGNIZED,
+                                               ilm_normal, &err);
             access_adjustment_decl(access, class_type);
             /* Advance to the semicolon and past it. */
             (void)get_token();
