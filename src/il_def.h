@@ -4620,6 +4620,12 @@ EXTERN struct il_header {
                 source_language;
                         /* Code for the language in which the source program
                            is written. */
+#ifdef CIL
+  a_byte_boolean
+		pcc_compatibility_mode;
+			/* TRUE if the source program was compiled as old-style
+			   (pcc-compatible) C. */
+#endif /* ifdef CIL */
 } il_header;
 
 

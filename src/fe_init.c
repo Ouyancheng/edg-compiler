@@ -835,6 +835,7 @@ Initialize everything that has to do with the front end.
      meaningful value. */
   il_header.source_language =
                       (C_dialect == C_dialect_cplusplus) ? sl_Cplusplus : sl_C;
+  il_header.pcc_compatibility_mode = (C_dialect == C_dialect_pcc);
   if (do_preprocessing_only) {
     /* Open the preprocessing output file. */
     open_pp_output_file();

@@ -1227,10 +1227,23 @@ Print the name of an integer kind.
       str = "char";
       break;
     case ik_signed_char:
-      str = "signed char";
+      if (il_header.pcc_compatibility_mode) {
+        /* In pcc mode, "signed" doesn't exist, so this must be a plain
+           char. */
+        str = "char";
+      } else {
+        str = "signed char";
+      }  /* if */
       break;
     case ik_unsigned_char:
-      str = "unsigned char";
+      if (il_header.pcc_compatibility_mode &&
+          !il_header.plain_chars_are_signed) {
+        /* In pcc mode, "char" is turned into signed char or unsigned char.
+           If unsigned char is the default, we don't have to say "unsigned". */
+        str = "char";
+      } else {
+        str = "unsigned char";
+      }  /* if */
       break;
     case ik_short:
       str = "short";
