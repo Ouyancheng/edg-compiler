@@ -1207,7 +1207,7 @@ is set to the size of buffer required to do the demangling.
     write_id_str("do-not-instantiate flag for ");
     end_ptr = demangle_identifier(id+7);
   } else if (start_of_id_is("__TIR__", id)) {
-    write_id_str("template-instantiatiation-request flag for ");
+    write_id_str("template-instantiation-request flag for ");
     end_ptr = demangle_identifier(id+7);
   } else if (start_of_id_is("__TID_", id)) {
     write_id_str("type identifier for ");
