@@ -226,7 +226,8 @@ extern void check_expected_errors(void);
 #define unexpected_condition_str2(string1, string2) 			\
   assertion_failed(__FILE__, __LINE__, string1, string2)
 #else /* !CHECKING */
-#define check_assertion(test) /* Nothing */
+/* check_assertion must produce a void result. */
+#define check_assertion(test) ((void)0)
 #define check_assertion_str(test, string) /* Nothing */
 #define check_assertion_str2(test, string1, string2) /* Nothing */
 #define check_assertion_or_expect_error(test) /* Nothing */
