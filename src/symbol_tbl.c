@@ -7270,6 +7270,7 @@ and return a pointer to it.
   check_assertion(sym != NULL);
   ptr->next           = NULL;
   ptr->param_symbol   = sym;
+  clear_token_cache(&ptr->token_cache, /*reusable=*/TRUE);
   if (sym->kind == (a_symbol_kind)sk_type) {
     ptr->variant.param_type     = sym->variant.type;
   } else {

@@ -661,6 +661,12 @@ typedef struct a_template_param {
   a_symbol_ptr	param_symbol;
 			/* Symbol entry for a formal parameters of the
                            template. */
+  a_token_cache	token_cache;
+			/* Contains the cached tokens that comprise the
+			   template parameter declaration.  Used to
+			   create the parameter types for instances of
+			   the class template when the parameter type
+			   depends on other template parameters. */
   union {
     /* When param_symbol->kind = sk_type. */
     a_type_ptr  param_type;
