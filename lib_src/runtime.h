@@ -96,6 +96,15 @@ typedef size_t a_sizeof_t;
 typedef unsigned int a_sizeof_t;
 #endif /* __cplusplus */
 
+/*
+If bool is not supported, use a typedef for bool.
+*/
+#ifdef _BOOL
+typedef bool __bool;
+#else /* ifndef _BOOL */
+typedef int __bool;
+#endif /* ifdef _BOOL */
+
 typedef void (*a_void_function_ptr)();
 			/* Type used to store a generic function pointer. */
 

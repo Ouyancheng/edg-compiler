@@ -86,6 +86,16 @@ classes such as bad_alloc, etc.
 #define USE_EDG_EXCEPTION_CLASSES TRUE
 #endif /* ifndef USE_EDG_EXCEPTION_CLASSES */
 
+/*
+Should the out-of-line copy of the placement new routines be defined?
+This flag may be set to FALSE if a third party library defines these
+routines inline.
+*/
+#ifndef DEFINE_PLACEMENT_NEW_ROUTINES
+#define DEFINE_PLACEMENT_NEW_ROUTINES TRUE
+#endif /* ifndef DEFINE_PLACEMENT_NEW_ROUTINES */
+
+
 
 /*
 Should the components of the runtime system that implement run-time

@@ -1,5 +1,17 @@
 Version 3.1
 
+5/13/02  Configuration flags for use of third party standard libraries
+
+Configuration flags have been added to simplify the use of third party
+standard libraries with the EDG runtime.  Some functions provided by the
+third party library should be used in place of those defined by the EDG
+runtime library.
+
+USE_EDG_EXCEPTION_CLASSES can be set to FALSE to suppress the definitions
+of the members of bad_alloc, exception, bad_cast, and bad_typeid.
+DEFINE_PLACEMENT_NEW_ROUTINES can be set to FALSE to suppress the
+definitions of placement new and placement array new.
+
 5/13/02  Missing exception specification on set_new_handler, et al
 
 A throw specification was missing on the definition of set_new_handler,
