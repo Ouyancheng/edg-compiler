@@ -3341,12 +3341,13 @@ this will never be a class declaration.
   (void)get_token();
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
-  /* Cache all tokens up to the ";" that follows a declaration, the
-     "{" that begins a definition, or a ":" that begins a ctor
-     initializer list. */
+  /* Cache all tokens up to the ";" that follows a declaration, the "{" that
+     begins a definition, or a ":" that begins a ctor initializer list, or a
+     "=" that begins a static data member initializer. */
   incr_token_set_array_element(stop_tokens, tok_lbrace);
   incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
+  incr_token_set_array_element(stop_tokens, tok_assign);
   cache_token_stream(p_token_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
