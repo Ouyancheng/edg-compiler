@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -25,9 +25,9 @@ file to make updates easy.
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

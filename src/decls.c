@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -6810,9 +6810,9 @@ a compilation.  The syntax is
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
