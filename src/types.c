@@ -694,7 +694,57 @@ that tp2 is a tk_typeref or tk_array.
   }  /* if */
   return any_missing;
 }  /* f_any_qualifier_missing */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_far_type(a_type_ptr tp)
+/*
+Used only in 16-bit Microsoft mode: return TRUE if and only if the indicated
+type is a "far" type (explicitly or implicitly).
+*/
+{
+  a_boolean            is_far;
+  a_type_qualifier_set qualifiers = get_type_qualifiers(tp);
+
+  check_assertion(il_header.microsoft_16_mode);
+  if (qualifiers & TQ_NEAR) {
+    /* near specified explicitly. */
+    is_far = FALSE;
+  } else if (qualifiers & TQ_FAR) {
+    /* far specified explicitly. */
+    is_far = TRUE;
+  } else {
+    /* near/far are not explicit in the type. */
+    /* See if the type is a class with an explicit memory attribute (C++). */
+    a_class_type_supplement_ptr ctsp;
+    tp = skip_typerefs(tp);
+    if (is_class_struct_union(tp) &&
+        (ctsp = tp->variant.class_struct_union.extra_info) != NULL &&
+        (qualifiers = ctsp->qualifiers) != TQ_NONE) {
+      /* A C++ class with a memory attribute specified for all instances of
+         the class. */
+      is_far = (qualifiers & TQ_FAR) != TQ_NONE;
+    } else {
+      /* No memory attribute is specified explicitly, so it is implicit.
+         Command-line options can specify different sizes for pointers to
+         data and pointers to code. */
+      if (il_header.far_code_pointers == il_header.far_data_pointers) {
+        /* Speed optimization: code and data pointers are the same size so
+           there's no need to determine which we have. */
+        is_far = il_header.far_data_pointers;
+      } else if (is_function(tp)) {
+        /* Pointer to code with default size. */
+        is_far = il_header.far_code_pointers;
+      } else {
+        /* Pointer to data with default size. */
+        is_far = il_header.far_data_pointers;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_far;
+}  /* is_far_type */
     
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_abstract_class_type(a_type_ptr  tp)

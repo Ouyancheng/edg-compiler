@@ -199,6 +199,9 @@ that this macro does not check that the underlying types are compatible.
 
 extern a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
                                          a_type_ptr  tp2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_far_type(a_type_ptr tp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
                                          a_base_class_ptr  ref_bcp);
