@@ -1982,6 +1982,12 @@ second parameter.
         /* For the enk_variable_address case, add_indirection_to_node should
            not create a wholly new entry. */
         check_assertion(expr == new_expr);
+        /* Adjust the type of the expression node to the type the variable
+           will eventually have (after lower_vla_types is complete) to
+           avoid confusing parent nodes (e.g., an eok_pdiff operation
+           expects operands of pointer type). */
+        expr->type = make_pointer_type(
+                                   underlying_array_element_type(expr->type));
       }  /* if */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
