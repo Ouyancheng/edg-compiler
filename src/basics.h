@@ -194,7 +194,7 @@ typedef unsigned int
 /* Simple boolean type: */
 typedef char	a_boolean;
 #define FALSE 0
-#define TRUE  1
+#define TRUE 1
 
 /*
 EXTERN is defined usually as "extern"; in the translation unit that
