@@ -2825,6 +2825,7 @@ of the function, and again overloading is a possibility.
   a_storage_class              storage_class;
   a_class_type_supplement_ptr  ctsp;
   a_routine_list_entry_ptr     rlep;
+  a_symbol_reference_kind      srk_flags;
 
   db_enter(3, "decl_friend_function");
   if (!is_error_locator(*locator)) {
@@ -2835,6 +2836,8 @@ of the function, and again overloading is a possibility.
   }  /* if */
   if (!is_error_locator(*locator)) {
     sym = locator->specific_symbol;
+    srk_flags = SRK_DECLARATION | SRK_FRIEND;
+    if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
     if (sym != NULL && sym->class_of_which_a_member != NULL &&
         !is_member_function_symbol(sym)) {
       /* sym represents a member of a class, but it is not a member function.
@@ -2876,9 +2879,7 @@ of the function, and again overloading is a possibility.
       }  /* if */
       decl_var_or_routine(locator, storage_class, function_type,
                           func_info, (a_source_sequence_entry_ptr)NULL,
-                          /*is_variable_def=*/FALSE,
-                          /*is_tentative_def=*/FALSE, &sym,
-                          &linkage, &old_type, &ext_sym);
+                          srk_flags, &sym, &linkage, &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -2917,14 +2918,12 @@ of the function, and again overloading is a possibility.
                        &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
-          a_symbol_reference_kind      srk_flags = SRK_DECLARATION;
           a_source_sequence_entry_ptr  declarator_ssep =
 #if GENERATE_SOURCE_SEQUENCE_LISTS
                                                    func_info->declarator_ssep;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
                                                    NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do throw specification compatibility checking. */
@@ -7056,6 +7055,7 @@ to indicate whether the class/struct/union is actually defined.
   a_source_position       decl_start_pos;
   a_scope_stack_entry_ptr ssep;
   a_source_position       tag_position;
+  a_symbol_reference_kind srk_flags;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -7291,41 +7291,47 @@ skip_tag_scan:
                                          (a_name_linkage_kind)nlk_internal;
       }  /* if */
     }  /* if */
-    if (is_class_definition) {
-      mark_defined(tag_sym, &locator.source_position);
-    } else {
-      mark_declared(tag_sym, &locator.source_position);
-    }  /* if */
+    srk_flags = SRK_DECLARATION;
+    if (is_class_definition) srk_flags |= SRK_DEFINITION;
+    if (is_friend_decl) srk_flags |= SRK_FRIEND;
+    record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
+                              (a_source_sequence_entry_ptr)NULL);
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
       /* Use of template parameter name as a proxy tag name during a
          prototype instantiation. */
     } else {
-      mark_declared(tag_sym, &locator.source_position);
+      srk_flags = SRK_DECLARATION;
+      if (is_friend_decl) srk_flags |= SRK_FRIEND;
+      record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
+                                (a_source_sequence_entry_ptr)NULL);
     }  /* if */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
     /* Record cross-reference information. */
-    if (is_class_definition) {
-      if (is_template_class_instantiation) {
-        mark_declared(tag_sym, &locator.source_position);
+    if (is_class_definition || curr_token == tok_semicolon) {
+      srk_flags = SRK_DECLARATION;
+      if (is_friend_decl) srk_flags |= SRK_FRIEND;
+      if (is_class_definition) {
+        if (!is_template_class_instantiation) {
+          srk_flags |= SRK_DEFINITION;
+        }  /* if */
+        /* Allow for alternating between class and struct, but stay with the
+           one associated with the definition.  The difference only affects
+           default member access. */
+        class_type->kind = type_kind;
       } else {
-        mark_defined(tag_sym, &locator.source_position);
-      }  /* if */
-      /* Allow for alternating between class and struct, but stay with the
-         one associated with the definition.  The difference only affects
-         default member access. */
-      class_type->kind = type_kind;
-    } else {
-      if (curr_token == tok_semicolon) {
         /* A declaration of the form "class A;", when A has already been
-           declared, is treated as a redeclaration. */
-        mark_declared(tag_sym, &locator.source_position);
-      } else {
-        mark_referenced(tag_sym, &locator.source_position);
-        *declares_something = FALSE;
+           declared, is treated as a redeclaration (not a reference). */
       }  /* if */
+      record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
+                                (a_source_sequence_entry_ptr)NULL);
+    } else {
+      /* Not a definition, not a vacuous declaration, so presumably a
+         reference. */
+      mark_referenced(tag_sym, &locator.source_position);
+      *declares_something = FALSE;
     }  /* if */
   }  /* if */
   if (is_class_definition) {
