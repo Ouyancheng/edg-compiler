@@ -1,5 +1,21 @@
 Version 2.29
 
+5/10/95  Use of prototype instantiation vs. nonreal instantiation
+
+The way in which the front end decides whether a reference such
+as B<T> refers to the prototype instantiation or a nonreal
+instantiation has been improved.  Previously, the front end
+would sometimes use the prototype instantiation when a nonreal
+one should have been used.  This could result in spurious errors,
+as in the following example where the front end complained that
+"N" is not a member of "B<T>".
+
+  template <class T> struct B {};
+  template <class T> struct A {
+    B<T>::N f();
+  };
+  template <class T> B<T>::N A<T>::f(){}
+
 5/10/95  Use of a local type in a block extern declaration
 
 In C++ mode an error is now issued (instead of a warning) if a class or
