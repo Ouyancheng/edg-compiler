@@ -2774,6 +2774,44 @@ initialized.  These are addressed in the course of the processing.
           member_or_base_sym = coalesce_and_lookup_generalized_identifier
                                    (GID_NO_OPTIONS, ilm_ctor_initializer_name,
                                     &gid_err);
+#if 0
+/* The following code should be removed when support for class-name-injection
+   is added. */
+#endif /* if 0 */
+          /* If no symbol was returned from the lookup, or if the symbol
+             returned was not a member of the current class, see if the
+             name (if it was unqualified) matches the name of a base class.
+             This can be necessary in cases like this:
+               namespace N {
+                 class A { A(int); ... };
+               }
+               class B : public N::A {
+                 B() : A(0) { }
+               };
+             The check that follows does not quite emulate the results of
+             a lookup that supports class name injection (e.g., it doesn't
+             deal properly with hiding within the inheritance hierarchy),
+             but the differences will be manifested as slightly different
+             diagnostics, and then only in rather obscure cases.
+          */
+          if (!locator_for_curr_id.is_qualified_name &&
+              (member_or_base_sym == NULL ||
+               !member_or_base_sym->is_class_member ||
+               member_or_base_sym->parent.class_type != class_type)) {
+            a_symbol_ptr  sym;
+            for (bcp = base_classes_of(class_type);
+                 bcp != NULL;
+                 bcp = bcp->next) {
+              if (bcp->direct || bcp->is_virtual ||
+                  member_or_base_sym == NULL) {
+                sym = (a_symbol_ptr)bcp->type->source_corresp.assoc_info;
+                if (locator_for_curr_id.symbol_header == sym->header) {
+                  member_or_base_sym = sym;
+                  break;
+                }  /* if */
+              }  /* if */
+            }  /* for */
+          }  /* if */
         }
         if (member_or_base_sym == NULL ||
             member_or_base_sym->kind == (a_symbol_kind)sk_undefined) {

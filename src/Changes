@@ -1,5 +1,26 @@
 Version 2.40
 
+9/29/98   Constructor initializer lookup
+
+Pending full support for "class name injection", a change in the lookup
+of a constructor initializer now eliminates several spurious errors.
+Here are a few examples:
+
+  namespace N {
+    struct A { A(int); };
+  }
+  class B : public N::A {
+    B() : A(0) { }           // spurious error eliminated: lookup of "A"
+  };                         //   is now successful
+
+  struct X { X(int); };
+  void f() {
+    int X;
+    struct S : public X {
+      S() : X(0) {}          // spurious error eliminated: lookup of "X"
+    };                       //   now finds struct X (which was previously
+  }                          //   hidden by the local variable X)
+
 9/28/98   Incomplete types in exception specification
 
 An exception specification that appears other than on a function
