@@ -896,41 +896,58 @@ This is used to skip over a non-autonomous declaration or definition.
 
 static void skip_embedded_declarations(void)
 /*
-Skip over the source sequence entries for any non-autonomous type declarations
-or (in C mode) implicit function declarations that appear within an
+In C mode, skip over the source sequence entries for any non-autonomous type
+declarations or implicit function declarations that appear within an
 expression, e.g.,
 
   p = (struct A *)0;
   i = f();
 
-Also skip macros and other preprocessing directives.
+Also skip macros and other preprocessing directives that precede such
+declarations.
 */
 {
   a_type_ptr                   type;
   a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition;
+  a_boolean                    is_definition, found_decl, is_routine;
   a_routine_ptr                rout;
 
-  for (; curr_source_sequence_entry != NULL;) {
-    /* Process macros, etc. */
-    (void)process_preprocessing_directives();
-    if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-      if (is_autonomous_decl(type, sec_decl)) break;
-      /* A non-autonomous type declaration (e.g., a type declared in
-         a cast in an expression).  Skip it and mark it for later
-         processing. */
-      skip_type_and_delay_definition(type, is_definition);
-    } else if (il_header.source_language == sl_C &&
-               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
-               sec_decl != NULL && sec_decl->implicit_decl) {
-      /* An implicit declaration of a function in C.  Ignore the
-         source sequence entry. */
-      adv_curr_source_sequence_entry();
-    } else {
-      /* Something else; stop looping. */
-      break;
-    }  /* if */
-  }  /* for */
+  if (il_header.source_language == sl_C) {
+    for (; curr_source_sequence_entry != NULL;) {
+      a_source_sequence_entry_ptr saved_curr_source_sequence_entry =
+                                                    curr_source_sequence_entry;
+      /* Skip past macros, etc.  We come back and process these entries if
+         there's actually a declaration following them. */
+      curr_source_sequence_entry =
+             advance_past_preprocessing_directives(curr_source_sequence_entry);
+      found_decl = is_routine = FALSE;
+      if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
+        if (is_autonomous_decl(type, sec_decl)) break;
+        /* A non-autonomous type declaration (e.g., a type declared in
+           a cast in an expression). */
+        found_decl = TRUE;
+      } else if (curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
+                 sec_decl != NULL && sec_decl->implicit_decl) {
+        /* An implicit declaration of a function. */
+        found_decl = is_routine = TRUE;
+      }  /* if */
+      /* Go back to before any preprocessing entries skipped. */
+      curr_source_sequence_entry = saved_curr_source_sequence_entry;
+      /* Stop looping if an embedded declaration was not found. */
+      if (!found_decl) break;
+      (void)process_preprocessing_directives();
+      if (!is_routine) {
+        /* A non-autonomous type declaration (e.g., a type declared in
+           a cast in an expression).  Skip it and mark it for later
+           processing. */
+        skip_type_and_delay_definition(type, is_definition);
+      } else {
+        /* An implicit declaration of a function.  Ignore the source
+           sequence entry. */
+        adv_curr_source_sequence_entry();
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* skip_embedded_declarations */
 
 
@@ -2202,8 +2219,6 @@ is the one associated with the definition of the enum.
     gen_decl_name(&type->source_corresp, iek_type);
   }  /* if */
   write_tok_str(" { ");
-  /* Process macros, etc. */
-  (void)process_preprocessing_directives();
   enum_con = type->variant.integer.enum_info.constant_list;
   if (enum_con != NULL) {
     /* Output the enumeration constants. */
@@ -2211,6 +2226,8 @@ is the one associated with the definition of the enum.
     next_enum_value = *enum_con;
     set_integer_value(&next_enum_value.variant.integer_value, 0L);
     for (;;) {
+      /* Process macros, etc. */
+      (void)process_preprocessing_directives();
       /* The source sequence entry for the enum constant should be next. */
       check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);
@@ -2230,7 +2247,6 @@ is the one associated with the definition of the enum.
       /* Skip any type declarations in the expression following an
          enumerator, as in
            enum E { e1, e2 = sizeof(struct A *) };
-         This also skips macros, etc.
       */
       skip_embedded_declarations();
       enum_con = enum_con->next;
@@ -2241,6 +2257,8 @@ is the one associated with the definition of the enum.
       incr_integer_value(&next_enum_value.variant.integer_value);
     }  /* for */
   }  /* if */
+  /* Process macros, etc. */
+  (void)process_preprocessing_directives();
   /* The current source sequence entry should now be the end-of-construct
      marker for the enum. */
   { a_src_seq_end_of_construct_ptr ssecp =
