@@ -3587,18 +3587,11 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
               /* Imaginary *= imaginary gives zero, so it's almost
                  surely wrong. */
               pos_warning(ec_imaginary_times_assign, &operand_1->position);
-              /* Multiply by zero to get the right result when using a
-                 float *=.  This is a kludge, but we don't want to add
-                 a separate operator for this case that would just produce
-                 zero. */
+              /* Use a comma expression to preserve side-effects. */
               { an_expr_node_ptr node2 = make_node_from_operand(operand_2);
                 a_constant       con;
                 make_zero_of_proper_type(node2->type, &con);
-                node2->next = alloc_node_for_constant(&con);
-                node2 = make_operator_node(
-                                          (an_expr_operator_kind)eok_fmultiply,
-                                          node2->type,
-                                          node2);
+                node2 = make_comma_node(node2, alloc_node_for_constant(&con));
                 make_expression_operand(node2, node2->type, operand_2);
               }
             }  /* if */
