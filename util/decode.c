@@ -578,7 +578,7 @@ be put out in the proper form (otherwise, they are left in their
 original forms).
 */
 {
-  char      *p, *pt, *end_ptr;
+  char      *p, *pt, *end_ptr = NULL;
   a_boolean is_special_name = FALSE, is_template = FALSE;
   char      *demangled_name;
   int       mangled_length;
@@ -627,8 +627,10 @@ original forms).
       /* Something unrecognized. */
     }  /* if */
   }  /* if */
-  if (!is_special_name) {
-    /* Not a special name. */
+  /* Here, end_ptr non-null means the end of the string has been found
+     already (because the name is special in some way). */
+  if (end_ptr == NULL) {
+    /* Not a special name, and the end of the string has not yet been found. */
     /* Find the end of the string and set end_ptr. */
     /* Also look for "__pt__" indicating a template class name. */
     if (nchars > 0) {
