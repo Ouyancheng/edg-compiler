@@ -927,7 +927,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
   } else {
     /* Remember the most stringent alignment requirement as the alignment
        requirement for the overall struct. */
-#if USER_CONTROL_OF_STRUCT_PACKING && !USER_CONTROL_OF_STRUCT_BIT_PACKING
+#if USER_CONTROL_OF_STRUCT_PACKING
     /* The alignment was not adjusted earlier on because the environment does
        not apply packing directives to the relative layout of bit fields that
        straddle their base type's alignment boundary.  The class as a whole
