@@ -3912,9 +3912,11 @@ specification allow a variable-sized array as the top type.
   a_targ_size_t     effective_num_of_elements;
   an_arg_match_summary_ptr
                     arg_match_list = NULL;
-  a_routine_ptr     new_routine;
+  a_routine_ptr     new_routine = NULL;
   a_dynamic_init_ptr
                     dyn_init_to_free_storage = NULL;
+  a_boolean         saved_inside_conditional_expression =
+                                     expr_stack->inside_conditional_expression;
 
   db_enter(4, "scan_new_operator");
 
@@ -4130,7 +4132,7 @@ specification allow a variable-sized array as the top type.
   if (is_class_struct_union_type(base_new_type)) {
     ctor_sym = symbol_supplement_for_class(base_new_type)->constructor;
   }  /* if */
-  if (function_symbol != NULL) {
+  if (!err && function_symbol != NULL) {
     a_boolean access_error_reported;
     /* Work out the "new" routine and its arguments. */
     new_routine = function_symbol->variant.routine.ptr;
@@ -4204,6 +4206,11 @@ specification allow a variable-sized array as the top type.
                                          /*static_lifetime=*/FALSE);
     }  /* if */
   }  /* if */
+  /* If the new routine will be called (and not folded into a constructor),
+     the initializer expression is actually inside a conditional expression
+     context, because if the allocation fails the initialization will
+     not be done. */
+  if (new_routine != NULL) expr_stack->inside_conditional_expression = TRUE;
   /* See if the object has or needs initialization.  Note that we need to
      scan the initializer (if there is one) even if an error was detected
      above. */
@@ -4268,6 +4275,8 @@ specification allow a variable-sized array as the top type.
       if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
     }  /* if */
   }  /* if */
+  expr_stack->inside_conditional_expression =
+                                           saved_inside_conditional_expression;
   /* Now build the IL for the operation. */
   if (err || function_symbol == NULL) {
     /* Some error. */
@@ -4283,6 +4292,13 @@ specification allow a variable-sized array as the top type.
     ndsp = new_node->variant.new_delete;
     ndsp->is_new = TRUE;
     ndsp->type = new_type;
+    /* Put the routine and argument list into the supplement.  Note that
+       the argument list is present even when the routine is NULL -- that's
+       necessary so that the array size is available when the number of
+       elements is nonconstant. */
+    ndsp->routine = new_routine;
+    ndsp->arg = arg_expr_list;
+    ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
     if (needs_initialization) {
       /* The allocated space must be initialized.  A dynamic init entry is
          used. */
@@ -4316,13 +4332,6 @@ specification allow a variable-sized array as the top type.
       }  /* if */
       ndsp->dynamic_init = dip;
     }  /* if */
-    ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
-    /* Put the routine and argument list into the supplement.  Note that
-       the argument list is present even when the routine is NULL -- that's
-       necessary so that the array size is available when the number of
-       elements is nonconstant. */
-    ndsp->routine = new_routine;
-    ndsp->arg = arg_expr_list;
     /* Make an operand for the result. */
     make_expression_operand(new_node, ptr_new_type, result);
   }  /* if */
