@@ -2533,6 +2533,7 @@ and that is after normal name mangling has been done.
     (void)sprintf(store_at, "__L%lu", (unsigned long)scope->number);
     /* Store the final null. */
     mangled_name[mangled_name_length] = '\0';
+    scp->unmangled_name = scp->name;
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
   }  /* if */
