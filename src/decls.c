@@ -1698,8 +1698,11 @@ determine_linkage:
       /* An object or function with extern storage class, or a function
          with no storage class, has the same linkage as any visible
          declaration of this identifier with file scope.  If there is
-         no visible declaration, the identifier has external linkage. */
-      if (other_decl != NULL && other_decl->decl_scope == FILE_SCOPE_NUMBER) {
+         no visible declaration, the identifier has external linkage (or
+         internal linkage if declaration is inside an unnamed namespace). */
+      if (other_decl != NULL &&
+          other_decl->decl_scope ==
+                  scope_stack[depth_innermost_namespace_scope].number) {
         /* There is a declaration with file scope that is visible from
            here.  Set the flags to describe this identifier, and go
            retry the determination of the linkage. */
@@ -1736,12 +1739,29 @@ determine_linkage:
         other_decl = NULL;
         goto determine_linkage;
       }  /* if */
-      /* No visible declaration found, so the linkage is external. */
-      linkage = idl_external;
+      /* No visible declaration found, so the linkage is usually external. */
+      if (!scope_stack[depth_innermost_namespace_scope].
+                                        within_unnamed_namespace) {
+        linkage = idl_external;
+      } else {
+        /* The declaration is within the scope of an unnamed namespace, so
+           give the entity internal linkage. */
+        linkage = idl_internal;
+        *storage_class = (a_storage_class)sc_static;
+      }  /* if */
     } else if (is_object && at_file_or_namespace_scope &&
                local_storage_class == (a_storage_class)sc_unspecified) {
-      /* An object at file scope with no storage class has external linkage. */
-      linkage = idl_external;
+      /* An object at file scope or namespace scope with no storage class
+         usually has external linkage. */
+      if (!scope_stack[depth_innermost_namespace_scope].
+                                        within_unnamed_namespace) {
+        linkage = idl_external;
+      } else {
+        /* The declaration is within the scope of an unnamed namespace, so
+           give the entity internal linkage. */
+        linkage = idl_internal;
+        *storage_class = (a_storage_class)sc_static;
+      }  /* if */
 #if ASM_FUNCTION_ALLOWED
     } else if (local_storage_class == (a_storage_class)sc_asm) {
       /* An asm function has internal linkage. */
@@ -2956,20 +2976,6 @@ cross-reference output describing this declaration.
   effective_decl_level =
             compute_effective_decl_level(/*is_function=*/FALSE, storage_class,
                                          /*is_friend_decl=*/FALSE);
-  if (C_dialect == C_dialect_cplusplus) {
-    if (effective_decl_level == depth_innermost_namespace_scope &&
-        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-      a_namespace_ptr  nsp;
-      check_assertion(scope_stack[effective_decl_level].il_scope->kind ==
-                                               (a_scope_kind)sck_namespace);
-      nsp = scope_stack[effective_decl_level].il_scope->
-                                                   variant.assoc_namespace;
-      if (nsp->source_corresp.name == NULL ||
-          is_member_of_unnamed_namespace(&nsp->source_corresp)) {
-        storage_class = (a_storage_class)sc_static;
-      }  /* if */
-    }  /* if */
-  }  /* if */
   if (!C_mode() && qualifier_namespace_ptr(*locator) != NULL &&
       locator->specific_symbol != NULL) {
     /* This identifier is a namespace-qualified name that was previously
@@ -3368,14 +3374,6 @@ on for use in generating cross-reference output describing this declaration.
       check_assertion(storage_class == (a_storage_class)sc_unspecified ||
                       storage_class == (a_storage_class)sc_static);
       storage_class = (a_storage_class)sc_static;
-    } else if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-      /* Functions declared inside an unnamed namespace are static. */
-      a_source_correspondence  *scp;
-      scp = &scope_stack[depth_innermost_namespace_scope].il_scope->
-                                     variant.assoc_namespace->source_corresp;
-      if (scp->name == NULL || is_member_of_unnamed_namespace(scp)) {
-        storage_class = (a_storage_class)sc_static;
-      }  /* if */
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
        argument list. */
