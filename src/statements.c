@@ -1668,6 +1668,14 @@ block is being created to surround a dependent statement in C++.
        within the block must also be destroyed therein.  This flag must
        be set before push_stmt_stack is called. */
     (*block)->dependent_statement = TRUE;
+  } else if (!dependent_statement) {
+    process_curr_construct_pragmas((a_symbol_ptr)NULL, *block);
+  } else {
+#if 0
+/* It's not clear what should be done here. */
+#else
+    discard_curr_construct_pragmas();
+#endif /* if 0 */
   }  /* if */
   /* Make the parent pointer in the block point to the nearest enclosing
      compound statement. */
@@ -3273,6 +3281,9 @@ rescan_statement:
   switch(curr_token) {
     case tok_semicolon:
       /* Empty statement (part of expression-statement, 3.6.3). */
+      /* Issue diagnostics on pragmas that are trying to bind to the empty
+         statement. */
+      cannot_bind_to_curr_construct();
       (void)get_token();
       break;
     case tok_lbrace:
@@ -3396,6 +3407,8 @@ expr_statement:
           syntax_error(ec_exp_statement);
           remove_stop_token(tok_semicolon);
         }  /* if */
+        /* Discard any pragmas that are bound to the current statement. */
+        discard_curr_construct_pragmas();
       } else if (C_dialect == C_dialect_cplusplus &&
                  is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
                                   /*real_declarator_allowed=*/TRUE,
@@ -3473,6 +3486,9 @@ branching into it is disallowed).
     block = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block->position, pos_curr_token);
     stmt_update_source_sequence_list(block);
+    /* Issue diagnostics on pragmas that are trying to bind to the catch
+       clause. */
+    cannot_bind_to_curr_construct();
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block);
     /* Mark the block that was just pushed onto the stack as a handler. */
@@ -3554,6 +3570,9 @@ branching into it is disallowed).
         /* Check for a lint-style "notreached" comment -- it will affect
            diagnostics in check_void_return_okay. */
         check_lint_notreached_state();
+        /* Issue diagnostics on pragmas that are trying to bind to the
+           implicit return. */
+        cannot_bind_to_curr_construct();
       }  /* if */
       /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */
@@ -3563,15 +3582,6 @@ branching into it is disallowed).
       sp = add_statement((a_statement_kind)stmk_return);
       /* Insert an implied return value if there is one. */
       sp->expr = return_expr;
-#if 0
-/* This should probably just be a call to a routine to complain about
-   bind-to-next pragmas in this location.  And it should be added after the
-   check_lint_notreached_state call. */
-#else
-      /* Do processing required for any pragmas that are bound to the current
-         statement. */
-      process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
-#endif
     }  /* if */
     /* Pop the statement stack. */
     pop_stmt_stack();

@@ -3554,6 +3554,17 @@ entry is pushed on the scope stack.
   /* Note that the template declaration scope must be popped before doing the
      prototype instantiation. */
   pop_scope();
+#if 0
+  if (sym != NULL) {
+    process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+  } else {
+    discard_curr_construct_pragmas();
+  }  /* if */
+#else
+  /* A pragma can't bind to a template since there's no IL entry that
+     persists in the IL proper for it to point to.  At least for now. */
+  discard_curr_construct_pragmas();
+#endif /* if 0 */
   if (prototype_type != NULL) {
 #if CHECKING
     if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||

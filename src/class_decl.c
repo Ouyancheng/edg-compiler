@@ -4061,6 +4061,10 @@ class, struct, or union.
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);
+  } else {
+    /* Issue diagnostics on pragmas that are trying to bind to an unnamed
+       field. */
+    cannot_bind_to_curr_construct();
   }  /* if */
   /* Add the field to the temporary list for this class/struct/union. */
   if (*end_of_list == NULL) {
@@ -5932,6 +5936,7 @@ Scan the body of a class definition, including the base classes list.
           pos_diagnostic(strict_ansi_mode ?
                            strict_ansi_error_severity : es_warning,
                          ec_extra_semicolon, &pos_curr_token);
+          discard_curr_construct_pragmas();
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
           goto next_declaration;
@@ -5943,8 +5948,10 @@ Scan the body of a class definition, including the base classes list.
         }  /* if */
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
-          a_boolean		err;
-          if (check_for_overload_anachronism()) goto next_declaration;
+          if (check_for_overload_anachronism()) {
+            discard_curr_construct_pragmas();
+            goto next_declaration;
+          }  /* if */
           if (is_qualified_name_start() &&
 	      locator_for_curr_id.qualifier_class_type != class_type &&
 	      !locator_for_curr_id.is_global_qualified_name &&
@@ -5952,8 +5959,17 @@ Scan the body of a class definition, including the base classes list.
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct. */
+            a_boolean  err;
+
             (void)coalesce_and_lookup_qualified_name(GID_DTOR_RECOGNIZED,
                                                      ilm_normal, &err);
+            if (!err) {
+              /* Issue diagnostics on pragmas that are trying to bind to
+                 an access declaration. */
+              cannot_bind_to_curr_construct();
+            } else {
+              discard_curr_construct_pragmas();
+            }  /* if */
             access_adjustment_decl(access, class_type);
             /* Advance to the semicolon and past it. */
             (void)get_token();
@@ -6018,6 +6034,7 @@ Scan the body of a class definition, including the base classes list.
           set_err_pos_to_curr_token();
           if (!local_declares_something) error(ec_exp_identifier);
           error(ec_exp_semicolon);
+          discard_curr_construct_pragmas();
           goto next_declaration;
         }  /* if */
         if (curr_token == tok_semicolon) {
@@ -6131,6 +6148,7 @@ Scan the body of a class definition, including the base classes list.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             /* Bypass the semicolon and skip to the next declaration. */
             (void)get_token();
+            discard_curr_construct_pragmas();
             goto next_declaration;
           }  /* if */
         }  /* if */
@@ -6168,6 +6186,7 @@ Scan the body of a class definition, including the base classes list.
               /* Advance past the semicolon. */
               (void)get_token();
             }  /* if */
+            discard_curr_construct_pragmas();
             goto next_declaration;
           } else {
             /* Named member -- we need to call declarator. */
@@ -6536,12 +6555,6 @@ Scan the body of a class definition, including the base classes list.
                 goto next_declaration;
               } else {
                 /* Not a function definition. */
-#if 0
-/* Is this the right place to call it? */
-#else /* if !0 */
-                process_curr_construct_pragmas(rout_sym,
-                                               (a_statement_ptr)NULL);
-#endif /* if 0 */
                 if (curr_token == tok_assign) {
                   /* Look for a pure specifier ("= 0"), which may appear on
                      virtual functions. */
@@ -6569,24 +6582,29 @@ Scan the body of a class definition, including the base classes list.
           } else if (friend_specified) {
             pos_error(ec_bad_friend_decl, &decl_start_pos);
             remove_stop_token(tok_comma);
+            discard_curr_construct_pragmas();
             break;
           } else if (virtual_specified) {
             pos_error(ec_virtual_not_allowed, &decl_start_pos);
             remove_stop_token(tok_comma);
+            discard_curr_construct_pragmas();
             break;
           } else if (inline_specified) {
             pos_error(ec_inline_and_nonfunction, &decl_start_pos);
             remove_stop_token(tok_comma);
+            discard_curr_construct_pragmas();
             break;
           } else if (is_destructor) {
             /* Error has already been issued if it wasn't processed as a
                function. */
+            discard_curr_construct_pragmas();
           } else if (local_no_decl_specifiers) {
             /* A declaration in which the declaration specifiers are
                entirely omitted can only be a function declaration (ARM 9.2,
                p. 171). */
             pos_error(ec_missing_decl_specifiers, &decl_start_pos);
             remove_stop_token(tok_comma);
+            discard_curr_construct_pragmas();
             break;
           } else if (member_storage_class == (a_storage_class)sc_typedef) {
             a_symbol_ptr        typedef_sym_ptr;
@@ -6602,12 +6620,6 @@ Scan the body of a class definition, including the base classes list.
             typedef_sym_ptr->variant.type->source_corresp.access = access;
             typedef_sym_ptr->variant.type->
                           source_corresp.class_of_which_a_member = class_type;
-#if 0
-/* Is this the right place to call it? */
-#else /* if !0 */
-            process_curr_construct_pragmas(typedef_sym_ptr,
-                                           (a_statement_ptr)NULL);
-#endif /* if 0 */
           } else if (curr_token == tok_assign &&
                      is_scalar_type(local_type) &&
                      is_const_qualified_type(local_type) &&
