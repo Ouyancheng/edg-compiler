@@ -2733,15 +2733,29 @@ determine_linkage:
         /* There is a declaration with file scope that is visible from
            here.  Set the flags to describe this identifier, and go
            retry the determination of the linkage. */
-        is_function = (other_decl->kind == (a_symbol_kind)sk_routine);
-        is_object = !is_function;
         file_scope = TRUE;
-        if (is_function) {
-          local_storage_class = other_decl->variant.routine.ptr->storage_class;
-        } else {
-          local_storage_class = other_decl->variant.variable.ptr->
-                                                                 storage_class;
-        }  /* if */
+        switch (other_decl->kind) {
+          case sk_routine:
+            local_storage_class = other_decl->variant.routine.ptr->
+                                                                storage_class;
+            is_function = TRUE;
+            break;
+          case sk_variable:
+            local_storage_class = other_decl->variant.variable.ptr->
+                                                                storage_class;
+            is_function = FALSE;
+            break;
+          case sk_function_template:
+            local_storage_class = other_decl->variant.template_info->
+                                      variant.function.routine->storage_class;
+            is_function = TRUE;
+            break;
+#if CHECKING
+          default:
+            internal_error("id_linkage: bad kind for other_decl");
+#endif /* CHECKING */
+        }  /* switch */
+        is_object = !is_function;
         /* If we check again for visible identifiers, there can be no
            other visible identifier with the same name. */
         other_decl = NULL;
