@@ -2303,19 +2303,17 @@ parameter.
 
 static void gen_function_declarator_with_scope(a_type_ptr    type,
                                                a_scope_ptr   scope,
-                                               a_routine_ptr rout,
                                                a_boolean     suppress_def_args)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope
-is non-NULL, in which case that is the function scope.  If this is the
-top-level type of a function declaration or definition, rout points to
-the routine; otherwise it is NULL.  suppress_def_args is TRUE if default
-arguments should be suppressed (needed for template specializations).
+is non-NULL, in which case that is the function scope.
+suppress_def_args is TRUE if default arguments should be suppressed
+(needed for template specializations).
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
-  a_param_type_ptr              param, defn_param;
+  a_param_type_ptr              param;
   a_variable_ptr                param_var;
 
   /* The code here is similar to code in form_function_declarator. */
@@ -2365,19 +2363,10 @@ arguments should be suppressed (needed for template specializations).
     } else {
       /* List the parameter types (and, if this is the definition, names
          too). */
-      defn_param = NULL;
       if (scope == NULL) {
         /* This is not a definition.  Advance past the source sequence
            entries for types declared or defined in the function declarator. */
         bypass_prototype_scope_type_src_seq_entries();
-        /* For a non-definition, also step through the parameter type list from
-           the definition if it's available (it gives the cv-qualifiers for
-           the parameters). */
-        if (rout != NULL && rout->defined) {
-          a_type_ptr rout_type = rout->type;
-          rout_type = skip_typerefs(rout_type);
-          defn_param = rout_type->variant.routine.extra_info->param_type_list;
-        }  /* if */
       } else {
         /* This is a definition.  Advance past the source sequence entries for
            the parameters and any types declared or defined in the
@@ -2401,16 +2390,9 @@ arguments should be suppressed (needed for template specializations).
           param_var = param_var->next;
         } else {
           /* This is just a declaration, so put out the type and no name. */
-          /* If the type was qualified in the original definition, and the
-             qualifiers were removed in C++, restore them here. */
-          a_type_qualifier_set qualifiers = TQ_NONE;
-          if (defn_param != NULL) {
-            qualifiers = defn_param->qualifiers;
-            defn_param = defn_param->next;
-          }  /* if */
           gen_general_declaration_using_type(param->type, NO_NAME, iek_none,
                                             (a_src_seq_secondary_decl_ptr)NULL,
-                                             qualifiers,
+                                             param->qualifiers,
                                              /*suppress_specifiers=*/FALSE,
                                              GDO_NO_OPTIONS);
         }  /* if */
@@ -2451,7 +2433,6 @@ used as an interface to the il_to_str routines.
 */
 {
   gen_function_declarator_with_scope(type, (a_scope_ptr)NULL,
-                                     (a_routine_ptr)NULL,
                                      /*suppress_def_args=*/FALSE);
 }  /* gen_function_declarator */
 
@@ -6755,7 +6736,7 @@ TRUE if the declaration following this one is such a continuation.
     }  /* if */
     /* Write the second part of the declarator. */
     /* Suppress default arguments on generated instances. */
-    gen_function_declarator_with_scope(rout_type, scope, rout,
+    gen_function_declarator_with_scope(rout_type, scope,
                                        /*suppress_def_args=*/
                                                  (rout->is_template_function &&
                                                   !rout->is_specialized &&
