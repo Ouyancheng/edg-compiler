@@ -4069,7 +4069,8 @@ Syntax:
   }  /* if */
 #endif /* CHECKING */
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the sizeof keyword. */
@@ -4264,7 +4265,8 @@ be inappropriate, because the feature is probably used to implement
   db_enter(4, "scan_alignof_operator");
 
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the __ALIGNOF__ keyword. */
@@ -4752,7 +4754,8 @@ The value of the operation is an lvalue of type "const struct _GUID".
     an_expr_stack_entry expr_stack_entry;
 
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE);
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
     expr_stack_entry.evaluated = FALSE;
     expr_stack_entry.potentially_evaluated = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
@@ -5080,7 +5083,8 @@ used in the implementation of offsetof.
 
   db_enter(4, "scan_extended_integral_constant_expression");
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(operand, prec_level, allow_comma ? EOPT_NO_OPTIONS :
                                                EOPT_DISALLOW_COMMA_OPERATOR);
@@ -9898,7 +9902,8 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
        for the object actually thrown).  This necessitates a call to
        fix_up_dynamic_init_dtors later. */
     push_expr_stack(expr_stack->expression_kind, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE);
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
     expr_stack->in_cctor_elision_initializer = TRUE;
     /* Scan the expression. */
     scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
@@ -11356,7 +11361,8 @@ is TRUE if this is the expression in a switch statement.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/TRUE);
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Check that the expression is integral or convertible to an integral
@@ -11398,7 +11404,8 @@ scan full expressions.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/repeated_in_loop);
+                  /*force_object_lifetime=*/repeated_in_loop,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   simplify_void_operand(&result);
@@ -11445,7 +11452,8 @@ in a template instantiation) just do the scan.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/TRUE);
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST,
@@ -11620,7 +11628,8 @@ the appropriate dynamic initialization entry and return NULL.
   *dip = NULL;
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   return_by_cctor_case = FALSE;
   routine_type = skip_typerefs(curr_routine->type);
   if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
@@ -11697,16 +11706,17 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
+  expr_stack = saved_expr_stack;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  expr_stack = saved_expr_stack;
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
@@ -11728,7 +11738,8 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
   db_enter(3, "scan_integral_constant_expression");
 
   push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -11776,7 +11787,8 @@ FALSE and a pointer to the expression tree in *expression.
   if (expr_stack != NULL && curr_expr_kind_is_const()) {
     ekind = (an_expression_kind)ek_integral_constant;
   }  /* if */
-  push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE);
+  push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   if (is_vla_decl) expr_stack_entry.is_vla_dimension_expression = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
@@ -11909,7 +11921,8 @@ Return the constant in *constant.
   db_enter(3, "scan_template_argument_constant_expression");
 
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -11945,7 +11958,8 @@ at some later point call free_arg_operand_list to free the entry.
   db_enter(3, "scan_nontype_template_argument");
 
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   arg_operand = alloc_arg_operand();
@@ -11984,7 +11998,8 @@ processing routines.
   an_expr_stack_entry expr_stack_entry;
 
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Don't do anything with references on this operand, since this is only
      exploratory. */
@@ -12038,7 +12053,8 @@ expression processing routines.
   db_enter(3, "conv_nontype_template_arg_to_param_type");
 
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   copy_nontype_template_arg_operand(arg_operand, &operand);
   /* Convert the operand to the parameter type and extract a constant. */
@@ -12073,7 +12089,8 @@ copy-initialization ("="-form).
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
@@ -12117,7 +12134,8 @@ nonstandard class member constants.  Assumes copy-initialization
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
@@ -12172,7 +12190,8 @@ copy constructor elision is possible; see scan_class_initializer_expression.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  force_object_lifetime);
+                  force_object_lifetime,
+                  /*suppress_object_lifetime=*/FALSE);
   /* When doing source-to-source work, keep as much information as possible,
      so don't fold constant addressing expressions. */
 #if !BACK_END_IS_CP_GEN_BE
@@ -12252,7 +12271,8 @@ err_pos as the error position.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Make an operand for the expression. */
   make_expression_operand(expr, expr->type, &operand);
   operand.position = *err_pos;
@@ -12297,7 +12317,8 @@ will be indicated in the dynamic initialization.
   db_enter(3, "scan_class_initializer_expression");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
@@ -12355,7 +12376,8 @@ overall errors.
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  force_object_lifetime);
+                  force_object_lifetime,
+                  /*suppress_object_lifetime=*/FALSE);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
   cssp = symbol_supplement_for_class(class_type);
@@ -12414,7 +12436,8 @@ class type that can be converted to those types.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/TRUE);
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
@@ -12465,7 +12488,8 @@ to the expression created.  The variable var must have an associated symbol.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
   /* Make an operand for the value of the variable. */
   check_assertion(var->source_corresp.assoc_info != NULL);
   ref = ref_entry((a_symbol_ptr)var->source_corresp.assoc_info,
@@ -12504,13 +12528,16 @@ this routine is called only when microsoft_mode is TRUE.
   a_variable_ptr          variable = NULL;
   a_symbol_ptr            sym_ptr, projection_sym_ptr;
   an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
 
-  /* Even though this is not an expression scan, make sure the expr_stack
-     has something on it.  Do not clear the stack, because we may already
-     be inside an expression and we don't want to push another object lifetime
-     for an expression if there's already one on the object lifetime stack. */
+  /* Save the current expr_stack for later restoration, and start over, because
+     this processing is not part of any expression we happen to be inside
+     of. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
   /* The variable is not evaluated (at least not here). */
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
@@ -12522,6 +12549,9 @@ this routine is called only when microsoft_mode is TRUE.
   } else {
     sym_ptr = fundamental_symbol_of(projection_sym_ptr);
     /* Make sure the name referenced is a variable. */
+    /* Note that if a functional-notation type conversion was seen by
+       scan_identifier, the symbol returned is still that for the type name,
+       and therefore an error will be issued here. */
     switch (sym_ptr->kind) {
       case sk_variable:
         variable = sym_ptr->variant.variable.ptr;
@@ -12545,6 +12575,7 @@ this routine is called only when microsoft_mode is TRUE.
     }  /* if */
   }  /* if */
   pop_expr_stack();
+  expr_stack = saved_expr_stack;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -12579,15 +12610,18 @@ bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.
 This routine is used only in C++ mode.
 */
 {
-  a_symbol_ptr        cctor_sym;
-  an_expr_stack_entry expr_stack_entry;
+  a_symbol_ptr            cctor_sym;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
 
-  /* Even though this is not an expression scan, make sure the expr_stack
-     has something on it.  Do not clear the stack, because we may already
-     be inside an expression and we don't want to push another object lifetime
-     for an expression if there's already one on the object lifetime stack. */
+  /* Save the current expr_stack for later restoration, and start over, because
+     this processing is not part of any expression we happen to be inside
+     of. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
   cctor_sym = select_overloaded_copy_constructor(class_type,
                                                  required_qualifiers,
                                                  /*source_is_rvalue=*/FALSE,
@@ -12596,6 +12630,7 @@ This routine is used only in C++ mode.
                                                  (a_boolean *)NULL,
                                                  class_bitwise_copy);
   pop_expr_stack();
+  expr_stack = saved_expr_stack;
   return cctor_sym;
 }  /* find_copy_constructor */
 

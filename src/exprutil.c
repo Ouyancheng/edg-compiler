@@ -645,7 +645,8 @@ mark_routine_referenced.
 
 void push_expr_stack(an_expression_kind      expression_kind,
                      an_expr_stack_entry_ptr new_entry,
-                     a_boolean               force_object_lifetime)
+                     a_boolean               force_object_lifetime,
+                     a_boolean               suppress_object_lifetime)
 /*
 Push a new entry on the top of the expr_stack.  expression_kind indicates
 the kind of the expression.  new_entry is used as the new top-of-stack
@@ -655,7 +656,8 @@ if necessary for a full expression; that's forced by force_object_lifetime
 TRUE (which is used to say that even if temporaries have lifetime to
 end-of-scope, this expression's temporaries need to be destroyed at
 the end of the expression, e.g., because it's an expression repeated
-in a loop).
+in a loop).  If suppress_object_lifetime is TRUE, no object lifetime
+is pushed regardless of any of the other factors.
 */
 {
   /* A "full expression" is one not inside another expression.  That's
@@ -706,7 +708,7 @@ in a loop).
     expr_stack->evaluated = TRUE;
     expr_stack->potentially_evaluated = TRUE;
   }  /* if */
-  if (!C_mode() && full_expr) {
+  if (!C_mode() && !suppress_object_lifetime && full_expr) {
     /* Full expression in C++ mode.  We may want to start an object
        lifetime.  Do so if the lifetime of temporaries is a full
        expression, or if the caller explicitly requests a lifetime.
@@ -4701,18 +4703,14 @@ routine is intended to be called from outside of the expression routines.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
   if (source->kind == (an_expr_node_kind)enk_object_lifetime) {
     /* The source expression already has an object lifetime on top, so
        use that as the lifetime for the entire expression.  This happens
        when a call is generated to an operator= that takes its parameter
        by value, for a class that has a destructor. */
     an_object_lifetime_ptr lifetime = source->variant.object_lifetime.ptr;
-    if (expr_stack->lifetime != NULL) {
-      /* Get rid of the empty object lifetime just created by
-         push_expr_stack. */
-      (void)pop_object_lifetime();
-    }  /* if */
     unbind_object_lifetime(lifetime);
     lifetime->parent_lifetime = curr_object_lifetime;
     curr_object_lifetime = lifetime;
