@@ -36,8 +36,8 @@ functions, to attempt to find a non-array new that can be used.
 3/7/00   Abort on pointer-to-member constant cast in initializer
 
 In some rare situations involving the casting of a pointer-to-member function
-constant that appears in a local static initializers, the front end would
-abort processing while lowering the C++ IL.  For example:
+constant that appears in a local static initializer, the front end would abort
+processing while lowering the C++ IL.  For example:
 
   struct X {};
   struct Y { void mf(); };
