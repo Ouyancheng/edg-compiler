@@ -1,5 +1,14 @@
 Version 2.29
 
+5/9/95   Partially-lowered EH code: set cleanup position at unreachable ends
+         of blocks
+
+In the partial-lowering modes for exception handling, an instruction
+to set the cleanup position is now emitted at the ends of blocks if
+the end is unreachable.  This is useful if the leck_cleanup_state
+instruction is used by a back end to generate a table of addresses
+instead of instructions that update the state.
+
 5/9/95   Nontype template parameters may be used in function templates
 
 Function templates may now make use of nontype template parameters.
@@ -17,7 +26,7 @@ marker is required in case a for statement has both a for-init
 declaration and a condition declaration.
 
 5/9/95   Qualifier problem in generated ANSI/ISO C for reference to array
-         of qualified element type
+         with qualified element type
 
 A bug in generation of ANSI/ISO C code produced code that was invalid
 in that it required an implicit conversion that is not allowed in C.
