@@ -341,6 +341,10 @@ known, so call set_type_size on the type.
 */
 {
   /* Finish off the array type by setting its size. */
+  /* Clear it to zero first; this is because the size gets set twice
+     for the region table variable shared between the file-scope
+     initialization routine and the file-scope termination routine. */
+  var->type->size = 0;
   set_type_size(var->type);
 }  /* finish_array_var */
 
