@@ -108,6 +108,14 @@ declarator (3.5.5).
     (is_ptr_to_member_declarator_start() ||                           \
      curr_token == tok_ampersand)))
 
+/*
+Macro that is TRUE if the current token is the start of either an
+abstract or real declarator.
+*/
+#define is_abstract_or_real_declarator_start()                        \
+  (is_declarator_start() || curr_token == tok_lbracket ||             \
+   (C_dialect == C_dialect_cplusplus &&                               \
+    is_ptr_to_member_declarator_start()))
 
 static a_boolean is_name_of_curr_class(void)
 /*
@@ -1976,13 +1984,11 @@ scope is that of a class definition.
           (skip_typerefs(param_type_ptr))->source_corresp.referenced = TRUE;
         }  /* if */
         /* Scan an optional declarator or abstract declarator.  Don't bother
-           looking for a declarator when there's a comma or right paren or
-           when decl_specifiers has found a badly formed type specifier or
-           when the next token is an ellipsis.  If an error is to be put out,
-           that's done later. */
-        if (curr_token != tok_comma && curr_token != tok_rparen &&
-            !dangling_type_specifier && curr_token != tok_ellipsis &&
-            curr_token != tok_assign) {
+           looking for a declarator when decl_specifiers has found a badly
+           formed type specifier.  If an error is to be put out, that's done
+           later. */
+        if (!dangling_type_specifier &&
+            is_abstract_or_real_declarator_start()) {
           a_decl_flag_set  do_flags;
 
           if (curr_token == tok_identifier &&
