@@ -841,7 +841,7 @@ ec_explicit_specialization_not_in_namespace_scope;;"explicit specialization is n
 ec_partial_specialization_not_allowed;;"partial specialization of %n is not allowed"
 ec_entity_cannot_be_specialized;;"%nf is not an entity that can be explicitly specialized"
 ec_specialization_of_referenced_entity;;"explicit specialization of %n must precede its first use"
-ec_template_param_in_elab_type;;"template parameter %s may not be used in an elaborated type specifier"
+ec_template_param_in_elab_type;;"template parameter %sq may not be used in an elaborated type specifier"
 ec_old_specialization_not_allowed;;"specializing %n requires \"template<>\" syntax"
 REMOVED;ec_bad_member_template_friend_decl;;"\"template<>\" syntax is required when declaring a member function template instance as a friend"
 REMOVED;ec_nonstd_asm_decl_within_template;;"nonstandard \"asm\" declaration is not supported inside a template"
@@ -1249,7 +1249,7 @@ ec_attribute_ignored_on_class_or_enum_typedef;;"attribute ignored on typedef of 
 ec_bad_linkage_for_redefine_extname;;"%npd must have external C linkage"
 ec_declaration_hides_for_init;;"variable declaration hides declaration in for-initializer"
 ec_attribute_ignored_on_typedef;;"attribute ignored on typedef declarations"
-ec_typedef_in_elab_type;;"typedef %s may not be used in an elaborated type specifier"
+ec_typedef_in_elab_type;;"typedef %sq may not be used in an elaborated type specifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
