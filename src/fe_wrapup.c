@@ -203,10 +203,12 @@ unit references).
 */
 {
   if (is_primary_translation_unit) {
-    /* Sweep the primary translation unit IL tree and look for any
-       pointers to entities in secondary translation units that it uses,
-       and mark those entities as needed. */
-    mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed();
+    if (total_errors == 0) {
+      /* Sweep the primary translation unit IL tree and look for any
+         pointers to entities in secondary translation units that it uses,
+         and mark those entities as needed. */
+      mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed();
+    }  /* if */
   } else {
     /* Sweep a secondary translation unit IL tree and mark things as
        needed. */
@@ -279,15 +281,17 @@ already been copied over.
 */
 {
   if (is_primary_translation_unit) {
-    if (total_errors == 0 && !trans_unit_test_mode) {
-      /* Finish processing of any functions moved from secondary translation
-         units.  This includes lowering of the function bodies. */
-      process_functions_moved_from_secondary_trans_units();
+    if (total_errors == 0) {
+      if (!trans_unit_test_mode) {
+        /* Finish processing of any functions moved from secondary translation
+           units.  This includes lowering of the function bodies. */
+        process_functions_moved_from_secondary_trans_units();
+      }  /* if */
+      /* Sweep the primary translation unit IL tree and look for any
+         pointers to entities in secondary translation units that it uses,
+         and rewrite the pointers as the corresponding primary IL entities. */
+      rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
     }  /* if */
-    /* Sweep the primary translation unit IL tree and look for any
-       pointers to entities in secondary translation units that it uses,
-       and rewrite the pointers as the corresponding primary IL entities. */
-    rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
