@@ -9581,7 +9581,7 @@ static void update_extended_decl_info_for_class_template(
 /*
 Update the Microsoft decl modifiers information for the specified class
 template.  Also update any instances that have already been generated.
-class_definition is TRUE if the specifiers as part of a class template
+class_definition is TRUE if the specifiers are part of a class template
 definition (as opposed to a mere declaration).
 */
 {
