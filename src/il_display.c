@@ -3233,6 +3233,21 @@ Display the indicated class type supplement entry.
   if (ptr->decl_modifiers != DM_NONE) {
     disp_decl_modifiers(ptr->decl_modifiers);
   }  /* if */
+  /* Only display orig_type_kind it differs from the type kind specified on
+     the definition. */
+  if (ptr->assoc_scope != NULL) {
+    /* The associated type does have a definition. */
+    a_type_ptr  class_type = ptr->assoc_scope->variant.assoc_type;
+    if (class_type != NULL && class_type->kind != orig_type_kind) {
+      disp_name("orig_type_kind");
+      switch (ptr->orig_type_kind) {
+        case tk_struct:  (void)printf("struct\n"); break;
+        case tk_union:   (void)printf("union\n"); break;
+        case tk_class:   (void)printf("class\n"); break;
+        default:         (void)printf("***UNEXPECTED TYPE KIND***\n");
+      }  /* switch */
+    }  /* if */
+  }  /* if */
   if (ptr->qualifiers != TQ_NONE) {
     disp_type_qualifiers(ptr->qualifiers);
   }  /* if */

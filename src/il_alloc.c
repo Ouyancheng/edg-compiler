@@ -778,6 +778,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->virtual_function_info_base_class  = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->decl_modifiers                    = DM_NONE;
+  ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->qualifiers                        = TQ_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
@@ -883,6 +884,9 @@ to default values.
 #endif /* DEBUG */
         clear_class_type_supplement(ctsp);
         pte->variant.class_struct_union.extra_info = ctsp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        ctsp->orig_type_kind = kind;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
       pte->variant.class_struct_union.max_member_alignment = 0;

@@ -2733,6 +2733,13 @@ typedef struct a_class_type_supplement {
 			/* Additional declaration information representing
 			   Microsoft-style __declspec modifiers that are
 			   applied to the class as a whole. */
+  a_type_kind	orig_type_kind;
+			/* Type kind indicating the tag used when this type
+			   was first declared in the current translation unit.
+			   It may differ from the type kind in the type entry,
+			   which always reflects the tag used in the defining
+			   declaration.  This information is used for
+			   Microsoft-style name mangling. */
   a_type_qualifier_set
 		qualifiers;
 			/* Qualifiers that apply to the class as a whole,

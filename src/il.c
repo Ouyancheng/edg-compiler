@@ -753,8 +753,23 @@ Dump the contents of the indicated type entry, for debug purposes.
       fputs("class", f_debug);
 class_struct_union:
       fputs(" ", f_debug);
-      db_type_name(tp);
       ctsp = tp->variant.class_struct_union.extra_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ctsp != NULL) {
+        a_type_kind  orig_type_kind = ctsp->orig_type_kind;
+        if (orig_type_kind != tp->kind) {
+          fputs("[orig: ", f_debug);
+          switch (orig_type_kind) {
+            case tk_struct:  fputs("struct", f_debug); break;
+            case tk_union:   fputs("union", f_debug); break;
+            case tk_class:   fputs("class", f_debug); break;
+            default:         fputs("***BAD KIND***", f_debug);
+          }  /* switch */
+          fputs("] ", f_debug);
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      db_type_name(tp);
       if (tp->variant.class_struct_union.field_list == NULL &&
           (ctsp == NULL || ctsp->assoc_scope == NULL)) {
         fputs(" (undefined)", f_debug);
@@ -9822,6 +9837,9 @@ entry into one representing a nondefining declaration.
     a_class_type_supplement_ptr  ctsp;
     a_template_arg_ptr           template_arg_list;
     a_class_list_entry_ptr       befriending_classes;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_type_kind                  orig_type_kind;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     /* If the definition of class_type included friend declarations, the
        befriended classes and routines have pointers back to class_type.
@@ -9836,9 +9854,17 @@ entry into one representing a nondefining declaration.
     ctsp = class_type->variant.class_struct_union.extra_info;
     template_arg_list = ctsp->template_arg_list;
     befriending_classes = ctsp->befriending_classes;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Don't lose information about the tag with which this class was
+       originally declared: it is used for Microsoft-style name mangling. */
+    orig_type_kind = ctsp->orig_type_kind;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     clear_class_type_supplement(ctsp);
     ctsp->template_arg_list = template_arg_list;
     ctsp->befriending_classes = befriending_classes;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    ctsp->orig_type_kind = orig_type_kind;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Clear flags that can only be TRUE for classes with definitions. */
     class_type->variant.class_struct_union.any_const_member = FALSE;
     class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;

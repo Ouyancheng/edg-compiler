@@ -1,5 +1,21 @@
 Version 2.33
 
+9/12/96 IL CHANGE for Microsoft object-code compatibility
+
+When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, new field orig_type_kind is
+maintained in a_class_type_supplement.  It records the tag with which a
+class was first declared, in case a subsequent definition should use a
+different tag.  For example:
+
+  struct S;
+  class S { ... };
+
+The type kind recorded in the type entry for S is tk_class, but the
+orig_type_kind is tk_struct.  This is needed because the original tag kind
+is encoded in the mangled name the MSVC++ puts out.  (Note: this field is
+not used by the EDG name mangler; it is provided for implementations that
+need to put out Microsoft-ABI-compatible object code.)
+
 9/10/96 Internal error from incorrectly constructed overload set
 
 When a using-directive lookup results in an ambiguity, and the set of
