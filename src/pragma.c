@@ -1358,8 +1358,9 @@ Initialize the pragma description table.
                  /*processing_C_code=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_none);
-  (void)add_immediate_pragma_kind_description
-		((a_pragma_kind)pk_instantiate,
+  if (!C_mode()) {
+    (void)add_immediate_pragma_kind_description
+ 		((a_pragma_kind)pk_instantiate,
 	         instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
@@ -1369,7 +1370,7 @@ Initialize the pragma description table.
                  /*processing_C_code=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-  (void)add_immediate_pragma_kind_description
+    (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_do_not_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1380,7 +1381,7 @@ Initialize the pragma description table.
                  /*processing_C_code=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-  (void)add_immediate_pragma_kind_description
+    (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_can_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1391,6 +1392,7 @@ Initialize the pragma description table.
 		 /*processing_C_code=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 es_error);
+  }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_pack,
@@ -1436,7 +1438,8 @@ Initialize the pragma description table.
                 ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma);
-  (void)add_next_construct_pragma_kind_description
+  if (!C_mode()) {
+    (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_define_type_info,
 		 define_type_info_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1448,6 +1451,7 @@ Initialize the pragma description table.
                  /*processing_C_code=*/FALSE,
 		 /*ignore_in_back_end=*/!BACK_END_IS_CP_GEN_BE, /*lint !e506*/
                  es_error);
+  }  /* if */
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,

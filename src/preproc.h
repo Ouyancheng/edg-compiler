@@ -22,6 +22,10 @@ preproc.h -- Declarations related to preproc.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_H */
 
+#ifndef PRAGMA_H
+#include "pragma.h"
+#endif /* ifndef PRAGMA_H */
+
 #ifndef LEXICAL_H
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
@@ -237,6 +241,14 @@ extern void cpp_driver(void);
 #if IDENT_DIRECTIVE_AND_PRAGMA
 extern void ident_pragma(a_pending_pragma_ptr ppp);
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+
+extern a_pragma_kind_description_ptr look_up_pragma_id(
+					a_source_position	*id_position);
+
+extern
+void record_pragma(a_pragma_kind_description_ptr	pkdp,
+		   a_source_position			*start_of_dir_position,
+		   a_source_position			*id_position);
 
 extern void once_pragma(a_pragma_kind kind);
 

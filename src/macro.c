@@ -71,6 +71,11 @@ static char	*after_end_of_aux_buffer_for_pcc_macros /* = NULL */;
 			/* Pointer to just after the end of
 			   aux_buffer_for_pcc_macros. */
 
+static a_symbol_ptr
+		_Pragma_macro_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "_Pragma", which is used in C99 mode. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -792,8 +797,12 @@ so that "defined" will not be found as a defined macro.
 {
   get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
   /* If the macro found is the pseudo-macro "defined" (which is used as
-     an operator in #if statements), pretend it was not found. */
-  if (assoc_symbol == defined_macro_symbol) assoc_symbol = NULL;
+     an operator in #if statements), or "_Pragma" (which is used for the
+     C99 _Pragma operator) pretend it was not found. */
+  if (assoc_symbol == defined_macro_symbol ||
+      assoc_symbol == _Pragma_macro_symbol) {
+    assoc_symbol = NULL;
+  }  /* if */
   return (assoc_symbol);
 }  /* find_defined_macro */
 
@@ -1020,6 +1029,154 @@ beyond the operator has not yet been fetched.
   db_exit();
   return (ctoken);
 }  /* scan_defined_operator */
+
+
+static a_macro_arg_ptr copy_pragma_string(void)
+/*
+The current token is a tok_string_literal scanned in fetch-pp-tokens mode.
+Make a copy of the string to a macro argument, replacing \" with " and \\
+with \.  Return the macro argument created.
+*/
+{
+  a_macro_arg_ptr	map;
+  sizeof_t		length;
+  char			*end_of_string;
+
+  /* Compute the length of the string.  Note that this will include the
+     quotes on either end.  The size may be slightly larger than what is
+     needed if the string includes escapes that are removed.  Note that
+     the space counted for the quotes will be used to hold the LE_ESCAPE
+     that must be added at the end of the string. */
+  length = curr_char_loc - start_of_curr_token;
+  map = alloc_macro_arg();
+  ensure_arg_raw_text_space(length, map);
+  end_of_string = curr_char_loc - 1;
+  /* Back up to the '"' that terminates the pragma string. */
+  while (*end_of_string != '"') end_of_string--;
+  /* Copy the characters to the macro argument. */
+  { char	*src = start_of_curr_token + 1;
+    char	*dest = map->raw_text;
+    for (; src < end_of_string;) {
+      /* If this is a \" or \\, ignore the initial character. Don't do this
+         if the \ is the last character of the string. */
+      if (*src == '\\' && src != end_of_string) {
+        char	next = *src+1;
+        if (next == '"' || next == '\\') ++src;
+      }  /* if */
+      *dest++ = *src++;
+    }  /* for */
+    /* Append an end-of-assertion escape. */
+    *dest++ = LE_ESCAPE;
+    /* Compute the length of the string, including the LE_ESCAPE but not
+       the LE_END_OF_INSERTION. */
+    map->raw_len = dest - map->raw_text;
+    *dest++ = LE_END_OF_INSERTION;
+  }
+  return map;
+}  /* copy_pragma_string */
+
+
+static void scan_pragma_string(a_macro_arg_ptr		map,
+			       char			*pragma_start,
+			       a_source_position	*start_of_dir_position)
+/*
+The replacement text for "map" points to the string of a _Pragma operator.
+Scan the contents of that string as tokens.  pragma_start points to the
+beginning of the _Pragma token in the source line.  start_of_dir_position
+is the source position of the _Pragma token.
+*/
+{
+  a_source_line_modif_ptr	slmp;
+  char				*save_delete_source_from_loc;
+  char				*save_curr_char_loc;
+  a_pointer_registration_ptr
+				save_registered_pointers = registered_pointers;
+  a_pointer_registration	save_delete_source_from_loc_reg;
+  a_pointer_registration	save_curr_char_loc_reg;
+
+  /* Register the pointer variables used by the routine in case any of
+     the structures get reallocated during this processing. */
+  register_pointer_variable(save_curr_char_loc, save_curr_char_loc_reg);
+  register_pointer_variable(save_delete_source_from_loc,
+                            save_delete_source_from_loc_reg);
+  /* Save the state of the lexical variables used by the source line
+     modification process. */
+  save_delete_source_from_loc = delete_source_from_loc;
+  save_curr_char_loc = curr_char_loc;
+  delete_source_from_loc = NULL;
+  /* Replace the _Pragma and string with the copied contents of the
+     string. */
+  slmp = add_source_line_modif(pragma_start,
+                               (sizeof_t)(start_of_curr_token - pragma_start),
+                               &map->raw_text[0],
+                               &map->raw_text[map->raw_len - 1]);
+  slmp->is_isolated_text = TRUE;
+  curr_char_loc = map->raw_text;
+  /* Actually scan the tokens that make up the pragma. */
+  { a_pragma_kind_description_ptr	pkdp = NULL;
+    a_source_position			id_position;
+    /* Get the pragma identifier. */
+    pkdp = look_up_pragma_id(&id_position);
+    record_pragma(pkdp, start_of_dir_position, &id_position);
+  }
+  /* Restore the saved lexical state variables. */
+  delete_source_from_loc = save_delete_source_from_loc;
+  curr_char_loc = save_curr_char_loc;
+  /* Unlink the registered pointers for this function from the list. */
+  registered_pointers = save_registered_pointers;
+}  /* scan_pragma_string */
+
+
+void scan_pragma_operator(void)
+/*
+Process a C99 _Pragma operator.  The current token is the _Pragma identifier
+token.  The form of a _Pragma invocation is:
+
+	_Pragma("string")
+
+The first component of "string" is the pragma identifier, which may be followed
+by pragma arguments.
+*/
+{
+  a_boolean			save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean			save_expand_macros = expand_macros;
+  a_pointer_registration	pragma_start_reg;
+  a_pointer_registration_ptr
+				save_registered_pointers = registered_pointers;
+  char				*pragma_start;
+  a_source_position		start_of_dir_position;
+
+  register_pointer_variable(pragma_start, pragma_start_reg);
+  pragma_start = start_of_curr_token;
+  /* The inside of the _Pragma directive should be processed as a pp-token. */
+  fetch_pp_tokens = TRUE;
+  expand_macros = FALSE;
+  /* Record the position of the start of the pragma. */
+  start_of_dir_position = pos_curr_token;
+  /* Bypass the _Pragma token. */
+  (void)get_token();
+  if (curr_token != tok_lparen) {
+    error(ec_exp_lparen);
+  } else if (get_token() != tok_string_literal) {
+    error(ec_exp_string_literal);
+  } else {
+    /* We've scanned a string literal.  Make a copy of the string
+       literal replacing \" with " and \\ with \. */
+    a_macro_arg_ptr	map;
+    map = copy_pragma_string();
+    /* Scan the tokens from the pragma string. */
+    scan_pragma_string(map, pragma_start, &start_of_dir_position);
+    /* Bypass the scanned string. */
+    (void)get_token();
+    if (curr_token != tok_rparen) error(ec_exp_rparen);
+  }  /* if */
+  /* Restore the previous state for fetching pp-tokens, and expanding
+     macros. */
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  expand_macros = save_expand_macros;
+  /* Unlink the registered pointers for this function from the list. */
+  registered_pointers = save_registered_pointers;
+}  /* scan_pragma_operator */
 
 
 /*
@@ -1872,6 +2029,14 @@ end_scan_for_macro_modifs:;
         (void)strcpy(repl_text,
                      str_for_integer_constant(&const_for_curr_token));
         (void)strcat(repl_text, "L");
+      } else if (macro_symbol == _Pragma_macro_symbol) {
+        /* The C99 _Pragma operator.  This is invoked as
+               _Pragma("pragma-name pragma-operands(opt)")
+           Call a routine to translate the string into a pending pragma
+           entry. */
+        scan_pragma_operator(); 
+        repl_text = "";
+        repl_text_len = 0;
 #if CHECKING
       } else {
         internal_error("macro_invocation: unknown special predefined macro");
@@ -4417,6 +4582,13 @@ command line -D options.
   defined_macro_symbol = enter_predef_macro((char *)NULL, "defined",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+  if (c99_mode) {
+    /* Like the special macros defined above, _Pragma is entered as a
+       predefined macro but is handled specially during replacement. */
+    _Pragma_macro_symbol = enter_predef_macro((char *)NULL, "_Pragma",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
   /* Now process command-line defines of symbols (-D). */  
@@ -4527,6 +4699,7 @@ are handled in macro_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(defined_macro_symbol),
+      pch_saved_var_array_elem(_Pragma_macro_symbol),
       pch_saved_var_array_elem(line_macro_symbol),
       pch_saved_var_array_elem(file_macro_symbol),
       pch_saved_var_array_elem(date_macro_symbol),

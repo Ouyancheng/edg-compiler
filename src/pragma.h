@@ -218,7 +218,9 @@ typedef struct a_pending_pragma {
   a_source_position
 		id_position;
 			/* Source position of the identifier that indicates
-			   the kind of pragma being processed. */
+			   the kind of pragma being processed.  For a
+			   C99 _Pragma, it points to the pragma string
+			   literal. */
   a_source_position
 		pragma_position;
 			/* Source position of the start of the #pragma

@@ -26,8 +26,8 @@ preproc.c -- Preprocessing directives.
 /* Additional header files. */
 #include "expr.h"
 #include "macro.h"
-#include "pch.h"
 #include "pragma.h"
+#include "pch.h"
 #include "preproc.h"
 #include "symbol_ref.h"
 #include "literals.h"
@@ -1276,7 +1276,7 @@ the entire string.  The tokens are scanned as preprocessing tokens.
   sizeof_t	pos_in_buffer = 0;
 
   db_enter(4, "convert_pp_directive_to_string");
-  while (curr_token != tok_newline) {
+  while (curr_token != tok_newline && curr_token != tok_end_of_source) {
     /* The +1 in the following call is to make sure there is space for
        a null terminator to be added. */
     ensure_pp_dir_string_buffer_space(pos_in_buffer + len_of_curr_token +
@@ -1380,7 +1380,7 @@ based on the information specified in the pragma description entry.
   (void)get_token();
   /* Cache the tokens until an end-of-line is found. */
   for (;;) {
-    if (curr_token == tok_newline) break;
+    if (curr_token == tok_newline || curr_token == tok_end_of_source) break;
     cache_curr_token(&ppp->token_cache);
     (void)get_token();
   }  /* for */
@@ -1492,13 +1492,52 @@ expansion of macros if necessary for this kind of pragma.
 }  /* pass_pragma_to_output */
 
 
-static void proc_pragma(a_source_position *start_of_dir_position)
+void record_pragma(a_pragma_kind_description_ptr	pkdp,
+		   a_source_position			*start_of_dir_position,
+		   a_source_position			*id_position)
 /*
-Scan and process a #pragma directive.
+Record the pragma whose kind is specified by pkdp (which may be NULL).
+start_of_dir_position is the position of the first character of the
+pragma directive.  id_position is the position of the pragma identifier.
+*/
+{
+  a_boolean processed = FALSE;
+  if (pkdp != NULL) {
+    if (pkdp->binding_kind == pbk_preproc_immediate) {
+      /* Preprocessing immediate pragmas are processed when
+         encountered.  Call the processing routine associated with
+         this pragma. */
+      a_preproc_immediate_pragma_function_ptr pipfp;
+      pipfp = pkdp->variant.preproc_immediate_processing_function;
+      if (pipfp != NULL) (*pipfp)(pkdp->kind);
+    } else {
+      /* Scan the pragma directive, recording it as either a token cache
+         or as a character string. */
+      enter_pending_pragma(pkdp, start_of_dir_position, id_position);
+    }  /* if */
+    processed = TRUE;
+  }  /* if */
+  if (!processed) {
+    /* Unrecognized pragma, just ignore (this is required by the
+       standard). */
+    pos_warning(ec_unrecognized_pragma, id_position);
+    flush_to_newline();
+  }  /* if */
+}  /* record_pragma */
+
+
+a_pragma_kind_description_ptr look_up_pragma_id(
+					a_source_position	*id_position)
+/*
+The current token is expected to be the identifier of a pragma.  Look
+up the identifier and return the associated pragma kind description
+pointer.  If the token is not an identifier, return NULL.  If the
+identifier is not found, return NULL unless unrecognized pragmas are
+included in the IL, in which case the unknown pragma kind is returned.
+The position of the pragma ID is returned in id_position;
 */
 {
   a_pragma_kind_description_ptr	pkdp = NULL;
-  a_source_position		id_position;
 
   /* Identify the pragma that is being processed. */
   if (get_token() == tok_identifier) {
@@ -1507,7 +1546,7 @@ Scan and process a #pragma directive.
     check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Save the position of the start of the token(s) that identify
        the kind of pragma being processed. */
-    id_position = pos_curr_token;
+    *id_position = pos_curr_token;
     /* Look for a matching pragma identifier in the pragma descriptions
        list.  If any pragma need to be added in where the pragma is
        not specified by an identifier following the #pragma keyword,
@@ -1526,6 +1565,20 @@ Scan and process a #pragma directive.
     }  /* if */
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
   }  /* if */
+  return pkdp;
+}  /* look_up_pragma_id */
+
+
+static void proc_pragma(a_source_position *start_of_dir_position)
+/*
+Scan and process a #pragma directive.
+*/
+{
+  a_pragma_kind_description_ptr	pkdp = NULL;
+  a_source_position		id_position;
+
+  /* Look up the identifier that specifies the kind of pragma. */
+  pkdp = look_up_pragma_id(&id_position);
   if (generate_pp_output && do_preprocessing_only) {
     /* Generating preprocessing output for some other compiler.  Pass the
        #pragma to the output.  The information in the pragma description is
@@ -1544,28 +1597,7 @@ Scan and process a #pragma directive.
   } else {
     /* Compiling.  Record the pragma for later processing, or for
        processing now in the case of immediate pragmas. */
-    a_boolean processed = FALSE;
-    if (pkdp != NULL) {
-      if (pkdp->binding_kind == pbk_preproc_immediate) {
-        /* Preprocessing immediate pragmas are processed when
-           encountered.  Call the processing routine associated with
-           this pragma. */
-        a_preproc_immediate_pragma_function_ptr pipfp;
-	pipfp = pkdp->variant.preproc_immediate_processing_function;
-	if (pipfp != NULL) (*pipfp)(pkdp->kind);
-      } else {
-	/* Scan the pragma directive, recording it as either a token cache
-	   or as a character string. */
-	enter_pending_pragma(pkdp, start_of_dir_position, &id_position);
-      }  /* if */
-      processed = TRUE;
-    }  /* if */
-    if (!processed) {
-      /* Unrecognized pragma, just ignore (this is required by the
-	 standard). */
-      warning(ec_unrecognized_pragma);
-      flush_to_newline();
-    }  /* if */
+    record_pragma(pkdp, start_of_dir_position, &id_position);
     if (generate_pp_output) {
       /* If we are generating preprocessed output, but we are also
          doing real compilation (i.e., do_preprocessing_only is FALSE),
