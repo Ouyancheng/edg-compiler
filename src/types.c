@@ -7182,7 +7182,15 @@ has been used in an exception handling or RTTI construct.
   if (type_ptr->used_in_exception_or_rtti) {
     /* Already set.  No further action is required. */
   } else {
+    a_type_ptr eff_type = type_ptr;
     type_ptr->used_in_exception_or_rtti = TRUE;
+    /* Force generation of the typeinfo for any underlying class. */
+    while (is_ptr_or_ref_type(eff_type)) {
+      eff_type = type_pointed_to(eff_type);
+    }  /* while */
+    if (is_class_struct_union_type(eff_type)) {
+      require_definitions_of_virtual_functions_in_class(eff_type);
+    }  /* if */
     /* Add the type to the nontag_types_used_in_exception_or_rtti list,
        unless it will be on another list. */
     if (!has_name(type_ptr) &&

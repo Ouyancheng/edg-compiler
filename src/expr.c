@@ -5057,10 +5057,6 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     if (is_incomplete_type(typeid_type)) {
       error(ec_incomplete_type_not_allowed);
       err = TRUE;
-    } else {
-      /* Marking the virtual functions as required will ensure that the
-         typeinfo for the class is defined. */
-      require_definitions_of_virtual_functions_in_class(typeid_type);
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5771,10 +5767,6 @@ Syntax:
         complete_class_type_is_needed(underlying_cast_type);
         if (!is_incomplete_type(underlying_cast_type)) {
           cast_type_okay = TRUE;
-          /* Marking the virtual functions as required will ensure that the
-	     typeinfo for the class is defined. */
-          require_definitions_of_virtual_functions_in_class(
-                                                        underlying_cast_type);
         } else if (f_skip_typerefs(underlying_cast_type)->
                                  variant.class_struct_union.is_nonreal_class) {
           /* Casting to a pointer or reference to a nonreal type is okay

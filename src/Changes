@@ -1,5 +1,23 @@
 Version 3.0
 
+3/1/02   Missing typeinfo variable, class mentioned in catch type
+
+The typeinfo variable was not defined for a class mentioned in a
+catch handler type but not otherwise much used in the program, when
+the class has called virtual functions but no object of the class
+is actually created (highly unlikely in real programs).
+
+  struct C {
+    virtual void f();
+  };
+  int main() {
+    try {
+    } catch (C *) {
+    }
+    C *p = 0;
+    p->f();
+  }
+
 3/1/02   "called" flag in IL routine not set for call of static function
          with discarded object
 
