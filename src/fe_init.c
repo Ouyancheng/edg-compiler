@@ -500,21 +500,11 @@ Initialize target machine characteristics.
 */
 {
 #if CHECKING
-  { a_targ_size_t    size;
+  { a_targ_size_t    size, size_max_value;
     a_targ_alignment alignment;
+    a_targ_ptrdiff_t diff_max_value;
+    a_boolean        bool;
 
-    /* The target size_t may be no bigger than the host long. */
-    get_integer_size_and_alignment((an_integer_kind)TARG_SIZE_T_INT_KIND,
-                                   &size, &alignment);
-    if (size > sizeof(long)) {
-      internal_error("target_init: target size_t is too large");
-    }  /* if */
-    /* The target ptrdiff_t may be no bigger than the host long. */
-    get_integer_size_and_alignment((an_integer_kind)TARG_PTRDIFF_T_INT_KIND,
-                                   &size, &alignment);
-    if (size > sizeof(long)) {
-      internal_error("target_init: target ptrdiff_t is too large");
-    }  /* if */
     /* The target char may be no bigger than the host long. */
     get_integer_size_and_alignment((an_integer_kind)ik_char,
                                    &size, &alignment);
@@ -526,6 +516,42 @@ Initialize target machine characteristics.
                                    &size, &alignment);
     if (size > sizeof(long)) {
       internal_error("target_init: target wchar_t is too large");
+    }  /* if */
+    /* TARG_SIZE_T_MAX must fit in the target integer type TARG_SIZE_T_INT_KIND
+       (but it need not fit exactly). */
+    get_integer_size_and_alignment((an_integer_kind)TARG_SIZE_T_INT_KIND,
+                                   &size, &alignment);
+    size *= TARG_CHAR_BIT;
+    if (size > sizeof(a_targ_size_t)*CHAR_BIT) {
+      size = sizeof(a_targ_size_t)*CHAR_BIT;
+    }  /* if */
+    /* Make a mask of "size" 1 bits for the maximum value. */
+    size_max_value = ((((a_targ_size_t)1 << size-1)-1) << 1) | 1;
+    if (size_max_value < TARG_SIZE_T_MAX) {
+      internal_error("target_init: TARG_SIZE_T_MAX in target.h is set wrong");
+    }  /* if */
+    /* TARG_PTRDIFF_T_MAX and TARG_PTRDIFF_T_MIN must fit in the target
+       integer type TARG_PTRDIFF_T_INT_KIND (but they need not fit exactly). */
+    get_integer_size_and_alignment((an_integer_kind)TARG_PTRDIFF_T_INT_KIND,
+                                   &size, &alignment);
+    size *= TARG_CHAR_BIT;
+    if (size > sizeof(a_targ_ptrdiff_t)*CHAR_BIT) {
+      size = sizeof(a_targ_ptrdiff_t)*CHAR_BIT;
+    }  /* if */
+    /* Make a mask of "size-1" 1 bits for the maximum value. */
+    diff_max_value = ((((a_targ_ptrdiff_t)1 << size-2)-1) << 1) | 1;
+    if (diff_max_value < TARG_PTRDIFF_T_MAX) {
+      internal_error(
+                   "target_init: TARG_PTRDIFF_T_MAX in target.h is set wrong");
+    }  /* if */
+    /* Use a variable here so that compilers will not complain about a
+       constant conditional test (and it can't be made into a #if because
+       some compilers complain about the casts in the macros). */
+    /* This test depends on a two's complement representation. */
+    bool = -TARG_PTRDIFF_T_MAX-1 != TARG_PTRDIFF_T_MIN;
+    if (bool) {
+      internal_error(
+                   "target_init: TARG_PTRDIFF_T_MIN in target.h is set wrong");
     }  /* if */
   }
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
