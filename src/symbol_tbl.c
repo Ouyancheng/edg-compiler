@@ -6698,17 +6698,18 @@ Allocate a new function instantiation entry and return a pointer to it.
 #if DEBUG
   num_template_instances_allocated++;
 #endif /* DEBUG */
-  tip->next                       = NULL;
-  tip->next_in_instantiation_list = NULL;
-  tip->instance_sym               = NULL;
-  tip->template_sym               = NULL;
-  tip->arg_list                   = NULL;	
-  tip->template_info              = NULL;
-  tip->instantiation_required     = FALSE;
-  tip->specific_decl              = FALSE;
-  tip->specific_def               = FALSE;
-  tip->explicit_instantiation     = FALSE;
-
+  tip->next                              = NULL;
+  tip->next_in_instantiation_list        = NULL;
+  tip->instance_sym                      = NULL;
+  tip->template_sym                      = NULL;
+  tip->arg_list                          = NULL;	
+  tip->template_info                     = NULL;
+  tip->instantiation_required            = FALSE;
+  tip->specific_decl                     = FALSE;
+  tip->specific_def                      = FALSE;
+  tip->explicit_instantiation            = FALSE;
+  tip->explicit_instantiation_pos.seq    = 0;
+  tip->explicit_instantiation_pos.column = 0;
   db_exit();
   return tip;
 }  /* alloc_template_instance */
@@ -6758,34 +6759,92 @@ updated but not removed from the list.
 }  /* update_instantiation_required_flag */
 
 
+static a_boolean should_be_instantiated(a_template_instance_ptr	tip)
+/*
+Determines whether this template instance needs an instantiation and
+generates any errors caused by conflicting instantiation information
+such as instantiating a template for which no body was supplied.
+*/
+{
+  a_boolean	result = TRUE;
+  a_boolean	specific_def;
+  a_boolean	template_def;
+
+  if (tip->explicit_instantiation ||
+      tip->instantiation_required && instantiation_mode != tim_none) {
+    /* For error checking purposes, find out if a specific definition
+       exists and whether a body exists for the template definition. */
+    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      specific_def = tip->instance_sym->defined;
+      template_def = tip->template_sym->defined;
+    } else {
+      a_template_symbol_supplement_ptr  tssp;
+      specific_def = tip->specific_def;
+      if (tip->instance_sym->class_of_which_a_member == NULL) {
+        /* This is an instance of a nonmember function -- template_sym
+           points to an sk_function_template symbol. */
+        tssp = tip->template_sym->variant.template_info;
+      } else {
+        /* It is an instance of a member function -- template_sym points to
+           an sk_member_function from the prototype instantiation, and the
+           template supplement pointer is to be found in the latter's
+           instance entry. */
+        tssp = tip->template_sym->variant.routine.instance_ptr->template_info;
+      }  /* if */
+      template_def = tssp->token_cache.first_token != NULL;
+    }  /* if */
+    if (!template_def && !specific_def) {
+      /* A template can be declared and referenced without ever being defined.
+         If, however, an instantiation was explicitly requested an error is
+         issued.  In any case, the instantiation cannot be done without
+         a template definition. */
+      result = FALSE;
+      if (tip->explicit_instantiation) {
+        pos_sy_error(ec_instantiation_requested_no_definition_supplied,
+  	           &tip->explicit_instantiation_pos,
+  		    tip->instance_sym);
+      }  /* if */
+    } else {
+      /* There is a body or a specific definition. */
+      if (specific_def) {
+        /* A specific definition was supplied.  Simply skip the instantiation
+           unless an instantiation was explicitly requested. */
+        result = FALSE;
+        if (tip->explicit_instantiation) {
+          pos_sy_error(ec_instantiation_requested_and_specific_definition,
+  	             &tip->explicit_instantiation_pos, tip->instance_sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* No instantiation needed. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* should_be_instantiated */
+
+
 void instantiation_wrapup(void)
 /*
-Performs end-of-compilation processing for template instantiation.
-This currently consists of going through a list of functions for
-which instantiations are required.
+Performs end-of-compilation processing for template instantiation.  An
+instantiation will be done if an explicit instantiation has been
+requested (i.e., via a pragma) or if an instantiation is required because
+the function has been referenced and we are not in "instantiate none"
+mode.  Note that the pragma overrides the command line option.  Something
+can appear on the list with the instantiation required flag FALSE if, for
+instance, a reference that forced instantiation was followed by a
+specific definition that made it unnecessary.
 */
 {
   a_template_instance_ptr           tip;
-  a_boolean	                    none_mode;
-  a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "instantiation_wrapup");
-  none_mode = instantiation_mode == tim_none;
   for (tip = instantiations_required;
        tip != NULL;
        tip = tip->next_in_instantiation_list) {
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       /* Static data member definition. */
-      if (tip->instance_sym->defined) {
-        /* Already defined.  No further action required. */
-      } else if (!tip->template_sym->defined) {
-        /* No template definition was provided. */
-#if 0
-        if (tip->explicit_instantiation) {
-          /* Error? */
-        }  /* if */
-#endif /* if 0 */
-      } else {
+      if (should_be_instantiated(tip)) {
         define_template_static_data_member(tip);
 #if 0
         /* Note that there are recursion possibilities that we need to
@@ -6795,64 +6854,20 @@ which instantiations are required.
       }  /* if */
     } else {
       /* Function instantiation. */
-      /* An instantiation will be done if an explicit instantiation has
-	 been requested (i.e., via a pragma) or if an instantiation is
-	 required because the function has been referenced and we are not
-	 in "instantiate none" mode.  Note that the pragma overrides the
-	 command line option.  Something can appear on the list with the
-         instantiation required flag FALSE if, for instance, a reference
-	 that forced instantiation was followed by a specific definition
-	 that made it unnecessary. */
-      if (tip->explicit_instantiation ||
-	  (tip->instantiation_required && !none_mode)) {
-        if (tip->instance_sym->class_of_which_a_member == NULL) {
-          /* This is an instance of a nonmember function -- template_sym
-             points to an sk_function_template symbol. */
-          tssp = tip->template_sym->variant.template_info;
-        } else {
-          /* It is an instance of a member function -- template_sym points to
-             an sk_member_function from the prototype instantiation, and the
-             template supplement pointer is to be found in the latter's
-             instance entry. */
-          tssp = tip->template_sym->
-                              variant.routine.instance_ptr->template_info;
-        }  /* if */
-        if (tssp->token_cache.first_token == NULL) {
-          /* A function template can be declared and referenced without ever
-             being defined.  If an instantiation was explicitly requested,
-	     an error is issued. */
-	  if (tip->explicit_instantiation) {
-            pos_sy_error(ec_instantiation_requested_no_definition_supplied,
-		         &tip->instance_sym->decl_position,
-			 tip->instance_sym);
-          }  /* if */
-        } else {
-          /* There is a body. */
-	  if (tip->specific_def) {
-	    /* A specific definition was supplied.  Simply skip the
-	       instantiation unless an instantiation was explicitly
-	       requested. */
-	    if (tip->explicit_instantiation) {
-              pos_sy_error(ec_instantiation_requested_and_specific_definition,
-			   &tip->instance_sym->decl_position,
-			   tip->instance_sym);
-	    }  /* if */
-	  } else {
+      if (should_be_instantiated(tip)) {
 #if DEBUG
-            if (debug_level >= 4) {
-              db_symbol(tip->instance_sym, "Instantiating:", 2);
-            }  /* if */
-#endif /* DEBUG */
-            instantiate_template_function(tip);
-	  }  /* if */
-          /* Usually template functions are instantiated "on demand" and the
-             referenced flag will already have been set.  But if the
-             instantiation mode says to instantiate whether or not there is
-             a reference, we should set the referenced flag anyway, so that
-             the back-end will be sure to generate the function. */ 
-          tip->instance_sym->variant.routine.ptr->
-                                        source_corresp.referenced = TRUE;
+        if (debug_level >= 4) {
+          db_symbol(tip->instance_sym, "Instantiating:", 2);
         }  /* if */
+#endif /* DEBUG */
+        instantiate_template_function(tip);
+        /* Usually template functions are instantiated "on demand" and the
+           referenced flag will already have been set.  But if the
+           instantiation mode says to instantiate whether or not there is
+           a reference, we should set the referenced flag anyway, so that
+           the back-end will be sure to generate the function. */ 
+        tip->instance_sym->variant.routine.ptr->
+                                        source_corresp.referenced = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
