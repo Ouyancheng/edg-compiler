@@ -1127,6 +1127,12 @@ error code.
     case ec_inaccessible_assignment_operator:
       m = "assignment operator \"%s\" is inaccessible";
       break;
+    case ec_no_matching_operator_function:
+      m = "none of the available operator functions matches these operands";
+      break;
+    case ec_ambiguous_operator_function:
+      m = "more than one operator function matches these operands";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
