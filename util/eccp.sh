@@ -231,6 +231,7 @@ do
     -S | --cpfe_only)
 #     Run front end only.
       fe_only=1;
+      keep_int_file=1;
       ;;
     -c | --compile)
 #     Run front end and cc producing a .o file.
