@@ -1172,7 +1172,8 @@ void wrap_up_dynamic_init_full_expression(a_dynamic_init_ptr dip)
 /*
 Do any processing required at the end of a "full expression" that is
 the constructor call implied by a parenthesized initializer.  dip
-points to the dynamic initialization.
+points to the dynamic initialization.  It can be NULL if there has been
+a previous error.
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
@@ -1181,7 +1182,7 @@ points to the dynamic initialization.
     /* If the initialization contains more than one enk_temp_init, see if they
        are unordered with respect to one another.  This must be done at the
        end because of temp inits that get optimized out. */
-    if (curr_expr_may_contain_unordered_temp_inits()) {
+    if (dip != NULL && curr_expr_may_contain_unordered_temp_inits()) {
       an_expr_or_stmt_traversal_block tblock;
       set_up_unordered_temp_inits_traversal_block(&tblock);
       traverse_dynamic_init(dip, &tblock);
