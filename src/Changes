@@ -96,8 +96,9 @@ initialized in a ctor-initializer with a string literal:
     S() : x("ab") { }        // Spurious error eliminated
   };
 
-In a related change, a string literal is now accepted in a direct
-initialization as well:
+In a related change, a string literal is now accepted in initializations
+that use the "(...)" syntax ("direct" initializations) wherever it would
+be accepted with the "=" syntax:
 
   char x[3]("ab");           // Same as char x[3] = "ab"
 
