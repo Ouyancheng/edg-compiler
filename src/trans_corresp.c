@@ -3983,6 +3983,9 @@ entities.
     /* Some prototype instantiations are not associated with any scope and
        as a result cannot have a correspondence set.  This is in particular
        the case with dummy IL entries for friend functions. */
+  } else if (!may_have_correspondence(templ_sym)) {
+    /* Function templates marked "static" do not correspond to their
+       homonyms in other translation units. */
   } else {
     a_template_ptr  corresp_templ = NULL, candidate;
     a_boolean       class_template = is_class_template_symbol(templ_sym);
