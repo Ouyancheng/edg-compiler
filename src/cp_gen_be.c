@@ -2045,6 +2045,86 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #define gen_field_name(field)                                         \
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+
+static void gen_name_qualifier_list(a_name_qualifier_ptr nqp)
+/*
+Put out the list of name qualifiers indicated by nqp.  If nqp is NULL,
+put out nothing.
+*/
+{
+  if (nqp != NULL) {
+    /* Do a recursive call to put out the parent qualifier. */
+    gen_name_qualifier_list(nqp->previous_qualifier);
+    if (nqp->is_class) {
+      /* A class qualifier. */
+      gen_unqualified_name(&nqp->qualifier.class_type->source_corresp,
+                           iek_type);
+    } else {
+      /* A namespace qualifier. */
+      gen_unqualified_name(&nqp->qualifier.namespace_ptr->source_corresp,
+                           iek_namespace);
+    }  /* if */
+    write_tok_str("::");
+  }  /* if */
+}  /* gen_name_qualifier_list */
+
+
+static void gen_name_from_name_reference(a_name_reference_ptr    nrp,
+                                         a_source_correspondence *scp,
+                                         an_il_entry_kind        entry_kind)
+/*
+Generate a name reference for the entity with source correspondence
+scp and kind entry_kind using the name-reference information in *nrp.
+*/
+{
+  if (nrp->is_global_qualified_name) {
+    /* The name starts with a leading "::". */
+    write_tok_str("::");
+  } else if (nrp->is_super_qualified) {
+    /* The name starts with "__super::". */
+    write_tok_str("__super::");
+  }  /* if */
+  /* Output the list of qualifiers, if any. */
+  gen_name_qualifier_list(nrp->qualifier);
+  if (entry_kind == iek_routine) {
+    /* Do routine names specially because we have an indication of
+       whether to include template arguments. */
+    gen_bare_name(scp, entry_kind);
+    if (nrp->is_template_id) {
+      gen_template_arguments(scp, entry_kind);
+    }  /* if */
+  } else {
+    /* Not a routine name. */
+    gen_unqualified_name(scp, entry_kind);
+  }  /* if */
+}  /* gen_name_from_name_reference */
+
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
+static void gen_name_from_routine_address_node(an_expr_node_ptr node)
+/*
+Generate the name of a routine from an enk_routine_address node.
+*/
+{
+  a_routine_ptr rout;
+
+  check_assertion(node->kind == (an_expr_node_kind)enk_routine_address);
+  rout = node->variant.routine;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (node->name_reference != NULL) {
+    /* We have information on the exact form of reference, so use that
+       to generate the name. */
+    gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
+                                 iek_routine);
+  } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  /* Do not insert code here. */
+  {
+    gen_routine_name(rout);
+  }  /* if */
+}  /* gen_name_from_routine_address_node */
+
 
 static void gen_compound_literal(a_constant_ptr     literal_con,
                                  a_dynamic_init_ptr dip,
@@ -5179,7 +5259,7 @@ precedence confusion and need_parens is TRUE.
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_routine_address) {
     /* Address of routine: just write the routine name. */
-    gen_routine_name(node->variant.routine);
+    gen_name_from_routine_address_node(node);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_operation) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -5992,7 +6072,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   char             *opstr;
   an_expr_node_ptr operand_1, operand_2, args;
   a_boolean        operand_1_is_lvalue = FALSE;
-  a_routine_ptr    rout;
   a_boolean        need_reference_close_paren = FALSE;
   an_expr_operator_kind
                    op;
@@ -6490,9 +6569,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else if (operand_1->kind ==
                                       (an_expr_node_kind)enk_routine_address) {
             /* We can tell which routine is being called. */
-            a_type_ptr rout_type;
-            rout = operand_1->variant.routine;
-            rout_type = skip_typerefs(rout->type);
+            a_routine_ptr rout = operand_1->variant.routine;
+            a_type_ptr    rout_type = skip_typerefs(rout->type);
             if (rout_type->variant.routine.extra_info->this_class != NULL) {
               /* Nonstatic member function call, so put out the selector object
                  first. */
@@ -6500,7 +6578,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               args = args->next;
             } else {
               /* Nonmember function or static member function. */
-              gen_routine_name(rout);
+              gen_name_from_routine_address_node(operand_1);
             }  /* if */
           } else if (is_dot_static_operation(operand_1)) {
             /* Call of a static member function identified by a static
@@ -6744,7 +6822,7 @@ done_with_operation_after_parens:
       gen_variable_name(expr->variant.variable);
       break;
     case enk_routine_address:
-      gen_routine_name(expr->variant.routine);
+      gen_name_from_routine_address_node(expr);
       break;
     case enk_throw:
       /* Throw. */

@@ -1,5 +1,16 @@
 Version 3.1
 
+7/9/02   C++-generating back end: name references
+
+When RECORD_FORM_OF_NAME_REFERENCE is TRUE (which it is by default
+when BACK_END_IS_CP_GEN_BE is TRUE), the front end now records the
+form of name references in IL entries of type a_name_reference
+and a_name_qualifier (IL CHANGE if configured in); the C++-generating
+back end then uses those to output the name reference exactly the way
+it was in the source code.  This is currently being used in only
+a few kinds of references; we will be gradually expanding the list
+of cases.
+
 7/8/02   Multiple translation units, address_taken on routines and variables
 
 When a compilation involves multiple translation units (e.g., when

@@ -286,6 +286,16 @@ typedef struct an_operand {
   a_bit_field	is_using_decl_name:1;
 			/* TRUE if the operand was generated from a name
 			   that was declared in a using-declaration. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_bit_field	name_reference_set:1;
+			/* TRUE if name_reference has been set. */
+  a_name_reference
+		name_reference;
+			/* Records the form of reference to a name, for
+			   some operands that represent named entities
+			   (e.g., a function name).  Valid when
+			   name_reference_set is TRUE. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_source_position
 		position;
 			/* The source position for the operand. */
@@ -991,6 +1001,16 @@ extern void make_template_param_expr_constant_operand(
                                                     an_operand        *result);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
+
+extern an_expr_node_ptr make_node_from_operand_preserving_name_reference(
+                                                          an_operand *operand);
+
+#if RECORD_FORM_OF_NAME_REFERENCE
+extern void set_operand_name_reference_from_locator_for_curr_id(
+                                                          an_operand *operand);
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define set_operand_name_reference_from_locator_for_curr_id(x) /* Nothing */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 extern void extract_constant_from_operand(an_operand     *operand,
                                           a_constant_ptr constant);

@@ -5015,7 +5015,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
       }  /* if */
     }  /* if */
     selector_expr = make_node_from_operand(bound_function_selector);
-    expr = make_node_from_operand(operand);
+    expr = make_node_from_operand_preserving_name_reference(operand);
     selector_expr->next = expr;
     /* Determine the operator to use. */
     if (is_arrow_operator) {

@@ -1479,11 +1479,23 @@ Syntax:
 
   if (overloaded_function_case) {
     a_source_position id_position;
+#if RECORD_FORM_OF_NAME_REFERENCE
+    a_boolean         name_reference_was_saved = FALSE;
+    a_name_reference  saved_name_reference;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the end position for later restoration. */
     a_source_position end_function_position;
     end_function_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (operand->name_reference_set) {
+      /* We have recorded the form of reference of the function name.  Save
+         it for incorporation in the call expression later. */
+      saved_name_reference = operand->name_reference;
+      name_reference_was_saved = TRUE;
+    }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     if (is_indefinite_function_operand(operand) ||
         is_undefined_symbol_operand(operand)) {
       id_position = operand->id_position;
@@ -1549,6 +1561,13 @@ Syntax:
     } else if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
+#if RECORD_FORM_OF_NAME_REFERENCE
+    } else if (name_reference_was_saved) {
+      /* Restore information on the form of the name reference for the
+         function name. */
+      operand->name_reference = saved_name_reference;
+      operand->name_reference_set = TRUE;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     }  /* if */
   } else if (vacuous_destructor_case) {
     /* A vacuous destructor call.  The argument list should have no
@@ -2643,6 +2662,7 @@ nonstatic_member_function:
                                                                source_position,
                                                  rep,
                                                  result);
+                set_operand_name_reference_from_locator_for_curr_id(result);
               }  /* if */
               copy_operand(operand_1, bound_function_selector);
               bind_member_function_operand_to_selector(result,
@@ -2655,6 +2675,7 @@ nonstatic_member_function:
                                              &member_position,
                                              rep,
                                              result);
+            set_operand_name_reference_from_locator_for_curr_id(result);
             combine_unneeded_selector_with_operand(operand_1,
                                                    is_arrow_operator,
                                                    result);
@@ -12844,6 +12865,7 @@ normal_function:
                                                                source_position,
                                              rep,
                                              result);
+            set_operand_name_reference_from_locator_for_curr_id(result);
           }  /* if */
           break;
         case sk_field:

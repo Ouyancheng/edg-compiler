@@ -1348,6 +1348,9 @@ values.
   operand->is_simple_string_literal = FALSE;
   operand->is_cfront_null_pointer_constant = FALSE;
   operand->is_using_decl_name = FALSE;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  operand->name_reference_set = FALSE;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = null_source_position;
@@ -1554,8 +1557,8 @@ operand, create an error node.  If the operand is an expression, return the
 expression node.
 */
 {
-  register an_expr_node_ptr node;
-  a_constant_ptr            con;
+  an_expr_node_ptr node;
+  a_constant_ptr   con;
 
   switch (operand->kind) {
     case ok_error:
@@ -1590,6 +1593,45 @@ expression node.
 
   return node;
 }  /* make_node_from_operand */
+
+
+an_expr_node_ptr make_node_from_operand_preserving_name_reference(
+                                                           an_operand *operand)
+/*
+Like make_node_from_operand, but also transfers form-of-name-reference
+information if present.
+*/
+{
+  an_expr_node_ptr node = make_node_from_operand(operand);
+
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (operand->name_reference_set &&
+      is_routine_address_node(node)) {
+    node->name_reference = find_allocated_name_reference(
+                                        &node->variant.routine->source_corresp,
+                                        &operand->name_reference);
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  return node;
+}  /* make_node_from_operand_preserving_name_reference */
+
+
+#if RECORD_FORM_OF_NAME_REFERENCE
+
+void set_operand_name_reference_from_locator_for_curr_id(an_operand *operand)
+/*
+Transfer the form-of-reference information (if any) from the
+locator_for_curr_id to the indicated operand.
+*/
+{
+  if (!C_mode()) {
+    make_name_reference_from_locator(&locator_for_curr_id,
+                                     &operand->name_reference);
+    operand->name_reference_set = TRUE;
+  }  /* if */
+}  /* set_operand_name_reference_from_locator_for_curr_id */
+
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 
 void extract_constant_from_operand(an_operand     *operand,
@@ -1938,6 +1980,7 @@ The operand is put into *operand and is a function designator.
     operand->is_template_id = locator_for_curr_id.is_template_id;
     operand->template_arg_list = locator_for_curr_id.template_arg_list;
     operand->id_position = locator_for_curr_id.source_position;
+    set_operand_name_reference_from_locator_for_curr_id(operand);
   } else {
     operand->id_position = operand->position;
   }  /* if */
@@ -7027,7 +7070,8 @@ is constructed in *result.
        list. */
     /* Make the function address node.  This might have type pointer-to-
        member-function in a case like (p->*pmf)(). */
-    function_node = make_node_from_operand(function_operand);
+    function_node =
+            make_node_from_operand_preserving_name_reference(function_operand);
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       function_type = pm_member_type(function_node->type);
