@@ -42,14 +42,6 @@ static a_boolean conversion_to_class_possible(
                                   a_user_conv_descr        *user_conversion,
                                   a_boolean                *ambiguous,
                                   a_candidate_function_ptr *ambiguity_list);
-static a_boolean conversion_from_class_possible(
-                               an_operand               *source_operand,
-                               a_type_ptr               dest_type,
-                               a_builtin_type_kind_set  builtin_types_allowed,
-                               a_boolean                need_lvalue_result,
-                               a_user_conv_descr        *user_conversion,
-                               a_boolean                *ambiguous,
-                               a_candidate_function_ptr *ambiguity_list);
 
 
 static void clear_user_conv_descr(a_user_conv_descr_ptr ucdp)
@@ -4751,7 +4743,7 @@ This routine is only used in C++ mode.
 }  /* conversion_to_class_possible */
 
 
-static a_boolean conversion_from_class_possible(
+a_boolean conversion_from_class_possible(
                                an_operand               *source_operand,
                                a_type_ptr               dest_type,
                                a_builtin_type_kind_set  builtin_types_allowed,

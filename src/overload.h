@@ -355,6 +355,15 @@ extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  an_operand         *function_operand,
                                  an_expr_node_ptr   *arg_expr_list);
 
+a_boolean conversion_from_class_possible(
+                               an_operand               *source_operand,
+                               a_type_ptr               dest_type,
+                               a_builtin_type_kind_set  builtin_types_allowed,
+                               a_boolean                need_lvalue_result,
+                               a_user_conv_descr        *user_conversion,
+                               a_boolean                *ambiguous,
+                               a_candidate_function_ptr *ambiguity_list);
+
 extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
                                  a_builtin_type_kind_set builtin_types_allowed,
