@@ -143,7 +143,7 @@ typedef a_byte a_region_descr_flag_set;
 			   address of the flag that indicates whether the
 			   object has been constructed.  When this flag is
 			   set the value of the conditional flag (pointed
-			   to be the handle in the region entry) should be
+			   to by the handle in the region entry) should be
 			   tested before trying to make use of the handle
 			   in the next region entry. */
 #define RDF_NEW_ALLOCATION	0x04
