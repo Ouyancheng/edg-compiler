@@ -121,7 +121,7 @@ typedef struct a_pragma_kind_description {
   a_bit_field	global:1;
 			/* For pbk_other pragmas, this is TRUE if the pragma
 			   entry should be added to the file-scope pragma
-			   list;  Otherwise, the pragma is added to the
+			   list; otherwise, the pragma is added to the
 			   pragma list associated with the current scope
 			   stack entry.  This flag is used again to determine
 			   the IL scope to be used when

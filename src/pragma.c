@@ -816,7 +816,7 @@ legally placed).  Diagnostics are issued for any such pragmas that
 remain on the list.
 
 pbk_other pragmas are moved to the pragma list associated with either
-the file scope (if the global flag is set) or the associated with
+the file scope (if the global flag is set) or the scope associated with
 the current scope stack entry.
 
 pbk_immediate pragmas are processed here.
