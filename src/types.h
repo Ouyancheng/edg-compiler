@@ -630,10 +630,7 @@ but it may have typerefs on top of it.
           variant.routine.extra_info->this_class != NULL)
 
 extern a_type_ptr f_implicit_this_param_type_of(a_type_ptr  routine_type);
-extern void extract_this_class_and_qualifiers(
-                                           a_type_ptr            this_type,
-                                           a_type_ptr            *this_class,
-                                           a_type_qualifier_set  *qualifiers);
+
 /*
 Synthesize the type of the implicit "this" parameter of a routine if the
 underlying class exists (nonstatic members and pointer-to-members); otherwise
