@@ -46,9 +46,11 @@ In Microsoft mode the front end now accepts multiple mem-initializers for
 members of the same anonymous union.  For example:
 
   struct X {
-    X(): i(0), j(0.0) {}  // Now accepted in Microsoft mode
+    X(): i(0), j(3.0) {}  // Now accepted in Microsoft mode
     union { int i; double j; };
   };
+
+Both initializations occur in the IL in the order of the field declarations.
 
 3/2/00   Internal error on redeclaration incompatibility in SVR4 mode
 
