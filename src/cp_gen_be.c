@@ -2179,11 +2179,18 @@ is the one associated with the definition of the class.
   if (il_header.source_language == sl_Cplusplus) {
     push_name_context(ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
-       when necessary.  Start with the default based on the class/struct/
-       union keyword. */
-    curr_name_context->access = (an_access_specifier)as_public;
-    if (type->kind == (a_type_kind)tk_class) {
-      curr_name_context->access = (an_access_specifier)as_private;
+       when necessary. */
+    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+      /* An anonymous union starts with the same access as the enclosing
+         class. */
+      curr_name_context->access = curr_name_context->next->access;
+    } else {
+      /* Normal case (not an anonymous union).  Start with the default
+         based on the class/struct/union keyword. */
+      curr_name_context->access = (an_access_specifier)as_public;
+      if (type->kind == (a_type_kind)tk_class) {
+        curr_name_context->access = (an_access_specifier)as_private;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Go through the source sequence list and generate the members of the
