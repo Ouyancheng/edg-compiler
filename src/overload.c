@@ -5307,6 +5307,7 @@ a reference type (the caller should have rewritten that case).
 */
 {
   a_boolean                okay = FALSE, ambiguous;
+  a_boolean                single_type_message = FALSE;
   a_type_ptr               source_type, diag_dest_type = dest_type;
   an_error_code            err_code;
   a_candidate_function_ptr ambiguity_list;
@@ -5339,11 +5340,20 @@ a reference type (the caller should have rewritten that case).
       *failed = TRUE;
       /* Pick the right error code. */
       if (is_class_struct_union_type(source_type)) {
-        /* Both the source and destination types are classes, so the
-           message should indicate that both constructors and conversion
-           functions were considered. */
-        err_code = ambiguous ? ec_ambiguous_user_defined_conversion :
-                               ec_no_user_defined_conversion;
+        /* Both the source and destination types are classes. */
+        if (types_are_compatible(f_skip_typerefs(dest_type),
+                                 f_skip_typerefs(source_type))) {
+          /* This is a copy constructor case. */
+          err_code = ambiguous ? ec_ambiguous_copy_constructor :
+                                 ec_no_suitable_copy_constructor;
+          single_type_message = TRUE;
+        } else {
+          /* The source and destination types are different classes, so the
+             message should indicate that both constructors and conversion
+             functions were considered. */
+          err_code = ambiguous ? ec_ambiguous_user_defined_conversion :
+                                 ec_no_user_defined_conversion;
+        }  /* if */
       } else {
         /* The source type is a non-class and the destination type is a class,
            so the message should indicate that constructors were considered. */
@@ -5388,8 +5398,16 @@ a reference type (the caller should have rewritten that case).
       } else {
         /* Put out the usual message (which has already been chosen to
            describe the problem). */
-        type2_error_in_operand(err_code, source_operand,
-                               source_type, diag_dest_type);
+        if (single_type_message) {
+          /* Single-type case. */
+          pos_ty_error(err_code, &source_operand->position,
+                       f_skip_typerefs(source_type));
+          conv_to_error_operand(source_operand);
+        } else {
+          /* Normal double-type case. */
+          type2_error_in_operand(err_code, source_operand,
+                                 source_type, diag_dest_type);
+        }  /* if */
       }  /* if */
     } else {
       /* More than one conversion applies (ambiguity). */
