@@ -1,5 +1,26 @@
 Version 2.46
 
+2/7/02   Limiting the amount of instantiation context output in diagnostics
+
+In certain cases, the context information provided for errors during
+template instantiations can become very lengthy.  In many cases much
+of the context information is unnecessary.  The front end now provides
+a mechanism to limit the volume of context output.  The "context limit"
+is the maximum number of context entries to be displayed as part of
+a diagnostic message.  The default is provided by the DEFAULT_CONTEXT_LIMIT
+macro and may be overridden with the --context_limit command-line option.
+A value of zero is used to indicate that there is no limit.  If the number
+of context entries exceeds the limit, the first and last N context
+entries are displayed where N is half of the context limit.  The following
+is an example of the output when a portion of the context is suppressed
+using --context_limit=2.  The default limit is 10.
+
+          detected during:
+            instantiation of "void f(T) [with T=int ***]" at line 4
+            [ 20 instantiation contexts not shown ]
+            instantiation of "void f(T) [with T=int]" 
+
+
 2/6/02   Abort on inlining in C99 mode, with block extern
 
 In certain cases in C99 mode, a call of an inline function made in

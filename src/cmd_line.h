@@ -206,6 +206,7 @@ typedef enum /*an_option_kind*/ {
   optk_debug_name,
 #endif /* DEBUG */
   optk_long_long,
+  optk_context_limit,
   optk_last		/* Must be last. */
 } an_option_kind;
 

@@ -79,6 +79,13 @@ EXTERN unsigned long
 			/* Compilation is abandoned when this many errors
 			   are detected. */
 
+EXTERN int	context_limit
+#if VAR_INITIALIZERS
+			    = DEFAULT_CONTEXT_LIMIT
+#endif /* VAR_INITIALIZERS */
+						    ;
+			/* The maximum number of context lines to be
+			   emitted as part of an error message. */
 
 EXTERN an_error_severity
                 strict_ansi_error_severity

@@ -3316,6 +3316,15 @@ and doing any required expansions, the diagnostic is written.
       /* Loop through the scope stack and output context information. */
       if (num_of_contexts > 0) {
         a_diagnostic_category_kind	context_diag_kind;
+        int				contexts_to_include;
+	int				contexts_processed = 0;
+        int				contexts_skipped = 0;
+        a_boolean			limit_context;
+        /* Check whether we should limit the number of context lines emitted.
+           Ignore the limit if we are just above it. */
+        limit_context = context_limit > 0 &&
+                        num_of_contexts > (context_limit + 1);
+        contexts_to_include = context_limit / 2;
         if (num_of_contexts != 1) {
           /* If there is more than one line of context we output an
 	     initial header line. */
@@ -3329,6 +3338,26 @@ and doing any required expansions, the diagnostic is written.
                                          &context_error_code,
 					 /*add_detected_prefix=*/
 					     num_of_contexts == 1)) continue;
+          contexts_processed++;
+          /* If we are limiting the number of context lines, see if this is
+             an entry that should be excluded. */
+          if (limit_context &&
+              contexts_processed > contexts_to_include &&
+              contexts_processed <= (num_of_contexts - contexts_to_include)) {
+            contexts_skipped++;
+            continue;
+          }  /* if */
+          /* When resuming the display of contexts, indicate the number of
+             entries not shown. */
+          if (contexts_skipped > 0) {
+            char	buffer[50];
+            init_error_params();
+            (void)sprintf(buffer, "%d", contexts_skipped);
+            error_msg_strings[1] = buffer;
+            diag_message(ec_context_lines_skipped,
+                         error_pos, severity, dck_list);
+            contexts_skipped = 0;
+          }  /* if */
           /* If only one line of context is being issued, then it is
 	     considered the "primary" context line.  Otherwise a header
 	     was issued above and the context lines are handled as list

@@ -249,6 +249,18 @@ command-line option.
 #endif /* ifndef DEFAULT_BRIEF_DIAGNOSTICS */
 
 /*
+The maximum number of instantiation contexts that should be displayed as
+part of a diagnostic.  If this limit is exceeded, the first N and last N
+contexts are displayed, where N is half of the limit value.  If the limit
+is specified as zero, all of the contexts are displayed.  This is the
+initial value of the variable context_limit, which can be overridden by the
+--context_limit command-line option.
+*/
+#ifndef DEFAULT_CONTEXT_LIMIT
+#define DEFAULT_CONTEXT_LIMIT 10
+#endif /* ifndef DEFAULT_CONTEXT_LIMIT */
+
+/*
 Is the C-generating back end being used as the back end?
 See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
 Note that this means we're using the C-generating back end,

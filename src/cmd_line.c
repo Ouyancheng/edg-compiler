@@ -937,6 +937,9 @@ Initialize the option information table.
                          "long_long",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_context_limit, "context_limit", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -3321,6 +3324,19 @@ enable_microsoft_mode:
            configured to use it, but its use results in an error in certain
            modes.  This option is used to suppress such errors. */
         long_long_is_standard = opt_value;
+        break;
+      case optk_context_limit:
+        /* Specify the maximum number of instantiation contexts that should be
+           displayed as part of a diagnostic message. */
+        context_limit = (int)scan_opt_arg_number(opt_arg);
+        /* The smallest allowed value is 2.  If 1 is specified, use 2
+           instead.  A value of zero is permitted and is interpreted as
+           no limit. */
+        if (context_limit == 1) context_limit = 2;
+        /* Convert odd numbers to the next lower even number.  We display
+           limit/2 lines of initial and trailing context so we can only
+           really handle even numbers. */
+        context_limit = context_limit & (~1);
         break;
       default:
         /* It should not be possible to get here. */

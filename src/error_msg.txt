@@ -1198,6 +1198,7 @@ ec_not_a_base_class_member;;"%sq is not a base class member"
 ec_super_after_scope;;"__super cannot appear after \"::\""
 ec_super_not_in_class;;"__super may only be used in a class scope"
 ec_unqualified_super;;"__super must followed by \"::\""
+ec_context_lines_skipped;;"[ %s instantiation contexts not shown ]"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
