@@ -3384,7 +3384,7 @@ namespace-extension scope.
     linked_symbol = idlbp->linked_symbol;
     storage_class = idlbp->storage_class;
     if (linked_symbol != NULL) {
-      /* A linked symbol was found -- set the storage class and and linkage
+      /* A linked symbol was found -- set the storage class and linkage
          appropriately. */
       switch (linked_symbol->kind) {
         case sk_routine:
