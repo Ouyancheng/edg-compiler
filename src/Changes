@@ -1,5 +1,17 @@
 Version 2.28
 
+2/3/95   IL CHANGE: asm entries
+
+Some new fields have been added to allow an_asm_entry to represent the
+body of an asm function.  This functionality is used only when
+ASM_FUNCTION_ALLOWED is TRUE.
+
+Moreover, entries of type an_asm_entry are now recorded in the scope's
+asm_entries list only when they are not associated with an stmk_asm
+statement (i.e., when they are "asm declarations" not "asm statements").
+In effect, this means only asm declarations that appear outside a function
+scope are on a list.
+
 2/2/95   C-generating back end initialization of wchar_t array
 
 The wide string literals used in an initialization of a wchar_t array
