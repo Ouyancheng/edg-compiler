@@ -1259,7 +1259,7 @@ typedef struct an_id_linkage_block {
 } an_id_linkage_block;
 
 
-static clear_id_linkage_block(an_id_linkage_block *idlbp)
+static void clear_id_linkage_block(an_id_linkage_block *idlbp)
 /*
 */
 {
@@ -1281,7 +1281,7 @@ static clear_id_linkage_block(an_id_linkage_block *idlbp)
 }  /* clear_id_linkage_block */
 
 
-static a_symbol_ptr find_linked_symbol(an_id_linkage_block *idlbp)
+static void find_linked_symbol(an_id_linkage_block *idlbp)
 /*
 Find and return a symbol representing the potential prior declaration of the
 variable or routine named by the specified symbol locator.  This deals with
@@ -1652,8 +1652,6 @@ called by id_linkage.
   }  /* if */
 done:
   db_exit();
-
-  return linked_symbol;
 }  /* find_linked_symbol */
 
 
