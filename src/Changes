@@ -1,5 +1,14 @@
 Version 2.43
 
+11/16/99 Overloaded function as call argument, with argument-dependent lookup
+
+An argument of a call that is the address of an overloaded function
+was not being handled properly in argument-dependent lookup.  The
+function parameter types and return types of the functions in the
+overload set were not processed, and therefore the scopes associated
+with those types were not searched by the argument-dependent lookup.
+Now fixed.
+
 11/15/99 Name linkage of block extern declaration with visible type name
          synonym in surrounding scope
 

@@ -3657,6 +3657,40 @@ create_final_list:
 }  /* select_best_candidate_functions */
 
 
+static void add_operand_to_arg_dependent_lookup_list(
+                                              an_operand            *operand,
+                                              a_type_list_entry_ptr *type_list)
+/*
+operand is an argument of a call.  Add its type to the type list pointed
+to by type_list, which is being accumulated to do argument-dependent
+lookup.
+*/
+{
+  if (is_indefinite_function_operand(operand)) {
+    /* The operand is an indefinite function.  Loop through the symbols
+       and add each function type to the list. */
+    a_symbol_ptr ovl_sym = operand->variant.symbol, sym;
+    reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
+    /* Ignore templates. */
+    if (ovl_sym->kind != (a_symbol_kind)sk_function_template) {
+      check_assertion(ovl_sym->kind == (a_symbol_kind)sk_overloaded_function);
+      sym = ovl_sym->variant.overloaded_function.symbols;
+      for (; sym != NULL; sym = sym->next) {
+        a_type_ptr   func_type;
+        a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+        check_assertion(fund_sym->kind == (a_symbol_kind)sk_routine ||
+                        fund_sym->kind == (a_symbol_kind)sk_member_function);
+        func_type = routine_symbol_type(fund_sym);
+        add_to_arg_dependent_lookup_list(func_type, type_list);
+      }  /* for */
+    }  /* if */
+  } else {
+    /* Normal case. */
+    add_to_arg_dependent_lookup_list(operand->type, type_list);
+  }  /* if */
+}  /* add_operand_to_arg_dependent_lookup_list */
+
+
 a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
                          a_boolean                is_template_id,
@@ -3776,8 +3810,8 @@ and return NULL.  This routine is called only in C++ mode.
       for (arg_operand = arg_operand_list;
            arg_operand != NULL;
            arg_operand = arg_operand->next) {
-        add_to_arg_dependent_lookup_list(arg_operand->operand.type,
-                                         &type_list);
+        add_operand_to_arg_dependent_lookup_list(&arg_operand->operand,
+                                                 &type_list);
       }  /* for */
       /* Do argument-dependent lookup, producing a list of symbols to
          be considered as candidate functions. */
@@ -7400,9 +7434,9 @@ functions could still apply).
           } else {
             /* Build a list of the argument types, to be used to do
                argument-dependent lookup below. */
-            add_to_arg_dependent_lookup_list(operand_1->type, &type_list);
+            add_operand_to_arg_dependent_lookup_list(operand_1, &type_list);
             if (!unary_operator) {
-              add_to_arg_dependent_lookup_list(operand_2->type, &type_list);
+              add_operand_to_arg_dependent_lookup_list(operand_2, &type_list);
             }  /* if */
           }  /* if */
           /* Do argument-dependent lookup, producing a list of symbols to
