@@ -2329,7 +2329,7 @@ about variables and routines.
 /*
 Type used to represent a set of decl modifiers.
 */
-typedef short	a_decl_modifier;
+typedef a_byte a_decl_modifier;
 typedef a_decl_modifier *a_decl_modifier_ptr;
 
 #endif /* ifdef CIL */
@@ -2929,6 +2929,9 @@ typedef struct a_class_type_supplement {
 			   no virtual steps in its derivation.  This field is
 			   NULL if the virtual function info is not shared. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  char		*uuid_string;
+			/* Pointer to a character string representing the
+			   argument of a uuid decl-modifier. */
   a_decl_modifier
 		decl_modifiers;
 			/* Additional declaration information representing
@@ -2955,9 +2958,6 @@ typedef struct a_class_type_supplement {
 			   Microsoft ABI compatibility.  An inheritance kind
 			   of ihk_none means no specific inheritance kind
 			   has been set. */
-  char		*uuid_string;
-			/* Pointer to a character string representing the
-			   argument of a uuid decl-modifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;
@@ -3904,6 +3904,16 @@ typedef struct a_variable {
 			   (including a variable representing a static data
 			   member) or if there is no definition in the current
 			   translation unit. */
+#ifdef CIL
+#if DECL_MODIFIERS_IN_USE
+  a_decl_modifier
+		decl_modifiers;
+			/* Additional declaration information supplied by
+			   nonstandard language features such as the
+			   Microsoft storage-class-like __declspec
+			   modifiers. */
+#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* ifdef CIL */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */
@@ -4070,14 +4080,6 @@ typedef struct a_variable {
 			/* TRUE if this variable is a local static variable
 			   that has been promoted out of its function. */
 #endif /* DO_IL_LOWERING */
-#if DECL_MODIFIERS_IN_USE
-  a_decl_modifier
-		decl_modifiers;
-			/* Additional declaration information supplied by
-			   nonstandard language features such as the
-			   Microsoft storage-class-like __declspec
-			   modifiers. */
-#endif /* DECL_MODIFIERS_IN_USE */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
@@ -4554,6 +4556,12 @@ typedef struct a_routine {
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
+  a_virtual_function_number
+		virtual_function_number;
+			/* When is_virtual is TRUE, the number assigned to
+                           this function; it is unique among the virtual
+			   functions of a given class.  When is_virtual is
+			   FALSE, this field is undefined. */
   a_class_list_entry_ptr
                 befriending_classes;
 			/* A linked list of entries identifying classes that
@@ -4567,12 +4575,6 @@ typedef struct a_routine {
 			   the source the befriended routine is declared in
 			   the befriending class; this list records the
 			   befriending class in the befriended routine. */
-  a_virtual_function_number
-		virtual_function_number;
-			/* When is_virtual is TRUE, the number assigned to
-                           this function; it is unique among the virtual
-			   functions of a given class.  When is_virtual is
-			   FALSE, this field is undefined. */
   a_template_arg_ptr
 		template_arg_list;
 			/* For routines that are instantiations of a function

@@ -1204,6 +1204,9 @@ Display the indicated variable.
   disp_storage_class_name(ptr->storage_class);
   disp_name("declared_storage_class");
   disp_storage_class_name(ptr->declared_storage_class);
+#if DECL_MODIFIERS_IN_USE
+  disp_decl_modifiers(ptr->decl_modifiers);
+#endif /* DECL_MODIFIERS_IN_USE */
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   }  /* if */
@@ -1274,9 +1277,6 @@ Display the indicated variable.
     disp_boolean("has_variably_modified_type", TRUE);
     disp_boolean("is_vla", ptr->is_vla);
   }  /* if */
-#if DECL_MODIFIERS_IN_USE
-  disp_decl_modifiers(ptr->decl_modifiers);
-#endif /* DECL_MODIFIERS_IN_USE */
 #endif /*ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
@@ -1621,12 +1621,12 @@ Display the indicated routine.
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */
-  if (ptr->befriending_classes != NULL) {
-    disp_class_list("befriending_classes", ptr->befriending_classes);
-  }  /* if */
   if (ptr->is_virtual) {
     disp_unsigned_long("virtual_function_number",
                        (unsigned long)ptr->virtual_function_number);
+  }  /* if */
+  if (ptr->befriending_classes != NULL) {
+    disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
@@ -3367,6 +3367,10 @@ Display the indicated class type supplement entry.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->uuid_string != NULL) {
+    disp_string_ptr("uuid_string", ptr->uuid_string, iek_other_text,
+                    (sizeof_t)0);
+  }  /* if */
   if (ptr->decl_modifiers != DM_NONE) {
     disp_decl_modifiers(ptr->decl_modifiers);
   }  /* if */
@@ -3396,10 +3400,6 @@ Display the indicated class type supplement entry.
       case ihk_virtual:   (void)printf("ihk_virtual\n"); break;
       default:            (void)printf("**BAD INHERITANCE KIND**\n");
     }  /* switch */
-  }  /* if */
-  if (ptr->uuid_string != NULL) {
-    disp_string_ptr("uuid_string", ptr->uuid_string, iek_other_text,
-                    (sizeof_t)0);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {

@@ -784,11 +784,11 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->virtual_function_info_offset      = 0;
   ctsp->virtual_function_info_base_class  = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->uuid_string                       = NULL;
   ctsp->decl_modifiers                    = DM_NONE;
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->qualifiers                        = TQ_NONE;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
-  ctsp->uuid_string                       = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
@@ -1202,6 +1202,9 @@ to it.
   vp->assoc_param_type            = NULL;
   vp->storage_class               = storage_class;
   vp->declared_storage_class      = (a_storage_class)sc_unspecified;
+#if DECL_MODIFIERS_IN_USE
+  vp->decl_modifiers              = DM_NONE;
+#endif /* DECL_MODIFIERS_IN_USE */
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
@@ -1240,9 +1243,6 @@ to it.
   vp->promoted_local_static       = FALSE;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 #endif /* DO_IL_LOWERING */
-#if DECL_MODIFIERS_IN_USE
-  vp->decl_modifiers              = DM_NONE;
-#endif /* DECL_MODIFIERS_IN_USE */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type               = NULL;
@@ -1397,8 +1397,8 @@ to it.  The entry is allocated in the file scope memory region.
 #if DECL_MODIFIERS_IN_USE
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
-  rp->befriending_classes         = NULL;
   rp->virtual_function_number     = 0;
+  rp->befriending_classes         = NULL;
   rp->template_arg_list           = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
