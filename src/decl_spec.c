@@ -1577,6 +1577,21 @@ Returns TRUE if there is an error in the specifiers.
           *qualifiers |= TQ_VOLATILE;
         }  /* if */
         break;
+#if RESTRICT_ALLOWED
+      case tok_restrict:
+        /* volatile type qualifier. */
+        if (*qualifiers & TQ_RESTRICT) {
+          /* Issue a diagnostic if restrict appears more than once. */
+          es = (C_dialect == C_dialect_cplusplus) ? es_warning : es_error;
+          diagnostic(es, ec_dupl_type_qualifier);
+          if (es == es_error) err = TRUE;
+        } else {
+          /* Don't set qualifier_pos -- it's only for const and volatile
+             that we issue the diagnostic that uses it. */
+          *qualifiers |= TQ_RESTRICT;
+        }  /* if */
+        break;
+#endif /* RESTRICT_ALLOWED */
       case tok_friend:
 	/* "friend" specifier is allowed only in a C++ class declaration.
 	   This also excludes its appearing in a function parameter
