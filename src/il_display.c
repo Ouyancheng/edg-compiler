@@ -1185,7 +1185,8 @@ Display the indicated type entry.
       disp_int_kind_name(ptr->variant.integer.int_kind);
       (void)printf("\n");
 #ifdef FFE
-      disp_boolean("logical_type", ptr->variant.integer.logical_type);
+      disp_boolean("logical_type",
+                   (a_boolean)ptr->variant.integer.logical_type);
 #endif /* ifdef FFE */
 #ifdef CFE
       if (ptr->variant.integer.explicitly_signed) {
@@ -1294,7 +1295,7 @@ do_struct_union:
     case tk_fcharacter:
       (void)printf("tk_fcharacter\n");
       disp_unsigned_long("length", ptr->variant.fcharacter.length);
-      disp_boolean("star_star", ptr->variant.fcharacter.star_star);
+      disp_boolean("star_star", (a_boolean)ptr->variant.fcharacter.star_star);
       break;
     case tk_hollerith:
       (void)printf("tk_hollerith\n");
@@ -1387,10 +1388,11 @@ Display the indicated variable.
   disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   disp_boolean("is_parameter", (a_boolean)ptr->is_parameter);
 #ifdef FFE
-  disp_boolean("by_address", ptr->by_address);
+  disp_boolean("by_address", (a_boolean)ptr->by_address);
 #endif /*ifdef FFE */
 #ifdef CFE
-  disp_boolean("referenced_non_locally", ptr->referenced_non_locally);
+  disp_boolean("referenced_non_locally",
+               (a_boolean)ptr->referenced_non_locally);
 #endif /*ifdef CFE */
   disp_name("init_kind");
   switch (ptr->init_kind) {
@@ -1683,7 +1685,7 @@ Display the indicated routine.
   }  /* if */
 #endif /* ifdef CFE */
 #ifdef FFE
-  disp_boolean("is_fortran_entry", ptr->is_fortran_entry);
+  disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
   disp_ptr("local_routine_scope", (char *)ptr->local_routine_scope, iek_scope);
   if (ptr->storage_class == (a_storage_class)sc_intrinsic) {
     disp_name("intrinsic_function_code");
@@ -1702,7 +1704,7 @@ Display the indicated label.
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_label);
 #ifdef FFE
-  disp_boolean("used_in_assign", ptr->used_in_assign);
+  disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
   disp_name("kind");
   switch (ptr->kind) {
     case lk_unknown:
@@ -1922,10 +1924,13 @@ Display the indicated expression node.
 {
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("next", (char *)ptr->next, iek_expr_node);
-#ifdef FFE
-  disp_boolean("allow_reordering", ptr->allow_reordering);
-#endif /* ifdef FFE */
   disp_name("kind");
+  if (ptr->result_is_not_used) {
+    disp_boolean("result_is_not_used", (a_boolean)ptr->result_is_not_used);
+  }  /* if */
+#ifdef FFE
+  disp_boolean("allow_reordering", (a_boolean)ptr->allow_reordering);
+#endif /* ifdef FFE */
   switch (ptr->kind) {
     case enk_error:
       (void)printf("enk_error\n");
@@ -2953,10 +2958,11 @@ Display the IL for the file scope in human-readable form.
                (a_boolean)il_header.plain_chars_are_signed);
 #endif /* ifdef CFE */
 #ifdef FFE
-  disp_boolean("one_trip_do_loops", il_header.one_trip_do_loops);
+  disp_boolean("one_trip_do_loops", (a_boolean)il_header.one_trip_do_loops);
   disp_boolean("case_sensitive_identifiers",
-               il_header.case_sensitive_identifiers);
-  disp_boolean("local_vars_are_static", il_header.local_vars_are_static);
+               (a_boolean)il_header.case_sensitive_identifiers);
+  disp_boolean("local_vars_are_static",
+               (a_boolean)il_header.local_vars_are_static);
 #endif /* ifdef FFE */
   /* region_scope_entry is not displayed. */
   disp_name("source language");
