@@ -8389,13 +8389,14 @@ entry, if there is one.
   }  /* if */
 }  /* set_autonomous_tag_decl_flag */
 
-void drop_from_file_scope_source_sequence_list(
-                                     a_source_sequence_entry_ptr ssep)
+static void drop_from_file_scope_source_sequence_list(
+                                              a_source_correspondence  *scp)
 /*
 */
 {
-  a_source_sequence_entry_ptr  last_ssep;
+  a_source_sequence_entry_ptr  ssep, last_ssep;
 
+  ssep = scp->source_sequence_entry;
   if (ssep != NULL) {
     last_ssep = ssep;
     if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
@@ -8420,6 +8421,7 @@ void drop_from_file_scope_source_sequence_list(
       last_ssep->next->prev = ssep->prev;
     }  /* if */
     ssep->prev = last_ssep->next = NULL;
+    scp->source_sequence_entry = NULL;
   }  /* if */
 }  /* drop_from_file_scope_source_sequence_list */
 
@@ -8503,8 +8505,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       }  /* if */
       vp->next = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      drop_from_file_scope_source_sequence_list(
-                                  vp->source_corresp.source_sequence_entry);
+      drop_from_file_scope_source_sequence_list(&vp->source_corresp);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       prev_vp = vp;
@@ -8535,8 +8536,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       }  /* if */
       rp->next = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      drop_from_file_scope_source_sequence_list(
-                                  rp->source_corresp.source_sequence_entry);
+      drop_from_file_scope_source_sequence_list(&rp->source_corresp);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       prev_rp = rp;
@@ -8567,8 +8567,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       }  /* if */
       tp->next = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      drop_from_file_scope_source_sequence_list(
-                                  tp->source_corresp.source_sequence_entry);
+      drop_from_file_scope_source_sequence_list(&tp->source_corresp);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (is_immediate_class_type(tp)) {
         tp->variant.class_struct_union.field_list = NULL;
@@ -8666,7 +8665,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
           scp = source_corresp_for_il_entry(sssdp->entity.ptr,
                                             sssdp->entity.kind);
           if (!scp->needed) {
-            drop_from_file_scope_source_sequence_list(ssep);
+            drop_from_file_scope_source_sequence_list(scp);
           }  /* if */
         }  /* if */
       }  /* if */
