@@ -1690,6 +1690,9 @@ process.
   string_literals_are_const = FALSE;
   arg_dependent_lookup_enabled = FALSE;
   instantiate_extern_inline = FALSE;
+  do_dependent_name_processing = FALSE;
+  export_template_allowed = FALSE;
+  export_keyword_enabled = FALSE;
   /* The final field of a struct may be an incomplete array. */
   flexible_array_members_allowed = TRUE;
   /* Set the variable that controls whether "//" is allowed as a comment
