@@ -3869,7 +3869,7 @@ to default values.
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if MICROSOFT_KEYWORDS_ALLOWED
-      rtsp->calling_convention       = cc_default;
+      rtsp->calling_convention       = (a_calling_convention)cc_default;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
       rtsp->implicit_this_param_type = NULL;
       rtsp->prototype_scope          = NULL;
