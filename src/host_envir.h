@@ -547,6 +547,8 @@ extern FILE *open_source_file(char          *file_name,
                               a_boolean     *bad_name);
 /* Reopen a source file. */
 extern FILE *reopen_source_file(char *file_name);
+/* Buffer standard error output. */
+extern void line_buffer_error_output_file(void);
 /* Check whether or not a file is acceptable as an output file. */
 extern a_boolean okay_as_output_file(char *file_name);
 /* Open an output file. */

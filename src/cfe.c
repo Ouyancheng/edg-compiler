@@ -38,6 +38,9 @@ main (int argc, char *argv[])
 {
   an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
 
+  /* Set buffering of standard error output.  This needs to be done before
+     any output is sent to stderr. */
+  line_buffer_error_output_file();
   /* Set handlers for unusual abort signals. */
   set_signal_handlers();
   /* Process the command line. */
