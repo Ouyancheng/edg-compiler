@@ -933,15 +933,16 @@ one of the macros provided in types.h (type_has_default_constructor, etc.).
 }  /* f_type_has_default_constructor */
 
 
-a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
-                                    a_type_ptr base_class)
+a_base_class_ptr find_base_class_of_full(a_type_ptr derived_class,
+                                         a_type_ptr base_class,
+                                         a_boolean  instantiate_if_necessary)
 /*
 derived_class and base_class are both class types.  If base_class is a
 (direct or indirect) base class of derived_class, return the appropriate
 base class entry.  Otherwise, return NULL.  Either class is allowed to
 be incomplete (in which case NULL is returned).  In C mode, NULL is always
-returned.  In C++ mode, the derived class will be instantiated if necessary
-so that its base classes are known.
+returned.  In C++ mode, if instantiate_if_necessary is TRUE, the derived
+class will be instantiated if necessary so that its base classes are known.
 */
 {
   a_base_class_ptr bcp = NULL;
@@ -951,11 +952,13 @@ so that its base classes are known.
   if (C_dialect == C_dialect_cplusplus) {
     derived_class = skip_typerefs(derived_class);
     base_class = skip_typerefs(base_class);
-    /* Force instantiation of the derived type if it is an uninstantiated
-       template class.  This is necessary so that we can see what its base
-       classes are.  Note that this can potentially force instantiation
-       of the base class as well. */
-    complete_class_type_is_needed(derived_class);
+    if (instantiate_if_necessary) {
+      /* Force instantiation of the derived type if it is an uninstantiated
+         template class.  This is necessary so that we can see what its base
+         classes are.  Note that this can potentially force instantiation
+         of the base class as well. */
+      complete_class_type_is_needed(derived_class);
+    }  /* if */
     /* Check that both classes are complete, i.e., that their definitions have
        been seen. */
     if (derived_class->variant.class_struct_union.extra_info->
@@ -973,6 +976,19 @@ so that its base classes are known.
       }  /* for */
     }  /* if */
   }  /* if */
+  return bcp;
+}  /* find_base_class_of_full */
+
+
+a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
+                                    a_type_ptr base_class)
+/*
+Like find_base_class_full, with instantiate_if_necessary set to TRUE.
+*/
+{
+  a_base_class_ptr bcp =
+                    find_base_class_of_full(derived_class, base_class,
+                                            /*instantiate_if_necessary=*/TRUE);
   return bcp;
 }  /* find_base_class_of */
 

@@ -3566,12 +3566,12 @@ when appropriate.
          underlying types are related classes. */
       if (is_class_struct_union_type(underlying_source_type) &&
           is_class_struct_union_type(underlying_dest_type) &&
-          /* Note that find_base_class_of is not used because it would
-             instantiate the derived type. */
-          (find_direct_base_class_of(underlying_source_type,
-                                     underlying_dest_type) != NULL ||
-           find_direct_base_class_of(underlying_dest_type,
-                                     underlying_source_type) != NULL)) {
+          (find_base_class_of_full(underlying_source_type,
+                                   underlying_dest_type,
+                                   /*instantiate_if_necessary=*/FALSE)!=NULL ||
+           find_base_class_of_full(underlying_dest_type,
+                                   underlying_source_type,
+                                   /*instantiate_if_necessary=*/FALSE)!=NULL)){
         is_reinterpret_cast = TRUE;
       }  /* if */
     }  /* if */
