@@ -2360,16 +2360,7 @@ scan_paren:
                  a simple object, only "i" is scanned, and an error is issued
                  on the expected ")".  After that we want to bypass the rest
                  of the comma-list before resuming scanning. */
-              if (curr_token == tok_comma) {
-                a_stop_token_array  save_stop_token_array;
-                /* Save the current stop token state, and reinitialize it. */
-                copy_stop_tokens(stop_token_array, save_stop_token_array);
-                stop_token_array[(int)tok_comma] = 0;
-                /* Flush the tokens till a stop-token is reached. */
-                flush_tokens();
-                /* Restore the original stop token state. */
-                copy_stop_tokens(save_stop_token_array, stop_token_array);
-              }  /* if */
+              if (curr_token == tok_comma) flush_to_end_of_arg_list();
             }  /* if */
           }  /* if */
         }  /* if */
