@@ -1186,6 +1186,9 @@ typedef struct a_lookup_state {
   a_boolean	skip_class_scopes;
 			/* TRUE if the IDL_SKIP_CLASS_SCOPES
 			   was specified for this lookup. */
+  a_boolean	suppress_instantiation_context_lookup;
+			/* TRUE if instantiation_context_lookup should not be
+			   used for this lookup. */
   a_boolean	skip_first_class_reactivation;
 			/* TRUE in cfront mode if we have found a scope
 			   for a friend function definition and that
@@ -1261,6 +1264,8 @@ value.
   cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_scope               = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
+  cleared_lookup_state.suppress_instantiation_context_lookup
+						     = FALSE;
   cleared_lookup_state.skip_first_class_reactivation = FALSE;
   cleared_lookup_state.check_for_nonreal_bases       = FALSE;
   cleared_lookup_state.any_nonreal_bases             = FALSE;
@@ -1924,7 +1929,8 @@ that do normal id lookup processing.
          template lookup that considers symbols from both the
          defining and referencing context. */
       if (ssep->instantiation_context_depth !=
-                                          ssep->previous_scope) {
+                                          ssep->previous_scope &&
+          !lookup_state->suppress_instantiation_context_lookup) {
         /* Only do the special lookup if the context scope is different
            from the current scope.  If they are the same, just keep
            going back through the scopes. */
@@ -2147,6 +2153,12 @@ C and C++.
                                 (options & IDL_SKIP_TEMPLATE_DECL_SCOPES) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
+    /* IDL_SKIP_CURR_SCOPE is used for ctor-initializer names and during
+       hidden name lookup.  When it is used for the former, don't do the
+       usual instantiation context lookup (because names from the referencing
+       context should not be included). */
+    lookup_state.suppress_instantiation_context_lookup =
+               lookup_state.skip_curr_scope & !lookup_state.hidden_name_lookup;
     /* If any instantiation scopes are active we will need to check for
        the presence of nonreal base classes. */
     lookup_state.check_for_nonreal_bases =
