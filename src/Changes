@@ -1,5 +1,15 @@
 Version 3.5
 
+7/6/04   gcc compatibility: "&" operator applied to "?" operation
+
+In gcc mode, a "&" operator is now allowed to take the address of
+a "?" operation.
+
+  int x, y, *z;
+  void foo() {
+    z = &(x ? x : y);
+  }
+
 7/6/04   Microsoft and GNU C++ compatibility: redeclaration of template
 
 The Microsoft and g++ compilers allow a template to be redeclared outside

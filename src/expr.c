@@ -3762,9 +3762,9 @@ operation is a pointer-to-member (see ARM 5.3).
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                    TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-        if (gpp_mode) {
+        if (gnu_mode) {
           /* Get an lvalue back from what is ordinarily an rvalue in
-             some cases in g++ mode. */
+             some cases in gnu mode. */
           revert_gcc_rvalue_to_lvalue_if_possible(&operand,
                                                   /*ignore_casts=*/FALSE);
         } else if (microsoft_mode && !C_mode()) {
