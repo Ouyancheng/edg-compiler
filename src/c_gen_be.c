@@ -3515,15 +3515,15 @@ Generate code to set the indicated variable entirely to zeros.
   set_output_position(&variable->source_corresp.decl_position);
 #if __BSD__
   /* BSD -- use bzero(variable, sizeof(variable)). */
-  write_tok_str("bzero(");
+  write_tok_str("bzero((char *)");
 #else /* !__BSD__ */
   /* ANSI or System V -- use memset(variable, 0, sizeof(variable)). */
-  write_tok_str("memset(");
+  write_tok_str("memset((char *)");
 #endif /*__BSD__ */
   dump_ampersand(variable->type);
   dump_variable_name(variable);
 #if !__BSD__
-  write_tok_str(",0");
+  write_tok_str(", 0");
 #endif /* !__BSD __ */
   write_tok_str(",sizeof(");
   dump_variable_name(variable);
@@ -3580,14 +3580,18 @@ If this assignment is the first one, put out anything that must precede it.
       /* There was no constant initialization at all, so we are generating
          assignments for the entire initialization of the variable.  If the
          variable is not static, start by zeroing it in case it is
-         incompletely initialized.  See 3.5.7.  Only do this for variables
+         incompletely initialized.  See 3.5.7.  Do this for variables
          that are initialized with an aggregate constant; those are the only
-         cases where something can be partially initialized. */
+         cases where something can be partially initialized.  Also do it
+         for variables with an explicit initk_zero initialization (there won't
+         be any assignments following the zeroing in that case). */
       if (!has_static_storage_duration(variable->storage_class)) {
-        if ((variable->init_kind == (an_init_kind)initk_static &&
+        an_init_kind init_kind = variable->init_kind;
+        if (init_kind == (an_init_kind)initk_zero ||
+            (init_kind == (an_init_kind)initk_static &&
              variable->initializer.constant->kind ==
                                          (a_constant_repr_kind)ck_aggregate) ||
-            (variable->init_kind == (an_init_kind)initk_dynamic &&
+            (init_kind == (an_init_kind)initk_dynamic &&
              variable->initializer.dynamic->kind ==
                                            (a_dynamic_init_kind)dik_constant &&
              variable->initializer.dynamic->variant.constant->kind ==
@@ -3728,52 +3732,20 @@ out in this way to guarantee their alignment.
   }  /* if */
 }  /* dump_var_for_wide_string_constant */
 
-#if !C_GEN_BE_GENERATES_ANSI_C
-
-static a_boolean is_non_zeroable_type(a_type_ptr type)
-/*
-Return TRUE if the indicated type is a type that cannot be initialized with
-zero in K&R C, e.g., if it is a union type or if its first element
-(recursively, all the way down) is a union type.
-*/
-{
-  a_type_kind tkind;
-  a_boolean   is_non_zeroable = FALSE;
-
-  type = skip_typerefs(type);
-  tkind = type->kind;
-  if (tkind == (a_type_kind)tk_union) {
-    /* Unions cannot be initialized in K&R C. */
-    is_non_zeroable = TRUE;
-  } else if (tkind == (a_type_kind)tk_array) {
-    is_non_zeroable = is_non_zeroable_type(type->variant.array.element_type);
-  } else if (tkind == (a_type_kind)tk_struct) {
-    a_field_ptr field = next_initializable_field(
-                                  type->variant.class_struct_union.field_list);
-    /* structs with no initializable fields would have a generated dummy
-       field, so they are initializable. */
-    if (field != NULL) {
-      is_non_zeroable = is_non_zeroable_type(field->type);
-    }  /* if */
-  }  /* if */
-  return is_non_zeroable;
-}  /* is_non_zeroable_type */
-
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
 static void dump_initializer_part(a_variable_ptr        variable,
                                   a_type_ptr            type,
                                   a_constant_ptr        constant,
                                   a_boolean             *gen_assignments,
-                                  a_boolean             separate_chars,
                                   an_init_pos_descr_ptr outer_level_pos)
 /*
 Dump out an initializer for part of a variable.  The variable being
-initialized is "variable"; the piece of it being initialized has type "type",
-and gets the value indicated by "constant"; and outer_level_pos points
-to a list of of entries that describes the location of this initialization
-within the overall variable (it is the history of the recursive calls
-of this routine that got us to this point).
+initialized is "variable"; the piece of it being initialized has type
+"type", and gets the value indicated by "constant" (constant may be
+NULL to indicate initialization to zero); and outer_level_pos points
+to a list of of entries that describes the location of this
+initialization within the overall variable (it is the history of
+the recursive calls of this routine that got us to this point).
 If *gen_assignments is TRUE, assignment statements rather than constants
 must be generated for the initializer list (this flag will be set to
 TRUE upon encountering something that cannot be rendered as constants
@@ -3796,18 +3768,29 @@ temporary file (see start_initializer_assignments).
     }  /* if */
   }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-  if (constant->kind != (a_constant_repr_kind)ck_aggregate) {
-    /* Non-aggregate constant (includes string literals). */
+  /* If we have a constant, be guided by the constant in choosing between
+     aggregate and non-aggregate cases.  Otherwise (when initializing to
+     zero), be guided by the type of the entity being initialized. */
+  if ((constant != NULL) ? 
+           constant->kind != (a_constant_repr_kind)ck_aggregate :
+           !is_aggregate_or_union_type(type)) {
+    /* Non-aggregate case (includes string literals). */
     if (*gen_assignments) {
       /* Generate an assignment statement. */
-      /* Do any first-time processing necessary. */
+      /* Do any first-time processing necessary.  This call will force the
+         call of zero_variable for the constant == NULL case. */
       start_initializer_assignments(variable);
-      dump_init_assignment(variable, outer_level_pos, constant);
+      if (constant != NULL) {
+        dump_init_assignment(variable, outer_level_pos, constant);
+      }  /* if */
     } else {
       /* Generate a constant in an initializer list. */
       /* Do any first-time processing necessary. */
       start_initializer_constants();
-      if (is_wide_string_constant(constant)) {
+      if (constant == NULL) {
+        /* Initialize to zero. */
+        write_tok_str("0");
+      } else if (is_wide_string_constant(constant)) {
         /* If the initial value is a wide string constant, the string must
            be dumped specially. */
         write_tok_str("{");
@@ -3836,7 +3819,12 @@ temporary file (see start_initializer_assignments).
     ipdp->prev = outer_level_pos;
     ipdp->next = NULL;
     ipdp->type = type;
-    elem_con = constant->variant.aggregate.first_constant;
+    if (constant != NULL) {
+      elem_con = constant->variant.aggregate.first_constant;
+    } else {
+      /* Initializing to zero. */
+      elem_con = NULL;
+    }  /* if */
     /* Determine the type of the aggregate member first up to be
        initialized. */
     switch (type->kind) {
@@ -3856,8 +3844,6 @@ temporary file (see start_initializer_assignments).
           /* The struct or union contains no initializable fields, e.g.,
              "struct {int :0;}", but a dummy field will have been put out
              to avoid that problem.  It will be initialized below. */
-          check_assertion_str(elem_con == NULL,
-                              "dump_initializer_part: constant, but no field");
           elem_type = NULL;
         }  /* if */
         break;
@@ -3869,62 +3855,65 @@ temporary file (see start_initializer_assignments).
       initializer_open_brace();
       need_close_brace = TRUE;
     }  /* if */
-    if (elem_con == NULL) {
-      /* This is an empty constants list, which can only come up in IL
-         generated by IL lowering from C++.  Since C does not allow
-         an empty set of braces ("{}"), initialize the first thing inside
-         the current aggregate with a zero.  In the case of an empty struct
-         or union, this will initialize the dummy field added to the
-         struct or union.  We don't need to do this if we're currently
-         generating assignments. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-      if (is_non_zeroable_type(type)) {
-        /* The first thing in the aggregate cannot be initialized (e.g.,
-           it's a union), so switch to assignment statements. */
-        *gen_assignments = TRUE;
-      }  /* if */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+    if (elem_type == NULL) {
+      /* This comes up for empty structs and unions, e.g., "struct {int:0;}".
+         Such a thing is undefined behavior.  We accept it, but we add
+         a dummy field of type char to the struct/union.  Initialize it
+         to zero here. */
+      check_assertion_str(elem_con == NULL,
+                          "dump_initializer_part: constant, but no field");
+      /* We don't need to do anything if we're generating assignments
+         (the issue here is not initialization, it's keeping in sync). */
       if (!*gen_assignments) {
         /* Do any first-time processing necessary. */
         start_initializer_constants();
-        /* Initialize the first scalar of the aggregate to zero. */
         write_tok_str("0");
       }  /* if */
-    }  /* if */
-    /* Loop through the list of constants and process each one. */
-    for (; elem_con != NULL; elem_con = elem_con->next) {
-      check_assertion_str(elem_type != NULL,
-                          "dump_initializer_part: elem_type is NULL");
-      if (annotate && !*gen_assignments &&
-          type->kind == (a_type_kind)tk_array) {
-        /* Display element numbers in arrays. */
-        continue_on_new_line();
-        start_comment();
-        write_tok_str(" [");
-        write_unsigned_num((unsigned long)ipdp->curr_elem);
-        write_tok_str("]: ");
-        end_comment();
-      }  /* if */
-      dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
-                            separate_chars, ipdp);
-      if (elem_con->next != NULL) {
-        /* Put out a comma except after the last constant. */
+    } else {
+      /* Loop through the list of constants and process each one.
+         Go through the loop once even if elem_con == NULL.
+         That happens for initk_zero initialization to zero, and for IL
+         generated by IL lowering from C++ empty initializations ("{}").
+         Since C does not allow an empty set of braces ("{}"), go down
+         through the type until a non-aggregate is found, and initialize
+         it to zero. */
+      for (;;) {
+        if (annotate && !*gen_assignments &&
+            type->kind == (a_type_kind)tk_array) {
+          /* Display element numbers in arrays. */
+          continue_on_new_line();
+          start_comment();
+          write_tok_str(" [");
+          write_unsigned_num((unsigned long)ipdp->curr_elem);
+          write_tok_str("]: ");
+          end_comment();
+        }  /* if */
+        dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
+                              ipdp);
+        /* Stop if we entered the loop with elem_con == NULL. */
+        if (elem_con == NULL) break;
+        /* Advance to the next constant, and stop after the last constant. */
+        elem_con = elem_con->next;
+        if (elem_con == NULL) break;
+        /* Put out a comma between constants. */
         if (!*gen_assignments) write_str(", ");
-        /* Advance to the next element in the aggregate or struct. */
+        /* Advance to the next element in the aggregate. */
+        /* Only the first field of a union is initialized, so there shouldn't
+           be more than one constant on the aggregate list for a union. */
+        check_assertion_str(type->kind != (a_type_kind)tk_union,
+                            "dump_initializer_part: > 1 constant for union");
         if (type->kind == (a_type_kind)tk_array) {
           (ipdp->curr_elem)++;
-        } else if (type->kind == (a_type_kind)tk_struct) {
+        } else {
+          check_assertion_str(type->kind == (a_type_kind)tk_struct,
+                              "dump_initializer_part: bad entity kind (2)");
           ipdp->curr_field = next_initializable_field(ipdp->curr_field->next);
           check_assertion_str(ipdp->curr_field != NULL,
-                              "dump_initializer_part: bad field in loop");
+                              "dump_initializer_part: bad next field");
           elem_type = ipdp->curr_field->type;
-        } else if (type->kind == (a_type_kind)tk_union) {
-          /* In a union, only the first field is initialized. */
-          ipdp->curr_field = NULL;
-          elem_type = NULL;
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
     /* If generating initializer constants, output a "}". */
     if (need_close_brace) initializer_close_brace();
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
@@ -3963,8 +3952,8 @@ static void dump_initializer(a_variable_ptr variable,
 /*
 Dump out an initializer to initialize a whole variable.  The variable
 being initialized is "variable"; the initial value is given by "constant".
-*/
-/*
+"constant" is NULL to indicate initialization to zero.
+
 Ordinarily, this routine outputs "= constant" as an initializer, and
 therefore assumes is has been called immediately after the declaration
 of the variable (and before the closing semicolon).
@@ -4002,7 +3991,6 @@ it will be rendered as executable code.
   clear_initialization_flags();
   /* Generate the initialization (constants and/or assignments). */
   dump_initializer_part(variable, type, constant, &gen_assignments,
-                        /*separate_chars=*/FALSE,
                         (an_init_pos_descr_ptr)NULL);
   /* If any assignments were generated, do any wrapup required. */
   end_initializer_assignments(variable);
@@ -4120,30 +4108,15 @@ parameters.
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      /* Dump the initializer if there is a constant one. */
-      if (dump_initializers && init_con != NULL) {
+      /* Dump the initializer if there is a constant one or if the
+         variable should be initialized to zero. */
+      /* Don't initialize static arrays to zero, because it blows up
+         the size of the executable. */
+      if ((dump_initializers && init_con != NULL) ||
+          (variable->init_kind == (an_init_kind)initk_zero &&
+           (!has_static_storage_duration(variable->storage_class) ||
+            !is_array_type(variable->type)))) {
         dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
-      } else if (variable->init_kind == (an_init_kind)initk_zero) {
-        /* Variable is initialized to zero (this distinguishes a tentative
-           definition from a real definition). */
-        if (is_aggregate_or_union_type(var_type)) {
-          /* Aggregates. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-          if (is_non_zeroable_type(var_type)) {
-            /* Sorry, there's just no way to say this in K&R C.  There's no
-               way to initialize a union so as to make it clear that it is a
-               definition.  Leave it as it is and hope it works out. */
-          } else
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          {
-            /* Zero an aggregate. */
-            write_tok_str(" = {0}");
-          }  /* if */
-        } else {
-          /* Non-aggregates.  The zero initializer should work for all the
-             scalar cases. */
-          write_tok_str(" = 0");
-        }  /* if */
       }  /* if */
       write_tok_str(";");
       if (!is_link) end_unreferenced_bracket(&variable->source_corresp);
@@ -4317,9 +4290,7 @@ handled in declaration processing in dump_variable.
     /* Aggregate initialization.  Only comes up in C++, for aggregate
        initializations to constants done in the middle of blocks. */
     dump_initializer_part(variable, variable->type, dip->variant.constant,
-                          &gen_assignments,
-                          /*separate_chars=*/FALSE,
-                          (an_init_pos_descr_ptr)NULL);
+                          &gen_assignments, (an_init_pos_descr_ptr)NULL);
   } else {
     set_output_position(&variable->source_corresp.decl_position);
     switch (dip->kind) {
