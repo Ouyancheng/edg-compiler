@@ -188,8 +188,8 @@ This is now fixed (a normal error is issued).
 
 Dependent name lookup processing is disabled by default in Microsoft and
 Sun modes, but if it is explicitly enabled (using a command-line option) it
-did not work properly in Microsoft and Sun mode. In particular, lookup
-errors would occur in explicitly specialized classes.  Now fixed.
+did not work properly in those modes. In particular, lookup errors would
+occur in explicitly specialized classes.  Now fixed.
 
   template <class T> struct A { };
   void g() {}
