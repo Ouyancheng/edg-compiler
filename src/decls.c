@@ -1884,6 +1884,11 @@ scope is that of a class definition.
      is mainly useful for managing param_id entries properly. */
   if (func_info == NULL) func_info = &local_func_info_block;
   clear_func_info(func_info);
+  if (locator != NULL && !is_error_locator(*locator) &&
+      func_info != &local_func_info_block) {
+    set_decl_sequence_info(&func_info->decl_seq_info,
+                           (an_il_entry_kind)iek_routine);
+  }  /* if */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
@@ -2665,7 +2670,7 @@ a_variable_ptr make_parameter(a_type_ptr       type,
                               a_symbol_ptr     sym)
 /*
 Allocate a parameter variable with the specified type and storage class
-and return a pointer to it. The parameter is linked to/from its associated
+and return a pointer to it.  The parameter is linked to/from its associated
 symbol sym.
 */
 {
@@ -3619,6 +3624,8 @@ to NULL.
   a_boolean         is_main_function = FALSE;
   a_boolean         is_function_def = FALSE;
   a_boolean         changed_to_inline = FALSE;
+  a_decl_seq_info_ptr
+                    decl_seq_info = NULL;
 
   db_enter(3, "decl_var_or_routine");
   *old_type = NULL;
@@ -3639,6 +3646,7 @@ to NULL.
       check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                      locator);
     }  /* if */
+    decl_seq_info = &func_info->decl_seq_info;
   }  /* if */
   if (is_function && func_info->is_implicit_declaration) {
     if (C_dialect != C_dialect_cplusplus) {
@@ -4084,9 +4092,9 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (is_variable_def || is_function_def) {
-    mark_defined(sym, &locator->source_position);
+    mark_defined(sym, &locator->source_position, decl_seq_info);
   } else {
-    mark_declared(sym, &locator->source_position);
+    mark_declared(sym, &locator->source_position, decl_seq_info);
   }  /* if */
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
@@ -4484,7 +4492,7 @@ the symbol and its linkage (which is always "none").
         sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
         sym->variant.static_data_member.variable->specific_def = TRUE;
       }  /* if */
-      mark_defined(sym, &locator->source_position);
+      mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
@@ -4517,7 +4525,7 @@ the symbol and its linkage (which is always "none").
     /* Record the symbol declaration, using the original symbol, even
        though there was an error.  This will make it show up on a cross
        reference listing. */
-    mark_declared(sym, &locator->source_position);
+    mark_declared(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
     /* "Enter" the symbol using an error locator -- this means a symbol
        entry will be created but it will not be added to any lists.  Then
        we'll restore the header to the new symbol, so that the correct name
@@ -4696,7 +4704,7 @@ on a prior declaration.
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
   }  /* if */
-  mark_defined(sym, &locator->source_position);
+  mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
   if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {
@@ -4764,7 +4772,8 @@ a pointer to it in *symbol_ptr.
             pos_diagnostic(strict_ansi_error_severity,
                            ec_duplicate_typedef, &locator->source_position);
           }  /* if */
-          mark_declared(sym, &locator->source_position);
+          mark_declared(sym, &locator->source_position,
+                        (a_decl_seq_info_ptr)NULL);
           goto return_point;
         } else {
           /* C++ only.  Must be a tag symbol. */
@@ -4818,7 +4827,7 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-  mark_defined(sym, &locator->source_position);
+  mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
   add_to_types_list(tp, decl_scope_level);
 
 return_point:
@@ -4891,7 +4900,7 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
-    mark_defined(sym, &locator.source_position);
+    mark_defined(sym, &locator.source_position, (a_decl_seq_info_ptr)NULL);
     mark_variable_value_set(sym);
 #if DEBUG
     if (debug_level >= 3) {
@@ -5034,7 +5043,7 @@ is_definition is TRUE if the label is being scanned as part of a label.
       /* Note that we want mark_defined is called even if the symbol
          was previously entered.  Labels are strange in that a reference
          can come up before a declaration. */
-      mark_defined(label_sym, &pos_curr_token);
+      mark_defined(label_sym, &pos_curr_token, (a_decl_seq_info_ptr)NULL);
     } else {
       mark_referenced(label_sym, &pos_curr_token);
       /* Set the decl_position in case no declaration shows up, so we
@@ -6285,6 +6294,13 @@ to indicate whether an enumeration is actually defined.
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
     enum_type->variant.integer.enum_type = TRUE;
     enum_type->variant.integer.enum_info.constant_list = NULL;
+    if (scope_stack[effective_decl_level].kind ==
+                                           (a_scope_kind)sck_func_prototype) {
+      /* A type is actually declared in a function prototype scope only in
+         C mode.  In C++ the type is injected into a containing scope. */
+      check_assertion(C_dialect != C_dialect_cplusplus);
+      enum_type->declared_in_function_prototype = TRUE;
+    }  /* if */
     /* Enter a new tag symbol, if a tag id was specified (a tag is not
        specified in something like "enum {a, b, c}"). */
     if (tag_id_present) {
@@ -6296,9 +6312,11 @@ to indicate whether an enumeration is actually defined.
       tag_sym->class_of_which_a_member = class_of_which_a_member;
       tag_sym->variant.type = enum_type;
       if (curr_token == tok_lbrace) {
-        mark_defined(tag_sym, &locator.source_position);
+        mark_defined(tag_sym, &locator.source_position,
+                     (a_decl_seq_info_ptr)NULL);
       } else {
-        mark_declared(tag_sym, &locator.source_position);
+        mark_declared(tag_sym, &locator.source_position,
+                      (a_decl_seq_info_ptr)NULL);
       }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
@@ -6315,10 +6333,12 @@ to indicate whether an enumeration is actually defined.
     enum_type = tag_sym->variant.type;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
-      mark_defined(tag_sym, &locator.source_position);
+      mark_defined(tag_sym, &locator.source_position,
+                   (a_decl_seq_info_ptr)NULL);
     } else if (curr_token == tok_semicolon) {
       /* A useless redeclaration of an enum tag. */
-      mark_declared(tag_sym, &locator.source_position);
+      mark_declared(tag_sym, &locator.source_position,
+                    (a_decl_seq_info_ptr)NULL);
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
@@ -6464,7 +6484,8 @@ to indicate whether an enumeration is actually defined.
         enum_con->source_corresp.class_of_which_a_member =
                 enum_sym->class_of_which_a_member = class_of_which_a_member;
         enum_con->source_corresp.access = access;
-        mark_defined(enum_sym, &locator.source_position);
+        mark_defined(enum_sym, &locator.source_position,
+                     (a_decl_seq_info_ptr)NULL);
         /* Add the enumeration constant to the list under the enumerated
            type. */
         if (end_of_enum_con_list == NULL) {
@@ -8902,7 +8923,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
         if (sym != NULL) {
           sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), sym);
-          mark_defined(sym, &locator.source_position);
+          mark_defined(sym, &locator.source_position,
+                       (a_decl_seq_info_ptr)NULL);
           mark_variable_value_set(sym);
         }  /* if */
         /* A handler parameter is initialized by the run-time when the
@@ -9721,7 +9743,8 @@ continue_with_declaration:
              definition. */
           for (; pid != NULL; pid = pid->next) {
             if (pid->symbol != NULL) {
-              mark_declared(pid->symbol, &pid->symbol->decl_position);
+              mark_declared(pid->symbol, &pid->symbol->decl_position,
+                            (a_decl_seq_info_ptr)NULL);
             }  /* if */
           }  /* if */
           free_param_id_list(&(func_info.param_id_list));
