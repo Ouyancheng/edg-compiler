@@ -2815,7 +2815,11 @@ should be put out.
   if (use_previously_mangled_name) {
     /* Use the previously mangled version of the name. */
     add_str_to_mangled_name(type->source_corresp.name, mctl);
-  } else 
+  } else
+#else /* IA64_ABI */
+  /* We can't reuse class names in the IA-64 ABI because the substitution
+     numbering has to be done in the mangled name as a whole.  Therefore
+     every use of a name has to be redone from scratch. */
 #endif /* !IA64_ABI */
   /* Do not add code here. */
   {
@@ -4822,10 +4826,15 @@ use them; otherwise, visit the local scopes from the routine scope.
   process_local_types(il_header.primary_scope, list_mangling_routine);
 }  /* do_local_name_mangling */
 
+#if !IA64_ABI
 
 static void mangle_class_name(a_type_ptr class_type)
 /*
-Mangle the name of the indicated class, if necessary.
+Mangle the name of the indicated class, if necessary.  This is done
+with the Cfront-like ABI to generate mangled version of the class
+name that can be reused when building up other mangled names.
+The mangled form has the class name and template arguments but
+no parent information.
 */
 {
   a_mangling_control_block mctl;
@@ -4912,6 +4921,7 @@ final processing for type names.
   do_local_name_mangling(do_type_list_class_name_mangling);
 }  /* do_class_name_mangling */
 
+#endif /* !IA64_ABI */
 
 static void mangle_member_constant_name(a_constant_ptr con)
 /*
@@ -4938,11 +4948,19 @@ extension) a declared class member constant.
 }  /* mangle_member_constant_name */
 
 
+/*
+The prefix put on the front of the type encoding for a nested type to get
+the name placed in the nested type itself.
+*/
+#define PREFIX_ON_NESTED_TYPE_NAME "__"
+
+
 static void do_type_list_other_name_mangling(a_type_ptr type_list)
 /*
 Do name mangling for things other than classes (e.g., functions, static
 data members) for the types on the indicated type list and subscopes
-thereunder.
+thereunder.  For the IA-64 ABI, this also does name mangling for types,
+including classes.
 */
 {
   a_type_ptr  type;
@@ -4950,8 +4968,24 @@ thereunder.
 
   /* Visit all types on the list. */
   for (type = type_list; type != NULL; type = type->next) {
+    a_boolean is_class = is_immediate_class_type(type);
+#if IA64_ABI
+    /* For the IA-64 ABI, mangle nested types and classes with template
+       arguments.  See comment in final_type_name_mangling. */
+    if (has_name(type) &&
+        (type_needs_parent_qualifier(type) ||
+         (is_class &&
+          type->variant.class_struct_union.extra_info->
+                                                 template_arg_list != NULL))) {
+      a_mangling_control_block mctl;
+      start_mangling(&mctl);
+      add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+      mangled_type_name(type, &mctl);
+      (void)end_mangling(&type->source_corresp, /*final=*/FALSE, &mctl);
+    }  /* if */
+#endif /* IA64_ABI */
     /* If the type is a class, do its scope. */
-    if (is_immediate_class_type(type)) {
+    if (is_class) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
@@ -5072,7 +5106,8 @@ static void do_scope_other_name_mangling(a_scope_ptr scope)
 Do name mangling for things other than classes (e.g., functions, static
 data members) in the indicated scope and its subscopes.  The scope is
 a file, namespace, or class scope.  If the scope is the file scope,
-function-local entities are also processed.
+function-local entities are also processed.  For the IA-64 ABI, this
+also does type name mangling.
 */
 {
   a_namespace_ptr nsp;
@@ -5139,8 +5174,10 @@ function-local entities that require mangling.  Final name mangling
 is not done yet -- see do_final_name_mangling.
 */
 {
+#if !IA64_ABI
   /* Mangle class names, not including final mangling on type names. */
   do_class_name_mangling();
+#endif /* !IA64_ABI */
   /* Do function, namespace, and static data member name mangling, not
      including some final mangling. */
   do_scope_other_name_mangling(il_header.primary_scope);
@@ -5179,13 +5216,6 @@ compression and truncation.
 }  /* final_entity_name_mangling */
 
 
-/*
-The prefix put on the front of the type encoding for a nested type to get
-the name placed in the nested type itself.
-*/
-#define PREFIX_ON_NESTED_TYPE_NAME "__"
-
-
 static void final_type_name_mangling(a_type_ptr type)
 /*
 Do final mangling on a type name, mangling that would prevent the mangled
@@ -5196,13 +5226,20 @@ This does special processing for nested type names, compressed names,
 and truncated names.
 */
 {
-  a_mangling_control_block mctl;
-
   error_position = type->source_corresp.decl_position;
   check_assertion_str2(!type->source_corresp.
                                  mangled_name_cannot_be_included_in_other_name,
                        "final_type_name_mangling:", 
                        "mangled_name_cannot_be_included_in_other_name is set");
+#if IA64_ABI
+  /* In the IA-64 ABI, class names are fully mangled early because they
+     can't be reused (the substitution numbering has to be done in the
+     context of a whole mangled name).  The mangling is done early and
+     not here because by this time point some of the types and constants
+     in template arguments might have been lowered. */
+  final_entity_name_mangling(&type->source_corresp);
+#else /* !IA64_ABI */
+  /* Cfront-like ABI.  Mangle nested type names. */
   if (has_name(type)) {
     if (type_needs_parent_qualifier(type)) {
       /* Nested type names must be mangled (because they exist in a scope
@@ -5213,31 +5250,19 @@ and truncated names.
          name, and the prefix makes it unique (i.e., makes it distinct
          from all user identifiers).  Similar mangling is used for members
          of namespaces (a different kind of "nested" type). */
+      a_mangling_control_block mctl;
       start_mangling(&mctl);
       add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
       mangled_type_name(type, &mctl);
       /* The following does compression and truncation if necessary. */
       (void)end_mangling(&type->source_corresp, /*final=*/TRUE, &mctl);
       type->source_corresp.mangled_name_cannot_be_included_in_other_name= TRUE;
-#if IA64_ABI
-    } else if (is_immediate_class_type(type) &&
-               type->variant.class_struct_union.extra_info != NULL &&
-               type->variant.class_struct_union.extra_info->assoc_template 
-                                                                    != NULL) {
-      /* A type instantiated from a template will have a name that might
-         collide with other types in the user namespace.  Therefore, we add
-         the prefix in this case as well.  */
-      start_mangling(&mctl);
-      add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
-      add_str_to_mangled_name(type->source_corresp.name, &mctl);
-      (void)end_mangling(&type->source_corresp, /*final=*/TRUE, &mctl);
-      type->source_corresp.mangled_name_cannot_be_included_in_other_name= TRUE;
-#endif /* IA64_ABI */
     } else {
       /* Not a nested type.  Check for compression and truncation. */
       final_entity_name_mangling(&type->source_corresp);
     }  /* if */
   }  /* if */
+#endif /* IA64_ABI */
 }  /* final_type_name_mangling */
 
 

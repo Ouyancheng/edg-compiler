@@ -18468,13 +18468,13 @@ translation unit.
   for (tup = translation_units; tup != NULL; tup = tup->next) {
     /* Push the translation unit. */
     push_translation_unit_stack(tup);
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && !IA64_ABI
     if (il_lowering_needed()) {
       /* To improve efficiency of name mangling in the instantiation
          process, pre-generate the mangled names of classes. */
       do_class_name_mangling();
     }  /* if */
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && !IA64_ABI */
     /* Do any translation-unit specific processing that is required before
        doing the actual instantiations. */
     trans_unit_instantiation_setup();

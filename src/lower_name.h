@@ -106,9 +106,9 @@ extern void mangle_covariant_return_type_entry_name(
 #if IA64_ABI
 extern void mangle_alternate_entry_point_name(a_routine_ptr routine,
                                               a_routine_ptr prim_routine);
-#endif /* IA64_ABI */
-
+#else /* !IA64_ABI */
 extern void do_class_name_mangling(void);
+#endif /* IA64_ABI */
 
 extern void do_all_name_mangling(void);
 
