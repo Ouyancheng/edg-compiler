@@ -255,13 +255,19 @@ pruned at the entry pointed to by ptr, of kind "kind".
 }  /* copy_termination_test */
 
 
-static char *remap_secondary_ptr_to_primary(char             *ptr,
-                                            an_il_entry_kind kind)
+static char *remap_secondary_ptr_to_primary_full(
+                              char             *ptr,
+                              an_il_entry_kind kind,
+                              a_boolean        known_will_process_in_curr_walk)
+
 /*
 Called during the IL walk that copies IL from the secondary translation
 unit to the primary translation unit, to remap a pointer to something
 in a secondary translation unit ("ptr", of kind "kind") to the
 corresponding entry in the primary file IL.
+If known_will_process_in_curr_walk is TRUE, it is known that the pointer
+will be processed (and not merely have its address remapped) in the current
+IL walk.
 */
 {
   char *corresp;
@@ -278,16 +284,41 @@ corresponding entry in the primary file IL.
   } else {
     /* If the pointer wasn't encountered previously, make sure its
        copy address pointer is set.  This happens for "next" pointers. */
-    /* When this routine is called for remap_ptr references in walk_entry.h,
-       we don't know that the entry will be seen on this walk.  The
-       entities pointed to by "next" pointers actually will appear in
-       this walk, but we don't have any way of identifying those. */
-    copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/FALSE);
+    copy_address_setup(ptr, kind, known_will_process_in_curr_walk);
     /* Fetch the copy address assigned by copy_address_setup. */
     corresp = transitive_copy_address_of(ptr);
   }  /* if */
   return corresp;
+}  /* remap_secondary_ptr_to_primary_full */
+
+
+static char *remap_secondary_ptr_to_primary(char             *ptr,
+                                            an_il_entry_kind kind)
+/*
+Remap a pointer to something in a secondary translation unit to the
+corresponding entry in the primary file IL.
+*/
+{
+  char *corresp = remap_secondary_ptr_to_primary_full(
+                                    ptr, kind,
+                                    /*known_will_process_in_curr_walk=*/FALSE);
+  return corresp;
 }  /* remap_secondary_ptr_to_primary */
+
+
+static char *remap_secondary_list_ptr_to_primary(char             *ptr,
+                                                 an_il_entry_kind kind)
+/*
+Remap a pointer to something in a secondary translation unit to the
+corresponding entry in the primary file IL.  This version is called
+for list pointers, i.e., "next" pointers and start-of-list pointers.
+*/
+{
+  char *corresp = remap_secondary_ptr_to_primary_full(
+                                     ptr, kind,
+                                     /*known_will_process_in_curr_walk=*/TRUE);
+  return corresp;
+}  /* remap_secondary_list_ptr_to_primary */
 
 
 /*ARGSUSED*/ /* <-- "kind" is not used. */
@@ -352,14 +383,13 @@ entries in the primary IL.
 }  /* update_namespace_pointers_block */
 
 
-static void copy_entry_basic(char                 *ptr,
-                             an_il_entry_kind     kind,
-                             a_remap_function_ptr remap_function)
+static void copy_entry(char             *ptr,
+                       an_il_entry_kind kind)
 /*
 Called during the IL walk that copies IL from the secondary translation
 unit to the primary translation unit, to copy the IL entry at ptr
 (of kind "kind") to the space indicated by its copy address pointer,
-and remap the pointers in the copy by calling remap_function.
+and remap the pointers in the copy.
 */
 {
   a_source_correspondence *scp = NULL;
@@ -368,19 +398,22 @@ and remap the pointers in the copy by calling remap_function.
   if (!in_file_scope(ptr)) {
     /* Process an entry in a function scope memory region.  Remap
        the pointers but don't copy. */
-    remap_pointers_in_il_entry(ptr, kind, remap_function, remap_function);
+    remap_pointers_in_il_entry(ptr, kind,
+                               remap_secondary_ptr_to_primary,
+                               remap_secondary_list_ptr_to_primary);
 #if MAINTAIN_NEEDED_FLAGS
     copy = ptr;
     scp = source_corresp_for_il_entry(copy, kind);
 #endif /* MAINTAIN_NEEDED_FLAGS */
   } else {
     copy = checked_trans_unit_copy_address_of(ptr);
-    check_assertion_str(copy != NULL,
-                        "copy_entry_basic: NULL copy address pointer");
+    check_assertion_str(copy != NULL, "copy_entry: NULL copy address pointer");
     /* Copy the entry to its corresponding space and remap the pointers
        in the copy. */
     (void)memcpy(copy, ptr, size_t_arg(sizeof_il_entry[(int)kind]));
-    remap_pointers_in_il_entry(copy, kind, remap_function, remap_function);
+    remap_pointers_in_il_entry(copy, kind,
+                               remap_secondary_ptr_to_primary,
+                               remap_secondary_list_ptr_to_primary);
     scp = source_corresp_for_il_entry(copy, kind);
     if (scp != NULL) {
       a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
@@ -419,10 +452,9 @@ and remap the pointers in the copy by calling remap_function.
               copy_next_ptr = (char **)&((a_template_ptr)copy)->next;
               break;
             default:
-              unexpected_condition_str(
-                                 "copy_entry_basic: entry_on_copied_list bad");
+              unexpected_condition_str("copy_entry: entry_on_copied_list bad");
           }  /* switch */
-          *copy_next_ptr = remap_function(next_ptr, kind);
+          *copy_next_ptr = remap_secondary_list_ptr_to_primary(next_ptr, kind);
         }  /* if */
       }  /* if */
       scp->copied_from_secondary_trans_unit = TRUE;
@@ -474,19 +506,6 @@ and remap the pointers in the copy by calling remap_function.
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* copy_entry_basic */
-
-
-static void copy_entry(char             *ptr,
-                       an_il_entry_kind kind)
-/*
-Called during the IL walk that copies IL from the secondary translation
-unit to the primary translation unit, to copy the IL entry at ptr
-(of kind "kind") to the space indicated by its copy address pointer,
-and remap the pointers in the copy.
-*/
-{
-  copy_entry_basic(ptr, kind, remap_secondary_ptr_to_primary);
 }  /* copy_entry */
 
 
@@ -497,7 +516,8 @@ primary translation unit IL.
 */
 {
   db_enter(1, "copy_from_secondary_to_primary_il");
-  walk_file_scope_il(copy_entry, copy_string_entry,
+  walk_file_scope_il(copy_entry,
+                     copy_string_entry,
                      (a_remap_function_ptr)NULL,
                      (a_remap_function_ptr)NULL,
                      copy_termination_test,
