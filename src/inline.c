@@ -215,7 +215,7 @@ pointer to member function constant.
     a_variable_ptr var = expr->variant.variable;
     if (!has_name(var) &&
         /* Variables for constants are initialized.  Temporaries are not. */
-        var->init_kind == initk_static &&
+        var->init_kind == (an_init_kind)initk_static &&
         is_or_was_ptr_to_member_function_type(var->type)) {
       is_pmf_con = TRUE;
     }  /* if */
