@@ -213,6 +213,11 @@ starts with a type-specifier (including a typedef name) or a type-qualifier.
     /* Identifier that is a type name (a typedef name or, in C++,
        the name of a class, struct, or union). */
     is_start = TRUE;
+  } else if (curr_token == tok_identifier && locator_for_curr_id.is_error &&
+             locator_for_curr_id.is_template_id) {
+    /* This is an error case -- presumably, an ill-formed template-id -- but
+       it is treated as the start of a type anyway. */
+    is_start = TRUE;
   }  /* if */
   return(is_start);
 }  /* is_type_start */
@@ -10275,11 +10280,6 @@ of local variables (and types, etc.) of functions and in blocks.
   if (!decl_start) {
     if (function_definition_allowed && is_declarator_start()) {
       /* Function definition with omitted specifiers. */
-    } else if (curr_token == tok_identifier &&
-               locator_for_curr_id.specific_symbol != NULL &&
-               locator_for_curr_id.specific_symbol->kind ==
-                                              (a_symbol_kind)sk_undefined) {
-      /* Error case. */
     } else {
       /* Look for some cases that are obviously not the start of a declaration,
          and give a more specific "Expected a declaration" message. */
