@@ -1229,7 +1229,9 @@ invalid attributes.
         break;
       case ak_used:
         vp->has_gnu_used_attribute = TRUE;
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
         mark_to_keep_in_il((char*)vp, (an_il_entry_kind)iek_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
         break;
       case ak_deprecated:
         vp->has_gnu_deprecated_attribute = TRUE;
@@ -1379,7 +1381,9 @@ messages about any invalid attributes.
         break;
       case ak_used:
         rp->has_gnu_used_attribute = TRUE;
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
         mark_to_keep_in_il((char*)rp, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
         break;
       case ak_deprecated:
         rp->has_gnu_deprecated_attribute = TRUE;
