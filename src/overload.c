@@ -538,7 +538,7 @@ Type codes used in type patterns that describe built-in operators
 for overload resolution.
 */
 #define INTEGRAL_TYPE_CODE 'I'
-#define ARITH_TYPE_CODE 'F'
+#define ARITH_TYPE_CODE 'A'
 #define POINTER_TYPE_CODE 'P'
 #define CORRESP_POINTER_TYPE_CODE 'C'
 #define PTR_TO_MEMBER_TYPE_CODE 'M'
@@ -3975,7 +3975,7 @@ can be used, it is added to the candidate_functions list.
                                          arg_operand_list,
                                          candidate_functions);
     } else {
-      /* There are no pointer types in the argument pattern. */
+      /* There are no corresponding pointer types in the argument pattern. */
       try_builtin_operands_match(operand_type_pattern,
                                  arg_operand_list,
                                  candidate_functions,
