@@ -1824,12 +1824,11 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
       goto have_level;
-    } else if (arg_is_class_type &&
+    } else if (arg_is_class_type && source_can_be_rvalue &&
                (conversion_from_class_possible(orig_arg_operand, param_type,
                                                (a_builtin_type_kind_set)
                                                                       BTK_NONE,
-                                               /*need_lvalue_result=*/
-                                                         !source_can_be_rvalue,
+                                               /*need_lvalue_result=*/FALSE,
                                                /*is_copy_initialization=*/TRUE,
                                                /* Following FALSE is correct:
                                                   reference binding here is to
