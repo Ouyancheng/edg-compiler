@@ -843,21 +843,40 @@ temp_text_buffer.
 
 static void format_argument_type_for_display(a_type_ptr type)
 /*
-Add the indicated type to the string being built up in temp_text_buffer.
+Add the indicated type to the string being built up in temp_text_buffer,
+as part of producing a diagnostic for an overload resolution problem.
 */
 {
   form_type(type, &octl);
 }  /* format_argument_type_for_display */
 
 
+void display_object_type(a_type_ptr object_type)
+/*
+Output a diagnostic line that displays the indicated type as the
+object type, as part of producing a diagnostic for an overload
+resolution problem.
+*/
+{
+  if (!is_error_type(object_type)) {
+    object_type = type_pointed_to(object_type);
+  }  /* if */
+  set_up_for_argument_type_formatting();
+  format_argument_type_for_display(object_type);
+  put_ch_to_temp_text_buffer('\0');
+  str_add_diag_info(ec_object_type_add_on, temp_text_buffer);
+}  /* display_object_type */
+
+
 static void display_argument_list_types(
                                    an_operand         *bound_function_selector,
                                    an_arg_operand_ptr arg_operand_list)
 /*
-Put the types of the arguments on arg_operand_list into temp_text_buffer
-so they can be used in a diagnostic.  Format them as a comma-separated list.
-bound_function_selector is the selector object, if there is one, or
-NULL otherwise.  The start_error or equivalent has already been done.
+Output a diagnostic line that displays the types of the arguments in
+arg_operand_list, as part of producing a diagnostic for an overload
+resolution problem.  bound_function_selector is the selector object,
+if there is one, or NULL otherwise; output a line giving its type if
+it is provided.  The start_error or equivalent has already been done.
 This routine does not call end_error.
 */
 {
@@ -879,14 +898,7 @@ This routine does not call end_error.
     str_add_diag_info(ec_argument_list_types_add_on, temp_text_buffer);
   }  /* if */
   if (bound_function_selector != NULL) {
-    a_type_ptr object_type = bound_function_selector->type;
-    if (!is_error_type(object_type)) {
-      object_type = type_pointed_to(object_type);
-    }  /* if */
-    set_up_for_argument_type_formatting();
-    format_argument_type_for_display(object_type);
-    put_ch_to_temp_text_buffer('\0');
-    str_add_diag_info(ec_object_type_add_on, temp_text_buffer);
+    display_object_type(bound_function_selector->type);
   }  /* if */
 }  /* display_argument_list_types */
 

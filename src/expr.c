@@ -1582,8 +1582,10 @@ Syntax:
       } else {
         /* Some mismatch (more qualifiers on selector than on "this" parameter
            type). */
-        pos_error(ec_unqual_function_with_qual_object,
-                  &bound_function_selector->position);
+        pos_start_error(ec_unqual_function_with_qual_object,
+                        &bound_function_selector->position);
+        display_object_type(bound_function_selector->type);
+        end_error();
         conv_to_error_operand(bound_function_selector);
       }  /* if */
     }  /* if */

@@ -414,6 +414,7 @@ typedef struct an_arg_check_block {
 			   the call. */
 } an_arg_check_block;
 
+extern void display_object_type(a_type_ptr object_type);
 
 extern void free_arg_match_summary_list(an_arg_match_summary_ptr amsp);
 
