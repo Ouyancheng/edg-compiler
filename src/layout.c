@@ -208,21 +208,9 @@ conventions of Microsoft's bit-field allocation scheme.
   if (!is_integral_type(tp1) || !is_integral_type(tp1)) {
     compat = FALSE;
   } else {
-     compat = (tp1 == tp2);
-     if (!compat) {
-      /* The types are not exactly the same type, so check for compatibility as
-         bit-field containers: the integer kinds must match, as must explicit
-         signedness; neither can be an enumeration type; and if one is wchar_t
-         both must be. */
-      if (tp1->variant.integer.int_kind == tp2->variant.integer.int_kind &&
-          tp1->variant.integer.explicitly_signed ==
-                                     tp2->variant.integer.explicitly_signed &&
-          !tp1->variant.integer.enum_type && !tp2->variant.integer.enum_type &&
-          tp1->variant.integer.wchar_t_type ==
-                                     tp2->variant.integer.wchar_t_type) {
-        compat = TRUE;
-      }  /* if */
-    }  /* if */
+    /* Whether or not the integral types are identical, container-type
+       compatibility only requires that the sizes be the same. */
+    compat = (tp1->size == tp2->size);
   }  /* if */
   return compat;
 }  /* compatible_ms_bit_field_container_types */
@@ -646,15 +634,14 @@ by the state of the layout block pointed to by lob -- that is, reset the
 offset values as though the extra bits actually were being used.
 */
 {
-  if (lob->curr_container_type != NULL) {
-    (void)increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                  (a_targ_size_t)0, 
-                                  lob->curr_container_avail_bits);
-    /* Padding to the end of the container means there's no room left
-       for additional bit fields. */
-    lob->curr_container_type = NULL;
-    lob->curr_container_avail_bits = 0;
-  }  /* if */
+  check_assertion(lob->curr_container_type != NULL);
+  (void)increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                                (a_targ_size_t)0, 
+                                lob->curr_container_avail_bits);
+  /* Padding to the end of the container means there's no room left
+     for additional bit fields. */
+  lob->curr_container_type = NULL;
+  lob->curr_container_avail_bits = 0;
 }  /* pad_ms_bit_field_container */
 
 
@@ -694,13 +681,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
   if (bit_size == 0) {
     /* A zero-width bit field is declared for alignment only.  The container
        size is not significant. */
-    if (targ_microsoft_bit_field_allocation) {
-      /* If the previous member was a bit-field, pad out the container before
-         doing the alignment adjustment that was specified. */
-      pad_ms_bit_field_container(lob);
-    }  /* if */
-    /* Do the necessary alignment for a zero width unnamed bit field. */
     container_size = 1;
+    /* Do the necessary alignment for a zero width bit field. */
     /* targ_zero_width_bit_field_alignment is
          >  0 to indicate a particular alignment
          == 0 to indicate minimal alignment
@@ -716,6 +698,20 @@ targ_microsoft_bit_field_allocation is FALSE.)
       /* targ_zero_width_bit_field_alignment < 0 */
       /* Use the base type alignment. */
       container_alignment = base_type->alignment;
+    }  /* if */
+    if (targ_microsoft_bit_field_allocation) {
+      /* Special handling of zero-width bit fields in Microsoft mode,
+         depending on whether the previous field was a bit field or not. */
+      if (lob->curr_container_type != NULL) {
+        /* The previous member was a bit-field, so pad out the container
+           before doing the alignment adjustment that was specified. */
+        pad_ms_bit_field_container(lob);
+      } else {
+        /* In Microsoft mode a zero-sized bit field is only effective after
+           a bit field, so reset container_alignment to a value that will
+           cause it have no effect. */
+        container_alignment = (a_targ_alignment)1;
+      }  /* if */
     }  /* if */
   } else {
     /* targ_bit_field_container_size is
@@ -835,7 +831,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
          the same type or else it won't fit in the current container.  In
          either case, create a new container for it. */
       /* First, pad out the rest of the current container. */
-      pad_ms_bit_field_container(lob);
+      if (lob->curr_container_type != NULL) pad_ms_bit_field_container(lob);
       /* Make sure the new container is properly aligned. */
       overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                                container_alignment);
@@ -849,9 +845,9 @@ targ_microsoft_bit_field_allocation is FALSE.)
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                              container_alignment);
   }  /* if */
-  if (field->source_corresp.name == NULL &&
-      field->source_corresp.assoc_info == (char *)unnamed_field_symbol()) {
-    /* This is an unnamed bit field.  The alignment it forces should not
+  if (bit_size == 0 &&
+      !targ_zero_width_bit_field_affects_struct_alignment) {
+    /* This is a zero-width bit field.  The alignment it forces should not
        affect the alignment of the struct as a whole. */
   } else {
     /* Remember the most stringent alignment requirement as the alignment
@@ -941,8 +937,9 @@ there's no overflow TRUE is returned.
                                  &lob->byte_offset, &lob->bit_offset,
                                  (a_targ_size_t)0,
                                  (an_unnormalized_bit_offset)field->bit_size);
-        if (targ_microsoft_bit_field_allocation) {
-          /* Update the number of bits that are available in the containing
+        if (targ_microsoft_bit_field_allocation &&
+            lob->curr_container_type != NULL) {
+          /* Update the number of bits that are available in the container
              after the bit field is allocated. */
           if (class_type->kind == (a_type_kind)tk_union) {
             /* Pad out the rest of the current container. */
