@@ -1857,7 +1857,7 @@ scope is that of a class definition.
       a_source_position  qualifier_pos;
 
       copy_source_position(pos_curr_token, qualifier_pos);
-      (void)decl_specifiers(DSI_NO_INPUT_FLAGS, &dso_flags,
+      (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr);
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
@@ -4609,7 +4609,7 @@ Only the first form is accepted in C.
       a_storage_class    dummy_storage_class;
       a_type_ptr         dummy_type_ptr;
 
-      (void)decl_specifiers(DSI_NO_INPUT_FLAGS, &dso_flags,
+      (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr);
       /* Note -- the check for dangling_type_specifier is not relevant here. */
       complete_type = make_qualified_type(complete_type,
@@ -6801,7 +6801,11 @@ no_get_token:
     num_specifiers++;
     determined_curr_token_type_symbol = FALSE;
     /* Check for special conditions that will cause this loop to terminate. */
-    if (defines_something) {
+    if (input_flags & DSI_COLLECT_TYPE_QUALIFIERS) {
+      /* We are only interested in scanning type qualifiers (e.g., in a
+         pointer declarator). */
+      if (!is_type_qualifier()) goto exit_loop;
+    } else if (defines_something) {
       /* The basic type is a class, struct, union, or enum that actually
          defines a type.  We are especially interested in cases like this:
            class A {...}          <== Note the missing semicolon.

@@ -292,6 +292,12 @@ typedef int a_decl_flag_set;
 			/* If this bit is set decl_specifiers is called for
 			   a template class or template function
                            declaration. */
+#define DSI_COLLECT_TYPE_QUALIFIERS 0x800
+			/* If this bit is set decl_specifiers is called to
+			   scan a list of type qualifiers -- e.g., in the
+			   context of a pointer declarator.  What a token
+			   other than a type qualifier is seen, return
+			   immediately, without issuing any diagnostics. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
