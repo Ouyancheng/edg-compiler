@@ -182,10 +182,16 @@ extern a_boolean instantiation_needed_flag_is_set(
 /* Test a routine to see whether it is inline.  When it is a template
    instance, this may require looking at the template because the
    is_inline flag is not recorded until the function is fully instantiated. */
+#if STANDALONE_UTILITY_PROGRAM
+#define rout_is_inline(rout)						\
+  ((rout)->is_inline)
+#else /* !STANDALONE_UTILITY_PROGRAM */
+extern a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout);
 #define rout_is_inline(rout)						\
   ((rout)->is_inline ||							\
    ((rout)->is_template_function &&					\
-    rout_is_inline_template_function(rout)))
+    intf_rout_is_inline_template_function(rout)))
+#endif /* STANDALONE_UTILITY_PROGRAM */
 /* Macro to determine whether a routine is to be treated as a static inline
    function.  This includes "extern inline" functions that are lowered to
    static functions. */

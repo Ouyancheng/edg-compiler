@@ -13890,6 +13890,17 @@ needed_flag_bit_number plus bit_offset.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if !STANDALONE_UTILITY_PROGRAM
 
+a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout)
+/*
+Interface routine to rout_is_inline_template_function in templates.c.
+Exists to avoid difficulties with referring to a function in
+templates.c from a macro (rout_is_inline) in il.h.
+*/
+{
+  return rout_is_inline_template_function(rout);
+}  /* intf_rout_is_inline_template_function */
+
+
 a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp)
 /*
 nsp points to either a namespace or a namespace alias.  If nsp is
