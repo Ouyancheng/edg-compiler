@@ -9711,6 +9711,7 @@ If validate_only is TRUE, no conversions or normalizations are performed.
   an_expr_operator_kind op;
   an_expr_node_ptr      operand1;
   an_operand            orig_operand;
+  a_boolean             pointer_case, was_constant;
 
   /* Save the operand's source position. */
   orig_operand = *operand;
@@ -9730,6 +9731,13 @@ If validate_only is TRUE, no conversions or normalizations are performed.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Remember whether or not the expression has pointer type and
+     whether it is constant, before any changes are made. */
+  pointer_case = is_pointer_type(operand->type) ||
+                 is_ptr_to_member_type(operand->type);
+  was_constant = (is_constant_operand(operand) &&
+                  operand->variant.constant.kind !=
+                                      (a_constant_repr_kind)ck_template_param);
   if (bool_is_keyword) {
     /* bool is enabled.  The expression must have bool type or be convertible
        to bool. */
@@ -9828,6 +9836,34 @@ If validate_only is TRUE, no conversions or normalizations are performed.
       }  /* switch */
     }  /* if */
   }  /* if */
+  if (okay) {
+    /* Issue a warning if the expression is constant and of pointer
+       or pointer-to-member type. */
+    /* This test formerly checked other things, but it appears there's
+       no good way of diagnosing any use of a constant arithmetic
+       value here.  Even something like "if (1) ..." might have come
+       from a macro, which would be reasonable coding. */
+    if (was_constant) {
+      if (pointer_case) {
+        /* A test of a constant address is always pretty suspicious. */
+#if GNU_EXTENSIONS_ALLOWED
+        a_constant_ptr con = &orig_operand.variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_address &&
+            ((con->variant.address.kind == (an_address_base_kind)abk_routine &&
+              con->variant.address.variant.routine->is_weak) ||
+             (con->variant.address.kind == (an_address_base_kind)abk_variable&&
+              con->variant.address.variant.variable->is_weak))) {
+          /* No warning for GNU weak externals. */
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          pos_warning(ec_boolean_controlling_expr_is_constant,
+                      &orig_operand.position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Restore the original source position. */
   restore_operand_details(operand, &orig_operand);
   return okay;
@@ -9837,8 +9873,9 @@ If validate_only is TRUE, no conversions or normalizations are performed.
 a_boolean check_boolean_controlling_expr(an_operand *operand)
 /*
 Do some checks on a boolean controlling expression and perform any necessary
-casts or other expression transformations.  This is a convenience interface
-for validate_boolean_controlling_expr.
+casts or other expression transformations.  Return TRUE if the expression
+is valid.  This is a convenience interface for
+validate_boolean_controlling_expr.
 */
 {
   return validate_boolean_controlling_expr(operand, /*validate_only=*/FALSE);
