@@ -4713,7 +4713,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_symbol_locator                orig_locator;
   a_boolean                       any_errors = FALSE;
   a_memory_region_number          region_to_switch_back_to;
-  a_type_tree_traversal_flag_set  ttt_flags;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -4763,7 +4762,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
      selection. */
   param_ptr = template_symbol->variant.template_info->parameters;
   first_param_ptr = param_ptr;
-  ttt_flags = (TTT_RETURN_TYPE | TTT_THIS_PARAM_TYPE | TTT_PARAM_TYPES);
   do {
     a_symbol_ptr        sym;
     a_boolean           is_type_param;
@@ -4784,7 +4782,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       /* Be sure the type does not involve any local classes -- only externally
          visible types are allowed, since template classes are themselves
          externally linked. */
-      if (traverse_type_tree(argument_type, ttt_is_local_class, ttt_flags)) {
+      if (is_or_contains_local_type(argument_type)) {
         pos_error(ec_local_type_in_template_arg, &arg_pos);
         argument_type = error_type();
       }  /* if */
