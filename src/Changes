@@ -1,5 +1,18 @@
 Version 2.31
 
+12/19/95  C++-generating back end -- extern "C" on variable definitions
+
+The source construct
+
+  extern "C" { int i; }
+
+was formerly output by the C++-generating back end as
+
+  extern "C" int i;
+
+which was not correct because the latter is not a definition and the
+former is.  Now fixed.
+
 12/19/95  C++-generating back end: Strange for-init declarations
 
 Strange for-init declarations that declare no variable are now handled
