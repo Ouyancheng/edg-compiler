@@ -19,6 +19,9 @@ Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
 */
 
+/* Temporary */
+#define RUNTIME_USES_NAMESPACES 0
+
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 #ifndef ABI_COMPATIBILITY_VERSION
 #define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
@@ -199,7 +202,9 @@ Flags to be set when using the KAI inliner.
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #define ASM_FUNCTION_ALLOWED 1
 #define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY 1
+#ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 0
+#endif /* ifndef RUNTIME_USES_NAMESPACES */
 
 #endif /* ifdef __LINUX__ */
 #endif /* defined(_WIN32) */
