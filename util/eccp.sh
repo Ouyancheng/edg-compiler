@@ -393,6 +393,8 @@ do
          --display_error_number | \
          --create_pch | \
          --pch | \
+         --pch_messages | \
+         --no_pch_messages | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
