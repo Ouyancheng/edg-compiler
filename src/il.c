@@ -3153,6 +3153,7 @@ nonidentical.
               eq = (cp1->variant.address.variant.constant ==
                     cp2->variant.address.variant.constant);
               break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
             case abk_uuidof:
               /* Microsoft __uuidof. */
               { a_type_ptr uuid_type1 = cp1->variant.address.variant.type;
@@ -3171,6 +3172,7 @@ nonidentical.
                 }  /* if */
               }
               break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
             default:
               internal_error("compare_constants: bad address constant kind");
