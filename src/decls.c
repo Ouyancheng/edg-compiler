@@ -7867,7 +7867,7 @@ within this routine if is_parenthesized comes in FALSE.
          specifier is parenthesized.  For example, in "new (int)[3]" the
          new expression is normally restricted to "new (int)", but GNU C++
          also picks up the "[3]". */
-      get_token();
+      (void)get_token();
       closing_paren_already_seen = TRUE;
     }  /* if */
     if (is_abstract_declarator_start()) {
