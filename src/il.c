@@ -1926,8 +1926,8 @@ Make or find a type entry for an void type, and return a pointer to it.
 }  /* void_type */
 
 
-static a_type_ptr *get_based_type(a_type_ptr                     base_type,
-                                  a_based_type_array_element_num element_num)
+a_type_ptr *get_based_type(a_type_ptr                     base_type,
+                           a_based_type_array_element_num element_num)
 /*
 Fetch and return a pointer to an element of the based_type_array pointed
 to by the type entry identified by base_type.  element_num indicates the

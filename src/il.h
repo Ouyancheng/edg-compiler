@@ -73,6 +73,9 @@ extern a_type_ptr error_type(void);
 
 extern a_type_ptr void_type(void);
 
+extern a_type_ptr *get_based_type(a_type_ptr                     base_type,
+                                  a_based_type_array_element_num element_num);
+
 extern a_type_ptr make_pointer_type(a_type_ptr type_pointed_to);
 
 extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
