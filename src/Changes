@@ -1,5 +1,11 @@
 Version 2.26
 
+10/5/94  C++-generating back end: vacuous destructor calls for template classes
+
+The C++-generating back end now puts out vacuous destructor calls for
+template classes properly, e.g., as "p->S1<int>::~S1" instead of
+"p->S1<int>::~S1<int>".
+
 10/5/94  C++-generating back end: .* operator
 
 The C++-generating back end now handles the .* operator correctly
