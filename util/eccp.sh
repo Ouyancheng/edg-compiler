@@ -450,6 +450,7 @@ check_abbreviation()
 --display_error_number
 --distinct_template_signatures
 --driver_debug
+--early_tiebreaker
 --embedded_c++
 --enum_overloading
 --error_limit
@@ -469,6 +470,7 @@ check_abbreviation()
 --instantiate
 --instantiation_dir
 --keep_gen_c
+--late_tiebreaker
 --library_directory
 --list
 --list_object_files
@@ -944,6 +946,8 @@ process_option()
          --nonstd_qualifier_deduction | \
          --no_nonstd_qualifier_deduction | \
          --one_instantiation_per_object | \
+         --early_tiebreaker | \
+         --late_tiebreaker | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
