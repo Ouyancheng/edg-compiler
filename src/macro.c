@@ -42,7 +42,7 @@ static char	*macro_buffer;
 			/* Contains characters of macro expansions and of
 			   macro definitions.  Dynamically allocated,
 			   expanded as needed. */
-#define MACRO_BUFFER_INITIAL_ALLOCATION 4000
+#define MACRO_BUFFER_INITIAL_ALLOCATION 100
 			/* Initial allocation size for macro_buffer.  The
 			   initial allocation should be such that almost all
 			   cases can be accepted (so that the realloc is
@@ -343,7 +343,7 @@ static char* copy_attention_markers(a_source_line_modif_ptr slmp,
 Scan the deleted text of the specified source line modification for
 ATTENTION_MARKERs and copy them into the buffer designated by next_avail.
 (The one at slmp->line_loc has already been copied into the destination
-buffer).  If a nested ATTENTION_MARKER is found, this routine copies it into
+buffer.)  If a nested ATTENTION_MARKER is found, this routine copies it into
 the destination buffer and then calls itself recursively for the corresponding
 source line modification.  Finally, the supplied source line modification's
 line_loc is relocated to point to the copy and slmp->num_chars_to_delete is
@@ -486,7 +486,8 @@ ensure_macro_buffer_space.
           nested_slmp = nested_source_line_modif(src - 1);
           src += nested_slmp->num_chars_to_delete - 1;
           dst = copy_attention_markers(nested_slmp, dst);
-        } else if (src > old_start_for_remapping + 1 && src[-2] == LE_ESCAPE) {
+        } else if (src > old_start_for_remapping + 1 &&
+                   src[-LE_ESCAPE_LEN] == LE_ESCAPE) {
           /* This is an end-of-insertion marker (and not just a stray
              LE_END_OF_INSERTION character, hence the retroactive check for a
              preceding LE_ESCAPE character -- there will typically be lots of
@@ -494,8 +495,8 @@ ensure_macro_buffer_space.
              so it's much faster to scan for LE_END_OF_INSERTION in the
              character-copying loop and then check for the preceding
              character). */
-          check_assertion(slmp->end_inserted_text == src - 2);
-          slmp->end_inserted_text = dst - 2;
+          check_assertion(slmp->end_inserted_text == src - LE_ESCAPE_LEN);
+          slmp->end_inserted_text = dst - LE_ESCAPE_LEN;
           break;
         }  /* if */
       }  /* while */
@@ -540,7 +541,7 @@ If not, expand macro_buffer by reallocating it.
 }  /* ensure_macro_buffer_space */
 
 
-static char* begin_macro_buffer_region()
+static char* begin_macro_buffer_region(void)
 /*
 Mark the existence and beginning location of a region at the tail of the
 macro_buffer that must be copied specially upon macro_buffer reallocation.
@@ -556,7 +557,7 @@ next_avail_in_macro_buffer, where the structure being built will begin.
 }  /* begin_macro_buffer_region */
 
 
-static void release_macro_buffer_region()
+static void release_macro_buffer_region(void)
 /*
 Unmark the region at the end of the macro_buffer for special handling upon
 buffer reallocation.  This routine must be called once the data structure in
