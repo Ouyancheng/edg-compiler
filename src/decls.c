@@ -4129,7 +4129,7 @@ on for use in generating cross-reference output describing this declaration.
                             "decl_routine: defined flag is set wrong");
         old_decl_has_body = TRUE;
       }  /* if */
-      if (is_function_def || microsoft_mode) {
+      if (is_function_def || (microsoft_mode && !is_friend_decl)) {
         /* This is normally a definition (an old-style specialization). */
         /* In Microsoft mode it need not be a definition.  Consider:
              template <class T> void f(T t) { ... }
