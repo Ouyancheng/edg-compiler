@@ -623,20 +623,42 @@ part of a declarator is found, may_be_decl is set to FALSE.
        function case it is ")", "...", or a declaration specifier. */
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier();
+    if (cfront_compatibility_mode &&
+        is_top_level &&
+        (curr_token == tok_rparen ||
+         (curr_token == tok_identifier && next_token() == tok_rparen))) {
+      /* Cfront handles declarations like
+             int a(int());
+         as the declaration of an object with an initializer of int()
+         (which evaluates to zero), where it really should be a
+         function taking parameter of type "function () returning int".
+         If this is a top level declaration (e.g., not part of a
+         parameter list) don't consider typename() to be a declaration
+         in cfront mode. 
+ 
+         Also, in a context in which a parameter declaration
+         must be distinguished from an argument expression, cfront seems
+         always to treat "type-name ( identifier )" as an expression,
+         contrary to our reading of the ARM.  For example:
+           class A { A(int); };
+           A a(int(x));
+         Cfront takes "int(x)" to be an argument to the constructor and
+         treats "a" as a variable, but the ARM requires "int(x)" to be a
+         declaration and therefore "a" must be a function.  (Note that it
+         is a param-decl-vs-arg-expr context if both real and abstract
+         declarators are allowed.)
+
+         And finally, cfront makes the same kind of mistake when evaluating
+         constructs like this:
+           class A { A(int); };
+           A(x);
+         cfront treats this as a constructor call instead of a declaration
+         of an object named x. */
+      *may_be_decl = FALSE;
+      goto done;
+    }  /* if */
     if (abstract_declarator_allowed) {
-      if (cfront_compatibility_mode &&
-          is_top_level &&
-          curr_token == tok_rparen) {
-        /* Cfront handles declarations like
-               int a(int());
-           as the declaration of an object with an initializer of int()
-           (which evaluates to zero), where it really should be a
-           function taking parameter of type "function () returning int".
-           If this is a top level declaration (e.g., not part of a
-           parameter list) don't consider typename() to be a declaration
-           in cfront mode. */
-        *may_be_decl = FALSE;
-      } else if (curr_token == tok_rparen ||
+      if (curr_token == tok_rparen ||
           is_decl_start(/*expr_context=*/FALSE,
                         /*real_declarator_allowed=*/TRUE) ||
                         curr_token == tok_ellipsis) {
@@ -675,22 +697,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
       *may_be_decl = FALSE;
       goto done;
     } else {
-      if (abstract_declarator_allowed && cfront_compatibility_mode &&
-          curr_token == tok_identifier && !pointer_operator_seen) {
-        /* Cfront bug.  In a context in which a parameter declaration
-           must be distinguished from an argument expression, cfront seems
-           always to treat "type-name ( identifier ... )" as an expression,
-           contrary to our reading of the ARM.  For example:
-             class A { A(int); };
-             A a(int(x));
-           Cfront takes "int(x)" to be an argument to the constructor and
-           treats "a" as a variable, but the ARM requires "int(x)" to be a
-           declaration and therefore "a" must be a function.  (Note that it
-           is a param-decl-vs-arg-expr context if both real and abstract
-           declarators are allowed.) */
-        *may_be_decl = FALSE;
-        goto done;
-      }  /* if */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
     }  /* if */
@@ -771,6 +777,7 @@ Assuming that we are in the midst of a declaration, we scan ahead to find
 evidence to the contrary. 
 */
 {
+  a_boolean	is_first_declarator = TRUE;
   db_enter(3, "prescan_declaration");
   /* Coalesce the identifier if this is a tok_identifier. */
   (void)is_generalized_identifier_start(GID_NO_OPTIONS |
@@ -786,8 +793,8 @@ evidence to the contrary.
       prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
                          real_declarator_allowed,
                          /*paren_initializer_allowed=*/
-                         !abstract_declarator_allowed,
-			 is_top_level, may_be_decl);
+                                  !abstract_declarator_allowed,
+			 is_top_level && is_first_declarator, may_be_decl);
       if (!*may_be_decl) goto done;
       /* If we are not processing real declarators, don't look for
          additional declarators. */
@@ -795,6 +802,7 @@ evidence to the contrary.
       /* Advance past the comma then scan the next declarator. */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
+      is_first_declarator = FALSE;
     }  /* for */
     /* If multiple types are not allowed, then break out of the loop. */
     if ((!real_declarator_allowed &&
