@@ -880,11 +880,15 @@ class_struct_union:
       db_abbreviated_type(tp->variant.routine.return_type);
       break;
     case tk_typeref:
-      if (!tp->variant.typeref.is_const && !tp->variant.typeref.is_volatile) {
-        fputs("typeref ", f_debug);
+      if (typeref_is_qualified(tp)) {
+        if (typeref_is_const_qualified(tp)) {
+          fputs("const ", f_debug);
+        }  /* if */
+        if (typeref_is_volatile_qualified(tp)) {
+          fputs("volatile ", f_debug);
+        }  /* if */
       } else {
-        if (tp->variant.typeref.is_const) fputs("const ", f_debug);
-        if (tp->variant.typeref.is_volatile) fputs("volatile ", f_debug);
+        fputs("typeref ", f_debug);
       }  /* if */
       db_abbreviated_type(tp->variant.typeref.type);
       break;
@@ -3827,8 +3831,7 @@ to default values.
 #if DO_IL_LOWERING
       pte->variant.typeref.orig_type   = NULL;
 #endif /* DO_IL_LOWERING */
-      pte->variant.typeref.is_const    = FALSE;
-      pte->variant.typeref.is_volatile = FALSE;
+      pte->variant.typeref.qualifier   = TQ_NONE;
       pte->variant.typeref.is_placeholder_for_file_scope_type = FALSE;
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
@@ -4468,9 +4471,8 @@ and return a pointer to the new array type.
 }  /* copy_array_type_replacing_element_type */
 
 
-a_type_ptr make_qualified_type(a_type_ptr base_type,
-                               a_boolean  is_const,
-                               a_boolean  is_volatile)
+a_type_ptr make_qualified_type(a_type_ptr            base_type,
+                               a_type_qualification  qualifier)
 /*
 Make a version of the type base_type with the additional type qualifiers
 indicated by is_const and is_volatile.  Attempt to find and reuse
@@ -4478,11 +4480,11 @@ an existing entry if possible.  The qualifiers are added only if
 they are not already present.
 */
 {
-  a_type_ptr        orig_base_type, ptr;
-  a_based_type_kind kind;
-  a_boolean         base_type_const_qualified, base_type_volatile_qualified;
-  a_boolean         is_array = FALSE;
-  a_boolean         add_const, add_volatile;
+  a_type_ptr            orig_base_type, ptr;
+  a_based_type_kind     kind;
+  a_boolean             is_array = FALSE;
+  a_type_qualification  base_type_qualifier = TQ_NONE;
+  a_type_qualification  qualifier_to_add = TQ_NONE;
 
   orig_base_type = base_type;
   /* According to ANSI C 3.5.3: "If the specification of an array type
@@ -4496,32 +4498,41 @@ they are not already present.
     base_type = underlying_array_element_type(base_type);
     is_array = TRUE;
   }  /* if */
-  base_type_const_qualified = is_const_qualified_type(base_type);
-  base_type_volatile_qualified = is_volatile_qualified_type(base_type);
-  add_const = is_const && !base_type_const_qualified;
-  add_volatile = is_volatile && !base_type_volatile_qualified;
-  if (add_const || add_volatile) {
+  if (is_const_qualified_type(base_type)) {
+    base_type_qualifier |= TQ_CONST;
+  } else if (qualifier & TQ_CONST) {
+    qualifier_to_add  |= TQ_CONST;
+  }  /* if */
+  if (is_volatile_qualified_type(base_type)) {
+    base_type_qualifier |= TQ_VOLATILE;
+  } else if (qualifier & TQ_VOLATILE) {
+    qualifier_to_add  |= TQ_VOLATILE;
+  }  /* if */
+  if (qualifier_to_add != TQ_NONE) {
     /* Some qualifiers need to be added. */
-    if (base_type_const_qualified || base_type_volatile_qualified) {
+    if (base_type_qualifier != TQ_NONE) {
       /* The typeref(s) containing qualifiers, if any, are removed to get down
          to the real base type, to which the new qualifiers are added.  When
          a qualifier is removed, a flag must be set so that it will be added
          back. */
       while (base_type->kind == (a_type_kind)tk_typeref) {
-        if (!base_type->variant.typeref.is_const &&
-            !base_type->variant.typeref.is_volatile) {
+        if (!typeref_is_qualified(base_type)) {
           /* This is a typedef -- preserve it, so that the qualifier is built
              on top of it. */
           break;
         }  /* if */
-        if (base_type->variant.typeref.is_const) add_const = TRUE;
-        if (base_type->variant.typeref.is_volatile) add_volatile = TRUE;
+        if (typeref_is_const_qualified(base_type)) {
+          qualifier_to_add  |= TQ_CONST;
+        }  /* if */
+        if (typeref_is_volatile_qualified(base_type)) {
+          qualifier_to_add  |= TQ_VOLATILE;
+        }  /* if */
         base_type = base_type->variant.typeref.type;
       }  /* while */
     }  /* if */
     /* Determine the based type kind. */
-    if (add_const) {
-      if (add_volatile) {
+    if (qualifier_to_add & TQ_CONST) {
+      if (qualifier_to_add & TQ_VOLATILE) {
         kind = (a_based_type_kind)btk_const_volatile;
       } else {
         kind = (a_based_type_kind)btk_const;
@@ -4535,9 +4546,13 @@ they are not already present.
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
-      ptr->variant.typeref.type        = base_type;
-      ptr->variant.typeref.is_const    = add_const;
-      ptr->variant.typeref.is_volatile = add_volatile;
+      ptr->variant.typeref.type = base_type;
+      if (qualifier_to_add & TQ_CONST) {
+        ptr->variant.typeref.qualifier |= TQ_CONST;
+      }  /* if */
+      if (qualifier_to_add & TQ_VOLATILE) {
+        ptr->variant.typeref.qualifier |= TQ_VOLATILE;
+      }  /* if */
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
       add_based_type_list_member(base_type, kind, ptr);
@@ -4565,11 +4580,13 @@ Note that type and model_type need not be the same (or even similar) types
 under the qualifiers.
 */
 {
-  a_type_ptr new_type;
+  a_type_ptr            new_type;
+  a_type_qualification  qualifier = TQ_NONE;
 
-  new_type = make_qualified_type(skip_typerefs(type),
-                                 is_const_qualified_type(model_type),
-                                 is_volatile_qualified_type(model_type));
+  if (is_const_qualified_type(model_type)) qualifier |= TQ_CONST;
+  if (is_volatile_qualified_type(model_type)) qualifier |= TQ_VOLATILE;
+  new_type = make_qualified_type(skip_typerefs(type), qualifier);
+
   return new_type;
 }  /* make_identically_qualified_type */
 
@@ -4585,10 +4602,11 @@ under the qualifiers.
 */
 {
   a_type_ptr new_type;
+  a_type_qualification  qualifier = TQ_NONE;
 
-  new_type = make_qualified_type(type,
-                                 is_const_qualified_type(model_type),
-                                 is_volatile_qualified_type(model_type));
+  if (is_const_qualified_type(model_type)) qualifier |= TQ_CONST;
+  if (is_volatile_qualified_type(model_type)) qualifier |= TQ_VOLATILE;
+  new_type = make_qualified_type(type, qualifier);
   return new_type;
 }  /* type_plus_qualifiers_from_second_type */
 
@@ -4625,38 +4643,33 @@ types, and then new types may be built up from them; this may result in
 discarding typedefs.
 */
 {
-  a_boolean  type1_is_const, type1_is_volatile;
-  a_boolean  type2_is_const, type2_is_volatile;
-  a_boolean  is_const, is_volatile;
+  a_type_qualification  type1_qualifier = TQ_NONE;
+  a_type_qualification  type2_qualifier = TQ_NONE;
+  a_type_qualification  qualifier = TQ_NONE;
   a_type_ptr  tp1 = *type1, tp2 = *type2;
 
-  if (is_qualified_type(tp1) && is_qualified_type(tp2)) {
-    /* Both types have type qualifiers.  Record exactly how they are
-       qualified. */
-    type1_is_const = is_const_qualified_type(tp1);
-    type1_is_volatile = is_volatile_qualified_type(tp1);
-    type2_is_const = is_const_qualified_type(tp2);
-    type2_is_volatile = is_volatile_qualified_type(tp2);
+  if (is_const_qualified_type(tp1)) type1_qualifier |= TQ_CONST;
+  if (is_volatile_qualified_type(tp1)) type1_qualifier |= TQ_VOLATILE;
+  if (is_const_qualified_type(tp2)) type2_qualifier |= TQ_CONST;
+  if (is_volatile_qualified_type(tp2)) type2_qualifier |= TQ_VOLATILE;
+  if (type1_qualifier != TQ_NONE && type2_qualifier != TQ_NONE) {
     /* Strip off the qualifiers. */
     tp1 = skip_typerefs(tp1);
     tp2 = skip_typerefs(tp2);
-    if (type1_is_const == type2_is_const &&
-        type1_is_volatile == type2_is_volatile) {
-      /* Either both are const, both are volatile, or both are const volatile.
-         Return both types with all qualifiers stripped off. */
-    } else {
+    if (type1_qualifier ^ type2_qualifier) {
       /* They are differently qualified.  The qualifiers have been stripped
          off; add them back on as appropriate. */
-      is_const = type1_is_const && !type2_is_const;
-      is_volatile = type1_is_volatile && !type2_is_volatile;
-      if (is_const || is_volatile) {
-        tp1 = make_qualified_type(tp1, is_const, is_volatile);
+      qualifier = type1_qualifier & ~type2_qualifier;
+      if (qualifier != TQ_NONE) {
+        tp1 = make_qualified_type(tp1, qualifier);
       }  /* if */
-      is_const = !type1_is_const && type2_is_const;
-      is_volatile = !type1_is_volatile && type2_is_volatile;
-      if (is_const || is_volatile) {
-        tp2 = make_qualified_type(tp2, is_const, is_volatile);
+      qualifier = type2_qualifier & ~type1_qualifier;
+      if (qualifier != TQ_NONE) {
+        tp2 = make_qualified_type(tp2, qualifier);
       }  /* if */
+    } else {
+      /* Either both are const, both are volatile, or both are const volatile.
+         Return both types with all qualifiers stripped off. */
     }  /* if */
     *type1 = tp1;
     *type2 = tp2;
