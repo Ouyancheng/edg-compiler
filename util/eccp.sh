@@ -1014,8 +1014,8 @@ process_option()
          --no_variadic_macros | \
          --extended_variadic_macros | \
          --no_extended_variadic_macros | \
-         --compound_literals \
-         --no_compound_literals \
+         --compound_literals | \
+         --no_compound_literals | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
