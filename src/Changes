@@ -1,5 +1,9 @@
 Version 2.33
 
+7/17/96 copy_node for rethrow node
+
+copy_node now deals correctly with an enk_throw node with throw_info == NULL.
+
 7/17/96 EXIT_ON_INTERNAL_ERROR
 
 A new configuration flag EXIT_ON_INTERNAL_ERROR can be set to request
