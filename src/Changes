@@ -1,5 +1,20 @@
 Version 2.39
 
+8/1/97    C++-generating back end: specialization to represent partial
+          instantiation put out too soon
+
+When a friend declaration was an instance of function template and its
+type involved the class in which it was declared, a specialization
+declaration (to represent its partial declaration) was being put out by
+the C++-generating back end before the class definition, which often
+resulted in invalid code.  Now fixed.  Here's an example that used to be
+handled incorrectly when compiled with --guiding_decls:
+
+  template<class T> inline void f(T&) { }
+  struct A {
+    friend void f(A&) { }
+  };
+
 7/29/98   C++-generating back end: bug in optimization to eliminate body
           of unneeded inline member function
 

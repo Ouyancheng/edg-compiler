@@ -5831,7 +5831,14 @@ type based on the template argument list and the template parameter list
                                                (an_il_entry_kind)iek_routine,
                                                declared_type);
     }
-    if (new_insert_point != NULL) pop_ss_insert_stack();
+    if (new_insert_point != NULL) {
+      pop_ss_insert_stack();
+    } else {
+      /* Reset the insert point so that instantiations triggered will follow
+         the entry representing the partial instantiation, not precede it. */
+      scope_stack[DEPTH_OF_FILE_SCOPE].
+                              ss_list_instantiation_insert_point = NULL;
+    }  /* if */
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

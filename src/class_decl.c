@@ -73,6 +73,16 @@ typedef struct a_routine_fixup {
 			/* TRUE if this entry is for a Microsoft mode
 			   explicit specialization that appeared within
 			   the class definition. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_byte_boolean
+		is_partial_instantiation;
+			/* TRUE if a secondary-decl source sequence entry,
+			   created to represent a partial instantiation,
+			   needs to be added to the source sequence list
+			   during fixup. */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_routine_fixup;
 
 
@@ -189,6 +199,11 @@ initialize it.
   rfp->class_type = class_type;
   rfp->def_arg_expr_fixup_list = NULL;
   rfp->is_specialization = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  rfp->is_partial_instantiation = FALSE;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -244,10 +259,30 @@ fixup pass over its tokens is required, add it to the routine fixup list for
 the current class.  Otherwise free it for later use.
 */
 {
-  if (curr_routine_fixup->symbol != NULL &&
-      (curr_routine_fixup->
-                  function_body_token_cache.first_token != NULL  ||
-       curr_routine_fixup->def_arg_expr_fixup_list != NULL)) {
+  a_symbol_ptr  sym = curr_routine_fixup->symbol;
+  a_boolean     needed = FALSE;
+
+  if (sym != NULL) {
+    if (curr_routine_fixup->function_body_token_cache.first_token != NULL  ||
+        curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+      needed = TRUE;
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* If a source sequence entry to represent a partial instantiation needs
+       to be added to the source sequence list, save the fixup entry for
+       that, too. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
+                    sym->kind == (a_symbol_kind)sk_member_function);
+    if (sym->variant.routine.instance_ptr != NULL &&
+        sym->variant.routine.instance_ptr->partial_instantiation != NULL) {
+      curr_routine_fixup->is_partial_instantiation = TRUE;
+      needed = TRUE;
+    }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+  if (needed) {
     add_to_routine_fixup_list(curr_routine_fixup);
   } else {
     free_routine_fixup(curr_routine_fixup);
@@ -780,6 +815,26 @@ Process the default argument expressions for the indicated class.
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    for (; rfp != NULL; rfp = rfp->next) {
+      if (rfp->is_partial_instantiation) {
+        /* Add a secondary-decl source sequence entry to the source sequence
+           list to represent a partial instantiation. */
+        a_template_instance_ptr       tip;
+
+        tip = rfp->symbol->variant.routine.instance_ptr;
+        check_assertion(tip != NULL && tip->partial_instantiation != NULL);
+        update_source_sequence_list(
+                               (char *)tip->partial_instantiation,
+                               (an_il_entry_kind)iek_src_seq_secondary_decl,
+                               (a_source_sequence_entry_ptr)NULL);
+        tip->partial_instantiation = NULL;
+      }  /* if */
+    }  /* for */
+    rfp = cssp->routine_fixup_list;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
       daefp = rfp->def_arg_expr_fixup_list;
       if (daefp != NULL) {

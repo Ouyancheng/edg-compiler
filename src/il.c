@@ -10014,10 +10014,37 @@ will go on a sublist if it was allocated in the file-scope memory region.
     sp = scope_stack_ptr->il_scope;
     check_assertion_str(sp != NULL,
                         "add_source_sequence_entry_to_list: NULL IL scope");
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* Often a secondary-source sequence entry for a partial instantiation
        is put out immediately prior to the entry for a full instantiation.
        This just clutters up the list, so remove the former. */
+    if (sp->source_sequence_list != NULL) {
+      a_source_sequence_entry_ptr   last = scope_stack_ptr->
+                                              last_source_sequence_entry;
+      a_src_seq_secondary_decl_ptr  sssdp;
+      a_src_seq_sublist_ptr         dummy;
+      a_type_ptr                    tp;
+      a_boolean                     unneeded;
+
+      if (ss_entry_kind(last) ==
+                          (an_il_entry_kind)iek_src_seq_secondary_decl) {
+        sssdp = ss_entry_ptr(last, a_src_seq_secondary_decl_ptr);
+        if (new_ssep->entity.ptr == sssdp->entity.ptr) {
+          unneeded = sssdp->is_partial_instantiation;
+          if (!unneeded &&
+              ss_entry_kind(new_ssep) == (an_il_entry_kind)iek_type) {
+            tp = ss_entry_ptr(new_ssep, a_type_ptr);
+            unneeded = (is_immediate_class_type(tp) &&
+                        tp->variant.class_struct_union.is_template_class);
+          }  /* if */
+          if (unneeded) {
+            dummy = NULL;
+            remove_from_source_sequence_list(last, &dummy);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#if 0
     if (sp->source_sequence_list != NULL &&
         ss_entry_kind(new_ssep) == (an_il_entry_kind)iek_type) {
       a_type_ptr                    tp;
@@ -10036,7 +10063,8 @@ will go on a sublist if it was allocated in the file-scope memory region.
         }  /* if */
       }  /* if */
     }  /* if */
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* if 0 */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (sp->source_sequence_list == NULL) {
       new_ssep->prev = NULL;
       sp->source_sequence_list = new_ssep;
@@ -10572,6 +10600,7 @@ declared_type points to a type that should be recorded in the entry.
     sssdp->entity.ptr = ptr;
     sssdp->entity.kind = (a_byte_il_entry_kind)kind;
     sssdp->declared_type = declared_type;
+    sssdp->is_partial_instantiation = TRUE;
     if (kind == (an_il_entry_kind)iek_type) {
       sssdp->autonomous_tag_decl = TRUE;
     }  /* if */
@@ -10585,11 +10614,36 @@ declared_type points to a type that should be recorded in the entry.
 #else /* !BACK_END_IS_CP_GEN_BE */
     sssdp->specialized_with_new_syntax = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-    /* Add the entry to the source sequence list.  (The macro needn't be
-       called since we know source sequence entries are allowed.) */
-    f_update_source_sequence_list((char *)sssdp,
-                                  (an_il_entry_kind)iek_src_seq_secondary_decl,
-                                  (a_source_sequence_entry_ptr)NULL);
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (kind == (an_il_entry_kind)iek_routine &&
+        is_or_contains_member_of_uncompleted_class(
+                                         ((a_routine_ptr)ptr)->type)) {
+      /* This appears to be an instantiation triggered by a friend
+         declaration.  The source sequence entry specifying the explicit
+         specialization (by which the instantiation is represented) has to
+         appear after the class definition is complete, so don't add the
+         entry to the source sequence list at this time; it will be done
+         later. */
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+        fputs("deferring addition to ss-list for partial instantiation of \"",
+              f_debug);
+        db_name(&((a_routine_ptr)ptr)->source_corresp);
+        fputs("\"\n", f_debug);
+      }  /* if */
+#endif /* if DEBUG */
+      sym->variant.routine.instance_ptr->partial_instantiation = sssdp;
+    } else
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    /* Do not insert code here. */
+    {
+      /* Add the entry to the source sequence list.  (The macro needn't be
+         called since we know source sequence entries are allowed.) */
+      f_update_source_sequence_list(
+                              (char *)sssdp,
+                              (an_il_entry_kind)iek_src_seq_secondary_decl,
+                              (a_source_sequence_entry_ptr)NULL);
+    }
     /* Restore the flag that controls whether source sequence entries are
        generated. */
     source_sequence_entries_disallowed =
@@ -10677,11 +10731,11 @@ void push_ss_insert_stack(a_source_sequence_entry_ptr  list_to_be_removed)
 Clear the ss_list_instantiation_insert_point for the file scope, saving its
 current value in the ss-insert-stack.  Also save the current value of
 last_source_sequence_entry for the file scope.  (The saved values are
-restored pop_ss_insert_stack.)  When list_to_be_removed it represents the
-source position *prior* to which source-sequence entries should now be
-added to the file-scope source sequence list.  If it in non-NULL, truncate
-of the file scope source-sequence list and reset last_source_sequence_entry
-for the file scope.
+restored pop_ss_insert_stack.)  list_to_be_removed represents the source
+position *prior* to which source-sequence entries should now be added to the
+file-scope source sequence list.  If it in non-NULL, truncate of the file
+scope source-sequence list and reset last_source_sequence_entry for the file
+scope.
 */
 {
   an_ss_insert_stack_entry_ptr  sssep;
