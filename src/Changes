@@ -1,5 +1,20 @@
 Version 2.38
 
+11/3/97   Abort scanning invalid template argument list
+
+Certain unusual invalid template argument lists could result in an
+abort when the template argument list is scanned.  This has been fixed.
+
+struct A {
+  template <class T> operator T();
+};
+
+int main()
+{
+  A a;
+  a.operator operator int int < void > () ; 
+}
+
 11/3/97   Destructions in dead code in conditional expressions
 
 When ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS is TRUE (not the

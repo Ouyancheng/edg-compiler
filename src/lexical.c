@@ -7693,6 +7693,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
           pos_error(ec_partial_spec_is_primary_template, &start_position);
         } else if ((options & GID_IS_TEMPLATE_PRESCAN) != 0) {
           /* Suppress the diagnostic in this case. */
+        } else if (is_error_locator(locator_for_curr_id)) {
+          /* An error locator.  Don't issue a diagnostic for this case. */
         } else {
           pos_st_error(ec_not_a_template, &start_position,
                        locator_for_curr_id.symbol_header->identifier);
