@@ -9186,7 +9186,56 @@ Insert the code at the location given by insert_location.
                                       insert_location);
   }  /* if */
 }  /* insert_primary_vtbl_assignment */
-                                     
+
+#if IA64_ABI
+
+static a_boolean class_needs_vptr_assignment_before_nonvirtual_base_inits(
+                                              a_constructor_init_ptr ctor_init)
+/*
+Return TRUE if, in the constructor wrapper code for a class with
+virtual base classes, the virtual function table pointer must be set
+before the nonvirtual base class initializations because the arguments
+of ctor-initializers for the nonvirtual base classes might refer to members
+of virtual base classes.  (In the IA-64 ABI, the virtual function
+table is used to access virtual base classes, so the virtual function
+table pointer would need to be set to allow such references in the
+arguments.)  ctor_init points to the next ctor-initializer after
+the virtual base classes, which would be the first of the nonvirtual
+base class initializations if there are any.
+*/
+{
+  a_boolean              needs_vptr_assign = FALSE;
+  a_constructor_init_ptr cip;
+
+  /* Go through the nonvirtual base class initializations, if any, and
+     see if any of them could have arguments that refer to members of
+     virtual base classes.  (The fact that the bodies of the constructors
+     called might refer to members of virtual base classes is not relevant.) */
+  for (cip = ctor_init;
+       cip != NULL &&
+         cip->kind == (a_constructor_init_kind)cik_direct_base_class;
+       cip = cip->next) {
+    a_dynamic_init_ptr dip = cip->initializer;
+    if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+        dip->variant.constructor.args == NULL) {
+      /* No arguments to constructor call, so no references to virtual
+         base class members. */
+    } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+               dip->kind == (a_dynamic_init_kind)dik_zero) {
+      /* Constant and zeroing assignment, so no references to virtual
+         base class members. */
+    } else {
+      /* Assume there could be references in other cases. */
+      /* Note that the safe answer is TRUE for anything we don't explicitly
+         check for. */
+      needs_vptr_assign = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return needs_vptr_assign;
+}  /* class_needs_vptr_assignment_before_nonvirtual_base_inits */
+
+#endif /* IA64_ABI */
 
 void add_constructor_wrapper_code(a_scope_ptr        scope,
                                   an_insert_location *insert_location)
@@ -9457,6 +9506,17 @@ constructor, but may instead be after an assignment to "this".
                       /*base_of_complete_object=*/TRUE,
                       construction_vtbls_var, &insert_location2);
     }  /* for */
+#if IA64_ABI
+    /* If the arguments of ctor-initializers for nonvirtual base classes
+       might refer to members of virtual base classes, we have to set the
+       virtual function table pointer now so that the virtual bases can
+       be accessed. */
+    if (class_needs_vptr_assignment_before_nonvirtual_base_inits(ctor_init)) {
+      insert_primary_vtbl_assignment(class_type, this_param_var,
+                                     construction_vtbls_var,
+                                     &insert_location2);
+    }  /* if */
+#endif /* IA64_ABI */
     /* Inserting under else_insert_location, in the "else" of the "if"
        (a subobject is being initialized): */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
