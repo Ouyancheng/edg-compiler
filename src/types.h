@@ -627,14 +627,26 @@ but it may have typerefs on top of it.
 */
 #define routine_type_is_nonstatic_member_function(routine_type)       \
  (f_skip_typerefs(routine_type)->                                     \
-          variant.routine.extra_info->implicit_this_param_type != NULL)
+          variant.routine.extra_info->this_class != NULL)
 
+#if 0 /* FIXME */
 /*
 Extract the "this" parameter type from a nonstatic member function type.
 */
 #define implicit_this_param_type_of(routine_type)                     \
  (f_skip_typerefs(routine_type)->                                     \
           variant.routine.extra_info->implicit_this_param_type)
+#else  /* FIXME */
+extern a_type_ptr f_implicit_this_param_type_of(a_type_ptr  routine_type);
+extern void extract_this_class_and_qualifiers(
+                                           a_type_ptr            this_type,
+                                           a_type_ptr            *this_class,
+                                           a_type_qualifier_set  *qualifiers);
+
+#define implicit_this_param_type_of(routine_type)                     \
+  ((routine_type)->variant.routine.extra_info->this_class != NULL ?   \
+                           f_implicit_this_param_type_of(routine_type) : NULL)
+#endif  /* FIXME */
 
 /*
 Extract a pointer to a base classes list for a class type.  This macro

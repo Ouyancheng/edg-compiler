@@ -1129,10 +1129,8 @@ in the way described by octl.
     } /* if */
 #ifdef CFE
     /* Output a cv-qualifier for a member function, if there is one. */
-    if (rtsp->implicit_this_param_type != NULL) {
-      a_type_ptr           underlying_type =
-                               type_pointed_to(rtsp->implicit_this_param_type);
-      a_type_qualifier_set qualifiers = get_type_qualifiers(underlying_type);
+    if (rtsp->this_class != NULL) {
+      a_type_qualifier_set qualifiers = rtsp->qualifiers;
       if (qualifiers != TQ_NONE) {
         octl->output_str(" ");
         form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, octl);

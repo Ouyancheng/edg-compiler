@@ -629,7 +629,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                                       (a_routine_type_supplement_ptr)entry_ptr;
         walk_list(ptr->param_type_list, a_param_type_ptr, iek_param_type);
 #ifdef CFE
-        walk_ptr(ptr->implicit_this_param_type, a_type_ptr, iek_type);
+        walk_ptr(ptr->this_class, a_type_ptr, iek_type);
         walk_ptr(ptr->prototype_scope, a_scope_ptr, iek_scope);
         walk_ptr(ptr->exception_specification, an_exception_specification_ptr,
                  iek_exception_specification);
@@ -1235,12 +1235,8 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         { a_variable_ptr parameter = ptr->parameter;
-          if (parameter != NULL) {
-            a_type_ptr param_type = parameter->type;
-            if (is_ptr_or_ref_type(param_type)) {
-              param_type = type_pointed_to(param_type);
-              definition_needed_if_class(param_type);
-            }  /* if */
+          if (parameter != NULL && is_ptr_or_ref_type(parameter->type)) {
+            definition_needed_if_class(type_pointed_to(parameter->type));
           }  /* if */
         }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */

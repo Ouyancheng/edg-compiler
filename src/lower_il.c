@@ -5417,8 +5417,8 @@ Do IL lowering of the indicated type and everything under it.
           }  /* if */
           /* If there is an implicit "this" parameter, make an explicit
              first parameter for it. */
-          if (rtsp->implicit_this_param_type != NULL) {
-            ptp = alloc_param_type(rtsp->implicit_this_param_type);
+          if (rtsp->this_class != NULL) {
+            ptp = alloc_param_type(implicit_this_param_type_of(type));
             /* Force lowering in the loop that follows. */
             mark_as_not_visited(ptp);
             /* The "this" parameter variable is const even though the
@@ -5431,8 +5431,8 @@ Do IL lowering of the indicated type and everything under it.
             }  /* if */
             ptp->next = rtsp->param_type_list;
             rtsp->param_type_list = ptp;
-            /* Leave the implicit_this_param_type unchanged; it's helpful
-               to have it there to determine the "this" parameter type
+            /* Leave the this_class and qualifiers unchanged; it's helpful
+               to have them there to determine the "this" parameter type
                whether or not the routine type has been lowered. */
           }  /* if */
           for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
@@ -5906,13 +5906,12 @@ lowered, return the list after any implicit parameters added by lowering.
     /* The routine type has already been lowered, so advance past the
        extra arguments added by lowering, if any. */
     /* "this" parameter. */
-    if (rtsp->implicit_this_param_type != NULL) param = param->next;
+    if (rtsp->this_class != NULL) param = param->next;
     if (rtsp->assoc_routine_is_ctor) {
       /* For constructors, a parameter is added for each virtual base
          class. */
       /* Get the class type from the "this" parameter type. */
-      a_type_ptr class_type = type_pointed_to(rtsp->implicit_this_param_type);
-      class_type = skip_typerefs(class_type);
+      a_type_ptr class_type = rtsp->this_class;
       if (class_type->variant.class_struct_union.any_virtual_base_classes) {
         a_base_class_ptr bcp;
         for (bcp = class_type->variant.class_struct_union.extra_info->
@@ -7221,7 +7220,7 @@ the top node of the indicated statement (which is an expression statement).
   prev_arg_node = arg_node;
   arg_node = arg_node->next;
   /* If the routine has a "this" parameter, lower it separately. */
-  if (rtsp->implicit_this_param_type != NULL) {
+  if (rtsp->this_class != NULL) {
     /* Treat the "this" parameter as an lvalue to avoid extra tests for NULL
        on base class casts. */
     lower_expr(arg_node, /*is_lvalue=*/TRUE);
@@ -11824,7 +11823,7 @@ Do IL lowering of the indicated scope and everything under it.
         /* Drop the top-level "const" on the "this" parameter because it has
            to be modifiable.  Do this in a way that preserves "restrict" if
            that's present. */
-        param_var->type = rtsp->implicit_this_param_type;
+        param_var->type = implicit_this_param_type_of(routine_type);;
       }  /* if */
     }  /* if */
     lower_variable_list(scope->variant.routine.parameters);

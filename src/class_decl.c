@@ -2650,11 +2650,11 @@ routine entry and return TRUE; otherwise return FALSE.
             /* If rp is virtual, it must be non-static and therefore must
                have a this parameter. */
             check_assertion(skip_typerefs(rp->type)->variant.routine.
-                              extra_info->implicit_this_param_type != NULL);
+                                              extra_info->this_class != NULL);
             /* Be sure the new routine also has a this parameter.  If not,
                it must be static. */
             if (skip_typerefs(rout->type)->variant.routine.extra_info->
-                                          implicit_this_param_type == NULL) {
+                                                         this_class == NULL) {
               /* A static member function "redeclares" a virtual nonstatic
                  member function from a base class.  Normally, that is not
                  allowed, but the Microsoft compilers don't mind (and treat
@@ -4612,12 +4612,11 @@ a member function definition that appears separately from the declaration
 in the class definition, there is no way for the user to specify whether
 it is a static or nonstatic member function; that can be determined only
 by looking back at the original declaration.  So, new_type cannot yet
-have a non-NULL implicit_this_param_type and the type match must be done
-without it.
+have a non-NULL this_class and the type match must be done without it.
 */
 {
   a_boolean			 is_overloaded_function, match;
-  a_type_ptr                     orig_type, orig_this_type, new_this_type, tp;
+  a_type_ptr                     orig_type, orig_this_class, new_this_class;
   a_routine_type_supplement_ptr  orig_rts, new_rts;
   a_boolean                      orig_function_is_qualified;
   a_boolean                      new_function_is_qualified;
@@ -4633,10 +4632,8 @@ without it.
      parameter.  types_are_compatible should do the comparison based only
      on the return type and parameters. */
   new_rts = (skip_typerefs(new_type))->variant.routine.extra_info;
-  new_this_type = new_rts->implicit_this_param_type;
-  new_function_is_qualified = (new_this_type != NULL &&
-                               (tp = type_pointed_to(new_this_type),
-                                is_top_level_qualified_type(tp)));
+  new_this_class = new_rts->this_class;
+  new_function_is_qualified = (new_rts->qualifiers != TQ_NONE);
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
@@ -4652,10 +4649,8 @@ without it.
       orig_type = sym->variant.routine.ptr->type;
     }  /* if */
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
-    orig_this_type = orig_rts->implicit_this_param_type;
-    orig_function_is_qualified = (orig_this_type != NULL &&
-                                  (tp = type_pointed_to(orig_this_type),
-                                   is_top_level_qualified_type(tp)));
+    orig_this_class = orig_rts->this_class;
+    orig_function_is_qualified = (orig_rts->qualifiers != TQ_NONE);
     if (new_function_is_qualified != orig_function_is_qualified) {
       /* No match is possible.  Don't bother calling types_are_compatible. */
       continue;
@@ -4690,15 +4685,15 @@ without it.
     } else {
       /* Neither routine is qualified.  Save away the "this" param types,
          do the compatibility check without them, and then restore them. */
-      new_rts->implicit_this_param_type = NULL;
-      orig_rts->implicit_this_param_type = NULL;
+      new_rts->this_class = NULL;
+      orig_rts->this_class = NULL;
     }  /* if */
     match = routine_types_are_compatible(orig_type, new_type, TCF_NO_FLAGS);
     if (!new_function_is_qualified) {
       /* Restore the implicit "this" parameter types in orig_type and
          new_type. */
-      new_rts->implicit_this_param_type = new_this_type;
-      orig_rts->implicit_this_param_type = orig_this_type;
+      new_rts->this_class = new_this_class;
+      orig_rts->this_class = orig_this_class;
     }  /* if */
     /* If a match was found by types_are_compatible, break out of the
        loop. */
@@ -6026,8 +6021,8 @@ declared member functions.
         tp = func_info->declared_type;
         rtsp1 = skip_typerefs(member_type)->variant.routine.extra_info;
         rtsp2 = skip_typerefs(tp)->variant.routine.extra_info;
-        if (rtsp1->implicit_this_param_type !=
-                                        rtsp2->implicit_this_param_type ||
+        if (rtsp1->this_class != rtsp2->this_class ||
+            rtsp1->qualifiers != rtsp2->qualifiers ||
             rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
           /* The implicit-this-param-type and/or name-linkage may need to be
              set in the declared type. */
@@ -6043,7 +6038,8 @@ declared member functions.
                entry. */
             func_info->declared_type = tp;
           }  /* if */
-          rtsp2->implicit_this_param_type = rtsp1->implicit_this_param_type;
+          rtsp2->this_class = rtsp1->this_class;
+          rtsp2->qualifiers = rtsp1->qualifiers;
           rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
         }  /* if */
       }  /* if */          
@@ -8272,7 +8268,7 @@ operator should be created.  No routine body is generated at this time.
     }  /* if */
   }  /* if */
   extra_info->param_type_list = ptp;
-  extra_info->implicit_this_param_type = make_pointer_type(class_type);
+  extra_info->this_class = class_type;
   extra_info->prototyped = TRUE;
   /* Check whether the routine needs special support for returning a class
      object by value.  This call should be superfluous; it is included just
@@ -9692,7 +9688,7 @@ the member or friend function appears, and is_nonstatic_member is TRUE when
 the function is a nonstatic member of class_type.
 */
 {
-  a_type_ptr                     rout_type, tp;
+  a_type_ptr                     rout_type;
   a_routine_type_supplement_ptr  rtsp;
 
   if (is_definition) {
@@ -9713,13 +9709,14 @@ the function is a nonstatic member of class_type.
          Be sure the implicit this-param type is filled in, since that's
          the only way a nonstatic member function is distinguished from a
          static member function. */
-      tp = make_pointer_type(class_type);
-      rout_type->variant.routine.extra_info->implicit_this_param_type = tp;
+      rout_type->variant.routine.extra_info->this_class = class_type;
+      /* FIXME: qualifiers? */
     } else if (any_cfront_mode()) {
       /* Just in case this is a copy of the weird cfront-compatibility
          typedef, clear out the implicit this-param pointer in the copied
          type entry. */
-      rout_type->variant.routine.extra_info->implicit_this_param_type = NULL;
+      rout_type->variant.routine.extra_info->this_class = NULL;
+      rout_type->variant.routine.extra_info->qualifiers = TQ_NONE;
     }  /* if */
     *member_type = rout_type;
   }  /* if */

@@ -1957,6 +1957,54 @@ base class casts and virtual function calls.
 }  /* node_complete_object_type */
 
 
+a_type_ptr f_implicit_this_param_type_of(a_type_ptr  routine_type)
+/*
+Synthesize the type of "this" from the underlying class type and the
+qualification of a member function type.
+*/
+{
+  a_routine_type_supplement_ptr  rtsp =
+                                     routine_type->variant.routine.extra_info;
+  a_type_ptr                     result = rtsp->this_class;
+
+#if RESTRICT_ALLOWED
+  if ((rtsp->qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
+    result = make_qualified_type(result, rtsp->qualifiers & ~TQ_RESTRICT);
+  }  /* if */
+  result = make_pointer_type(result);
+  if (rtsp->qualifiers & TQ_RESTRICT) {
+    result = make_qualified_type(result, TQ_RESTRICT);
+  }  /* if */
+#else /* !RESTRICT_ALLOWED */
+  if (rtsp->qualifiers != TQ_NONE) {
+    result = make_qualified_type(result, rtsp->qualifiers);
+  }  /* if */
+  result = make_pointer_type(result);
+#endif /* RESTRICT_ALLOWED */
+  return result;
+}  /* f_implicit_this_param_type_of */
+
+
+void extract_this_class_and_qualifiers(a_type_ptr              this_type,
+                                       a_type_ptr            *this_class,
+                                       a_type_qualifier_set  *qualifiers)
+/*
+Extract the class to which a member function should belong, and the qualifiers
+that it must have, so that its "this" parameter would have type this_type.
+*/
+{
+  if (this_type != NULL) {
+    *qualifiers = get_top_level_type_qualifiers(this_type) & TQ_RESTRICT;
+    this_type = type_pointed_to(this_type);
+    *qualifiers |= get_top_level_type_qualifiers(this_type);
+    *this_class = skip_typerefs(this_type);
+  } else {
+    *qualifiers = TQ_NONE;
+    *this_class = NULL;
+  }  /* if */
+}  /* extract_this_class_and_qualifiers */
+
+
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
 static a_boolean same_repr_int_types(a_type_ptr type_1,
                                      a_type_ptr type_2)
@@ -2324,8 +2372,8 @@ for more information.
             a_type_ptr	this2;
             rtsp1 = type_1->variant.routine.extra_info;
             rtsp2 = type_2->variant.routine.extra_info;
-            this1 = rtsp1->implicit_this_param_type;
-            this2 = rtsp2->implicit_this_param_type;
+            this1 = rtsp1->this_class;
+            this2 = rtsp2->this_class;
             if (this1 == NULL && this2 == NULL) {
               /* Both this parameter types are NULL -- they match. */
               implicit_this_matches = TRUE;
@@ -2335,16 +2383,15 @@ for more information.
                  indicates that we don't yet know whether the type has
                  an implicit this parameter type and if the non-NULL type
                  has no qualifiers. */
-              a_type_ptr	nonnull_type = this1 != NULL ? this1 : this2;
-              /* Get the type pointed to by the this parameter. */
-              nonnull_type = type_pointed_to(nonnull_type);
               implicit_this_matches = unknown_implicit_this_type &&
-                                      get_type_qualifiers(nonnull_type) ==
-                                                 (a_type_qualifier_set)TQ_NONE;
+                                      rtsp1->qualifiers == TQ_NONE &&
+                                      rtsp2->qualifiers == TQ_NONE;
             } else {
               /* Both types are non-null, see if they are identical. */
-              implicit_this_matches = f_identical_types(this1, this2,
-                                                        flags);
+              implicit_this_matches =
+                        rtsp1->qualifiers == rtsp2->qualifiers &&
+                        equiv_class_types(this1, this2,
+                                          /*error_matches_anything=*/FALSE);
             }  /* if */
             /* For functions, the return types must be identical, the
                parameter lists must be identical, and the implicit "this"
@@ -2782,12 +2829,9 @@ for exact pointer equality.
                                      flags) &&
               param_types_are_compatible(type_1, type_2, flags) &&
               ((flags & TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE) ||
-               ((rtsp1->implicit_this_param_type == NULL) ?
-                  (rtsp2->implicit_this_param_type == NULL) :
-                  (rtsp2->implicit_this_param_type != NULL &&
-                   f_types_are_compatible(rtsp1->implicit_this_param_type,
-                                          rtsp2->implicit_this_param_type,
-                                          flags)))) &&
+               (rtsp1->qualifiers == rtsp2->qualifiers &&
+                equiv_class_types(rtsp1->this_class, rtsp2->this_class,
+                                  error_matches_anything))) &&
               (ignore_calling_conventions ||
                (routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
@@ -3724,30 +3768,26 @@ TRUE, the two types are the types of the operands of an operation.
 If neither is TRUE, the types are checked for an exact match.
 */
 {
-  a_boolean  correspond = FALSE;
-  a_type_ptr this_type_1, this_type_2;
+  a_boolean                      correspond = FALSE;
+  a_routine_type_supplement_ptr  rtsp_1, rtsp_2;
+  a_type_ptr                     this_class_1, this_class_2;
 
-  rout_type_1 = skip_typerefs(rout_type_1);
-  rout_type_2 = skip_typerefs(rout_type_2);
-  this_type_1 = rout_type_1->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-  this_type_2 = rout_type_2->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-  if (this_type_1 == NULL) {
+  rtsp_1 = skip_typerefs(rout_type_1)->variant.routine.extra_info;
+  rtsp_2 = skip_typerefs(rout_type_2)->variant.routine.extra_info;
+  this_class_1 = rtsp_1->this_class;
+  this_class_2 = rtsp_2->this_class;
+  if (this_class_1 == NULL) {
     /* type_1 does not have a "this" parameter type.  Match if type_2 also
        does not. */
-    correspond = (this_type_2 == NULL);
-  } else if (this_type_2 == NULL) {
+    correspond = (this_class_2 == NULL);
+  } else if (this_class_2 == NULL) {
     /* type_1 has a "this" parameter type, type_2 does not. */
     /* correspond = FALSE;  -- already set. */
-  } else if (!type_qualifiers_match(this_type_1, this_type_2)) {
-    /* The type qualifiers do not match. */
-    /* correspond = FALSE;  -- already set. */
   } else {
-    this_type_1 = type_pointed_to(this_type_1);
-    this_type_2 = type_pointed_to(this_type_2);
+    a_type_qualifier_set  qualifiers_1 = rtsp_1->qualifiers,
+                          qualifiers_2 = rtsp_2->qualifiers;
     if (!any_cfront_mode()) {
-      if (!type_qualifiers_match(this_type_1, this_type_2)) {
+      if (qualifiers_1 != qualifiers_2) {
         /* The type qualifiers do not match. */
         /* correspond = FALSE;  -- already set. */
       } else {
@@ -3767,12 +3807,12 @@ If neither is TRUE, the types are checked for an exact match.
       if (check_as_operands) {
         /* On operands, the type qualifiers are ignored. */
         correspond = TRUE;
-      } else if (type_qualifiers_match(this_type_1, this_type_2)) {
+      } else if (qualifiers_1 == qualifiers_2) {
         correspond = TRUE;
       } else if (check_as_conversion) {
         /* The type qualifiers do not match, but this is a conversion,
            so that may be okay. */
-        if (any_qualifier_missing(this_type_2, this_type_1)) {
+        if (any_qualifier_in_set_missing(qualifiers_1, qualifiers_2)) {
           /* Some type qualifiers are being added; that's never okay. */
           /* correspond = FALSE;  -- already set. */
         } else {
@@ -5008,7 +5048,8 @@ make_new_comp_type:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!C_mode()) {
       /* Set the implicit-this-parameter type. */
-      rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
+      rtsp->this_class = rtsp1->this_class;
+      rtsp->qualifiers = rtsp1->qualifiers;
       /* If the two exception specifications are not identical, it is
          because of an error that will already have been reported. */
       if (rtsp1->exception_specification != NULL) {
@@ -5194,12 +5235,13 @@ the old list.  Only callable in C++ mode.  See ARM 13.
 {
   a_boolean        distinguishable = TRUE;
   a_boolean        old_is_list, old_is_template;
-  a_type_ptr       old_type, tp;
+  a_type_ptr       old_type;
   a_param_type_ptr old_param, new_param;
   a_routine_type_supplement_ptr
                    old_extra_info, new_extra_info;
-  a_type_ptr       old_this_param_type, new_this_param_type;
-  a_boolean        old_this_qualified = FALSE, new_this_qualified = FALSE;
+  a_type_ptr       old_this_class, new_this_class;
+  a_type_qualifier_set
+                   old_this_qualifiers, new_this_qualifiers;
   a_boolean	   new_is_template = templ_param_list != NULL;
 
   db_enter(5, "overload_distinguishable");
@@ -5213,11 +5255,8 @@ the old list.  Only callable in C++ mode.  See ARM 13.
   }  /* if */
   new_type = skip_typerefs(new_type);
   new_extra_info = new_type->variant.routine.extra_info;
-  new_this_param_type = new_extra_info->implicit_this_param_type;
-  if (new_this_param_type != NULL) {
-    tp = type_pointed_to(new_this_param_type);
-    new_this_qualified = is_qualified_type(tp);
-  }  /* if */
+  new_this_class = new_extra_info->this_class;
+  new_this_qualifiers = new_extra_info->qualifiers;
   do {
     /* Projection symbols are ignored. */
     if (old_sym_ptr->kind == (a_symbol_kind)sk_projection ||
@@ -5246,15 +5285,12 @@ the old list.  Only callable in C++ mode.  See ARM 13.
        distinguishable on that basis alone (except in cfront compatibility
        mode, when a type qualifier on the "this" parameter type makes a
        nonstatic function distinguishable from a static function). */
-    old_this_param_type = old_extra_info->implicit_this_param_type;
-    if (old_this_param_type != NULL) {
-      tp = type_pointed_to(old_this_param_type);
-      old_this_qualified = is_qualified_type(tp);
-    }  /* if */
-    if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
-        (old_this_param_type != NULL && new_this_param_type != NULL &&
-         !f_types_are_compatible(old_this_param_type, new_this_param_type,
-                                 TCF_NO_FLAGS))) {
+    old_this_class = old_extra_info->this_class;
+    old_this_qualifiers = old_extra_info->qualifiers;
+    if ((old_this_qualifiers != new_this_qualifiers && any_cfront_mode()) ||
+        (old_this_class != NULL && new_this_class != NULL &&
+         (old_this_qualifiers != new_this_qualifiers ||
+          !equiv_class_types(old_this_class, new_this_class, TCF_NO_FLAGS)))) {
       /* "this" parameter types are distinguishable; this probably means
          one function is const or volatile and the other isn't. */
       distinguishable = TRUE;
@@ -5291,7 +5327,7 @@ the old list.  Only callable in C++ mode.  See ARM 13.
     }  /* for */
     /* Falling through to here means the parameter types are all
        indistinguishable. */
-    if ((old_this_param_type == NULL) != (new_this_param_type == NULL)) {
+    if ((old_this_class == NULL) != (new_this_class == NULL)) {
       /* Except in certain cases in cfront mode, it's an error to overload
          a static and nonstatic member function whose parameter types are
          the same. */
@@ -5857,7 +5893,7 @@ its parameters?).
         }  /* if */
         if (!C_mode()) {
           if (flags & TTT_THIS_PARAM_TYPE) {
-            tp = rtsp->implicit_this_param_type;
+            tp = rtsp->this_class; /* FIXME */
             if (tp != NULL && traverse_type_tree(tp, func, flags)) {
               status = TRUE;
               break;
@@ -6443,7 +6479,7 @@ a new tree is built.
   a_type_ptr              new_type = type;
   a_type_ptr              tp, tp2;
   a_param_type_ptr        ptp, new_ptp, prev_ptp;
-  a_type_ptr              new_return_type, new_this_param_type;
+  a_type_ptr              new_return_type, new_this_class;
   a_type_ptr              first_new_type_for_param_types_list;
   unsigned long           reusable_param_types;
 
@@ -6478,11 +6514,10 @@ a new tree is built.
       if (func(new_return_type, flags, &tp)) {
         new_return_type = tp;
       }  /* if */
-      new_this_param_type =
-                 type->variant.routine.extra_info->implicit_this_param_type;
-      if (new_this_param_type != NULL &&
-          func(new_this_param_type, flags, &tp)) {
-        new_this_param_type = tp;
+      /* FIXME  qualifiers? */
+      new_this_class = type->variant.routine.extra_info->this_class;
+      if (new_this_class != NULL && func(type, flags, &tp)) {
+        new_this_class = tp->variant.routine.extra_info->this_class;
         goto make_new_type;
       } else if (new_return_type != type->variant.routine.return_type) {
         goto make_new_type;
@@ -6516,8 +6551,8 @@ make_new_type:
       *(new_type->variant.routine.extra_info) =
                                        *(type->variant.routine.extra_info);
       new_type->variant.routine.extra_info->assoc_routine = NULL;
-      new_type->variant.routine.extra_info->implicit_this_param_type =
-                                                     new_this_param_type;
+      new_type->variant.routine.extra_info->this_class = new_this_class;
+      /* FIXME qualifiers? */
       /* Make copies of the entries on type's param types list, making the
          appropriate modifications. */
       prev_ptp = NULL;

@@ -402,15 +402,26 @@ return a pointer to it.
 static a_variable_ptr make_implicit_this_param_variable(a_type_ptr  type_ptr)
 /*
 Create a variable entry for an implicit-this parameter, using the indicated
-type, and return a pointer to it.
+routine type, and return a pointer to it.
 */
 {
-  a_variable_ptr  vp;
+  a_variable_ptr                 vp;
+  a_routine_type_supplement_ptr  rtsp = type_ptr->variant.routine.extra_info;
+  a_type_qualifier_set           qualifiers = rtsp->qualifiers;
 
   /* The implicit this parameter is a pointer type that is not const
      qualified as far as the interface is concerned.  The variable, however,
      does get a const qualifier. */
+#if RESTRICT_ALLOWED
+  type_ptr = make_qualified_type(rtsp->this_class, qualifiers & ~TQ_RESTRICT);
+  type_ptr = make_pointer_type(type_ptr);
+  type_ptr = make_qualified_type(type_ptr,
+                                 TQ_CONST | (qualifiers & TQ_RESTRICT));
+#else /* !RESTRICT_ALLOWED */
+  type_ptr = make_qualified_type(rtsp->this_class, qualifiers);
+  type_ptr = make_pointer_type(type_ptr);
   type_ptr = make_qualified_type(type_ptr, TQ_CONST);
+#endif /* RESTRICT_ALLOWED */
   vp = make_param_variable(type_ptr, (a_storage_class)sc_auto);
   vp->is_this_parameter = TRUE;
   return vp;
@@ -676,9 +687,9 @@ and for the instantiation of template functions.
   if (rtsp->value_returned_by_cctor) {
     scope_stack[depth_scope_stack].return_value_optimization_possible = TRUE;
   }  /* if */
-  if (class_type != NULL && rtsp->implicit_this_param_type != NULL) {
+  if (class_type != NULL && rtsp->this_class != NULL) {
     scope_ptr->variant.routine.this_param_variable =
-           make_implicit_this_param_variable(rtsp->implicit_this_param_type);
+                                 make_implicit_this_param_variable(rout_type);
   }  /* if */
   if (func_info->function_type_from_typedef) {
     /* An error was already issued on this.  Now, since no parameters were
@@ -1067,8 +1078,8 @@ on a prior declaration.
          in cfront mode -- but issue a diagnostic. */
       a_routine_type_supplement_ptr  rtsp =
                                        type_ptr->variant.routine.extra_info;
-      if (rtsp->implicit_this_param_type != NULL) {
-        rtsp->implicit_this_param_type = NULL;
+      if (rtsp->this_class != NULL) {
+        rtsp->this_class = NULL;
         sym = member_function_redecl_sym(locator->specific_symbol, type_ptr,
                                          (a_template_param_ptr)NULL);
         if (sym != NULL) {
@@ -1124,15 +1135,16 @@ on a prior declaration.
       /* Type was okay, but this member function has a body. */
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       other_rp = sym->variant.routine.ptr;
-      rout_type->variant.routine.extra_info->implicit_this_param_type =
-          other_rp->type->variant.routine.extra_info->implicit_this_param_type;
+      rout_type->variant.routine.extra_info->this_class =
+                       other_rp->type->variant.routine.extra_info->this_class;
+      rout_type->variant.routine.extra_info->qualifiers =
+                       other_rp->type->variant.routine.extra_info->qualifiers;
     } else {
       /* In the error case assume the member function is nonstatic and give
          it an implicit this parameter type.  This will prevent an error from
          being issued on a direct reference to a nonstatic data member in the
          function body. */
-      rout_type->variant.routine.extra_info->implicit_this_param_type =
-                                               make_pointer_type(class_type);
+      rout_type->variant.routine.extra_info->this_class = class_type;
     }  /* if */
     /* An error has been detected.  Make a "fake" symbol and routine entry so
        that the routine definition can proceed. */
@@ -1163,8 +1175,10 @@ on a prior declaration.
        into type_ptr:  it is always wrong for nonstatic member functions.
        Also be sure the routine name linkage for the type is right. */
     rp = sym->variant.routine.ptr;
-    rout_type->variant.routine.extra_info->implicit_this_param_type =
-           (*old_type)->variant.routine.extra_info->implicit_this_param_type;
+    rout_type->variant.routine.extra_info->this_class =
+           (*old_type)->variant.routine.extra_info->this_class;
+    rout_type->variant.routine.extra_info->qualifiers =
+           (*old_type)->variant.routine.extra_info->qualifiers;
     rout_type->variant.routine.extra_info->routine_name_linkage =
            (*old_type)->variant.routine.extra_info->routine_name_linkage;
     /* Do compatibility checking on the throw specification. */
@@ -2080,9 +2094,9 @@ empty statement block.
     }  /* if */
     rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
-    if (rtsp->implicit_this_param_type != NULL) {
+    if (rtsp->this_class != NULL) {
       scope->variant.routine.this_param_variable =
-           make_implicit_this_param_variable(rtsp->implicit_this_param_type);
+             make_implicit_this_param_variable(skip_typerefs(rout_ptr->type));
     }  /* if */
     /* Enter the constructor and destructor initializers, to record possible
        implicit initializers. */

@@ -2659,10 +2659,23 @@ typedef struct a_routine_type_supplement {
 			/* Calling convention for this routine (e.g.,
 			   __cdecl, __fastcall). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if 1 /* FIXME */
+  a_type_ptr   this_class;
+			/* For nonstatic member functions this is a pointer
+			   to the (unqualified, untypedefed) class type of
+			   which they are a member (i.e., the class of
+			   "*this").  For any other routine type this is
+			   NULL. */
+  a_bit_field  qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Used for nonstatic member functions: the
+			   qualification of the function type. */
+#endif /* FIXME */
+#if 0 /* FIXME */
   a_type_ptr    implicit_this_param_type;
 			/* Pointer to the type of the implicit "this"
 			   parameter of C++ member functions; NULL for all
 			   other functions. */
+#endif /* FIXME */
   a_scope_ptr   prototype_scope;
                         /* Almost always NULL.  In rare cases, points to
                            a scope entry that contains things declared

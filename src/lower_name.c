@@ -358,18 +358,16 @@ Add to the mangled name the encoding for the type qualifiers (if any)
 on the member function type "type".
 */
 {
-  a_type_ptr            this_param_type;
-  a_type_qualifier_set  qualifiers;
+  a_routine_type_supplement_ptr rtsp =
+                              skip_typerefs(type)->variant.routine.extra_info;
 
-  type = skip_typerefs(type);
-  this_param_type = type->variant.routine.extra_info->implicit_this_param_type;
-  if (this_param_type != NULL) {
+  if (rtsp->this_class != NULL) {
     /* The function is a nonstatic member function. */
-    this_param_type = type_pointed_to(this_param_type);
     /* Add any qualifiers on the "this" parameter type (actually, the type
        pointed to by the "this" parameter). */
-    qualifiers = get_top_level_type_qualifiers(this_param_type);
-    if (qualifiers != 0) {
+    a_type_qualifier_set  qualifiers = rtsp->qualifiers;
+
+    if (qualifiers != TQ_NONE) {
       mangled_encoding_for_type_qualifiers(qualifiers, mctl);
     }  /* if */
   } else {

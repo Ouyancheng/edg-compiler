@@ -1782,18 +1782,26 @@ projection symbol.  is_conv_func is TRUE if the function is a
 conversion function.
 */
 {
-  a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
+  a_type_ptr this_param_type;
 
   if (proj_function_symbol->kind == (a_symbol_kind)sk_projection &&
       (proj_function_symbol->variant.projection.is_using_decl ||
        is_conv_func)) {
     /* Make a pointer to the class of the projection, qualified like the
        actual "this" parameter type. */
-    a_type_ptr underlying_type = proj_function_symbol->parent.class_type;
-    a_type_ptr model_underlying_type = type_pointed_to(this_param_type);
-    underlying_type = make_identically_qualified_type(underlying_type,
-                                                      model_underlying_type);
-    this_param_type = make_pointer_type(underlying_type);
+    a_routine_type_supplement_ptr  rtsp =
+                                     routine_type->variant.routine.extra_info;
+    a_type_ptr                     saved_this_class = rtsp->this_class;
+
+    /* Temporarily replace the class of "*this" by the parent type of the
+       projection symbol.  This allows us to use implicit_this_param_type_of
+       to synthesize the appropriately qualified type. */
+    rtsp->this_class = proj_function_symbol->parent.class_type;
+    this_param_type = implicit_this_param_type_of(routine_type);
+    /* Restore the correct class for "*this". */
+    rtsp->this_class = saved_this_class;
+  } else {
+    this_param_type = implicit_this_param_type_of(routine_type);
   }  /* if */
   return this_param_type;
 }  /* this_param_type_for_overload_res */
@@ -5319,10 +5327,9 @@ operand as its selector object.  If the function is const, change the type
 of references to the object to be const-address-taken.
 */
 {
-  a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
-
-  this_param_type = type_pointed_to(this_param_type);
-  if (is_const_qualified_type(this_param_type)) {
+  a_type_qualifier_set  this_qualifiers =
+                         routine_type->variant.routine.extra_info->qualifiers;
+  if (this_qualifiers & TQ_CONST) {
     /* The function is a const function, so indicate that the selector's
        address is taken only in a way that does not allow modification. */
     change_some_ref_kinds(bound_function_selector->ref_entries_list,
@@ -7032,7 +7039,7 @@ gives the type of the routine being called.
   /* If the function is const, change the reference kinds on the selector. */
   change_refs_on_selector_if_const_function(routine_type, operand);
   this_param_type = implicit_this_param_type_of(routine_type);
-  this_class_type = f_skip_typerefs(type_pointed_to(this_param_type));
+  this_class_type = routine_type->variant.routine.extra_info->this_class;
   if (is_pointer_type(operand->type)) {
     operand_class_type = f_skip_typerefs(type_pointed_to(operand->type));
     if (operand_class_type != this_class_type &&
@@ -8396,12 +8403,10 @@ Return an argument list for the call in *arg_expr_list.  This routine
 is used only in C++ mode.
 */
 {
-  a_type_ptr this_param_type, routine_type;
+  a_type_ptr routine_type = conversion_routine->type;
 
   /* Check that the conversion function is accessible and mark it as
      referenced. */
-  routine_type = conversion_routine->type;
-  this_param_type = implicit_this_param_type_of(routine_type);
   reference_to_implicitly_invoked_function(conversion_symbol,
                                            &operand->position,
                                            operand->type,
@@ -8411,7 +8416,7 @@ is used only in C++ mode.
   /* Convert the operand to the proper type to be an argument of the
      conversion function. */
 #if CHECKING
-  if (this_param_type == NULL) {
+  if (routine_type->variant.routine.extra_info->this_class == NULL) {
     internal_error("set_up_for_conversion_function_call: no this parameter");
   }  /* if */
 #endif  /* CHECKING */
@@ -8419,8 +8424,7 @@ is used only in C++ mode.
      called for a const selector (see determine_selector_match_level). */
   if (cfront_2_1_mode &&
       is_const_qualified_type(operand->type)) {
-    a_type_ptr und_this_param_type = type_pointed_to(this_param_type);
-    if (!is_const_qualified_type(und_this_param_type)) {
+    if (!(routine_type->variant.routine.extra_info->qualifiers & TQ_CONST)) {
       pos_warning(ec_const_function_anachronism, &operand->position);
       /* prep_special_selector_operand (call below) will drop the const. */
     }  /* if */

@@ -82,10 +82,10 @@ type symbol for the typedef, for use in diagnostics.
   if (type_ptr->kind == (a_type_kind)tk_typeref &&
       is_function_type(type_ptr)) {
     *rout_type = skip_typerefs(type_ptr);
-    tp = (*rout_type)->variant.routine.extra_info->implicit_this_param_type;
+    tp = (*rout_type)->variant.routine.extra_info->this_class;
     if (tp != NULL) {
       is_member_function_typedef = TRUE;
-      *class_type = type_pointed_to(tp);
+      *class_type = tp;
       *sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
     }  /* if */
   }  /* if */
@@ -1816,8 +1816,8 @@ declaration.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
-    a_type_ptr            this_param_type = NULL;
-    a_type_qualifier_set    qualifiers = TQ_NONE;
+    a_type_ptr            this_class = NULL;
+    a_type_qualifier_set  qualifiers = TQ_NONE;
 
     /* Create a pointer to the implicit "this" parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1836,9 +1836,7 @@ declaration.
 #if RESTRICT_ALLOWED
       /* When a member function is declared with the restrict qualifier, the
          qualifier attaches to the this pointer, not to *this (as with const
-         and volatile).  So save out the restrict qualifier. */
-      restrict_qualified = ((qualifiers & TQ_RESTRICT) != 0);
-      qualifiers &= ~TQ_RESTRICT;
+         and volatile). */
 #endif /* RESTRICT_ALLOWED */
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
@@ -1846,7 +1844,7 @@ declaration.
          to member function are permitted.  Also, in microsoft mode the
          keyword "inline" is always accepted as a qualifier (a warning that
          it is ignored will have been issued earlier). */
-      if (microsoft_mode && qualifiers == TQ_NONE && !restrict_qualified) {
+      if (microsoft_mode && qualifiers == TQ_NONE) {
         /* No diagnostic and no need to adjust the type of this or *this. */
       } else if (locator != NULL && locator->is_operator_name &&
                  (is_new_operator(locator->variant.opname) ||
@@ -1878,10 +1876,10 @@ declaration.
         } else {
           qualifier_err = TRUE;
         }  /* if */
-        this_param_type = member_function_parent_type;
+        this_class = member_function_parent_type;
+        qualifiers = TQ_NONE;
       } else {
-        this_param_type = make_qualified_type(member_function_parent_type,
-                                              qualifiers);
+        this_class = member_function_parent_type;
       }  /* if */
       if (qualifier_err && 
           scope_stack[depth_scope_stack].kind !=
@@ -1893,30 +1891,17 @@ declaration.
       }  /* if */
     }  /* if */
     if (is_nonstatic_member_function &&
-        qualifiers == TQ_NONE && !restrict_qualified && !qualifier_err) {
+        qualifiers == TQ_NONE && !qualifier_err) {
       /* This is a nonstatic member function declared within the definition
          of the class indicated, but without significant qualifiers. */
-      this_param_type = member_function_parent_type;
-#if RESTRICT_ALLOWED
-      restrict_qualified = FALSE;
-#endif /* RESTRICT_ALLOWED */
+      this_class = member_function_parent_type;
     }  /* if */
-    if (this_param_type != NULL) {
+    if (this_class != NULL) {
       /* The implicit "this" param type will be either "pointer to
          class-type" or, if there was a const qualifier on the function,
-         "pointer to const class-type".  Note that a const qualifier is
-         not applied to the pointer, though it will be when the associated
-         variable is created; this is in keeping with the general policy
-         regarding top-level qualifiers on parameter types. */
-      this_param_type = make_pointer_type(this_param_type);
-#if RESTRICT_ALLOWED
-      /* Apply the restrict qualifier to the this pointer itself. */
-      if (restrict_qualified) {
-        qualifiers = TQ_RESTRICT;
-        this_param_type = make_qualified_type(this_param_type, qualifiers);
-      }  /* if */
-#endif /* RESTRICT_ALLOWED */
-      extra_info->implicit_this_param_type = this_param_type;
+         "pointer to const class-type". */
+      extra_info->this_class = this_class;
+      extra_info->qualifiers = qualifiers;
     }  /* if */
 #if 0
     /* Should a diagnostic be issued if a throw specification appears other

@@ -977,9 +977,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         }  /* if */
         fputs("(", f_debug);
         ptp = rtsp->param_type_list;
-        if (rtsp->implicit_this_param_type != NULL) {
+        if (rtsp->this_class != NULL) {
           fputs("this: ", f_debug);
-          db_abbreviated_type(rtsp->implicit_this_param_type);
+          db_abbreviated_type(implicit_this_param_type_of(tp));
           if (ptp != NULL || rtsp->has_ellipsis) {
             fputs("; ", f_debug);
           }  /* if */
@@ -5122,7 +5122,7 @@ is not "C".
   tp = skip_typerefs(member_type);
   if (is_function_type(tp)) {
     rtsp = tp->variant.routine.extra_info;
-    if (rtsp->implicit_this_param_type == NULL ||
+    if (rtsp->this_class == NULL ||
         rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
       /* Before updating it, copy the routine type if it might be shared. */
       if (tp->variant.routine.return_type != NULL) {
@@ -5132,8 +5132,8 @@ is not "C".
            copy_routine_type_with_param_types(tp, /*copy_default_args=*/TRUE);
         rtsp = member_type->variant.routine.extra_info;
       }  /* if */
-      if (rtsp->implicit_this_param_type == NULL) {
-        rtsp->implicit_this_param_type = make_pointer_type(class_type);
+      if (rtsp->this_class == NULL) {
+        rtsp->this_class = class_type;
       }  /* if */
       if (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* Change from C linkage to C++ linkage: */
@@ -5225,44 +5225,27 @@ type with the right underlying class type and return it.  In all other cases,
 return the original member type.
 */
 {
-  a_type_ptr new_member_type, old_this_type, new_this_type;
-  a_type_ptr old_this_underlying_type, old_this_underlying_class;
-
   if (is_function_type(member_type)) {
-    /* Take apart the "this" parameter type. */
-    old_this_type = skip_typerefs(member_type)->variant.routine.extra_info->
-                                                      implicit_this_param_type;
+    a_routine_type_supplement_ptr  old_rtsp =
+                       skip_typerefs(member_type)->variant.routine.extra_info;
+    a_type_ptr                     old_this_class = old_rtsp->this_class;
+
     /* A function type under a pointer-to-member must be a member function
        and therefore must have a "this" parameter type. */
-    check_assertion(old_this_type != NULL);
-    old_this_underlying_type = type_pointed_to(old_this_type);
-    old_this_underlying_class = skip_typerefs(old_this_underlying_type);
-    if (old_this_underlying_class != class_type) {
+    check_assertion(old_this_class != NULL);
+    if (old_this_class != class_type) {
       /* Make a new function type with the right "this" class.  Note that
          there is no sharing of types going on here, so this may be
          wasteful if called a lot. */
-      a_type_qualifier_set	old_qualifiers;
-      /* Build a type for the new "this" parameter.  Start with the new class
-         and build up, adding the qualifiers (both under and over the
-         pointer type) from the old "this" type. */
-      new_this_type = make_identically_qualified_type(class_type,
-                                                     old_this_underlying_type);
-      new_this_type = make_pointer_type(new_this_type);    
-      new_this_type = make_identically_qualified_type(new_this_type,
-                                                      old_this_type);
-      /* Strip any qualifiers off of the original type.  These will be
-         added back to the new type later. */
-      old_qualifiers = get_type_qualifiers(member_type);
-      member_type = skip_typerefs(member_type);
+      a_type_ptr                     new_member_type;
+      a_routine_type_supplement_ptr  new_rtsp;
+
       /* Allocate the new function type and copy into it. */
       new_member_type = alloc_type((a_type_kind)tk_routine);
       copy_type(member_type, new_member_type);
-      /* Insert the new "this" parameter type. */
-      new_member_type->variant.routine.extra_info->implicit_this_param_type =
-                                                                 new_this_type;
-      if (old_qualifiers != TQ_NONE) {
-        new_member_type = make_qualified_type(new_member_type, old_qualifiers);
-      }  /* if */
+      new_rtsp = new_member_type->variant.routine.extra_info;
+      new_rtsp->this_class = old_rtsp->this_class;
+      new_rtsp->qualifiers = old_rtsp->qualifiers;
       member_type = new_member_type;
     }  /* if */
   }  /* if */

@@ -1996,8 +1996,7 @@ routine is returned.
     /* Note that the routine has no name. */
     /* The "this" parameter is generated in its lowered form (i.e., as a
        normal parameter). */
-    rtsp = routine_type->variant.routine.extra_info;
-    this_param_type = rtsp->implicit_this_param_type;
+    this_param_type = implicit_this_param_type_of(routine_type);
 #if CHECKING
     /* The routine must have a "this" parameter. */
     if (this_param_type == NULL) {
@@ -2013,6 +2012,7 @@ routine is returned.
     /* The routine is not allowed to be one that returns its value via
        a pointer provided by the caller (the extra code for that case
        is not implemented). */
+    rtsp = routine_type->variant.routine.extra_info;
     if (rtsp->value_returned_by_cctor) {
       internal_error("default_version_of_routine: return value ptr");
     }  /* if */
@@ -5051,9 +5051,8 @@ it is called as a virtual function, which involves some special tricks.
      is deleted without the "delete []" syntax.  That's undefined
      behavior, and only the first element will be destroyed, but we
      want to avoid generating incorrect code. */
-  ptr_node = add_cast_if_necessary(ptr_node,
-                                   dtor_routine->type->variant.routine.
-                                         extra_info->implicit_this_param_type);
+  ptr_node = add_cast_if_necessary(
+                   ptr_node, implicit_this_param_type_of(dtor_routine->type));
   /* Add an implicit parameter to the destructor call with bits
      0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
   bit_mask = 2L;

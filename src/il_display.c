@@ -864,9 +864,8 @@ Display a_routine_type_supplement.
   disp_name("calling_convention");
   (void)printf("%s\n", calling_convention_names[(int)ptr->calling_convention]);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (ptr->implicit_this_param_type != NULL) {
-    disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
-             iek_type);
+  if (ptr->this_class != NULL) {
+    disp_ptr("this_class", (char *)ptr->this_class, iek_type);
   }  /* if */
   if (ptr->prototype_scope != NULL) {
     disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);

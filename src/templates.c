@@ -4313,10 +4313,8 @@ points to the template parameter list.
             if (match) {
               /* The routine types match so far.  Make sure the implicit
                  this parameters, if present, match. */
-              tp =  type->variant.routine.extra_info->
-                                                   implicit_this_param_type;
-              ttp =  templ_type->variant.routine.extra_info->
-                                                   implicit_this_param_type;
+              tp =  type->variant.routine.extra_info->this_class;
+              ttp =  templ_type->variant.routine.extra_info->this_class;
               if (tp == NULL || ttp == NULL) {
                 /* One or both of the types does not have an implicit
                    this parameter.  This is okay if they are both NULL. 
@@ -4336,15 +4334,16 @@ points to the template parameter list.
                      parameter from the template has no qualifiers. */
                   match = FALSE;
                   if ((flags & MTT_UNKNOWN_IMPLICIT_THIS_TYPE) != 0) {
-                    /* Get the type pointed to by the this parameter. */
-                    a_type_ptr	this_type = type_pointed_to(ttp);
-                    match = get_type_qualifiers(this_type) ==
-                                              (a_type_qualifier_set)TQ_NONE;
+                    match = templ_type->variant.routine.extra_info->qualifiers
+                                              == (a_type_qualifier_set)TQ_NONE;
                   }  /* if */
                 }  /* if */
               } else {
                 /* They both have implicit this parameters, make sure the
                    types match. */
+                /* FIXME: this might be made more efficient, but I'm not sure. */
+                tp = implicit_this_param_type_of(type);
+                ttp = implicit_this_param_type_of(templ_type);
                 match = matches_template_type(tp, ttp, templ_arg_list,
                                               templ_param_list,
                                               new_flags);
@@ -4849,8 +4848,7 @@ a pointer over a reference type or creating an array of references.
                                         type->variant.routine.return_type,
                                         templ_arg_list, depth, source_pos,
                                         options, copy_error);
-        this_param_type =
-                   type->variant.routine.extra_info->implicit_this_param_type;
+        this_param_type = implicit_this_param_type_of(type);
         if (this_param_type == NULL) {
           new_this_param_type = NULL;
         } else {
@@ -4898,8 +4896,15 @@ make_new_type:
         *(new_type->variant.routine.extra_info) =
                                          *(type->variant.routine.extra_info);
         new_type->variant.routine.extra_info->assoc_routine = NULL;
-        new_type->variant.routine.extra_info->implicit_this_param_type =
-                                                       new_this_param_type;
+        { /* Adjust the attributes of "*this". */
+          a_type_ptr            this_class;
+          a_type_qualifier_set  qualifiers;
+
+          extract_this_class_and_qualifiers(
+                               new_this_param_type, &this_class, &qualifiers);
+          new_type->variant.routine.extra_info->this_class = this_class;
+          new_type->variant.routine.extra_info->qualifiers = qualifiers;
+        }
         /* Make copies of the entries on type's param types list, making the
            appropriate substitutions for template parameter type entries. */
         prev_ptp = NULL;
@@ -5364,9 +5369,9 @@ the error type is a member, or is NULL for a nonmember.
     }  /* if */
     last_ptp = ptp;
   }  /* for */
-  if (templ_rtsp->implicit_this_param_type != NULL) {
+  if (templ_rtsp->this_class != NULL) {
     /* If this is a member function, set the implicit this parameter type. */
-    rtsp->implicit_this_param_type = make_pointer_type(parent_class);
+    rtsp->this_class = parent_class;
   }  /* if */
   return rout_type;
 }  /* create_error_routine_type */

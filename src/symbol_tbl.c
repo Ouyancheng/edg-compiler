@@ -8214,7 +8214,7 @@ a symbol that should be ignored in favor of a template to be found later.
       rp = sym->variant.routine.ptr;
       rtsp = rp->type->variant.routine.extra_info;
       /* If the name found is a nonstatic member function, discard it. */
-      if (rtsp->implicit_this_param_type != NULL) result = TRUE;
+      if (rtsp->this_class != NULL) result = TRUE;
     }  /* if */
   }  /* if */
   return result;

@@ -3213,8 +3213,8 @@ not be TRUE.
         }  /* if */          
         /* has_ellipsis need not be copied -- it will be the same in all of
            the types, since the original two types are compatible. */
-        /* Likewise, the implicit_this_param_type pointers should be identical
-           -- this will have been verified in types_are_compatible. */
+        /* Likewise, the this_class pointers should be identical -- this will
+           have been verified in types_are_compatible. */
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4092,7 +4092,8 @@ type entry if appropriate, otherwise using the indicated declared_type.
   /* Make the declared type consistent with the routine type. */
   rtsp1 = skip_typerefs(rout_type)->variant.routine.extra_info;
   rtsp2 = skip_typerefs(declared_type)->variant.routine.extra_info;
-  if (rtsp1->implicit_this_param_type != rtsp2->implicit_this_param_type ||
+  if (rtsp1->this_class != rtsp2->this_class ||
+      rtsp1->qualifiers != rtsp2->qualifiers ||
       rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
     if (declared_type->kind == (a_type_kind)tk_typeref) {
       check_assertion(!is_qualified_type(declared_type));
@@ -4101,7 +4102,8 @@ type entry if appropriate, otherwise using the indicated declared_type.
                                             /*copy_default_args=*/TRUE);
       rtsp2 = declared_type->variant.routine.extra_info;
     }  /* if */
-    rtsp2->implicit_this_param_type = rtsp1->implicit_this_param_type;
+    rtsp2->this_class = rtsp1->this_class;
+    rtsp2->qualifiers = rtsp1->qualifiers;
     rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
   }  /* if */
   if (!identical_types(declared_type, rout_type)) {
