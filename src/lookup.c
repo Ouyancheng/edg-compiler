@@ -2517,7 +2517,12 @@ that do normal id lookup processing.
        context search found a class member. */
     do_not_look_in_common_scopes = TRUE;
   } else {
-    if (!do_dependent_name_processing) {
+    if (do_dependent_name_processing || microsoft_mode) {
+      /* The referencing context should be not considered in dependent lookup
+         mode and Microsoft mode.  This means the common lookup must be
+         suppressed if we've already found a symbol. */
+      if (def_sym != NULL) do_not_look_in_common_scopes = TRUE;
+    } else {
       /* Only do the referencing context lookup when not doing the
          standard-conforming dependent name processing.  When doing
          dependent name processing only names visible to argument-dependent

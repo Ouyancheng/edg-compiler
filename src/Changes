@@ -1,3 +1,46 @@
+Version 2.45
+
+8/2/00  Microsoft compatibility: Names from the instantiation context not
+        considered during instantiation lookups
+
+When not using dependent name lookup, the front end considers functions
+from both the template definition context and the context of the reference
+to the template.  In the following example, this would result in a call of
+::f(char) when instantiating N::g(char).  The Microsoft compiler does not
+consider names from the referencing context, resulting in a call of N::f(int).
+We now emulate this behavior in Microsoft mode.
+
+  void f(int);
+  namespace N {
+    void f(int);
+    template <class T> inline void g(T t) {
+        f(t);
+    }
+  }
+  void f(char);
+  int main()
+  {
+    N::g('c');
+  }
+
+8/2/00  Certain hidden names considered visible for dependent lookup
+
+When doing dependent name lookup, certain symbols that should not be visible
+were incorrectly included in the lookup.  This could result in spurious
+ambiguity diagnostics or the calling of the incorrect function.
+
+  void f(int);
+  namespace N {
+    void f(int);
+    template <class T> inline void g(T t) {
+      f(t);
+    }
+  }
+  int main() {
+    N::g(1);
+  }
+
+-------------------------------------------------------------------------------
 Version 2.44, August 1, 2000
 
 7/31/00  Missing diagnostic on friend declaration with too many template
