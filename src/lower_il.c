@@ -6977,6 +6977,15 @@ Promote the constants on the constants list of the indicated scope
        constant != NULL;
        constant = next_constant) {
     next_constant = constant->next;
+#if DEBUG
+    if (debug_level >= 4) {
+      (void)fprintf(f_debug, "Promoting constant out of class ");
+      db_name(&scope->variant.assoc_type->source_corresp);
+      (void)fprintf(f_debug, ": ");
+      db_name(&constant->source_corresp);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
     add_to_constants_list(constant, /*at_file_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted constants.  Since the scope is for a class,
@@ -7004,6 +7013,15 @@ Promote the static variables on the variables list of the indicated scope
        variable != NULL;
        variable = next_variable) {
     next_variable = variable->next;
+#if DEBUG
+    if (debug_level >= 4) {
+      (void)fprintf(f_debug, "Promoting variable out of class ");
+      db_name(&scope->variant.assoc_type->source_corresp);
+      (void)fprintf(f_debug, ": ");
+      db_variable(variable);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
     add_to_variables_list(variable, /*at_file_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted variables.  Since the scope is for a class,
@@ -7025,6 +7043,15 @@ scope) into the file scope.
      allowed in the file scope and in class scopes. */
   for (routine = scope->routines; routine != NULL; routine = next_routine) {
     next_routine = routine->next;
+#if DEBUG
+    if (debug_level >= 4) {
+      (void)fprintf(f_debug, "Promoting routine out of class ");
+      db_name(&scope->variant.assoc_type->source_corresp);
+      (void)fprintf(f_debug, ": ");
+      db_name(&routine->source_corresp);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
     add_to_routines_list(routine, /*at_file_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted routines.  Since the scope is for a class,
@@ -7069,6 +7096,13 @@ position, and is updated after the insertion.
            encountered there in the promotion process, and then put back
            at the right spot when the placeholder appears. */
         type = type->variant.typeref.type;
+#if DEBUG
+        if (debug_level >= 4) {
+          (void)fprintf(f_debug, "Promoting placeholder type ");
+          db_type_name(type);
+          (void)fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
         /* If the type-as-subobject for the type followed it on the file scope
            list, it was also removed from the list, and left attached to
            the primary type by the "next" pointer. */
@@ -7088,6 +7122,23 @@ position, and is updated after the insertion.
       if (is_immediate_class_type(type)) {
         promote_class_members(type, promotion_scope, insert_pointer);
       }  /* if */
+#if DEBUG
+      if (debug_level >= 4) {
+        (void)fprintf(f_debug, "Promoting type out of class ");
+        db_name(&scope->variant.assoc_type->source_corresp);
+        (void)fprintf(f_debug, ": ");
+        db_type_name(type);
+        (void)fprintf(f_debug, "; promotion_scope = ");
+        db_scope(promotion_scope);
+        (void)fprintf(f_debug, "; *insert_pointer = ");
+        if (*insert_pointer == NULL) {
+          (void)fprintf(f_debug, "<null>");
+        } else {
+          db_type_name(*insert_pointer);
+        }  /* if */
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
       if (*insert_pointer == NULL) {
         type->next = promotion_scope->types;
         promotion_scope->types = type;
@@ -7124,6 +7175,13 @@ promotion_scope, at the position indicated by *insert_position, and
     /* If the class has constants, static data members, member functions,
        or local types, promote them out of the class scope. */
     if (scope != NULL) {
+#if DEBUG
+      if (debug_level >= 4) {
+        (void)fprintf(f_debug, "Promoting the members out of ");
+        db_scope(scope);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
       /* Constants, static data members, and member functions are promoted
          to the file scope. */
       promote_constants(scope);
@@ -7164,6 +7222,13 @@ scope and all subscopes.
   a_scope_ptr   block_scope;
   a_scope_depth depth;
 
+#if DEBUG
+  if (debug_level >= 4) {
+    (void)fprintf(f_debug, "do_scope_class_member_promotion on ");
+    db_scope(scope);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Visit all types to find all classes. */
   /* Note that when processing a function or block scope we will be crossing
      into the file scope here, but these types are truly local types
@@ -7191,6 +7256,13 @@ scope and all subscopes.
              within the class to indicate the point at which the class should
              go, and that's where promotion of class members should happen,
              so do nothing now except taking the type out of the list. */
+#if DEBUG
+          if (debug_level >= 4) {
+            (void)fprintf(f_debug, "Placeholder for class ");
+            db_type_name(type);
+            (void)fprintf(f_debug, " ignored for the moment\n");
+          }  /* if */
+#endif /* DEBUG */
           /* If the next type on the list is the type-as-subobject version
              of this type, remove it as well, keeping it linked to the
              primary type. */
@@ -7359,6 +7431,13 @@ lowering of the file scope memory region.
   a_scope_ptr    block_scope;
   a_scope_depth  depth;
 
+#if DEBUG
+  if (debug_level >= 4) {
+    (void)fprintf(f_debug, "Promoting local entities out of ");
+    db_scope(scope);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Note that any pragmas associated with promoted entities are already on
      the file scope list, so they do not need to be moved. */
   /* See if there is anything to promote. */
@@ -7369,6 +7448,15 @@ lowering of the file scope memory region.
     /* Promote local types to file scope. */
     for (; type != NULL; type = next_type) {
       next_type = type->next;
+#if DEBUG
+      if (debug_level >= 4) {
+        (void)fprintf(f_debug, "Promoting local type out of routine ");
+        db_name(&routine->source_corresp);
+        (void)fprintf(f_debug, ": ");
+        db_type_name(type);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine, scope);
@@ -7378,6 +7466,11 @@ lowering of the file scope memory region.
       /* If the type is an enum, mangle the names of its constants. */
       if (is_immediate_enum_type(type)) {
         a_constant_ptr enum_con;
+#if DEBUG
+        if (debug_level >= 4) {
+          (void)fprintf(f_debug, "Enum constants promoted too\n");
+        }  /* if */
+#endif /* DEBUG */
         for (enum_con = type->variant.integer.enum_info.constant_list;
              enum_con != NULL;
              enum_con = enum_con->next) {
@@ -7392,6 +7485,15 @@ lowering of the file scope memory region.
     /* Promote local static variables to file scope. */
     for (; variable != NULL; variable = next_variable) {
       next_variable = variable->next;
+#if DEBUG
+      if (debug_level >= 4) {
+        (void)fprintf(f_debug, "Promoting local variable out of routine ");
+        db_name(&routine->source_corresp);
+        (void)fprintf(f_debug, ": ");
+        db_variable(variable);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&variable->source_corresp, routine, scope);
