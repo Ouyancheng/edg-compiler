@@ -10874,10 +10874,10 @@ called the current token is the right brace, except for error cases.
     (void)get_token();
     /* Cache the parameter declaration. */
     cache_to_compound_stmt(p_token_cache, stop_tokens);
-    /* Cache the catch compound statement. */
+    /* Cache the catch compound statement (if it looks like one is next). */
     if (curr_token == tok_lbrace) {
       cache_compound_stmt(p_token_cache, stop_tokens);
-    }
+    }  /* if */
     /* Exit the loop if we are not at the expected close of the
        compound statement. */
     if (curr_token != tok_rbrace) break;
