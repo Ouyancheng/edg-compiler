@@ -55,8 +55,6 @@ IL lowering itself is done).
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
-#if GENERATE_EH_TABLES
-
 static a_type_ptr array_of(a_type_ptr elem_type)
 /*
 Make an array type whose elements have type elem_type, and return a pointer
@@ -73,22 +71,6 @@ finish_array_var).
   return array_type;
 }  /* array_of */
 
-#if DO_FULL_PORTABLE_EH_LOWERING
-
-static a_variable_ptr make_unnamed_local_array_var(a_type_ptr elem_type)
-/*
-Create an unnamed local (auto) variable whose type is an array of elem_type,
-and return a pointer to the variable.  The array size is begun as [0] and
-will be adjusted as elements are added.  finish_array_var must be called
-sometime later to set the size on the type.  The variable is put in the
-current function scope even if the current context is a block inside that.
-*/
-{
-  return make_temporary_in_scope(array_of(elem_type), innermost_function_scope,
-                                 /*force_static=*/FALSE);
-}  /* make_unnamed_local_array_var */
-
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 static a_variable_ptr make_unnamed_local_static_array_var(
                                                   a_type_ptr elem_type,
@@ -194,8 +176,13 @@ known, so call set_type_size on the type.
 
 
 /*
+Following is code needed to define typeinfo implementation variables.
+These are needed for RTTI as well as for exception handling.
+*/
+/*
 Pointer to the typeinfo struct type (used to represent runtime type
-information).  NULL until created.
+information).  NULL until created.  This is the structure used by the
+runtime implementation, not the user-visible one.
 */
 static a_type_ptr
 		typeinfo_type;
@@ -210,8 +197,11 @@ if it is not made already, and return a pointer to it.  Its definition is
     char     *id;   // Id object pointer
     __vptp   dtor;  // Destructor
     typeinfo **bc;  // Pointer to base class array
+    char     *name; // Name (only if ABI_CHANGES_FOR_RTTI is TRUE)
   };
 
+This is the typeinfo implementation type, not the type_info that the
+user sees returned from typeid.
 */
 {
   a_field_ptr   last_field;
@@ -232,154 +222,16 @@ if it is not made already, and return a pointer to it.  Its definition is
     make_lowered_field("bc",
                        make_pointer_type(make_pointer_type(typeinfo_type)),
                        typeinfo_type, &last_field);
+#if ABI_CHANGES_FOR_RTTI
+    /* field: char *name */
+    make_lowered_field("name",
+                     make_pointer_type(integer_type((an_integer_kind)ik_char)),
+                       typeinfo_type, &last_field);
+#endif /* ABI_CHANGES_FOR_RTTI */
     finish_class_type(typeinfo_type);
   }  /* if */
   return typeinfo_type;
 }  /* make_typeinfo_type */
-
-
-static unsigned long
-		num_of_pending_class_typeinfo_vars;
-			/* Count of typeinfo variables generated for classes
-			   that have not been revisited to determine whether
-			   they need definitions.  Used to cut short the
-			   final pass that finds and defines the variables. */
-
-
-static a_variable_ptr make_typeinfo_var(a_type_ptr type)
-/*
-Make a typeinfo variable for the indicated type (if it does not exist
-already) and return a pointer to it.  The variable points to runtime
-type information.  It is always allocated in the file scope memory region.
-*/
-{
-  a_variable_ptr  typeinfo_var;
-  char            *mangled_name;
-  sizeof_t        mangled_name_length, alloc_length;
-  a_storage_class storage_class;
-
-  /* No need to create the variable if it exists already. */
-  typeinfo_var = type->typeinfo_var;
-  if (typeinfo_var == NULL) {
-    /* Determine the length of the mangled name. */
-    mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
-    /* Allocate space for the mangled name, including the final null. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    /* Build the mangled name. */
-    (void)mangled_typeinfo_name(type, mangled_name);
-    mangled_name[mangled_name_length] = '\0';
-    if (is_immediate_class_type(type)) {
-      /* typeinfo variables for classes are sometimes external, sometimes
-         static, but we don't know which yet.  Start with external, and
-         change later if necessary. */
-      storage_class = (a_storage_class)sc_extern;
-      /* Keep a count of the number of class typeinfo variables so that the
-         final pass to add definitions for these can be stopped when all
-         of them have been found. */
-      num_of_pending_class_typeinfo_vars++;
-    } else {
-      /* typeinfo variables for non-classes are always external tentative
-         definitions (initialized to NULL/zero by default). */
-      storage_class = (a_storage_class)sc_unspecified;
-    }  /* if */
-    typeinfo_var = make_lowered_variable(mangled_name,
-                                         /*already_il_name=*/TRUE,
-                                         make_typeinfo_type(),
-                                         storage_class);
-    typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
-    /* Remember the variable in the type. */
-    type->typeinfo_var = typeinfo_var;
-    /* If the type is a class, we also need typeinfo variables for its
-       base classes. */
-    if (is_immediate_class_type(type)) {
-      a_base_class_ptr bcp;
-      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
-           bcp != NULL;
-           bcp = bcp->next) {
-        (void)make_typeinfo_var(bcp->type);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return typeinfo_var;
-}  /* make_typeinfo_var */
-
-
-/*
-Bit set values for the flags byte of exception_type_spec.  These must
-match the runtime's definition.
-*/
-#define ETS_IS_POINTER		0x01
-			/* A pointer to an object of the type specified
-			   by typeinfo. */
-#define ETS_POINTER_TO_CONST	0x02
-#define ETS_POINTER_TO_VOLATILE	0x04
-			/* Indication of the type qualifiers on the type
-			   pointed to, in the pointer case. */
-#define ETS_IS_REFERENCE	0x08
-			/* A reference to an object of the type specified
-			   by typeinfo. */
-#define ETS_IS_ELLIPSIS		0x10
-			/* An ellipsis (for a catch clause). */
-#define ETS_LAST		0x20
-			/* TRUE if this is the last type specification in
-			   the array. */
-
-
-static a_variable_ptr typeinfo_var_for_type(a_type_ptr    type,
-                                            unsigned long *flags_value)
-/*
-Create the typeinfo variable for the indicated type, and return a pointer
-to it.  Type qualifiers on the type are dropped.  For a pointer or reference
-to a type, make the typeinfo variable for the underlying type and set
-*flags_value to indicate a pointer or reference.
-*/
-{
-  a_variable_ptr        typeinfo_var;
-  a_type_ptr            typeinfo_type;
-  a_type_qualifier_set  qualifiers;
-
-  typeinfo_type = type;
-  *flags_value = 0;
-  /* For a pointer or reference to a type, use the typeinfo for the
-     underlying type and a flag to indicate the reference or pointer.
-     Both flags are on for a reference to a pointer. */
-  if (is_reference_type(typeinfo_type)) {
-    typeinfo_type = type_pointed_to(typeinfo_type);
-    *flags_value |= ETS_IS_REFERENCE;
-  }  /* if */
-  if (is_pointer_type(typeinfo_type)) {
-    typeinfo_type = type_pointed_to(typeinfo_type);
-    *flags_value |= ETS_IS_POINTER;
-    /* Remember the type qualifiers on the type pointed to. */
-    qualifiers = get_type_qualifiers(typeinfo_type);
-    if (qualifiers & TQ_CONST) {
-      *flags_value |= ETS_POINTER_TO_CONST;
-    }  /* if */
-    if (qualifiers & TQ_VOLATILE) {
-      *flags_value |= ETS_POINTER_TO_VOLATILE;
-    }  /* if */
-  }  /* if */
-  /* Strip typerefs but watch out for rewritten pointers-to-members. */
-  typeinfo_type = underlying_type(typeinfo_type);
-  /* Create the typeinfo variable. */
-  typeinfo_var = make_typeinfo_var(typeinfo_type);
-  return typeinfo_var;
-}  /* typeinfo_var_for_type */
-
-
-void type_is_used_in_exception(a_type_ptr type)
-/*
-The indicated type is used in an exception context.  Put out any necessary
-information on it.
-*/
-{
-  unsigned long flags_value;
-
-  /* We need a typeinfo variable for the underlying type.  Make it if it
-     does not exist already. */
-  (void)typeinfo_var_for_type(type, &flags_value);
-}  /* type_is_used_in_exception */
 
 
 static a_variable_ptr make_id_object_var(a_type_ptr type)
@@ -578,17 +430,71 @@ allocated in the file scope memory region.
   return bc_var;
 }  /* make_base_class_array_var */
 
+#if ABI_CHANGES_FOR_RTTI
+
+static sizeof_t typeinfo_name_length;
+			/* size of the typeinfo name in temp_text_buffer. */
+
+static void put_str_to_temp_text_buffer(char *str)
+/*
+Output the indicated string to the temp_text_buffer.  This is
+used as an output routine when using the il_to_str routines.
+*/
+{
+  sizeof_t len = strlen(str);
+  sizeof_t new_size = typeinfo_name_length + len;
+
+  ensure_temp_text_buffer_space(new_size+1);
+  (void)strcpy(temp_text_buffer+typeinfo_name_length, str);
+  typeinfo_name_length = new_size;
+}  /* put_str_to_temp_text_buffer */
+
+
+static a_constant_ptr make_typeinfo_name_constant(a_type_ptr type)
+/*
+Make a constant that is the address of a string for the name of the indicated
+type, for use in typeinfo implementation constants.
+*/
+{
+  a_constant                        constant;
+  a_constant_ptr                    string_con, addr_con;
+  an_il_to_str_output_control_block octl;
+  char                              *pstr;
+
+  /* Set up for use of form_type. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_temp_text_buffer;
+  typeinfo_name_length = 0;
+  /* Generate the string for the type in temp_text_buffer. */
+  form_type(type, &octl);
+  /* Add 1 to typeinfo_name_length for the final null.  The null has already
+     been stored. */
+  typeinfo_name_length++;
+  /* Generate a string constant. */
+  clear_constant(&constant, (a_constant_repr_kind)ck_string);
+  constant.type = string_type((a_targ_size_t)typeinfo_name_length);
+  constant.variant.string.length = typeinfo_name_length;
+  constant.variant.string.value  = pstr =
+                            alloc_text_of_string_literal(typeinfo_name_length);
+  (void)strcpy(pstr, temp_text_buffer);
+  string_con = alloc_shareable_constant(&constant);
+  /* Generate a constant for the address of the string. */
+  set_constant_address_constant(string_con, &constant);
+  addr_con = alloc_shareable_constant(&constant);
+  return addr_con;
+}  /* make_typeinfo_name_constant */
+
+#endif /* ABI_CHANGES_FOR_RTTI */
 
 static void define_typeinfo_var(a_type_ptr type,
                                 a_boolean  force_static)
 /*
 Generate a definition for the typeinfo variable (used to provide runtime
-type information) associated with type "type".  "type" must be a class type
-(because the typeinfo variables for nonclass types are never defined --
-tentative definition establishes the proper NULL values).  If force_static
-is TRUE, change the typeinfo variable to static.
+type information) associated with type "type".  If force_static is TRUE,
+change the typeinfo variable to static.
 */
 {
+  a_boolean      is_class_type = is_immediate_class_type(type);
   a_variable_ptr typeinfo_var = type->typeinfo_var;
   a_constant_ptr aggr_con, id_con, dtor_con, bc_con;
   a_field_ptr    curr_field;
@@ -597,8 +503,10 @@ is TRUE, change the typeinfo variable to static.
   a_routine_ptr  dtor_routine;
   a_memory_region_number
                  region_to_switch_back_to;
+#if ABI_CHANGES_FOR_RTTI
+  a_constant_ptr name_con;
+#endif /* ABI_CHANGES_FOR_RTTI */
 
-  check_assertion(is_immediate_class_type(type));
   /* Switch to the file scope memory region so that initial values will
      be allocated there. */
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -625,18 +533,20 @@ is TRUE, change the typeinfo variable to static.
        3)  Base class array pointer: pointer to array containing pointers
            to typeinfo structures for base classes, or NULL if there are
            no base classes.
+       4)  Pointer to name string (only if ABI_CHANGES_FOR_RTTI is TRUE).
   */
   /* Id object pointer. */
   id_con = alloc_constant((a_constant_repr_kind)ck_address);
   curr_field = typeinfo_type->variant.class_struct_union.field_list;
   curr_field_type = curr_field->type;
   /* Note that we test for nlk_external and not nlk_cplusplus_external here
-     because the linkage has already been rewritten. */
-  if (type->source_corresp.name_linkage != (a_name_linkage_kind)nlk_external) {
+     because the linkage has already been rewritten in the class case. */
+  if (is_class_type &&
+      type->source_corresp.name_linkage != (a_name_linkage_kind)nlk_external) {
     /* Internally linked class; id object pointer is NULL. */
     make_zero_of_proper_type(curr_field_type, id_con);
   } else {
-    /* Externally linked class; make id object variable. */
+    /* Externally linked class, or nonclass; make id object variable. */
     set_variable_address_constant(make_id_object_var(type), id_con,
                                   /*set_address_taken_flag=*/TRUE);
   }  /* if */
@@ -645,17 +555,20 @@ is TRUE, change the typeinfo variable to static.
   curr_field_type = curr_field->type;
   dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
   /* See if the class has a destructor. */
-  dtor_sym = symbol_supplement_for_class(type)->destructor;
   dtor_routine = NULL;
-  if (dtor_sym != NULL) {
-    dtor_routine = dtor_sym->variant.routine.ptr;
-    if (dtor_routine->assoc_scope == NULL_region_number) {
-      /* The destructor is declared but not defined.  Use a null pointer. */
-      dtor_routine = NULL;
+  if (is_class_type) {
+    dtor_sym = symbol_supplement_for_class(type)->destructor;
+    if (dtor_sym != NULL) {
+      dtor_routine = dtor_sym->variant.routine.ptr;
+      if (dtor_routine->assoc_scope == NULL_region_number) {
+        /* The destructor is declared but not defined.  Use a null pointer. */
+        dtor_routine = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (dtor_routine == NULL) {
-    /* The class has no destructor; use a NULL pointer. */
+    /* The class has no destructor, or the type is not a class; use a
+       NULL pointer. */
     make_zero_of_proper_type(curr_field_type, dtor_con);
   } else {
     /* The class has a destructor.  Make a pointer to the routine. */
@@ -668,8 +581,10 @@ is TRUE, change the typeinfo variable to static.
   curr_field = curr_field->next;
   curr_field_type = curr_field->type;
   bc_con = alloc_constant((a_constant_repr_kind)ck_address);
-  if (type->variant.class_struct_union.extra_info->base_classes == NULL) {
-    /* The class has no base classes; use a NULL pointer. */
+  if (!is_class_type ||
+      type->variant.class_struct_union.extra_info->base_classes == NULL) {
+    /* The class has no base classes, or the type is not a class; use a
+       NULL pointer. */
     make_zero_of_proper_type(curr_field_type, bc_con);
   } else {
     /* The class has base classes; make a variable whose initial value is
@@ -681,13 +596,22 @@ is TRUE, change the typeinfo variable to static.
     /* Make the type pointer-to-element instead of pointer-to-array. */
     implicit_cast(bc_con, curr_field_type);
   }  /* if */
+#if ABI_CHANGES_FOR_RTTI
+  /* Make the name constant. */
+  name_con = make_typeinfo_name_constant(type);
+#endif /* ABI_CHANGES_FOR_RTTI */
   /* Make the aggregate constant and attach it to the variable as its initial
      value. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   aggr_con->variant.aggregate.first_constant = id_con;
-  aggr_con->variant.aggregate.last_constant = bc_con;
   id_con->next = dtor_con;
   dtor_con->next = bc_con;
+#if ABI_CHANGES_FOR_RTTI
+  bc_con->next = name_con;
+  aggr_con->variant.aggregate.last_constant = name_con;
+#else /* !ABI_CHANGES_FOR_RTTI */
+  aggr_con->variant.aggregate.last_constant = bc_con;
+#endif /* ABI_CHANGES_FOR_RTTI */
   typeinfo_var->init_kind = (an_init_kind)initk_static;
   typeinfo_var->initializer.constant = aggr_con;
   /* Return to the memory region that was current when this routine was
@@ -696,13 +620,23 @@ is TRUE, change the typeinfo variable to static.
 }  /* define_typeinfo_var */
 
 
+static unsigned long
+		num_of_pending_class_typeinfo_vars;
+			/* Count of typeinfo variables generated for classes
+			   that have not been revisited to determine whether
+			   they need definitions.  Used to cut short the
+			   final pass that finds and defines the variables. */
+
+
 void define_scope_class_typeinfo_vars(a_scope_ptr scope)
 /*
 Visit all the class types of the indicated scope and look for typeinfo
 variables (generated earlier).  For each typeinfo variable, generate
 the appropriate definition if one is needed.  This must be done late
 in the lowering process, so that all necessary typeinfo variables have
-been generated already.
+been created already, and so that the information needed to decide
+whether to define the typeinfo variable (the same information needed
+for the similar decision for virtual function tables) is available.
 */
 {
   a_type_ptr  type;
@@ -758,7 +692,177 @@ been generated already.
 }  /* define_scope_class_typeinfo_vars */
 
 
+static a_variable_ptr make_typeinfo_var(a_type_ptr type)
+/*
+Make a typeinfo variable for the indicated type (if it does not exist
+already) and return a pointer to it.  The variable points to runtime
+type information.  It is always allocated in the file scope memory region.
+*/
+{
+  a_variable_ptr  typeinfo_var;
+  char            *mangled_name;
+  sizeof_t        mangled_name_length, alloc_length;
+  a_storage_class storage_class;
+
+  /* No need to create the variable if it exists already. */
+  typeinfo_var = type->typeinfo_var;
+  if (typeinfo_var == NULL) {
+    /* Determine the length of the mangled name. */
+    mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
+    /* Allocate space for the mangled name, including the final null. */
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_lowered_name_string(alloc_length);
+    /* Build the mangled name. */
+    (void)mangled_typeinfo_name(type, mangled_name);
+    mangled_name[mangled_name_length] = '\0';
+    if (is_immediate_class_type(type)) {
+      /* typeinfo variables for classes are sometimes external, sometimes
+         static, but we don't know which yet.  Start with external, and
+         change later if necessary. */
+      storage_class = (a_storage_class)sc_extern;
+      /* Keep a count of the number of class typeinfo variables so that the
+         final pass to add definitions for these can be stopped when all
+         of them have been found. */
+      num_of_pending_class_typeinfo_vars++;
+    } else {
+#if ABI_CHANGES_FOR_RTTI
+      /* typeinfo variables for non-classes are always static. */
+      storage_class = (a_storage_class)sc_static;
+#else /* !ABI_CHANGES_FOR_RTTI */
+      /* Old implementation: */
+      /* typeinfo variables for non-classes are always external tentative
+         definitions (initialized to NULL/zero by default). */
+      storage_class = (a_storage_class)sc_unspecified;
+#endif /* ABI_CHANGES_FOR_RTTI */
+    }  /* if */
+    typeinfo_var = make_lowered_variable(mangled_name,
+                                         /*already_il_name=*/TRUE,
+                                         make_typeinfo_type(),
+                                         storage_class);
+    typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
+    /* Remember the variable in the type. */
+    type->typeinfo_var = typeinfo_var;
+    /* If the type is a class, we also need typeinfo variables for its
+       base classes. */
+    if (is_immediate_class_type(type)) {
+      a_base_class_ptr bcp;
+      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        (void)make_typeinfo_var(bcp->type);
+      }  /* if */
+#if ABI_CHANGES_FOR_RTTI
+    } else {
+      /* typeinfo entries for non-class types do not depend on other
+         information and can be defined immediately. */
+      define_typeinfo_var(type, /*force_static=*/TRUE);
+#endif /* ABI_CHANGES_FOR_RTTI */
+    }  /* if */
+  }  /* if */
+  return typeinfo_var;
+}  /* make_typeinfo_var */
+
+#if GENERATE_EH_TABLES
+
+/*
+Following is code related to typeinfo entries that is needed only for
+exception handling.
+*/
+/*
+Bit set values for the flags byte of exception_type_spec.  These must
+match the runtime's definition.
+*/
+#define ETS_IS_POINTER		0x01
+			/* A pointer to an object of the type specified
+			   by typeinfo. */
+#define ETS_POINTER_TO_CONST	0x02
+#define ETS_POINTER_TO_VOLATILE	0x04
+			/* Indication of the type qualifiers on the type
+			   pointed to, in the pointer case. */
+#define ETS_IS_REFERENCE	0x08
+			/* A reference to an object of the type specified
+			   by typeinfo. */
+#define ETS_IS_ELLIPSIS		0x10
+			/* An ellipsis (for a catch clause). */
+#define ETS_LAST		0x20
+			/* TRUE if this is the last type specification in
+			   the array. */
+
+
+static a_variable_ptr typeinfo_var_for_type(a_type_ptr    type,
+                                            unsigned long *flags_value)
+/*
+Create the typeinfo variable for the indicated type, and return a pointer
+to it.  This is used to create the representation for a type used in
+exception handling: the typeinfo returned is the "interesting" part
+of the type, and the relationship of the original type to the typeinfo
+type is indicated in the returned value of *flags_value.  For example,
+for a pointer to a class, the typeinfo for the underlying class is
+returned, and *flags_value is set to indicate a pointer.
+*/
+{
+  a_variable_ptr        typeinfo_var;
+  a_type_ptr            typeinfo_type;
+  a_type_qualifier_set  qualifiers;
+
+  typeinfo_type = type;
+  *flags_value = 0;
+  /* For a pointer or reference to a type, use the typeinfo for the
+     underlying type and a flag to indicate the reference or pointer.
+     Both flags are on for a reference to a pointer. */
+  if (is_reference_type(typeinfo_type)) {
+    typeinfo_type = type_pointed_to(typeinfo_type);
+    *flags_value |= ETS_IS_REFERENCE;
+  }  /* if */
+  if (is_pointer_type(typeinfo_type)) {
+    typeinfo_type = type_pointed_to(typeinfo_type);
+    *flags_value |= ETS_IS_POINTER;
+    /* Remember the type qualifiers on the type pointed to. */
+    qualifiers = get_type_qualifiers(typeinfo_type);
+    if (qualifiers & TQ_CONST) {
+      *flags_value |= ETS_POINTER_TO_CONST;
+    }  /* if */
+    if (qualifiers & TQ_VOLATILE) {
+      *flags_value |= ETS_POINTER_TO_VOLATILE;
+    }  /* if */
+  }  /* if */
+  /* Strip typerefs but watch out for rewritten pointers-to-members. */
+  typeinfo_type = underlying_type(typeinfo_type);
+  /* Create the typeinfo variable. */
+  typeinfo_var = make_typeinfo_var(typeinfo_type);
+  return typeinfo_var;
+}  /* typeinfo_var_for_type */
+
+
+void type_is_used_in_exception(a_type_ptr type)
+/*
+The indicated type is used in an exception context.  Put out any necessary
+information on it.
+*/
+{
+  unsigned long flags_value;
+
+  /* We need a typeinfo variable for the underlying type.  Make it if it
+     does not exist already. */
+  (void)typeinfo_var_for_type(type, &flags_value);
+}  /* type_is_used_in_exception */
+
 #if DO_FULL_PORTABLE_EH_LOWERING
+
+static a_variable_ptr make_unnamed_local_array_var(a_type_ptr elem_type)
+/*
+Create an unnamed local (auto) variable whose type is an array of elem_type,
+and return a pointer to the variable.  The array size is begun as [0] and
+will be adjusted as elements are added.  finish_array_var must be called
+sometime later to set the size on the type.  The variable is put in the
+current function scope even if the current context is a block inside that.
+*/
+{
+  return make_temporary_in_scope(array_of(elem_type), innermost_function_scope,
+                                 /*force_static=*/FALSE);
+}  /* make_unnamed_local_array_var */
+
+
 /*
 Pointer to the variable entry for the object address array table of
 a function.  NULL until allocated.
