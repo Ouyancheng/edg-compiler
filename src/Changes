@@ -63,7 +63,8 @@ other case.  The test case is from [over.ics.rank] of the WP:
 The Working Paper now permits a global qualifier to be used in any declarator
 in which a qualified name is permitted.  The front end accepted global
 qualifiers in all such declarators except when a namespace or class member
-was defined outside of its namespace or class.  This has been fixed.
+(including a member of the global namespace) was defined outside of its
+namespace or class.  This has been fixed.
 
   namespace N {
     void f();
