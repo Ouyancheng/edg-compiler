@@ -107,10 +107,10 @@ declarator (3.5.5).
      curr_token == tok_ampersand)))
 
 
-static a_boolean has_name_of_curr_class(a_symbol_locator  *loc)
+static a_boolean is_name_of_curr_class(void)
 /*
 Return TRUE if the current scope is a class definition and the name of the
-class is the same as the name that loc represents.
+class is the same as the name that locator_for_curr_id represents.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
@@ -121,10 +121,10 @@ class is the same as the name that loc represents.
     match = FALSE;
   } else {
     class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-    match = (loc->symbol_header == class_sym->header);
+    match = (locator_for_curr_id.symbol_header == class_sym->header);
   }  /* if */
   return match;
-}  /* has_name_of_curr_class */
+}  /* is_name_of_curr_class */
 
 
 static a_symbol_ptr curr_type_symbol(void)
@@ -1541,7 +1541,7 @@ scope is that of a class definition.
              if they are permitted complications in overload resolution for
              template functions are introduced.  Rather than invent solutions
              to such complications, we await clarification in the language
-             definition.  Incidentally, cfront issus an error in this case,
+             definition.  Incidentally, cfront issues an error in this case,
              too. */
          } else {
           /* In C++ mode a default argument may be declared with the parameter
@@ -3205,7 +3205,7 @@ otherwise, set *ext_sym to NULL.
         redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
         /* Set a flag to suppress reuse of the existing external-variable
-           symbol and of the variable aleady in use.  This is to avoid
+           symbol and of the variable already in use.  This is to avoid
            redundant errors in case both this and the previous definition
            involved initialization.  Also, to suppress a declared-but-not-used
            message, set the referenced flag in the linked symbol. */
@@ -3689,7 +3689,7 @@ current identifier, type_ptr is the function type, storage_class is the
 storage class, if any, specified in the declaration, and is_inline is TRUE
 if "inline" was specified in the declaration.  The function template may
 be part of an overload set, it may have been previously declared (but not
-defined), and it may be an out-of-line defintion of a member function of a
+defined), and it may be an out-of-line definition of a member function of a
 class template.
 */
 {
@@ -6328,7 +6328,7 @@ process_class_specifier:
                                    ((*storage_class ==
                                        (a_storage_class)sc_static) ? 1 : 0) +
                                    (is_inline ? 1 : 0)) &&
-                has_name_of_curr_class(&locator_for_curr_id)) {
+                is_name_of_curr_class()) {
               /* The name is the same as that of a class being defined.  This
                  is treated as a constructor declaration if the next two
                  tokens are a left paren and declaration start token.  Use
@@ -6337,6 +6337,11 @@ process_class_specifier:
               a_token_cache    cache;
               a_boolean        is_constructor = FALSE;
 
+	      /* Change "A::A" into "A" if we are processing inside the
+		 definition of class "A".  This is necessary for
+		 deterine_curr_type_symbol to handle this case
+		 correctly. */
+	      simplify_curr_class_qualified_name();
               clear_token_cache(&cache);
               /* Put the current token in the cache. */
               cache_curr_token(&cache);
@@ -6497,12 +6502,13 @@ process_class_specifier:
           goto operator_or_conversion_name;
         }  /* if */
         if (locator_for_curr_id.is_destructor_name &&
-            !locator_for_curr_id.is_qualified_name) {
+	    (simplify_curr_class_qualified_name() ||
+	     !locator_for_curr_id.is_qualified_name)) {
           /* This identifier represents something like "A::~A".  This
              case is handled one way if we are currently processing the
              definition of class A and another way if we are not.  If we
 	     are processing the definition of class A, "A::~A" will have
-	     already been coalesced.  However, the qualifier information
+	     already been coalesced and the qualifier information
              will have been discarded by simplify_curr_class_qualified_name.
              This test identifies this case and transfers control to the code
              that would have been executed if the program simply said "~A"
