@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -254,6 +254,7 @@ the associated variant fields to default values.
   switch (kind) {
     case ilk_after_statement:
     case ilk_block_start:
+    case ilk_statement_creation:
       insert_location->variant.stmt = NULL;
       break;
     case ilk_switch_clause_start:
@@ -307,6 +308,18 @@ the indicated switch clause.
   clear_insert_location(insert_location, ilk_switch_clause_start);
   insert_location->variant.switch_clause = scp;
 }  /* set_switch_clause_start_insert_location */
+
+
+void set_statement_creation_insert_location(
+                                           an_insert_location *insert_location)
+/*
+Set *insert_location to a state that allows statement insertion and captures
+the first inserted statement as the base statement.  This is used to create,
+via insertion, a list of statements unattached to the existing IL tree.
+*/
+{
+  clear_insert_location(insert_location, ilk_statement_creation);
+}  /* set_statement_creation_insert_location */
 
 
 void set_expr_insert_location(an_expr_node_ptr   node,
@@ -371,11 +384,13 @@ that an insertion will be made.
 void set_expr_creation_insert_location(an_insert_location *insert_location)
 /*
 Set *insert_location to a state that allows expression insertion and captures
-the first inserted expression as the base expression of the tree.
+the first inserted expression as the base expression of the tree.  This is
+used to create, via insertion, an expression tree unattached to the existing
+IL tree.
 */
 {
   clear_insert_location(insert_location, ilk_expr_creation);
-}  /* set_expr_insert_location */
+}  /* set_expr_creation_insert_location */
 
 
 void add_to_return_memo_list(a_statement_ptr return_stmt)
@@ -1088,37 +1103,16 @@ function.
 }  /* is_or_was_ptr_to_member_function_type */
 
 
-a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
-                                       a_scope_ptr scope,
-                                       a_boolean   force_static)
+void add_temporary_to_scope(a_variable_ptr temp,
+                            a_scope_ptr    scope)
 /*
-Make a temporary variable in scope "scope" whose type is "temp_type" and
-whose storage class is static if force_static is TRUE or if the scope
-is the file scope.  Return a pointer to it.
+Add the indicated temporary variable to the variables list of the indicated
+scope.
 */
 {
-  a_variable_ptr          temp;
-  a_storage_class         storage_class;
   a_scope_stack_entry_ptr ssep;
   a_variable_ptr          *prev_ptr_ptr, *last_ptr_ptr;
 
-  /* Allocate the variable, using auto storage class in functions and
-     blocks, static elsewhere.  If force_static is TRUE, use static. */
-  if (!force_static &&
-      (scope->kind == (a_scope_kind)sck_function ||
-       scope->kind == (a_scope_kind)sck_block)) {
-    storage_class = (a_storage_class)sc_auto;
-  } else {
-    storage_class = (a_storage_class)sc_static;
-  }  /* if */
-  temp = alloc_variable(storage_class);
-  temp->type = temp_type;
-  temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
-  if (scope->kind == (a_scope_kind)sck_block ||
-      scope->kind == (a_scope_kind)sck_function) {
-    /* Mark local variables of functions. */
-    temp->source_corresp.is_local_to_function = TRUE;
-  }  /* if */
   /* See if the scope we are adding to is active on the scope stack.
      If so, we have to maintain the "last" pointer too. */
   ssep = NULL;
@@ -1131,7 +1125,7 @@ is the file scope.  Return a pointer to it.
   /* The variable goes on either the static or the nonstatic variables list,
      so determine the proper pointers to adjust. */
   last_ptr_ptr = NULL;
-  if (storage_class == (a_storage_class)sc_static) {
+  if (temp->storage_class == (a_storage_class)sc_static) {
     prev_ptr_ptr = &scope->variables;
     if (ssep != NULL) last_ptr_ptr = &ssep->last_variable;
   } else {
@@ -1148,6 +1142,44 @@ is the file scope.  Return a pointer to it.
   temp->next = *prev_ptr_ptr;
   *prev_ptr_ptr = temp;
   if (last_ptr_ptr != NULL && temp->next == NULL) *last_ptr_ptr = temp;
+}  /* add_temporary_to_scope */
+
+
+a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
+                                       a_scope_ptr scope,
+                                       a_boolean   force_static)
+/*
+Make a temporary variable in scope "scope" whose type is "temp_type" and
+whose storage class is static if force_static is TRUE or if the scope
+is the file scope.  Return a pointer to it.  If scope is NULL, make a
+local variable but do not attach it to a scope yet.
+*/
+{
+  a_variable_ptr  temp;
+  a_storage_class storage_class;
+  a_boolean       local_to_function =
+                                  (scope == NULL ||
+                                   scope->kind == (a_scope_kind)sck_function ||
+                                   scope->kind == (a_scope_kind)sck_block);
+
+  /* Allocate the variable, using auto storage class in functions and
+     blocks, static elsewhere.  If force_static is TRUE, use static. */
+  if (!force_static && local_to_function) {
+    storage_class = (a_storage_class)sc_auto;
+  } else {
+    storage_class = (a_storage_class)sc_static;
+  }  /* if */
+  temp = alloc_variable(storage_class);
+  temp->type = temp_type;
+  temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+  if (local_to_function) {
+    /* Mark local variables of functions. */
+    temp->source_corresp.is_local_to_function = TRUE;
+  }  /* if */
+  if (scope != NULL) {
+    /* Add the temporary variable to the list of variables for the scope. */
+    add_temporary_to_scope(temp, scope);
+  }  /* if */
   return temp;
 }  /* make_temporary_in_scope */
 
@@ -1933,7 +1965,7 @@ calls this routine after it has discarded the troublesome lvalue cases).
   an_expr_node_ptr expr_copy, temp_node;
   a_variable_ptr   temp;
   a_type_ptr       temp_type;
-  a_boolean        need_temp, suppress_warning;
+  a_boolean        need_temp;
 
   need_temp = TRUE;
   if (vars_can_change) {
@@ -1954,7 +1986,7 @@ calls this routine after it has discarded the troublesome lvalue cases).
     }  /* if */
   } else {
     /* Variables cannot change.  See if the expression has side effects. */
-    if (!node_has_side_effects(expr, &suppress_warning)) need_temp = FALSE;
+    if (!node_has_side_effects(expr, (a_boolean *)NULL)) need_temp = FALSE;
   }  /* if */
   if (!need_temp) {
     /* A straight copy will work. */
@@ -2174,7 +2206,11 @@ so the next insertion will be after the statement added.
     insert_expr(statement->expr, insert_location);
   } else {
     /* Insert in a statement sequence. */
-    if (kind == ilk_switch_clause_start) {
+    if (kind == ilk_statement_creation) {
+      /* Create new statement. */
+      insert_location->variant.stmt = statement;
+      insert_location->kind = ilk_after_statement;
+    } else if (kind == ilk_switch_clause_start) {
       /* Insert at the start of a switch clause. */
       scp = insert_location->variant.switch_clause;
       statement->next = scp->statements;
@@ -2225,7 +2261,7 @@ a_statement_ptr insert_expr_statement(an_expr_node_ptr       node,
 Make a statement from expression expr.  Insert the statement at
 *insert_location and update *insert_location.  Return a pointer to the
 statement, or NULL if no statement was created (in an expression insert
-context).
+context).  The result of the expression is marked as not used.
 */
 {
   a_statement_ptr stmt;
@@ -2280,12 +2316,16 @@ a_statement_ptr insert_var_assignment_statement(
 Make a statement that assigns rvalue_expr to lvalue_var using assignment
 operator op.  Insert the statement at *insert_location and update
 *insert_location.  Return a pointer to the statement, or NULL if no
-statement was created (in an expression insert context).
+statement was created (in an expression insert context).  If op is
+eok_last, determine the assignment operator from the type.
 */
 {
   a_statement_ptr  assign_stmt;
   an_expr_node_ptr lvalue_expr;
 
+  if (op == (an_expr_operator_kind)eok_last) {
+    op = lowered_assignment_operator(lvalue_var->type);
+  }  /* if */
   /* Make an expression for the lvalue address. */
   lvalue_expr = var_lvalue_expr(lvalue_var);
   /* Make and insert the assignment. */
@@ -2293,6 +2333,24 @@ statement was created (in an expression insert context).
                                             insert_location);
   return assign_stmt;
 }  /* insert_var_assignment_statement */
+
+
+a_statement_ptr last_statement_in_block(a_statement_ptr block_statement)
+/*
+Return a pointer to the last statement in the block pointed to by
+block_statement, or NULL if there are no statements in the block.
+*/
+{
+  a_statement_ptr last_statement;
+
+  check_assertion_str(block_statement->kind == (a_statement_kind)stmk_block,
+                      "last_statement_in_block: statement not block");
+  last_statement = block_statement->variant.block.statements;
+  if (last_statement != NULL) {
+    while (last_statement->next != NULL) last_statement = last_statement->next;
+  }  /* if */
+  return last_statement;
+}  /* last_statement_in_block */
 
 
 static void lower_source_correspondence(
@@ -5387,12 +5445,17 @@ the expression have already been lowered.
 }  /* lower_pm_call */
 
 
+#if !MINIMAL_INLINING
+/*ARGSUSED*/ /* <-- statement is not used in this case. */
+#endif /* !MINIMAL_INLINING */
 void lower_call(an_expr_node_ptr      expr,
-                an_init_pos_descr_ptr ipdp)
+                an_init_pos_descr_ptr ipdp,
+                a_statement_ptr       statement)
 /*
 Lower a call (normal, virtual, or pointer-to-member).  expr points to the
 call node.  ipdp, if non-NULL, indicates an entity into which the
-call should return its value.
+call should return its value.  If statement is non-NULL, this call is
+the top node of the indicated statement (which is an expression statement).
 */
 {
   a_type_ptr                    rout_type;
@@ -5400,6 +5463,7 @@ call should return its value.
   an_expr_node_ptr              prev_arg_node, arg_node, temp_node, first_arg;
   an_expr_operator_kind         op = expr->variant.operation.kind;
 
+  lower_os_type(expr->type);
   first_arg = arg_node = expr->variant.operation.operands;
   /* Extract the routine type. */
   if (op == (an_expr_operator_kind)eok_pm_call) {
@@ -5458,6 +5522,9 @@ call should return its value.
          implied arguments. */
       add_implied_args_to_call(expr, routine_from_node(first_arg));
     }  /* if */
+#if MINIMAL_INLINING
+    if (inlining_enabled) do_inlining_of_call(expr, statement);
+#endif /* MINIMAL_INLINING */
   }  /* if */
 }  /* lower_call */
 
@@ -5473,7 +5540,7 @@ Lower comparison of two pointers to members.
   a_type_ptr       int_type;
   a_boolean        ne_case = (expr->variant.operation.kind ==
                                               (an_expr_operator_kind)eok_pmne);
-  a_boolean        vars_can_change, suppress_warning;
+  a_boolean        vars_can_change;
 
   op1_node = expr->variant.operation.operands;
   if (is_or_was_ptr_to_member_function_type(op1_node->type)) {
@@ -5493,8 +5560,8 @@ Lower comparison of two pointers to members.
     select1_node->next = select2_node;
     compare_i_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                         int_type, select1_node);
-    vars_can_change = node_has_side_effects(op1_node, &suppress_warning) ||
-                      node_has_side_effects(op2_node, &suppress_warning);
+    vars_can_change = node_has_side_effects(op1_node, (a_boolean *)NULL) ||
+                      node_has_side_effects(op2_node, (a_boolean *)NULL);
     /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
     op1_node = make_reusable_copy(op1_node, vars_can_change);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
@@ -5682,7 +5749,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
                 op != (an_expr_operator_kind)eok_comma)) {
       an_expr_node_ptr child2 = child1->next;
       an_expr_node_ptr newop;
-      a_boolean        suppress_warning, vars_can_change;
+      a_boolean        vars_can_change;
       /* expr is an lvalue-returning operation that is not a "?" or ",".
          Rewrite
            x = y          really: &x = y
@@ -5703,7 +5770,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
          effects on the variables used in the destination expression. */
       vars_can_change = FALSE;
       if (child2 != NULL) {
-        vars_can_change = node_has_side_effects(child2, &suppress_warning);
+        vars_can_change = node_has_side_effects(child2, (a_boolean *)NULL);
       }  /* if */
       /* Attach a copy of the lvalue address to the assignment node, as the
          second operand of the comma operator. */
@@ -5878,7 +5945,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  op == (an_expr_operator_kind)eok_virtual_call ||
                  op == (an_expr_operator_kind)eok_pm_call) {
         /* Calls of various kinds. */
-        lower_call(expr, (an_init_pos_descr_ptr)NULL);
+        lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has conditional operands. */
@@ -6572,7 +6639,9 @@ there are no statements on the list.
          the address to establish identity, but in this case we can because
          the generated statement is presumably part of the expansion of
          the statement that's now a no-op. */
+      a_statement_ptr next_stmt = statement->next->next;
       copy_statement(statement->next, statement);
+      statement->next = next_stmt;
     }  /* if */
     /* Keep track of the last statement (so far) in the statement list. */
     last_statement = statement;
@@ -6681,7 +6750,6 @@ is set to point to the original statement in its new location.
   /* Make a copy of the original statement. */
   *orig_statement = stmt_copy = alloc_statement(statement->kind);
   copy_statement(statement, stmt_copy);
-  stmt_copy->next = NULL;
   /* Turn the statement into a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   statement->variant.block.statements = stmt_copy;
@@ -6985,9 +7053,7 @@ Any cleanup code inserted is placed after the last statement.
          last statement. */
       if (last_statement == NULL &&
           block_statement->variant.block.statements != NULL) {
-        for (last_statement = block_statement->variant.block.statements;
-             last_statement->next != NULL;
-             last_statement = last_statement->next) {}
+        last_statement = last_statement_in_block(block_statement);
       }  /* if */
       if (last_statement == NULL) {
         /* The block is empty, so insert at its beginning. */
@@ -7017,7 +7083,7 @@ Do IL lowering of the indicated statement and everything under it.
   a_statement_ptr      statement_list;
   a_statement_ptr      last_statement, body_statement, return_statement;
   a_boolean            make_block, any_cleanup_on_return;
-  an_expr_node_ptr     return_expr;
+  an_expr_node_ptr     stmt_expr, return_expr;
   a_variable_ptr       temp_var;
   a_dynamic_init_ptr   dip;
   a_source_position    saved_error_position, saved_code_pos;
@@ -7031,9 +7097,21 @@ Do IL lowering of the indicated statement and everything under it.
                                            statement->position);
     saved_error_position = error_position;
     error_position = code_pos_for_lowering;
+    stmt_expr = statement->expr;
     switch (statement->kind) {
       case stmk_expr:
-        lower_normal_expr(statement->expr);
+#if MINIMAL_INLINING
+        if (inlining_enabled &&
+            is_operation_node(stmt_expr) &&
+            stmt_expr->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_call) {
+          /* Special-case a call as the top expression so inlining can be
+             done with statement insertions. */
+          lower_call(stmt_expr, (an_init_pos_descr_ptr)NULL, statement);
+          break;
+        }  /* if */
+#endif /* MINIMAL_INLINING */
+        lower_normal_expr(stmt_expr);
         break;
       case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
@@ -7056,7 +7134,7 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_return:
-        return_expr = statement->expr;
+        return_expr = stmt_expr;
         if (return_expr != NULL) {
           lower_normal_expr(return_expr);
         }  /* if */
@@ -7127,9 +7205,9 @@ Do IL lowering of the indicated statement and everything under it.
             make_block = FALSE;
             /* Insert the "temp = return-expr;" statement. */
             (void)insert_var_assignment_statement(
-                                   temp_var,
-                                   lowered_assignment_operator(temp_var->type),
-                                   return_expr, &insert_location);
+                                               temp_var,
+                                               (an_expr_operator_kind)eok_last,
+                                               return_expr, &insert_location);
           }  /* if */
         }  /* if */
         if (any_cleanup_on_return) {
@@ -7149,16 +7227,16 @@ Do IL lowering of the indicated statement and everything under it.
         add_to_return_memo_list(return_statement);
         break;
       case stmk_if:
-        lower_boolean_controlling_expr(statement->expr);
+        lower_boolean_controlling_expr(stmt_expr);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
-        lower_boolean_controlling_expr(statement->expr);
+        lower_boolean_controlling_expr(stmt_expr);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_end_test_while:
-        lower_boolean_controlling_expr(statement->expr);
+        lower_boolean_controlling_expr(stmt_expr);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
@@ -7178,8 +7256,8 @@ Do IL lowering of the indicated statement and everything under it.
               init_stmt->next = init_stmt_next;
             }  /* if */
           }  /* if */
-          if (statement->expr != NULL) {
-            lower_boolean_controlling_expr(statement->expr);
+          if (stmt_expr != NULL) {
+            lower_boolean_controlling_expr(stmt_expr);
           }  /* if */
           lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
@@ -7210,7 +7288,7 @@ Do IL lowering of the indicated statement and everything under it.
                                     context_pushed, new_lifetime);
         break;
       case stmk_switch:
-        lower_normal_expr(statement->expr);
+        lower_normal_expr(stmt_expr);
         /* If there is a body statement that is a block, push a context
            around the processing of the switch clauses. */
         body_statement = statement->variant.switch_stmt.body_statement;
@@ -8224,6 +8302,13 @@ Do IL lowering of the indicated scope and everything under it.
     free_return_memo_list(return_memo_list);
     return_memo_list = NULL;
     return_value_pointer_variable = NULL;
+#if MINIMAL_INLINING
+    if (inlining_enabled && routine->is_inline) {
+      /* For an inline routine, set the inlinable flag now that the body has
+         been processed. */
+      set_up_routine_for_inlining(scope);
+    }  /* if */
+#endif /* MINIMAL_INLINING */
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
   db_exit();
@@ -8351,6 +8436,13 @@ C++ to C, so that a C back end can handle it without change.
          member promotions so that the initialization routine is last. */
       lower_file_scope_dynamic_inits();
       make_code_to_invoke_file_scope_init_routine();
+#if MINIMAL_INLINING
+      if (inlining_enabled) {
+        /* For any inline routines for which all calls were expanded inline,
+           mark the routines as being unreferenced. */
+        mark_inlined_routines_as_unreferenced();
+      }  /* if */
+#endif /* MINIMAL_INLINING */
     }  /* if */
 #if GENERATE_EH_TABLES
     /* Add definitions for any typeinfo variables generated for classes.
@@ -8497,6 +8589,14 @@ Display and return the amount of space used for various IL lowering tables.
                      a_destructible_entity_descr);
   db_space_used_lost("return memos", avail_return_memos,
                      num_return_memos_allocated, a_return_memo);
+#if MINIMAL_INLINING
+  if (inlining_enabled) {
+    db_space_used_lost("variable remappings",
+                       avail_variable_remappings_for_inlining,
+                       num_variable_remappings_for_inlining,
+                       a_variable_remapping_for_inlining);
+  }  /* if */
+#endif /* MINIMAL_INLINING */
 
   db_space_used_total();
 
@@ -8537,6 +8637,10 @@ are handled in il_lower_init.)
   }  /* if */
   init_lower_one_time_init();
   eh_lower_one_time_init();
+#if MINIMAL_INLINING
+  /* Do inline.c initialization. */
+  if (inlining_enabled) inline_one_time_init();
+#endif /* MINIMAL_INLINING */
 }  /* il_lower_one_time_init */
 
 
@@ -8589,6 +8693,10 @@ of the front end.
   init_lower_init();
   /* Do lower_eh.c initialization. */
   eh_lower_init();
+#if MINIMAL_INLINING
+  /* Do inline.c initialization. */
+  if (inlining_enabled) inline_init();
+#endif /* MINIMAL_INLINING */
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
@@ -8600,6 +8708,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
