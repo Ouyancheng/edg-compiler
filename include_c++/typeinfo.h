@@ -31,8 +31,6 @@ namespace std {
     const char* name() const;
   private:
     type_info& operator=(const type_info&);  // Not actually defined
-    type_info(void*);  // Used by implementation
-    void* _type_info;
 #if 0
 #else /* 0 */
   protected:
