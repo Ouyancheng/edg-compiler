@@ -635,7 +635,9 @@ if there's no overflow TRUE is returned.
   /* Set the size and alignment for the field's type, if necessary. */
   field_type = skip_typerefs(field->type);
   set_type_size(field_type);
-  if (!is_error_type(field_type)) {
+  if (is_error_type(field_type)) {
+    overflow = FALSE;
+  } else {
     /* Check for a bit-field. */
     if (field->bit_size != 0) {
       if (field->bit_size == UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE) {
