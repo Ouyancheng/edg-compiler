@@ -708,7 +708,13 @@ built-in operators.  The start_error or equivalent has already been done.
         /* Subscript -- funny because the operator surrounds the second
            operand. */
         (void)sprintf(buf, "%s[%s]", name_for_type_code(pattern[0]),
-                                        name_for_type_code(pattern[1]));
+                                     name_for_type_code(pattern[1]));
+      } else if (kind == (an_opname_kind)onk_question) {
+        /* ?: -- funny because the operands considered are the second and
+           third. */
+        (void)sprintf(buf, "expression ? %s : %s",
+                                       name_for_type_code(pattern[0]),
+                                       name_for_type_code(pattern[1]));
       } else {
         /* Binary operator. */
         (void)sprintf(buf, "%s %s %s", name_for_type_code(pattern[0]), opname,
