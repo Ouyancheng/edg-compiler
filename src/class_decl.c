@@ -3585,9 +3585,14 @@ without it.
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
     /* Ignore projection symbols. */
-    if (sym->kind == (a_symbol_kind)sk_projection ||
-        sym->kind == (a_symbol_kind)sk_function_template) continue;
-    orig_type = sym->variant.routine.ptr->type;
+    if (sym->kind == (a_symbol_kind)sk_projection) continue;
+    /* Get the routine pointer associated with either the routine symbol
+       or the function template symbol. */
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
+      orig_type = sym->variant.template_info->variant.function.routine->type;
+    } else {
+      orig_type = sym->variant.routine.ptr->type;
+    }  /* if */
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
     orig_function_is_qualified =
