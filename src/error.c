@@ -2438,6 +2438,7 @@ static void form_source_position(a_source_position   *pos,
                                  a_source_position   *error_pos,
 			         char		     *prefix_string,
 			         char		     *suffix_string,
+                                 char		     *end_of_source_string,
                                  a_msg_segment_ptr   seg_ptr)
 /*
 Format a source position in the message segment described by seg_ptr.
@@ -2468,7 +2469,7 @@ redundant file names in a diagnostic.*/
     conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
     if (at_end_of_source) {
-      add_string_to_segment("(at end of source)", seg_ptr);
+      add_string_to_segment(end_of_source_string, seg_ptr);
     } else {
       add_string_to_segment(prefix_string, seg_ptr);
       add_string_to_segment("at line ", seg_ptr);
@@ -2724,7 +2725,7 @@ symbol_name:
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
     form_source_position(&sym->decl_position, error_pos, " (declared ", ")",
-                         seg_ptr);
+                         "(at end of source)", seg_ptr);
   }  /* if */
 }  /* form_symbol_name */
 
@@ -4253,7 +4254,7 @@ template associated with error_code.  After constructing the segment list
           }  /* if */
 #endif /* CHECKING */
           form_source_position(error_msg_positions[curr_seg->sequence_no],
-                               error_pos, "", "",  curr_seg);
+                               error_pos, "", "", "", curr_seg);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           break;
         case msk_symbol:
