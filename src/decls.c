@@ -4096,7 +4096,16 @@ on a prior declaration.
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
   }  /* if */
-  if (inline_specified) sym->variant.routine.ptr->is_inline = TRUE;
+  if (inline_specified) {
+    if (!sym->variant.routine.ptr->is_inline &&
+        sym->variant.routine.ptr->called) {
+      /* Unless it was originally declared "inline" a member function that
+         has been called may not have the "inline" attribute here. */
+      pos_sy_error(ec_called_member_function_redeclared_inline,
+                   &locator->source_position, sym);
+    }  /* if */
+    sym->variant.routine.ptr->is_inline = TRUE;
+  }  /* if */
   sym->defined = TRUE;
   *symbol_ptr = sym;
   *ext_sym = NULL;
