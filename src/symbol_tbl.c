@@ -458,7 +458,7 @@ and indentation is the indentation desired.
     col += strlen(string);
   }  /* if */
 
-  str = db_sym_names[(int)sym->kind];
+  str = symbol_kind_names[(int)sym->kind];
   if (col + strlen(str) + 2 > DEBUG_LINE_LENGTH) {
     fprintf(f_debug, "\n%*s", indentation, "");
     col = indentation;
@@ -4744,6 +4744,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 {
   a_symbol_ptr sym, tag_symbol, class_symbol;
   a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
   a_class_symbol_supplement_ptr
                extra_info;
   a_symbol_ptr insert_sym;
@@ -4752,15 +4753,10 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->class_of_which_a_member == class_type &&                    \
-   (!must_be_class || is_class_symbol(sym)))
+   (!must_be_class || is_class_symbol(sym)) &&			      \
+   (!must_be_tag || is_tag_symbol(sym)))
 
   db_enter(4, "class_qualified_id_lookup");
-#if CHECKING
-  if (options & IDL_MUST_BE_TAG) {
-    /* IDL_MUST_BE_TAG is not implemented. */
-    internal_error("class_qualified_id_lookup: IDL_MUST_BE_TAG specified");
-  }  /* if */
-#endif /* CHECKING */
   /* Remove any typedef on the class type. */
   class_type = skip_typerefs(class_type);
   if ((sym = locator->specific_symbol) != NULL) {
@@ -4870,6 +4866,7 @@ used for the unary "::" qualifier and may only be used in C++ mode.
 {
   a_symbol_ptr   sym;
   a_boolean      must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean      must_be_tag = (options & IDL_MUST_BE_TAG);
   a_scope_number file_scope_number = scope_stack[DEPTH_OF_FILE_SCOPE].number;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
@@ -4880,15 +4877,10 @@ used for the unary "::" qualifier and may only be used in C++ mode.
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->decl_scope == file_scope_number &&                          \
    name_space_for_symbol_kind[sym->kind] == nsk_other &&              \
-   (!must_be_class || is_class_or_class_proxy_symbol(sym)))
+   (!must_be_class || is_class_or_class_proxy_symbol(sym)) && 	      \
+   (!must_be_tag || is_tag_symbol(sym)))
 
   db_enter(4, "file_scope_id_lookup");
-#if CHECKING
-  if (options & IDL_MUST_BE_TAG) {
-    /* IDL_MUST_BE_TAG is not implemented. */
-    internal_error("file_scope_id_lookup: IDL_MUST_BE_TAG specified");
-  }  /* if */
-#endif /* CHECKING */
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
   } else {
@@ -6946,17 +6938,17 @@ to avoid an 8-character external name clash with symbol_table.)
   num_compares_for_symbols                     = 0;
   num_fast_id_lookups                          = 0;
   num_slow_id_lookups                          = 0;
+#endif /* DEBUG */
 #if CHECKING
   /* Check that the table of symbol kind names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
-     update db_sym_names. */
+     update symbol_kind_names. */
 
-  if (db_sym_names[(int)sk_last] == NULL ||
-      strcmp(db_sym_names[(int)sk_last], "last") != 0) {
-    internal_error("sym_tbl_init: incorrect initialization of db_sym_names");
+  if (symbol_kind_names[(int)sk_last] == NULL ||
+      strcmp(symbol_kind_names[(int)sk_last], "last") != 0) {
+    internal_error("sym_tbl_init: incorrect initialization of symbol_kind_names");
   }  /* if */
 #endif /* CHECKING */
-#endif /* DEBUG */
 }  /* sym_tbl_init */
 
 
