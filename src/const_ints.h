@@ -47,6 +47,9 @@ extern int cmplit_integer_constant(a_constant *con1,
    the sign (-1, 0, +1) of an integer constant. */
 #define sign_of_integer_constant(con) cmplit_integer_constant((con), 0L)
 
+extern int cmpulit_integer_constant(a_constant    *con1,
+                                    unsigned long unsigned_value2);
+
 extern void incr_integer_constant(a_constant *cp);
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
@@ -57,6 +60,10 @@ extern void write_integer_constant(FILE       *f_output,
 extern void set_value_of_integer_constant(a_constant *cp,
                                           long       value,
                                           a_type_ptr type);
+
+extern void set_unsigned_value_of_integer_constant(a_constant    *cp,
+                                                   unsigned long value,
+                                                   a_type_ptr type);
 
 #endif /* ifndef CONST_INTS_H */
 
