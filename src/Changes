@@ -1,9 +1,23 @@
 Version 2.39
 
+5/2/98    Microsoft compatibility: on array new, operator new() considered
+          if no operator new[] declared
+
+In Microsoft mode, if no global operator new[] is declared, an array new
+with placement arguments will be matched against the declared non-array
+global operator new functions.
+
+  void* operator new(unsigned int, const char*, int);
+  static char xxx[] = "xxx";
+  int main() {
+    int* p = new (xxx, 210) int[10]; // Calls non-array operator new
+    return 0;
+  }
+
 4/29/98   End positions on statements
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the end positions of statements
-are now recorded.
+are now recorded.  See end_position in a_statement.
 
 4/27/98   Microsoft compatibility: define static data member using derived
           class qualifier

@@ -5687,6 +5687,18 @@ specification allow a variable-sized array as the top type.
     if (operator_new_symbol == NULL) {
       /* Use the global "operator new" or "operator new[]". */
       operator_new_symbol = opname_function_symbol(opname_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && opname_kind == (an_opname_kind)onk_array_new &&
+          operator_new_symbol != NULL &&
+          operator_new_symbol->kind == (a_symbol_kind)sk_routine &&
+          operator_new_symbol->variant.routine.ptr->compiler_generated &&
+          placement_new) {
+        /* In Microsoft mode, if all we have is the default operator new[]
+           and this is a placement new, go to the non-array operator new. */
+        opname_kind = (an_opname_kind)onk_new;
+        operator_new_symbol = opname_function_symbol(opname_kind);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Select the proper "new" function if there are several.  Note that
        this call does not adjust the argument types or build the function
