@@ -1,5 +1,24 @@
 Version 2.16
 
+4/18/93  Optimization: extra temporaries/copy constructor calls avoided
+
+Cases that involved generation of a temporary and then a copy constructor
+call to copy that temporary to another temporary or to a variable being
+initialized now avoid the extra copy constructor call:
+
+  struct A {
+    A(const A&);
+    A(int);
+  };
+  void f(A);
+  A g();
+  A x = A(1);  // No temp/cctor call
+  A y = g();   // No temp/cctor call
+  void m() {
+    f(A(1));  // No cctor call
+    f(g());   // No cctor call
+  }
+
 4/16/93  "const void" function return type
 
 A remark is now issued instead of a warning.

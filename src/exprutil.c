@@ -4348,17 +4348,17 @@ Free the list of argument operands pointed to by aop.
 }  /* free_arg_operand_list */
 
 
-static void clear_user_conv_descr(a_user_conv_descr_ptr fdp)
+static void clear_user_conv_descr(a_user_conv_descr_ptr ucdp)
 /*
 Clear the fields of a user-defined conversion description entry to
 default values.
 */
 {
-  fdp->routine                        = NULL;
-  fdp->class_identity_or_bitwise_copy = FALSE;
-  fdp->std_conversion_needed          = FALSE;
-  fdp->result_is_an_lvalue            = FALSE;
-  fdp->ambiguous                      = FALSE;
+  ucdp->routine                        = NULL;
+  ucdp->class_identity_or_bitwise_copy = FALSE;
+  ucdp->std_conversion_needed          = FALSE;
+  ucdp->result_is_an_lvalue            = FALSE;
+  ucdp->ambiguous                      = FALSE;
 }  /* clear_user_conv_descr */
 
 
@@ -9112,11 +9112,23 @@ no additional conversion is needed after the conversion function is called.
     }  /* if */
 #endif /* CHECKING */
     /* Constructor. */
-    set_up_for_constructor_call(operand, conversion_routine, &arg_expr_list);
-    /* Make a constructor dynamic init into a temporary, and an operand for
-       the value it produces. */
-    make_constructor_dynamic_init(conversion_routine, arg_expr_list,
-                                  /*result_is_addr=*/FALSE, operand);
+    if (operand->type ==
+        conversion_routine->source_corresp.class_of_which_a_member) {
+      /* The constructor is a copy constructor.  The call would do nothing
+         except make a copy of the operand.  Having a copy constructor
+         as the "conversion" function is meaningful when a conversion
+         description applies to an initialization like "A x = y", but when
+         one is asked to produce an expression, as here, having the copy
+         constructor as the conversion routine should be viewed as meaning
+         "no conversion is necessary". */
+      conv_lvalue_to_rvalue(operand);
+    } else {
+      /* Make a constructor dynamic init into a temporary, and an operand for
+         the value it produces. */
+      set_up_for_constructor_call(operand, conversion_routine, &arg_expr_list);
+      make_constructor_dynamic_init(conversion_routine, arg_expr_list,
+                                    /*result_is_addr=*/FALSE, operand);
+    }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
@@ -9149,6 +9161,41 @@ just a cast.
 }  /* convert_operand */
 
 
+static a_boolean conversion_usable_or_possible(
+                                    an_operand        *source_operand,
+                                    a_type_ptr        dest_type,
+                                    a_boolean         is_initialization,
+                                    an_error_code     incompatible_err,
+                                    a_source_position *err_pos,
+                                    a_user_conv_descr **p_user_conversion,
+                                    a_user_conv_descr *local_user_conversion)
+/*
+See if source_operand can be converted to dest_type (see conversion_possible
+for details on the parameters).  Return TRUE if it can.  If *p_user_conversion
+is non-NULL, the feasibility of the conversion has previously been determined.
+Otherwise, set *p_user_conversion to point to *local_user_conversion
+(probably a local variable in the caller), and call conversion_possible
+to fill in the conversion information.
+*/
+{
+  a_boolean possible;
+
+  /* See if the conversion is possible.  If *p_user_conversion is non-NULL,
+     we already know that the conversion is possible and how to do it. */
+  if (user_conv_usable(*p_user_conversion)) {
+    possible = TRUE;
+    prep_for_known_possible_conversion(source_operand, *p_user_conversion);
+  } else {
+    *p_user_conversion = local_user_conversion;
+    possible = conversion_possible(source_operand, dest_type,
+                                   is_initialization,
+                                   incompatible_err, err_pos,
+                                   *p_user_conversion);
+  }  /* if */
+  return possible;
+}  /* conversion_usable_or_possible */
+
+
 static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_user_conv_descr *user_conversion,
@@ -9167,21 +9214,13 @@ any required conversion.
 */
 {
   a_user_conv_descr local_user_conversion;
-  a_boolean         possible;
 
-  /* See if the conversion is possible.  If user_conversion is non-NULL,
-     we already know that the conversion is possible and how to do it. */
-  if (user_conv_usable(user_conversion)) {
-    possible = TRUE;
-    prep_for_known_possible_conversion(source_operand, user_conversion);
-  } else {
-    user_conversion = &local_user_conversion;
-    possible = conversion_possible(source_operand, dest_type,
-                                   is_initialization,
-                                   incompatible_err, err_pos,
-                                   user_conversion);
-  }  /* if */
-  if (possible) {
+  /* See if the conversion is possible. */
+  if (conversion_usable_or_possible(source_operand, dest_type,
+                                    is_initialization,
+                                    incompatible_err, err_pos,
+                                    &user_conversion,
+                                    &local_user_conversion)) {
     /* The types are compatible.  Do the conversion. */
     /* Force the result to be an rvalue. */
     user_conversion->result_is_an_lvalue = FALSE;
@@ -9191,23 +9230,23 @@ any required conversion.
 
 
 static void check_access_to_elided_copy_constructor(
-                                                  a_type_ptr        class_type,
-                                                  a_source_position *err_pos)
+                                                 a_type_ptr        source_type,
+                                                 a_source_position *err_pos)
 /*
-A conversion to class_type is being done by eliding a copy constructor.
-Check that the copy constructor that would have been referenced exists
-and is accessible (ARM 12.6.1).  Issue an error at *err_pos if not.
+A conversion from source_type (a possibly-qualified class type) is being done
+by eliding a copy constructor.  Check that the copy constructor that would
+have been referenced exists and is accessible (ARM 12.6.1).  Issue an error
+at *err_pos if not.
 */
 {
+  a_type_ptr   class_type = skip_typerefs(source_type);
   a_symbol_ptr cctor_sym;
   a_boolean    ambiguous;
   a_boolean    class_bitwise_copy;
 
-  /* The entity being copied is the output of a constructor, so it
-     has no type qualifiers on it. */
   cctor_sym = find_copy_constructor(class_type,
-                                    /*const_required=*/FALSE,
-                                    /*volatile_required=*/FALSE,
+                                    is_const_qualified_type(source_type),
+                                    is_volatile_qualified_type(source_type),
                                     &ambiguous, &class_bitwise_copy);
   if (class_bitwise_copy) {
     /* A bitwise copy is allowed, so the "copy constructor" is accessible. */
@@ -9227,19 +9266,44 @@ and is accessible (ARM 12.6.1).  Issue an error at *err_pos if not.
 }  /* check_access_to_elided_copy_constructor */
 
 
+static a_boolean operand_is_temp_init(an_operand *operand)
+/*
+Return TRUE if the given operand is an expression operand for an enk_temp_init
+(which represents an expression temporary).
+*/
+{
+  a_boolean is_temp_init = FALSE;
+
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr node = operand->variant.expression;
+    if (node->kind == (an_expr_node_kind)enk_temp_init) {
+      /* The operand is an enk_temp_init for the value of a temporary. */
+      is_temp_init = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_temp_init;
+}  /* operand_is_temp_init */
+
+
 static void determine_dynamic_init_for_class_init(
                                         an_operand         *source_operand,
                                         a_type_ptr         dest_type,
                                         a_user_conv_descr  *user_conversion,
-                                        a_dynamic_init_ptr *p_dip)
+                                        a_dynamic_init_ptr *p_dip,
+                                        an_expr_node_ptr   *p_temp_init_node)
 /*
 An entity of type dest_type (a class type) is being initialized from
 source_operand.  The constructor or conversion function required to do the
 copy and/or conversion is given by *user_conversion.  Create a dynamic
 initialization entry to do the initialization (and any required
 destruction) and return a pointer to it in *dip (or return *dip == NULL
-for an error).  dest_type is allowed to be a class having no constructors
-at all.
+for an error).  If p_temp_init_node is non-NULL, create an enk_temp_init
+node (for the address of a temporary) pointing to that dynamic
+initialization entry, and return a pointer to it in *p_temp_init_node.
+dest_type is allowed to be a class having no constructors at all.
+The initialization represented is an "=" initialization, i.e.,
+
+  dest_type var = source_operand;
 
 This routine does copy constructor elision, i.e., it checks for cases
 where a constructor or other routine can be called to generate its
@@ -9253,12 +9317,14 @@ This routine is used in both C and C++ mode, although the fancier cases
 happen only in C++ mode.
 */
 {
-  a_dynamic_init_ptr dip;
+  a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      conversion_routine;
-  an_expr_node_ptr   arg_expr_list;
-  a_boolean          dummy_arg, class_bitwise_copy;
+  an_expr_node_ptr   arg_expr_list, temp_init_node;
+  a_boolean          class_bitwise_copy, elision_done = FALSE;
   a_type_ptr         class_type = skip_typerefs(dest_type);
+  a_type_ptr         elision_source_type;
 
+  temp_init_node = NULL;
   conversion_routine = user_conversion->routine;
   class_bitwise_copy = user_conversion->class_identity_or_bitwise_copy;
   if (class_bitwise_copy) {
@@ -9277,15 +9343,25 @@ happen only in C++ mode.
     if (conversion_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
       /* The routine is a constructor (copy or not). */
-      if (is_copy_constructor(conversion_routine, class_type,
-                              &dummy_arg, &dummy_arg)) {
-        /* The conversion routine is a copy constructor, so no copy constructor
-           elision is being done. */
+      if (skip_typerefs(source_operand->type) == class_type) {
+        /* The conversion routine is a copy constructor. */
+        /* Look at the top of the expression that is the input to the copy
+           constructor, to see if it is something that creates a temporary.
+           If it is, the temporary and the copy constructor call can be
+           optimized away. */
+        if (operand_is_temp_init(source_operand)) {
+          /* The dynamic initialization entry under the enk_temp_init can be
+             used as the overall result of this routine. */
+          temp_init_node = source_operand->variant.expression;
+          dip = temp_init_node->variant.init.dynamic_init;
+          elision_done = TRUE;
+          elision_source_type = source_operand->type;
+        }  /* if */
       } else {
         /* The conversion routine is a non-copy constructor, so copy
            constructor elision is being done. */
-        check_access_to_elided_copy_constructor(class_type,
-                                                &source_operand->position);
+        elision_done = TRUE;
+        elision_source_type = class_type;
       }  /* if */
     } else {
 #if CHECKING
@@ -9300,18 +9376,36 @@ happen only in C++ mode.
          conversion for the caller. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            user_conversion);
-      /* See if an appropriate copy constructor exists. */
-      conversion_routine = select_copy_constructor(
+      /* See if the result of the conversion is already in a temporary. */
+      if (operand_is_temp_init(source_operand)) {
+        /* The dynamic initialization entry under the enk_temp_init can be
+           used as the overall result of this routine. */
+        temp_init_node = source_operand->variant.expression;
+        dip = temp_init_node->variant.init.dynamic_init;
+        elision_done = TRUE;
+        elision_source_type = source_operand->type;
+      } else {
+        /* See if an appropriate copy constructor exists. */
+        conversion_routine = select_copy_constructor(
                               class_type,
                               is_const_qualified_type(source_operand->type),
                               is_volatile_qualified_type(source_operand->type),
                               &source_operand->position, class_type,
                               &class_bitwise_copy,
                               curr_expr_is_evaluated());
+      }  /* if */
     }  /* if */
   }  /* if */
+  if (elision_done) {
+    /* Copy constructor elision is being done.  Check access to the elided
+       copy constructor. */
+    check_access_to_elided_copy_constructor(elision_source_type,
+                                            &source_operand->position);
+  }  /* if */
   /* Allocate the dynamic initialization entry. */
-  if (class_bitwise_copy) {
+  if (dip != NULL) {
+    /* The dynamic initialization entry was already allocated above. */
+  } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
     prep_class_bitwise_copy_operand(source_operand, dest_type);
     dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_expression,
@@ -9329,6 +9423,23 @@ happen only in C++ mode.
   } else {
     /* Some error. */
     dip = NULL;
+  }  /* if */
+  /* Build an enk_temp_init node if one is needed and one did not exist
+     already. */
+  if (p_temp_init_node != NULL) {
+    if (temp_init_node == NULL) {
+      temp_init_node = alloc_temp_init_node(dest_type,
+                                            /*result_is_addr=*/TRUE);
+      temp_init_node->variant.init.dynamic_init = dip;
+    } else {
+      /* Existing enk_temp_init; make sure we get the address of the
+         temporary instead of its value. */
+      if (!temp_init_node->variant.init.result_is_addr) {
+        temp_init_node->variant.init.result_is_addr = TRUE;
+        temp_init_node->type = make_pointer_type(temp_init_node->type);
+      }  /* if */
+    }  /* if */
+    *p_temp_init_node = temp_init_node;
   }  /* if */
   *p_dip = dip;
 }  /* determine_dynamic_init_for_class_init */
@@ -9360,7 +9471,8 @@ do copy constructor elision in C++ mode.
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
-                                          &user_conversion, dip);
+                                          &user_conversion, dip,
+                                          (an_expr_node_ptr *)NULL);
   }  /* if */
 }  /* prep_elision_initializer_operand */
 
@@ -9377,63 +9489,43 @@ If the conversion is not possible, issue the error incompatible_err,
 convert source_operand to an error operand, and return *err TRUE.
 If user_conversion is non-NULL, the conversion is already known to be
 possible, and *user_conversion describes the user-defined conversion
-part of it, if any.  Only used in C++.
+part of it, if any.  This is used to convert the initial value in a
+reference initialization to a temporary that the reference will point
+to.  Only used in C++.
 */
 {
   a_user_conv_descr local_user_conversion;
   a_routine_ptr     conversion_routine;
-  an_expr_node_ptr  arg_expr_list;
   an_operand        orig_operand;
-  a_boolean         possible, have_temp;
+  a_boolean         have_temp;
 
   *err = FALSE;
   orig_operand = *source_operand;
-  /* See if the conversion is possible.  If user_conversion is non-NULL,
-     we already know that the conversion is possible and how to do it. */
-  if (user_conv_usable(user_conversion)) {
-    possible = TRUE;
-    prep_for_known_possible_conversion(source_operand, user_conversion);
-  } else {
-    user_conversion = &local_user_conversion;
-    possible = conversion_possible(source_operand, dest_type,
-                                   /*is_initialization=*/TRUE,
-                                   incompatible_err, &source_operand->position,
-                                   user_conversion);
-  }  /* if */
-  if (possible) {
-    /* Yes, the conversion is possible. */
-    conversion_routine = user_conversion->routine;
-    if (conversion_routine != NULL &&
-        conversion_routine->special_kind ==
-                                    (a_special_function_kind)sfk_constructor) {
-      /* Class initialization using a constructor.  Do the initialization
-         directly into the temporary.  Note that we do not do the copy
-         constructor elision check here.  The ARM is not clear on that,
-         but cfront doesn't do it, and we can justify that by saying this is
-         a conversion instead of an initialization. */
-      set_up_for_constructor_call(source_operand, conversion_routine,
-                                  &arg_expr_list);
-      make_constructor_dynamic_init(conversion_routine, arg_expr_list,
-                                    /*result_is_addr=*/TRUE, source_operand);
-    } else {	
-      /* Non-constructor case.  Convert the operand. */
-      convert_operand(source_operand, dest_type,
-                      user_conversion);
-      /* In some cases involving conversion functions, the result is already
-         in something that can be considered a temporary. */
-      have_temp = FALSE;
+  /* See if the conversion is possible. */
+  if (conversion_usable_or_possible(source_operand, dest_type,
+                                    /*is_initialization=*/TRUE,
+                                    incompatible_err,
+                                    &source_operand->position,
+                                    &user_conversion,
+                                    &local_user_conversion)) {
+    /* Yes, the conversion is possible.  Do it. */
+    convert_operand(source_operand, dest_type, user_conversion);
+    /* In some cases, the result is already in something that can be
+       considered a temporary. */
+    have_temp = FALSE;
+    if (operand_is_temp_init(source_operand)) {
+      /* The conversion routine returns its value into a temporary, so
+         we already have a temporary. */
+      have_temp = TRUE;
+    }  /* if */
+    if (!have_temp) {
+      conversion_routine = user_conversion->routine;
       if (conversion_routine != NULL &&
           conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
         /* The conversion is done by a conversion function. */
         a_type_ptr routine_type = skip_typerefs(conversion_routine->type);
-        if (routine_type->variant.routine.extra_info->
-                                                     value_returned_by_cctor) {
-          /* The caller provides a place for the return value, so the result
-             is already in a temp. */
-          have_temp = TRUE;
-        } else if (is_reference_type(routine_type->variant.routine.
-                                                                return_type)) {
+        if (is_reference_type(routine_type->variant.routine.return_type)) {
           /* The conversion function returns a reference, so there is
              already something we can point to.  This is perhaps not a
              "temporary" in the traditional sense of the word, but this
@@ -9447,26 +9539,26 @@ part of it, if any.  Only used in C++.
           have_temp = TRUE;
         }  /* if */
       }  /* if */
-      if (have_temp && is_class_struct_union_type(source_operand->type)) {
-        /* The result of the conversion is already a class temporary.
-           Convert the operand from the value of the temporary to the
-           address. */
-        conv_class_operand_to_object_pointer(source_operand);
-        /* Handle base class casts. */
-        cast_operand(make_pointer_type(dest_type), source_operand,
-                                       /*is_implicit_cast=*/TRUE);
-      } else if (have_temp && is_an_lvalue(source_operand)) {
-        /* The result of the conversion is already a non-class temporary
-           that is an lvalue (in particular, this includes array lvalues).
-           Convert to a pointer to the lvalue. */
-        /* Note that if a standard conversion is needed after the
-           conversion function, source_operand has been converted to
-           an rvalue. */
-        take_address_of_lvalue(source_operand);
-      } else {
-        /* Initialize a temporary with the converted value. */
-        temp_init_from_operand(source_operand);
-      }  /* if */
+    }  /* if */
+    if (have_temp && is_class_struct_union_type(source_operand->type)) {
+      /* The result of the conversion is already a class temporary.
+         Convert the operand from the value of the temporary to the
+         address. */
+      conv_class_operand_to_object_pointer(source_operand);
+      /* Handle base class casts. */
+      cast_operand(make_pointer_type(dest_type), source_operand,
+                                     /*is_implicit_cast=*/TRUE);
+    } else if (have_temp && is_an_lvalue(source_operand)) {
+      /* The result of the conversion is already a non-class temporary
+         that is an lvalue (in particular, this includes array lvalues).
+         Convert to a pointer to the lvalue. */
+      /* Note that if a standard conversion is needed after the
+         conversion function, source_operand has been converted to
+         an rvalue. */
+      take_address_of_lvalue(source_operand);
+    } else {
+      /* Initialize a temporary with the converted value. */
+      temp_init_from_operand(source_operand);
     }  /* if */
   } else {
     /* The conversion is not possible.  The error has already been issued. */
@@ -9509,12 +9601,12 @@ operand from an lvalue to an rvalue if necessary (it usually is).
 initializing_return_value is TRUE if the initialization is being done
 to return a value in a return statement.  If the operand and type are
 incompatible, issue the error incompatible_err.  This routine is used for
-initialization, function call arguments, and return expressions.  It is
-not used when copy constructor elision is possible; see
-prep_elision_initializer_operand.  If user_conversion is non-NULL,
-the initializer has previously been found to be acceptable, and
-*user_conversion describes how to do the user-defined conversion part
-(if any) of any required conversion.
+initialization, function call arguments, and return expressions, i.e.,
+for "="-type initializations.  It is not used when copy constructor
+elision is possible; see prep_elision_initializer_operand.
+If user_conversion is non-NULL, the initializer has previously been
+found to be acceptable, and *user_conversion describes how to do the
+user-defined conversion part (if any) of any required conversion.
 */
 {
   a_type_ptr base_dest_type, base_source_type;
@@ -9693,8 +9785,7 @@ the initializer has previously been found to be acceptable, and
         /* The temp has the same type as the operand, but without
            type qualifiers. */
         convert_operand_into_temp(source_operand, unqual_dest_type,
-                                  user_conversion,
-                                  incompatible_err, &err);
+                                  user_conversion, incompatible_err, &err);
         conversion_to_temp_done = TRUE;
       }  /* if */
       if (!err) {
@@ -9767,15 +9858,26 @@ to be acceptable, and *user_conversion describes how to do the user-defined
 conversion part (if any) of any required conversion.
 */
 {
-  a_boolean err;
+  a_user_conv_descr  local_user_conversion;
+  an_expr_node_ptr   temp_init_node;
+  a_dynamic_init_ptr dip;
 
   set_arg_transfer_method_flag(formal_param);
   if (formal_param->passed_via_copy_constructor) {
     /* Argument is initialized by a copy constructor. */
-    /* Allocate a temporary and convert the operand into it.  source_operand
-       is set to the address of the temporary. */
-    convert_operand_into_temp(source_operand, formal_param->type,
-                              user_conversion, err_code, &err);
+    /* See if the conversion is possible. */
+    if (conversion_usable_or_possible(source_operand, formal_param->type,
+                                      /*is_initialization=*/TRUE,
+                                      err_code, &source_operand->position,
+                                      &user_conversion,
+                                      &local_user_conversion)) {
+      /* Yes.  Build an enk_temp_init node and a dynamic init entry that
+         will initialize the temporary.  The temporary's address is passed
+         to the called routine. */
+      determine_dynamic_init_for_class_init(source_operand, formal_param->type,
+                                            user_conversion, &dip,
+                                            &temp_init_node);
+    }  /* if */
   } else {
     /* Normal argument. */
     prep_initializer_operand(source_operand, formal_param->type,
@@ -9818,7 +9920,8 @@ stmk_return statement.
                             &user_conversion)) {
       /* Yes.  Build the dynamic init entry. */
       determine_dynamic_init_for_class_init(source_operand, required_type,
-                                            &user_conversion, dip);
+                                            &user_conversion, dip,
+                                            (an_expr_node_ptr *)NULL);
     }  /* if */
   } else {
     /* Normal return; an expression is returned. */
