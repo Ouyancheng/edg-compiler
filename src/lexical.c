@@ -2917,6 +2917,22 @@ include is suppressed for some reason.
 }  /* check_for_generation_of_pch_on_return_to_primary_file */
 
 
+static void display_included_file_name(unsigned long	depth,
+				       char		*file_name)
+/*
+When using the option to list the included files, this routine is called
+to actually output the include file name.  depth is the stack depth
+to be used for indentation purposes.  file_name is the name of the file
+to be displayed.
+*/
+{
+  /* Indent the output by the input stack depth. */
+  unsigned long indent = depth - 1;
+  for (; indent > 0; indent--) fputc(' ', f_pp_output);
+  fprintf(f_pp_output, "%s\n", file_name);
+}  /* display_included_file_name */
+  
+
 void open_file_and_push_input_stack(char      *file_name,
                                     a_boolean use_search_path,
 				    a_boolean is_include_file,
@@ -2961,6 +2977,11 @@ file is being pushed for an #include_next directive.
           file_name);
     }  /* if */
 #endif /* DEBUG */
+    /* If generating a list of include files (-H option), put out the
+       file name. */
+    if (list_included_files) {
+      display_included_file_name(depth_input_stack + 1, display_name);
+    }  /* if */
     /* Check whether a PCH file should be generated at the end of the
        execution of this include directive. */
     check_for_generation_of_pch_on_return_to_primary_file();
@@ -3244,7 +3265,7 @@ the number of times that the file appears there.
   }  /* for */
   return times_name_appears;
 }  /* look_for_file_on_input_stack */
-  
+
 
 void push_input_stack(
 		FILE     			*new_input_file,
@@ -3413,10 +3434,7 @@ that was used to find this file.
   /* If generating a list of include files (-H option), put out the
      file name.  Do not put out the name of the primary source file. */
   if (list_included_files && depth_input_stack != 0) {
-    /* Indent the output by the input stack depth. */
-    unsigned long indent = depth_input_stack-1;
-    for (; indent > 0; indent--) fputc(' ', f_pp_output);
-    fprintf(f_pp_output, "%s\n", curr_ise->file_name);
+    display_included_file_name(depth_input_stack, curr_ise->file_name);
   }  /* if */
   if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {
     /* Modify the search rules for #include directives found within this source

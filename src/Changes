@@ -1,5 +1,16 @@
 Version 2.45
 
+9/15/00  Suppressed inclusions listed by --trace_includes (-H) option
+
+The front end suppresses the inclusion of a header file that has previously
+been included, and that contains guard code (or a #pragma once directive)
+to ensure that subsequent inclusions have no effect.  Formerly, the
+--trace_includes (also -H) option would display only the names of those
+files actually included.  Now, all #include directives processed will
+be displayed, even if the actual inclusion of the file is suppressed.
+Note that any #include directives in the suppressed file will not be
+displayed a second time, however.
+
 9/14/00  Microsoft compatibility: warning only on invalid #pragma pack values
 
 In Microsoft mode, #pragma pack (n) directives with an invalid value (e.g.,
