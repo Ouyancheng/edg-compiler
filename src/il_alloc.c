@@ -389,6 +389,42 @@ Allocate and return "size" bytes of storage in the current IL memory region.
 }  /* alloc_cil */
 
 
+static char *alloc_in_same_region_as(a_source_correspondence *scp,
+                                     sizeof_t                size)
+/*
+Allocate and return "size" bytes of storage in the same memory region
+as the entity whose source correspondence is given by scp.  If scp is
+NULL, allocate the space in the current file scope memory region.
+*/
+{
+  char *ptr;
+
+  if (scp == NULL) {
+    ptr = alloc_il(size);
+  } else if (!in_file_scope(scp)) {
+    ptr = alloc_cil(size);
+  } else if (!in_secondary_trans_unit(scp)) {
+    ptr = alloc_primary_file_scope_il(size);
+  } else {
+    /* Allocate in some secondary translation unit's file scope memory
+       region. */
+    a_translation_unit_ptr tup;
+    a_symbol_ptr           sym = (a_symbol_ptr)(scp->assoc_info);
+    check_assertion(sym != NULL);
+    if (sym->decl_scope == NO_SCOPE_NUMBER) {
+      /* There must be some previous error. */
+      check_assertion(total_errors != 0);
+      /* Pick an arbitrary secondary translation unit. */
+      tup = translation_units->next;
+    } else {
+      tup = trans_unit_for_symbol(sym);
+    }  /* if */
+    ptr = alloc_secondary_file_scope_il(size, tup);
+  }  /* if */
+  return ptr;
+}  /* alloc_in_same_region_as */
+
+
 char *alloc_text_of_string_literal(sizeof_t size)
 /*
 Allocate space for the text of a string literal, and return a pointer to it.
@@ -988,29 +1024,9 @@ otherwise, allocate it in the current file-scope memory region.
 {
   a_class_list_entry_ptr clep;
 
-  if (scp == NULL) {
-    clep = (a_class_list_entry_ptr)alloc_il(sizeof(a_class_list_entry));
-  } else if (!in_secondary_trans_unit(scp)) {
-    clep = (a_class_list_entry_ptr)
-                alloc_primary_file_scope_il(sizeof(a_class_list_entry));
-  } else {
-    /* Allocate in some secondary translation unit's file scope memory
-       region. */
-    a_translation_unit_ptr tup;
-    a_symbol_ptr           sym = (a_symbol_ptr)(scp->assoc_info);
-    check_assertion(sym != NULL);
-    if (sym->decl_scope == NO_SCOPE_NUMBER) {
-      /* There must be some previous error. */
-      check_assertion(total_errors != 0);
-      /* Pick an arbitrary secondary translation unit. */
-      tup = translation_units->next;
-    } else {
-      tup = trans_unit_for_symbol(sym);
-    }  /* if */
-    clep = (a_class_list_entry_ptr)
-                      alloc_secondary_file_scope_il(sizeof(a_class_list_entry),
-                      tup);
-  }  /* if */
+  clep = (a_class_list_entry_ptr)alloc_in_same_region_as(
+                                                   scp,
+                                                   sizeof(a_class_list_entry));
 #if DEBUG
   num_class_list_entries_allocated++;
 #endif /* DEBUG */
@@ -2603,15 +2619,23 @@ pointer to it.
 }  /* alloc_ctor_init */
 
 
-a_pragma_ptr alloc_pragma(a_pragma_kind  kind)
+a_pragma_ptr alloc_pragma(a_pragma_kind           kind,
+                          a_source_correspondence *scp)
 /*
 Allocate a pragma entry of the required kind, initialize it, and return a
-pointer to it.
+pointer to it.  If scp is non-NULL, the pragma will point to the declarative
+entity with the indicated source correspondence, so allocate the pragma
+in the same memory region as that entity; otherwise, allocate the pragma
+in the current IL memory region.
 */
 {
   a_pragma_ptr  pp;
 
-  pp = (a_pragma_ptr)alloc_cil(sizeof(a_pragma));
+  if (scp == NULL) {
+    pp = (a_pragma_ptr)alloc_cil(sizeof(a_pragma));
+  } else {
+    pp = (a_pragma_ptr)alloc_in_same_region_as(scp, sizeof(a_pragma));
+  }  /* if */
 #if DEBUG
   num_pragmas_allocated++;
 #endif /* DEBUG */

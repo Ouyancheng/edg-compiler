@@ -157,7 +157,8 @@ extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
 extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 
-extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
+extern a_pragma_ptr alloc_pragma(a_pragma_kind           kind,
+                                 a_source_correspondence *scp);
 
 extern an_object_lifetime_ptr alloc_object_lifetime(
                                                an_object_lifetime_kind  kind);

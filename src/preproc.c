@@ -1371,7 +1371,8 @@ there.
   convert_pp_directive_to_string();
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
-  il_string = (char *)alloc_il(pp_directive_string_length + 1);
+  il_string = (char *)alloc_primary_file_scope_il(
+                                               pp_directive_string_length + 1);
   (void)memcpy(il_string, pp_dir_string_buffer,
                size_t_arg(pp_directive_string_length));
   /* Add a null terminator. */

@@ -794,7 +794,7 @@ there is additional processing to be done.
                                              scope_depth : DEPTH_OF_FILE_SCOPE;
     switch_to_scope_region(scope_depth_to_switch_to,
                            &region_to_switch_back_to);
-    pp = alloc_pragma(ppp->descr_ptr->kind);
+    pp = alloc_pragma(ppp->descr_ptr->kind, scp);
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
     pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
