@@ -39,9 +39,9 @@ fe_wrapup.c - End of front end processing.
 #include "macro.h"
 #include "statements.h"
 #endif /* DEBUG */
-#if MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING
 #include "il_walk.h"
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING */
 
 
 #if DEBUG
