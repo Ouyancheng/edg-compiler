@@ -479,7 +479,7 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
                 /*is_old_style_param_decl=*/FALSE,
                 &incomplete_type_error_reported);
     if (curr_token != tok_end_of_source) {
-      error(ec_exp_semicolon);
+      pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
     }  /* if */
     /* By pass end-of-source token, which is probably the terminator token
