@@ -195,7 +195,8 @@ those containing source correspondence information.)
 
 /* Value to use to specify that no name is provided. */
 #define NO_NAME ((a_source_correspondence *)NULL)
-
+/* Value used to specify that no type is provided. */
+#define NO_TYPE ((a_type_ptr)NULL)
 
 /*
 Macro to test a type kind to see if it is a class, struct, or union.
@@ -214,6 +215,7 @@ Macro to test a type kind to see if it is a tag (class or enum).
 
 /* Needed because of forward references: */
 static void gen_constant(a_constant_ptr constant);
+static void gen_type(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_lvalue(an_expr_node_ptr node);
@@ -1066,11 +1068,14 @@ Write a temporary name generated from the given IL pointer.
 }  /* gen_temp_name */
 
 
-static void gen_unqualified_name(a_source_correspondence *scp)
+static void gen_unqualified_name(a_source_correspondence *scp,
+                                 a_type_ptr              type)
 /*
 Output the name of the entity whose source correspondence information
-is given by scp.  If the entity is unnamed, generate a name.  Never
-generate a qualified name.
+is given by scp.  If the entity is a type (or, at least, a class type
+that might be a template), "type" points to it; otherwise, "type" is
+NULL.  If the entity is unnamed, generate a name.  Never generate
+a qualified name.
 */
 {
   char *name = scp->name;
@@ -1080,6 +1085,34 @@ generate a qualified name.
     gen_temp_name((char *)scp);
   } else {
     m_write_tok_str(name);
+  }  /* if */
+  /* Check for template arguments on a class name. */
+  if (il_header.source_language == sl_Cplusplus && type != NULL) {
+    a_type_kind kind = type->kind;
+    if (is_class_type_kind(kind)) {
+      a_template_arg_ptr tap =
+                type->variant.class_struct_union.extra_info->template_arg_list;
+      if (tap != NULL) {
+        /* This is a template class name.  Put out the template argument
+           list, e.g., "<int, float>". */
+        write_tok_ch('<');
+        for (;;) {
+          if (tap->is_type) {
+            /* Type argument. */
+            gen_type(tap->variant.type);
+          } else {
+            /* Nontype argument. */
+            gen_constant(tap->variant.constant);
+          }  /* if */
+          tap = tap->next;
+          /* Stop after the last argument. */
+          if (tap == NULL) break;
+          /* Put a comma between arguments. */
+          write_tok_str(", ");
+        }  /* for */
+        write_tok_ch('>');
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* gen_unqualified_name */
 
@@ -1097,77 +1130,89 @@ class type.
     gen_class_qualifier(parent_class);
   }  /* if */
   /* Do the last level. */
-  gen_unqualified_name(&class_type->source_corresp);
+  gen_unqualified_name(&class_type->source_corresp, class_type);
   write_tok_str("::");
 }  /* gen_class_qualifier */
 
 
-static void gen_name(a_source_correspondence *scp)
+static void gen_name(a_source_correspondence *scp,
+                     a_type_ptr              type)
 /*
 Output the name of the entity whose source correspondence information
-is given by scp.  If the entity is unnamed, generate a name.  If the
-entity is a class member, generate a qualified name (if required in the
+is given by scp.  If the entity is a type (or, at least, a class type
+that might be a template), "type" points to it; otherwise, "type"
+is NULL.  If the entity is unnamed, generate a name.  If the entity
+is a class member, generate a qualified name (if required in the
 current name context).
 */
 {
-  char       *name = scp->name;
-  a_type_ptr class_type = scp->class_of_which_a_member;
-
   /* If the name is a member of a class in C++, output the class qualifier. */
-  if (il_header.source_language == sl_Cplusplus && class_type != NULL) {
-    a_boolean qualifier_needed = TRUE;
-    /* If the class type matches the top entry on the name context stack,
-       the qualifier is not necessary. */
-    if (curr_name_context_is_class(class_type)) {
-      qualifier_needed = FALSE;
+  if (il_header.source_language == sl_Cplusplus) {
+    a_type_ptr class_type = scp->class_of_which_a_member;
+    if (class_type != NULL) {
+      /* If the class type matches the top entry on the name context stack,
+         the qualifier is not necessary. */
+      if (curr_name_context_is_class(class_type)) {
+        /* Qualifier not needed. */
+      } else {
+        gen_class_qualifier(class_type);
+      }  /* if */
     }  /* if */
-    if (qualifier_needed) gen_class_qualifier(class_type);
   }  /* if */
-  if (name == NULL) {
-    /* For entities without names, create a name. */
-    gen_temp_name((char *)scp);
-  } else {
-    m_write_tok_str(name);
-  }  /* if */
+  gen_unqualified_name(scp, type);
 }  /* gen_name */
 
 
-static void gen_qualified_name(a_source_correspondence *scp)
+static void gen_qualified_name(a_source_correspondence *scp,
+                               a_type_ptr              type)
 /*
 Output the name of the entity whose source correspondence information
-is given by scp.  If the entity is unnamed, generate a name.  The entity
-must be a class member, and a qualified name is always generated.
+is given by scp.  If the entity is a type (or, at least, a class type
+that might be a template), "type" points to it; otherwise, "type" is
+NULL.  If the entity is unnamed, generate a name.  The entity must be
+a class member, and a qualified name is always generated.
 */
 {
   gen_class_qualifier(scp->class_of_which_a_member);
-  gen_unqualified_name(scp);
+  gen_unqualified_name(scp, type);
 }  /* gen_qualified_name */
 
 
 /* Interface routines to gen_name. */
-#define gen_routine_name(routine) gen_name(&(routine)->source_corresp)
-#define gen_constant_name(constant) gen_name(&(constant)->source_corresp)
-#define gen_type_name(type) gen_name(&(type)->source_corresp)
-#define gen_field_name(field) gen_unqualified_name(&(field)->source_corresp)
+#define gen_routine_name(routine)                                     \
+  gen_name(&(routine)->source_corresp, NO_TYPE)
+#define gen_constant_name(constant)                                   \
+  gen_name(&(constant)->source_corresp, NO_TYPE)
+#define gen_field_name(field)                                         \
+  gen_unqualified_name(&(field)->source_corresp, NO_TYPE)
+
+
+static void gen_type_name(a_type_ptr type)
+/*
+Output the name of the indicated type, qualified if necessary.
+*/
+{
+  gen_name(&type->source_corresp, type);
+}  /* gen_type_name */
 
 
 static void gen_variable_name(a_variable_ptr var)
 /*
-Output the name of the indicated variable.
+Output the name of the indicated variable, qualified is necessary.
 */
 {
   if (var->is_this_parameter) {
     /* "this" parameter in C++. */
     m_write_tok_str("this");
   } else {
-    gen_name(&var->source_corresp);
+    gen_name(&var->source_corresp, NO_TYPE);
   }  /* if */
 }  /* gen_variable_name */
 
 
 static void gen_integer_constant(a_constant_ptr constant)
 /*
-Write out an integer constant (i.e., the constant has a ck_integer
+Write out an integer constant (i.e., a constant with a ck_integer
 representation).  The constant is written as an integer even if it has
 been implicitly cast to some other type.  The caller must handle the
 implicit cast if appropriate.
@@ -1617,7 +1662,7 @@ Output the indicated constant.
             }  /* if */
           }  /* if */
           write_tok_ch('&');
-          gen_qualified_name(scp);
+          gen_qualified_name(scp, NO_TYPE);
           write_tok_ch(')');
         }  /* if */
       }
@@ -2348,20 +2393,15 @@ out first if anything is generated.
 }  /* gen_type_second_part */
 
 
-static void gen_type(a_type_ptr              type,
-                     a_source_correspondence *scp)
+static void gen_type(a_type_ptr type)
 /*
-Output a reference to a type.  The argument scp is the source correspondence
-entry for the name to go in the middle of the declarator part of the type, or
-NULL if there is no name.
+Output a reference to a type.
 */
 {
   /* Write the specifiers and the first part of the declarator. */
   gen_type_first_part(type, /*need_paren=*/FALSE,
-                      /*need_trailing_space=*/(scp != NULL),
+                      /*need_trailing_space=*/FALSE,
                       /*add_const=*/FALSE);
-  /* Write the name if there is one. */
-  if (scp != NULL) gen_name(scp);
   /* Write the second part of the declarator. */
   gen_type_second_part(type, /*need_paren=*/FALSE);
 }  /* gen_type */
@@ -2410,7 +2450,10 @@ declaration.
     /* Set the source position for the name. */
     set_decl_position(scp, sec_decl);
     /* Write the name. */
-    gen_name(scp);
+    /* Note that we may be passing NULL here even though the thing being
+       named is a type, but that's okay, because it can't be a template
+       class (you can't declare one with the normal declaration syntax). */
+    gen_name(scp, NO_TYPE);
   }  /* if */
   /* Write the second part of the declarator. */
   gen_type_second_part(type, /*need_paren=*/FALSE);
@@ -2636,7 +2679,7 @@ entry is the one associated with the access adjustment.
       unexpected_condition();
   }  /* switch */
   /* Write the access declaration, which is just a qualified name. */
-  gen_qualified_name(scp);
+  gen_qualified_name(scp, NO_TYPE);
   write_tok_str("; ");
   /* For overloaded functions, there is an access adjustment and a source
      sequence entry for each function in the set.  If that is the case here,
@@ -3094,7 +3137,7 @@ Generate a cast to the indicated type.
 */
 {
   m_write_tok_ch('(');
-  gen_type(type, NO_NAME);
+  gen_type(type);
   m_write_tok_ch(')');
 }  /* gen_cast */
 
@@ -3322,7 +3365,7 @@ Generate code for a new or delete operation.
        type. */
     if (unqual_type->size != 0) {
       /* Normal case. */
-      gen_type(type, NO_NAME);
+      gen_type(type);
     } else {
       /* Harder case: a variable-length array.  The first argument expression
          gives the size of the array, which is the number of elements times
@@ -3397,11 +3440,11 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
-    gen_qualified_name(&rout->source_corresp);
+    gen_qualified_name(&rout->source_corresp, NO_TYPE);
   } else {
     /* Otherwise, use an unqualified name (the selector pointer indicates
        the class). */
-    gen_unqualified_name(&rout->source_corresp);
+    gen_unqualified_name(&rout->source_corresp, NO_TYPE);
   }  /* if */
 }  /* gen_bound_function */
 
@@ -3797,9 +3840,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str("->");
           /* Use the type name to create a "destructor" name. */
           { a_type_ptr type = type_pointed_to(operand_1->type);
-            gen_type(type, NO_NAME);
+            gen_type(type);
             write_str("::~");
-            gen_type(type, NO_NAME);
+            gen_type(type);
           }
           write_tok_str("()");
           goto done_with_operation;
@@ -4505,14 +4548,14 @@ Generate code for the indicated statement.
       write_tok_str("goto ");
       /* Labels for "break" and "continue" are compiler-generated and may
          be unnamed. */
-      gen_name(&statement->variant.label->source_corresp);
+      gen_name(&statement->variant.label->source_corresp, NO_TYPE);
       write_tok_ch(';');
       break;
     case stmk_label:
       /* Label statement: generate "name:;". */
       /* Labels for "break" and "continue" are compiler-generated and may be
          unnamed. */
-      gen_name(&statement->variant.label->source_corresp);
+      gen_name(&statement->variant.label->source_corresp, NO_TYPE);
       write_tok_str(":;");
       break;
     case stmk_return:
@@ -4974,7 +5017,7 @@ that a function might throw.
   for (spec_type = throw_spec->throw_spec_type_list;
        spec_type != NULL;
        spec_type = spec_type->next) {
-    gen_type(spec_type->type, NO_NAME);
+    gen_type(spec_type->type);
     if (spec_type->next != NULL) write_tok_str(", ");
   }  /* for */
   write_tok_ch(')');
