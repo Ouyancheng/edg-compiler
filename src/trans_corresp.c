@@ -923,10 +923,14 @@ type is in fact valid.
 #if USER_CONTROL_OF_STRUCT_PACKING
         class_info.max_member_alignment != corresp_info.max_member_alignment ||
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         sup->inheritance_kind != corresp_sup->inheritance_kind ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         sup->virtual_function_info_offset !=
                                    corresp_sup->virtual_function_info_offset ||
+#if NEAR_AND_FAR_ALLOWED
         sup->qualifiers != corresp_sup->qualifiers ||
+#endif /* NEAR_AND_FAR_ALLOWED */
         sup->anonymous_union_kind != corresp_sup->anonymous_union_kind ||
 #if DECL_MODIFIERS_IN_USE
         sup->decl_modifiers != corresp_sup->decl_modifiers ||
