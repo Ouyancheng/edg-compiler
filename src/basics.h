@@ -268,7 +268,8 @@ extern void debug_exit(void);
 /*
 Data declarations pertaining to positions within source files.
 */
-typedef short	a_column_number;
+typedef unsigned short
+		a_column_number;
 			/* A column number: 
                            0..MAX_CHARS_IN_A_LOGICAL_SOURCE_LINE.  Applies to
 			   columns of physical source lines.  The first
