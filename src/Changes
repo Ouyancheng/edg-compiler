@@ -1,5 +1,11 @@
 Version 2.46
 
+11/27/01 --sun rejected when Microsoft mode is the default
+
+When Microsoft mode is enabled by default, the front end would issue
+an error if the Sun mode option was used.  The --sun option now disables
+Microsoft mode.
+
 11/25/01 Abort after error in "?" in Microsoft mode
 
 In some cases, in Microsoft mode, there could be an abort in
