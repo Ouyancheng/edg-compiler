@@ -420,7 +420,8 @@ property fields).
            types. */
         temp_type = skip_typerefs(new_type_ptr);
         if (is_object_type(temp_type) &&
-            !temp_type->variant.array.bound_is_zero) {
+            !(temp_type->kind == (a_type_kind)tk_array &&
+              temp_type->variant.array.bound_is_zero)) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a member that is a zero-length
