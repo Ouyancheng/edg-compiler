@@ -3337,7 +3337,14 @@ file we simply return.
   char			*full_file_name;
   FILE			*f_source;
 
+  db_enter(4, "do_implicit_include_if_needed");
   /* Translate the sequence number into a file name and line number. */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Attempting implicit include to define:\n");
+    db_symbol(tip->instance_sym, "", 2);
+  }  /* if */
+#endif /* DEBUG */
   decl_position = &tip->template_sym->decl_position;
   sfp = source_file_for_seq(decl_position->seq, &line_number,
                             &at_end_of_source, &nesting_depth,
@@ -3348,13 +3355,30 @@ file we simply return.
     if (!sfp->related_file_implicit_include_done) {
       /* If we haven't already included the corresponding source file then
          do so now. */
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "  Looking for source file related to '%s'\n",
+                sfp->file_name);
+      }  /* if */
+#endif /* DEBUG */
       sfp->related_file_implicit_include_done = TRUE;
       /* Call a routine to search for a file with an appropriate suffix. */
+#if 0
       f_source = open_file_for_input(sfp->file_name, incl_search_path,
 				     /*replace_suffix=*/TRUE,
 				     &full_file_name);
+#else /* 0 */
+      f_source = open_file_for_input(sfp->file_name, sys_incl_search_path,
+				     /*replace_suffix=*/TRUE,
+				     &full_file_name);
+#endif /* 0 */
       if (f_source != NULL) {
         if (strcmp(full_file_name, sfp->full_name) != 0) {
+#if DEBUG
+          if (debug_level >= 4) {
+            fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
+          }  /* if */
+#endif /* DEBUG */
           /* A related source file was found.  Make sure that the name of the
              file found is not the same as the file we started with.  This
              could occur if the user included a .c file that contains a
@@ -3370,6 +3394,7 @@ file we simply return.
       }  /* if */
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* do_implicit_include_if_needed */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
