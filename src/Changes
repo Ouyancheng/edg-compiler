@@ -1,5 +1,25 @@
 Version 2.39
 
+7/21/98   Spurious ambiguity error
+
+A spurious ambiguity error sometimes occurred because the final overrider
+was not always computed correctly when a class inherited members from its
+virtual base classes along more than two paths; now fixed.  For example:
+
+  struct A {
+    int i;
+  };
+  struct B {
+    int i;
+  };
+  struct C : virtual A, virtual B {
+    int i;                          // C::i "dominates" both A::i and B::i
+  };
+  struct D : virtual A, virtual B, virtual C { };
+  int f(D *p) {
+    return p->i;                    // Spurious error is not longer issued
+  }
+
 7/21/98   C++-generating back end, Microsoft compatibility: typedefs to
           circumvent MSVC++ 5.0 bug
 

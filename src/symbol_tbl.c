@@ -93,7 +93,8 @@ static unsigned long
 		num_used_symbol_buckets,
 		num_searches_for_symbols,
 		num_compares_for_symbols,
-		num_access_error_descrs_allocated;
+		num_access_error_descrs_allocated,
+		num_progenitors_allocated;
 #endif /* DEBUG */
 
 static a_namespace_list_entry_ptr
@@ -6886,30 +6887,113 @@ next_derivation:;
 }  /* is_accessible_virtual_base_class */
 
 
-static a_symbol_ptr symbol_projected_from_base_class(
-                                      a_base_class_ptr         base_class,
-                                      a_symbol_locator         *locator,
-                                      an_id_lookup_options_set options,
-                                      a_derivation_step_ptr    *path,
-                                      an_access_specifier      *access,
-                                      a_boolean                *ambiguous,
-                                      a_boolean                *any_using_decl)
 /*
-Given a pointer to a base class (the "current class") and a locator, determine
-whether the name specified in the locator is either defined in the class or
-has a progenitor in a class from which the current class is derived.  If either
-is found, update *path (the derivation path, starting from the current base
-class) and the access specification *access.  base_class is a direct base
-class of its derived class.  *any_using_decl is set if any progenitor candidate
-represents a using declaration or is or the projection of symbol that does.
+Representation of a base class declaration that is a candidate for
+inheritance; that is, it represents the base class entity that is projected
+into a derived class as an sk_projection symbol.
+*/
+typedef struct a_progenitor *a_progenitor_ptr;
+typedef struct a_progenitor {
+  a_progenitor_ptr
+		next;
+			/* Next in a linked list of progenitors; NULL for the
+			   last entry on the list. */
+  a_symbol_ptr	sym;
+			/* Pointer to the progenitor symbol -- the symbol that
+			   is projected into the derived class when the name
+			   is inherited. */
+  a_derivation_step_ptr
+		path;
+			/* Derivation path from the most derived class to the
+			   base class in which the progenitor declaration
+			   appears. */
+  an_access_specifier
+		access;
+			/* The access of the progenitor symbol within the
+			   derived class. */
+} a_progenitor;
+
+static a_progenitor_ptr
+		avail_progenitors;
+			/* Linked list of progenitor entries that are
+			   available for reuse; may be NULL. */
+
+static a_progenitor_ptr alloc_progenitor(void)
+/*
+Allocate a progenitor entry, initialize its fields, and return a pointer to it.
 */
 {
-  a_symbol_ptr         sym, tag_sym;
-  a_scope_ptr          scope;
-  an_access_specifier  local_access;
-  a_boolean	       must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+  a_progenitor_ptr  pp;
 
-  db_enter(4, "symbol_projected_from_base_class");
+  if (avail_progenitors == NULL) {
+    /* Nothing on the available list to use. */
+    pp = (a_progenitor_ptr)alloc_fe(sizeof(a_progenitor));
+#if DEBUG
+    num_progenitors_allocated++;
+#endif /* DEBUG */
+  } else {
+    /* Use the entry that heads the available list. */
+    pp = avail_progenitors;
+    avail_progenitors = pp->next;
+  }  /* if */
+  pp->next = NULL;
+  pp->sym = NULL;
+  pp->path = NULL;
+  pp->access = as_public;
+  return pp;
+}  /* alloc_progenitor */
+
+
+static void free_progenitor(a_progenitor_ptr  pp)
+/*
+Return a progenitor entry to the available list.
+*/
+{
+  if (pp->path != NULL) free_derivation_step(pp->path);
+  pp->next = avail_progenitors;
+  avail_progenitors = pp;
+}  /* free_progenitor */
+
+
+static void free_progenitor_list(a_progenitor_ptr  pp)
+/*
+Return a linked list of progenitor entries to the available list.
+*/
+{
+  a_progenitor_ptr  next;
+
+  for (; pp != NULL; pp = next) {
+    next = pp->next;
+    free_progenitor(pp);
+  }  /* while */
+}  /* free_progenitor */
+
+
+/* Forward declaration. */
+static a_progenitor_ptr find_progenitor(a_type_ptr                class_ptr,
+                                        a_symbol_locator          *locator,
+                                        an_id_lookup_options_set  options);
+
+static a_progenitor_ptr find_progenitor_in_base_class(
+                                        a_base_class_ptr          base_class,
+                                        a_symbol_locator          *locator,
+                                        an_id_lookup_options_set  options)
+/*
+Given a pointer to a base class and a locator, determine whether the name
+specified in the locator is declared either in the base class itself or in a
+class from which the base class is derived.  Such a declaration is referred
+to as the "progenitor" of a projection symbol, which will may be created
+later.  If such a progenitor is found, return a pointer to a progenitor entry
+(which, in the case of ambiguity, may be the head of a linked list of
+progenitor entries); otherwise, return NULL.
+*/
+{
+  a_symbol_ptr      sym, tag_sym;
+  a_scope_ptr       scope;
+  a_boolean	    must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+  a_progenitor_ptr  progenitor, pp;
+
+  db_enter(4, "find_progenitor_in_base_class");
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "looking for \"%s\" in base class \"%s\"\n",
@@ -6954,13 +7038,11 @@ represents a using declaration or is or the projection of symbol that does.
             /* A tag symbol is required but this isn't one.  Keep looking. */
           } else {
             /* Found a match. */
-#if CHECKING
-            /* In C++ mode fields are always in the nsk_other name space. */
-            if (name_space_for_symbol_kind[(int)sym->kind] != nsk_other) {
-              internal_error(
-               "symbol_projected_from_base_class: unexpected name space kind");
-            }  /* if */
-#endif /* CHECKING */
+            /* In C++ mode members are always in the nsk_other name space. */
+            check_assertion_str2(
+                     name_space_for_symbol_kind[(int)sym->kind] == nsk_other,
+                     "find_progenitor_in_base_class:",
+                     "unexpected name space kind");
             break;
           }  /* if */
         }  /* if */
@@ -6979,42 +7061,38 @@ represents a using declaration or is or the projection of symbol that does.
 #if DEBUG
     if (debug_level >= 4) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
+    progenitor = alloc_progenitor();
+    progenitor->sym = sym;
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      local_access = max_access_of_overloaded_function(sym);
+      progenitor->access = max_access_of_overloaded_function(sym);
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
-      local_access = sym->variant.projection.access;
-      if (sym->ambiguous) *ambiguous = TRUE;
-      /* Return a flag indicating whether there are any intervening access
-         declarations in the inheritance path. */
-      if (sym->variant.projection.is_using_decl ||
-          sym->variant.projection.any_intervening_using_decl) {
-        *any_using_decl = TRUE;
-      }  /* if */
+      progenitor->access = sym->variant.projection.access;
     } else {
-      local_access = access_for_symbol(sym);
+      progenitor->access = access_for_symbol(sym);
     }  /* if */
   } else {
-    /* Not found in the base class, so examine its own base classes, if any. */
-    sym = find_progenitor_symbol(base_class->type, locator, options, path,
-                                 &local_access, ambiguous, any_using_decl);
+    /* Not found in the current base class, so examine its own base classes,
+       if any.  Note that a linked list of progenitor entries may be returned
+       -- this usually represents an ambiguity. */
+    progenitor = find_progenitor(base_class->type, locator, options);
   }  /* if */
-  if (sym != NULL) {
-    /* Some symbol was found.  Determine its derivation and access
-       specification. */
+  /* Update the path and access fields of each entry in the set of
+     progenitors.  (There will usually be only one.) */
+  for (pp = progenitor; pp != NULL; pp = pp->next) {
     /* The path is not augmented if it starts with a virtual base class,
        unless it is only a single step.  This is consistent with the way
        derivations are constructed for base classes: the steps between the
        most derived class and an intermediate virtual base class are elided. */
-    if (*path == NULL || (*path)->next == NULL ||
-        !(*path)->base_class->is_virtual) {
-      *path = make_derivation_step(base_class, *path);
+    if (pp->path == NULL || pp->path->next == NULL ||
+        !pp->path->base_class->is_virtual) {
+      pp->path = make_derivation_step(base_class, pp->path);
     }  /* if */
-    *access = compute_access(local_access,
-                             preferred_derivation_of(base_class)->access);
-  }  /* if */
+    pp->access = compute_access(pp->access,
+                                preferred_derivation_of(base_class)->access);
+  }  /* for */
   db_exit();
-  return sym;
-}  /* symbol_projected_from_base_class */
+  return progenitor;
+}  /* find_progenitor_in_base_class */
 
 
 static a_derivation_step_ptr path_to_fundamental_symbol_base_class
@@ -7066,23 +7144,23 @@ fundamental symbol.  Return the preferred derivation of that base class.
 }  /* path_to_fundamental_symbol_base_class */
 
 
-static a_boolean projections_are_equivalent(a_symbol_ptr           sym1,
-                                            a_derivation_step_ptr  path1,
-                                            a_symbol_ptr           sym2,
-                                            a_derivation_step_ptr  path2)
+static a_boolean progenitors_are_equivalent(a_progenitor_ptr  progenitor1,
+                                            a_progenitor_ptr  progenitor2)
 /*
-Given two symbols sym1 and sym2 projected into the same class from two
-different base classes, with derivations path1 and path2, respectively,
-return TRUE if their respective fundamental symbols are the same (not
-only the same members of the same class but with equivalent derivations).
+Given two progenitors (referring to symbols projected into the same class
+from two different base classes, return TRUE if their respective fundamental
+symbols are the same (not only the same members of the same class but with
+equivalent derivations).
 */
 {
+  a_symbol_ptr           sym1 = progenitor1->sym, sym2 = progenitor2->sym;
+  a_derivation_step_ptr  path1 = progenitor1->path, path2 = progenitor2->path;
   a_boolean              equiv = FALSE;
   a_symbol_ptr           fundamental_sym1;
   a_type_ptr             rout_type;
   a_derivation_step_ptr  tail1, tail2;
 
-  db_enter(4, "projections_are_equivalent");
+  db_enter(4, "progenitors_are_equivalent");
   fundamental_sym1 = fundamental_symbol_of(sym1);
   if (fundamental_sym1 == fundamental_symbol_of(sym2)) {
     /* Fundamental symbols are the same.  Set equiv to TRUE if they
@@ -7177,7 +7255,7 @@ check_rout_type:
   }  /* if */
   db_exit();
   return equiv;
-}  /* projections_are_equivalent */
+}  /* progenitors_are_equivalent */
 
 
 static a_boolean check_for_dominance(a_symbol_ptr          sym1,
@@ -7271,6 +7349,109 @@ qualified reference either to A::i or to C::i will pick up A::i).
 }  /* check_for_dominance */       
 
 
+static a_progenitor_ptr find_progenitor(a_type_ptr               class_ptr,
+                                        a_symbol_locator         *locator,
+                                        an_id_lookup_options_set options)
+/*
+Given a pointer to a class (or struct or union) type and a locator, find
+in the classes from which the current class is derived symbols that would
+serve as "progenitors" if the name specified in the locator is inherited in
+a derived class.  Return a pointer to one or more progenitor entries (or NULL
+if no such base-class symbol is found).
+*/
+{
+  a_base_class_ptr       bcp;
+  a_progenitor_ptr       progenitor_set = NULL, pp, prev, next;
+  a_progenitor_ptr       new_set, new_pp, prev_in_new_set, next_in_new_set;
+  a_boolean              retain_pp, retain_new_pp;  
+
+  db_enter(4, "find_progenitor");
+  bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
+  /* Loop through the base classes. */
+  for (; bcp != NULL; bcp = bcp->next) {
+    /* For the most part, we are only interested in the direct base classes
+       (either virtual or nonvirtual).  However, it may happen that a virtual
+       base class is marked as "direct" yet the path of greatest access is
+       that of an indirect derivation; such cases are treated as indirect
+       base classes. */
+    if (preferred_derivation_is_direct(bcp)) {
+      new_set = find_progenitor_in_base_class(bcp, locator, options);
+      if (new_set != NULL) {
+        if (progenitor_set == NULL) {
+          progenitor_set = new_set;
+        } else {
+          /* Look for duplications and dominance and then merge the sets. */
+          prev_in_new_set = NULL;
+          for (new_pp = new_set; new_pp != NULL; new_pp = next_in_new_set) {
+            next_in_new_set = new_pp->next;
+            prev = NULL;
+            retain_new_pp = TRUE;
+            for (pp = progenitor_set; pp != NULL; pp = next) {
+              next = pp->next;
+              retain_pp = TRUE;
+              if (progenitors_are_equivalent(pp, new_pp)) {
+                /* No ambiguity (presumably because sym and other_sym are the
+                   same member of a virtually derived class); choose between
+                   the two projections based on access. */
+                if (is_more_accessible(new_pp->access, pp->access)) {
+                  /* Remove pp from the progenitor set. */
+                  retain_pp = FALSE;
+                } else {
+                  /* Remove new_pp from the new progenitor set. */
+                  retain_new_pp = FALSE;
+                }  /* if */
+              } else if (check_for_dominance(pp->sym, new_pp->sym,
+                                             new_pp->path, class_ptr)) {
+                /* pp->sym dominates new_pp->sym, resolving a potential
+                   ambiguity.  Remove new_pp from the new progenitor set. */
+                retain_new_pp = FALSE;
+              } else if (check_for_dominance(new_pp->sym, pp->sym, pp->path,
+                                             class_ptr)) {
+                /* new_pp->sym dominates pp->sym, resolving a potential
+                   ambiguity.  Remove pp from the progenitor set. */
+                retain_pp = FALSE;
+              } else {
+                /* An unresolved ambiguity.  Both entries will be retained. */
+              }  /* if */
+              if (!retain_pp) {
+                if (prev == NULL) {
+                  progenitor_set = next;
+                } else {
+                  prev->next = next;
+                }  /* if */
+                free_progenitor(pp);
+                /* Continue the inner loop. */
+              } else if (!retain_new_pp) {
+                if (prev_in_new_set == NULL) {
+                  new_set = next_in_new_set;
+                } else {
+                  prev_in_new_set->next = next_in_new_set;
+                }  /* if */
+                free_progenitor(new_pp);
+                /* Break out of the inner loop and check the next member of
+                   the new progenitor set. */
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* for */
+          /* Now merge the two lists. */
+          if (new_set != NULL) {
+            if (progenitor_set == NULL) {
+              progenitor_set = new_set;
+            } else {
+              for (pp = progenitor_set; pp->next != NULL; pp = pp->next) { }
+              pp->next = new_set;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  db_exit();
+  return progenitor_set;
+}  /* find_progenitor */
+
+
 a_symbol_ptr find_progenitor_symbol(a_type_ptr               class_ptr,
                                     a_symbol_locator         *locator,
                                     an_id_lookup_options_set options,
@@ -7289,93 +7470,58 @@ through back to the caller.  *any_using_decl is set if any progenitor candidate
 represents a using declaration or is or the projection of symbol that does.
 */
 {
-  a_symbol_ptr                 sym = NULL, other_sym;
-  a_derivation_step_ptr        other_path;
-  an_access_specifier          other_access;
-  a_base_class_ptr             bcp;
+  a_symbol_ptr      progenitor_sym;
+  a_progenitor_ptr  progenitor_set, progenitor, pp;
 
   db_enter(4, "find_progenitor_symbol");
-  bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
-  /* Loop through the base classes. */
-  for (; bcp != NULL; bcp = bcp->next) {
-    /* For the most part, we are only interested in the direct base classes
-       (either virtual or nonvirtual).  However, a virtual base class may be
-       marked as "direct" even though the path of greatest access is that of
-       an indirect derivation; such cases are treated as indirect base
-       classes. */
-    if (preferred_derivation_is_direct(bcp)) {
-      if (sym == NULL) {
-        /* Look for a projection from this base class (or from any class from
-           which it is derived). */
-        sym = symbol_projected_from_base_class(bcp, locator, options,
-                                               path, access, ambiguous,
-                                               any_using_decl);
-      } else {
-        /* One projection has already been found; look for another. */
-        other_path = NULL;
-        other_sym = symbol_projected_from_base_class(bcp, locator,
-                                                     options, &other_path,
-                                                     &other_access, ambiguous,
-                                                     any_using_decl);
-        if (other_sym != NULL) {
-          /* A second projection has been found.  Determine whether this is an
-             actual ambiguity. */
-          if (projections_are_equivalent(sym, *path, other_sym, other_path)) {
-            /* No ambiguity (presumably because sym and other_sym are the
-               same member of a virtually derived class; choose between the
-               two projections based on access. */
-            if (is_more_accessible(other_access, *access)) {
-              /* Use other_sym in favor of sym. */
-              sym = other_sym;
-              free_derivation_step(*path);
-              *path = other_path;
-              *access = other_access;
-            } else {
-              /* Use sym in favor of other_sym. */
-              free_derivation_step(other_path);
-            }  /* if */
-          } else {
-            /* This is an ambiguous reference, unless one of the instances of
-               the name dominates the path to the other. */
-            if (check_for_dominance(sym, other_sym, other_path, class_ptr)) {
-              /* sym dominates other_sym, resolving a potential ambiguity. */
-              free_derivation_step(other_path);
-            } else if (check_for_dominance(other_sym, sym, *path, class_ptr)) {
-              /* other_sym dominates sym. */
-              sym = other_sym;
-              free_derivation_step(*path);
-              *path = other_path;
-              *access = other_access;
-            } else {
-              /* No resolution to the ambiguity, so set *ambiguous TRUE. */
-              *ambiguous = TRUE;
-              /* if one of the symbols represents a type name, return that
-                 symbol.  (This makes a difference in declaration processing,
-                 whereas in executable expression processing only the
-                 ambiguity is of interest.)  Otherwise just return the first
-                 symbol seen. */
-              if (is_type_symbol(fundamental_symbol_of(other_sym))) {
-                sym = other_sym;
-                free_derivation_step(*path);
-                *path = other_path;
-                *access = other_access;
-              } else {
-                free_derivation_step(other_path);
-              }  /* if */
-            }  /* if */
+  /* Get what may be a linked list of progenitor entries. */
+  progenitor_set = find_progenitor(class_ptr, locator, options);
+  if (progenitor_set == NULL) {
+    /* Empty list.  Return NULL. */
+    progenitor_sym = NULL;
+  } else {
+    progenitor = progenitor_set;
+    progenitor_sym = progenitor->sym;
+    if (progenitor->next == NULL) {
+      /* Only one entry on the list. */
+      *ambiguous = progenitor_sym->ambiguous;
+    } else {
+      /* A list of entries.  Select one to return as the progenitor symbol.
+         If one of the symbols represents a type name, return that symbol.
+         (This makes a difference in declaration processing, whereas in
+         executable expression processing only the ambiguity is of interest.)
+         Otherwise just return the first symbol seen. */
+      if (!is_type_symbol(fundamental_symbol_of(progenitor_sym))) {
+        for (pp = progenitor->next; pp != NULL; pp = pp->next) {
+          if (is_type_symbol(fundamental_symbol_of(pp->sym))) {
+            progenitor = pp;
+            progenitor_sym = progenitor->sym;
+            break;
           }  /* if */
-        }  /* if */
+        }  /* for */
       }  /* if */
+      *ambiguous = TRUE;
     }  /* if */
-  }  /* for */
+    *access = progenitor->access;
+    /* Move the derivation path from the progenitor entry and return it to
+       the caller.  Clear the pointer in the progenitor; otherwise the path
+       would be freed. */
+    *path = progenitor->path;
+    progenitor->path = NULL;
+    *any_using_decl =
+          (progenitor_sym->kind == (a_symbol_kind)sk_projection &&
+           (progenitor_sym->variant.projection.is_using_decl ||
+            progenitor_sym->variant.projection.any_intervening_using_decl));
+    /* Return the progenitor entries to the available list. */
+    free_progenitor_list(progenitor_set);
+  }   /* if */
   db_exit();
-  return sym;
+  return progenitor_sym;
 }  /* find_progenitor_symbol */
 
-
-static
-a_symbol_ptr create_nonreal_progenitor_symbol
-					(a_type_ptr	          class_type,
+    
+static a_symbol_ptr create_nonreal_progenitor_symbol(
+					 a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator,
                                          a_derivation_step_ptr	  *path)
@@ -7413,8 +7559,7 @@ entry that points to the class in which the nonreal member is created.
 }  /* create_nonreal_progenitor_symbol */
 
 
-static
-a_boolean check_for_microsoft_template_lookup_bug(a_symbol_ptr sym)
+static a_boolean check_for_microsoft_template_lookup_bug(a_symbol_ptr sym)
 /*
 The Microsoft compiler (as of version 4.2) includes a bug in the lookup
 of template names that, in the following example, will find the global
@@ -8701,6 +8846,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(avail_vla_fixups),
+      pch_saved_var_array_elem(avail_progenitors),
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
@@ -8739,6 +8885,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_template_params_allocated),
       pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_namespace_symbol_supplements_allocated),
+      pch_saved_var_array_elem(num_progenitors_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
 #endif /* if DEBUG */
@@ -8795,6 +8942,7 @@ of the front end.
   avail_substituted_type_list_entries = NULL;
   avail_template_cache_segments = NULL;
   avail_vla_fixups = NULL;
+  avail_progenitors = NULL;
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;
@@ -8843,6 +8991,7 @@ of the front end.
   num_fast_id_lookups                          = 0;
   num_slow_id_lookups                          = 0;
   num_active_using_directives_allocated        = 0;
+  num_progenitors_allocated                    = 0;
 #endif /* DEBUG */
 }  /* symbol_tbl_init */
 
