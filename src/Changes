@@ -1,5 +1,13 @@
 Version 2.41
 
+1/11/98   Microsoft compatibility: __declspec on class declaration
+
+__declspec and similar declaration modifiers that can appear between
+the "class" keyword and the class name (e.g., "class __declspec(dllimport) A") 
+are now recorded against the class, and output by the C++-generating back
+end, even when they appear in a declaration instead of a definition
+of the class.
+
 1/5/98    Scope of forward-declared enum types
 
 When forward declarations of enum types are permitted (e.g., in Microsoft
