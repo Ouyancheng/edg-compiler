@@ -2623,7 +2623,15 @@ aggregate, set *keep_constant to TRUE.
                                             keep_constant);
     } else {
       /* Normal constant. */
-      lower_constant(con_ptr);
+      if (C_mode()) {
+        if (c99_mode) {
+          /* When lowering C99 code, use the C99 lowering routines. */
+          lower_c99_constant(con_ptr);
+        }  /* if */
+      } else {
+        /* C++ mode. */
+        lower_constant(con_ptr);
+      }  /* if */
       if (ipd.indirect_through_variable) {
         /* The entity being initialized is not a simple variable, so we
            don't want to keep any part of the initialization as a constant
