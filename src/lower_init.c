@@ -2816,18 +2816,20 @@ On return, *keep_dynamic_init is TRUE if the dynamic init entry is to
 be kept, FALSE if it should be deleted.
 */
 {
-  an_expr_node_ptr  entity_node, source_node;
-  a_variable_ptr    variable;
-  a_boolean         simple_constant_init = FALSE, keep_constant;
-  a_constant_ptr    simple_constant;
-  a_source_position saved_error_position, saved_code_pos;
-  a_statement_ptr   expr_stmt;
-  a_type_ptr        ctor_routine_type;
-  a_type_ptr        this_param_type;
-  a_param_type_ptr  param;
-  a_boolean         static_var_init;
+  an_expr_node_ptr   entity_node, source_node;
+  a_variable_ptr     variable;
+  a_boolean          simple_constant_init = FALSE, keep_constant;
+  a_constant_ptr     simple_constant;
+  a_source_position  saved_error_position, saved_code_pos;
+  a_statement_ptr    expr_stmt;
+  a_type_ptr         ctor_routine_type;
+  a_type_ptr         this_param_type;
+  a_param_type_ptr   param;
+  a_boolean          static_var_init;
   a_local_static_variable_init_ptr
-                    lsvip = NULL;
+                     lsvip = NULL;
+  an_insert_location insert_location2;
+  an_insert_location *eff_insert_location = insert_location;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2859,11 +2861,37 @@ be kept, FALSE if it should be deleted.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
-  /* When generating the file-scope initialization routine we have
-     an expression from the file scope that must be used in the function
-     scope of the initialization routine, so it must be copied.  Otherwise
-     we have a difficult job keeping track of the nodes that are in
-     the file scope and those that are in the function scope. */
+  if (keep_object_lifetime_info_in_lowered_il) {
+    an_object_lifetime_ptr lifetime = dip->init_expr_lifetime;
+    if (lifetime != NULL) {
+      a_statement_ptr block_stmt;
+      /* This dynamic initialization entry defines an object lifetime that
+         surrounds the initialization.  The dynamic init entry will be
+         rewritten in the code following, so it probably won't end up in
+         the IL tree.  We have to keep the object lifetime, but to do so
+         we have to attach it to some other entity (instead of the dynamic
+         init).  We add a block statement and attach the lifetime to the
+         block statement.  This is only possible if the insert location
+         passed in is a statement position rather than an expression
+         position.  The only case where there could potentially be a
+         problem is on a constructor_init being expanded on an assignment
+         to "this", but assignment to "this" is suppressed when exceptions
+         are enabled, so it ends up not being a problem. */
+      check_assertion_str(!is_expr_insert_location_kind(insert_location->kind),
+      "lower_dynamic_init: cannot preserve obj lifetime with expr insert loc");
+      /* Add a block and update the caller's insert location to follow the
+         block.  Then use an insert location inside the block for the rest
+         of the processing below. */
+      block_stmt = alloc_statement((a_statement_kind)stmk_block);
+      insert_statement(block_stmt, insert_location);
+      set_block_start_insert_location(block_stmt, &insert_location2);
+      eff_insert_location = &insert_location2;
+      /* Bind the object lifetime to the block. */
+      myown_unbind_object_lifetime(lifetime);
+      bind_object_lifetime(lifetime, iek_block,
+                           (char *)block_stmt->variant.block.extra_info);
+    }  /* if */
+  }  /* if */
   switch (dip->kind) {
     case dik_none:
       break;
@@ -2904,7 +2932,7 @@ do_assignment:;
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
                                           /*using_as_dest=*/TRUE);
-      add_init_assignment(dip, entity_node, insert_location);
+      add_init_assignment(dip, entity_node, eff_insert_location);
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
@@ -2918,7 +2946,7 @@ do_assignment:;
          implicit argument of the call. */
       lower_call(dip->variant.expression, ipdp);
       expr_stmt = insert_expr_statement(dip->variant.expression,
-                                        insert_location);
+                                        eff_insert_location);
       set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
       break;
     case dik_constructor:
@@ -2968,7 +2996,7 @@ do_assignment:;
            which is what the subroutine requires. */
         add_array_constructor_call(dip, entity_node, source_node,
                                    ipdp->array_element_count,
-                                   insert_location);
+                                   eff_insert_location);
       } else {
         /* Construct a simple entity (not an array). */
         /* Lower any added arguments. */
@@ -2977,7 +3005,7 @@ do_assignment:;
         /* Generate the constructor call. */
         add_constructor_call(dip, entity_node, source_node,
                              implied_arg_list, end_implied_arg_list,
-                             insert_location);
+                             eff_insert_location);
       }  /* if */
       break;
     case dik_nonconstant_aggregate:
@@ -2987,7 +3015,7 @@ do_assignment:;
       keep_constant = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, ctor_init,
-                                            insert_location,
+                                            eff_insert_location,
                                             &keep_constant);
       if (keep_constant) {
         /* Keep a (now-)constant aggregate value as the static initial value
@@ -3002,7 +3030,7 @@ do_assignment:;
          This is used for copying members of classes in ctor-initializers
          of copy constructors, and for the parameter of catch clauses.
          ctor_init is non-NULL for the first of those cases. */
-      add_bitwise_copy(ipdp, ctor_init, insert_location);
+      add_bitwise_copy(ipdp, ctor_init, eff_insert_location);
       break;
 #if CHECKING
     default:
@@ -3044,7 +3072,7 @@ do_assignment:;
        since the destruction is only put on the list if the construction
        was done. */
     if (static_var_init) {
-      record_needed_destruction(cap, insert_location);
+      record_needed_destruction(cap, eff_insert_location);
     } else {
       /* Initializations of nonstatic variables. */
       /* Remember whether this initialization is for an enk_temp_init. */
@@ -3062,17 +3090,18 @@ do_assignment:;
            to do the destruction.  init_conditional_flag_var is called
            later to initialize the temporary to zero at the beginning
            of the current scope. */
-        add_conditional_flag(cap, insert_location);
+        add_conditional_flag(cap, eff_insert_location);
       } else if (is_expr_temporary &&
                  curr_full_expression_has_unsequenced_temp_inits) {
         /* Also add the conditional flag when there are unsequenced
            enk_temp_init operations. */
         cap->variant.object.conditional_flag_added_for_unsequenced_case = TRUE;
-        add_conditional_flag(cap, insert_location);
+        add_conditional_flag(cap, eff_insert_location);
       }  /* if */
       /* Put the new entry on the front of the existing cleanup list for
          the current context. */
-      add_cleanup_action_to_context_list(cap, curr_context, insert_location);
+      add_cleanup_action_to_context_list(cap, curr_context,
+                                         eff_insert_location);
       if (cap->variant.object.conditional_flag_var != NULL) {
         /* This operation has a conditional flag.  Initialize the flag to zero.
            This must be done after the cleanup action has been added to the
