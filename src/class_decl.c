@@ -4221,7 +4221,7 @@ class, struct, or union.
     }  /* if */
     fprintf(f_debug, "final byte offset = %lu", lob->byte_offset);
     if (lob->bit_offset > 0) {
-      fprintf(f_debug, ", final bit offset = %d", lob->bit_offset);
+      fprintf(f_debug, ", final bit offset = %d", (int)lob->bit_offset);
     }  /* if */
     fprintf(f_debug, ", max alignment = %d\n", (int)lob->alignment);
   }  /* if */
