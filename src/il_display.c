@@ -3310,7 +3310,7 @@ Display the indicated class type supplement entry.
     disp_name("inheritance_kind");
     switch (ptr->inheritance_kind) {
       case ihk_single:    (void)printf("ihk_single\n"); break;
-      case ihk_multilple: (void)printf("ihk_multiple\n"); break;
+      case ihk_multiple:  (void)printf("ihk_multiple\n"); break;
       case ihk_virtual:   (void)printf("ihk_virtual\n"); break;
       default:            (void)printf("***UNEXPECTED INHERITANCE KIND***\n");
     }  /* switch */
