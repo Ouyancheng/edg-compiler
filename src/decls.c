@@ -130,7 +130,7 @@ class is the same as the name that locator_for_curr_id represents.
 
   if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
     match = FALSE;
-  } else if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
+  } else {
     class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
     match = (locator_for_curr_id.symbol_header == class_sym->header &&
              (!locator_for_curr_id.is_qualified_name ||
@@ -157,18 +157,18 @@ might result from class template names that are missing argument lists.
   an_identifier_options_set	options;
 
   assoc_symbol = NULL;
-  if (locator_for_curr_id.is_operator_name ||
-      locator_for_curr_id.is_conversion_name) {
-    /* Cannot be a type name. */
-  } else {
-    /* Set the options.  Since this call is a "probe" to determine if the
-       current identifier is a type name, don't issue access errors yet, and
-       don't complain if the name is that of a template but there are no
-       template args (since it may actually be a different use of the name). */
-    options = GID_DEFER_ACCESS_ERRORS;
-    if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
-    if (in_prescan) options |= GID_TEMPLATE_ARGS_OPTIONAL;
-    if (is_generalized_identifier_start(options)) {
+  /* Set the options.  Since this call is a "probe" to determine if the
+     current identifier is a type name, don't issue access errors yet, and
+     don't complain if the name is that of a template but there are no
+     template args (since it may actually be a different use of the name). */
+  options = GID_DEFER_ACCESS_ERRORS;
+  if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
+  if (in_prescan) options |= GID_TEMPLATE_ARGS_OPTIONAL;
+  if (is_generalized_identifier_start(options)) {
+    if (locator_for_curr_id.is_operator_name ||
+        locator_for_curr_id.is_conversion_name) {
+      /* Cannot be a type name. */
+    } else {
       /* Look up the current token identifier, which may be a qualified name.
          Since curr_type_symbol is often called as part of a test of the
          presence of a type name identifier, it is inappropriate to cause a
@@ -178,9 +178,9 @@ might result from class template names that are missing argument lists.
          them in symbol entry later.  Defer any access errors that may occur
          because we may actually be scanning something that is not a type
          (e.g., a declarator). */
-      assoc_symbol = coalesce_and_lookup_generalized_identifier
-                         (GID_DTOR_RECOGNIZED | options,
-                          ilm_tentative_type, &err);
+      assoc_symbol =
+          coalesce_and_lookup_generalized_identifier(options,
+                                                     ilm_tentative_type, &err);
       if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
         /* Symbol was found, but it is not a type name symbol.  Return NULL. */
         assoc_symbol = NULL;
@@ -7242,35 +7242,35 @@ definition (e.g., "typedef int T; struct A { ... } T x;").
 Returns TRUE if there is an error in the specifiers.
 */
 {
-  int          num_specifiers;
-  a_symbol_ptr curr_token_type_symbol;
-  a_boolean    determined_curr_token_type_symbol = FALSE;
-  a_boolean    err = FALSE;
-  a_boolean    bad_combination_of_type_specifiers = FALSE;
-  a_source_position
-               start_pos;
-  a_type_kind  kind;
-  an_integer_kind
-	       ikind;
-  a_float_kind fkind;
-  a_type_ptr   temp_type;
-  a_boolean    explicitly_signed;
+  int                num_specifiers;
+  a_symbol_ptr       curr_token_type_symbol;
+  a_boolean          determined_curr_token_type_symbol = FALSE;
+  a_boolean          err = FALSE;
+  a_boolean          bad_combination_of_type_specifiers = FALSE;
+  a_source_position  start_pos;
+  a_type_kind        kind;
+  an_integer_kind    ikind;
+  a_float_kind       fkind;
+  a_type_ptr         temp_type;
+  a_boolean          explicitly_signed;
 
-  a_boolean    is_const_qualified    = FALSE;
-  a_boolean    is_volatile_qualified = FALSE;
-  a_boolean    is_parameter = (input_flags & DSI_IS_PARAMETER);
-  a_boolean    is_member_decl = (input_flags & DSI_IS_MEMBER_DECLARATION);
-  a_boolean    vacuous_decl_allowed;
-  a_boolean    declares_something = FALSE;
-  a_boolean    defines_something = FALSE;
-  a_boolean    void_first_specifier;
-  a_boolean    type_specifier_allowed;
-  a_boolean    dangling_type_specifier = FALSE;
-  a_boolean    is_elaborated_type_specifier = FALSE;
-  a_boolean    is_friend_decl = FALSE;
-  a_boolean    is_inline = FALSE;
-  an_error_severity
-               es;
+  a_boolean          is_const_qualified = FALSE;
+  a_boolean          is_volatile_qualified = FALSE;
+  a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
+  a_boolean          is_member_decl =
+                                    (input_flags & DSI_IS_MEMBER_DECLARATION);
+  a_boolean          vacuous_decl_allowed;
+  a_boolean          declares_something = FALSE;
+  a_boolean          defines_something = FALSE;
+  a_boolean          void_first_specifier;
+  a_boolean          type_specifier_allowed;
+  a_boolean          dangling_type_specifier = FALSE;
+  a_boolean          is_elaborated_type_specifier = FALSE;
+  a_boolean          is_friend_decl = FALSE;
+  a_boolean          is_inline = FALSE;
+  an_error_severity  es;
+  an_identifier_options_set
+                     options;
 
   enum {bt_none, bt_void, bt_char, bt_int,
         bt_float, bt_double, bt_typedef,
@@ -7759,6 +7759,14 @@ process_class_specifier:
         break;
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
+        options = GID_DEFER_ACCESS_ERRORS;
+        if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+          options |= GID_IS_NEW_TYPE_NAME;
+        }  /* if */
+        if (!is_generalized_identifier_start(options)) {
+          /* This could result from "::" followed by something strange. */
+          goto something_unexpected;
+        }  /* if */
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for a constructor declaration.  The following conditions
              must be satisfied:  (1) we are inside a class definition;
