@@ -937,9 +937,10 @@ the template.
       if (cssp->is_instance) {
         /* A template class or a nested class within a template class. */
         if (is_template_specialization) {
+          /* A specialization using the template<> syntax. */
           if (is_class_definition || curr_token == tok_semicolon) {
             is_template_specific_decl = TRUE;
-            if (cssp->is_specific_template_def) {
+            if (class_type->variant.class_struct_union.is_specialized) {
               /* Redeclaration. */
               *declares_something = FALSE;
             } else {
@@ -955,7 +956,7 @@ the template.
                 pos_sy_error(ec_specialization_of_referenced_entity,
                              &tag_position, tag_sym);
               } else {
-                cssp->is_specific_template_def = TRUE;
+                class_type->variant.class_struct_union.is_specialized = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -997,7 +998,9 @@ the template.
             /* The class has already been instantiated -- don't consider this
                to be a specialization. */
           } else {
-            cssp->is_specific_template_def = TRUE;
+            class_type->variant.class_struct_union.is_specialized = TRUE;
+            class_type->variant.class_struct_union.
+                                      specialized_with_old_syntax = TRUE;
             is_template_specific_decl = TRUE;
           }  /* if */
         }  /* if */

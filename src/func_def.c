@@ -999,9 +999,11 @@ on a prior declaration.
       }  /* if */
     }  /* if */
     /* If this is an member function of an instantiation of a class
-       template, set the specific_def flag in the instance entry. */
+       template, mark this as a specialization.  However, since the newer
+       template<> syntax was not used, mark it as using the old syntax. */
     if (sym->variant.routine.instance_ptr != NULL) {
-      sym->variant.routine.ptr->suppress_instantiation = TRUE;
+      sym->variant.routine.ptr->is_specialized = TRUE;
+      sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
     update_routine_decl_modifiers(rp, decl_modifiers,

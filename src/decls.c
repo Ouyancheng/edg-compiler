@@ -434,7 +434,8 @@ class is made.
   if (is_error_type(tp) || tp->kind == (a_type_kind)tk_template_param) {
     /* No action. */
   } else if (!is_expr_use && cssp->class_template != NULL &&
-             !cssp->is_nonreal_class && !cssp->is_specific_template_def) {
+             !cssp->is_nonreal_class &&
+             !class_type->variant.class_struct_union.is_specialized) {
     /* The operator-> function is being declared for a class that is a real
        instantiation of a template.  We can't issue a diagnostic on the
        return type, since it may be dependent on a template argument -- we
@@ -2780,12 +2781,12 @@ not be TRUE.
 a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
                                                char        *il_entry_ptr,
                                                a_type_ptr  type,
-                                               a_boolean   is_specialization)
+                                               a_boolean   new_style_spec)
 /*
 Set the declared_type field to "type" in the recently created secondary
 source sequence entry created for the IL entry pointed to by il_entry_ptr.
-Also, set the is_specialization flag in the new entry to the value indicated
-by is_specialization.
+Also, set the specialized_with_new_syntax flag in the new entry to the value
+indicated by new_style_spec.
 */
 {
   a_source_sequence_entry_ptr   ssep;
@@ -2800,7 +2801,7 @@ by is_specialization.
       check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
       sssdp->declared_type = type;
-      sssdp->is_specialization = is_specialization;
+      sssdp->specialized_with_new_syntax = new_style_spec;
     }  /* if */
   }  /* if */
   return sssdp;
@@ -3837,10 +3838,11 @@ on for use in generating cross-reference output describing this declaration.
                           (storage_class == (a_storage_class)sc_static) ?
                                 (a_name_linkage_kind)nlk_internal :
                                 (a_name_linkage_kind)nlk_cplusplus_external;
-          routine_ptr->suppress_instantiation = TRUE;
+          routine_ptr->is_specialized = TRUE;
+          routine_ptr->specialized_with_old_syntax;
         } else {
           /* There is already a definition.  This is some sort of error. */
-          if (sym->variant.routine.ptr->suppress_instantiation) {
+          if (sym->variant.routine.ptr->is_specialized) {
             /* Already defined, presumably by a specialization. */
             pos_sy_error(ec_already_defined, &locator->source_position, sym);
           } else {
@@ -4553,7 +4555,7 @@ is not a template declaration scope.
     a_template_instance_ptr  tip = tssp->variant.function.instantiations;
     for (; tip != NULL; tip = tip->next) {
       rp = tip->instance_sym->variant.routine.ptr;
-      if (rp->suppress_instantiation) {
+      if (rp->is_specialized) {
 #if 0
         /* Must the inline setting of a specific definition of a function
            template be consistent with that of the template? */
@@ -4704,7 +4706,8 @@ the symbol and its linkage (which is always "none").
       /* If this is a member of an instantiation of a class
          template, set the supress_instantiation field of the variable. */
       if (sym->variant.static_data_member.instance_ptr != NULL) {
-        var->suppress_instantiation = TRUE;
+        var->is_specialized = TRUE;
+        var->specialized_with_old_syntax = TRUE;
       }  /* if */
       srk_flags = SRK_DECLARATION | SRK_DEFINITION;
       if (has_initializer || type_has_default_constructor(var->type)) {

@@ -494,9 +494,6 @@ and indentation is the indentation desired.
         if (cssp->is_prototype_instantiation) {
           put_string("prototype instantiation");
         }  /* if */
-        if (cssp->is_specific_template_def) {
-          put_string("specific template def");
-        }  /* if */
         if (cssp->any_nonreal_base_classes) {
           put_string("has nonreal base class");
         }  /* if */
@@ -509,6 +506,12 @@ and indentation is the indentation desired.
       }
       if (temp_type->declared_in_function_prototype) {
         put_string("in func prototype");
+      }  /* if */
+      if (temp_type->variant.class_struct_union.is_specialized) {
+        (void)sprintf(buffer, "%sspecialization",
+                      temp_type->variant.class_struct_union.
+                         specialized_with_old_syntax ? "" : "old-style ");
+        put_string(buffer);
       }  /* if */
       break;
     case sk_field:
@@ -562,6 +565,12 @@ do_variable:
         put_string(buffer);
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
           if (var->is_template_static_data_member) put_string("is instance");
+          if (var->is_specialized) {
+            (void)sprintf(buffer, "%sspecialization",
+                          var->specialized_with_old_syntax ?
+                                 "" : "old-style ");
+            put_string(buffer);
+          }  /* if */
         } else {
           if (sym->variant.variable.value_has_been_set) put_string("set");
           if (sym->variant.variable.used) put_string("used");
@@ -604,7 +613,11 @@ do_variable:
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
         if (rp->is_template_function) put_string("is instance");
-        if (rp->is_specialization) put_string("specialization");
+        if (rp->is_specialized) {
+          (void)sprintf(buffer, "%sspecialization",
+                        rp->specialized_with_old_syntax ? "" : "old-style ");
+          put_string(buffer);
+        }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
         if (rp->source_corresp.needed) put_string("needed");
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -784,7 +797,7 @@ do_variable:
             a_routine_ptr rp = tip->instance_sym->variant.routine.ptr;
             fprintf(f_debug, "%*sinstantiation", indentation, "");
             if (tip->instantiation_required || tip->specific_decl ||
-                rp->is_specialization) {
+                rp->is_specialized) {
               char* comma = "";
               fputs(" (", f_debug);
               if (tip->instantiation_required) {
@@ -794,8 +807,11 @@ do_variable:
               if (tip->specific_decl) {
                 fprintf(f_debug, "%sspecific decl", comma);
               }  /* if */
-              if (rp->is_specialization) {
-                fprintf(f_debug, "%sexplicit specialization", comma);
+              if (rp->is_specialized) {
+                (void)sprintf(buffer, "%sspecialization",
+                              rp->specialized_with_old_syntax ?
+                                 "" : "old-style ");
+                put_string(buffer);
               }  /* if */
               fputc(')', f_debug);
             }  /* if */
@@ -1328,15 +1344,18 @@ Otherwise, return NULL.
 {
   a_class_symbol_supplement_ptr	cssp;
   a_symbol_ptr			result_sym = NULL;
+  a_type_ptr                    class_type;
 
   check_assertion(is_class_struct_union_symbol(sym));
   cssp = sym->variant.class_struct_union.extra_info;
-  if (cssp->is_instance && !cssp->is_specific_template_def &&
-      !cssp->is_nonreal_class) {
-    result_sym = cssp->corresp_prototype_sym;
-    check_assertion_str2(result_sym != NULL,
-                         "corresp_prototype_for_class_symbol:",
-                         "no corresponding prototype symbol for instance");
+  if (cssp->is_instance && !cssp->is_nonreal_class) {
+    class_type = sym->variant.class_struct_union.type;
+    if (!class_type->variant.class_struct_union.is_specialized) {
+      result_sym = cssp->corresp_prototype_sym;
+      check_assertion_str2(result_sym != NULL,
+                           "corresp_prototype_for_class_symbol:",
+                           "no corresponding prototype symbol for instance");
+    }  /* if */
   }  /* if */
   return result_sym;
 }  /* corresp_prototype_for_class_symbol */
@@ -1652,7 +1671,6 @@ state.
         cssp->is_instance = FALSE;
         cssp->is_nonreal_class = FALSE;
         cssp->is_prototype_instantiation = FALSE;
-        cssp->is_specific_template_def = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;

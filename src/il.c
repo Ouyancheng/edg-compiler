@@ -8059,7 +8059,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     is_friend = FALSE;
       a_boolean                     is_implicit = FALSE;
       a_boolean                     is_anon_union_parent = FALSE;
-      a_boolean                     is_specialization = FALSE;
+      a_boolean                     new_specialization = FALSE;
       a_boolean                     func_prototype_decl = FALSE;
       a_boolean                     other_scope_def = FALSE;
       a_type_ptr                    type_entry_type = NULL;
@@ -8081,7 +8081,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->friend_decl) is_friend = TRUE;
           if (sssdp->implicit_decl) is_implicit = TRUE;
           if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
-          if (sssdp->is_specialization) is_specialization = TRUE;
+          if (sssdp->specialized_with_new_syntax) new_specialization = TRUE;
           if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
             type_entry_type = (a_type_ptr)sssdp->entity.ptr;
           }  /* if */
@@ -8097,18 +8097,23 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
                autonomous = TRUE;
             }  /* if */
             if (is_immediate_class_type(type_entry_type) &&
-                type_entry_type->
-                     variant.class_struct_union.is_specialization) {
-              is_specialization = TRUE;
+                type_entry_type->variant.class_struct_union.is_specialized &&
+                !type_entry_type->variant.class_struct_union.
+                                               specialized_with_old_syntax) {
+              new_specialization = TRUE;
             }  /* if */
           } else if (kind == (an_il_entry_kind)iek_routine) {
             a_routine_ptr  rp = (a_routine_ptr)ssep->entity.ptr;
             if (rp->defined_in_friend_decl) is_friend = TRUE;
             if (rp->defined_outside_of_parent) other_scope_def = TRUE;
+            if (rp->is_specialized && !rp->specialized_with_old_syntax) {
+              new_specialization = TRUE;
+            }  /* if */
           } else if (kind == (an_il_entry_kind)iek_variable) {
-            if (((a_variable_ptr)ssep->entity.ptr)->
-                                        is_anonymous_parent_object) {
-              is_anon_union_parent = TRUE;
+            a_variable_ptr  vp = (a_variable_ptr)ssep->entity.ptr;
+            if (vp->is_anonymous_parent_object) is_anon_union_parent = TRUE;
+            if (vp->is_specialized && !vp->specialized_with_old_syntax) {
+              new_specialization = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -8158,8 +8163,8 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
-        if (is_specialization) {
-          fprintf(f_debug, "%sspec",
+        if (new_specialization) {
+          fprintf(f_debug, "%stemplate<>",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */

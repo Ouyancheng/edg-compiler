@@ -1570,7 +1570,7 @@ types; just put out the base encoded name.
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
-  if (routine->is_specialization) {
+  if (routine->is_specialized && !routine->specialized_with_old_syntax) {
     /* Explicit specializations get an extra suffix at the end to distinguish
        them from compiler-generated instantiations. */
     section_length = mangled_specialization_suffix(store_at);
@@ -1719,6 +1719,8 @@ at *store_at if store_at != NULL, and (always) return the length of the name.
 See ARM 7.2.1c for name encoding.
 */
 {
+  a_boolean  is_specialization;
+
   if (!has_name(variable)) {
     /* An anonymous union can cause an unnamed member of a namespace:
          namespace {
@@ -1729,8 +1731,10 @@ See ARM 7.2.1c for name encoding.
                         "mangled_member_variable_name: unnamed class member");
     give_unnamed_member_variable_a_name(variable);
   }  /* if */
-  return mangled_member_name(&variable->source_corresp,
-                             variable->is_specialization, store_at);
+  is_specialization = (variable->is_specialized &&
+                       !variable->specialized_with_old_syntax);
+  return mangled_member_name(&variable->source_corresp, is_specialization,
+                             store_at);
 }  /* mangled_member_variable_name */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

@@ -730,10 +730,6 @@ typedef struct a_class_symbol_supplement {
 		 	   is the prototype instantiation.  Also TRUE for
 			   classes nested within the prototype
 			   instantiation. */
-  a_bit_field	is_specific_template_def:1;
-			/* TRUE if the class is a specific definition of
-			   a template class instance.  FALSE if the
-			   instance was generated from the class template. */
   a_bit_field	any_nonstatic_data_members:1;
 			/* TRUE if the class or any of its base classes has
 			   one or more nonstatic data members. */
@@ -2597,7 +2593,8 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    generated from the template (i.e., not a specific definition). */
 #define is_template_class_and_not_specific_def_symbol(sym)		\
   (is_template_class_symbol((sym)) &&					\
-   !(sym)->variant.class_struct_union.extra_info->is_specific_template_def)
+   !(sym)->variant.class_struct_union.type->                            \
+                        variant.class_struct_union.is_specialized)
 
 /* Return TRUE if the symbol is a class template symbol. */
 #define is_class_template_symbol(sym)					\
@@ -2639,7 +2636,8 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    instance or a class nested within a class template. */
 #define is_template_instance_specific_def_symbol(sym)			\
   (is_real_class_symbol(sym) &&						\
-   (sym)->variant.class_struct_union.extra_info->is_specific_template_def)
+   (sym)->variant.class_struct_union.type->                             \
+                        variant.class_struct_union.is_specialized)
 
 /* Return TRUE if a symbol is a tag symbol.   A tag symbol is
    one defined as a class, struct, union, or enum (but not as a typedef

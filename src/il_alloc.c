@@ -857,7 +857,8 @@ to default values.
       pte->variant.class_struct_union.
                  nested_class_defined_outside_of_parent = FALSE;
       pte->variant.class_struct_union.originally_unnamed = FALSE;
-      pte->variant.class_struct_union.is_specialization = FALSE;
+      pte->variant.class_struct_union.is_specialized = FALSE;
+      pte->variant.class_struct_union.specialized_with_old_syntax = FALSE;
 #if MAINTAIN_NEEDED_FLAGS
       pte->variant.class_struct_union.definition_needed = FALSE;
       pte->variant.class_struct_union.keep_definition_in_il = FALSE;
@@ -1150,8 +1151,8 @@ to it.
   vp->modified_within_try_block   = FALSE;
   vp->is_template_static_data_member
                                   = FALSE;
-  vp->is_specialization           = FALSE;
-  vp->suppress_instantiation      = FALSE;
+  vp->is_specialized              = FALSE;
+  vp->specialized_with_old_syntax = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   vp->can_be_instantiated         = FALSE;
   vp->do_not_instantiate          = FALSE;
@@ -1284,54 +1285,54 @@ to it.  The entry is allocated in the file scope memory region.
   num_routines_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(rp->source_corresp);
-  rp->next                      = NULL;
-  rp->type                      = NULL;
-  rp->assoc_scope               = NULL_region_number;
-  rp->storage_class             = (a_storage_class)sc_unspecified;
-  rp->special_kind              = (a_special_function_kind)sfk_none;
-  rp->opname_kind               = (an_opname_kind)onk_none;
-  rp->address_taken             = FALSE;
-  rp->is_virtual                = FALSE;
-  rp->pure_virtual              = FALSE;
-  rp->is_inline                 = FALSE;
-  rp->compiler_generated        = FALSE;
-  rp->defined                   = FALSE;
-  rp->called                    = FALSE;
-  rp->is_explicit_constructor   = FALSE;
+  rp->next                        = NULL;
+  rp->type                        = NULL;
+  rp->assoc_scope                 = NULL_region_number;
+  rp->storage_class               = (a_storage_class)sc_unspecified;
+  rp->special_kind                = (a_special_function_kind)sfk_none;
+  rp->opname_kind                 = (an_opname_kind)onk_none;
+  rp->address_taken               = FALSE;
+  rp->is_virtual                  = FALSE;
+  rp->pure_virtual                = FALSE;
+  rp->is_inline                   = FALSE;
+  rp->compiler_generated          = FALSE;
+  rp->defined                     = FALSE;
+  rp->called                      = FALSE;
+  rp->is_explicit_constructor     = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  rp->assignment_to_this_done   = FALSE;
+  rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  rp->is_template_function      = FALSE;
-  rp->is_specialization         = FALSE;
-  rp->suppress_instantiation    = FALSE;
+  rp->is_template_function        = FALSE;
+  rp->is_specialized              = FALSE;
+  rp->specialized_with_old_syntax = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  rp->can_be_instantiated       = FALSE;
-  rp->do_not_instantiate        = FALSE;
-  rp->instance_required         = FALSE;
+  rp->can_be_instantiated         = FALSE;
+  rp->do_not_instantiate          = FALSE;
+  rp->instance_required           = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  rp->contains_try_block        = FALSE;
-  rp->superseded_external       = FALSE;
-  rp->defined_in_friend_decl    = FALSE;
+  rp->contains_try_block          = FALSE;
+  rp->superseded_external         = FALSE;
+  rp->defined_in_friend_decl      = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  rp->defined_outside_of_parent = FALSE;
+  rp->defined_outside_of_parent   = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
-  rp->inlinable                 = FALSE;
-  rp->need_out_of_line_copy     = FALSE;
+  rp->inlinable                   = FALSE;
+  rp->need_out_of_line_copy       = FALSE;
 #endif /* MINIMAL_INLINING */
 #if DECL_MODIFIERS_IN_USE
-  rp->decl_modifiers            = DM_NONE;
+  rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
-  rp->befriending_classes       = NULL;
-  rp->virtual_function_number   = 0;
-  rp->template_arg_list         = NULL;
+  rp->befriending_classes         = NULL;
+  rp->virtual_function_number     = 0;
+  rp->template_arg_list           = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  rp->declared_type             = NULL;
+  rp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FIL
-  rp->is_fortran_entry          = FALSE;
-  rp->local_routine_scope       = NULL;
-  rp->intrinsic_func_code       = (an_intrinsic_function_code)ifc_none;
+  rp->is_fortran_entry            = FALSE;
+  rp->local_routine_scope         = NULL;
+  rp->intrinsic_func_code         = (an_intrinsic_function_code)ifc_none;
 #endif /* ifdef FIL */
 
   db_exit();
@@ -2226,15 +2227,15 @@ and return a pointer to it.
 #if DEBUG
   num_src_seq_secondary_decls_allocated++;
 #endif /* DEBUG */
-  sssdp->decl_position = null_source_position;
-  sssdp->entity.kind   = (a_byte_il_entry_kind)iek_none;
-  sssdp->entity.ptr    = NULL;
-  sssdp->declared_type = NULL;
-  sssdp->autonomous_tag_decl        = FALSE;
-  sssdp->friend_decl                = FALSE;
-  sssdp->implicit_decl              = FALSE;
-  sssdp->declared_in_func_prototype = FALSE;
-  sssdp->is_specialization          = FALSE;
+  sssdp->decl_position               = null_source_position;
+  sssdp->entity.kind                 = (a_byte_il_entry_kind)iek_none;
+  sssdp->entity.ptr                  = NULL;
+  sssdp->declared_type               = NULL;
+  sssdp->autonomous_tag_decl         = FALSE;
+  sssdp->friend_decl                 = FALSE;
+  sssdp->implicit_decl               = FALSE;
+  sssdp->declared_in_func_prototype  = FALSE;
+  sssdp->specialized_with_new_syntax = FALSE;
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

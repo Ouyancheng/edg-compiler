@@ -604,9 +604,9 @@ typedef struct a_src_seq_secondary_decl {
 			   when this is the first declaration of A.  Used in
 			   both C and C++, though the interpretation of such
 			   declarations differs between the two languages. */
-  a_bit_field	is_specialization:1;
-			/* TRUE if the declaration is an explicit template
-			   specialization (i.e., the template<> is used). */
+  a_bit_field	specialized_with_new_syntax:1;
+			/* TRUE if the "template<>" syntax was used to declare
+			   a specialization. */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
@@ -3198,7 +3198,7 @@ typedef struct a_type {
 			   nested-class-def placeholder typeref; the type
 			   entry for the associated typeref will be on the
 			   types list of the file scope or a namespace scope
-			   enclosing the parent class and will have
+			   Enclosing the parent class and will have
 			   is_placeholder_for_nested_class_def set to TRUE. */
       a_bit_field
 		originally_unnamed:1;
@@ -3207,10 +3207,19 @@ typedef struct a_type {
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name (ARM 7.1.3). */
       a_bit_field
-		is_specialization:1;
-			/* TRUE if this is a template class that was defined
-			   as a specialization (i.e., if it has been
-			   explicitly defined with the template<> syntax). */
+		is_specialized:1;
+			/* TRUE for class template instances for which the
+			   definition is supplied independently of the class
+			   template with which it is associated.  This flag
+			   may be set as a result of a specialization
+			   declaration (either an old-style declaration or
+			   one using the template<> syntax), or if the class
+			   was specified in a do-not-instantiate pragma. */
+      a_bit_field
+		specialized_with_old_syntax:1;
+			/* TRUE if is_specialized is TRUE but the class was
+			   not explicitly declared with the template<>
+			   syntax. */
 #if MAINTAIN_NEEDED_FLAGS
       a_bit_field
 		definition_needed:1;
@@ -3580,19 +3589,19 @@ typedef struct a_variable {
 			   provided by the user.  FALSE for all other cases,
 			   including a static data member of a class that
 			   is a specialization of a template class. */
-  a_bit_field	is_specialization:1;
-			/* TRUE if is_template_static_data_member is TRUE and
-			   the member is an explicit specialization (i.e., if
-			   it has been explicitly declared with the template<>
-			   syntax). */
-  a_bit_field	suppress_instantiation:1;
-			/* TRUE if is_template_static_data_member is TRUE but
-			   the static data member should not be instantiated
-			   based on the template with which it is associated.
-			   This flag will be set if is_specialization is TRUE,
-			   or if the member was subject to an old-style
-			   specific definition, or if it was specified in a
-			   do-not-instantiate pragma. */
+  a_bit_field	is_specialized:1;
+			/* TRUE when is_template_static_data_member is TRUE
+			   but the definition is supplied independently of
+			   the template with which it is associated.  This
+			   flag may be set as a result of a specialization
+			   declaration (either an old-style declaration or
+			   one using the template<> syntax), or if the static
+			   data member was specified in a do-not-instantiate
+			   pragma. */
+  a_bit_field	specialized_with_old_syntax:1;
+			/* TRUE if is_specialized is TRUE but the static
+			   data member was not explicitly declared with the
+			   template<> syntax. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template static data member
@@ -4047,19 +4056,19 @@ typedef struct a_routine {
 			   member (but not a member template) of a
 			   class that is a specialization of a
 			   template class. */
-  a_bit_field	is_specialization:1;
-			/* TRUE if is_template_function is TRUE and the
-			   function is an explicit specialization (i.e., if it
-			   has been explicitly declared with the template<>
-			   syntax). */
-  a_bit_field	suppress_instantiation:1;
+  a_bit_field	is_specialized:1;
 			/* TRUE when is_template_function is TRUE but the
-			   function should not be instantiated based on the
-			   template with which it is associated.  This flag
-			   will be set if is_specialization is TRUE, or if
-			   the routine was subject to an old-style specific
-			   definition, or if it was specified in a
-			   do-not-instantiate pragma. */
+			   function definition is supplied independently of
+			   the template with which it is associated.  This
+			   flag may be set as a result of a specialization
+			   declaration (either an old-style declaration or
+			   one using the template<> syntax), or if the
+			   function was specified in a do-not-instantiate
+			   pragma. */
+  a_bit_field	specialized_with_old_syntax:1;
+			/* TRUE if is_specialized is TRUE but the function
+			   was not explicitly declared with the template<>
+			   syntax. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template function

@@ -977,8 +977,11 @@ do_struct_union:
                                       nested_class_defined_outside_of_parent) {
         disp_boolean("nested_class_defined_outside_of_parent", TRUE);
       }  /* if */
-      if (ptr->variant.class_struct_union.is_specialization) {
-        disp_boolean("is_specialization", TRUE);
+      if (ptr->variant.class_struct_union.is_specialized) {
+        disp_boolean("is_specialized", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.specialized_with_old_syntax) {
+        disp_boolean("specialized_with_old_syntax", TRUE);
       }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
       disp_boolean("definition_needed",
@@ -1215,11 +1218,11 @@ Display the indicated variable.
   if (ptr->is_template_static_data_member) {
     disp_boolean("is_template_static_data_member", TRUE);
   }  /* if */
-  if (ptr->is_specialization) {
-    disp_boolean("is_specialization", TRUE);
+  if (ptr->is_specialized) {
+    disp_boolean("is_specialized", TRUE);
   }  /* if */
-  if (ptr->suppress_instantiation) {
-    disp_boolean("suppress_instantiation", TRUE);
+  if (ptr->specialized_with_old_syntax) {
+    disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
@@ -1551,11 +1554,11 @@ Display the indicated routine.
   if (ptr->is_template_function) {
     disp_boolean("is_template_function", TRUE);
   }  /* if */
-  if (ptr->is_specialization) {
-    disp_boolean("is_specialization", TRUE);
+  if (ptr->is_specialized) {
+    disp_boolean("is_specialized", TRUE);
   }  /* if */
-  if (ptr->suppress_instantiation) {
-    disp_boolean("suppress_instantiation", TRUE);
+  if (ptr->specialized_with_old_syntax) {
+    disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
@@ -3343,7 +3346,9 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->declared_in_func_prototype) {
     disp_boolean("declared_in_func_prototype", TRUE);
   }  /* if */
-  if (sssdp->is_specialization) disp_boolean("is_specialization", TRUE);
+  if (sssdp->specialized_with_new_syntax) {
+    disp_boolean("specialized_with_new_syntax", TRUE);
+  }  /* if */
 }  /* disp_src_seq_secondary_decl */
 
 
