@@ -919,16 +919,17 @@ to the indicated kind (and the associated variant fields to safe values).
 {
   db_enter(5, "clear_symbol");
 
-  sym_ptr->header                    = NULL;
-  sym_ptr->next                      = NULL;
-  sym_ptr->next_in_scope             = NULL;
-  sym_ptr->decl_scope                = NO_SCOPE_NUMBER;
-  sym_ptr->decl_position.seq         = 0;
-  sym_ptr->decl_position.column      = SP_COL_UNKNOWN;
-  sym_ptr->class_of_which_a_member   = NULL;
-  sym_ptr->referenced                = FALSE;
-  sym_ptr->defined                   = FALSE;
-  sym_ptr->explicit_linkage_specifier= FALSE;
+  sym_ptr->header                         = NULL;
+  sym_ptr->next                           = NULL;
+  sym_ptr->next_in_scope                  = NULL;
+  sym_ptr->decl_scope                     = NO_SCOPE_NUMBER;
+  sym_ptr->decl_position.seq              = 0;
+  sym_ptr->decl_position.column           = SP_COL_UNKNOWN;
+  sym_ptr->class_of_which_a_member        = NULL;
+  sym_ptr->referenced                     = FALSE;
+  sym_ptr->defined                        = FALSE;
+  sym_ptr->explicit_linkage_specifier     = FALSE;
+  sym_ptr->reentered_from_prototype_scope = FALSE;
   set_symbol_kind(sym_ptr, kind);
 
   db_exit();

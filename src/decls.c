@@ -6234,6 +6234,7 @@ prototype scope) now that we are in the body of the function.
        curr_symbol = next_symbol) {
     next_symbol = curr_symbol->next_in_scope;
     reenter_symbol(curr_symbol, depth_scope_stack, /*suppress_error=*/TRUE);
+    curr_symbol->reentered_from_prototype_scope = TRUE;
   }  /* for */
 }  /* reactivate_prototype_scope_symbols */
 

@@ -566,6 +566,10 @@ typedef struct a_symbol {
 			/* TRUE for variables and routines for which an
 			   explicit external linkage was specified (e.g.,
 			   ``extern "C"'' -- C++ only). */
+  unsigned int	reentered_from_prototype_scope:1;
+			/* TRUE if symbol was originally declared in a
+			   function prototype scope and was subsequently
+			   reentered in the function scope. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
