@@ -117,28 +117,59 @@ typedef struct a_macro_arg {
   sizeof_t	raw_len;
 			/* Length of the raw version of the argument, in
 			   raw_text, not counting the final LE_END_OF_INSERTION
-			   or LE_END_OF_BUFFER lexical escape. */
-  a_source_line_modif_ptr
-		modif_list;
-			/* List of modifications to the raw_text to produce
-			   the macro-expanded version of that text.  NULL
-			   if the expanded text is the same as the raw text. */
-  a_boolean	modif_text_used;
-			/* Set to TRUE after the first use of the inserted
-			   text of the modifications on modif_list.  For uses
-			   after that, the text must be copied.  See
-			   copy_modif_list. */
+			   lexical escape. */
   char		*raw_text;
 			/* The raw version of the argument text.  Dynamically
-			   allocated, expanded as needed. */
-#define ARG_RAW_TEXT_INITIAL_ALLOCATION 200
+			   allocated, expanded as needed.  Contains various
+			   escapes (e.g., end-of-token) in addition to the
+			   raw text of the tokens. */
+#define ARG_RAW_TEXT_INITIAL_ALLOCATION 400
 #define ARG_RAW_TEXT_INCREMENTAL_ALLOCATION 1000
 			/* Initial and incremental allocation sizes for
 			   raw_text.  The initial allocation should be
 			   such that almost all cases can be accepted (so that
 			   the realloc is hardly ever needed). */
-  sizeof_t	max_len;
+  sizeof_t	raw_alloc_len;
 			/* Allocated size of the raw_text array. */
+  char		*initial_raw_text_not_in_primary_source_line;
+			/* If non-NULL, points to the first character of the
+			   source for the argument when it comes from a
+			   macro expansion rather than the primary source line.
+			   This is useful to have because it preserves the
+			   context needed to determine macro inertness. */
+  a_source_line_modif_ptr
+		final_modif_for_initial_text;
+			/* If initial_raw_text_not_in_primary_source_line is
+			   non-NULL, this points to the source line
+			   modification from which the rescan returns to the
+			   primary source line, if any, or NULL if the scan
+			   never returns to the primary source line. */
+  sizeof_t	offset_in_raw_text_of_primary_source_line_text;
+			/* Offset of the first character in raw_text that
+			   comes from the primary source line.  Non-zero
+			   only if initial_raw_text_not_in_primary_source_line
+			   is non-NULL, and indicates the point at which we
+			   return to the primary line.  If we never return
+			   to the primary source line, this is the offset
+			   of the LE_END_OF_INSERTION escape at the end
+			   of the raw_text. */
+  sizeof_t	expanded_len;
+			/* Length of the expanded version of the argument, in
+			   expanded_text, not counting the final
+			   LE_END_OF_INSERTION lexical escape. */
+  char		*expanded_text;
+			/* The macro-expanded version of the argument text.
+			   Dynamically allocated, expanded as needed.
+			   Contains various escapes (e.g., end-of-token) in
+			   addition to the raw text of the tokens. */
+#define ARG_EXPANDED_TEXT_INITIAL_ALLOCATION 400
+#define ARG_EXPANDED_TEXT_INCREMENTAL_ALLOCATION 2000
+			/* Initial and incremental allocation sizes for
+			   expanded_text.  The initial allocation should be
+			   such that almost all cases can be accepted (so that
+			   the realloc is hardly ever needed). */
+  sizeof_t	expanded_alloc_len;
+			/* Allocated size of the expanded_text array. */
 } a_macro_arg;
 
 static a_macro_arg_ptr
@@ -150,12 +181,18 @@ static a_macro_arg_ptr
 		end_of_macro_arg_list;
 			/* All the a_macro_arg entries currently being used. */
 
+static char *arg_get_token_start_of_curr_token;
+			/* Set by arg_get_token to point to the position
+			   after the white-space skip.  This differs from
+			   the value returned in start_of_curr_token when
+			   the token is preceded by an inert-macro escape. */
+
 #if DEBUG
 static unsigned long
 		num_macro_params_allocated,
 		num_macro_defs_allocated,
 		num_macro_args_allocated,
-		macro_arg_raw_text_space,
+		macro_arg_text_space,
 		param_name_string_space,
 		macro_definition_space;
 			/* Used to track space use. */
@@ -217,18 +254,6 @@ new address for the area.
   }  /* if */                                                         \
 }  /* fix_ptr */
 
-/*
-Walk a list of source line modifications and fix up each one.
-*/
-#define fix_source_line_modif_list(list)                              \
-{ for (slmp = list; slmp != NULL; slmp = slmp->next) {                \
-    fix_ptr(slmp->line_loc);                                          \
-    fix_ptr(slmp->inserted_text);                                     \
-    fix_ptr(slmp->end_inserted_text);                                 \
-    /* assoc_copy_modif is on the same list and need not be adjusted. */ \
-  }  /* for */                                                        \
-}  /* fix_source_line_modif_list */
-
   db_enter(4, "adjust_curr_source_line_structure_after_realloc");
 
   check_assertion(old_ptr != NULL);  
@@ -247,13 +272,14 @@ Walk a list of source line modifications and fix up each one.
     }  /* for */
     /* Walk the source line modif list (which represents macro expansions
        and comment deletions). */
-    fix_source_line_modif_list(source_line_modif_list);
-    /* Walk the macro args list (which represents the values of the arguments
-       of macro invocations being processed).  This is necessary because the
-       macro args can have lists of source line modifications which reference
-       macro_buffer. */
+    for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+      fix_ptr(slmp->line_loc);
+      fix_ptr(slmp->inserted_text);
+      fix_ptr(slmp->end_inserted_text);
+    }  /* for */
+    /* Fix pointers in the macro argument entries. */
     for (map = macro_arg_list; map != NULL; map = map->next) {
-      fix_source_line_modif_list(map->modif_list);
+      fix_ptr(map->initial_raw_text_not_in_primary_source_line);
     }  /* for */
     /* Adjust global variables that point into the curr_source_line
        structure. */
@@ -261,6 +287,7 @@ Walk a list of source line modifications and fix up each one.
     fix_ptr(delete_source_from_loc);
     fix_ptr(start_of_curr_token);
     fix_ptr(end_of_curr_token);
+    fix_ptr(arg_get_token_start_of_curr_token);
     /* Adjust local variables that point into the curr_source_line structure.
        Such variables are registered by calling register_pointer_variable. */
     for (prp = registered_pointers; prp != NULL; prp = prp->next) {
@@ -392,21 +419,22 @@ ensure_arg_raw_text_space.
   char            *new_raw_text;
 
   db_enter(4, "expand_arg_raw_text");
-  old_size = map->max_len;
+  old_size = map->raw_alloc_len;
   total_needed = map->raw_len + needed;
   /* Take a look to see if a freed entry has a large enough raw_text area,
      in which case the two raw_text allocations can be swapped. */
   for (avail_map = avail_macro_args;
        avail_map != NULL;
        avail_map = avail_map->next) {
-    if (avail_map->max_len >= total_needed) {
+    if (avail_map->raw_alloc_len >= total_needed) {
       /* This raw_text entry is big enough.  Note this is "first fit", not
          "best fit".  It shouldn't matter.  Swap the raw_text areas, and
-         copy the data. */
+         copy the data.  Note that the entries themselves are not swapped,
+         and the expanded_text areas are left alone. */
       new_raw_text = avail_map->raw_text;
-      new_size = avail_map->max_len;
+      new_size = avail_map->raw_alloc_len;
       avail_map->raw_text = map->raw_text;
-      avail_map->max_len = map->max_len;
+      avail_map->raw_alloc_len = map->raw_alloc_len;
       (void)memcpy(new_raw_text, map->raw_text, size_t_arg(map->raw_len));
       goto have_space;
     }  /* if */
@@ -419,7 +447,7 @@ ensure_arg_raw_text_space.
   }  /* if */
   new_size = old_size + increment;
 #if DEBUG
-  macro_arg_raw_text_space += increment;
+  macro_arg_text_space += increment;
 #endif /* DEBUG */
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
@@ -433,7 +461,7 @@ have_space:
                                                   map->raw_text+old_size,
                                                   new_raw_text);
   map->raw_text = new_raw_text;
-  map->max_len = new_size;
+  map->raw_alloc_len = new_size;
   db_exit();
 }  /* expand_arg_raw_text */
 
@@ -444,10 +472,84 @@ the given macro argument entry.  If not, expand raw_text by reallocating it.
 */
 #define ensure_arg_raw_text_space(needed, map)                        \
 { sizeof_t temp_needed = (needed);                                    \
-  if (temp_needed > (map->max_len - map->raw_len)) {                  \
+  if (temp_needed > (map->raw_alloc_len - map->raw_len)) {            \
     expand_arg_raw_text(temp_needed, map);                            \
   }  /* if */                                                         \
 }  /* ensure_arg_raw_text_space */
+
+
+static void expand_arg_expanded_text(sizeof_t        needed,
+                                     a_macro_arg_ptr map)
+/*
+Expand the expanded_text of a macro arg by reallocating it.  Called by
+ensure_arg_expanded_text_space.
+*/
+{
+  a_macro_arg_ptr avail_map;
+  sizeof_t        total_needed, old_size, new_size, increment;
+  char            *new_expanded_text;
+
+  db_enter(4, "expand_arg_expanded_text");
+  old_size = map->expanded_alloc_len;
+  total_needed = map->expanded_len + needed;
+  /* Take a look to see if a freed entry has a large enough expanded_text area,
+     in which case the two expanded_text allocations can be swapped. */
+  for (avail_map = avail_macro_args;
+       avail_map != NULL;
+       avail_map = avail_map->next) {
+    if (avail_map->expanded_alloc_len >= total_needed) {
+      /* This expanded_text entry is big enough.  Note this is "first fit",
+         not "best fit".  It shouldn't matter.  Swap the expanded_text areas,
+         and copy the data.  Note that the entries themselves are not swapped,
+         and the raw_text areas are left alone. */
+      new_expanded_text = avail_map->expanded_text;
+      new_size = avail_map->expanded_alloc_len;
+      avail_map->expanded_text = map->expanded_text;
+      avail_map->expanded_alloc_len = map->expanded_alloc_len;
+      (void)memcpy(new_expanded_text, map->expanded_text,
+                   size_t_arg(map->expanded_len));
+      goto have_space;
+    }  /* if */
+  }  /* for */
+  /* Need to expand.  Make sure we ask for enough to satisfy the current
+     request and a little bit more. */
+  increment = needed + needed/10 - (old_size - map->expanded_len);
+  if (increment < ARG_EXPANDED_TEXT_INCREMENTAL_ALLOCATION) {
+    increment = ARG_EXPANDED_TEXT_INCREMENTAL_ALLOCATION;
+  }  /* if */
+  new_size = old_size + increment;
+#if DEBUG
+  macro_arg_text_space += increment;
+#endif /* DEBUG */
+  /* Allocate one more byte than required, so that a pointer past the end
+     will not have the same address as a pointer to the next object in
+     memory. */
+  new_expanded_text = realloc_general(map->expanded_text,
+                                      (sizeof_t)(old_size+1),
+                                      (sizeof_t)(new_size+1));
+have_space:
+  /* Update any pointers to the old expanded_text in the curr_source_line
+     data structure. */
+  adjust_curr_source_line_structure_after_realloc(map->expanded_text,
+                                                  map->expanded_text+old_size,
+                                                  new_expanded_text);
+  map->expanded_text = new_expanded_text;
+  map->expanded_alloc_len = new_size;
+  db_exit();
+}  /* expand_arg_expanded_text */
+
+
+/*
+Ensure that at least "needed" bytes of space remain in the expanded_text
+of the given macro argument entry.  If not, expand expanded_text by
+reallocating it.
+*/
+#define ensure_arg_expanded_text_space(needed, map)                   \
+{ sizeof_t temp_needed = (needed);                                    \
+  if (temp_needed > (map->expanded_alloc_len - map->expanded_len)) {  \
+    expand_arg_expanded_text(temp_needed, map);                       \
+  }  /* if */                                                         \
+}  /* ensure_arg_expanded_text_space */
 
 
 static a_macro_param_ptr alloc_macro_param(void)
@@ -529,22 +631,32 @@ and return a pointer to it.
        if necessary, but the size here should be able to cover most
        needs.  Note the use of alloc_general here, since only space
        allocated via alloc_general can be realloced. */
-    map->max_len = ARG_RAW_TEXT_INITIAL_ALLOCATION;
+    map->raw_alloc_len = ARG_RAW_TEXT_INITIAL_ALLOCATION;
     /* Allocate one more byte than required, so that a pointer past the end
        will not have the same address as a pointer to the next object in
        memory. */
-    map->raw_text = alloc_general((sizeof_t)(map->max_len+1));
+    map->raw_text = alloc_general((sizeof_t)(map->raw_alloc_len+1));
 #if DEBUG
-    macro_arg_raw_text_space += map->max_len;
+    macro_arg_text_space += map->raw_alloc_len;
+#endif /* DEBUG */
+    /* Likewise for the macro-expanded text array. */
+    map->expanded_alloc_len = ARG_EXPANDED_TEXT_INITIAL_ALLOCATION;
+    /* Allocate one more byte than required, so that a pointer past the end
+       will not have the same address as a pointer to the next object in
+       memory. */
+    map->expanded_text = alloc_general((sizeof_t)(map->expanded_alloc_len+1));
+#if DEBUG
+    macro_arg_text_space += map->expanded_alloc_len;
 #endif /* DEBUG */
   } /* if */
-  map->next            = NULL;
-  map->raw_len         = 0;
-  map->modif_list      = NULL;
-  map->modif_text_used = FALSE;
-
+  map->next         = NULL;
+  map->raw_len      = 0;
+  map->initial_raw_text_not_in_primary_source_line = NULL;
+  map->final_modif_for_initial_text = NULL;
+  map->offset_in_raw_text_of_primary_source_line_text = 0;
+  map->expanded_len = 0;
   db_exit();
-  return (map);
+  return map;
 }  /* alloc_macro_arg */
 
 
@@ -553,14 +665,7 @@ static void free_macro_arg(a_macro_arg_ptr *map)
 Free the macro argument description pointed to by *map, and set *map to NULL.
 */
 {
-  a_source_line_modif_ptr slmp;
-
   db_enter(5, "free_macro_arg");
-  /* Free any source modification entries attached to this argument. */
-  while ((slmp = (*map)->modif_list) != NULL) {
-    (*map)->modif_list = slmp->next;
-    free_source_line_modif(&slmp);
-  }  /* while */
   /* Put the macro buffer on a list of macro buffers freed and available
      to be reused. */
   (*map)->next = avail_macro_args;
@@ -568,128 +673,6 @@ Free the macro argument description pointed to by *map, and set *map to NULL.
   *map = NULL;
   db_exit();
 }  /* free_macro_arg */
-
-
-static void copy_modif_list (a_macro_arg_ptr map,
-                             char            **src_loc)
-/*
-Make copies of the source line modifications indicated by map->modif_list,
-to transform the raw text of a macro argument (at *src_loc) to the
-macro-expanded text for that argument.  *src_loc is registered by the caller
-as a local pointer, and therefore may be updated if macro_buffer is
-reallocated; that's why an extra level of indirection is used.
-*/
-{
-  a_source_line_modif_ptr    slmp, old_slmp, parent_slmp,
-                             slmp_marker = map->modif_list;
-  sizeof_t                   len;
-  a_boolean                  need_copy;
-
-  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
-     are dangerous, since those things can be reallocated.  Such pointers
-     must be registered by calling register_pointer_variable so that they
-     can be updated on any reallocation. */
-  char                       *new_line_loc, *old_line_loc, *text_loc;
-  a_pointer_registration     new_line_loc_reg, old_line_loc_reg, text_loc_reg;
-  a_pointer_registration_ptr save_registered_pointers = registered_pointers;
-
-  register_pointer_variable(new_line_loc, new_line_loc_reg);
-  register_pointer_variable(old_line_loc, old_line_loc_reg);
-  register_pointer_variable(text_loc,     text_loc_reg);
-
-  /* The first use of the argument can use the inserted text from the
-     modif list.  For subsequent uses, additional copies of the text are
-     made. */
-  need_copy = map->modif_text_used;
-  map->modif_text_used = TRUE;
-
-  for (old_slmp = map->modif_list;
-       old_slmp != NULL;
-       old_slmp = old_slmp->next) {
-    /* Make a copy of each modification, and apply it to the copy of the
-       raw text.  The modifications are in decreasing order by sequence id,
-       and therefore by the time a modification is processed, the thing
-       modified should already have been processed. */
-    /* Determine the location for the new modification.  If the modification
-       is to the raw_text directly, that is translated to a location
-       relative to *src_loc.  Otherwise, it must be a modification of the
-       text of a modification processed on a previous iteration of this loop.
-       Find the previous modification, and from that the location of the
-       text to be modified, and adjust it accordingly. */
-    old_line_loc = old_slmp->line_loc;
-    /* Note that there is no "+1" after raw_len in the following; it's not
-       needed because a modification cannot be planted on the terminating
-       LE_END_OF_INSERTION lexical escape. */
-    if (ptr_in_range(old_line_loc, map->raw_text,
-                     map->raw_text+map->raw_len)) {
-      /* This modification is to the raw_text of the argument. */
-      new_line_loc = *src_loc + (old_line_loc - map->raw_text);
-      /* We don't know the parent modification (and in fact it probably has
-         not been created yet). */
-      parent_slmp = NULL;
-    } else {
-      /* Find the prototype modification whose text is modified by this
-         location.  Starting the search from where we left off in the
-         previous iteration of the outer "for" loop speeds up things on
-         average (compared to starting the search from map->modif_list). */
-      for (slmp = slmp_marker;;) {
-        /* Note that there is no "+1" after end_inserted_text in the following;
-           it's not needed because a modification cannot be planted on the
-           terminating LE_END_OF_INSERTION lexical escape. */
-        if (ptr_in_range(old_line_loc, slmp->inserted_text,
-                         slmp->end_inserted_text)) {
-          break;
-        }  /* if */
-        slmp = slmp->next;
-        if (slmp == old_slmp) {
-          slmp = map->modif_list;
-#if CHECKING
-        } else if (slmp == slmp_marker) {
-          internal_error("copy_modif_list: loc not found");
-#endif /* CHECKING */
-        }  /* if */
-      }  /* for */
-      slmp_marker = slmp;
-      parent_slmp = slmp->assoc_copy_modif;
-#if CHECKING
-      if (parent_slmp == NULL) {
-        internal_error("copy_modif_list: parent_slmp == NULL");
-      }  /* if */
-#endif /* CHECKING */
-      new_line_loc = parent_slmp->inserted_text +
-                     (old_line_loc - slmp->inserted_text);
-    }  /* if */
-    /* Now new_line_loc is set correctly.  Make a new copy of the inserted
-       text of the modification, including the terminating LE_END_OF_INSERTION
-       lexical escape.  On the first use of an argument, the original inserted
-       text can be used, without copying. */
-    len = old_slmp->end_inserted_text - old_slmp->inserted_text +
-          LE_ESCAPE_LEN;
-    if (!need_copy) {
-      /* This is the first use of the inserted text, so no copy is required. */
-      text_loc = old_slmp->inserted_text;
-    } else {
-      /* The inserted text has already been used, so it must be copied for
-         this use. */
-      ensure_macro_buffer_space(len);
-      text_loc = next_avail_in_macro_buffer;
-      (void)memcpy(text_loc, old_slmp->inserted_text, size_t_arg(len));
-      next_avail_in_macro_buffer += len;
-    }  /* if */
-    /* Add the new source line modification. */
-    slmp = add_source_line_modif(new_line_loc, old_slmp->num_chars_to_delete,
-                                 text_loc, text_loc+len-LE_ESCAPE_LEN);
-    slmp->assoc_macro = old_slmp->assoc_macro;
-    slmp->source_position = old_slmp->source_position;
-    /* Link the prototype modification to its copy, for use in resolving
-       line_locs on later iterations of this loop. */
-    old_slmp->assoc_copy_modif = slmp;
-    /* Put in the parent pointer if it's known. */
-    if (parent_slmp != NULL) set_parent_modif(slmp, parent_slmp);
-  }  /* for */
-  /* Drop any local pointer registrations. */
-  registered_pointers = save_registered_pointers;
-}  /* copy_modif_list */
 
 
 #if DEBUG
@@ -736,6 +719,8 @@ print the replacement text and expansions of macros.
           ch = '$';
           n_printed++;
           slmp = assoc_source_line_modif(p);
+          /* If this is the end of a macro argument, stop. */
+          if (slmp->is_isolated_text) break;
           level--;
           leave_insertion(slmp, p);
         }  /* if */
@@ -754,9 +739,6 @@ print the replacement text and expansions of macros.
         ch = '0';
         n_printed++;
         p += LE_ESCAPE_LEN;
-      } else if (ch == LE_END_OF_BUFFER) {
-        /* End of buffer.  Stop. */
-        break;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -1081,12 +1063,12 @@ with \.  Return the macro argument created.
       }  /* if */
       *dest++ = *src++;
     }  /* for */
-    /* Append an end-of-insertion escape. */
-    *dest++ = LE_ESCAPE;
-    /* Compute the length of the string, including the LE_ESCAPE but not
-       the LE_END_OF_BUFFER. */
+    /* Compute the length of the string, not counting the final escape
+       sequence. */
     map->raw_len = dest - map->raw_text;
-    *dest++ = LE_END_OF_BUFFER;
+    /* Append an end-of-buffer escape. */
+    *dest++ = LE_ESCAPE;
+    *dest++ = LE_END_OF_INSERTION;
   }
   return map;
 }  /* copy_pragma_string */
@@ -1124,7 +1106,8 @@ is the source position of the _Pragma token.
   slmp = add_source_line_modif(start_of_curr_token,
                                len_of_curr_token,
                                &map->raw_text[0],
-                               &map->raw_text[map->raw_len - 1]);
+                               &map->raw_text[map->raw_len]);
+  slmp->is_isolated_text = TRUE;
   curr_char_loc = map->raw_text;
   /* Actually scan the tokens that make up the pragma. */
   { a_pragma_kind_description_ptr	pkdp = NULL;
@@ -1310,12 +1293,63 @@ static a_token_kind arg_get_token(a_boolean *any_white_space_skipped)
 /*
 Fetch and return a token as part of scanning a macro argument.  Return
 *any_white_space_skipped == TRUE if any white space was skipped (the
-white space will also be deleted).
+white space will also be deleted).  The global variable
+arg_get_token_start_of_curr_token is set to the character position
+after the white-space skip, which differs from start_of_curr_token
+when the token is preceded by an inert-macro escape.
 */
 {
   macro_skip_white_space(*any_white_space_skipped);
+  arg_get_token_start_of_curr_token = curr_char_loc;
   return (get_token());
 }  /* arg_get_token */
+
+
+static sizeof_t length_for_curr_token_save(a_boolean need_end_of_token_marker,
+                                           a_boolean any_white_space_skipped)
+/*
+Return the number of characters needed to save the current token
+as text in a buffer.  need_end_of_token_marker is TRUE if an end-of-
+token marker escape is needed.  any_white_space_skipped is TRUE if
+there was any white space preceding the token.
+*/
+{
+  sizeof_t len = len_of_curr_token;
+
+  if (any_white_space_skipped) len++;
+  if (need_end_of_token_marker) len += LE_ESCAPE_LEN;
+  if (curr_token_is_inert_macro) len += LE_ESCAPE_LEN;
+  return len;
+}  /* length_for_curr_token_save */
+
+
+static void add_curr_token_text_to_buffer(a_boolean need_end_of_token_marker,
+                                          a_boolean any_white_space_skipped,
+                                          char      *buffer)
+/*
+Add a textual version of the current token to the indicated buffer.
+If need_end_of_token_marker is TRUE, put an end-of-token marker escape
+out first.  If any_white_space_skipped is TRUE, a blank is put out
+before the token (and after the end-of-token marker, if any).
+The current token must have been scanned as a pp-token.
+*/
+{
+  if (need_end_of_token_marker) {
+    *buffer++ = LE_ESCAPE;
+    *buffer++ = LE_END_OF_TOKEN;
+  }  /* if */
+  if (any_white_space_skipped) {
+    *buffer++ = ' ';
+  }  /* if */
+  if (curr_token_is_inert_macro) {
+    /* Prefix for a macro identifier name that indicates that the name came
+       from its own expansion and should not be expanded further. */
+    *buffer++ = LE_ESCAPE;
+    *buffer++ = LE_INERT_MACRO;
+  }  /* if */
+  (void)memcpy((void *)buffer, (void *)start_of_curr_token,
+               size_t_arg(len_of_curr_token));
+}  /* add_curr_token_text_to_buffer */
 
 
 static sizeof_t stringized_arg(a_macro_arg_ptr map,
@@ -1359,8 +1393,7 @@ In such cases, charize is TRUE.
         within_char_literal = FALSE;
         start_of_token = TRUE;
         p += LE_ESCAPE_LEN-1;
-      } else if (p[1] == LE_END_OF_INSERTION ||
-                 p[1] == LE_END_OF_BUFFER) {
+      } else if (p[1] == LE_END_OF_INSERTION) {
         /* End of argument. */
         break;
       } else if (p[1] == LE_NULL) {
@@ -1818,10 +1851,7 @@ hence its name should not be changed.  *length is the value to be adjusted.
     get_macro_repl_text_number(arg_number, ahead);
     get_arg_value(arg_number, map);
     if (arg_number == n_params &&
-        (map->raw_len == 0 ||
-         (map->raw_text[0] == LE_ESCAPE &&
-          (map->raw_text[1] == LE_END_OF_INSERTION ||
-           map->raw_text[1] == LE_END_OF_BUFFER)))) {
+        map->raw_len == 0) {
       /* The last macro parameter (presumably variadic) is empty or missing.
          So we adjust the section length to not include the last chunk of
          white space characters preceded by a comma: */
@@ -1832,7 +1862,7 @@ hence its name should not be changed.  *length is the value to be adjusted.
         if (*back == ',') {
           *length -= (rtp-back);
         }  /* if */
-      }
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* adjust_length_for_magic_arg */
@@ -1884,9 +1914,7 @@ hence its name should not be changed.
                                     rts_kind == rt_charized_raw_argument);
           break;
         case rt_argument:
-          /* Note that the length here is without any source modifications
-             (like macro expansions); they are handled later. */
-          sect_len = map->raw_len;
+          sect_len = map->expanded_len;
           break;
 #if CHECKING
         default:
@@ -1941,9 +1969,8 @@ associated global variables will also have been set).
   a_boolean       save_expand_macros = expand_macros;
   int             recursion_depth;
   a_source_line_modif_ptr
-		  slmp,
-                  slmp2,
-                  end_modif_list;
+                  slmp,
+                  slmp2;
   unsigned long   sequence_id;
   a_boolean       need_end_of_token_marker;
   a_boolean       is_macro_call = TRUE;  /* Assume. */
@@ -2030,19 +2057,6 @@ associated global variables will also have been set).
       goto end_scan_for_macro_modifs;
     }  /* if */
   }  /* for */
-  if (in_pp_if_expression) {
-    /* When a #if preprocessing directive appears in a macro argument,
-       and there's a macro expansion in the expression of that #if, there
-       may be previous arguments that point to active text in the
-       macro buffer. */
-    for (map = macro_arg_list; map != NULL; map = map->next) {
-      for (slmp = map->modif_list; slmp != NULL; slmp = slmp->next) {
-        if (slmp->inserted_text != slmp->inserted_chars) {
-          goto end_scan_for_macro_modifs;
-        }  /* if */
-      }  /* for */
-    }  /* for */
-  }  /* if */
   /* No source line modifications from macros. */
   next_avail_in_macro_buffer = macro_buffer;
 end_scan_for_macro_modifs:;
@@ -2302,8 +2316,11 @@ end_scan_for_macro_modifs:;
       if (curr_token != tok_rparen || pp != NULL) {
         add_stop_token(tok_comma);
         do {
-          a_source_line_modif_ptr  locked_slmp;
-          a_boolean                saved_slm_lock;
+          sizeof_t                token_text_len;
+          a_source_line_modif_ptr locked_slmp;
+          a_boolean               saved_slm_lock;
+          a_boolean               need_expanded_form;
+          a_boolean               scanning_text_not_in_primary_source_line;
           /* Scan one argument value.  The argument value ends with a
              comma or right parenthesis that is not inside parentheses.
              Note that expand_macros is FALSE, and therefore the argument
@@ -2338,7 +2355,27 @@ do_argument_again:
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;
           need_end_of_token_marker = FALSE;
-          /* A macro argument will end when encountering:
+          scanning_text_not_in_primary_source_line = FALSE;
+          /* See whether we need the macro-expanded form of the argument.
+             We need it only if it is used in the macro definition.
+             In pcc mode, the expanded form is never needed. */
+          need_expanded_form = (!pcc_preprocessing_mode &&
+                                pp != NULL &&
+                                pp->need_expanded_form);
+          map->offset_in_raw_text_of_primary_source_line_text = 0;
+          if (need_expanded_form &&
+              !within_curr_source_line(start_of_curr_token)) {
+            /* The macro argument starts off in an insertion, i.e., it
+               was generated by a macro expansion.  Remember the position
+               of the original source so we can scan from there when we
+               rescan to get the macro-expanded form of the argument.
+               That gives us the original context we need to test for
+               macro inertness. */
+            map->initial_raw_text_not_in_primary_source_line =
+                                             arg_get_token_start_of_curr_token;
+            scanning_text_not_in_primary_source_line = TRUE;
+          }  /* if */
+          /* A macro argument ends when we encounter:
                (a) the end of the current line or the current translation
                    unit, or
                (b) outside parentheses introduced in the argument (i.e., when
@@ -2353,40 +2390,29 @@ do_argument_again:
                     (curr_token == tok_rparen ||
                      (curr_token == tok_comma &&
                       !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
-            sizeof_t raw_text_len;
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
               paren_count++;
             } else if (curr_token == tok_rparen) {
               if (paren_count > 0) paren_count--;
             }  /* if */
-            /* Put the characters of the token, a preceding end-of-token
-               marker if necessary, and a preceding blank if there was
-               preceding white space, into the buffer.  Also an
-               LE_INERT_MACRO escape sequence if needed. */
-            raw_text_len = len_of_curr_token;
-            if (any_white_space_skipped) raw_text_len++;
-            if (need_end_of_token_marker) raw_text_len += LE_ESCAPE_LEN;
-            if (curr_token_is_inert_macro) raw_text_len += LE_ESCAPE_LEN;
-            ensure_arg_raw_text_space(raw_text_len, map);
-            if (need_end_of_token_marker) {
-              map->raw_text[(map->raw_len)++] = LE_ESCAPE;
-              map->raw_text[(map->raw_len)++] = LE_END_OF_TOKEN;
-              need_end_of_token_marker = FALSE;
+            if (scanning_text_not_in_primary_source_line) {
+              /* This token was fetched from a source line modification.
+                 Mark that modification so it will be saved if we advance
+                 into a new source line. */
+              slmp = assoc_source_line_modif(start_of_curr_token);
+              slmp->contains_saved_macro_argument_text = TRUE;
             }  /* if */
-            if (any_white_space_skipped) {
-              map->raw_text[(map->raw_len)++] = ' ';
-            }  /* if */
-            if (curr_token_is_inert_macro) {
-              /* Prefix for a macro identifier name that indicates that the
-                 name came from its own expansion and should not be
-                 expanded further. */
-              map->raw_text[(map->raw_len)++] = LE_ESCAPE;
-              map->raw_text[(map->raw_len)++] = LE_INERT_MACRO;
-            }  /* if */
-            (void)memcpy(&(map->raw_text[map->raw_len]), start_of_curr_token,
-                         size_t_arg(len_of_curr_token));
-            map->raw_len += len_of_curr_token;
+            /* Put the text of the token into the argument raw_text array. */
+            token_text_len =
+                          length_for_curr_token_save(need_end_of_token_marker,
+                                                     any_white_space_skipped);
+            ensure_arg_raw_text_space(token_text_len, map);
+            add_curr_token_text_to_buffer(need_end_of_token_marker,
+                                          any_white_space_skipped,
+                                          map->raw_text+map->raw_len);
+            map->raw_len += token_text_len;
+            need_end_of_token_marker = FALSE;
             /* Suppress end-of-token markers in pcc mode. */
             if (!pcc_preprocessing_mode) need_end_of_token_marker = TRUE;
             /* Generate a remark on an invalid token. */
@@ -2394,7 +2420,24 @@ do_argument_again:
               remark(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
+            if (scanning_text_not_in_primary_source_line &&
+                within_curr_source_line(start_of_curr_token)) {
+              /* This argument started out in a macro expansion and now
+                 we're back in the primary source line.  Remember where
+                 this happens. */
+              scanning_text_not_in_primary_source_line = FALSE;
+              map->final_modif_for_initial_text =
+                      last_source_line_modif_exited_while_skipping_white_space;
+              /* Remember also where to pick up in the saved raw text when
+                 the rescan continues into the primary source line text. */
+              map->offset_in_raw_text_of_primary_source_line_text=map->raw_len;
+            }  /* if */
           }  /* while */
+          if (scanning_text_not_in_primary_source_line) {
+            /* We never got back to the primary source line.  Store the
+               offset of the final end-of-insertion as the restart point. */
+            map->offset_in_raw_text_of_primary_source_line_text=map->raw_len;
+          }  /* if */
           /* Place terminating LE_END_OF_INSERTION lexical escape. */
           ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
           map->raw_text[map->raw_len]   = LE_ESCAPE;
@@ -2429,27 +2472,45 @@ do_argument_again:
             }  /* if */
           }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
-             again with macro expansion.  We do that by temporarily
-             placing a source modification that inserts the raw text,
-             and then fetching tokens from there.  */
-          /* In pcc mode, this is not necessary, since all arguments
-             are scanned only in raw form. */
-          if (pcc_preprocessing_mode) goto end_arg_expansion;
-          /* It's also not necessary (and not allowed) if the expanded
-             form of the argument is never used. */
-          if (pp == NULL || !pp->need_expanded_form) goto end_arg_expansion;
+             again with macro expansion. */
+          if (!need_expanded_form) goto end_arg_expansion;
+          /* We do the rescan by reinserting the raw argument text
+             temporarily and rescanning it with macro expansion on
+             (but still fetching pp-tokens).  Note that the standard
+             requires that a macro argument be macro-expanded in
+             isolation, without any of the tokens following it.  We
+             implement that by setting the is_isolated_text flag
+             so that the scan will stop at the end of the insertion. */
+          /* It's not possible to rescan the raw argument entirely from
+             the original source because we may have advanced to a new source
+             line while scanning the argument.  However, parts that came
+             from macro expansions are scanned from the original so
+             that we get the proper context for macro inertness checking
+             (they're in macro_buffer, so they have not disappeared).
+             After those parts, we drop into the characters in the
+             raw_text buffer to scan the parts that came from the
+             primary source line. */
           slmp = add_source_line_modif(start_of_curr_token, 1,
                                        map->raw_text,
                                        map->raw_text+map->raw_len);
-          /* On the expansion, the scanning is limited to the raw text just
-             inserted.  This implements the requirement of 3.8.3.1 that
-             arguments be "macro replaced as if they formed the rest of
-             the source file".  The LE_END_OF_BUFFER forces a tok_end_of_source
-             back from get_token when the end of the text is reached. */
-          check_assertion(map->raw_text[map->raw_len+1]== LE_END_OF_INSERTION);
-          map->raw_text[map->raw_len+1] = LE_END_OF_BUFFER;
+          slmp->is_isolated_text = TRUE;
           slmp->source_position = start_pos;
-          curr_char_loc = map->raw_text;
+          if (map->initial_raw_text_not_in_primary_source_line != NULL) {
+            /* Start in the macro-expanded part of the original text of the
+               raw argument. */
+            curr_char_loc = map->initial_raw_text_not_in_primary_source_line;
+            if (map->final_modif_for_initial_text != NULL) {
+              /* Force the scan to stop at the point where the scan would
+                 return to the primary source line. */
+              map->final_modif_for_initial_text->is_isolated_text = TRUE;
+            }  /* if */
+            scanning_text_not_in_primary_source_line = TRUE;
+          } else {
+            /* The raw argument came entirely from the primary source line,
+               so rescan it entirely out of the raw_text buffer. */
+            curr_char_loc = map->raw_text;
+            scanning_text_not_in_primary_source_line = FALSE;
+          }  /* if */
           expand_macros = TRUE;
           /* slmp->next will be used as a list delimiter.  If non-NULL,
              make sure it does not get moved. */
@@ -2465,15 +2526,44 @@ do_argument_again:
           save_delete_source_from_loc = delete_source_from_loc;
           delete_source_from_loc = NULL;
           (void)arg_get_token(&any_white_space_skipped);
+          /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
-          /* Note that the tok_end_of_source here would be returned by
-             arg_get_token; it's not actually the end of source. */
+          need_end_of_token_marker = FALSE;
+scan_expanded_tokens:
+          /* Note that the tok_end_of_source here is returned because
+             of the is_isolated_text flag; it's not actually the end of
+             source. */
           while (curr_token != tok_end_of_source) {
-            /* We don't have to do anything except call get_token
-               repeatedly; if there are any macro invocations, source
-               modifications will be applied to the raw text. */
+            /* Put the text of the token into the argument expanded_text
+               array. */
+            token_text_len =
+                          length_for_curr_token_save(need_end_of_token_marker,
+                                                     any_white_space_skipped);
+            ensure_arg_expanded_text_space(token_text_len, map);
+            add_curr_token_text_to_buffer(need_end_of_token_marker,
+                                          any_white_space_skipped,
+                                         map->expanded_text+map->expanded_len);
+            map->expanded_len += token_text_len;
+            need_end_of_token_marker = TRUE;
             (void)arg_get_token(&any_white_space_skipped);
           }  /* while */
+          if (scanning_text_not_in_primary_source_line) {
+            /* We finished the part of the raw argument that we
+               could rescan from the original insertion text.
+               Continue in the raw_text buffer. */
+            scanning_text_not_in_primary_source_line = FALSE;
+            if (map->final_modif_for_initial_text != NULL) {
+              map->final_modif_for_initial_text->is_isolated_text = FALSE;
+            }  /* if */
+            curr_char_loc= map->raw_text +
+                           map->offset_in_raw_text_of_primary_source_line_text;
+            (void)arg_get_token(&any_white_space_skipped);
+            goto scan_expanded_tokens;
+          }  /* if */
+          /* Place terminating LE_END_OF_INSERTION lexical escape. */
+          ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
+          map->expanded_text[map->expanded_len]   = LE_ESCAPE;
+          map->expanded_text[map->expanded_len+1] = LE_END_OF_INSERTION;
 #if DEBUG
           if (debug_level >= 4) {
             fprintf(f_debug, "expanded argument %s: \"",
@@ -2482,12 +2572,10 @@ do_argument_again:
                source modifications there are for macro expansions will
                be printed too.  This debug printing must be done at this
                point, before the changes are removed below. */
-            print_markered_text(map->raw_text, (sizeof_t)-1, FALSE);
+            print_markered_text(map->expanded_text, (sizeof_t)-1, FALSE);
             fputs("\"\n", f_debug);
           }  /* if */
 #endif /* DEBUG */
-          check_assertion(map->raw_text[map->raw_len+1] == LE_END_OF_BUFFER);
-          map->raw_text[map->raw_len+1] = LE_END_OF_INSERTION;
           /* Remove the temporary source line modification that put the raw
              argument text back into the source line. */
           sequence_id = slmp->sequence_id;
@@ -2496,13 +2584,7 @@ do_argument_again:
           free_source_line_modif(&slmp);
           /* The macro expansions, if any, were done by applying source
              modifications to the raw text.  Remove those (thus restoring
-             the original raw text), make a list of them, and save that
-             list in modif_list for this argument.  That list will be used
-             later when the expanded form is required in the macro expansion,
-             to generate appropriate modifications to a copy of the raw
-             text. */
-          map->modif_list = NULL;
-          end_modif_list = NULL;
+             the original raw text). */
           if (sequence_id == sequence_id_for_source_line_modifs) {
             /* Modifications were not applied (otherwise the global counter
                sequence_id_for_source_line_modifs would have been incremented).
@@ -2512,18 +2594,9 @@ do_argument_again:
               slmp2 = slmp;
               slmp = slmp->next;
               if (slmp2->sequence_id > sequence_id) {
-                /* Found a modification to this argument.  Remove it, save it
-                   on the modif_list for this argument.  Entries are added
-                   at the end so that they will be in the original order.
-                   This is required by copy_modif_list. */
+                /* Found a modification to this argument.  Remove it. */
                 rem_source_line_modif(slmp2);
-                if (map->modif_list == NULL) {
-                  map->modif_list = slmp2;
-                } else {
-                  end_modif_list->next = slmp2;
-                }  /* if */
-                slmp2->next = NULL;
-                end_modif_list = slmp2;
+                free_source_line_modif(&slmp2);
               }  /* if */
             }  /* for */
           }  /* if */
@@ -2567,8 +2640,12 @@ end_arg_expansion:;
         do {
           map = alloc_macro_arg();
           add_to_arg_values(map);
+          map->raw_len = 0;
           map->raw_text[0] = LE_ESCAPE;
           map->raw_text[1] = LE_END_OF_INSERTION;
+          map->expanded_len = 0;
+          map->expanded_text[0] = LE_ESCAPE;
+          map->expanded_text[1] = LE_END_OF_INSERTION;
           pp = pp->next;
           ++n_params;
         } while (pp != NULL);
@@ -2678,6 +2755,7 @@ end_arg_expansion:;
         get_arg_value(rts_number, map);
         switch (rts_kind) {
           case rt_raw_argument:
+            /* The raw (non-macro-expanded) value of the argument. */
             sect_len = map->raw_len;
             text_loc = map->raw_text;
             /* Remove an LE_INERT_MACRO escape at the beginning if present,
@@ -2709,16 +2787,14 @@ end_arg_expansion:;
             break;
           case rt_stringized_raw_argument:
           case rt_charized_raw_argument:
-            /* Generate the text of the stringized (or charized) version of
-               the argument, in the right place. */
+            /* The stringized or charized value of the argument. */
             (void)stringized_arg(map, &src_loc,
                                  rts_kind == rt_charized_raw_argument);
             goto copy_done;
           case rt_argument:
-            /* Note that any applicable source modifications will be added
-               below. */
-            sect_len = map->raw_len;
-            text_loc = map->raw_text;
+            /* The macro-expanded value of the argument. */
+            sect_len = map->expanded_len;
+            text_loc = map->expanded_text;
             break;
 #if CHECKING
           default:
@@ -2735,20 +2811,8 @@ end_arg_expansion:;
       }  /* if */
       if (sect_len != 0) {
         /*lint --e(668)*/(void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
+        src_loc += sect_len;
       }  /* if */
-      if (rts_kind == rt_argument && map->modif_list != NULL) {
-        /* If this is an expanded argument value, and there are any source
-           modifications to the raw text to produce the expanded text
-           (because of macro expansion in the argument value), make
-           copies of the source modification that modify the copy of the
-           raw text.  Note that the copies of modification text can go
-           at the end of macro_buffer, because next_avail_in_macro_buffer
-           has already been adjusted to allow space for the entire
-           macro expansion.  Macro calls in argument values are a relatively
-           rare case, so efficiency is not a big concern here. */
-        copy_modif_list(map, &src_loc);
-      }  /* if */
-      src_loc += sect_len;
 copy_done:;
     }  /* for */
   }  /* if */
@@ -5357,7 +5421,7 @@ Display and return the amount of space used for various macro tables.
   db_space_used("macro def", num_macro_defs_allocated, a_macro_def);
   db_space_used_lost_general("macro arg", avail_macro_args,
                              num_macro_args_allocated, a_macro_arg);
-  db_space_used_general("Macro arg text", macro_arg_raw_text_space, char);
+  db_space_used_general("Macro arg text", macro_arg_text_space, char);
   db_space_used("Param name strings", param_name_string_space, char);
   db_space_used("Macro definition text", macro_definition_space, char);
 
@@ -5410,7 +5474,7 @@ Do one-time initialization of variables related to macro processing.
   avail_macro_args = NULL;
 #if DEBUG
   num_macro_args_allocated = 0;
-  macro_arg_raw_text_space = 0;
+  macro_arg_text_space = 0;
 #endif /* DEBUG */
   registered_pointers = NULL;
   /* Save variables from macro.h and macro.c that are needed for
@@ -5505,7 +5569,7 @@ initialized for each compilation.
   num_macro_defs_allocated      = 0;
   /* num_macro_args_allocated is not per-compilation and should not be
      cleared. */
-  /* macro_arg_raw_text_space is not per-compilation and should not be
+  /* macro_arg_text_space is not per-compilation and should not be
      cleared. */
   param_name_string_space       = 0;
   macro_definition_space        = 0;

@@ -2049,19 +2049,21 @@ invocations.
   slmp->line_loc            = line_loc;
   slmp->parent_modif        = NULL;
   slmp->num_chars_to_delete = num_chars_to_delete;
+  slmp->is_isolated_text    = FALSE;
   slmp->is_for_comment      = FALSE;
   slmp->parent_modif_determined
                             = FALSE;
   slmp->being_rescanned_for_token_pasting
                             = FALSE;
   slmp->locked              = FALSE;
+  slmp->contains_saved_macro_argument_text
+                            = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_macro_def_ptr)NULL;
   /* Give this entry a sequence id indicating the "time" at which it was
      added. */
   slmp->sequence_id         = ++sequence_id_for_source_line_modifs;
-  slmp->assoc_copy_modif    = (a_source_line_modif_ptr)NULL;
   slmp->source_position.seq = 0;
   slmp->source_position.column
                             = SP_COL_UNKNOWN;
@@ -2174,12 +2176,12 @@ source_line_modif_list.  The entry is not freed.
      that pointer now, because there is no longer such an entry. */
   if (line_start_source_line_modif == slmp) {
     line_start_source_line_modif = NULL;
+  } else if (slmp->line_loc == NULL) {
+    /* An entry that contains saved macro argument text from a previous
+       source line. */
+    check_assertion_str(slmp->contains_saved_macro_argument_text,
+                        "rem_source_line_modif: line_loc NULL");
   } else {
-#if CHECKING
-    if (slmp->line_loc == NULL) {
-      internal_error("rem_source_line_modif: line_loc NULL");
-    }  /* if */
-#endif /* CHECKING */
     /* Restore the original character (thus removing the attention marker
        character put in when this entry was added). */
     *(slmp->line_loc) = slmp->orig_char;
@@ -2239,7 +2241,9 @@ the parent_modif_determined flag to see if the parent is already known.
   line_loc = slmp->line_loc;
   if (line_loc == NULL) {
     /* This is line_start_source_line_modif, the special entry to insert at 
-       the beginning of the current source line.  Its parent is NULL. */
+       the beginning of the current source line.  Its parent is NULL.
+       Or, an entry that contains saved macro argument text from a
+       previous source line, which also has a null parent. */
     parent_slmp = NULL;
   } else if (within_curr_source_line(line_loc)) {
     /* slmp modifies the primary source line; it has no parent. */
@@ -2555,12 +2559,6 @@ is TRUE.
             putc('\0', f_pp_output);
             prev_ch = '\0';
             loc_in_line += LE_ESCAPE_LEN;
-#if CHECKING
-          } else if (ch == LE_END_OF_BUFFER) {
-            /* This shouldn't come up in the input line structure. */
-            unexpected_condition_str(
-                   "gen_pp_output_for_curr_line: unexpected LE_END_OF_BUFFER");
-#endif /* CHECKING */
           } else {
             unexpected_condition_str(
                             "gen_pp_output_for_curr_line: bad lexical escape");
@@ -2859,12 +2857,6 @@ the calls to this routine.
           add_char_to_raw_listing_buffer(' ');
           prev_ch = ' ';
           loc_in_line += LE_ESCAPE_LEN;
-#if CHECKING
-        } else if (ch == LE_END_OF_BUFFER) {
-          /* This shouldn't come up in the input line structure. */
-          unexpected_condition_str(
-                  "gen_expanded_raw_listing_...: unexpected LE_END_OF_BUFFER");
-#endif /* CHECKING */
         } else {
           unexpected_condition_str(
                            "gen_expanded_raw_listing_...: bad lexical escape");
@@ -4503,8 +4495,6 @@ for the GNU C multiline string extension.
   a_boolean       char_is_trapped = FALSE, has_invalid_char = FALSE;
   an_orig_line_modif_ptr
 		  olmp;
-  a_source_line_modif_ptr
-		  slmp;
   sizeof_t        offset_in_line, offset_to_invalid_char = 0;
   char		  *after_curr_source_line_minus_term =
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
@@ -4578,13 +4568,28 @@ for the GNU C multiline string extension.
     }  while (orig_line_modif_list != NULL);
   }  /* if */
   if (source_line_modif_list != NULL) {
-    do {
-      slmp = source_line_modif_list;
-      rem_source_line_modif(slmp);
-      free_source_line_modif(&slmp);
-    } while (source_line_modif_list != NULL);
+    a_source_line_modif_ptr slmp, next_slmp;
+    for (slmp = source_line_modif_list; slmp != NULL; slmp = next_slmp) {
+      next_slmp = slmp->next;
+      /* Don't remove entries that are still needed because they hold
+         saved text for scanned macro arguments.  However, if we're outside
+         of any macro invocations those entries can also be freed. */
+      if (!slmp->contains_saved_macro_argument_text || macro_depth == 0) {
+        rem_source_line_modif(slmp);
+        free_source_line_modif(&slmp);
+      } else {
+        /* We're keeping this entry because it contains macro argument
+           text.  If its parent is the primary source line, clear the
+           line_loc pointer because the text referred to is going away. */
+        if (slmp->line_loc != NULL &&
+            within_curr_source_line(slmp->line_loc)) {
+          slmp->line_loc = NULL;
+          slmp->num_chars_to_delete = 0;
+        }  /* if */
+      }  /* if */
+    }  /* for */
   }  /* if */
-  no_modifs_to_curr_source_line = TRUE;
+  no_modifs_to_curr_source_line = (source_line_modif_list != NULL);
   if (after_end_of_all_source) {
     /* End of all source.  Go end the line with a line-end sequence and
        return. */
@@ -5156,7 +5161,7 @@ source text (end of token, start of expansion, end of expansion).
 {
   register char      ch;
   register int	     kind_skipped;
-  char               *comment_start_loc;
+  char               *comment_start_loc, *saved_curr_char_loc;
   a_boolean          comment_pos_determined;
   a_source_position  comment_start_pos;
   char               *delete_from;
@@ -5216,9 +5221,8 @@ white_space_loop:
         /* The newline character is white space, and is being thrown away. */
         kind_skipped |= WHITE_SPACE_OTHER;
         curr_char_loc += LE_ESCAPE_LEN;
-      } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION ||
-                 ch == LE_END_OF_BUFFER) {
-        /* End of source line or end of macro insertion or buffer. */
+      } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
+        /* End of source line or end of macro insertion. */
         /* Check to see if the hanging deletion flag is set. */
         if ((delete_from = delete_source_from_loc) != NULL) {
           /* Source from the indicated position to the end of the line or
@@ -5251,11 +5255,6 @@ white_space_loop:
             goto end_skip;
           } /* if */
           /* Not end of file, keep checking for white space in the new line. */
-        } else if (ch == LE_END_OF_BUFFER) {
-          /* End of a buffer unattached to the rest of the line.  Return
-             to the caller.  This is used for the macro expansion of a macro
-             argument in isolation from the rest of the source. */
-          goto end_skip;
         } else {
           /* End of the expansion text for a macro.  Find the character
              location of the character following the macro invocation, and
@@ -5275,10 +5274,17 @@ white_space_loop:
             /* Continue into the primary source line.  Clear the flag to
                indicate that we went off the end. */
             slmp->being_rescanned_for_token_pasting = FALSE;
+          } else if (slmp->is_isolated_text) {
+            /* The modification entry is marked with is_isolated_text,
+               so stop and return end-of-source.  This is used for macro
+               arguments being macro-expanded in isolation from the rest of
+               the file's tokens. */
+            goto end_skip;
           }  /* if */
           /* Normal case; continue with the text following the macro
              invocation. */
           leave_insertion(slmp, curr_char_loc);
+          last_source_line_modif_exited_while_skipping_white_space = slmp;
         }  /* if */
         /* If the hanging deletion flag was set, reset it to the new
            current position. */
@@ -5331,7 +5337,17 @@ white_space_loop:
       /* Find the appropriate source line modification entry, and begin
          scanning text in that entry.  kind_skipped is not set, since this
          is not white space. */
+      saved_curr_char_loc = curr_char_loc;
       go_into_insertion(slmp, curr_char_loc);
+      if (slmp->is_isolated_text) {
+        /* This is a temporary insertion of the text of a macro argument
+           while it is being macro-expanded.  The insertion is placed at
+           the end of the argument, and we've run into it while scanning
+           the argument text.  Stop here. */
+        check_assertion(macro_depth != 0);
+        curr_char_loc = saved_curr_char_loc;
+        goto end_skip;
+      }  /* if */
       /* If the hanging deletion flag is set, reset it to the new
          current position. */
       if (delete_source_from_loc != NULL) {
@@ -5380,13 +5396,11 @@ white_space_loop:
             do {
               slmp = assoc_source_line_modif(curr_char_loc);
               /* If the comment delimiter appears in the expansion of a
-                 macro argument, don't consider it the start of a comment. */
-              check_assertion(slmp->end_inserted_text != NULL &&
-                              *slmp->end_inserted_text == LE_ESCAPE);
-              if (slmp->end_inserted_text[1] == LE_END_OF_BUFFER) {
-                /* Note that we do not back up curr_char_loc, because
-                   if we set it to comment_start_loc get_token would
-                   just come right back here again. */
+                 macro argument, don't consider it the start of a comment.
+                 (We have problems with ordering of source line modifications
+                 later if we allow that.) */
+              if (slmp->is_isolated_text) {
+                curr_char_loc = comment_start_loc;
                 goto end_skip;
               }  /* if */
               leave_insertion(slmp, curr_char_loc);
@@ -5397,9 +5411,8 @@ white_space_loop:
               do {
                 slmp = assoc_source_line_modif(curr_char_loc);
                 /* Find the end of the insertion. */
-                while (*curr_char_loc    != LE_ESCAPE ||
-                       (curr_char_loc[1] != LE_END_OF_INSERTION &&
-                        curr_char_loc[1] != LE_END_OF_BUFFER)) {
+                while (*curr_char_loc   != LE_ESCAPE ||
+                       curr_char_loc[1] != LE_END_OF_INSERTION) {
                   curr_char_loc++;
                 }  /* while */
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
@@ -6856,11 +6869,6 @@ non-NULL, also append the characters in the comment, through but not including
           /* Newline character. */
           ends_with_newline = TRUE;
           next_char = curr_char + LE_ESCAPE_LEN;
-#if CHECKING
-        } else if (ch == LE_END_OF_BUFFER) {
-          unexpected_condition_str(
-                      "copy_from_source_to_asm_func_buffer: LE_END_OF_BUFFER");
-#endif /* CHECKING */
         } else {
           unexpected_condition_str(
                     "copy_from_source_to_asm_func_buffer: bad lexical escape");
@@ -7546,8 +7554,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
     case LE_ESCAPE:
       /* Lexical escape.  Second character indicates which. */
       ch = curr_char_loc[1];
-      if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION ||
-          ch == LE_END_OF_BUFFER) {
+      if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
         /* End of line or end of macro insertion.  Let the white-space
            routine figure it out. */
         skip_white_space();
@@ -7555,10 +7562,10 @@ start_of_token_scan:  /* Restart here after scanning white space. */
            the next token. */
         if (*curr_char_loc != LE_ESCAPE ||
             (curr_char_loc[1] != LE_END_OF_LINE &&
-             curr_char_loc[1] != LE_END_OF_INSERTION &&
-             curr_char_loc[1] != LE_END_OF_BUFFER)) {
+             curr_char_loc[1] != LE_END_OF_INSERTION)) {
           goto start_of_token_scan;
         }  /* if */
+return_end_of_source_token:
         /* This is the ultimate end of file, or the end of a macro argument
            string being scanned in isolation from the rest of the source.
            Return end of file. */
@@ -7630,6 +7637,13 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          macro expansion) begins here.  Let the white-space routine
          handle it. */
       skip_white_space();
+      if (*curr_char_loc == ATTENTION_MARKER) {
+        /* In the case where we run into the temporary insertion for a macro
+           argument while we're scanning the argument, we are supposed to
+           stop and return end-of-source. */
+        check_assertion(macro_depth != 0);
+        goto return_end_of_source_token;
+      }  /* if */
       goto start_of_token_scan;
     case '[':
       ctoken = tok_lbracket;
@@ -7720,8 +7734,21 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       if (start_of_comment()) {
         /* Go skip the comment. */
         skip_white_space();
-        goto start_of_token_scan;
-      } else if (*(curr_char_loc+1) == '=') {
+        /* If skip_white_space decided this is not a comment, check
+           the normal token possibilities.  (It could also be that we've
+           skipped over a comment and we've come upon another "/", but
+           the code here works that that case too.) */
+        if (*curr_char_loc != '/') goto start_of_token_scan;
+        start_of_curr_token = curr_char_loc;
+        if (fetch_pp_tokens && curr_char_loc[1] == '/') {
+          /* In some strange Microsoft cases, a "//" in a macro expansion
+             is treated as a comment.  Here it ended up being half a comment
+             so pass it through as a two-character error token. */
+          ctoken = tok_error;
+          goto two_char_token;
+        }  /* if */
+      }  /* if */
+      if (*(curr_char_loc+1) == '=') {
         ctoken = tok_divide_assign;
         goto two_char_token;
       }  /* if */
@@ -14026,6 +14053,7 @@ done to determine whether a precompiled header may be used.
   source_line_modif_list = NULL;
   line_start_source_line_modif = NULL;
   sequence_id_for_source_line_modifs = 0;
+  last_source_line_modif_exited_while_skipping_white_space = NULL;
   delete_source_from_loc = NULL;
   curr_token_pragmas = NULL;
   at_end_of_source_file = FALSE;

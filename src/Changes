@@ -1,5 +1,20 @@
 Version 3.4
 
+4/29/04  Preprocessor handling of recursive macro calls
+
+Previously, the preprocessor incorrectly handled some cases where
+macro names appeared within their own expansions.  In such cases, the
+macro is not supposed to be expanded again (in our terminology, it
+is "inert").  That was generally done correctly, but not in some
+pathological cases.  Those are now fixed.  As an example, the
+following case formerly looped within the front end, and now
+produces the correct output of "foo":
+
+  #define func(x) x
+  #define bar func(
+  #define foo bar foo
+  foo )
+
 4/29/04  GNU C++ compatibility: redeclaration of namespace member permitted
 
 The standard does not permit a namespace member to be redeclared outside

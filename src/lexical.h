@@ -1097,11 +1097,6 @@ escape.
 #define LE_NULL 6	/* In modes that allow a null (zero) character in
 			   an input line (e.g., gcc mode), indicates such
 			   a character. */
-#define LE_END_OF_BUFFER 7
-			/* Marks the end of a string of text in a buffer
-			   that is separate from the input buffer as a
-			   whole.  Scanning stops at this escape, rather than
-			   continuing out to any enclosing context. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1182,7 +1177,9 @@ typedef struct a_source_line_modif {
 			   the text to be deleted.  NULL to indicate that
 			   this entry is be inserted preceding the first
 			   character of the source line (there can be only
-			   one of those). */
+			   one of those).  Also NULL for entries saved
+			   because they contain macro argument text, when
+			   the text is from a previous source line. */
   a_source_line_modif_ptr
 		parent_modif;
 			/* If line_loc points into the text inserted by
@@ -1196,6 +1193,14 @@ typedef struct a_source_line_modif {
 			   (beginning at line_loc).  Greater than zero
 			   (except that when line_loc == NULL, this is
 			   zero). */
+  a_bit_field	is_isolated_text:1;
+			/* TRUE if this modification's text isn't connected
+			   to the surrounding context.  When the end of the
+			   insertion is reached, end-of-source is returned.
+			   This is used during macro expansion of macro
+			   arguments to prevent scanning more tokens from
+			   the remainder of the source file, and also for
+			   buffers that are temporary. */
   a_bit_field	is_for_comment:1;
 			/* TRUE if this modification is due to a comment
 			   in the source (as opposed to a macro expansion). */
@@ -1211,6 +1216,11 @@ typedef struct a_source_line_modif {
 			   the purpose of optimizing searches).  Used when
 			   this entry is used as a marker to delimit a prefix
 			   part of the list of source line modifications. */
+  a_bit_field	contains_saved_macro_argument_text:1;
+			/* TRUE if this modification contains some text saved
+			   for a macro argument, and therefore should not be
+			   freed automatically when the next source line is
+			   read. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
@@ -1243,14 +1253,6 @@ typedef struct a_source_line_modif {
 			   (higher values were added later).  Generated
 			   from the value of sequence_id_for_source_line_modifs
 			   when this entry was created. */
-  a_source_line_modif_ptr
-		assoc_copy_modif;
-			/* Used when making copies of modification entries
-			   that apply to the expanded versions of macro
-			   arguments.  From the master modification entry 
-			   for a macro argument, this points to the copy
-			   entry generated in the current expansion of that
-			   argument.  NULL when not used. */
   a_source_position
 		source_position;
 			/* When source_position.seq != 0, this indicates
@@ -1356,6 +1358,10 @@ EXTERN int	kind_of_white_space_skipped;
 			   as follows: */
 #define WHITE_SPACE_COMMENTS 0x01
 #define WHITE_SPACE_OTHER    0x02
+EXTERN a_source_line_modif_ptr
+		last_source_line_modif_exited_while_skipping_white_space;
+			/* Set by skip_white_space whenever a source line
+			   modification is exited. */
 EXTERN a_constant
 		const_for_curr_token;
 			/* If the current token is a literal constant,
