@@ -52,31 +52,12 @@ with an ABI that is only cfront-like, not cfront-compatible.
 #define ABI_COMPATIBILITY_VERSION 9999 /* Latest version. */
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
-/*
-Flag that is TRUE if object code compatibility with USL's cfront is
-required.  The main issue is class layout and specifically how the data
-sections for virtual base classes are put out.  Other issues include
-when virtual tables are generated.  The default behavior
-(when this flag is FALSE) produces a more efficient use of space.
-Some features of cfront changed from release 2.1 to release 3.0.  For example,
-release 2.1 provided a special feature to ease the transition between
-non-nested classes and nested classes.  This feature was removed for release
-3.0.  Either the 2.1 or 3.0 flag should be set to designate the variety
-of cfront compatibility that is desired.  When testing these flags for
-behavior that did not change between 2.1 and 3.0 the general flag should
-be used.
+/* See host_envir.h for
+     CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+     CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
+     CFRONT_OBJECT_CODE_COMPATIBILITY
+     IA64_ABI
 */
-#ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY FALSE
-#endif /* !defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY) */
-#ifndef CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
-#define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY FALSE
-#endif /* !defined(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY) */
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY||CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
-#define CFRONT_OBJECT_CODE_COMPATIBILITY TRUE
-#else /* !(CFRONT_2_1_...) */
-#define CFRONT_OBJECT_CODE_COMPATIBILITY FALSE
-#endif /* CFRONT_2_1_... */
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY && \
     CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
@@ -109,24 +90,6 @@ choose a default based on CFRONT_2_1_OBJECT_CODE_COMPATIBILITY.
     CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
  #error -- cfront name lookup bug support requires cfront 2.1 compatibility
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-
-/*
-TRUE if the IA-64 ABI should be used.  This is a "modern" C++ object
-layout standard (unlike the cfront ABI), and is a good starting point
-even on architectures other than IA-64 (it's the default for a lot
-of 3.x versions of g++).  See www.codesourcery.com/cxx-abi/.
-*/
-#ifndef IA64_ABI
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-#define IA64_ABI FALSE
-#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-#define IA64_ABI FALSE /*Temporary -- FIXME*/
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* ifndef IA64_ABI */
-
-#if CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI
- #error -- Cfront and IA-64 ABIs are mutually exclusive.
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI */
 
 #if IA64_ABI
 /*

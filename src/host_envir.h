@@ -422,6 +422,56 @@ be generated when doing IL lowering.
 #endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
+Flag that is TRUE if object code compatibility with USL's cfront is
+required.  Some features of cfront changed from release 2.1 to release 3.0,
+and there are flags for compatibility with a specific version.  For
+example, release 2.1 provided a special feature to ease the transition
+between non-nested classes and nested classes.  This feature was removed
+for release 3.0.  Either the 2.1 or 3.0 flag should be set to designate
+the variety of cfront compatibility that is desired.
+
+Note that there is also an IA64 ABI (see below), and a cfront-like
+ABI that eliminates a few of the cfront weirdnesses (such as
+wasteful allocation of virtual base classes), which is selected
+by having both IA64_ABI and CFRONT_OBJECT_CODE_COMPATIBILITY FALSE.
+
+This is really a target configuration macro, but it needs to be here
+because of some ordering problems.
+*/
+#ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY FALSE
+#endif /* !defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY) */
+#ifndef CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
+#define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY FALSE
+#endif /* !defined(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY) */
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY||CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
+#define CFRONT_OBJECT_CODE_COMPATIBILITY TRUE
+#else /* !(CFRONT_2_1_...) */
+#define CFRONT_OBJECT_CODE_COMPATIBILITY FALSE
+#endif /* CFRONT_2_1_... */
+
+/*
+TRUE if the IA-64 ABI should be used.  This is a "modern" C++ object
+layout standard (unlike the cfront ABI), and is a good starting point
+even on architectures other than IA-64 (it's the default for a lot
+of 3.x versions of g++).  See www.codesourcery.com/cxx-abi/.
+
+This is really a target configuration macro, but it needs to be here
+because of some ordering problems.
+*/
+#ifndef IA64_ABI
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define IA64_ABI FALSE
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#define IA64_ABI FALSE /*Temporary -- FIXME*/
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* ifndef IA64_ABI */
+
+#if CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI
+ #error -- Cfront and IA-64 ABIs are mutually exclusive.
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI */
+
+/*
 Flag that is TRUE if the environment (in particular, the linker) is
 capable of discarding extra copies of definitions, e.g., of functions.
 In such an environment, one can use an instantiation mechanism that
