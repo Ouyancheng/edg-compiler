@@ -17,15 +17,6 @@ they see "old_style_params_scanned" set to TRUE.  This simplifies some code
     f((char *)0);          // an error is now issued on this
   }
 
-2/26/95  Folding of comparison of addresses of static entities against null
-
-A comparison of the address of a static entity (routine or variable)
-defined in the current compilation against NULL can now be folded
-in the front end.  That is, something like "&a != 0" is known to
-be 1.  This folding is not done if the entity is extern, on the
-assumption that the address of the entity might end up being zero
-through linker trickery like weak externals.
-
 2/25/95  IL lowering: type-as-subobject prefix changed to "__SO__"
 
 When a class has virtual base classes, IL lowering creates a version
