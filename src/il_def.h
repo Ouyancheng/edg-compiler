@@ -5825,7 +5825,9 @@ typedef struct a_variable {
   char		*comdat_group;
 			/* The COMDAT group into which this variable
 			   should be placed, or NULL if this entity
-			   should not be placed into a COMDAT group. */
+			   should not be placed into a COMDAT group.
+			   TRUE only for variable definitions, never for
+			   (e.g.) external references. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -6748,7 +6750,9 @@ typedef struct a_routine {
   a_bit_field	use_comdat:1;
 			/* TRUE if this routine should be placed in a COMDAT
 			   group.  The group used should be the same as the
-			   mangled name of the routine.	 */
+			   mangled name of the routine.	 TRUE only for
+			   routines with definitions, never for (e.g.)
+			   external references. */
   a_bit_field /* a_ctor_or_dtor_kind */
 		ctor_dtor_kind:2;
 			/* The kind of constructor or destructor.  cdk_none
