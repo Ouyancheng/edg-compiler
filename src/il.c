@@ -553,6 +553,25 @@ class_struct_union:
       while (ptp != NULL) {
 	if (comma_required) fputs(", ", f_debug);
         db_abbreviated_type(ptp->type);
+        if (ptp->default_arg_expr != NULL) {
+          an_expr_node_ptr expr = ptp->default_arg_expr;
+          fputs(" (= ", f_debug);
+          switch (expr->kind) {
+            case enk_constant:
+              db_constant(expr->variant.constant);
+              break;
+            case enk_variable:
+              db_name(&expr->variant.variable->source_corresp);
+              break;
+            case enk_error:
+              fputs("<error>", f_debug);
+              break;
+            default:
+              fputs("<expr>", f_debug);
+              break;
+          }  /* switch */
+          fputs(")", f_debug);
+        }  /* if */
 	comma_required = TRUE;
         ptp = ptp->next;
       }  /* while */
@@ -2010,6 +2029,7 @@ at_file_scope == TRUE.
   ptp->type = NULL;
   ptp->default_arg_expr = NULL;
   ptp->il_walk_flag = INITIAL_IL_WALK_FLAG_SETTING;
+  ptp->has_default_arg = FALSE;
 
   db_exit();
   return (ptp);
