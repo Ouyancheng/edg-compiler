@@ -1,5 +1,19 @@
 Version 2.41
 
+2/17/99   Name linkage on declaration within unnamed namespace
+
+When an extern "C" variable or routine declaration appeared within an
+unnamed namespace, it was incorrectly regarded as having internal linkage.
+This bug caused an abort in remove_from_routines_list if a function was
+first declared and then defined.  Now fixed.
+
+  namespace {
+    extern "C" {
+      void f();        // Now gets extern "C" name linkage
+      void f() { }     // Internal error has been eliminated
+    }
+  };
+
 2/17/99   Microsoft C compatibility: implicit conversions between any
           pointer types
 
