@@ -1,3 +1,22 @@
+Version 2.31
+
+10/12/95 edg_munch option to ignore initial input lines
+
+edg_munch now support a command line option that causes it to ignore
+the initial N lines of input.  This is useful on systems like
+Solaris that include a header in the nm output.  The option 
+is -iN, where N is the number of lines to be ignored.
+
+10/12/95 Change in path used for nm on Solaris in edg_prelink
+
+edg_prelink now looks for nm in the users search path on Solaris
+instead of having a directory name included in the default nm command.
+
+10/12/95 New eccp environment variable for edg_munch options
+
+The environment variable EDG_MUNCH_OPTIONS can now be used to
+specify the options to be passed to edg_munch.
+-------------------------------------------------------------------------------
 Version 2.30, October 10, 1995
 
 10/10/95 mk_errinfo updated to handle %np error message fill-ins

@@ -39,6 +39,10 @@ PATCH=${EDG_PATCH_PATH-$EDG_BASE/lib/patch}
 #
 MUNCH=${EDG_MUNCH_PATH-$EDG_BASE/lib/edg_munch}
 #
+# options to be passed to munch
+#
+EDG_MUNCH_OPTIONS=${EDG_MUNCH_OPTIONS-""}
+#
 # Flag indicating whether to use "patch" or "munch" for static initialization.
 #
 patch_mode=${EDG_PATCH_MODE-1}
@@ -1076,7 +1080,8 @@ then
 #            3. Re-link with object of C file
 #
           tmpfile=$TMPDIR/$$edgm
-          command="nm $EDG_MUNCH_NM_OPTIONS $executable | $MUNCH"
+          command="nm $EDG_MUNCH_NM_OPTIONS $executable | \
+                   $MUNCH $EDG_MUNCH_OPTIONS"
           if [ $driver_debug -ne 0 ] ; then
             echo $command
           fi

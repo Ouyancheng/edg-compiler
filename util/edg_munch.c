@@ -267,13 +267,20 @@ int main(int argc, char *argv[])
   int                  name_length;
   a_boolean            is_ctor;
   int		       optchar;
+  int		       lines_to_skip = 0;
 
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "u"
+#define OPTION_LIST "ui:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
+      case 'i':
+        /* Ignore the first N lines of the input.  This is used to
+           ignore the header information put out by nm commands like
+           the one on Solaris. */
+        lines_to_skip = atoi(optarg);
+        break;
       case 'u':
         /* Specify whether names have an extra underscore that should
            be ignored.  The option selects the opposite of the default. */
@@ -287,7 +294,8 @@ int main(int argc, char *argv[])
         break;
     }  /* switch */
   }  /* while */
-
+  /* Skip over any lines that are supposed to be ignored */
+  for (; lines_to_skip > 0; lines_to_skip--) read_input_line();
   while (read_input_line()) {
     /* Skip empty lines. */
     if (line_size == 0) continue;
