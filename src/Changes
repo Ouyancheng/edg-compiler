@@ -107,7 +107,7 @@ also incorrect.  Now fixed.
 
 In C mode, the front end used to abort when an unprototyped function
 declaration was followed by an unprototyped function definition with a
-return type that is different from, but compatible with that of the
+return type that is different from, but compatible with, that of the
 first declaration.
 
   char (*f())[5];
