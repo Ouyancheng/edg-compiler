@@ -7568,8 +7568,15 @@ is set to NULL by this function.
         class_state->POD_ruled_out = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
-                                     &locator->source_position)) {
+      if (rtn->compiler_generated && rtn->is_prototype_instantiation) {
+        /* Compiler-generated members of prototype instantiation cannot
+           always be matched to potentially overridden member functions
+           because of insufficient type information.  To avoid spurious
+           errors, we do not call check_for_virtual_function in such
+           cases. */
+      } else if (check_for_virtual_function(is_virtual, sym, class_type,
+                                            class_state,
+                                            &locator->source_position)) {
         /* Classes with virtual functions require constructors. */
         class_state->constructor_required = TRUE;
         /* Classes with virtual functions cannot be constructed or assigned
