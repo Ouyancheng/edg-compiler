@@ -1805,7 +1805,7 @@ Display the indicated decl modifiers.
     if (dm & DM_NORETURN) {
       disp_boolean("noreturn", TRUE);
     }  /* if */
-    if (dm & DM_INLINE) {
+    if (dm & DM_NOINLINE) {
       disp_boolean("noinline", TRUE);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
