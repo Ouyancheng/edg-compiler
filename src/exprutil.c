@@ -2896,73 +2896,44 @@ otherwise, return NULL.
   return con_val;
 }  /* var_constant_value */
 
-  
-static void f_replace_const_variable_by_its_value(an_operand *operand)
+
+static a_boolean is_operand_for_const_variable(an_operand     *operand,
+                                               a_constant_ptr *constant)
 /*
-In C++ mode, replace an operand for a const variable by the value of the
-variable.  Called by the macro replace_const_variable_by_its_value.
-Called only in C++ mode, and only when the operand is an expression operand
-for a const variable's value.
+operand is an lvalue.  If it is an lvalue for a variable with a constant
+value known at compile time, return a pointer to the constant in *constant,
+and return TRUE; otherwise, return FALSE.
 */
 {
-  a_constant_ptr con_val;
-  an_operand     orig_operand;
+  a_variable_ptr variable = NULL;
 
-#if CHECKING
-  if (!is_expression_operand(operand) ||
-      !is_variable_node(operand->variant.expression)) {
-    internal_error("f_replace_const_variable_by_its_value: not expr/var");
-  }  /* if */
-#endif /* CHECKING */
-  con_val = var_constant_value(operand->variant.expression->variant.variable);
-  if (con_val != NULL) {
-    /* The variable has a known constant value.  Use it. */
-    /* Preserve the source position in the operand. */
-    orig_operand = *operand;
-    make_constant_operand(con_val, operand);
-    restore_operand_details(operand, &orig_operand);
-    /* The cross-reference entries, it any, are not re-attached. */
-  }  /* if */
-}  /* f_replace_const_variable_by_its_value */
-
-
-/*
-Replace an operand for a const variable by the value of the variable.
-Only used in C++ mode.
-*/
-#define replace_const_variable_by_its_value(operand)                  \
-{ if (is_expression_operand(operand) &&                               \
-      is_variable_node(operand->variant.expression) &&                \
-      is_const_variable(operand->variant.expression->variant.variable)) { \
-    f_replace_const_variable_by_its_value(operand);                   \
-  }  /* if */                                                         \
-}  /* replace_const_variable_by_its_value */
-
-
-void make_rvalue_variable_operand(a_variable_ptr variable,
-                                  an_operand     *result)
-/*
-Make an operand for the value of a variable.  The source position of
-the operand is set to "pos_curr_token".
-*/
-{
-  an_expr_node_ptr node;
-
-  /* Make a variable value node for the variable. */
-  node = var_rvalue_expr(variable);
-  /* Make an operand for the node. */
-  make_expression_operand(node, node->type, result);
-  if (C_dialect == C_dialect_cplusplus) {
-    /* Instantiate the underlying type if it is a template class. */
-    check_for_uninstantiated_template_class(variable->type);
-    /* In C++, replace a const variable by its value. */
-    replace_const_variable_by_its_value(result);
-    /* If the variable has a reference type, add an implicit indirection. */
-    if (is_reference_type(variable->type)) {
-      add_reference_indirection(result);
+  if (is_expression_operand(operand)) {
+    if (is_variable_address_node(operand->variant.expression)) {
+      /* The lvalue address is given by an enk_variable_address. */
+      variable = operand->variant.expression->variant.variable;
+    }  /* if */
+  } else if (is_constant_operand(operand)) {
+    /* The lvalue address is given by a constant.  See if it is an
+       address constant. */
+    a_constant_ptr constant = &operand->variant.constant;
+    if (constant->kind == (a_constant_repr_kind)ck_address) {
+      /* See if the address is the exact address of a variable. */
+      if (constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable &&
+          constant->variant.address.offset == 0 &&
+          !constant->implicit_cast) {
+        variable = constant->variant.address.variant.variable;
+      }  /* if */
     }  /* if */
   }  /* if */
-}  /* make_rvalue_variable_operand */
+  *constant = NULL;
+  if (variable != NULL) {
+    /* There is an underlying variable.  See if it has a constant value known
+       at compile time. */
+    *constant = var_constant_value(variable);
+  }  /* if */
+  return (*constant != NULL);
+}  /* is_operand_for_const_variable */
 
 
 void make_ptr_to_member_constant_operand(a_symbol_ptr      member_proj_sym,
@@ -4020,8 +3991,6 @@ lvalue being converted to an rvalue in a constant expression.
   an_expr_node_ptr node;
   a_constant_ptr   constant;
   an_operand       orig_operand;
-  a_boolean        optimized_case;
-  a_variable_ptr   variable;
   an_expr_node_ptr operand_node, cast_node;
   a_type_ptr       cast_orig_type, unqualified_type;
 
@@ -4036,7 +4005,13 @@ lvalue being converted to an rvalue in a constant expression.
 #endif /* CHECKING */
     /* Save the operand's source position. */
     orig_operand = *operand;
-    if (is_const_expr_kind(expression_kind)) {
+    if (C_dialect == C_dialect_cplusplus &&
+        is_operand_for_const_variable(operand, &constant)) {
+      /* In C++, replace a const variable by its value.  Note that this is
+         tested before testing for constant expression kinds, since this
+         conversion is allowed even in constant expressions. */
+      make_constant_operand(constant, operand);
+    } else if (is_const_expr_kind(expression_kind)) {
       /* An lvalue cannot be converted to an rvalue in a constant
          expression. */
       error_in_operand(ec_expr_not_constant, operand);
@@ -4056,31 +4031,11 @@ lvalue being converted to an rvalue in a constant expression.
         change_xref_kinds(operand->xref_entries_list, srk_reference);
       }  /* if */
       if (is_constant_operand(operand)) {
-        /* The lvalue address is specified by a constant.  Some optimizations
-           are possible for address constants. */
-        optimized_case = FALSE;
-        constant = &operand->variant.constant;
-        if (constant->kind == (a_constant_repr_kind)ck_address) {
-          if (constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
-            /* The lvalue address is the address of a variable.  Therefore,
-               the rvalue is the variable itself.  The optimization doesn't
-               apply if there is an offset relative to the variable or
-               if the pointer type has been cast to something else. */
-            if (constant->variant.address.offset == 0 &&
-                !constant->implicit_cast) {
-              optimized_case = TRUE;
-              variable = constant->variant.address.variant.variable;
-              make_rvalue_variable_operand(variable, operand);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (!optimized_case) {
-          /* Not a special case -- add an indirection operator. */
-          build_unary_result_operand(operand,
-                                     (an_expr_operator_kind)eok_indirect,
-                                     operand->type, operand);
-        }  /* if */
+        /* The lvalue address is specified by a constant.  Add an
+           indirection. */
+        build_unary_result_operand(operand,
+                                   (an_expr_operator_kind)eok_indirect,
+                                   operand->type, operand);
       } else {
 #if CHECKING
         /* Since the expression is not a constant, it must be an expression. */
@@ -4132,10 +4087,6 @@ lvalue being converted to an rvalue in a constant expression.
           /* Convert the expression to an rvalue. */
           operand->variant.expression = conv_lvalue_expr_to_rvalue(node);
           operand->state = (an_operand_state)os_rvalue;
-          if (C_dialect == C_dialect_cplusplus) {
-            /* In C++, replace a const variable by its value. */
-            replace_const_variable_by_its_value(operand);
-          }  /* if */
         }  /* if */
       }  /* if */
       /* Drop any type qualifiers on the operand type. */
