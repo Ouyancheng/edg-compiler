@@ -9760,7 +9760,7 @@ enum an_ms_attribute_arg_kind_tag {
   msaak_boolean,
   msaak_string,
   msaak_uuid,
-  msaak_enumeration,
+  msaak_enumeration
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
