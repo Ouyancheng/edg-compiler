@@ -237,6 +237,8 @@ the current statement sequence.
 
   /* Allocate the statement entry. */
   sp = alloc_statement(kind);
+  /* Set the position from pos_curr_token. */
+  sp->seq_number = pos_curr_token.seq;
 
   /* Link it onto the end of the statement list for the current level of
      the structured statement stack.  Even unreachable code is kept
@@ -285,9 +287,6 @@ the current statement sequence.
       } else {
         /* Create a new block to allow additional statements. */
         extra_block = alloc_statement((a_statement_kind)stmk_block);
-        /* Set the source sequence number to zero to indicate that the
-           block did not come from the source. */
-        extra_block->seq_number = 0;
         extra_block->variant.block.statements = *head_ptr;
         *head_ptr = extra_block;
       }  /* if */
@@ -1719,6 +1718,7 @@ come out on the closing "}".
     code_reachable = rc_reachable;
     lint_notreached_flag = FALSE;
     block = alloc_statement((a_statement_kind)stmk_block);
+    block->seq_number = pos_curr_token.seq;
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
   } else {
