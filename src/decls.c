@@ -1383,6 +1383,22 @@ the same as depth_scope_stack).
 }  /* compute_effective_decl_level */
 
 
+static a_boolean is_local_class_friend_decl(an_id_linkage_block  *idlbp)
+/*
+Return TRUE if and only if the declaration being processed (with the given
+id-linkage block) is a friend declaration in a local class.
+*/
+{
+  a_boolean  result = FALSE;
+  if (idlbp->is_friend_decl &&
+      idlbp->effective_decl_level != depth_innermost_namespace_scope &&
+      scope_stack[idlbp->effective_decl_level].assoc_routine != NULL) {
+      result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_local_class_friend_decl */
+
+
 static void set_linkage_environment(an_id_linkage_block  *idlbp,
                                     a_scope_depth        orig_decl_level)
 /*
@@ -1414,9 +1430,8 @@ declaration scope will have been pushed).
     a_scope_depth  depth;
 
     /* Record whether this is a friend declaration inside a local class. */
-    if (idlbp->is_friend_decl &&
-        idlbp->effective_decl_level != depth_innermost_namespace_scope) {
-      idlbp->is_local_class_friend_decl = TRUE;
+    if (idlbp->is_friend_decl) {
+      idlbp->is_local_class_friend_decl = is_local_class_friend_decl(idlbp);
     }  /* if */
     /* Record whether this declaration appears within the scope of an
        unnamed namespace. */
@@ -5873,10 +5888,13 @@ recorded in the IL, the template header is passed via template_decl.
       a_src_seq_secondary_decl_ptr sssdp =
                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
       sssdp->declared_type = func_info->declared_type;
+      sssdp->friend_decl = idlb.is_friend_decl;
       sssdp->template_decl = template_decl;
     } else {
       set_routine_declared_type(rout_ptr, func_info->declared_type);
       rout_ptr->template_decl = template_decl;
+      rout_ptr->defined_in_friend_decl = idlb.is_friend_decl &&
+                                         func_info->is_definition;
     }  /* if */
   } else {
     a_source_correspondence_ptr  scp = source_corresp_entry_for_symbol(sym);

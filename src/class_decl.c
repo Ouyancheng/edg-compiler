@@ -5079,7 +5079,7 @@ of the function, and again overloading is a possibility.
 
   db_enter(3, "decl_friend_function");
   if (!is_error_locator(*locator)) {
-    if (is_template_dependent_context()) {
+    if (!prototype_instantiations_in_il && is_template_dependent_context()) {
       /* Scan past friend functions during prototype instantiation. */
       set_to_named_error_locator(*locator);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
