@@ -173,11 +173,15 @@ in the current IL walk.
              current IL walk.  It might be from another secondary translation
              unit, or it might be an unrecorded orphan.  Do the copy now
              to make sure it gets done. */
-          /* Clear the walk_remap_function around the call. */
-          a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
-          walk_remap_func = NULL;
-          walk_entry_and_subtree(ptr, kind);
-          walk_remap_func = saved_walk_remap_func;
+          /* Don't do this copy now if we're still in
+             prepare_for_trans_unit_copy and not yet in the copy phase. */
+          if (walking_secondary_trans_unit) {
+            /* Clear the walk_remap_function around the call. */
+            a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
+            walk_remap_func = NULL;
+            walk_entry_and_subtree(ptr, kind);
+            walk_remap_func = saved_walk_remap_func;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
