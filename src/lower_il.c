@@ -9035,8 +9035,8 @@ have already been lowered.
   { a_boolean args_have_side_effects =
                                expr_list_has_side_effects(additional_args,
                                                           (a_boolean *)NULL) ||
-                               (object_node != NULL &&
-                                node_has_side_effects(object_node,
+                               (return_node != NULL &&
+                                node_has_side_effects(return_node,
                                                       (a_boolean *)NULL));
     if (!is_invariant_expr(object_node,
                            /*vars_can_change=*/args_have_side_effects)) {
