@@ -3859,7 +3859,7 @@ extern void db_sym(a_symbol_ptr  sym);
 
 extern void db_symbol_name(a_symbol_ptr  sym);
 
-extern void db_symbol_trans_unit(a_symbol_ptr sym);
+extern char *db_symbol_trans_unit(a_symbol_ptr sym);
 
 extern void db_symbol_name_trans_unit(a_symbol_ptr sym);
 

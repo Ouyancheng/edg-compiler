@@ -447,21 +447,25 @@ specified symbol.
 }  /* db_symbol_name */
 
 
-void db_symbol_trans_unit(a_symbol_ptr sym)
+char *db_symbol_trans_unit(a_symbol_ptr sym)
 /*
-Write out the name of the file for the translation unit of the indicated
+Return the name of the file for the translation unit of the indicated
 symbol, if it has one and if it is not the primary translation unit.
+Return NULL otherwise.
 */
 {
+  char *name = NULL;
+
   if (sym->decl_scope != NO_SCOPE_NUMBER) {
     a_translation_unit_ptr	tup;
     tup = trans_unit_for_scope[sym->decl_scope];
     if (tup != NULL && tup != translation_units &&
         /* The source_file pointer is not set yet early in initialization. */
         tup->source_file != NULL) {
-      fprintf(f_debug, " (trans unit %s)", tup->source_file->name_as_written);
+      name = tup->source_file->name_as_written;
     }  /* if */
   }  /* if */
+  return name;
 }  /* db_symbol_trans_unit */
 
 
@@ -471,8 +475,11 @@ Write out the symbol name (including function parameters, if any).  Include
 the translation unit, if not the primary translation unit.
 */
 {
+  char *name;
+
   db_symbol_name(sym);
-  db_symbol_trans_unit(sym);
+  name = db_symbol_trans_unit(sym);
+  if (name != NULL) fprintf(f_debug, " (trans unit %s)", name); 
 }  /* db_symbol_name_trans_unit */
 
 
