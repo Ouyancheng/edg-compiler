@@ -297,29 +297,33 @@ array-to-pointer decay).
           a_type_ptr  tp = param_id->declared_type;
 
           check_assertion(tp != NULL);
-          if (!C_mode() && is_or_contains_template_param(tp)) {
-            if (is_function_type(tp) && !is_function_type(ptp->type)) {
-              /* Undo the change of a function type to pointer-to-function
-                 type. */
-              check_assertion(is_pointer_type(tp) &&
-                              is_function_type(type_pointed_to(tp)));
-              ptp->type = type_pointed_to(ptp->type);
-            } else if (is_array_type(tp) && !is_array_type(ptp->type)) {
-              /* Undo array-to-pointer decay. */
-              a_type_ptr  new_type;
-
-              check_assertion(is_pointer_type(ptp->type));
-              new_type = alloc_type((a_type_kind)tk_array);
-              new_type->variant.array.element_type =
-                                             type_pointed_to(ptp->type);
-              ptp->type = new_type;
-            } else if (is_qualified_type(tp)) {
-              ptp->type = make_identically_qualified_type(ptp->type, tp);
-            }  /* if */
+          if (is_error_type(ptp->type) || is_error_type(tp)) {
+            /* Do nothing. */
           } else {
-            ptp->type = tp;
+            if (!C_mode() && is_or_contains_template_param(tp)) {
+              if (is_function_type(tp) && !is_function_type(ptp->type)) {
+                /* Undo the change of a function type to pointer-to-function
+                   type. */
+                check_assertion(is_pointer_type(tp) &&
+                                is_function_type(type_pointed_to(tp)));
+                ptp->type = type_pointed_to(ptp->type);
+              } else if (is_array_type(tp) && !is_array_type(ptp->type)) {
+                /* Undo array-to-pointer decay. */
+                a_type_ptr  new_type;
+
+                check_assertion(is_pointer_type(ptp->type));
+                new_type = alloc_type((a_type_kind)tk_array);
+                new_type->variant.array.element_type =
+                                             type_pointed_to(ptp->type);
+                ptp->type = new_type;
+              } else if (is_qualified_type(tp)) {
+                ptp->type = make_identically_qualified_type(ptp->type, tp);
+              }  /* if */
+            } else {
+              ptp->type = tp;
+            }  /* if */
+            ptp->qualifiers = TQ_NONE;
           }  /* if */
-          ptp->qualifiers = TQ_NONE;
           check_assertion((param_id->next == NULL) == (ptp->next == NULL));
         }  /* for */
       }  /* if */
