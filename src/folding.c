@@ -1073,7 +1073,7 @@ so any error is thrown away and *did_not_fold is returned TRUE.
 cannot be done.
 */
 {
-  a_type_ptr        constant_type;
+  a_type_ptr        constant_type, new_type_with_typedefs;
   a_constant        new_constant;
   an_error_code     err_code;
   an_error_severity err_severity;
@@ -1085,9 +1085,12 @@ cannot be done.
   err_severity = es_warning;
   clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
 
+  /* Put the new type in the destination constant (preserving typedefs
+     if any; that's important). */
+  new_constant.type = new_type_with_typedefs = new_type;
   /* Remove any type qualifiers or typedefs from the types involved. */
   constant_type = skip_typerefs(constant->type);
-  new_constant.type = new_type = skip_typerefs(new_type);
+  new_type = skip_typerefs(new_type);
 
   if (is_error_type(new_type)) {
     /* Changing to an error type, so produce an error constant as result.
@@ -1097,14 +1100,14 @@ cannot be done.
   if (identical_types(constant_type, new_type)) {
     /* The current and new types are the same, so no change is required. */
     copy_constant(constant, &new_constant);
-    /* Put in the actual type wanted, as it may have qualifiers. */
-    new_constant.type = new_type;
+    /* Put in the actual type wanted, as it may have typedefs. */
+    new_constant.type = new_type_with_typedefs;
     goto exit;
   }  /* if */
   if (constant->kind == (a_constant_repr_kind)ck_template_param) {
     /* A template parameter constant is cast to a new type by setting the
        implicit_cast flag. */
-    implicit_cast(constant, new_type);
+    implicit_cast(constant, new_type_with_typedefs);
     goto exit;
   }  /* if */
   if (is_template_param_type(new_type)) {
