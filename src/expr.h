@@ -36,6 +36,8 @@ extern void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
                                 a_source_position  *err_pos,
 				a_type_ptr	   object_class_type);
 
+a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
+
 extern an_expr_node_ptr scan_switch_expression(void);
 
 extern an_expr_node_ptr scan_void_expression(void);
