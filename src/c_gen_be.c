@@ -529,6 +529,9 @@ etc.
   a_boolean         line_directive_needed = FALSE, started_new_line = FALSE;
   a_source_file_ptr new_output_file;
 
+  /* When generating debug-oriented output, put each thing on a separate
+     line. */
+  if (annotate) end_output_line_if_begun();
   /* Record the position for use in internal errors. */
   error_position = *pos;
   if (seq == 0) {
@@ -2596,6 +2599,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_type_ptr                     expr_type;
   a_boolean                      pointer_comparison = FALSE;
   char                           *pointer_comparison_cast;
+  unsigned long                  comma_column;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
   a_boolean                      is_signed, void_operand;
@@ -3115,12 +3119,24 @@ process_assignment:
       }  /* if */
       /* Generate the first operand. */
       if (pointer_comparison) write_tok_str(pointer_comparison_cast);
+      if (annotate && op == (an_expr_operator_kind)eok_comma) {
+        /* Remember the position of the first operand of a comma operator so
+           the second can be made to line up with it. */
+        comma_column = curr_output_column;
+      }  /* if */
       dump_expr_with_parens(operand_1);
       if (operand_2 != NULL) {
         /* Two-operand operator. */
         m_write_space();
         m_write_tok_str(opstr);
-        m_write_space();
+        if (annotate && op == (an_expr_operator_kind)eok_comma) {
+          /* Indent the second operand of a comma operator the same as
+             the first. */
+          end_output_line();
+          while (comma_column-- > 0) write_space();
+        } else {
+          m_write_space();
+        }  /* if */
         if (pointer_comparison) write_tok_str(pointer_comparison_cast);
         dump_expr_with_parens(operand_2);
       }  /* if */
