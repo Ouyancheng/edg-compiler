@@ -4245,6 +4245,75 @@ type is an error type, return eok_error.
 }  /* which_binary_operator */
 
 
+a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op)
+/*
+Return TRUE if the given expression operator takes an lvalue as its first
+operand.
+*/
+{
+  a_boolean takes_lvalue;
+
+  switch (op) {
+    case eok_field:
+    case eok_bit_field:
+    case eok_extract_bit_field:
+    case eok_pm_field:
+    case eok_lvalue_cast:
+    case eok_iassign:
+    case eok_fassign:
+    case eok_passign:
+    case eok_sassign:
+    case eok_pmassign:
+    case eok_iadd_assign:
+    case eok_isubtract_assign:
+    case eok_imultiply_assign:
+    case eok_idivide_assign:
+    case eok_remainder_assign:
+    case eok_fadd_assign:
+    case eok_fsubtract_assign:
+    case eok_fmultiply_assign:
+    case eok_fdivide_assign:
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+    case eok_ipost_decr:
+    case eok_ipre_decr:
+    case eok_fpost_decr:
+    case eok_fpre_decr:
+    case eok_ppost_decr:
+    case eok_ppre_decr:
+    case eok_ipost_incr:
+    case eok_ipre_incr:
+    case eok_fpost_incr:
+    case eok_fpre_incr:
+    case eok_ppost_incr:
+    case eok_ppre_incr:
+    case eok_va_start:
+    case eok_va_arg:
+    case eok_va_end:
+    case eok_post_incr:
+    case eok_post_decr:
+    case eok_pre_incr:
+    case eok_pre_decr:
+    case eok_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+      takes_lvalue = TRUE;
+      break;
+    default:
+      takes_lvalue = FALSE;
+      break;
+  }  /* switch */
+  return takes_lvalue;
+}  /* operator_takes_lvalue_operand */
+
+
 void do_binary_operation(an_expr_operator_kind op,
 			 an_operand            *operand_1,
 			 an_operand            *operand_2,
@@ -4361,11 +4430,15 @@ if possible.  operator_position indicates the operator position.
 }  /* do_binary_operation */
 
 
-void prep_generic_operand(an_operand *operand)
+void prep_generic_operand(an_operand *operand,
+                          a_boolean  lvalue_expected)
 /*
 The indicated operand is about to be used as the operand of an expression
 involving template parameter types.  Adjust it as needed: add an eok_lvalue
 or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
+lvalue_expected is TRUE to indicate that an lvalue is expected, or FALSE
+to indicate that an rvalue is expected.  The eok_lvalue/eok_rvalue node
+is inserted only for the unexpected case.
 */
 {
   an_expr_node_ptr expr;
@@ -4379,15 +4452,19 @@ or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
     operand->state = orig_operand.state;
   }  /* if */
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
-    expr = make_node_from_operand(operand);
-    expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                              operand->type, expr);
-    make_expression_operand(expr, operand->type, operand);
+    if (!lvalue_expected) {
+      expr = make_node_from_operand(operand);
+      expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                                operand->type, expr);
+      make_expression_operand(expr, operand->type, operand);
+    }  /* if */
   } else if (is_an_rvalue(operand)) {
-    expr = make_node_from_operand(operand);
-    expr = make_operator_node((an_expr_operator_kind)eok_rvalue,
-                              operand->type, expr);
-    make_expression_operand(expr, operand->type, operand);
+    if (lvalue_expected) {
+      expr = make_node_from_operand(operand);
+      expr = make_operator_node((an_expr_operator_kind)eok_rvalue,
+                                operand->type, expr);
+      make_expression_operand(expr, operand->type, operand);
+    }  /* if */
   }  /* if */
   operand->state = orig_operand.state;
   restore_operand_details_incl_ref(operand, &orig_operand);
@@ -4404,7 +4481,7 @@ Add a generic cast that casts the given operand to dest_type.  This is used
 in prototype instantiations to represent conversions to unknown types.
 */
 {
-  prep_generic_operand(operand);
+  prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
   if (!il_identical_types(operand->type, dest_type)) {
     an_expr_node_ptr expr = make_node_from_operand(operand);
     expr = make_operator_node((an_expr_operator_kind)eok_cast, dest_type,
@@ -4473,8 +4550,8 @@ be used (e.g., eok_add, not eok_iadd).
     }  /* switch */
   } else {
     /* The current expression is not a constant expression. */
-    prep_generic_operand(operand_1);
-    prep_generic_operand(operand_2);
+    prep_generic_operand(operand_1, operator_takes_lvalue_operand(op));
+    prep_generic_operand(operand_2, /*lvalue_expected=*/FALSE);
   }  /* if */
   do_binary_operation(op, operand_1, operand_2,
                       type_of_unknown_templ_param_nontype,
@@ -4591,7 +4668,7 @@ be used (e.g., eok_negate, not eok_inegate).
     }  /* if */
   } else {
     /* The current expression is not a constant expression. */
-    prep_generic_operand(operand);
+    prep_generic_operand(operand, operator_takes_lvalue_operand(op));
   }  /* if */
   if (op == (an_expr_operator_kind)eok_address &&
       is_constant_operand(operand)) {
@@ -4715,9 +4792,9 @@ it happens in prototype instantiations.
                         "template_question_operation: non-const operand");
   } else {
     /* The current expression is not a constant expression. */
-    prep_generic_operand(operand_1);
-    prep_generic_operand(operand_2);
-    prep_generic_operand(operand_3);
+    prep_generic_operand(operand_1, /*lvalue_expected=*/FALSE);
+    prep_generic_operand(operand_2, /*lvalue_expected=*/FALSE);
+    prep_generic_operand(operand_3, /*lvalue_expected=*/FALSE);
   }  /* if */
   do_question_operation(operand_1, operand_2, operand_3,
                         type_of_unknown_templ_param_nontype,

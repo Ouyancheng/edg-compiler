@@ -5679,7 +5679,7 @@ overloaded operator cases.
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
-      prep_generic_operand(&arg_operand->operand);
+      prep_generic_operand(&arg_operand->operand, /*lvalue_expected=*/FALSE);
       arg = make_node_from_operand(&arg_operand->operand);
       /* Add this argument to the end of the expression-form argument list
          being built up. */

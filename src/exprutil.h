@@ -967,7 +967,8 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        an_operand            *result,
 			        a_source_position     *operator_position);
 
-extern void prep_generic_operand(an_operand *operand);
+extern void prep_generic_operand(an_operand *operand,
+                                 a_boolean  lvalue_expected);
 
 extern void generic_cast_operand(an_operand *operand,
                                  a_type_ptr dest_type);
@@ -1010,6 +1011,8 @@ extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 
 extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 						   a_type_ptr   type);
+
+extern a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op);
 
 extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_type_ptr        qualifiers_model,

@@ -1264,7 +1264,7 @@ Syntax:
                is_or_contains_template_param(operand->type)) {
       /* A call in a prototype instantiation. */
       routine_type = NULL;
-      prep_generic_operand(operand);
+      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
     } else {
       /* Normal function, or call using pointer-to-member-function. */
       /* Convert to rvalue.  This conversion is needed particularly for the
@@ -4757,7 +4757,7 @@ Syntax:
   } else if (template_param_case) {
     /* The source operand type or the destination type is unknown, so
        generate a generic operation. */
-    prep_generic_operand(&operand);
+    prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
     expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
                               cast_type,
                               make_node_from_operand(&operand));
@@ -7130,7 +7130,7 @@ Syntax:
       /* Put out a generic operator for a case involving template parameter
          types. */
       an_expr_node_ptr expr;
-      prep_generic_operand(&operand);
+      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
       expr = make_operator_node((an_expr_operator_kind)eok_const_cast,
                                 operation_type,
                                 make_node_from_operand(&operand));
@@ -7270,7 +7270,7 @@ Syntax:
             /* Put out a generic operator for a case involving template
                parameter types. */
             an_expr_node_ptr expr;
-            prep_generic_operand(result);
+            prep_generic_operand(result, /*lvalue_expected=*/FALSE);
             expr = make_operator_node((an_expr_operator_kind)eok_static_cast,
                                       type_cast_to,
                                       make_node_from_operand(result));
@@ -7397,7 +7397,7 @@ Syntax:
           /* Put out a generic operator for a case involving template parameter
              types. */
           an_expr_node_ptr expr;
-          prep_generic_operand(result);
+          prep_generic_operand(result, /*lvalue_expected=*/FALSE);
           expr =make_operator_node((an_expr_operator_kind)eok_reinterpret_cast,
                                    type_cast_to,
                                    make_node_from_operand(result));

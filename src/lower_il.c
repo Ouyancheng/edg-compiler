@@ -688,66 +688,6 @@ Pop an entry off the context stack.
 }  /* pop_context */
 
 
-static a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op)
-/*
-Return TRUE if the given expression operator takes an lvalue as its first
-operand.
-*/
-{
-  a_boolean takes_lvalue;
-
-  switch (op) {
-    case eok_field:
-    case eok_bit_field:
-    case eok_extract_bit_field:
-    case eok_pm_field:
-    case eok_lvalue_cast:
-    case eok_iassign:
-    case eok_fassign:
-    case eok_passign:
-    case eok_sassign:
-    case eok_pmassign:
-    case eok_iadd_assign:
-    case eok_isubtract_assign:
-    case eok_imultiply_assign:
-    case eok_idivide_assign:
-    case eok_remainder_assign:
-    case eok_fadd_assign:
-    case eok_fsubtract_assign:
-    case eok_fmultiply_assign:
-    case eok_fdivide_assign:
-    case eok_padd_assign:
-    case eok_psubtract_assign:
-    case eok_shiftl_assign:
-    case eok_shiftr_assign:
-    case eok_and_assign:
-    case eok_or_assign:
-    case eok_xor_assign:
-    case eok_ipost_decr:
-    case eok_ipre_decr:
-    case eok_fpost_decr:
-    case eok_fpre_decr:
-    case eok_ppost_decr:
-    case eok_ppre_decr:
-    case eok_ipost_incr:
-    case eok_ipre_incr:
-    case eok_fpost_incr:
-    case eok_fpre_incr:
-    case eok_ppost_incr:
-    case eok_ppre_incr:
-    case eok_va_start:
-    case eok_va_arg:
-    case eok_va_end:
-      takes_lvalue = TRUE;
-      break;
-    default:
-      takes_lvalue = FALSE;
-      break;
-  }  /* switch */
-  return takes_lvalue;
-}  /* operator_takes_lvalue_operand */
-
-
 static a_base_class_ptr find_virtual_base_class_of(a_type_ptr derived_class,
                                                    a_type_ptr virt_base_class)
 /*
