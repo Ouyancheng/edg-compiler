@@ -2173,6 +2173,9 @@ error code.
     case ec_cl_il_display_requires_il_file_name:
       m = "IL display requires name of IL file";
       break;
+    case ec_void_template_parameter:
+      m = "a template parameter may not have a type of void";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

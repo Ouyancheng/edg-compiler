@@ -2927,6 +2927,11 @@ Scan the declaration of a single template nontype parameter.
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr);
+  /* Check for illegal nontype parameter types. */
+  if (is_void_type(*param_type_ptr)) {
+    /* A parameter type of void is not allowed. */
+    error(ec_void_template_parameter);
+  }  /* if */
 }  /* scan_a_template_parameter_declaration */
 
 

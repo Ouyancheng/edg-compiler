@@ -643,7 +643,8 @@ typedef enum /*an_error_code*/ {
   ec_cl_output_file_incompatible_with_multiple_inputs,
   ec_cl_too_many_arguments,
   ec_cl_no_output_file_needed,
-  ec_cl_il_display_requires_il_file_name
+  ec_cl_il_display_requires_il_file_name,
+  ec_void_template_parameter
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
