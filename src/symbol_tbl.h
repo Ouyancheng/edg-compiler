@@ -462,6 +462,10 @@ typedef struct a_dependent_type_fixup {
 		next;
 			/* Next fixup on the list, or NULL if this is the
 			   last. */
+  a_source_position
+		decl_position;
+			/* Source position at which a diagnostic is to be
+			   issued, if required. */
   a_byte_boolean
 		is_param_type;
 			/* TRUE if it is a dependent parameter type that
@@ -2208,9 +2212,11 @@ extern void add_to_param_id_list(a_symbol_locator            *locator,
 extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);
 
-extern void add_to_dependent_type_fixup_list(a_type_ptr        class_type,
-                                             a_type_ptr        type,
-                                             a_param_type_ptr  ptp);
+extern void add_to_dependent_type_fixup_list(a_type_ptr         class_type,
+                                             a_type_ptr         type,
+                                             a_param_type_ptr   ptp,
+                                             a_source_position  *pos);
+
 extern void check_dependent_type_fixup_list(a_type_ptr  class_type);
 
 /* Examine the list of symbols with a given name, looking for an instance

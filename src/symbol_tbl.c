@@ -3068,7 +3068,7 @@ the compiler-generated flag should be cleared.
   }  /* if */
   extra_info->param_type_list = alloc_param_type(tp);
   extra_info->prototyped = TRUE;
-  set_routine_calling_method_flag(rout_type);
+  set_routine_calling_method_flag(rout_type, &pos);
   clear_func_info(&func_info);
   /* Create the symbol and routine entry.  Note that the routine entry
      is given a storage class of sc_extern since there is no definition
@@ -8394,9 +8394,10 @@ Clear the fields of a function information block to default values.
 }  /* clear_func_info */
 
 
-void add_to_dependent_type_fixup_list(a_type_ptr        class_type,
-                                      a_type_ptr        type,
-                                      a_param_type_ptr  param_type)
+void add_to_dependent_type_fixup_list(a_type_ptr         class_type,
+                                      a_type_ptr         type,
+                                      a_param_type_ptr   param_type,
+                                      a_source_position  *pos)
 /*
 class_type is a pointer an incomplete class/struct/union type, and type or
 param_type is dependent on it, so an entry is created so that type or
@@ -8424,6 +8425,8 @@ defined.  Either type or param_type (but not both) is non-NULL.
     num_dependent_type_fixups_allocated++;
 #endif /* DEBUG */
   }  /* if */
+  dtfp->decl_position = *pos;
+  dtfp->next = NULL;
   if (type == NULL) {
     dtfp->is_param_type = TRUE;
     dtfp->variant.param_type = param_type;
@@ -8431,11 +8434,15 @@ defined.  Either type or param_type (but not both) is non-NULL.
     dtfp->is_param_type = FALSE;
     dtfp->variant.type = type;
   }  /* if */
-  /* Add a fixup entry to the list associated with the class.  It can be
-     put on the front of the list, since the order is unimportant. */
+  /* Add a fixup entry to the end of the list associated with the class. */
   cssp = symbol_supplement_for_class(class_type);
-  dtfp->next = cssp->dependent_type_fixup_list;
-  cssp->dependent_type_fixup_list = dtfp;
+  if (cssp->dependent_type_fixup_list == NULL) {
+    cssp->dependent_type_fixup_list = dtfp;
+  } else {
+    a_dependent_type_fixup_ptr  end_of_list = cssp->dependent_type_fixup_list;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = dtfp;
+  }  /* if */
   db_exit();
 }  /* add_to_dependent_type_fixup_list */
 
@@ -8465,10 +8472,12 @@ of the declaration can be completed for the dependent types, too.
       prev_dtfp = NULL;
       for (dtfp = list; dtfp != NULL; dtfp = next_dtfp) {
         next_dtfp = dtfp->next;
+        error_position = dtfp->decl_position;
         if (dtfp->is_param_type) {
           /* A parameter of class type.  Set the flag indicating whether
              passing it requires a copy constructor call. */
-          set_arg_transfer_method_flag(dtfp->variant.param_type);
+          set_arg_transfer_method_flag(dtfp->variant.param_type,
+                                       &dtfp->decl_position);
         } else {
           a_type_ptr  tp = dtfp->variant.type;
           if (is_array_type(tp)) {
@@ -8487,7 +8496,7 @@ of the declaration can be completed for the dependent types, too.
           } else {
             /* A function returning a class type.  Set the flag indicating
                whether the return involves a copy constructor. */
-            set_routine_calling_method_flag(tp);
+            set_routine_calling_method_flag(tp, &dtfp->decl_position);
           }  /* if */
         }  /* if */
         /* If the head of the list is being removed (the common case) reset the
