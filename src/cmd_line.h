@@ -119,9 +119,9 @@ typedef enum /*an_option_kind*/ {
   optk_pack_alignment,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   optk_alternative_tokens,
-#if MINIMAL_INLINING
+#if DO_IL_LOWERING && MINIMAL_INLINING
   optk_inlining,
-#endif /* MINIMAL_INLINING */
+#endif /* DO_IL_LOWERING && MINIMAL_INLINING */
   optk_SVR4_C_mode,
   optk_brief_diagnostics,
   optk_nonconst_ref_anachronism,
@@ -771,7 +771,7 @@ EXTERN a_boolean
 			   be allowed.  This flag is automatically set
 			   in strict mode. */
 
-#if MINIMAL_INLINING
+#if DO_IL_LOWERING && MINIMAL_INLINING
 EXTERN a_boolean
 		inlining_enabled
 #if VAR_INITIALIZERS
@@ -780,7 +780,7 @@ EXTERN a_boolean
                                        ;
 			/* TRUE if minimal inlining should be done by IL
 			   lowering. */
-#endif /* MINIMAL_INLINING */
+#endif /* DO_IL_LOWERING && MINIMAL_INLINING */
 
 EXTERN a_boolean
                 SVR4_C_mode

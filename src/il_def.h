@@ -4744,7 +4744,7 @@ typedef struct a_routine {
 			   the namespace definition.  It does not apply to a
 			   friend declaration that supplies a definition. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MINIMAL_INLINING
+#if DO_IL_LOWERING && MINIMAL_INLINING
   a_bit_field	inlinable:1;
 			/* TRUE if this routine can be inlined.  Starts out as
 			   TRUE if is_inline is TRUE, then turned off if an
@@ -4756,7 +4756,7 @@ typedef struct a_routine {
   a_bit_field	need_out_of_line_copy:1;
 			/* TRUE if an out-of-line copy of this inline routine
 			   is needed, e.g., because its address was taken. */
-#endif /* MINIMAL_INLINING */
+#endif /* DO_IL_LOWERING && MINIMAL_INLINING */
 #if MAINTAIN_NEEDED_FLAGS
   a_bit_field	definition_needed:1;
 			/* TRUE if this routine is "needed" (see the flag by
@@ -4980,11 +4980,11 @@ typedef struct a_label {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_label;
 
-#if GENERATE_EH_TABLES
+#if DO_IL_LOWERING && GENERATE_EH_TABLES
 typedef unsigned long a_cleanup_region_number;
 			/* Number for a destructible region, used for
 			   exception handling cleanup. */
-#endif /* GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
 
 /*
 Data structures related to expressions:
