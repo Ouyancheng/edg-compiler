@@ -1346,11 +1346,11 @@ void selector_match_with_this_param(
                                a_boolean            selector_is_object_pointer,
                                a_boolean            conversion_function_case,
                                a_routine_ptr        rout,
-                               a_type_ptr           routine_type,
+                               a_type_ptr           this_param_type,
                                an_arg_match_summary *this_match_summary)
 /*
 Determine how well the selector object indicated by *bound_function_selector
-matches the "this" parameter of the routine type indicated by *routine_type.
+matches the "this" parameter (of type this_param_type) of a member function.
 If selector_is_object_pointer is TRUE, *bound_function_selector has
 already been converted to object pointer form.  Otherwise, it's just
 an object (lvalue or rvalue).  Return the match summary in *this_match_summary.
@@ -1364,7 +1364,7 @@ is TRUE, the underlying type of the selector is assumed to be the proper
 class or a derived class thereof (except for error cases).
 */
 {
-  a_type_ptr selector_type, this_param_type, this_param_base_type;
+  a_type_ptr selector_type, this_param_base_type;
   a_type_ptr this_param_class_type, const_this_param_base_type;
   a_type_ptr ptr_selector_type, const_this_param_type;
 
@@ -1378,8 +1378,6 @@ class or a derived class thereof (except for error cases).
     this_match_summary->match_level = aml_exact;
     this_match_summary->is_match_for_this_param = TRUE;
   } else {
-    /* Get the "this" parameter type. */
-    this_param_type = implicit_this_param_type_of(routine_type);
 #if CHECKING
     if (this_param_type == NULL) {
       internal_error("selector_match_with_this_param: this_param_type NULL");
@@ -1684,12 +1682,26 @@ argument matches.
           this_match->is_match_for_this_param = TRUE;
         } else {
           /* The function requires a selector, and we have one. */
+          /* Determine the "this" parameter type.  When namespaces are involved
+             in classes, the parameter type is taken to be the class in
+             which the "using" occurs. */
+          a_type_ptr this_param_type = rtsp->implicit_this_param_type;
+          if (proj_function_symbol->kind == (a_symbol_kind)sk_projection) {
+            /* Make a pointer to the class of the "using" declaration,
+               qualified like the actual "this" parameter type. */
+            a_type_ptr underlying_type =
+                                       proj_function_symbol->parent.class_type;
+            a_type_ptr model_underlying_type= type_pointed_to(this_param_type);
+            underlying_type = make_identically_qualified_type(
+                                       underlying_type, model_underlying_type);
+            this_param_type = make_pointer_type(underlying_type);
+          }  /* if */
           if (implicit_selector_type != NULL) {
             /* The selector is an implicit "this->".  See how well it
                matches.  It might not match at all. */
             determine_arg_match_level((an_operand *)NULL,
                                       implicit_selector_type,
-                                      rtsp->implicit_this_param_type,
+                                      this_param_type,
                                       /*try_user_conversions=*/FALSE,
                                       /*is_match_for_this_param=*/TRUE,
                                       this_match);
@@ -1709,7 +1721,8 @@ argument matches.
                                            selector_is_object_pointer,
                                            /*conversion_function_case=*/FALSE,
                                           function_symbol->variant.routine.ptr,
-                                           routine_type, this_match);
+                                           this_param_type,
+                                           this_match);
             /* Set the "next" pointer again, because it is cleared by
                selector_match_with_this_param. */
             this_match->next = this_match_next;
@@ -3986,7 +3999,7 @@ is only used in C++ mode.
                                      /*selector_is_object_pointer=*/FALSE,
                                      /*conversion_function_case=*/TRUE,
                                      conversion_routine,
-                                     conv_routine_type,
+                                implicit_this_param_type_of(conv_routine_type),
                                      &this_match);
       /* Ignore this function if it cannot be called for this argument. */
       if (this_match.match_level == aml_none) goto next_function;
