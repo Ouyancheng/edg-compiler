@@ -377,6 +377,7 @@ cases (anonymous unions containing types).
 /* Declarations needed because of forward references: */
 static void set_routine_definition_needed(a_routine_ptr rout);
 static void set_class_definition_needed(a_type_ptr type);
+static void set_routine_keep_definition_in_il(a_routine_ptr rout);
 
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
 #undef DO_SUBTREE_WALK
@@ -1017,7 +1018,7 @@ want that to happen before the "needed" flag is set.
 }  /* keep_definitions_of_virtual_functions_in_scope */
 
 
-void set_routine_keep_definition_in_il(a_routine_ptr rout)
+static void set_routine_keep_definition_in_il(a_routine_ptr rout)
 /*
 Set the keep_definition_in_il flag on the indicated routine.  This means
 the definition of the routine must be kept in the IL, and not just the
