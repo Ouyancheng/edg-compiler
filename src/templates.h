@@ -85,6 +85,9 @@ extern void templates_init(void);
 extern void create_or_remove_instantiation_information_file(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
+
+
 /* If tp is a class in need of instantiation, instantiate it.  Otherwise,
    do nothing. */
 #define check_for_uninstantiated_template_class(tp)                     \
