@@ -1662,7 +1662,10 @@ error code.
     case ec_missing_template_param:
       m = "template parameter declaration is missing";
       break;
-    /* +++ -- For ease of finding the insert point for new diagnostics. */
+    case ec_expected_template_arg_list:
+      m = "expected an argument list for %nf";
+      break;
+      /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
 #if CHECKING
@@ -2373,7 +2376,7 @@ declaration position to eliminate redundant file names in a diagnostic.
       }  /* if */
       goto symbol_name;
     case sk_class_template:
-      entity_kind = "class template";
+      entity_kind = "class template ";
       /* There is no specific type information available; this entity cannot
          be expressed as a declaration. */
       goto symbol_name;

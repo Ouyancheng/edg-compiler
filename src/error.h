@@ -480,7 +480,8 @@ typedef enum /*an_error_code*/ {
   ec_nonglobal_template_declaration,
   ec_exp_lt,
   ec_exp_gt,
-  ec_missing_template_param
+  ec_missing_template_param,
+  ec_expected_template_arg_list
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
