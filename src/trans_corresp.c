@@ -260,8 +260,8 @@ debugger.  The routine is called if the correspondence pointer for the address
 pointed to by trace_corresp_ptr is modified.
 */
 {
-  fprintf(f_debug, "Modifying correspondence for node at %x.\n",
-          (unsigned)trace_corresp_ptr);
+  fprintf(f_debug, "Modifying correspondence for node at %p.\n",
+          trace_corresp_ptr);
 }  /* corresp_intercept */
 
 #define trace_corresp_check(ptr)                                       \
@@ -277,13 +277,11 @@ canonical entry (or NULL if none).
 
   if (trans_unit_corresp_of_unknown_entry(ptr) != NULL) {
     result = (void*)canonical_il_entry_of(ptr);
-    fprintf(f_debug, "Correspondence for 0x%x is 0x%x",
-            (unsigned)ptr, (unsigned)result);
+    fprintf(f_debug, "Correspondence for %p is %p", ptr, result);
   } else {
     /* This entry doesn't belong to a correspondence set yet. */
     result = NULL;
-    fprintf(f_debug, "No correspondence for 0x%x",
-            (unsigned)ptr);
+    fprintf(f_debug, "No correspondence for %p", ptr);
   }  /* if */
   return result;
 }  /* db_corresp */

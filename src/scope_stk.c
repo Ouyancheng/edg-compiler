@@ -461,7 +461,8 @@ function-local entities in the IA-64 ABI.
      So we use the symbol header pointer value as a basis for a hash value.
      The three least significant bits are discarded because they are possibly
      always zero due to alignment requirements. */
-  hash_index = (((unsigned)header) >> 3) % LOCAL_NAME_COLLISION_TABLE_SIZE;
+  hash_index = (unsigned)((((unsigned long)header) >> 3) %
+                                              LOCAL_NAME_COLLISION_TABLE_SIZE);
   sep = ssep->local_name_collision_table->buckets[hash_index];
   for (; sep != NULL; sep = sep->next) {
     if (sep->symbol->header == header &&
