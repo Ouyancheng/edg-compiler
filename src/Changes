@@ -1,5 +1,11 @@
 Version 2.25
 
+8/9/94   Cross-reference name display
+
+Fully qualified names are now put out to the cross-reference output file.
+Also, template arguments may be displayed for type names and class
+qualifiers.
+
 8/9/94   Cross-reference information on undefined names in declarations
 
 We now put out cross-reference information when an undefined name appears
