@@ -2290,8 +2290,10 @@ created, or NULL it there is none.
   if (!at_file_scope) {
     check_assertion(ssep->kind == (a_scope_kind)sck_function ||
                     ssep->kind == (a_scope_kind)sck_block ||
-                    ssep->kind == (a_scope_kind)sck_condition);
-    check_assertion(!vp->source_corresp.is_class_member);
+                    ssep->kind == (a_scope_kind)sck_condition ||
+                    ((a_symbol_ptr)vp->source_corresp.assoc_info)->is_error);
+    check_assertion(!vp->source_corresp.is_class_member ||
+                    ((a_symbol_ptr)vp->source_corresp.assoc_info)->is_error);
     /* We are in executable code (i.e., inside a function or block rather
        than at file scope). */
     if (dip->kind != (a_dynamic_init_kind)dik_none) {
@@ -2661,7 +2663,11 @@ returned set to TRUE.
        class reactivated (if we're parsing a prototype instantiation, this was
        done elsewhere).  We may also end up here with an sk_variable in some
        error cases. */
-    if (!is_template_dependent_context()) {
+    if (is_incomplete_type(symbol_ptr->parent.class_type)) {
+      /* We can end up here in error situations such as:
+           { struct S; int S::i = 0; }   */
+      check_assertion(symbol_ptr->is_error);
+    } else if (!is_template_dependent_context()) {
       push_class_reactivation_scope(symbol_ptr->parent.class_type,
                                     /*extend_namespace=*/TRUE);
     }  /* if */
@@ -2958,7 +2964,9 @@ returned set to TRUE.
        also end up here with an sk_variable.) */
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
-    if (!is_template_dependent_context()) {
+    if (is_incomplete_type(symbol_ptr->parent.class_type)) {
+      check_assertion(symbol_ptr->is_error);
+    } else if (!is_template_dependent_context()) {
       pop_class_reactivation_scope();
     }  /* if */
   } else {
