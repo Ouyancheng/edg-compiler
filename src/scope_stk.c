@@ -163,6 +163,75 @@ Dump the entire scope stack (for debugging).
   }  /* for */
 }  /* db_scope_stack */
 
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+void db_decl_pos_info(a_symbol_ptr  sym)
+/*
+Dump decl-pos information for the specified symbol (for debugging).
+*/
+{
+  a_decl_position_supplement_ptr  dpsp;
+  a_source_correspondence         *scp = source_corresp_entry_for_symbol(sym);
+
+  if (scp != NULL) {
+    db_symbol_name(sym);
+    fprintf(f_debug, " <%s>, decl_position: %lu/%lu\n",
+                     symbol_kind_names[(int)sym->kind],
+                     scp->decl_position.seq, scp->decl_position.column);
+    dpsp = scp->decl_pos_info;
+    if (dpsp != NULL) {
+      fprintf(f_debug, "    specifiers range:  %4lu/%-3lu -- %4lu/%-3lu\n",
+                       dpsp->specifiers_range.start.seq,
+                       dpsp->specifiers_range.start.column,
+                       dpsp->specifiers_range.end.seq,
+                       dpsp->specifiers_range.end.column);
+      fprintf(f_debug, "    declarator range:  %4lu/%-3lu -- %4lu/%-3lu\n",
+                       dpsp->declarator_range.start.seq,
+                       dpsp->declarator_range.start.column,
+                       dpsp->declarator_range.end.seq,
+                       dpsp->declarator_range.end.column);
+      fprintf(f_debug, "    identifier range:  %4lu/%-3lu -- %4lu/%-3lu\n",
+                       dpsp->identifier_range.start.seq,
+                       dpsp->identifier_range.start.column,
+                       dpsp->identifier_range.end.seq,
+                       dpsp->identifier_range.end.column);
+      if (sym->kind == (a_symbol_kind)sk_variable ||
+          sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr  vp = sym->variant.variable.ptr;
+        if (vp->init_kind != initk_none) {
+          fprintf(f_debug,
+                  "    initializer range: %4lu/%-3lu -- %4lu/%-3lu\n",
+                  vp->initializer_range.start.seq,
+                  vp->initializer_range.start.column,
+                  vp->initializer_range.end.seq,
+                  vp->initializer_range.end.column);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* db_decl_pos_info */
+
+
+void db_decl_pos_info_for_scope(a_scope_ptr                 scope_ptr,
+                                a_scope_pointers_block_ptr  pointers_block)
+/*
+Dump decl-pos information for each symbol in the specified scope (for
+debugging).
+*/
+{
+  a_symbol_ptr  sym = pointers_block->symbols;
+
+  if (sym != NULL) {
+    fprintf(f_debug, "decl-pos info for ");
+    db_scope(scope_ptr);
+    fprintf(f_debug, "\n");
+    for (; sym != NULL; sym = sym->next_in_scope) {
+      db_decl_pos_info(sym);
+    }  /* for */
+  }  /* if */
+}  /* db_decl_pos_info_for_scope */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
 
 
@@ -3177,6 +3246,13 @@ unit.
                                                             is_nonreal_class) {
       is_prototype_instantiation = TRUE;
     }  /* if */
+#if DEBUG
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (db_flag_is_set("dump_decl_pos_info")) {
+      db_decl_pos_info_for_scope(scope_ptr, pointers_block);
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* DEBUG */
     /* Remove the symbols declared in this scope from the symbol table.
        Check for unreferenced symbols, and issue warnings for those. */
     for (sym = pointers_block->symbols;
