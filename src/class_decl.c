@@ -806,7 +806,7 @@ Process the default argument expressions for the indicated class.
   if ((rfp = cssp->routine_fixup_list) != NULL) {
 #if DEBUG
     if (debug_level >= 3) {
-      fputs("delayed scan fixup for class \"", f_debug);
+      fputs("default-arg fixup for class \"", f_debug);
       db_type_name(class_type);
       fputs("\"\n", f_debug);
     }  /* if */
@@ -816,26 +816,6 @@ Process the default argument expressions for the indicated class.
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    for (; rfp != NULL; rfp = rfp->next) {
-      if (rfp->is_partial_instantiation) {
-        /* Add a secondary-decl source sequence entry to the source sequence
-           list to represent a partial instantiation. */
-        a_template_instance_ptr       tip;
-
-        tip = rfp->symbol->variant.routine.instance_ptr;
-        check_assertion(tip != NULL && tip->partial_instantiation != NULL);
-        update_source_sequence_list(
-                               (char *)tip->partial_instantiation,
-                               (an_il_entry_kind)iek_src_seq_secondary_decl,
-                               (a_source_sequence_entry_ptr)NULL);
-        tip->partial_instantiation = NULL;
-      }  /* if */
-    }  /* for */
-    rfp = cssp->routine_fixup_list;
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
       daefp = rfp->def_arg_expr_fixup_list;
       if (daefp != NULL) {
@@ -915,7 +895,7 @@ Process the default argument expressions for the indicated class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         {
         a_boolean  do_declared_type_fixup = is_function_symbol(sym);
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         a_boolean  ss_list_insert_point_adjusted = FALSE;
 
         if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
@@ -936,8 +916,14 @@ Process the default argument expressions for the indicated class.
           check_assertion(ssep != NULL);
           push_ss_insert_stack(ssep);
           ss_list_insert_point_adjusted = TRUE;
+        } else {
+          /* If a default argument on a member function declaration of a
+             local class triggers an instantiation, it should be recorded
+             in the nearest enclosing namespace scope.  That's what the
+             "instantiation insert point" should be set to already, so
+             nothing else needs to be done. */
         }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (is_real_template_instantiation &&
             sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
@@ -1006,9 +992,9 @@ Process the default argument expressions for the indicated class.
           copy_routine_type_default_args(routine_symbol_type(sym),
                                          rfp->func_info.declared_type);
         }  /* if */
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
@@ -1043,10 +1029,10 @@ nested class.
   /* First go though the routine fixup entries and scan the default
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
-  if ((rfp = cssp->routine_fixup_list) != NULL) {
+  if (cssp->routine_fixup_list != NULL) {
 #if DEBUG
     if (debug_level >= 3) {
-      fputs("delayed scan fixup for class \"", f_debug);
+      fputs("inline function fixup for class \"", f_debug);
       db_type_name(class_type);
       fputs("\"\n", f_debug);
     }  /* if */
@@ -1056,6 +1042,82 @@ nested class.
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    {
+    a_boolean  ss_list_insert_point_adjusted = FALSE;
+
+    if (!class_type->source_corresp.is_local_to_function) {
+      /* Temporarily remove source sequence entries, if any that have been
+         entered after the end-of-construct entry for class that was just
+         defined.  Here's an example why:  Sometimes the definition of a
+         member or friend functions is represented by a source sequence
+         entry that is added after the end of the class body.  Moreover, in
+         a case like this:
+           class A {
+             int friend f() { ... };
+           } x = f();
+         the definition of f must be moved to a position that precedes the
+         declaration of x even while following the declaration of A. */
+      a_source_sequence_entry_ptr  tail;
+
+      /* Check the end of the source sequence list. */
+      tail = scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
+      /* Unless the last entry on the source sequence list is an
+         end-of-construct entry that corresponds to the end of the
+         definition of class_type, back up until it's found. */
+      for (; tail != NULL; tail = tail->prev) {
+        if (ss_entry_kind(tail) ==
+                  (an_il_entry_kind)iek_src_seq_end_of_construct) {
+          a_src_seq_end_of_construct_ptr  sseocp;
+          sseocp = (a_src_seq_end_of_construct_ptr)tail->entity.ptr;
+          if (sseocp->entity.ptr == (char *)class_type) {
+#if DEBUG
+            if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+              fputs("adding fixup entries following body of class \"",
+                    f_debug);
+              db_type_name(class_type);
+              fputs("\"\n", f_debug);
+            }  /* if */
+#endif /* DEBUG */
+            if (tail->next != NULL) {
+              push_ss_insert_stack(tail->next);
+              ss_list_insert_point_adjusted = TRUE;
+            }  /* if */
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = rfp->next) {
+      if (rfp->is_partial_instantiation) {
+        /* Add a secondary-decl source sequence entry to the source sequence
+           list to represent a partial instantiation. */
+        a_template_instance_ptr       tip;
+
+        tip = rfp->symbol->variant.routine.instance_ptr;
+        check_assertion(tip != NULL && tip->partial_instantiation != NULL);
+        if (curr_scope_class_type != rfp->class_type) {
+          if (curr_scope_class_type != NULL) {
+            /* Pop the reactivated class scope from the scope stack. */
+            pop_class_reactivation_scope();
+          }  /* if  */
+          /* Reactivate the class. */
+          push_class_and_template_reactivation_scope(rfp->class_type,
+                                                     is_template_based);
+          curr_scope_class_type = rfp->class_type;
+        }  /* if */
+        update_source_sequence_list(
+                               (char *)tip->partial_instantiation,
+                               (an_il_entry_kind)iek_src_seq_secondary_decl,
+                               (a_source_sequence_entry_ptr)NULL);
+        tip->partial_instantiation = NULL;
+      }  /* if */
+    }  /* for */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Go through the routine fixup entries to scan inline function bodies. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       next_rfp = rfp->next;
@@ -1127,8 +1189,6 @@ nested class.
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-          {
-          a_boolean  ss_list_insert_point_adjusted = FALSE;
           if (rfp->func_info.is_movable_member_or_friend_def) {
             /* Within the class definition a secondary-decl source sequence
                entry was put out for the member or friend function
@@ -1154,9 +1214,10 @@ nested class.
                it wasn't); otherwise, invalid code may be put out by the
                C++-generating back end. */
             class_type->autonomous_primary_tag_decl = TRUE;
-            push_ss_insert_stack(scope_stack[DEPTH_OF_FILE_SCOPE].
-                                               last_source_sequence_entry);
-            ss_list_insert_point_adjusted = TRUE;
+            /* Assure that instantiations triggered within the body of the
+               relocated function are recorded in the source-sequence list
+               immediately before it. */
+            push_ss_insert_stack(rp->source_corresp.source_sequence_entry);
           }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1175,8 +1236,9 @@ nested class.
           flush_past_token_cache_terminator();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-          if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
-          }
+          if (rfp->func_info.is_movable_member_or_friend_def) {
+            pop_ss_insert_stack();
+          }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -1189,6 +1251,13 @@ nested class.
       /* Pop the reactivated class scope from the scope stack. */
       pop_class_reactivation_scope();
     }  /* if  */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* Restore the insert-point state. */
+    if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
+    }
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* The delayed scan fixup entries have been freed, so clear the
        pointer in the class symbol supplement. */
     cssp->routine_fixup_list = NULL;
@@ -1213,52 +1282,9 @@ the fixups have not yet been done.
   a_class_fixup_ptr  cfp;
   a_class_fixup_ptr  next_cfp;
 
+  db_enter(3, "process_deferred_class_fixups");
   if (def_arg_class_fixup_list != NULL ||
       inline_function_class_fixup_list != NULL) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    a_boolean                    ss_list_insert_point_adjusted = FALSE;
-    a_source_sequence_entry_ptr  tail;
-
-    if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-      /* Temporarily remove source sequence entries, if any that have been
-         entered after the end-of-construct entry for class that was just
-         defined.  Here's an example why:  Sometimes the definition of a
-         member or friend functions is represented by a source sequence
-         entry that is added after the end of the class body.  Moreover, in
-         a case like this:
-           class A {
-             int friend f() { ... };
-           } x = f();
-         the definition of f must be moved to a position that precedes the
-         declaration of x even while following the declaration of A. */
-      /* Check the end of the source sequence list. */
-      tail = scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
-      if (tail == NULL ||
-          ss_entry_kind(tail) ==
-                  (an_il_entry_kind)iek_src_seq_end_of_construct) {
-        /* Nothing more needs to be done. */
-      } else {
-        /* The last entry on the source sequence list is not an
-           end-of-construct entry, which should correspond to the end of
-           the class.  Back up till it's found. */
-        for (tail = tail->prev; tail != NULL; tail = tail->prev) {
-          if (ss_entry_kind(tail) ==
-                  (an_il_entry_kind)iek_src_seq_end_of_construct) {
-#if DEBUG
-            if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-              fputs("at start of deferred class fixup:\n", f_debug);
-            }  /* if */
-#endif /* DEBUG */
-            push_ss_insert_stack(tail->next);
-            ss_list_insert_point_adjusted = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
-      }  /* if */
-    }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Clear the pointers to the start of the fixup lists so that classes
        created by the fixup process can be fixed up by a recursive call to
        this routine.  This could happen if a function body contains a
@@ -1283,13 +1309,8 @@ the fixups have not yet been done.
         free_class_fixup(cfp);
       }  /* for */
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    /* Restore the insert-point state. */
-    if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  db_exit();
 }  /* process_deferred_class_fixups */
 
 
