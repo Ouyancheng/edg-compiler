@@ -3820,8 +3820,9 @@ function_lparen:
          exception specifications.) */
       disallow_exception_spec = TRUE;
       if (!C_mode() && !(input_flags & DI_IS_TYPEDEF_DECLARATION)) {
-        if (derived_type == NULL) {
-          /* Top level function declaration. */
+        if (derived_type == NULL || is_function_type(derived_type)) {
+          /* Top level function declaration, or return type of function
+             type. */
           disallow_exception_spec = FALSE;
         } else if (is_ptr_or_ref_type(derived_type)) {
           /* If derived_type is a pointer or reference type that currently
