@@ -6642,6 +6642,10 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       /* There is a throw expression. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       node = make_node_from_operand(&operand);
+      /* Mark the type as having been used in an exception.  (Also, if it
+         "contains" any classes, they are marked as requiring external
+         linkage.) */
+      set_used_in_exception_flag(node->type);
     } else {
       /* There is no throw expression (i.e., this is a rethrow). */
       node = NULL;
@@ -6650,10 +6654,6 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     throw_node = alloc_expr_node((an_expr_node_kind)enk_throw);
     throw_node->type = void_type();
     throw_node->variant.throw_object = node;
-    /* Mark the type as having been used in an exception.  (Also, if it
-       "contains" any classes, they are marked as requiring external
-       linkage.) */
-    set_used_in_exception_flag(node->type);
     /* Make an operand for the result. */
     make_expression_operand(throw_node, throw_node->type, result);
   }  /* if */
