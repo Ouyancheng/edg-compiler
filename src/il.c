@@ -4983,16 +4983,16 @@ determined directly.
       if (sp->kind == (a_scope_kind)sck_namespace) {
         /* Move the associated placeholder typedef (there ought to be one) to
            the end of the file-scope types list. */
-        a_scope_stack_entry_ptr     ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+        a_scope_ptr file_scope = curr_translation_unit->primary_scope;
 
-        pointers_block = assoc_pointers_block_of(ssep);
+        pointers_block = &curr_translation_unit->file_scope_pointers_block;
         tp = pointers_block->last_type;
         if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
           /* The placeholder entry is already the last entry. */
         } else {
           /* Scan the list until a match is found. */
           prev_tp = NULL;
-          for (tp = ssep->il_scope->types;; tp = tp->next) {
+          for (tp = file_scope->types;; tp = tp->next) {
             check_assertion(tp != NULL);
             if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
               break;
@@ -5001,7 +5001,7 @@ determined directly.
           }  /* for */
           /* Link around the entry that was found. */
           if (prev_tp == NULL) {
-            ssep->il_scope->types = tp->next;
+            file_scope->types = tp->next;
           } else {
             prev_tp->next = tp->next;
           }  /* if */
