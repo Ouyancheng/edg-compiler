@@ -350,6 +350,25 @@ exit status.
 }  /* pl_internal_error */
 
 
+/*
+Determine whether getcwd or getwd should be used to get the current
+directory.  getwd is used on BSD, getcwd on other systems.
+*/
+#if __MSDOS__
+#define USE_GETCWD 1
+#include <direct.h>
+#else /* !__MSDOS___ */
+#if __BSD__
+#include <sys/param.h>
+extern char* getwd(char *pathname);
+#define USE_GETCWD 0
+#else /* !__BSD__ */
+#include <unistd.h>
+#define USE_GETCWD 1
+#endif /* __BSD__ */
+#endif /* __MSDOS__ */
+
+
 static void pl_get_curr_dir_name(void)
 /*
 Get the current directory name and save it in curr_dir_name.
