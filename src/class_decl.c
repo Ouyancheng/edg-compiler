@@ -2455,6 +2455,7 @@ or struct definition.  The syntax is
          it is a union or if it has been declared but not yet defined (ARM
          10, p. 196), issue an error and skip over this class: it is not a
          valid base class name. */
+      check_for_uninstantiated_template_class(base_class_type);
       if (is_qualified_type(base_class_type) ||
           (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
           base_class_type->kind == (a_type_kind)tk_union ||
