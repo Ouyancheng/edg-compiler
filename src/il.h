@@ -42,9 +42,14 @@ EXTERN a_memory_region_number
 		curr_il_region_number;
 
 EXTERN a_boolean
-		curr_initial_il_walk_flag_setting;
+		curr_initial_il_walk_flag_setting,
+		curr_func_initial_il_walk_flag_setting;
 			/* Value currently to be used as the initial value for
-			   il_walk_flag when entries are created. */
+			   il_walk_flag when entries are created, for entries
+			   in the file scope and function scope,
+			   respectively.  In the front end proper (i.e., not
+			   in IL lowering and not in IL walk/write) these
+			   will have the same value. */
 
 #if ORPHAN_PROCESSING_NEEDED
 /*
@@ -386,7 +391,7 @@ extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
                                       a_boolean     *at_end_of_source);
 extern a_boolean seq_is_in_include_file(a_seq_number seq_number);
 
-extern void set_default_source_corresp(a_source_correspondence *sc);
+extern void break_source_corresp(a_source_correspondence *sc);
 
 /* Copy a constant entry. */
 #define copy_constant(from, to) (*(to) = *(from))

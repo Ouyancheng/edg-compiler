@@ -1499,7 +1499,25 @@ to by ssep.
 }  /* add_to_scopes_list */
 
 
-void set_default_source_corresp(a_source_correspondence *sc)
+/*
+Macro to set the il_walk_flag in an IL entry to the appropriate initial
+value based on whether it is in the file scope memory region or a
+function scope memory region.
+*/
+#define set_il_walk_flag_to_initial_value(entry_ptr, at_file_scope)   \
+  ((entry_ptr)->source_corresp.il_walk_flag = (at_file_scope) ?       \
+          curr_initial_il_walk_flag_setting :                         \
+          curr_func_initial_il_walk_flag_setting)
+
+/*
+Similar macro based on the setting of curr_il_region_number.
+*/
+#define set_il_walk_flag_based_on_curr_il_region_number(entry_ptr)    \
+  (set_il_walk_flag_to_initial_value(entry_ptr,                       \
+                 (curr_il_region_number == FILE_SCOPE_REGION_NUMBER)))
+
+
+static void set_default_source_corresp(a_source_correspondence *sc)
 /*
 Set the given source correspondence struct to default values.
 */
@@ -1521,9 +1539,27 @@ Set the given source correspondence struct to default values.
      the flag to FALSE for associated entities, for which the flag is then
      set to TRUE (for an actual reference) by mark_referenced. */
   sc->referenced              = TRUE;
+  /* Set the IL walk flag to a default setting.  Usually, this is overridden
+     almost immediately, but the value here is important when an IL constant
+     entry is created somewhere other than an IL memory region (e.g., in
+     an expression operand) and then copied into an IL entry.  Except in
+     IL lowering and IL walk/write, the initial setting is the same for
+     the file scope or the function scope, so use the file scope setting. */
   sc->il_walk_flag            = curr_initial_il_walk_flag_setting;
   sc->name_linkage            = (a_name_linkage_kind)nlk_none;
 }  /* set_default_source_corresp */
+
+
+void break_source_corresp(a_source_correspondence *sc)
+/*
+If the indicated source correspondence is attached to a source entity,
+break the correspondence.
+*/
+{
+  sc->assoc_info = NULL;
+  sc->name       = NULL;
+  /* Note in particular that il_walk_flag is not changed. */
+}  /* break_source_corresp */
 
 
 void set_constant_kind(a_constant           *cp,
@@ -1627,10 +1663,10 @@ values, and return a pointer to it.
   num_constants_allocated++;
 #endif /* DEBUG */
   clear_constant(cp, kind);
+  set_il_walk_flag_based_on_curr_il_region_number(cp);
 
   db_exit();
-
-  return (cp);
+  return cp;
 }  /* alloc_constant */
 
 
@@ -1674,8 +1710,8 @@ value.  Several fields are cleared or adjusted.
   /* Clear the source correspondence information.  This version of the
      constant isn't the one directly associated with the source entity,
      if any. */
-  set_default_source_corresp(&ucp->source_corresp);
-  return (ucp);
+  break_source_corresp(&ucp->source_corresp);
+  return ucp;
 }  /* alloc_unshared_constant */
 
 
@@ -2214,6 +2250,8 @@ at file scope.
 #endif /* DEBUG */
   ptp->next = NULL;
   ptp->type = type;
+  /* param_type entries are in the file scope memory region, so use the
+     initial il_walk_flag setting for that region. */
   ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_expr = NULL;
@@ -3029,7 +3067,7 @@ they are not already present.
 #endif /* CHECKING */
         new_array = alloc_type((a_type_kind)tk_array);
         copy_type(old_array, new_array);
-        set_default_source_corresp(&new_array->source_corresp);
+        break_source_corresp(&new_array->source_corresp);
         if (prev_new_array == NULL) {
           top_new_array = new_array;
         } else {
@@ -3351,6 +3389,7 @@ to it.
 */
 {
   a_variable_ptr vp;
+  a_boolean      at_file_scope = FALSE;
 
   db_enter(5, "alloc_variable");
 
@@ -3360,13 +3399,16 @@ to it.
     /* Variable that will have static storage should always be allocated in
        the file scope memory region. */
     vp = (a_variable_ptr)alloc_il(sizeof(a_variable));
+    at_file_scope = TRUE;
   } else {
     vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));
+    at_file_scope = (curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
   }  /* if */
 #if DEBUG
   num_variables_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(vp->source_corresp));
+  set_il_walk_flag_to_initial_value(vp, at_file_scope);
   vp->next                        = NULL;
   vp->type                        = NULL;
   vp->assoc_param_type            = NULL;
@@ -3653,6 +3695,9 @@ to it.
   num_labels_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(lp->source_corresp));
+  /* Label entries are in the function scope memory region, so use the
+     initial il_walk_flag setting for that region. */
+  lp->source_corresp.il_walk_flag = curr_func_initial_il_walk_flag_setting;
   lp->next = NULL;
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
@@ -4524,7 +4569,8 @@ of the front end.
 {
   /* Variables in il.h: */
   curr_il_region_number = NULL_region_number;
-  curr_initial_il_walk_flag_setting = 0;  /* Arbitrary: 0 or 1. */
+  curr_initial_il_walk_flag_setting = curr_func_initial_il_walk_flag_setting =
+                                                   0;  /* Arbitrary: 0 or 1. */
   /* Variable in il_def.h: */
 #if CHECKING && DEBUG
   /* Check that the table of storage class names is correctly initialized.
