@@ -4722,6 +4722,259 @@ Add a field of error type to the field list for the specified class type.
 }  /* add_error_field */
 
 
+static void check_enum_type_for_bit_field(a_type_ptr    bit_field_type,
+                                          unsigned long bit_field_size,
+                                          a_boolean     *need_signed_type)
+/*
+Check to see that the values of the enumerated type bit_field_type will all
+fit in a bit field of size bit_field_size.  If not, give a warning.  Return
+*need_signed_type TRUE if the bit field type must be signed, FALSE if it
+must be unsigned.
+*/
+{
+  a_boolean      use_signed = FALSE, smallest_is_negative;
+  a_constant     smallest, largest;
+  unsigned long  bits_needed, bits_needed_largest, bits_needed_smallest;
+  a_constant_ptr enum_con;
+
+  enum_con = bit_field_type->variant.integer.enum_info.constant_list;
+  if (enum_con == NULL) {
+    /* There are no enumeration constants, so no bits are needed to
+       represent all of them; by definition, they fit in the bit field. */
+  } else {
+    /* Check the constants on the list.  Start by finding the largest and
+       smallest constants.  We are assuming most enum type lists
+       won't be too long, and there won't be too many bit fields with enum
+       type, so a linear search should be acceptable.  Furthermore,
+       the usual case is that the bit field is big enough, so we're probably
+       going to scan the whole constant list; therefore it's okay to always
+       scan the whole list even though some errors could be detected during
+       the scan. */
+    smallest = *enum_con;
+    largest = *enum_con;
+    for (;;) {
+      enum_con = enum_con->next;
+      if (enum_con == NULL) break;
+      if (cmp_integer_constants(enum_con, &smallest) < 0) smallest = *enum_con;
+      if (cmp_integer_constants(enum_con, &largest)  > 0) largest  = *enum_con;
+    }  /* for */
+    /* Determine the number of bits needed to represent largest value. */
+    bits_needed_largest =
+                        bits_required_to_represent_integer_constant(&largest);
+    /* See if the smallest value is negative. */
+    smallest_is_negative = (sign_of_integer_constant(&smallest) < 0);
+    if (targ_enum_bit_fields_are_always_unsigned) {
+      /* Enum bit fields are always unsigned (many ABIs require this). */
+      use_signed = FALSE;
+      bits_needed = bits_needed_largest;
+    } else {
+      /* Determine the proper signedness for the bit field.  One can't
+         simply use the signedness of the enum type, since that was chosen
+         for efficiency reasons: if the enum values just fit in the bit
+         field size, an unsigned field might be necessary even though a 
+         signed type was a good choice for the enum type. */
+      if (smallest_is_negative) {
+        /* Some enum values are negative, so a signed type is required.
+           The enum type must already be signed. */
+        use_signed = TRUE;
+      } else if (bits_needed_largest >= bit_field_size) {
+        /* The largest value is nonnegative (because the smallest is
+           nonnegative), and it's big enough that it wouldn't fit in a
+           signed field.  Therefore, an unsigned type is required. */
+        use_signed = FALSE;
+      } else {
+        /* The signedness is not forced by the enum values, so use the 
+           target preference.  Make a one-bit field always unsigned. */
+        if (bit_field_size == 1) {
+          use_signed = FALSE;
+        } else {
+          use_signed = !targ_plain_int_bit_field_is_unsigned;
+        }  /* if */
+      }  /* if */
+      if (use_signed && sign_of_integer_constant(&largest) >= 0) {
+        /* Using a signed bit field and the largest is nonnegative, so the
+           largest really requires one more bit for a zero sign. */
+        bits_needed_largest++;
+      }  /* if */
+      /* Determine the number of bits needed. */
+      bits_needed_smallest =
+                        bits_required_to_represent_integer_constant(&smallest);
+      if (bits_needed_largest > bits_needed_smallest) {
+        bits_needed = bits_needed_largest;
+      } else {
+        bits_needed = bits_needed_smallest;
+      }  /* if */
+    }  /* if */
+    /* Check that the enum values will fit in the bit field. */
+    if (bits_needed > bit_field_size ||
+        (targ_enum_bit_fields_are_always_unsigned && smallest_is_negative)) {
+      warning(ec_enum_bit_field_too_small);
+    }  /* if */
+  }  /* if */
+  *need_signed_type = use_signed;
+}  /* check_enum_type_for_bit_field */
+
+
+static void scan_bit_field_size(a_boolean         *unnamed_bit_field,
+                                a_type_ptr        *p_base_type,
+                                long              *p_bit_field_size,
+                                a_boolean         *p_is_signed,
+                                a_symbol_locator  *locator)
+/*
+Scan the size in a bit-field declaration:
+
+    unsigned int j: 5 ;
+                    ^---- this size.
+
+The current token is the colon preceding the size.  If *unnamed_bit_field
+is TRUE, the bit-field is unnamed.  *p_base_type gives the base type
+of the declaration (unsigned int in the above example); it may be updated
+on return.  *p_bit_field_size is set to the bit field size in bits.
+*p_is_signed is set to indicate whether or not the bit field is signed.
+*/
+{
+  unsigned long    bit_field_size, max_size_allowed;
+  a_type_ptr       base_type = *p_base_type;
+  a_boolean        err = FALSE, is_signed = FALSE;
+  a_constant       constant;
+  a_type_ptr       bit_field_type;
+  an_integer_kind  int_kind;
+
+  db_enter(3, "scan_bit_field_size");
+  /* ANSI C says the type of a bit-field must be int, unsigned int,
+     or signed int, but we also allow enums and integral types (see A.6.5.8
+     in the Common Extensions appendix).  pcc and C++ (ARM 9.6) allow any
+     integral or enum type. */
+  bit_field_type = skip_typerefs(base_type);
+  if (!is_integral_type(bit_field_type)) {
+    /* Diagnostic has already been issued. */
+    bit_field_type = integer_type((an_integer_kind)ik_int);
+  }  /* if */
+  /* Note that if the base type was not integral it has been replaced by
+     "int" by this point. */
+  /* Advance past the colon. */
+  (void)get_token();
+  /* Scan the integral size in bits of the bit-field. */
+  scan_integral_constant_expression(&constant);
+  if (is_error_constant(&constant)) {
+    /* Use small value to avoid more errors, but not 1 which is special. */
+    bit_field_size = targ_char_bit;
+    err = TRUE;
+  } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+    /* A template parameter during the prototype instantiation.  The value
+       is not known.  Use a small value that is not 1. */
+    bit_field_size = targ_char_bit;
+  } else {
+#if CHECKING
+    if (constant.kind != (a_constant_repr_kind)ck_integer) {
+      internal_error("scan_bit_field_size: size not int");
+    }  /* if */
+#endif /* CHECKING */
+    /* The size of the bit field must be non-negative and must not exceed
+       the size of the underlying type (except for enums, whose type was
+       picked by the front end) or the target maximum bit field size. */
+    max_size_allowed = targ_max_bit_field_size;
+    if (!bit_field_type->variant.integer.enum_type) {
+      max_size_allowed = bit_field_type->size*targ_char_bit;
+    }  /* if */
+    bit_field_size = unsigned_value_of_integer_constant(&constant, &err);
+    /* Note that one reason for err to be TRUE is if the constant is
+       less than zero. */
+    if (err || bit_field_size > max_size_allowed) {
+      error(ec_bad_bit_field_size);
+      bit_field_size = max_size_allowed;
+    } else if (bit_field_size == 0) {
+      /* The bit-field size is zero, so the field must be unnamed. */
+      if (*unnamed_bit_field) {
+        /* Okay. */
+      } else if (any_cfront_mode()) {
+        /* Cfront compatibility -- permit named bit fields to have zero
+           size, but change the value of *unnamed_bit_field so that they
+           will not be entered into the symbol table.  Note that it would
+           be possible for the name to be used again (though this would not
+           be acceptable to cfront), but it also means the field will not
+           be subject to initialization (cfront allows such fields to be
+           initialized and may generate invalid C as a result) and it means
+           the field cannot be referenced (again, cfront allows it and
+           generates invalid C). */
+        pos_warning(ec_zero_length_bit_field_must_be_unnamed,
+                    &locator->source_position);
+        *unnamed_bit_field = TRUE;
+      } else {
+        /* Error. */
+        pos_error(ec_zero_length_bit_field_must_be_unnamed,
+                  &locator->source_position);
+        bit_field_size = 1;
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Determine the signedness of the bit field. */
+  if (bit_field_type->variant.integer.enum_type) {
+    /* The integral type is an enum type.  Give a warning if any of the
+       enumeration's constants will not fit in the bit field, and determine
+       whether the bit field should be signed or unsigned. */
+    check_enum_type_for_bit_field(bit_field_type, bit_field_size, &is_signed);
+  } else {
+    int_kind = bit_field_type->variant.integer.int_kind;
+    if (bit_field_type->variant.integer.explicitly_signed ||
+        (C_dialect != C_dialect_pcc &&
+         int_kind == (an_integer_kind)ik_signed_char)) {
+      /* The integral type was explicitly signed in the source, e.g.,
+         "signed int" instead of just "int".  (This information comes from
+         the type entry itself.)  That forces the bit field to be signed.
+         The integral type already has the right kind and signedness.  Note
+         that this won't happen in pcc mode because "signed" is not part of
+         the pcc language. */
+      is_signed = TRUE;
+    } else if (!int_kind_is_signed[int_kind]) {
+      /* The integral type must have been explicitly declared "unsigned", or
+          else it's a plain "char" that is treated as unsigned. */
+      is_signed = FALSE;
+    } else {
+      /* The integral type is "plain" (i.e., plain "int", "char", "short",
+         "long", or "long long") -- it's not explicitly signed or unsigned and
+         it's not an enum type. */
+      if (bit_field_size > 1 && !targ_plain_int_bit_field_is_unsigned &&
+          !any_cfront_mode()) {
+        /* Keep the default signedness of the plain integral type.  Note that
+           cfront treats all bit fields as unsigned. */
+        is_signed = TRUE;
+      } else {
+        /* The default for plain integral types in bit fields is unsigned --
+           or else this is a one-bit bit field, for which anything but
+           unsigned may not make much sense.  However, we do not change the
+           type to an unsigned version of the same integral type, since that
+           would affect C++ overload resolution adversely; the code to do
+           integral promotion has special handling if the width of the bit
+           field is the same as the width of an integer. */
+        is_signed = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Give a warning for a signed one-bit field; ANSI C allows it, but it's
+     strange. */
+  if (!err && !*unnamed_bit_field && is_signed && bit_field_size == 1) {
+    pos_warning(ec_signed_one_bit_field, &locator->source_position);
+  }  /* if */
+  /* Set base_type to bit_field_type with the proper type qualifiers. */
+  if (bit_field_type == skip_typerefs(base_type)) {
+    /* The original type, base_type, has turned out to be correct after all.
+       Use it directly to avoid wasting the type qualifiers, if any. */
+  } else {
+    /* Build a type with the right qualifiers.  Note that bit_field_type
+       should not have any qualifiers at this point; the qualifiers from the
+       base type, if any, are added. */
+    base_type = make_identically_qualified_type(bit_field_type, base_type);
+  }  /* if */
+  *p_base_type = base_type;
+  *p_bit_field_size = bit_field_size;
+  *p_is_signed = is_signed;
+
+  db_exit();
+}  /* scan_bit_field_size */
+
+
 static void decl_nonstatic_data_member(
                        a_symbol_locator             *locator,
                        a_type_ptr                   class_type,
