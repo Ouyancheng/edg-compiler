@@ -60,6 +60,16 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("1", "__i486__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* ifdef __i486__ */
+  if (!gcc_mode) {
+    /* The following macros enable the use of some Linux system header
+       files (like stdio.h) when not in GNU C mode. */
+    (void)enter_predef_macro("1", "__STRICT_ANSI__",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("va_list", "__gnuc_va_list",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
 }  /* enter_linux_predefined_macros */
 
 #endif /* ifdef __linux__ */
