@@ -865,29 +865,33 @@ do_variable:
           fprintf(f_debug, "\n");
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
-            a_routine_ptr rp = tip->instance_sym->variant.routine.ptr;
             fprintf(f_debug, "%*sinstance", indentation, "");
-            if (tip->instantiation_required || tip->is_guiding_decl ||
-                rp->is_specialized) {
-              char* comma = "";
-              fputs(" (", f_debug);
-              if (tip->instantiation_required) {
-                fputs("instantiation req'd", f_debug);
-                comma = ", ";
+            if (tip->instance_sym == NULL) {
+              fputs(": NULL instance sym\n", f_debug);
+            } else {
+              a_routine_ptr rp = tip->instance_sym->variant.routine.ptr;
+              if (tip->instantiation_required || tip->is_guiding_decl ||
+                  rp->is_specialized) {
+                char* comma = "";
+                fputs(" (", f_debug);
+                if (tip->instantiation_required) {
+                  fputs("instantiation req'd", f_debug);
+                  comma = ", ";
+                }  /* if */
+                if (tip->is_guiding_decl) {
+                  fprintf(f_debug, "%sguiding decl", comma);
+                  comma = ", ";
+                }  /* if */
+                if (rp->is_specialized) {
+                  fprintf(f_debug, "%s%sspecialization", comma,
+                          rp->specialized_with_old_syntax ? "old-style " : "");
+                }  /* if */
+                fputc(')', f_debug);
               }  /* if */
-              if (tip->is_guiding_decl) {
-                fprintf(f_debug, "%sguiding decl", comma);
-                comma = ", ";
-              }  /* if */
-              if (rp->is_specialized) {
-                fprintf(f_debug, "%s%sspecialization", comma,
-                        rp->specialized_with_old_syntax ? "old-style " : "");
-              }  /* if */
-              fputc(')', f_debug);
+              fputs(":\n", f_debug);
+              fprintf(f_debug, "%*s", indentation + 2, "");
+              db_symbol(tip->instance_sym, "", indentation + 4);
             }  /* if */
-            fputs(":\n", f_debug);
-            fprintf(f_debug, "%*s", indentation + 2, "");
-            db_symbol(tip->instance_sym, "", indentation + 4);
             tip = tip->next;
           }  /* while */
         }  /* if */
