@@ -296,6 +296,7 @@ for unions and aggregates at that level).
                       alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
         dip->variant.expression = expression;
       }  /* if */
+      dip->destructor = select_destructor(local_type);
       if (*di_list == NULL) {
         *di_list = dip;
       } else {
