@@ -164,12 +164,16 @@ purposes.
 
   switch (cfdp->kind) {
     case cfdk_block:
-      fprintf(f_debug, "block #%d%s",
-              cfdp->id_number,
-              cfdp->variant.block.is_switch_block ?
-                      " (switch)" :
-                      cfdp->variant.block.is_switch_subblock ?
-                              " (inside switch)" : "");
+      fprintf(f_debug, "block #%d (line %d)", cfdp->id_number,
+              cfdp->source_pos.seq);
+      if (cfdp->variant.block.is_handler_block) {
+        fprintf(f_debug, ", handler");
+      }  /* if */
+      if (cfdp->variant.block.is_switch_block) {
+        fprintf(f_debug, ", switch");
+      } else if (cfdp->variant.block.is_switch_subblock) {
+        fprintf(f_debug, ", inside switch");
+      }  /* if */
       if (cfdp->variant.block.any_labels) fprintf(f_debug, ", labels");
       if (cfdp->variant.block.goto_count > 0) {
         fprintf (f_debug, ", %d goto%s",
@@ -207,17 +211,18 @@ purposes.
       } else {
         db_name(&vp->source_corresp);
       }  /* if */
+      fprintf(f_debug, " (line %d)", cfdp->source_pos.seq);
       break;
     case cfdk_end_of_block:
-      fprintf(f_debug, "EOB");
+      fprintf(f_debug, "EOB (line %d)",
+              cfdp->source_pos.seq);
       if (cfdp->variant.start_of_block != NULL) {
         fprintf(f_debug, " for block #%d",
                 cfdp->variant.start_of_block->id_number);
       }  /* if */
       break;
-
     case cfdk_case_label:
-      fprintf(f_debug, "case label");
+      fprintf(f_debug, "case label (line %d)", cfdp->source_pos.seq);
       break;
     default:
       fprintf(f_debug, "***UNKNOWN KIND***");
@@ -300,10 +305,6 @@ to it.
   cfdp->parent = NULL;
   cfdp->kind = kind;
   cfdp->source_pos = error_position;
-#if 0
-  cfdp->source_pos.seq = 0;
-  cfdp->source_pos.seq = SP_COL_UNKNOWN;
-#endif /* if 0 */
 #if DEBUG
   cfdp->id_number = ++id_number;
 #endif /* DEBUG */
@@ -316,6 +317,7 @@ to it.
       cfdp->variant.block.is_switch_block = FALSE;
       cfdp->variant.block.is_switch_subblock = FALSE;
       cfdp->variant.block.exposed_init_in_switch = FALSE;
+      cfdp->variant.block.is_handler_block = FALSE;
 #if CHECKING
       cfdp->variant.block.dummy = 0;
 #endif /* CHECKING */
@@ -471,6 +473,65 @@ forth, are decremented.
 }  /* remove_control_flow_descr */
 
 
+static a_boolean is_on_cfd_parent_list(a_control_flow_descr_ptr cfdp,
+                                   a_control_flow_descr_ptr cfdp2)
+/*
+Return TRUE if cfdp (a block entry) is on the list of parent blocks of
+cfdp2. */
+{
+  a_control_flow_descr_ptr  parent;
+  a_boolean                 on_list = FALSE;
+
+  for (parent = cfdp2->parent; parent != NULL; parent = parent->parent) {
+    if (cfdp == parent) {
+      on_list = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return on_list;
+}  /* is_on_cfd_parent_list */
+
+
+static a_boolean check_for_branch_into_handler(
+                                      a_control_flow_descr_ptr  label_cfdp,
+                                      a_control_flow_descr_ptr  goto_cfdp)
+/*
+Check for an attempt to branch into an exception handler.  Either
+label_cfdp points to a label entry and goto_cfdp to a goto entry, or else
+label_cfdp points to a case label entry and goto_cfdp is NULL (in which
+case we need to find the switch with which the case label is associated).
+If an error is found, issue the diagnostic and return TRUE.
+*/
+{
+  a_boolean                 err = FALSE;
+  a_control_flow_descr_ptr  cfdp;
+
+  for (cfdp = label_cfdp->parent; cfdp != NULL; cfdp = cfdp->parent) {
+    if (cfdp->variant.block.is_handler_block) break;
+  }  /* for */
+  if (cfdp == NULL) {
+    /* Label is not inside a handler. */
+  } else {
+    if (goto_cfdp == NULL) {
+      check_assertion(label_cfdp->kind ==
+                             (a_control_flow_descr_kind)cfdk_case_label);
+      goto_cfdp = label_cfdp->parent;
+      for (; goto_cfdp != NULL; goto_cfdp = goto_cfdp->parent) {
+        if (goto_cfdp->variant.block.is_switch_block) break;
+      }  /* for */
+    }  /* if */
+    check_assertion(goto_cfdp != NULL);
+    if (is_on_cfd_parent_list(cfdp, goto_cfdp)) {
+      /* The goto and label are both within the handler. */
+    } else {
+      pos_error(ec_branch_into_handler, &goto_cfdp->source_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return err;
+}  /* check_for_branch_into_handler */
+
+
 static void report_switch_past_init(a_control_flow_descr_ptr  block,
                                     a_boolean                 *err)
 /*
@@ -585,7 +646,8 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           check_assertion(parent->variant.block.is_switch_block);
           pos_start_diagnostic(C_dialect == C_dialect_cplusplus ?
                                               es_error : es_warning,
-                               ec_jumping_over_init, &parent->source_pos);
+                               ec_branch_past_initialization,
+                               &parent->source_pos);
         }  /* if */
         /* Issue the diagnostic addendum that identifies this particular
            variable. */
@@ -739,6 +801,13 @@ initializing declarations.
           } while (cfdp != NULL);
           break;
         case cfdk_case_label:
+          if (check_for_branch_into_handler(new_cfdp,
+                                            (a_control_flow_descr_ptr)NULL)) {
+            /* Case label is within a hander and the switch statement with
+               which it is associated is outside the handler. */
+            free_control_flow_descr(new_cfdp);
+            goto done;
+          }  /* if */
           if (!parent->variant.block.exposed_init_in_switch) {
             /* There is no initializing declaration that would be jumped over
                to reach this case label, so don't bother putting it on the
@@ -1962,7 +2031,7 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
         err = TRUE;
         pos_start_diagnostic(C_dialect == C_dialect_cplusplus ?
                                             es_error : es_warning,
-                             ec_jumping_over_init, error_pos);
+                             ec_branch_past_initialization, error_pos);
       }  /* if */
       /* Issue the diagnostic addendum that identifies this particular
          variable. */
@@ -1984,25 +2053,6 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
   db_exit();
   return err;
 }  /* report_goto_past_init */
-
-
-static a_boolean is_on_cfd_parent_list(a_control_flow_descr_ptr cfdp,
-                                   a_control_flow_descr_ptr cfdp2)
-/*
-Return TRUE if cfdp (a block entry) is on the list of parent blocks of
-cfdp2. */
-{
-  a_control_flow_descr_ptr  parent;
-  a_boolean                 on_list = FALSE;
-
-  for (parent = cfdp2->parent; parent != NULL; parent = parent->parent) {
-    if (cfdp == parent) {
-      on_list = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return on_list;
-}  /* is_on_cfd_parent_list */
 
 
 static void check_goto_and_label(a_control_flow_descr_ptr  label_cfdp,
@@ -2039,7 +2089,10 @@ diagnose the condition.
     db_cfd_and_parents(label_cfdp);
   }  /* if */
 #endif /* DEBUG */
-  if (label_cfdp->parent == goto_cfdp->parent) {
+  if (check_for_branch_into_handler(label_cfdp, goto_cfdp)) {
+    /* Ignore the jump-over-initialization errors -- this is an illegal
+       branch. */
+  } else if (label_cfdp->parent == goto_cfdp->parent) {
     /* Label and goto are in the same block:
 
            goto L;             // forwards goto
@@ -3107,6 +3160,8 @@ come out on the closing "}".
     block = alloc_statement((a_statement_kind)stmk_block);
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block);
+    /* Mark the block that was just pushed onto the stack as a handler. */
+    end_of_control_flow_descr_list->variant.block.is_handler_block = TRUE;
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence.  Check for unreachable code. */
