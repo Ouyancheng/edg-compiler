@@ -61,9 +61,11 @@ static void insert_call_to_helper_routine_to_zero_entity(
                                           an_expr_node_ptr   num_elements,
                                           an_insert_location *insert_location);
 #endif /* IA64_ABI */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 static a_variable_ptr make_construction_vtbls_array(
                                            a_type_ptr              class_type,
                                            a_construction_vtbl_ptr elements);
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,

@@ -4456,7 +4456,7 @@ with generation of destructor pointers in typeinfo variables that is fixed
 in a different and better way in version 2.38.
 */
 {
-  a_boolean     needed = FALSE, force_static, use_comdat;
+  a_boolean     needed = FALSE, force_static;
   a_routine_ptr first_virtual;
   a_boolean     saved_il_lowering_underway;
 
@@ -4473,8 +4473,7 @@ in a different and better way in version 2.38.
          compilation. */
       if (virtual_function_table_should_be_defined_here(class_type,
                                                         &force_static,
-                                                        &first_virtual,
-                                                        &use_comdat) &&
+                                                        &first_virtual) &&
           !force_static) {
         /* The virtual function table will be defined in this translation unit
            and will be external. */
