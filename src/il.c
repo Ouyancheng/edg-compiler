@@ -902,7 +902,8 @@ static void db_static_initializer(a_constant_ptr  con)
     }  /* for */
     fputs(" }", f_debug);
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-    fprintf(f_debug, "%d repetitions of: ", con->variant.init_repeat.count);
+    fprintf(f_debug, "%lu repetitions of: ",
+		     (unsigned long)con->variant.init_repeat.count);
     db_static_initializer(con->variant.init_repeat.constant);
   } else {
     db_constant(con);
@@ -991,8 +992,8 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
         db_nonconstant_aggregate(con->variant.aggregate.first_constant,
                                  level + 2);
       } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-        fprintf(f_debug, "%d repetitions of:\n",
-                         con->variant.init_repeat.count);
+        fprintf(f_debug, "%lu repetitions of:\n",
+                         (unsigned long)con->variant.init_repeat.count);
         db_nonconstant_aggregate(con->variant.init_repeat.constant,
                                  level + 2);
       } else {

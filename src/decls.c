@@ -6926,8 +6926,8 @@ is present when a "=" is not there.
 }  /* is_initializer_start */
 
 
-static a_boolean linkage_specification(a_boolean  function_definition_allowed,
-                                       a_param_id_ptr  param_id_list)
+static void linkage_specification(a_boolean      function_definition_allowed,
+                                  a_param_id_ptr param_id_list)
 /*
 The caller has determined that we are at the start of a C++ linkage
 specification -- that is, the current token is "extern" and it is followed

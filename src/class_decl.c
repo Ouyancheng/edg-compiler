@@ -665,6 +665,11 @@ for the class to which they belong.
 }  /* insert_in_virtual_function_override_list */
 
 
+/* Declaration required because of forward reference: */
+static a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
+                                 a_derivation_step_ptr  dsp2);
+
+
 static a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
                                                  a_type_ptr       old_class,
                                                  a_type_ptr       new_class)
@@ -1195,8 +1200,8 @@ entries associated with base_class are on the base_classes list of class_type.
 #endif /* CHECKING */
 
 
-a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
-                          a_derivation_step_ptr  dsp2)
+static a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
+                                 a_derivation_step_ptr  dsp2)
 /*
 Return TRUE if the class sequence signatures of the paths headed by dsp1 and
 dsp2 are identical.
