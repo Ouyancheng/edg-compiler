@@ -1219,8 +1219,8 @@ typedef struct a_base_class {
 			   "complete" (i.e., may contain data sections for
 			   virtual base classes).  By default subobjects for
 			   direct base classes do not include virtual base
-			   class data sections -- this flag is used only when
-			   strict class-layout compatibility with AT&T's
+			   class data sections -- this flag is needed only when
+			   strict class-layout compatibility with USL's
 			   cfront is required. */
   unsigned int	pointer_offset_is_set:1;
 			/* TRUE if the pointer_offset field has been set
@@ -1247,10 +1247,12 @@ typedef struct a_base_class {
 			/* If is_virtual is TRUE and the data section for this
 			   virtual base class is embedded in the data section
 			   reserved for another base class, a pointer to the
-			   latter; NULL when the data section for the virtual
-			   base class is reserved independently.  This field
-			   will be non-NULL only when strict class-layout
-			   compatibility with AT&T's cfront is required. */
+			   latter (which may be direct or indirect, and may
+			   have virtual steps in its derivation); NULL when
+			   the data section for the virtual base class is
+			   reserved independently (i.e., in derived_class).
+			   Only needed when layout compatibility with USL's
+			   cfront is required. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   a_targ_size_t	pointer_offset;
 			/* If is_virtual is TRUE, the byte offset from the
@@ -1260,18 +1262,19 @@ typedef struct a_base_class {
   a_base_class_ptr
 		pointer_base_class;
 			/* If is_virtual is TRUE, a pointer to a another base
-			   class (direct or indirect) of derived_class, the
+			   class (direct or indirect, but without virtual
+			   steps in its derivation) of derived_class, the
 			   data section of which contains the pointer to the
 			   data section for this virtual base class; NULL if
 			   the pointer to the data section for this virtual
 			   base class resides in derived_class itself (which
 			   is usually the case for direct virtual base classes
 			   and sometimes the case for indirect virtual base
-			   classes). This field is defined in conjunction with
-			   pointer_offset:  when pointer_base_class is NULL,
+			   classes).  This field is defined in conjunction with
+			   pointer_offset: when pointer_base_class is NULL,
 			   pointer_offset specifies the offset of a pointer
-			   field to be allocated in derived_class itself;
-			   when pointer_base_class is non-NULL, pointer_offset
+			   field in derived_class itself; when
+			   pointer_base_class is non-NULL, pointer_offset
 			   specifies the offset (within derived_class) of a
 			   pointer field in the base class pointed to. */
   a_derivation_step_ptr
@@ -1384,7 +1387,8 @@ typedef struct a_class_type_supplement {
 			   if the current class uses the virtual function
 			   table pointer of its base class), this is the
 			   base class involved in the sharing.  It is not
-			   necessarily a direct base class.  This field is
+			   necessarily a direct base class, but there are
+			   no virtual steps in its derivation.  This field is
 			   NULL if the virtual function info is not shared. */
   an_anonymous_union_kind
 		anonymous_union_kind;
