@@ -1178,6 +1178,7 @@ Syntax:
       overloaded_function_case = TRUE;
       /* routine_type = NULL;  -- already set. */
       /* The operand becomes the selector object. */
+      check_assertion(!operand->bound_function);
       copy_operand(operand, bound_function_selector);
       conv_class_operand_to_object_pointer(bound_function_selector);
       /* See if the class has an operator(). */
@@ -1341,7 +1342,6 @@ Syntax:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (overloaded_function_case) {
-    a_boolean         have_selector;
     a_source_position id_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the end position for later restoration. */
@@ -1356,12 +1356,12 @@ Syntax:
     }  /* if */
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
-    have_selector = (operand->bound_function || try_surrogate_functions);
     routine_type = select_and_prepare_to_call_overloaded_function(
                                             overloaded_function_symbol,
                                             (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
-                                            have_selector,
+                                            operand->bound_function ||
+                                                       try_surrogate_functions,
                                             bound_function_selector,
                                             arg_operand_list,
                                             arg_dependent_lookup_enabled &&
@@ -1390,9 +1390,13 @@ Syntax:
          function of the right name. */
       if (try_surrogate_functions) {
         /* Leave the operand alone if it's a class operand for which
-           we tried surrogate functions. */
+           we tried surrogate functions.  The original operand became
+           the selector pointer, so move/convert it back. */
+        copy_operand(bound_function_selector, operand);
+        conv_object_pointer_to_lvalue(operand);
         prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
       } else {
+        a_boolean have_selector = operand->bound_function;
         make_unknown_dependent_function_operand(
                                             overloaded_function_symbol,
                                             (a_boolean)operand->is_template_id,
