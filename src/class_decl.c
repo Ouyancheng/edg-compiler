@@ -8561,9 +8561,6 @@ because they were used in declaring an external function or variable.
       }  /* for */
     }  /* if */
   }  /* if */
-  /* Go through the classes again, now that linkage decisions have been
-     made, and generate bodies for virtual destructors, as required. */
-  generate_required_virtual_destructor_bodies(scope->types);
   db_exit();
 }  /* check_class_linkage */
 
