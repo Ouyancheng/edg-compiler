@@ -5492,7 +5492,8 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
              the constructor name (= class name) upon return to the
              caller. */
           result = TRUE;
-        } else if ((microsoft_bugs || any_cfront_mode()) &&
+        } else if (((microsoft_bugs && microsoft_version < 1310) ||
+                    any_cfront_mode()) &&
                    !is_error_locator(locator_for_curr_id) &&
                    implicit_int_member_with_name_of_type()) {
           /* Microsoft and Cfront will accept:

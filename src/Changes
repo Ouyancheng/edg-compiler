@@ -1,5 +1,19 @@
 Version 3.5
 
+7/28/04  Microsoft compatibility: Implicit int return type and type names
+
+In Microsoft mode, the front end previously accepted member function
+declarations whose name was found to be a type name.  For example:
+
+  typedef int I;
+  struct S {
+    I();  // Previously accepted in all Microsoft bugs modes and treated as
+          // "int I();".
+  };
+
+Since Microsoft fixed their bug in MSVC++ 7.1, we no longer emulate this
+behavior when microsoft_version >= 1310.  (See also Changes entry of 7/12/99.)
+
 7/28/04  GNU C++ compatibility: Conflicting extern "C" declarations
 
 In GNU C++ mode, the front end now accepts conflicting extern "C" declarations
