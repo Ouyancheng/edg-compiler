@@ -1954,8 +1954,7 @@ returned set to TRUE.
       /* There's no dynamic init entry because the need for one cannot be
          inferred from the initializer.  Nevertheless, create one if (1)
          there's a destructor associated with the type of the variable, or
-         (2) it's an automatic variable, or (3) (in C++ only) it's a local
-         static variable with nonintegral type. */
+         (2) it's an automatic variable. */
       if (!init_err && cssp != NULL) {
         /* Check for the existence of a destructor independently of checks
            for a constructor.  This is to catch the unusual case in which a
@@ -1966,10 +1965,7 @@ returned set to TRUE.
                                  /*evaluated=*/TRUE,
                                  /*suppress_access_check=*/FALSE);
       }  /* if */
-      if (dtor != NULL ||
-          !has_static_storage_duration(vp->storage_class) ||
-          (!C_mode() && vp->source_corresp.is_local_to_function &&
-           (!is_integral_type(vp_type) || is_enum_type(vp_type)))) {
+      if (dtor != NULL || !has_static_storage_duration(vp->storage_class)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         init_dip->variant.constant = init_con;
         init_con = NULL;
