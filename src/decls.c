@@ -4784,7 +4784,8 @@ is an error, return NULL.
      template class will be returned even if this requires the creation
      of a new class symbol. */
   gid_options = GID_DISALLOW_QUALIFIED_NAME;
-  tag_sym = coalesce_and_lookup_generalized_identifier(gid_options, ilm_tag,
+  tag_sym = coalesce_and_lookup_generalized_identifier(gid_options,
+                                                       ilm_tag_declaration,
 						       &err);
   /* Save the symbol locator for this identifier before doing the
      get_token. */
