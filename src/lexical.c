@@ -6720,7 +6720,7 @@ to skip tokens for some purpose other than error recovery.
 }  /* flush_tokens_with_stop_tokens_and_warning_flag */
 
 
-void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens)
+static void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens)
 /*
 Interface to flush_tokens_with_stop_tokens_and_warning_flag that
 indicates that warnings should be issued when appropriate.

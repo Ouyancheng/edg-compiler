@@ -1683,7 +1683,6 @@ extern void flush_until_matching_token(void);
 extern void flush_tokens_with_stop_tokens_and_warning_flag(
 				a_token_set_array	stop_tokens,
 				a_boolean		suppress_warning);
-extern void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens);
 extern void flush_tokens(void);
 extern void flush_to_end_of_arg_list(void);
 extern void push_stop_token_stack(void);
