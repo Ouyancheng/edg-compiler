@@ -3024,7 +3024,7 @@ Do the division operation on all types of complex.
   /* This is an oversimplified algorithm that can exhibit dynamic range
      problems (e.g., catastrophic cancellation). */
 #endif /* 0 */
-  /* Compute the real value quad_norm = real_2*real_2 - imag_2*imag_2. */
+  /* Compute the real value quad_norm = real_2*real_2 + imag_2*imag_2. */
   fp_multiply(float_kind,
               &constant_2->variant.complex_value->real,
               &constant_2->variant.complex_value->real,
