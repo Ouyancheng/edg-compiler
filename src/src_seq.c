@@ -2178,8 +2178,8 @@ associated with the indicated sck_function scope.
          namespace definition. */
       /* Loop through the source sequence list, starting at the point
          corresponding to the beginning of the class or namespace
-         definition, till a secondary declaration entry pointing to
-         same routine is found. */
+         definition, until a secondary declaration entry pointing to
+         the same routine is found. */
       if (scp->is_class_member) {
         ssep = scp->parent.class_type->
                              source_corresp.source_sequence_entry;
