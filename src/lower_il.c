@@ -9011,9 +9011,8 @@ static void lower_array_delete(an_expr_node_ptr expr)
 /*
 Do lowering of an array delete operation.  expr points to the enk_new_delete
 for the operation.  The subtrees of the expression have not been lowered
-yet, except for the new/delete supplement arg expression.  This routine is
-used for arrays that require special handling, i.e., arrays with class
-elements.
+yet.  This routine is used for arrays that require special handling,
+i.e., arrays with class elements.
 */
 {
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
@@ -9021,6 +9020,10 @@ elements.
   a_routine_ptr               dtor_routine;
   an_expr_node_ptr            vec_delete_node;
 
+  /* Lower "arg"; do it as a list in case the delete routine is the
+     two-argument version.  Drop the second argument if present. */
+  lower_expr_list(ndsp->arg, 0, FALSE);
+  ndsp->arg->next = NULL;
   if (dip != NULL) {
     /* A destructor must be called. */
     /* Get a pointer to the dynamic init entry that applies to the array
@@ -9261,9 +9264,8 @@ The subtree of the node has not yet been lowered.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init;
   a_type_ptr                  base_type;
   an_expr_node_ptr            ptr_node = ndsp->arg, call_node, dtor_call_node;
+  an_expr_node_ptr            second_arg_node;
 
-  /* Lower the pointer to the object to be deleted. */
-  lower_normal_expr(ptr_node);
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
       new_or_delete_type_requires_array_handling(base_type)) {
@@ -9279,12 +9281,23 @@ The subtree of the node has not yet been lowered.
     /* The "delete" call has been folded into the destructor call.
        Generate the destructor call with an implicit parameter to indicate
        deallocation. */
+    /* Lower "arg"; do it as a list in case the delete routine is the
+       two-argument version.  Drop the second argument if present. */
+    lower_expr_list(ptr_node, 0, FALSE);
+    ptr_node->next = NULL;
     dtor_call_node = make_dtor_call_for_delete(dip, ptr_node,
                                                /*deallocate=*/TRUE);
     /* Overwrite the enk_new_delete node with the call. */
     overwrite_node(expr, dtor_call_node);
   } else {
     /* Non-array case, or array case that does not require special handling. */
+    /* Lower "arg"; do it as a list in case the delete routine is the
+       two-argument version. */
+    lower_arg_expr_list(ptr_node, ndsp->routine->type);
+    /* Break off the second argument if there is one; it will be reattached
+       later after ptr_node has been messed with. */
+    second_arg_node = ptr_node->next;
+    ptr_node->next = NULL;
     if (dip != NULL) {
       /* Case like
            struct A { ~A(); } *p;
@@ -9304,9 +9317,10 @@ The subtree of the node has not yet been lowered.
     /* Make the "delete" call.  It is not necessary to test for non-NULL;
        the delete routine does that.  Cast the argument to "void *", which
        is what the delete routine expects. */
-    call_node = make_call_node(ndsp->routine,
-                               add_cast_if_necessary(ptr_node,
-                                                     void_star_type()));
+    ptr_node = add_cast_if_necessary(ptr_node, void_star_type());
+    /* Reattach the second operand to delete is there is one. */
+    ptr_node->next = second_arg_node;
+    call_node = make_call_node(ndsp->routine, ptr_node);
     if (dip != NULL) {
       /* Finish the destructor case by building the comma node. */
       dtor_call_node->next = call_node;
