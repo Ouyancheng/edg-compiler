@@ -2334,6 +2334,9 @@ scopes.
   ssep->orig_depth = depth_scope_stack-1;
   ssep->saved_innermost_scope_that_affects_access =
                                      saved_innermost_scope_that_affects_access;
+  /* Set the instantiation context depth to the enclosing scope.  Other parts
+     of the front end require this to be set. */
+  ssep->instantiation_context_depth = depth_scope_stack-1;
 }  /* push_simple_instantiation_scope */
 
 
