@@ -304,10 +304,24 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         /* FALLTHROUGH */
       case sk_namespace_projection:
         /* Enter the fundamental symbol of a namespace projection. */
-        record_defeatable_name_hiding(fundamental_symbol_of(hidden_sym),
-                                      tag_hidden_by_nontag,
-                                      hidden_class_or_namespace_member, sp,
-                                      hidden_by);
+        sym = fundamental_symbol_of(hidden_sym);
+        /* If the fundamental symbol belongs to the same namespace as the
+           symbol it's hidden by (something that can happen with synthesized
+           namespace projections), then the hiding cannot be defeated by a
+           qualifier.  Check for that case. */
+        if (hidden_class_or_namespace_member &&
+            depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+            hidden_by != NULL && !hidden_by->is_class_member &&
+            !sym->is_class_member &&
+            sym->parent.namespace_ptr == hidden_by->parent.namespace_ptr) {
+          /* Set hidden_class_or_namespace_member to FALSE. */
+          hidden_class_or_namespace_member = FALSE;
+          /* If they're both FALSE don't create a hidden name table entry. */
+          if (!tag_hidden_by_nontag) break;
+        }  /* if */
+        record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
+                                      hidden_class_or_namespace_member,
+                                      sp, hidden_by);
         break;
       case sk_class_template:
         /* Enter each instance of a class template. */

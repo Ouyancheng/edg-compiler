@@ -1,5 +1,20 @@
 Version 2.42
 
+4/21/99  C++-generating back end: invalid qualifier on namespace member
+         declaration
+
+The C++-generating back end would sometimes put out a qualifier on a
+namespace member when it was not only unnecessary but also invalid.
+Now fixed.  For example, "N::" was incorrectly included in the
+declaration of N::f(int) in the following:
+
+  namespace N { };
+  using namespace N;
+  namespace N {
+    void f(int) { }
+    void f(double) { }
+  }
+
 4/20/99  C++-generating back end: missing qualifier on reference to
          class template instance
 
