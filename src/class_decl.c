@@ -1044,27 +1044,73 @@ done:;
 }  /* return_types_are_override_compatible */
 
 
-static a_boolean shares_virtual_function_info(a_type_ptr        class_type,
-                                              a_base_class_ptr  bcp)
+static a_base_class_ptr find_disambiguator(a_type_ptr        class_type,
+                                           a_base_class_ptr  bcp1,
+                                           a_base_class_ptr  bcp2)
 /*
-bcp points to a base class of class_type.  If class_type shares its virtual
-function info with a base class and that base class is bcp or the base class
-with which bcp shares its virtual function info, return TRUE.
+bcp2 is a base class of bcp1->type, and bcp1 is a base class of class_type.
+We need to find a base class of class_type that can serve as disambiguator
+for computing the base class of class_type to which bcp2 corresponds.
+Usually bcp1 itself can serve as disambiguator, but if bcp2 is ambiguous,
+more work needs to be done.
+*/
+{
+  a_base_class_ptr       disambiguator;
+  a_derivation_step_ptr  step;
+
+  if (bcp2->is_virtual) {
+    /* No disambuator is required for virtual base classes. */
+    disambiguator = NULL;
+  } else {
+    /* Try bcp1 itself to start with. */
+    disambiguator = bcp1;
+    if (bcp2->derivation->direct) {
+      /* bcp2 is a direct base class of bcp1->type, so bcp1 may be used as a
+         disambiguator to find the corresponding base class of class_type. */
+    } else {
+      /* Compute the disambiguator by traversing the derivation of of bcp2. */
+      step = bcp2->derivation->path;
+      for (; step->base_class != bcp2; step = step->next) {
+        disambiguator = corresponding_base_class(step->base_class,
+                                                 class_type,
+                                                 disambiguator);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return disambiguator;
+}  /* find_disambiguator */
+
+
+static a_boolean shares_virtual_function_info(a_type_ptr        class_type,
+                                              a_base_class_ptr  base_class)
+/*
+base_class points to a base class of class_type.  If class_type shares its
+virtual function info with a base class and that base class is base_class or
+the base class with which base_class shares its virtual function info, return
+TRUE.
 */
 {
   a_boolean         shares = FALSE;
-  a_base_class_ptr  virtual_function_info_base_class;
+  a_base_class_ptr  virtual_function_info_base_class, bcp, disambiguator;
 
   virtual_function_info_base_class =
                           class_type->variant.class_struct_union.extra_info->
                                               virtual_function_info_base_class;
-  if (virtual_function_info_base_class == bcp) {
+  if (virtual_function_info_base_class == base_class) {
+    /* base_class is the base class with which class_type shares its virtual
+       function info. */
     shares = TRUE;
   } else if (virtual_function_info_base_class != NULL) {
-    bcp = bcp->type->variant.class_struct_union.extra_info->
+    bcp = base_class->type->variant.class_struct_union.extra_info->
                                               virtual_function_info_base_class;
     if (bcp != NULL) {
-      bcp = corresponding_base_class(bcp, class_type, (a_base_class_ptr)NULL);
+      /* bcp is the base class of base_class->type with which the latter
+         shares its virtual function info.  Find out what the corresponding
+         base class of class_type is. */
+      disambiguator = find_disambiguator(class_type, base_class, bcp);
+      /* bcp now points to a base class of base_class; change it to point
+         to the corresponding base class of class_type. */
+      bcp = corresponding_base_class(bcp, class_type, disambiguator);
       if (virtual_function_info_base_class == bcp) {
         shares = TRUE;
       }  /* if */
@@ -2195,22 +2241,7 @@ the base class.
       } else {
         /* bcp is a base class of base_class.  We want to find to find the
            corresponding base class of class_type. */
-        disambiguator = base_class;
-        if (bcp->derivation->direct) {
-          /* bcp is a direct base class of base_class, so that latter may be
-             used as a disambiguator in finding the corresponding base class
-             of class_type. */
-        } else {
-          /* bcp is an indirect base class of base_class.  The disambiguator
-             needs to be immediately derived from the sought-for corresponding
-             base class, so it must be computed. */
-          step = bcp->derivation->path;
-          for (; step->base_class != bcp; step = step->next) {
-            disambiguator = corresponding_base_class(step->base_class,
-                                                     class_type,
-                                                     disambiguator);
-          }  /* for */
-        }  /* if */
+        disambiguator = find_disambiguator(class_type, base_class, bcp);
         /* bcp now points to a base class of base_class; change it to point
            to the corresponding base class of class_type. */
         bcp = corresponding_base_class(bcp, class_type, disambiguator);
