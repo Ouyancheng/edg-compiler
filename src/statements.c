@@ -1453,6 +1453,12 @@ the current statement sequence.
         while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
       }  /* if */
       sssep->last_dep_statement = temp_stmt;
+      if (curr_reachability.reachable) {
+        /* The end of the block is reachable if the new statement is
+           reachable.  This is important because continue labels are
+           always reachable. */
+        extra_block->variant.block.extra_info->end_of_block_reachable = TRUE;
+      }  /* if */
     } else {
       /* Create a new block to allow additional statements. */
       extra_block = alloc_statement((a_statement_kind)stmk_block);

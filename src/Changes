@@ -1,5 +1,27 @@
 Version 2.39
 
+2/8/98    Reachability of end of block that is body of loop with continue
+
+The IL block statement contains an end_of_block_reachable flag.  In some
+cases where a continue label is added at the end of a block that is the
+body of a loop, the flag was FALSE even though the end of the block
+is reachable via a transfer to the continue label.  This problem
+came up only if the block contains no declarations.
+
+void f(int *record) {
+  while (1) {
+    if (*record == 0) break;
+    switch (*record++)  {
+      case 1:
+        continue;
+      default:
+        continue;
+    }
+    // contine label is inserted here, but end of block was not marked
+    // as reachable.
+  }
+}
+
 2/7/98    Minimal inlining: address of function as argument considered
           constant
 
