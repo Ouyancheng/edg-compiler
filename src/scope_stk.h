@@ -124,6 +124,11 @@ typedef struct a_name_hidden_by_old_for_init {
   a_symbol_ptr	symbol;
 			/* Pointer to a symbol (from an enclosing scope) for
 			   which hidden_by_old_for_init is TRUE. */
+  a_symbol_ptr	for_init_decl_sym;
+			/* Pointer to a symbol declared a for-init declaration.
+			   It has the same name a the other symbol, and under
+			   the old rules would have hidden it for the rest of
+			   the current scope. */
   a_byte_boolean
 		already_hidden;
 			/* Value to which hidden_by_old_for_init in symbol
@@ -771,6 +776,9 @@ Call namespace_is_enclosed_by_scope for the current scope.
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
 extern void add_active_using_directive(a_using_directive_ptr udp);
+
+extern void report_hidden_by_old_for_init(a_symbol_ptr       sym,
+                                          a_source_position  *pos);
 
 extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
 

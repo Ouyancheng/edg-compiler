@@ -2441,6 +2441,7 @@ list.
   }  /* if */
   nhp->next = NULL;
   nhp->symbol = NULL;
+  nhp->for_init_decl_sym = NULL;
   nhp->already_hidden = FALSE;
   return nhp;
 }  /* alloc_name_hidden_by_old_for_init */
@@ -2461,6 +2462,7 @@ flag in the associated symbol.
     /* Update the hidden_by_old_for_init flag in the associated symbol. */
     nhp->symbol->hidden_by_old_for_init = nhp->already_hidden;
     nhp->symbol = NULL;
+    nhp->for_init_decl_sym = NULL;
     /* Return the entry to the available list. */
     nhp->next = avail_names_hidden_by_old_for_init;
     avail_names_hidden_by_old_for_init = nhp;
@@ -2507,6 +2509,7 @@ silently giving programs different behavior than they had under the old
           /* Create a name-[would-have-been-]hidden-by-old-for-init entry. */
           nhp = alloc_name_hidden_by_old_for_init();
           nhp->symbol = previously_hidden_sym;
+          nhp->for_init_decl_sym = for_init_decl;
           /* Save the flag in the symbol so it can be restored later. */
           nhp->already_hidden = previously_hidden_sym->hidden_by_old_for_init;
           previously_hidden_sym->hidden_by_old_for_init = TRUE;
@@ -2519,6 +2522,64 @@ silently giving programs different behavior than they had under the old
     for_init_decl = for_init_decl->next_in_scope;
   }  /* while */
 }  /* record_names_hidden_by_old_for_init */
+
+
+void report_hidden_by_old_for_init(a_symbol_ptr       sym,
+                                   a_source_position  *pos)
+/*
+The new for-init declaration scoping rules are in effect, and sym is a symbol
+that (possibly) would not have been found with the old (cfront-compatible)
+scoping rules.  If that's the case, issue a warning (so that users will not
+be bitten by silent changes in how their programs behave).  This routine is
+called only if global variable warning_on_for_init_difference is TRUE.
+*/
+{
+  a_scope_depth                      depth = depth_scope_stack;
+  a_scope_stack_entry_ptr            ssep;
+  a_name_hidden_by_old_for_init_ptr  nhp;
+
+  /* The outer loop marches up the scope stack until a match is found in
+     a names-hidden-by-old-for-init list. */
+  for (;;) {
+    ssep = &scope_stack[depth];
+    /* The inner loop goes through a list for a given scope. */
+    nhp = ssep->names_hidden_by_old_for_init;
+    for (; nhp != NULL; nhp = nhp->next) {
+      if (nhp->symbol == sym) {
+        /* A match is found. */
+        break;
+      }  /* if */
+    }  /* for */
+    /* If either a match was found or we've reached the end of the stack,
+       stop looping. */
+    if (nhp != NULL || depth == DEPTH_OF_FILE_SCOPE) break;
+    /* Otherwise, continue though the scope stack. */
+    depth = ssep->previous_scope;
+  }  /* for */
+  if (nhp != NULL) {
+    /* Issue the diagnostic. */
+    pos_sy2_warning(ec_hidden_by_old_for_init, pos, sym,
+                    nhp->for_init_decl_sym);
+#if CHECKING
+  } else {
+    /* No entry was found.  This should only happen inside a template
+       instantiation, since the hidden_by_old_for_init flag in sym is not
+       necessarily reliable.  Here's an example:
+         int i = 13;
+         template <class T> int g(T t) {
+           return i;
+         }
+         main() {
+           for (int i = 0; i < 10; ++i) { ... }
+           (void)g(0);
+         }
+       After the for-loop, ::i has hidden_by_old_for_init set to TRUE, but
+       that has no effect within the instantiation of g. */
+    check_assertion_str(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH,
+                        "report_hidden_by_old_for_init: entry not found");
+#endif /* CHECKING */
+  }  /* if */
+}  /* report_hidden_by_old_for_init */
 
 
 static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,
