@@ -2529,6 +2529,10 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
     case tk_typeref:
       if (type->variant.typeref.is_placeholder_for_class_instantiation) {
         /* Ignore placeholder typerefs for template types. */
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (type->variant.typeref.is_typeof) {
+        /* Typeof types do not need to be declared separately. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         /* Output typedefs only on the second pass. */
         if (pass == 2) dump_typedef_decl(type);
