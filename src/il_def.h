@@ -316,7 +316,8 @@ EXTERN char *name_linkage_kind_names[(int)nlk_last+1]
 /*
 List of all IL entry kinds:
 */
-/* If you change this, also change sizeof_il_entry in il_file.h. */
+/* If you change this, also change il_entry_kind_names in this file, and
+   sizeof_il_entry in il_file.h. */
 typedef enum /*an_il_entry_kind*/ {
   iek_none,		/* Skip zero value; it's used as a marker. */
   iek_source_file,	/* a_source_file */
@@ -550,6 +551,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if RECORD_MACROS_IN_IL
 /* iek_macro */				"macro",
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+/* iek_per_instantiation_needed_flags_entry */
+					"per-instantiation-needed-flags-entry",
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
