@@ -1541,6 +1541,12 @@ typedef struct a_scope_stack_entry {
 		last_dynamic_init;
 			/* End of list of local dynamic initializations, NULL
 			   if none. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		last_source_sequence_entry;
+			/* Last in the linked list of source sequence entries
+			   that are pointed to by il_scope; NULL if none. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_depth depth_innermost_instantiation_scope;
                         /* Depth of the nearest enclosing instantiation scope
 			   of any kind.  This is a copy of the the global

@@ -5996,6 +5996,9 @@ of the template.
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
   ssep->last_dynamic_init        = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ssep->last_source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
   ssep->instance_sym             = instance_sym;
