@@ -265,7 +265,7 @@ void db_internal_float_value(an_internal_float_value *ifv)
 Display an internal floating-point value, for debugging purposes.
 */
 {
-  int i;
+  unsigned int i;
 
   for (i = 0; i < sizeof(a_host_fp_value); ++i) {
     fprintf(f_debug, "%2x ", ifv->bytes[i]);
