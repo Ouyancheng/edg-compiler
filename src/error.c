@@ -1753,6 +1753,9 @@ error code.
     case ec_implicit_static_data_member_definition:
       m = "%simplicit definition of %nf %p";
       break;
+    case ec_template_not_allowed:
+      m = "\"template\" not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -502,7 +502,8 @@ typedef enum /*an_error_code*/ {
   ec_init_needing_temp_not_allowed,
   ec_decl_hides_function_parameter,
   ec_nonconst_ref_init_from_rvalue,
-  ec_implicit_static_data_member_definition
+  ec_implicit_static_data_member_definition,
+  ec_template_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
