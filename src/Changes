@@ -1,5 +1,25 @@
 Version 2.23
 
+4/25/94  defines.h -- a file for specifying configuration parameters
+
+A new file named defines.h has been added.  defines.h is intended to
+be used to specify configuration parameters as an alternative to
+using compiler command line options.  This allows the sharing of a
+single Makefile between several versions of the compiler.  Each version
+would simply have its own version of the defines.h header file.  The
+defines.h file shipped with the front end is an empty file (except
+for comments).
+
+4/25/94  Elimination of trigraphs
+
+Formerly, the front end used trigraphs in error directives used to
+diagnose incorrectly set configuration parameters.  The trigraphs
+were used to prevent spurious errors from old-style preprocessors that
+don't recognize the "#error" directive.  Instead of trigraphs, the
+new error directives are indented by a single space.  This prevents
+errors when compiling with old-style preprocessors that require
+preprocessing directives to begin in the first column.
+
 4/21/94  Name mangling for local nested types
 
 Name mangling for local nested types now avoids a double mangling problem:
