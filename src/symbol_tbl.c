@@ -7372,7 +7372,7 @@ End a name scope by popping an entry off the scope stack.
               if (!check_for_file_scope_type_with_same_name(sym)) {
                 if (!sym->header->
                     has_cfront_transitional_nested_type_mangled_name) {
-	          a_type_ptr   sym_type;
+                  a_type_ptr   sym_type;
                   sym_type = type_symbol_type(sym);
                   sym->header->
                     has_cfront_transitional_nested_type_mangled_name = TRUE;
@@ -7399,10 +7399,18 @@ End a name scope by popping an entry off the scope stack.
     if (kind == (a_scope_kind)sck_file && cfront_compatibility_mode) {
       if (sym->header->has_cfront_transitional_nested_type_mangled_name) {
         if (is_type_symbol(sym)) {
-          a_symbol_ptr other_sym;
-          other_sym = find_cfront_transitional_nested_type_symbol(sym);
-          pos_sy2_error(ec_cfront_global_defined_after_nested_type,
-                        &sym->decl_position, sym, other_sym);
+          a_type_ptr	sym_type = type_symbol_type(sym);
+          if (sym_type->use_cfront_transitional_nested_type_name_mangling) {
+            /* The symbol being popped is already designated as the
+               transitional nested type, don't issue an error.  This can
+               occur when the type is promoted out of an anonymous union and
+               reentered on the active list at file scope. */
+          } else {
+            a_symbol_ptr other_sym;
+            other_sym = find_cfront_transitional_nested_type_symbol(sym);
+            pos_sy2_error(ec_cfront_global_defined_after_nested_type,
+                          &sym->decl_position, sym, other_sym);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

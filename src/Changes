@@ -1,5 +1,27 @@
 Version 2.23
 
+4/6/94   Cfront compatibility in disambiguation 
+
+Cfront treats the declaration
+
+  int a(int());
+
+as a declaration of an object initialized with the value int(), which
+evaluates to zero.  In cfront mode, we duplicate this behavior.
+The correct interpretation (used when not in cfront mode) is as a
+declaration of a function taking an argument whose type is "function
+taking no arguments returning int".
+
+4/6/94   Cfront mode Internal error declaring types in anonymous unions
+
+The declaration of a nested type in an anonymous union resulted in an
+internal error in cfront compatibility mode when the compiler was
+built with CFRONT_2_1_OBJECT_CODE_COMPATIBILITY enabled.
+
+  static union {
+    enum E {ee};
+  };
+
 4/6/94   Elaborated type specifier using a typedef name
 
 In cfront-compatibility mode an elaborated type specifier for a class,
