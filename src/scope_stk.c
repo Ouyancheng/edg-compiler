@@ -1208,6 +1208,7 @@ the scope being pushed.
   ssep->slow_lookup_required     = FALSE;
   ssep->return_value_optimization_possible = FALSE;
   ssep->in_prototype_instantiation = FALSE;
+  ssep->in_nonreal_instantiation = FALSE;
   ssep->defer_access_checks      = FALSE;
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
@@ -1383,6 +1384,8 @@ the scope being pushed.
       innermost_function_scope = NULL;
       ssep->in_prototype_instantiation =
                                    (options & PS_PROTOTYPE_INSTANTIATION) != 0;
+      ssep->in_nonreal_instantiation =
+                                   (options & PS_NONREAL_INSTANTIATION) != 0;
       if (template_sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Static data members don't have their own scope so the
            template parameters are added at the instantiation scope. */
@@ -1401,9 +1404,12 @@ the scope being pushed.
            within a prototype instantiation, the compiler generated routine
            should not be considered to be within a prototype instantiation. */
         ssep->in_prototype_instantiation = FALSE;
+        ssep->in_nonreal_instantiation = FALSE;
       } else {
         ssep->in_prototype_instantiation =
                                           (ssep-1)->in_prototype_instantiation;
+        ssep->in_nonreal_instantiation =
+                                          (ssep-1)->in_nonreal_instantiation;
       }  /* if */
     }  /* if */
     if (reactivate_template_params) {

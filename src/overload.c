@@ -4301,7 +4301,7 @@ and return NULL.  This routine is called only in C++ mode.
   /* Free the candidate functions list. */
   free_candidate_function_list(candidate_functions);
 have_function:
-  if (do_dependent_name_processing && is_template_dependent_context() &&
+  if (do_dependent_name_processing && record_nondependent_calls() &&
       !dependent_call && do_arg_dep_lookup) {
     /* Record the outcome of overload resolution for a nondependent call
        in a prototype instantiation.  Dependent calls in such a context
@@ -8056,10 +8056,12 @@ select_best_function:
                                          operand_1, operand_2,
                                          result, operator_position);
           check_assertion(!dependent_call);
-          /* Make sure this call is treated as a nondependent call in
-             a real instantiation. */
-          record_nondependent_call((a_symbol_ptr)NULL,
-                                   operator_tok_seq_number);
+          if (record_nondependent_calls()) {
+            /* Make sure this call is treated as a nondependent call in
+               a real instantiation. */
+            record_nondependent_call((a_symbol_ptr)NULL,
+                                     operator_tok_seq_number);
+          }  /* if */
           *processed = TRUE;
         } else if (undecidable_because_of_error) {
           /* There was a previous error. */
@@ -8148,7 +8150,7 @@ select_best_function:
             function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
             if (do_dependent_name_processing &&
-                is_template_dependent_context()) {
+                record_nondependent_calls()) {
               /* Record the outcome of overload resolution for a nondependent
                  call in a prototype instantiation.  Dependent calls in such
                  a context don't get here. */

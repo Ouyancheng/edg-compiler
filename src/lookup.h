@@ -242,11 +242,6 @@ a_symbol_ptr create_proxy_or_nonreal_class_member
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);
 
-extern a_symbol_ptr create_unknown_function_symbol(
-				a_symbol_header_ptr	sym_hdr,
-				a_type_ptr		parent_class,
-				a_namespace_ptr		parent_namespace);
-
 extern a_symbol_ptr find_unknown_function_symbol(a_symbol_ptr	orig_sym);
 
 extern void lookup_one_time_init(void);

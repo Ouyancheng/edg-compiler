@@ -7921,9 +7921,9 @@ list (the one specified by param_list).
                       from_tpp->variant.constant.type_involves_template_param;
         }  /* if */
         if (def_arg_involves_template_param) {
-          to_tpp->default_arg_cache = from_tpp->default_arg_cache;
-        }  /* if */
-        { a_symbol_kind	new_sym_kind = new_tpp->param_symbol->kind;
+          to_tpp->default_arg.cache = from_tpp->default_arg.cache;
+        } else {
+          a_symbol_kind	new_sym_kind = new_tpp->param_symbol->kind;
           if (new_sym_kind == (a_symbol_kind)sk_constant) {
             to_tpp->default_arg.constant = from_tpp->default_arg.constant;
           } else if (new_sym_kind == (a_symbol_kind)sk_type) {
@@ -7932,7 +7932,7 @@ list (the one specified by param_list).
             check_assertion(new_sym_kind == (a_symbol_kind)sk_class_template);
             to_tpp->default_arg.templ = from_tpp->default_arg.templ;
           }  /* if */
-        }
+        }  /* if */
       }  /* if */
       old_tpp = old_tpp->next;
       new_tpp = new_tpp->next;
@@ -10134,20 +10134,12 @@ parameter entry for the parameter.
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done. */
       def_arg_involves_template_param = TRUE;
-      /* Use a dummy unknown type as the default value that is used in
-         dependent cases where we can't rescan the default arg. cache. */
-      template_param->default_arg.type = type_of_unknown_templ_param_nontype;
     } else {
       rescan_copy_of_cache(&def_arg_cache);
       type_name(&default_arg_type);
       if (is_or_contains_template_param(default_arg_type)) {
         def_arg_involves_template_param = TRUE;
       }  /* if */
-      /* Save the scanned value of the default argument.  This is saved even
-         if we also decide to save the cache.  This value will be used if
-         the default is needed, but the parameters on which it depends
-         are still template dependent. */
-      template_param->default_arg.type = default_arg_type;
     }  /* if */
     template_param->has_default_arg = TRUE;
     /* Update the default argument information in the template parameter. */
@@ -10155,10 +10147,14 @@ parameter entry for the parameter.
       /* The default argument involves a template parameter.  This means that
          the default needs to be rescanned for each instantiation, so the
          default is saved as a token cache. */
-      template_param->def_arg_involves_template_param = TRUE;
-      set_template_cache_info(&template_param->default_arg_cache,
+      clear_template_param_default_arg_info(
+                     template_param, /*def_arg_involves_template_param=*/TRUE);
+      set_template_cache_info(&template_param->default_arg.cache,
                               &def_arg_cache, decl_state->decl_info);
     } else {
+      /* The default does not use template parameters.  Simply save the
+         type or constant that is the default. */
+      template_param->default_arg.type = default_arg_type;
       /* Discard the default argument token cache if it is not needed for
          later use. */
       discard_token_cache(&def_arg_cache);
@@ -10267,31 +10263,20 @@ this is the template parameter list of a template template parameter.
                                      (a_constant_repr_kind)ck_template_param) {
         def_arg_involves_template_param = TRUE;
       }  /* if */
-      /* Save the scanned value of the default argument.  This is saved even
-         if we also decide to save the cache.  This value will be used if
-         the default is needed, but the parameters on which it depends
-         are still template dependent. */
-      template_param->default_arg.constant = default_arg_constant;
-    } else {
-      a_symbol_ptr	unknown_func_sym;
-      unknown_func_sym = create_unknown_function_symbol(
-					make_unnamed_symbol_header(),
-					(a_type_ptr)NULL,
-					(a_namespace_ptr)NULL);
-      /* Use a dummy unknown constant as the default value that is used in
-         dependent cases where we can't rescan the default arg. cache. */
-      template_param->default_arg.constant =
-                                            unknown_func_sym->variant.constant;
     }  /* if */
     /* Update the default argument information in the template parameter. */
     if (def_arg_involves_template_param) {
       /* The default argument involves a template parameter.  This means that
          the default needs to be rescanned for each instantiation, so the
          default is saved as a token cache. */
-      template_param->def_arg_involves_template_param = TRUE;
-      set_template_cache_info(&template_param->default_arg_cache,
+      clear_template_param_default_arg_info(
+                     template_param, /*def_arg_involves_template_param=*/TRUE);
+      set_template_cache_info(&template_param->default_arg.cache,
                               &def_arg_cache, decl_state->decl_info);
     } else {
+      /* The default does not use template parameters.  Simply save the
+         constant that is the default. */
+      template_param->default_arg.constant = default_arg_constant;
       /* Discard the default argument token cache. */
       discard_token_cache(&def_arg_cache);
     }  /* if */
@@ -10432,11 +10417,6 @@ parameter entry for the parameter.
     def_arg_templ = scan_template_template_argument(templ_ptr,
                                                     &pos_curr_token);
     def_arg_tssp = template_supplement_for_template(def_arg_templ);
-    /* Save the scanned value of the default argument.  This is saved even
-       if we also decide to save the cache.  This value will be used if
-       the default is needed, but the parameters on which it depends
-       are still template dependent. */
-    template_param->default_arg.templ = def_arg_templ;
     /* Update the default argument information in the template parameter. */
     if (def_arg_tssp->is_nonreal_member ||
         def_arg_tssp->variant.class_template.template_template_param) {
@@ -10445,10 +10425,14 @@ parameter entry for the parameter.
          template parameter.  This means that the default needs to be
          rescanned for each instantiation, so the default is saved as a
          token cache. */
-      template_param->def_arg_involves_template_param = TRUE;
-      set_template_cache_info(&template_param->default_arg_cache,
+      clear_template_param_default_arg_info(
+                     template_param, /*def_arg_involves_template_param=*/TRUE);
+      set_template_cache_info(&template_param->default_arg.cache,
                               &def_arg_cache, parent_decl_state->decl_info);
     } else {
+      /* The default does not use template parameters.  Simply save the
+         type or constant that is the default. */
+      template_param->default_arg.templ = def_arg_templ;
       /* Discard the default argument token cache if it is not needed for
          later use. */
       discard_token_cache(&def_arg_cache);
@@ -10628,37 +10612,25 @@ resulting constant is stored in the pointer pointed to by "constant".
       if (pending_instantiations == max_pending_instantiations) {
         error(ec_recursive_inst_of_templ_default_arg);
         *constant = alloc_error_constant();
-      } else if (dependent_arg_list) {
-        /* The template argument list depends on a template parameter.
-           In general, such expressions can only be scanned in "template
-           dependent" contexts.  So, instead of scanning it here, we use
-           the copy-with-substitution routines. */
-        /* Determine the template nesting depth of the template being
-           processed. */
-        a_template_nesting_depth	depth;
-        a_boolean			copy_error = FALSE;
-        depth = nesting_depth_of_template_param(param_ptr);
-        *constant = copy_template_param_con_with_substitution(
-                                   param_ptr->default_arg.constant, arg_list,
-                                   depth, constant_type,
-                                   &param_ptr->param_symbol->decl_position,
-                                   CTWS_NO_OPTIONS, &copy_error);
-        check_assertion(!copy_error);
       } else {
-        a_template_cache_ptr	tcp;
+        a_template_cache_ptr		tcp;
+        a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
         /* Increment the count of pending default argument instantiations.
            This is used to detect infinite recursion. */
         ++pending_instantiations;
+        /* If the argument list is dependent, flag this as a nonreal
+           instantiation. */
+        if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
         /* Push the template instantiation scope.  See note above regarding
            the instance symbol and class type. */
-        tcp = &param_ptr->default_arg_cache;
+        tcp = &param_ptr->default_arg.cache;
         push_template_instantiation_scope(tcp->decl_info,
 					  (a_type_ptr)NULL,
 				  	  (a_routine_ptr)NULL,
 				 	  (a_symbol_ptr)NULL,
 					  template_sym, arg_list,
                                           /*push_stop_tokens=*/TRUE,
-					  PS_NO_OPTIONS);
+					  ps_options);
         rescan_reusable_cache(&tcp->tokens);
         *constant = fs_constant((a_constant_repr_kind)ck_error);
         delayed_scan_of_template_default_arg_expr(constant_type, *constant);
@@ -10710,38 +10682,27 @@ existing type is simply used.
     if (pending_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
       tp = error_type();
-    } else if (dependent_arg_list) {
-      /* The template argument list depends on a template parameter.
-         In general, such expressions can only be scanned in "template
-         dependent" contexts.  So, instead of scanning it here, we use
-         the copy-with-substitution routines. */
-      /* Determine the template nesting depth of the template being
-         processed. */
-      a_template_nesting_depth	depth;
-      a_boolean			copy_error = FALSE;
-      depth = nesting_depth_of_template_param(param_ptr);
-      tp = copy_type_with_substitution(param_ptr->default_arg.type,
-                                       arg_list, depth,
-                                       &param_ptr->param_symbol->decl_position,
-                                       CTWS_NO_OPTIONS, &copy_error);
-      check_assertion(!copy_error);
     } else {
       a_template_cache_ptr	tcp;
+      a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
       /* Increment the count of pending default argument instantiations.
          This is used to detect infinite recursion. */
       ++pending_instantiations;
+      /* If the argument list is dependent, flag this as a nonreal
+         instantiation. */
+      if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
       /* Push the template instantiation scope.  Note that the instance symbol
          passed to push_scope is NULL because we don't yet know which instance
          is being instantiated.  Also note that a class type is not being
          passed for the same reason. */
-      tcp = &param_ptr->default_arg_cache;
+      tcp = &param_ptr->default_arg.cache;
       push_template_instantiation_scope(tcp->decl_info,
                                         (a_type_ptr)NULL,
 				        (a_routine_ptr)NULL,
 				        (a_symbol_ptr)NULL,
 				        template_sym, arg_list,
                                         /*push_stop_tokens=*/TRUE,
-				        PS_NO_OPTIONS);
+					ps_options);
       saved_pos_curr_token = pos_curr_token;
       saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -10792,50 +10753,37 @@ existing type is simply used.
      we use the "prototype instantiation" value of the default argument. */
   dependent_arg_list = template_arg_list_involves_template_param(arg_list);
   if (param_ptr->def_arg_involves_template_param) {
-    if (dependent_arg_list) {
-      /* The template argument list depends on a template parameter.
-         In general, such expressions can only be scanned in "template
-         dependent" contexts.  So, instead of scanning it here, we use
-         the copy-with-substitution routines. */
-      /* Determine the template nesting depth of the template being
-         processed. */
-      a_template_nesting_depth	depth;
-      a_boolean			copy_error = FALSE;
-      depth = nesting_depth_of_template_param(param_ptr);
-      templ = copy_template_with_substitution(
-                                 param_ptr->default_arg.templ, arg_list, depth,
-			         &param_ptr->param_symbol->decl_position,
-				 CTWS_NO_OPTIONS, &copy_error);
-      check_assertion(!copy_error);
-    } else {
-      /* Push the template instantiation scope.  Note that the instance symbol
-         passed to push_scope is NULL because we don't yet know which instance
-         is being instantiated.  Also note that a class type is not being
-         passed for the same reason. */
-      a_template_cache_ptr	tcp = &param_ptr->default_arg_cache;
-      push_template_instantiation_scope(tcp->decl_info,
-                                        (a_type_ptr)NULL,
-				        (a_routine_ptr)NULL,
-				        (a_symbol_ptr)NULL,
-				        template_sym, arg_list,
-                                        /*push_stop_tokens=*/TRUE,
-				        PS_NO_OPTIONS);
-      saved_pos_curr_token = pos_curr_token;
-      saved_error_position = error_position;
+    /* Push the template instantiation scope.  Note that the instance symbol
+       passed to push_scope is NULL because we don't yet know which instance
+       is being instantiated.  Also note that a class type is not being
+       passed for the same reason. */
+    a_template_cache_ptr	tcp = &param_ptr->default_arg.cache;
+    a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+    /* If the argument list is dependent, flag this as a nonreal
+       instantiation. */
+    if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
+    push_template_instantiation_scope(tcp->decl_info,
+                                      (a_type_ptr)NULL,
+				      (a_routine_ptr)NULL,
+				      (a_symbol_ptr)NULL,
+				      template_sym, arg_list,
+                                      /*push_stop_tokens=*/TRUE,
+				      ps_options);
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      saved_curr_construct_end_position = curr_construct_end_position;
+    saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      rescan_reusable_cache(&tcp->tokens);
-      templ = delayed_scan_of_template_default_template_arg(
+    rescan_reusable_cache(&tcp->tokens);
+    templ = delayed_scan_of_template_default_template_arg(
                  param_ptr->variant.templ->il_template_entry, &pos_curr_token);
-      error_position = saved_error_position;
-      pos_curr_token = saved_pos_curr_token;
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      curr_construct_end_position = saved_curr_construct_end_position;
+    curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Pop the template instantiation scope. */
-      pop_template_instantiation_scope();
-    }  /* if */
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
   } else {
     templ = param_ptr->default_arg.templ;
   }  /* if */

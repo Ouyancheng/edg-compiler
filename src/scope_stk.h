@@ -39,6 +39,11 @@ typedef int a_push_scope_options_set;
 #define PS_PROTOTYPE_INSTANTIATION	0x02
 			/* The scope being pushed is the template instantiation
 			   scope for a prototype instantiation. */
+#define PS_NONREAL_INSTANTIATION	0x04
+			/* The scope being pushed in a template instantiation
+			   in which the template arguments are template
+			   dependent.  Only used for certain default template
+			   argument cases. */
 
 /*
 Structure that is logically (and historically) part of a_scope_stack_entry,
@@ -201,7 +206,12 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_prototype_instantiation:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
-			   class template. */
+			   class template.  Also true for scopes nested within
+			   a prototype instantiation. */
+  a_bit_field	in_nonreal_instantiation:1;
+			/* TRUE for instantiations based on template dependent
+			   template arguments.  This is only true for certain
+			   default template argument cases. */
   a_bit_field	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level
@@ -722,9 +732,20 @@ associated scope is a file or namespace scope.
 TRUE if we are in a context in which template dependent types need to
 be handled in contexts such as expressions.  Typically, this is in
 a prototype instantiation, but can also occur in template declaration
-scopes.
+scopes.  It is also TRUE when is_nonreal_instantiation is TRUE.
 */
 #define is_template_dependent_context()					\
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
+   scope_stack[depth_scope_stack].in_prototype_instantiation ||		\
+   scope_stack[depth_scope_stack].in_nonreal_instantiation)
+
+
+/*
+TRUE if we are in a context in which information about nondependent calls
+must be saved.  This is similar to is_template_dependent_context, but
+excludes nonreal instantiations.
+*/
+#define record_nondependent_calls()					\
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
    scope_stack[depth_scope_stack].in_prototype_instantiation)
 

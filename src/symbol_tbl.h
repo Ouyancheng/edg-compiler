@@ -1196,42 +1196,37 @@ typedef struct a_template_param {
 			   template parameter. */
   } variant;
   union {
-    /* Note that when def_arg_involves_template_param is FALSE, these
-       fields contain the actual default argument to be used.  When
-       def_arg_involves_template_param is TRUE, they contain the
-       "prototype" default argument (i.e., the template-dependent one
-       that was scanned when the template declaration is scanned).
-       In some modes, the default is not scanned when its type is
-       dependent.  In such cases, a dummy prototype value is assigned. */
-    /* When param_symbol->kind = sk_constant. */
+    /* When param_symbol->kind = sk_constant and
+       def_arg_involves_template_param is FALSE. */
     a_constant_ptr
 		constant;
 			/* Constant containing the default value
 			   to be used as the actual argument of an
 		           instantiation when the actual argument
 			   corresponding to this parameter is omitted. */
-    /* When param_symbol->kind = sk_type. */
+    /* When param_symbol->kind = sk_type and def_arg_involves_template_param
+       is FALSE. */
     a_type_ptr
 		type;
 			/* Type containing the default value to be used
 			   as the actual argument of an instantiation when
 			   the actual argument corresponding to this parameter
 			   is omitted. */
-    /* When param_symbol->kind = sk_class_template. */
+    /* When param_symbol->kind = sk_class_template and
+       def_arg_involves_template_param
+       is FALSE. */
     a_template_ptr
 		templ;
 			/* Template that is the default value to be used
 			   as the actual argument of an instantiation when
 			   the actual argument corresponding to this parameter
 			   is omitted. */
+    /* When def_arg_involves_template_param is TRUE. */
+    a_template_cache
+		cache;
+			/* Header of the template cache that contains the
+			   tokens of the default argument expression. */
   } default_arg;
-  /* When def_arg_involves_template_param is TRUE. */
-  a_template_cache
-		default_arg_cache;
-			/* The template cache that contains the
-			   tokens of the default argument expression.
-			   Only used when def_arg_involves_template_param is
-			   TRUE. */
 } a_template_param;
 
 
@@ -2691,8 +2686,6 @@ extern a_boolean is_unnamed_tag_symbol(a_symbol_ptr  sym);
 
 extern a_symbol_ptr make_unnamed_namespace_symbol(a_source_position  *pos);
 
-extern a_symbol_header_ptr make_unnamed_symbol_header(void);
-
 extern
 a_symbol_ptr make_unnamed_template_param_symbol(a_symbol_kind		kind,
 						a_source_position	*pos);
@@ -3140,6 +3133,10 @@ extern
 void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
 
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
+
+extern void clear_template_param_default_arg_info(
+              a_template_param_ptr    ptr,
+              a_boolean               def_arg_involves_template_param);
 
 extern a_template_instance_ptr alloc_template_instance(void);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
