@@ -1977,8 +1977,9 @@ extern a_boolean is_unnamed_class_symbol(a_symbol_ptr  sym);
 extern a_symbol_ptr unnamed_field_symbol(void);
 
 extern a_symbol_ptr make_anonymous_parent_object_symbol(
-                                                    a_symbol_kind      kind,
-                                                    a_source_position  *pos);
+                                                a_symbol_kind      kind,
+                                                a_source_position  *pos,
+                                                a_scope_number     decl_scope);
 
 extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      sizeof_t      identifier_length,
