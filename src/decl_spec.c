@@ -1651,8 +1651,13 @@ to indicate whether an enumeration is actually defined.
       set_type_size(enum_con_type);
     }  /* if */
     min_max_set = FALSE;
-    if (C_dialect == C_dialect_cplusplus && curr_token == tok_rbrace) {
-      /* An enumerator constant list is optional in C++. */
+    if (curr_token == tok_rbrace &&
+        (C_dialect == C_dialect_cplusplus
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                        || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                         )) {
+      /* An enumerator constant list is optional in C++ and Microsoft C. */
     } else {
       add_stop_token(tok_rbrace);
       end_of_enum_con_list = NULL;

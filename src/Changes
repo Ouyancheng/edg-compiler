@@ -1,5 +1,11 @@
 Version 2.33
 
+9/12/96 Microsoft compatibility: empty enumerator list allowed in C mode
+
+In Microsoft C mode an empty enumerator list is now permitted:
+
+  enum E { };    // Okay in C++ or Microsoft C modes; error otherwise
+
 9/12/96 Microsoft compatibility: support for __int8 and __int16 keywords
 
 In Microsoft-compatibility mode __int8 is recognized as a keyword, with
