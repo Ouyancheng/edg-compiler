@@ -251,6 +251,10 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_finally, "__finally");
     enter_keyword((a_token_kind)tok_leave, "__leave");
     enter_keyword((a_token_kind)tok_except, "__except");
+    enter_keyword((a_token_kind)tok_int32, "__int32");
+#if LONG_LONG_ALLOWED
+    enter_keyword((a_token_kind)tok_int64, "__int64");
+#endif /* LONG_LONG_ALLOWED */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
