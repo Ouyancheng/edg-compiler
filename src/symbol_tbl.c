@@ -3004,6 +3004,20 @@ this is not allowed, an error will be issued by the caller.
       pos_st_warning(ec_decl_hides_function_parameter, &new_sym->decl_position,
 		     new_sym->header->identifier);
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (gcc_mode && old_sym->kind == (a_symbol_kind)sk_field &&
+                         new_sym->kind == (a_symbol_kind)sk_field) {
+    /* GNU C ignores conflicts between fields if one of those fields comes
+       from an anonymous union.  In such a case, the first declaration
+       prevails.  However, we cannot use the insert_sym mechanism for this
+       because these symbols are normally found on the inactive list (where
+       ordering is ignored).  Therefore, we set the is_invisible flag on the
+       new symbol. */
+    if (suppress_error) {
+      err = FALSE;
+      new_sym->is_invisible = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (!C_mode()) {
     /* Some checks specific to C++ mode. */
     if (is_namespace_symbol(new_sym) || is_namespace_symbol(old_sym)) {

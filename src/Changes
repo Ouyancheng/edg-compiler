@@ -1,5 +1,20 @@
 Version 3.2
 
+2/27/03  GNU C mode: Ignore anonymous union field name conflicts
+
+In GNU C mode, we accept nonstandard anonymous unions.  However, we used to
+issue an error when such a construct injected a field name in the surrounding
+class that conflicts with an existing field name.  We now emulate GNU
+compilers by not issuing the error and making the later declaration invisible.
+For example:
+
+  struct S {
+    int f;
+    struct AU {  // Nonstandard anonymous union.
+      int f;     // No longer an error in GNU C mode, but this field is
+    };           // no longer visible in struct S.
+  };
+
 2/25/03  Duplicate definition of wrapper routine for virtual function
          with covariant return, Cfront-like ABI
 

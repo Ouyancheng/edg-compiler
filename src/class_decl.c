@@ -8224,14 +8224,17 @@ nonstandard anonymous unions is_nonstd is TRUE.
              may be used again.  Therefore, we have to clone the symbol,
              making a copy of it in the new class scope.  Note that there may
              turn out to be a many-to-one mapping between member symbols and
-             field-of-assoc-object-type. */
+             field-of-assoc-object-type.  Note that the new symbol should
+             normally not conflict with existing fields, but in GNU C mode
+             such conflicts are ignored and only the first declaration is
+             visible. */
           a_field_ptr      fp = sym->variant.field.ptr;
           a_symbol_locator loc;
 
           make_locator_for_symbol(sym, &loc);
           loc.source_position = assoc_object_sym->decl_position;
           sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
-                                   /*suppress_error=*/FALSE);
+                                   /*suppress_error=*/gcc_mode);
           sym->variant.field.ptr = fp;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
