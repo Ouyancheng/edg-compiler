@@ -222,9 +222,9 @@ void db_field(a_field *fp)
 Dump a field entry, for debug purposes.
 */
 {
-  fputc(' ', f_debug);
+  (void)fputc(' ', f_debug);
   if (C_dialect == C_dialect_cplusplus) {
-    fputc(' ', f_debug);
+    (void)fputc(' ', f_debug);
     db_access_control(fp->source_corresp.access);
   }  /* if */
   fputs(" field \"", f_debug);
@@ -235,7 +235,7 @@ Dump a field entry, for debug purposes.
   if (fp->bit_size > 0) {
     fprintf(f_debug, ", bit size %d", fp->bit_size);
   }  /* if */
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
 }  /* db_field */
 
 
@@ -251,7 +251,7 @@ Dump a static data member (a variable entry), for debug purposes.
   fprintf(f_debug, "\", sc_%s, type = ",
                    db_storage_class_names[(int)vp->storage_class]);
   db_abbreviated_type(vp->type);
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
 }  /* db_static_data_member */
 
 
@@ -275,7 +275,7 @@ Dump a member function (a routine entry), for debug purposes.
                    (rp->is_inline) ? ", inline" : "",
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
 }  /* db_member_function */
 
 
@@ -319,7 +319,7 @@ debug purposes.
     }  /* if */
     fprintf(f_debug, "byte offset for virtual function table ptr = %lu",
                      ctsp->virtual_function_info_offset);
-    if (depth == -1) fputc('\n', f_debug);
+    if (depth == -1) (void)fputc('\n', f_debug);
   }  /* if */
 }  /* db_virtual_function_info */
 
@@ -384,7 +384,7 @@ Dump an indirect base class entry, for debug purposes.
                   "<???>" : dsp->base_class->type->source_corresp.name);
     }  /* for */
   }  /* if */
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
 }  /* db_indirect_base_class */
 
 
@@ -451,7 +451,7 @@ static void db_access_adjustment(an_access_adjustment_ptr aap)
   fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
   db_name(sc);
 end_of_routine:
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
 }  /* db_access_adjustment */
 
 
@@ -491,10 +491,10 @@ Dump the contents of the indicated type entry, for debug purposes.
       /* Dump classes/structs/unions specially to avoid recursive loops
          when then contain pointers to themselves. */
       db_abbreviated_type(tp->variant.pointer.type);
-      fputc(')', f_debug);
+      (void)fputc(')', f_debug);
       break;
     case tk_array:
-      fputc('(', f_debug);
+      (void)fputc('(', f_debug);
       db_abbreviated_type(tp->variant.array.element_type);
       fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
@@ -528,7 +528,7 @@ class_struct_union:
           }  /* if */
           if (bcp->is_virtual) any_virtual_base_classes = TRUE;
         } /* for */
-        fputc('\n', f_debug);
+        (void)fputc('\n', f_debug);
         fp = tp->variant.class_struct_union.field_list;
         for (; fp != NULL; fp = fp->next) db_field(fp);
         if (ctsp != NULL && ctsp->assoc_scope != NULL) {
@@ -657,9 +657,9 @@ Dump the contents of the indicated constant, for debug purposes.
   con_type = cp->type;
   if (con_type != NULL) {
     /* Dump the type preceding the constant, looking like a type cast. */
-    fputc('(', f_debug);
+    (void)fputc('(', f_debug);
     db_type(con_type);
-    fputc(')', f_debug);
+    (void)fputc(')', f_debug);
   }  /* if */
 
   con_type = skip_typerefs(con_type);
@@ -675,7 +675,7 @@ Dump the contents of the indicated constant, for debug purposes.
       for (i = 0; i < cp->variant.string.length; i++) {
         c = cp->variant.string.value[i];
         if (isprint(c)) {
-          fputc(c, f_debug);
+          (void)fputc(c, f_debug);
         } else {
           /* Print non-printable character in octal form.  Truncate
              to right number of bits to avoid problems with signed chars. */
@@ -710,14 +710,14 @@ Dump the contents of the indicated constant, for debug purposes.
       fprintf(f_debug, " + %ld)", cp->variant.address.offset);
       break;
     case ck_aggregate:
-      fputc('{', f_debug);
+      (void)fputc('{', f_debug);
       cp2 = cp->variant.aggregate.first_constant;
       while (cp2 != NULL) {
         db_constant(cp2);
         cp2 = cp2->next;
-        if (cp2 != NULL) fputc(',', f_debug);
+        if (cp2 != NULL) (void)fputc(',', f_debug);
       }  /* while */
-      fputc('}', f_debug);
+      (void)fputc('}', f_debug);
       break;
     default:
       fputs("<bad constant>", f_debug);
@@ -841,7 +841,7 @@ static void db_constructor_initializer(a_dynamic_init_ptr  dip,
 
   fputs("constructor ", f_debug);
   db_name(&dip->variant.constructor.routine->source_corresp);
-  fputc('(', f_debug);
+  (void)fputc('(', f_debug);
   ptp = dip->variant.constructor.routine->type->
                           variant.routine.extra_info->param_type_list;
   if (ptp != NULL) {
@@ -851,13 +851,13 @@ static void db_constructor_initializer(a_dynamic_init_ptr  dip,
       db_abbreviated_type(ptp->type);
     }  /* for */
   }  /* if */
-  fputc(')', f_debug);
+  (void)fputc(')', f_debug);
   if ((arg = dip->variant.constructor.args) == NULL) {
     if (dip->destructor != NULL) {
       fputs("; ", f_debug);
       db_destructor(dip->destructor);
     }  /* if */
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   } else {
     fputs(", args =\n", f_debug);
     for (; arg != NULL; arg = arg->next) {
@@ -867,7 +867,7 @@ static void db_constructor_initializer(a_dynamic_init_ptr  dip,
       int a;
       for (a = 0; a < level; a++) fputs(" ", f_debug);
       db_destructor(dip->destructor);
-      fputc('\n', f_debug);
+      (void)fputc('\n', f_debug);
     }  /* if */
   }  /* if */
 }  /* db_constructor_initializer */
@@ -887,7 +887,7 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
           if (dip->destructor != NULL) {
             for (a = 0; a < level; a++) fputs(" ", f_debug);
             db_destructor(dip->destructor);
-            fputc('\n', f_debug);
+            (void)fputc('\n', f_debug);
           }  /* if */
           break;
         case dik_constructor:
@@ -912,7 +912,7 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
                                  level + 2);
       } else {
         db_constant(con);
-        fputc('\n', f_debug);
+        (void)fputc('\n', f_debug);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -931,7 +931,7 @@ void db_dynamic_initializer(a_dynamic_init_ptr  dip,
         fputs("; ", f_debug);
         db_destructor(dip->destructor);
       }  /* if */
-      fputc('\n', f_debug);
+      (void)fputc('\n', f_debug);
       break;
     case dik_expression:
       fputs("expression:\n", f_debug);
@@ -946,7 +946,7 @@ destructor_on_next_line:
       if (dip->destructor != NULL) {
         for (a = 0; a < level; a++) fputs(" ", f_debug);
         db_destructor(dip->destructor);
-        fputc('\n', f_debug);
+        (void)fputc('\n', f_debug);
       }  /* if */
       break;
     case dik_constructor:
@@ -965,7 +965,7 @@ destructor_on_this_line:
         fputs(", ", f_debug);
         db_destructor(dip->destructor);
       }  /* if */
-      fputc('\n', f_debug);
+      (void)fputc('\n', f_debug);
       break;
   }  /* switch */
 }  /* db_dynamic_initializer */
@@ -981,7 +981,7 @@ void db_initializer(a_variable_ptr  var,
     if (var->init_kind == (an_init_kind)initk_static) {
       fputs("static init: ", f_debug);
       db_static_initializer(var->initializer.constant);
-      fputc('\n', f_debug);
+      (void)fputc('\n', f_debug);
     } else {
       fputs("dynamic init: ", f_debug);
       db_dynamic_initializer(var->initializer.dynamic, level + 2);
@@ -4045,11 +4045,11 @@ Display and return the amount of space used for various IL tables.
 
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
 
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "get_based_type calls", "", "",
                                           num_get_based_type_calls);  
   
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "num_shareable_constants", "", "",
                                           num_shareable_constants);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Percent of buckets used", "", "",
