@@ -22,13 +22,6 @@ const_ints.h -- Declarations related to manipulation of target integer
 #include "il.h"
 #endif /* ifndef IL_H */
 
-/*
-Arrays containing the minimum and maximum values for each integer kind.
-*/
-EXTERN an_integer_value
-		min_integer_value_of_kind[(int)ik_last],
-		max_integer_value_of_kind[(int)ik_last];
-
 
 extern void set_unsigned_integer_value(an_integer_value *intval,
                                        unsigned long    value);
@@ -62,6 +55,10 @@ extern int cmpulit_integer_constant(a_constant    *con1,
 extern a_boolean in_range_for_integer_kind(a_constant      *min_con,
                                            a_constant      *max_con,
                                            an_integer_kind ikind);
+
+extern a_boolean le_max_integer_value_of_kind(an_integer_value *value,
+	                                      a_boolean	is_signed,
+	                                      an_integer_kind  ikind);
 
 extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
                                                an_integer_kind ikind);
