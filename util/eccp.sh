@@ -484,6 +484,7 @@ check_abbreviation()
 --implicit_include
 --implicit_typename
 --include_directory
+--incl_suffixes
 --inlining
 --instantiate
 --instantiation_dir
@@ -1055,6 +1056,7 @@ process_option()
          --pending_instantiations | \
          --preinclude | \
          --sys_include | \
+         --incl_suffixes | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1115,6 +1117,7 @@ process_option()
           --pending_instantiations=* | \
           --preinclude=* | \
           --sys_include=* | \
+          --incl_suffixes=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
