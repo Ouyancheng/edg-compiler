@@ -10912,6 +10912,7 @@ standard.
                                          &processed);
   }  /* if */
   if (!processed) {
+    a_boolean fold;
     /* Non-operator-function cases. */
     /* Both operands must be scalar. */
     if (!operand_1_transformations_done) {
@@ -10921,22 +10922,44 @@ standard.
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_boolean_controlling_expr(&operand_2);
     result_type = boolean_result_type();
-    if (!known_result ||
-        /* In constant expressions we must always fold. */
-        (!curr_expr_kind_is_const() &&
+    /* See if we should fold this operation to a constant.  That includes
+       cases where we discard the second operand because we know the
+       result on the basis of the first operand.  Note that
+       do_binary_operation can fold an operation on two constants to
+       a constant, but it can't drop a non-constant unevaluated
+       operand. */
+    if (!known_result) {
+      /* Can't fold if the result is not known. */
+      fold = FALSE;
+    } else if (is_constant_operand(&operand_2) &&
+               operand_2.variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+      /* A template-dependent second operand makes the whole expression
+         dependent, so keep it.  do_binary_operation will fold the
+         operation under a ck_template_param. */
+      fold = FALSE;
+    } else if (curr_expr_kind_is_const()) {
+      /* In constant expressions we must always fold. */
+      fold = TRUE;
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-         /* Don't remove dead code that might contain destructions, because
-            we don't want to run through the expression to find the destruction
-            to unlink it. */
-         curr_object_lifetime != NULL &&
-         curr_object_lifetime->destructions != NULL
+    } else if (curr_object_lifetime != NULL &&
+               curr_object_lifetime->destructions != NULL) {
+      /* Don't remove dead code that might contain destructions, because
+         we don't want to run through the expression to find the destruction
+         to unlink it. */
+      fold = FALSE;
 #else /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-         /* When the first operand is constant and determines the result,
-            but the second operand is not constant, retain the dead
-            expression. */
-         !is_constant_operand(&operand_2)
+    } else if (!is_constant_operand(&operand_2)) {
+      /* When the first operand is constant and determines the result,
+         but the second operand is not constant, retain the dead
+         expression. */
+      fold = FALSE;
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-                                         )) {
+    } else {
+      /* Otherwise, we can fold. */
+      fold = TRUE;
+    }  /* if */
+    if (!fold) {
       /* Make an expression. */
       op = which_binary_operator(save_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
