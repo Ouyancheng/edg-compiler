@@ -696,6 +696,7 @@ ec_bad_declspec_modifier;;"%sq is an invalid __declspec attribute"
 ec_calling_convention_not_allowed;;"a calling convention modifier may not be specified here"
 ec_conflicting_calling_conventions;;"conflicting calling convention modifiers"
 ec_cl_strict_ansi_incompatible_with_microsoft;;"strict ANSI mode is incompatible with Microsoft mode"
+ec_cl_cfront_incompatible_with_microsoft;;"cfront mode is incompatible with Microsoft mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
