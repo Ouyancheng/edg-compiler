@@ -4628,7 +4628,7 @@ where declarations and executable statements may not be mingled, an asm
   check_assertion(curr_token == tok_asm);
   if (!asm_decl_allowed) {
     /* An asm declaration is not allowed in the current scope. */
-    error(ec_asm_not_allowed);
+    error(ec_asm_decl_not_allowed);
     discard_curr_construct_pragmas();
   } else {
     /* Issue diagnostics on pragmas that are trying to bind to an asm
@@ -4780,9 +4780,6 @@ of local variables (and types, etc.) of functions and in blocks.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if ASM_FUNCTION_ALLOWED
-  a_boolean                    is_asm_function = FALSE;
-#endif /* ASM_FUNCTION_ALLOWED */
   a_boolean		       access_checks_deferred = FALSE;
   a_boolean                    restrict_qualified = FALSE;
 
@@ -4855,16 +4852,9 @@ of local variables (and types, etc.) of functions and in blocks.
 #if ASM_FUNCTION_ALLOWED
     }  /* if */
     /* Not "asm (...)", so assume we have an asm function declaration --
-       something like "asm void f(void) { ... }". */
-    is_asm_function = TRUE;
-    /* Skip over the "asm". */
-    (void)get_token();
-    /* Note: DSI_STORAGE_CLASS_SPECIFIER_ALLOWED should not be set if this
-       is an asm function declaration.  "asm" is not quite a storage class,
-       at least not syntactically, since it is only recognized as the very
-       first token of the asm function declaration.  That's why it gets this
-       special handling. */
-    storage_class = (a_storage_class)sc_asm;
+       something like "asm void f(void) { ... }".  Note: we leave
+       DSI_STORAGE_CLASS_SPECIFIER_ALLOWED unset when asm is the first
+       specifier. */
 #endif /* ASM_FUNCTION_ALLOWED */
   } else {
     /* Within a non-block linkage specification no storage class is allowed
@@ -4890,6 +4880,10 @@ of local variables (and types, etc.) of functions and in blocks.
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
       /* "inline" is allowed only on function declarations at file scope. */
       if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
+#if ASM_FUNCTION_ALLOWED
+      /* "asm" is allowed only on function definitions at file scope. */
+      dsi_flags |= DSI_ASM_ALLOWED;
+#endif /* ASM_FUNCTION_ALLOWED */
     }  /* if */
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
@@ -4900,11 +4894,10 @@ of local variables (and types, etc.) of functions and in blocks.
     if (function_definition_allowed && is_declarator_start()) {
       /* Function definition with omitted specifiers. */
 #if ASM_FUNCTION_ALLOWED
-    } else if (is_asm_function) {
-      /* "asm" followed by something that's not a declaration. */
-      syntax_error(ec_exp_declaration);
-      discard_curr_construct_pragmas();
-      goto advance_past_final_token;
+    } else if (curr_token == tok_asm) {
+      /* The start of an asm function declaration.  ("asm" is not checked
+         for by is_decl_start since it starts a declaration only in a
+         restricted context.) */
 #endif /* ASM_FUNCTION_ALLOWED */
     } else {
       /* Look for some cases that are obviously not the start of a declaration,
@@ -5007,6 +5000,11 @@ continue_with_declaration:
         }  /* if */
         set_err_pos_to_curr_token();
         diagnostic(severity, ec_missing_typedef_name);
+#if ASM_FUNCTION_ALLOWED
+      } else if (storage_class == (a_storage_class)sc_asm) {
+        pos_error(ec_bad_asm_function_def, &pos_curr_token);
+        local_storage_class = (a_storage_class)sc_unspecified;
+#endif /* ASM_FUNCTION_ALLOWED */
       } else {
         if (!declares_something) {
           /* The specifiers should have declared something or this declaration
@@ -5118,6 +5116,11 @@ continue_with_declaration:
         copy_source_position(pos_curr_token, declarator_pos);
       }  /* if */
       clear_func_info(&func_info);
+#if ASM_FUNCTION_ALLOWED
+      if (storage_class == (a_storage_class)sc_asm) {
+        func_info.is_asm_function = TRUE;
+      }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!first_declarator && depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
         /* This is a declaration at file scope, and not the first declarator
@@ -5284,8 +5287,15 @@ continue_with_declaration:
         need_lbrace_remove_stop_token = FALSE;
       }  /* if */
 #if ASM_FUNCTION_ALLOWED
-      if (is_asm_function) {
-        local_storage_class = (a_storage_class)sc_asm;
+      if (storage_class == (a_storage_class)sc_asm) {
+        if (!is_function) {
+          /* Not a function definition. */
+          pos_error(ec_bad_asm_function_def, &declarator_pos);
+          local_storage_class = (a_storage_class)sc_unspecified;
+          set_to_named_error_locator(locator);
+        } else {
+          func_info.is_asm_function = TRUE;
+        }  /* if */
       } else
 #endif /* ASM_FUNCTION_ALLOWED */
       if (is_function && local_storage_class != (a_storage_class)sc_typedef) {
@@ -5332,39 +5342,47 @@ continue_with_declaration:
       func_info.function_type_from_typedef = !top_declarator_type_is_function;
       /* If the thing declared is a function, and if the token following looks
          like it could be part of a function-definition, go scan that. */
-      if (function_definition_allowed && is_function &&
-          local_storage_class != (a_storage_class)sc_typedef &&
-          curr_token != tok_semicolon && curr_token != tok_comma &&
-          curr_token != tok_assign && curr_token != tok_end_of_source) {
-        if (!has_explicit_type_specifier && !is_main_function) {
-          /* Function with no explicitly specified return type.  Issue a
-             remark (except in pcc mode and except for C++ constructors,
-             destructors, and conversion operators). */
-          if (C_dialect != C_dialect_pcc) {
-            if (C_dialect != C_dialect_cplusplus ||
-                (!is_constructor_or_destructor &&
-                 !locator.is_conversion_name)) {
-              pos_remark(ec_missing_type_specifier, &declarator_pos);
+      if (function_definition_allowed && is_function) {
+        if (local_storage_class != (a_storage_class)sc_typedef &&
+            curr_token != tok_semicolon && curr_token != tok_comma &&
+            curr_token != tok_assign && curr_token != tok_end_of_source) {
+          if (!has_explicit_type_specifier && !is_main_function) {
+            /* Function with no explicitly specified return type.  Issue a
+               remark (except in pcc mode and except for C++ constructors,
+               destructors, and conversion operators). */
+            if (C_dialect != C_dialect_pcc) {
+              if (C_dialect != C_dialect_cplusplus ||
+                  (!is_constructor_or_destructor &&
+                   !locator.is_conversion_name)) {
+                pos_remark(ec_missing_type_specifier, &declarator_pos);
+              }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-        remove_all_local_stop_tokens();
-        func_info.is_definition = TRUE;
+          remove_all_local_stop_tokens();
+          func_info.is_definition = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        func_info.declarator_ssep = declarator_ssep;
+          func_info.declarator_ssep = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        /* Do processing required for a function definition, including
-           scanning the function body.  Note that the closing '}' will not
-           been consumed -- that will be done by the caller. */
-        (void)function_definition(&locator, local_type_ptr, &func_info,
-                                  local_storage_class,
-                                  has_explicit_type_specifier,
-                                  decl_modifiers);
-        done_with_func_info(func_info);
-        /* The presence of a final '}' will already have been checked for. */
-        check_assertion(curr_token == tok_rbrace ||
-                        curr_token == tok_end_of_source);
-        goto advance_past_final_token;
+          /* Do processing required for a function definition, including
+             scanning the function body.  Note that the closing '}' will not
+             been consumed -- that will be done by the caller. */
+          (void)function_definition(&locator, local_type_ptr, &func_info,
+                                    local_storage_class,
+                                    has_explicit_type_specifier,
+                                    decl_modifiers);
+          done_with_func_info(func_info);
+          /* The presence of a final '}' will already have been checked for. */
+          check_assertion(curr_token == tok_rbrace ||
+                          curr_token == tok_end_of_source);
+          goto advance_past_final_token;
+#if ASM_FUNCTION_ALLOWED
+        } else if (storage_class == (a_storage_class)sc_asm) {
+          /* Not a function definition. */
+          pos_error(ec_bad_asm_function_def, &pos_curr_token);
+          local_storage_class = (a_storage_class)sc_unspecified;
+          set_to_named_error_locator(locator);
+#endif /* ASM_FUNCTION_ALLOWED */
+        }  /* if */
       }  /* if */
       /* Not a function definition, must be a declaration. */
       /* After a declaration has been scanned, it is no longer possible
