@@ -294,6 +294,10 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     /* Use small value to avoid more errors, but not 1 which is special. */
     bit_field_size = TARG_CHAR_BIT;
     err = TRUE;
+  } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+    /* A template parameter during the prototype instantiation.  The value
+       is not known.  Use a small value that is not 1. */
+    bit_field_size = TARG_CHAR_BIT;
   } else {
 #if CHECKING
     if (constant.kind != (a_constant_repr_kind)ck_integer) {
