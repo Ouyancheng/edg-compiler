@@ -5674,7 +5674,7 @@ current scope.
         }  /* if */
       }  /* if */
       /* Create the new sk_namespace_projection symbol(s). */
-      for (; sym != NULL; is_list ? sym = sym->next : NULL) {
+      for (; sym != NULL; sym = is_list ? sym->next : NULL) {
         locator = locator_for_curr_id;
         clear_specific_symbol(locator);
         if (overload_sym == NULL) {
