@@ -1,5 +1,21 @@
 Version 2.22
 
+2/18/94  Generating makefile dependency information using implicit inclusion
+
+When generating makefile dependency information (using the -M option)
+in implicit template inclusion mode (-B) the front end searches for
+a related source file for each header file that is included.  If a
+related source file is found, it is treated as if it were included
+immediately following the original header file.  This is done so
+that complete makefile dependency information can be generated.
+Previously, the -M option would not include the source (e.g., .c)
+files that contain template definitions.  In -M mode the front end
+only performs preprocessing.  As a result it must search for related
+source files for all header files, not only those that contain
+template definitions used by the program.  This may result in
+the front end indicating a dependency on a given file where no
+such dependency actually exists.
+
 2/18/94  ANSI C code generation from C-generating back end
 
 The C-generating back end can now be configured to generate ANSI C instead
