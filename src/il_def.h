@@ -5340,7 +5340,7 @@ typedef struct an_expr_node {
 			   type of the expression specified.  In either case,
 			   top-level type qualifiers are removed.  For
 			   enk_uuidof, the underlying class type of the
-			   operand, or NULL for the zero-uuid case. */
+			   operand, or NULL for the zero GUID case. */
       an_expr_node_ptr
 		expr;
 			/* If the argument of the typeid operator is an
@@ -5351,7 +5351,7 @@ typedef struct an_expr_node {
 			   For enk_uuidof, a pointer to the original
 			   lvalue expression if the operand was an expression
 			   (the expression is not evaluated); otherwise,
-			   NULL. */
+			   NULL.  Also NULL for the zero GUID case. */
     } typeid_info;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
