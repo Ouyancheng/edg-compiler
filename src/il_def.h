@@ -1011,7 +1011,6 @@ typedef a_byte a_storage_class;
 
 
 #if DEBUG
-#ifdef FFE
 /*
 Table of storage class names, for debug purposes.
 */
@@ -1028,7 +1027,6 @@ EXTERN char     *db_storage_class_names[(int)sc_last + 1]
 }
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* ifdef FFE */
 #endif /* DEBUG */
 
 
