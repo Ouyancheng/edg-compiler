@@ -1,5 +1,19 @@
 Version 2.31
 
+11/16/95  IL lowering: bug in processing of outside-of-parent definitions
+          of classes in a namespace
+
+A bug that caused an internal error on the following has been corrected:
+
+namespace Y {
+  namespace Z {
+    struct C {
+      struct CN2;
+    };
+  };
+  struct Z::C::CN2 { };
+}
+
 11/16/95  Projection symbols created for symbols that fail lookup criteria
 
 Projection symbols were incorrectly being created for symbols that did
