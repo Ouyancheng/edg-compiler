@@ -5543,6 +5543,8 @@ points to the template parameter list.
               }  /* if */
               bcp = bcp->next;
             }  /* while */
+            /* If exactly one base class matches, consider this a match. */
+            match = base_match;
           }  /* if */
           break;
         case tk_typeref:
