@@ -179,6 +179,13 @@ extern char *str_for_integer_value(an_integer_value	*p_value,
 
 extern char *str_for_integer_constant(a_constant *cp);
 
+extern
+void conv_integer_value_to_float(an_integer_value		*int_value,
+				 a_boolean			is_signed,
+			         an_internal_float_value	*float_value,
+				 a_float_kind			float_kind,
+				 a_boolean			*err);
+
 extern void const_ints_init(void);
 
 extern int cmp_integer_values(an_integer_value *op_1,

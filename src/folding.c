@@ -327,8 +327,6 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 *err_code == ec_no_error if everything went fine.
 */
 {
-  a_host_large_integer    old_value;
-  a_host_large_unsigned   unsigned_old_value;
   a_boolean               err;
   a_type_ptr              float_tp = skip_typerefs(new_constant->type);
   a_constant_repr_kind    constant_kind = (a_constant_repr_kind)ck_float;
@@ -371,29 +369,10 @@ in *new_constant, with type as indicated therein.  Return *err_code and
   {
     float_value = &new_constant->variant.float_value;
   }  /* if */
-  if (int_constant_is_signed(old_constant)) {
-    /* The source is a signed integer value. */
-    old_value = value_of_integer_constant(old_constant, &err);
-    if (!err) {
-      fp_host_large_integer_to_float(float_kind, old_value, float_value, &err);
-    }  /* if */
-  } else {
-    /* The source is an unsigned integer value. */
-    unsigned_old_value = unsigned_value_of_integer_constant(old_constant,
-                                                            &err);
-    if (!err) {
-      fp_host_large_unsigned_to_float(float_kind, unsigned_old_value, 
-                                      float_value, &err);
-    }  /* if */
-  }  /* if */
-#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  if (err) {
-    /* Try again with larger precision by converting the integer to a
-       character string then converting the string to a float value. */
-    char *str = str_for_integer_constant(old_constant);
-    fp_string_to_float(float_kind, str, float_value, &err);
-  }  /* if */
-#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  /* Do the actual conversion of the integer constant to a float value. */
+  conv_integer_value_to_float(&old_constant->variant.integer_value,
+                              int_constant_is_signed(old_constant),
+                              float_value, float_kind, &err);
 #if C99_IL_EXTENSIONS_SUPPORTED
 conversion_done:;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -3158,10 +3137,12 @@ relational operator "op", and return a 0 or 1 integer in "result".
 static void do_fxadd(a_constant        *constant_1,
                      a_constant        *constant_2,
                      a_constant        *result,
+		     a_boolean	       *did_not_fold,
                      an_error_code     *err_code,
                      an_error_severity *err_severity)
 /*
-Do the addition operation on all types of fixed-point values.
+Do the addition operation on all types of fixed-point values, and
+combinations of fixed-point and integer values.
 */
 {
   a_boolean err;
@@ -3169,16 +3150,8 @@ Do the addition operation on all types of fixed-point values.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  check_assertion(constant_1->kind == constant_2->kind &&
-                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
-  set_constant_kind(result, constant_1->kind);
-  fxp_add(&constant_1->variant.fixed_point_value,
-          fxp_descr_for_constant(constant_1),
-          &constant_2->variant.fixed_point_value,
-          fxp_descr_for_constant(constant_2),
-          &result->variant.fixed_point_value,
-          fxp_descr_for_constant(result),
-          &err);
+  set_constant_kind(result, (a_constant_repr_kind)ck_fixed_point);
+  fxp_add(constant_1, constant_2, result, did_not_fold, &err);
   if (err) {
     *err_code = ec_bad_fixed_operation_result;
     *err_severity = es_error;
@@ -3193,10 +3166,12 @@ Do the addition operation on all types of fixed-point values.
 static void do_fxsubtract(a_constant        *constant_1,
                           a_constant        *constant_2,
                           a_constant        *result,
+		          a_boolean	       *did_not_fold,
                           an_error_code     *err_code,
                           an_error_severity *err_severity)
 /*
-Do the subtraction operation on all types of fixed-point values.
+Do the subtraction operation on all types of fixed-point values, and
+combinations of fixed-point and integer values.
 */
 {
   a_boolean err;
@@ -3204,16 +3179,8 @@ Do the subtraction operation on all types of fixed-point values.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  check_assertion(constant_1->kind == constant_2->kind &&
-                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
-  set_constant_kind(result, constant_1->kind);
-  fxp_subtract(&constant_1->variant.fixed_point_value,
-               fxp_descr_for_constant(constant_1),
-               &constant_2->variant.fixed_point_value,
-               fxp_descr_for_constant(constant_2),
-               &result->variant.fixed_point_value,
-               fxp_descr_for_constant(result),
-               &err);
+  set_constant_kind(result, (a_constant_repr_kind)ck_fixed_point);
+  fxp_subtract(constant_1, constant_2, result, did_not_fold, &err);
   if (err) {
     *err_code = ec_bad_fixed_operation_result;
     *err_severity = es_error;
@@ -3228,10 +3195,12 @@ Do the subtraction operation on all types of fixed-point values.
 static void do_fxmultiply(a_constant        *constant_1,
                           a_constant        *constant_2,
                           a_constant        *result,
+		          a_boolean	    *did_not_fold,
                           an_error_code     *err_code,
                           an_error_severity *err_severity)
 /*
-Do the multiplication operation on all types of fixed-point values.
+Do the multiplication operation on all types of fixed-point values, and
+combinations of fixed-point and integer values.
 */
 {
   a_boolean err;
@@ -3239,16 +3208,8 @@ Do the multiplication operation on all types of fixed-point values.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  check_assertion(constant_1->kind == constant_2->kind &&
-                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
-  set_constant_kind(result, constant_1->kind);
-  fxp_multiply(&constant_1->variant.fixed_point_value,
-               fxp_descr_for_constant(constant_1),
-               &constant_2->variant.fixed_point_value,
-               fxp_descr_for_constant(constant_2),
-               &result->variant.fixed_point_value,
-               fxp_descr_for_constant(result),
-               &err);
+  set_constant_kind(result, (a_constant_repr_kind)ck_fixed_point);
+  fxp_multiply(constant_1, constant_2, result, did_not_fold, &err);
   if (err) {
     *err_code = ec_bad_fixed_operation_result;
     *err_severity = es_error;
@@ -3261,12 +3222,14 @@ Do the multiplication operation on all types of fixed-point values.
 
 
 static void do_fxdivide(a_constant        *constant_1,
-                        a_constant        *constant_2,
-                        a_constant        *result,
-                        an_error_code     *err_code,
-                        an_error_severity *err_severity)
+                          a_constant        *constant_2,
+                          a_constant        *result,
+		          a_boolean	    *did_not_fold,
+                          an_error_code     *err_code,
+                          an_error_severity *err_severity)
 /*
-Do the division operation on all types of fixed-point values.
+Do the division operation on all types of fixed-point values, and
+combinations of fixed-point and integer values.
 */
 {
   a_boolean err;
@@ -3274,21 +3237,13 @@ Do the division operation on all types of fixed-point values.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  check_assertion(constant_1->kind == constant_2->kind &&
-                  constant_1->kind == (a_constant_repr_kind)ck_fixed_point);
   /* Check for division by zero to give a specific error message. */
   if (fxp_value_is_zero(&constant_2->variant.fixed_point_value)) {
     *err_code = ec_divide_by_zero;
     *err_severity = es_error;
   } else {
-    set_constant_kind(result, constant_1->kind);
-    fxp_divide(&constant_1->variant.fixed_point_value,
-               fxp_descr_for_constant(constant_1),
-               &constant_2->variant.fixed_point_value,
-               fxp_descr_for_constant(constant_2),
-               &result->variant.fixed_point_value,
-               fxp_descr_for_constant(result),
-               &err);
+    set_constant_kind(result, (a_constant_repr_kind)ck_fixed_point);
+    fxp_divide(constant_1, constant_2, result, did_not_fold, &err);
     if (err) {
       *err_code = ec_bad_fixed_operation_result;
       *err_severity = es_error;
@@ -4448,9 +4403,13 @@ as the position for any diagnostics issued.
   } else if ((constant_1->kind == (a_constant_repr_kind)ck_fixed_point ||
               constant_2->kind == (a_constant_repr_kind)ck_fixed_point) &&
              (constant_1->kind != (a_constant_repr_kind)ck_fixed_point ||
-              constant_2->kind != (a_constant_repr_kind)ck_fixed_point)) {
-    /* Binary operators applied to fixed-point constants are not folded
-       if the other operand is not also fixed-point. */
+              constant_2->kind != (a_constant_repr_kind)ck_fixed_point) &&
+             (op != (an_expr_operator_kind)eok_fxadd) &&
+             (op != (an_expr_operator_kind)eok_fxsubtract) &&
+             (op != (an_expr_operator_kind)eok_fxmultiply) &&
+             (op != (an_expr_operator_kind)eok_fxdivide)) {
+    /* Fixed-point operations, except for the ones listed above,
+       are not folded if the other operand is not also fixed-point. */
     *did_not_fold = TRUE;
 #endif /* FIXED_POINT_ALLOWED */
   } else {
@@ -4599,19 +4558,19 @@ as the position for any diagnostics issued.
 #if FIXED_POINT_ALLOWED
         case eok_fxadd:
           do_fxadd(constant_1, constant_2, result,
-                   &err_code, &err_severity);
+                   did_not_fold, &err_code, &err_severity);
           break;
         case eok_fxsubtract:
           do_fxsubtract(constant_1, constant_2, result,
-                        &err_code, &err_severity);
+                        did_not_fold, &err_code, &err_severity);
           break;
         case eok_fxmultiply:
           do_fxmultiply(constant_1, constant_2, result,
-                        &err_code, &err_severity);
+                        did_not_fold, &err_code, &err_severity);
           break;
         case eok_fxdivide:
           do_fxdivide(constant_1, constant_2, result,
-                      &err_code, &err_severity);
+                      did_not_fold, &err_code, &err_severity);
           break;
         case eok_fxeq:
         case eok_fxne:

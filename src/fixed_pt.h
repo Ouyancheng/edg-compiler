@@ -72,31 +72,32 @@ extern char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
                            a_fixed_point_value       *value);
 
 extern
-void fxp_add(a_fixed_point_value      *value_1,
-             a_fixed_point_type_descr *fxp_descr_1,
-             a_fixed_point_value      *value_2,
-             a_fixed_point_type_descr *fxp_descr_2,
-             a_fixed_point_value      *result,
-             a_fixed_point_type_descr *fxp_descr_result,
-             a_boolean                *err);
+void fxp_add(a_constant		*constant_1,
+	     a_constant		*constant_2,
+	     a_constant		*result,
+	     a_boolean		*did_not_fold,
+	     a_boolean		*err);
 
 extern
-void fxp_subtract(a_fixed_point_value      *value_1,
-	          a_fixed_point_type_descr *fxp_descr_1,
-	          a_fixed_point_value      *value_2,
-	          a_fixed_point_type_descr *fxp_descr_2,
-	          a_fixed_point_value      *result,
-	          a_fixed_point_type_descr *fxp_descr_result,
-	          a_boolean                *err);
+void fxp_subtract(a_constant	*constant_1,
+		  a_constant	*constant_2,
+		  a_constant	*result,
+		  a_boolean	*did_not_fold,
+		  a_boolean	*err);
 
 extern
-void fxp_multiply(a_fixed_point_value      *value_1,
-	          a_fixed_point_type_descr *fxp_descr_1,
-	          a_fixed_point_value      *value_2,
-	          a_fixed_point_type_descr *fxp_descr_2,
-	          a_fixed_point_value      *result,
-	          a_fixed_point_type_descr *fxp_descr_result,
-	          a_boolean                *err);
+void fxp_multiply(a_constant	*constant_1,
+		  a_constant	*constant_2,
+		  a_constant	*result,
+		  a_boolean	*did_not_fold,
+		  a_boolean	*err);
+
+extern
+void fxp_divide(a_constant	*constant_1,
+		a_constant	*constant_2,
+		a_constant	*result,
+		a_boolean	*did_not_fold,
+		a_boolean	*err);
 
 extern
 void fxp_negate(a_fixed_point_value      *value,
@@ -104,15 +105,6 @@ void fxp_negate(a_fixed_point_value      *value,
                 a_fixed_point_value      *result,
                 a_fixed_point_type_descr *fxp_descr_result,
                 a_boolean                *err);
-
-extern
-void fxp_divide(a_fixed_point_value      *value_1,
-	        a_fixed_point_type_descr *fxp_descr_1,
-	        a_fixed_point_value      *value_2,
-	        a_fixed_point_type_descr *fxp_descr_2,
-	        a_fixed_point_value      *result,
-	        a_fixed_point_type_descr *fxp_descr_result,
-	        a_boolean                *err);
 
 extern
 int fxp_compare(a_fixed_point_value      *value_1,

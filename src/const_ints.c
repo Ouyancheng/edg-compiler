@@ -132,6 +132,44 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 }  /* conv_integer_value_to_host_large_integer */
 
 
+void conv_integer_value_to_float(an_integer_value		*int_value,
+				 a_boolean			is_signed,
+			         an_internal_float_value	*float_value,
+				 a_float_kind			float_kind,
+				 a_boolean			*err)
+/*
+Convert the integer value int_value to floating-point in float_value.
+is_signed is TRUE if int_value is a signed value.  Set *err to TRUE if
+an error occurred during the conversion.
+*/
+{
+  *err = FALSE;
+  if (is_signed) {
+    /* The source is a signed integer value. */
+    a_host_large_integer    hli_temp;
+    hli_temp = value_of_integer_value(int_value, /*is_signed=*/TRUE, err);
+    if (!*err) {
+      fp_host_large_integer_to_float(float_kind, hli_temp, float_value, err);
+    }  /* if */
+  } else {
+    /* The source is an unsigned integer value. */
+    a_host_large_unsigned   hlu_temp;
+    hlu_temp = value_of_integer_value(int_value, /*is_signed=*/FALSE, err);
+    if (!*err) {
+      fp_host_large_unsigned_to_float(float_kind, hlu_temp, float_value, err);
+    }  /* if */
+  }  /* if */
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  if (*err) {
+    /* Try again with larger precision by converting the integer to a
+       character string then converting the string to a float value. */
+    char *str = str_for_integer_value(int_value, is_signed);
+    fp_string_to_float(float_kind, str, float_value, err);
+  }  /* if */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+}  /* conv_integer_value_to_float */
+
+
 a_boolean int_constant_is_signed(a_constant_ptr constant)
 /*
 Return TRUE if the given integer constant's type is signed.

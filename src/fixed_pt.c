@@ -874,15 +874,13 @@ static void conv_integer_value_to_long_double_value(
 Convert the integer value in *ival to a floating-point value (of type long
 double) in *fval.  Set *err to TRUE if this does not work.
 
-(The conversion is done through a conversion to string representation: It may
-not be exact.  This routine is used for processing the representation of
-fixed-point values as implicitly scaled integer values.)
+(In some cases, the conversion may be done through a conversion to string
+representation: It may not be exact.  This routine is used for processing
+the representation of fixed-point values as implicitly scaled integer values.)
 */
 {
-  char	*str;
-
-  str = str_for_integer_value(ival, is_signed);
-  fp_string_to_float((a_float_kind)fk_long_double, str, fval, err);
+  conv_integer_value_to_float(ival, is_signed, fval,
+                              (a_float_kind)fk_long_double, err);
 }  /* conv_integer_value_to_long_double_value */
 
 
@@ -1047,131 +1045,181 @@ and result.  If an error occurs (e.g., overflow), err is set to TRUE.
 }  /* fxp_negate */
 
 
-void fxp_add(a_fixed_point_value      *value_1,
-             a_fixed_point_type_descr *fxp_descr_1,
-             a_fixed_point_value      *value_2,
-             a_fixed_point_type_descr *fxp_descr_2,
-             a_fixed_point_value      *result,
-             a_fixed_point_type_descr *fxp_descr_result,
-             a_boolean                *err)
+static a_boolean conv_constant_to_long_double(a_constant_ptr          cp,
+					      an_internal_float_value *result)
 /*
-Add the fixed-point values value_1 and value_2 and store the value in
-result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
-format of the fixed-point values of value_1, value_2, and result.
-If an error occurs (e.g., overflow), err is set to TRUE.
+Convert the constant "cp", to a long double value in "result".  Return TRUE
+if the conversion was successful.  The conversion is only attempted if
+the constant is a fixed-point or integer value.
 */
 {
-  an_internal_float_value	fp_1;
-  an_internal_float_value	fp_2;
-  an_internal_float_value	fp_result;
-  a_boolean			depends_on_fp_mode;
-  a_boolean			conv_err;
+  a_boolean	err;
+  a_boolean	conversion_done = TRUE;
 
-  *err = FALSE;
-  conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
-  conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
-  fp_add((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
-         &depends_on_fp_mode);
-  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
-                                  &conv_err);
-  if (conv_err) *err = TRUE;
-}  /* fxp_add */
-
-
-void fxp_subtract(a_fixed_point_value      *value_1,
-	          a_fixed_point_type_descr *fxp_descr_1,
-	          a_fixed_point_value      *value_2,
-	          a_fixed_point_type_descr *fxp_descr_2,
-	          a_fixed_point_value      *result,
-	          a_fixed_point_type_descr *fxp_descr_result,
-	          a_boolean                *err)
-/*
-Subtract the fixed-point values value_1 and value_2 and store the value in
-result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
-format of the fixed-point values of value_1, value_2, and result.
-If an error occurs (e.g., overflow), err is set to TRUE.
-*/
-{
-  an_internal_float_value	fp_1;
-  an_internal_float_value	fp_2;
-  an_internal_float_value	fp_result;
-  a_boolean			depends_on_fp_mode;
-  a_boolean			conv_err;
-
-  *err = FALSE;
-  conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
-  conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
-  fp_subtract((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
-              &depends_on_fp_mode);
-  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
-                                  &conv_err);
-  if (conv_err) *err = TRUE;
-}  /* fxp_subtract */
-
-
-void fxp_multiply(a_fixed_point_value      *value_1,
-	          a_fixed_point_type_descr *fxp_descr_1,
-	          a_fixed_point_value      *value_2,
-	          a_fixed_point_type_descr *fxp_descr_2,
-	          a_fixed_point_value      *result,
-	          a_fixed_point_type_descr *fxp_descr_result,
-	          a_boolean                *err)
-/*
-Multiply the fixed-point values value_1 and value_2 and store the value in
-result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
-format of the fixed-point values of value_1, value_2, and result.
-If an error occurs (e.g., overflow), err is set to TRUE.
-*/
-{
-  an_internal_float_value	fp_1;
-  an_internal_float_value	fp_2;
-  an_internal_float_value	fp_result;
-  a_boolean			depends_on_fp_mode;
-  a_boolean			conv_err;
-
-  *err = FALSE;
-  conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
-  conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
-  fp_multiply((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
-              &depends_on_fp_mode);
-  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
-                                  &conv_err);
-  if (conv_err) *err = TRUE;
-}  /* fxp_multiply */
-
-
-void fxp_divide(a_fixed_point_value      *value_1,
-	        a_fixed_point_type_descr *fxp_descr_1,
-	        a_fixed_point_value      *value_2,
-	        a_fixed_point_type_descr *fxp_descr_2,
-	        a_fixed_point_value      *result,
-	        a_fixed_point_type_descr *fxp_descr_result,
-	        a_boolean                *err)
-/*
-Divide the fixed-point values value_1 and value_2 and store the value in
-result.  fxp_descr_1, fxp_descr_2, and fxp_descr_result describe the
-format of the fixed-point values of value_1, value_2, and result.
-If an error occurs (e.g., overflow), err is set to TRUE.
-*/
-{
-  an_internal_float_value	fp_1;
-  an_internal_float_value	fp_2;
-  an_internal_float_value	fp_result;
-  a_boolean			depends_on_fp_mode;
-  a_boolean			conv_err;
-
-  *err = FALSE;
-  conv_fixed_point_to_long_double(value_1, fxp_descr_1, &fp_1);
-  conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
-  fp_divide((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
-              &depends_on_fp_mode);
-  /* Don't store the result if an error (e.g., divide by zero) occurred. */
-  if (!*err) {
-    conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
-                                    &conv_err);
+  if (cp->kind == (a_constant_repr_kind)ck_fixed_point) {
+    conv_fixed_point_to_long_double(&cp->variant.fixed_point_value,
+                                    fxp_descr_for_constant(cp), result);
+  } else if (cp->kind == (a_constant_repr_kind)ck_integer) {
+    conv_integer_value_to_long_double_value(&cp->variant.integer_value,
+                                            int_constant_is_signed(cp),
+                                            result, &err);
+    check_assertion(!err);
+  } else {
+    conversion_done = FALSE;
   }  /* if */
-  if (conv_err) *err = TRUE;
-}  /* fxp_divide */
+  return conversion_done;
+}  /* conv_constant_to_long_double */
+
+
+void fxp_add(a_constant		*constant_1,
+	     a_constant		*constant_2,
+	     a_constant		*result,
+	     a_boolean		*did_not_fold,
+	     a_boolean		*err)
+/*
+Add the constants value_1 and value_2 and store the value in
+result.  One or both of the constants are fixed-point values.
+One of the operands can be an integer.  The result is a fixed-point
+constant.  If the operation cannot be folded, did_not_fold is set to TRUE.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  check_assertion(result->kind == (a_constant_repr_kind)ck_fixed_point);
+  /* Convert the operands to long double.  If either of the operands is
+     of a type that can't be converted, the folding won't be done. */
+  if (conv_constant_to_long_double(constant_1, &fp_1) &&
+      conv_constant_to_long_double(constant_2, &fp_2)) {
+    fp_add((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
+           &depends_on_fp_mode);
+    conv_long_double_to_fixed_point(&fp_result,
+                                    &result->variant.fixed_point_value,
+                                    fxp_descr_for_constant(result), &conv_err);
+    if (conv_err) *err = TRUE;
+  } else {
+    *did_not_fold = TRUE;
+  }  /* if */
+} /* fxp_add */
+
+
+void fxp_subtract(a_constant	*constant_1,
+		  a_constant	*constant_2,
+		  a_constant	*result,
+		  a_boolean	*did_not_fold,
+		  a_boolean	*err)
+/*
+Subtract the constants value_1 and value_2 and store the value in
+result.  One or both of the constants are fixed-point values.
+One of the operands can be an integer.  The result is a fixed-point
+constant.  If the operation cannot be folded, did_not_fold is set to TRUE.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  check_assertion(result->kind == (a_constant_repr_kind)ck_fixed_point);
+  /* Convert the operands to long double.  If either of the operands is
+     of a type that can't be converted, the folding won't be done. */
+  if (conv_constant_to_long_double(constant_1, &fp_1) &&
+      conv_constant_to_long_double(constant_2, &fp_2)) {
+    fp_subtract((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
+                &depends_on_fp_mode);
+    conv_long_double_to_fixed_point(&fp_result,
+                                    &result->variant.fixed_point_value,
+                                    fxp_descr_for_constant(result), &conv_err);
+    if (conv_err) *err = TRUE;
+  } else {
+    *did_not_fold = TRUE;
+  }  /* if */
+} /* fxp_subtract */
+
+
+void fxp_multiply(a_constant	*constant_1,
+		  a_constant	*constant_2,
+		  a_constant	*result,
+		  a_boolean	*did_not_fold,
+		  a_boolean	*err)
+/*
+Multiply the constants value_1 and value_2 and store the value in
+result.  One or both of the constants are fixed-point values.
+One of the operands can be an integer.  The result is a fixed-point
+constant.  If the operation cannot be folded, did_not_fold is set to TRUE.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  check_assertion(result->kind == (a_constant_repr_kind)ck_fixed_point);
+  /* Convert the operands to long double.  If either of the operands is
+     of a type that can't be converted, the folding won't be done. */
+  if (conv_constant_to_long_double(constant_1, &fp_1) &&
+      conv_constant_to_long_double(constant_2, &fp_2)) {
+    fp_multiply((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
+                &depends_on_fp_mode);
+    conv_long_double_to_fixed_point(&fp_result,
+                                    &result->variant.fixed_point_value,
+                                    fxp_descr_for_constant(result), &conv_err);
+    if (conv_err) *err = TRUE;
+  } else {
+    *did_not_fold = TRUE;
+  }  /* if */
+} /* fxp_multiply */
+
+
+void fxp_divide(a_constant	*constant_1,
+		a_constant	*constant_2,
+		a_constant	*result,
+		a_boolean	*did_not_fold,
+		a_boolean	*err)
+/*
+Divide the constants value_1 and value_2 and store the value in
+result.  One or both of the constants are fixed-point values.
+One of the operands can be an integer.  The result is a fixed-point
+constant.  If the operation cannot be folded, did_not_fold is set to TRUE.
+If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp_1;
+  an_internal_float_value	fp_2;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  check_assertion(result->kind == (a_constant_repr_kind)ck_fixed_point);
+  /* Convert the operands to long double.  If either of the operands is
+     of a type that can't be converted, the folding won't be done. */
+  if (conv_constant_to_long_double(constant_1, &fp_1) &&
+      conv_constant_to_long_double(constant_2, &fp_2)) {
+    fp_divide((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
+                &depends_on_fp_mode);
+    /* Don't store the result if an error (e.g., divide by zero) occurred. */
+    if (!*err) {
+      conv_long_double_to_fixed_point(&fp_result,
+                                    &result->variant.fixed_point_value,
+                                    fxp_descr_for_constant(result), &conv_err);
+      if (conv_err) *err = TRUE;
+    }  /* if */
+  } else {
+    *did_not_fold = TRUE;
+  }  /* if */
+} /* fxp_divide */
 
 
 int fxp_compare(a_fixed_point_value      *value_1,
