@@ -1,5 +1,13 @@
 Version 3.0
 
+2/18/02  Microsoft mode: overload resolution, reference versus non-reference
+
+An idiosyncracy of MSVC++ overload resolution related to comparing two
+parameters when one is a reference and the other is not (see Changes
+entries of 9/11/97 and 12/5/98) has been fixed in MSVC++ 7.0.  Therefore,
+the EDG front end now disables that quirk when the Microsoft version
+indicates 7.0 or above.
+
 2/14/02  Demangling of template member addresses in nontype template arguments
 
 A bug in demangling for nontype template arguments that are the address
