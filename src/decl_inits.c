@@ -2178,8 +2178,9 @@ the default constructor (if one exists) is called.
         if (is_const && ctor != NULL && ctor->compiler_generated) {
           /* A default constructor was found, but it isn't a user-declared
              constructor, which is required for a const-qualified variable. */
-          if (any_cfront_mode()) {
-            /* In cfront mode silently use the generated constructor. */
+          if (any_cfront_mode() || microsoft_mode) {
+            /* In cfront and Microsoft modes silently use the generated
+               constructor. */
           } else {
             /* Except in -A mode just issue a warning. */
             pos_syty_diagnostic(strict_ansi_mode ?
@@ -3567,13 +3568,13 @@ are created by a new expression (in which case sym is NULL).  In both cases
         is_class_struct_union_type(type)) {
       a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
       if (!cssp->any_nonstatic_data_members &&
-          (cssp->is_POD || any_cfront_mode())) {
+          (cssp->is_POD || any_cfront_mode() || microsoft_mode)) {
         /* Uninitialized const object that is an "empty" POD class (i.e.,
            one with no nonstatic data members).  The WP probably requires
            initialization of const objects even when they are empty.  Other
            C++ compilers don't enforce such a restriction, however. */
-        /* In cfront mode treat a non-POD empty class as though it were a
-           POD. */
+        /* In cfront and Microsoft modes treat a non-POD empty class as
+           though it were a POD. */
         is_empty_POD_class = TRUE;
       }  /* if */
     }  /* if */
@@ -3596,11 +3597,13 @@ are created by a new expression (in which case sym is NULL).  In both cases
           } else {
             if (is_empty_POD_class && !is_incomplete_array) {
               severity = strict_ansi_error_severity;
+            } else if (microsoft_mode && is_class_struct_union_type(type)) {
+              severity = es_warning;
             } else {
               severity = es_error;
             }  /* if */
             if (is_class_struct_union_type(type) && !is_incomplete_array &&
-                !any_cfront_mode()) {
+                !any_cfront_mode() && !microsoft_mode) {
                /* Even if the class has an implicitly declared default
                   constructor, a user-declared default constructor must be
                   present (WP 7.1.5.1 [dcl.cv]). */
@@ -3624,7 +3627,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
       }  /* if */
     } else {
       /* Uninitialized const new-object. */
-      if (any_cfront_mode()) {
+      if (any_cfront_mode() || microsoft_mode) {
         /* No diagnostic required. */
       } else {
         /* Issue a discretionary error -- unless it's an empty class, in
