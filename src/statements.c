@@ -3974,7 +3974,8 @@ Terminate the for-init block scope.
 
 static void for_init_statement(void)
 /*
-Scan the initializing expression or, in C++, declaration of a for statement.
+Scan the initializing expression or, in C++ or C99, declaration of a for
+statement.
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
@@ -3984,17 +3985,24 @@ Scan the initializing expression or, in C++, declaration of a for statement.
   /* Let add_statement know this is a for_init so that the statement is
      attached in the right place. */
   sssep->for_init = TRUE;
-  if (C_dialect == C_dialect_cplusplus &&
-      is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
-    /* Scan a declaration (C++ only). */
-    /* Unless the old-style scoping is required, push a block scope to
-       contain the for-init declaration.  (Old-style scoping means the
-       declaration occurs in the scope to which the for-statement itself
-       belongs, whereas the standard (6.5.3 [stmt.for], para 3) requires,
-       in effect, that the for-init declaration have its own scope, nested
-       within the containing scope.) */
-    if (!use_nonstandard_for_init_scope) {
-      start_for_init_block(sssep->statement);
+  if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
+      (c99_mode &&
+       is_decl_start(/*expr_context=*/TRUE,
+                     /*real_declarator_allowed=*/TRUE))) {
+    /* Scan a declaration (C++ or C99). */
+    /* In C99, a scope is pushed around all iteration and selection
+       statements, so it is not necessary to push another scope here. */
+    if (!c99_mode) {
+      /* C++. */
+      /* Unless the old-style scoping is required, push a block scope to
+         contain the for-init declaration.  (Old-style scoping means the
+         declaration occurs in the scope to which the for-statement itself
+         belongs, whereas the standard (6.5.3 [stmt.for], para 3) requires,
+         in effect, that the for-init declaration have its own scope, nested
+         within the containing scope.) */
+      if (!use_nonstandard_for_init_scope) {
+        start_for_init_block(sssep->statement);
+      }  /* if */
     }  /* if */
     decl_statement();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
