@@ -3311,6 +3311,18 @@ A generated name like __T12345678 was put out instead.  Now fixed.
     }
   }
 
+2/9/01   Compiling multiple translation units
+
+It is now possible to compile multiple source files and produce a
+single merged IL tree.  This mode is enabled by the macro
+COMPILE_MULTIPLE_TRANSLATION_UNITS.  Declarations with external
+linkage are compared between the translation units to ensure that
+they match, and errors are issued if not.  Note that this is not
+the same as the mode that already existed that is enabled by
+COMPILE_MULTIPLE_SOURCE_FILES.  In that mode, multiple files are
+compiled but they are kept completely separate, and a separate
+IL tree is produced for each file.
+
 2/9/01   sizeof expression involving local variables, with
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
