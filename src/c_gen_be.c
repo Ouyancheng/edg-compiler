@@ -3263,6 +3263,36 @@ Dump a boolean controlling expression.
   fputc(')', f_C_output);
 }  /* dump_boolean_controlling_expression */
 
+#if CHECKING
+
+static void check_result_not_used_flag(an_expr_node_ptr node)
+/*
+node is an expression whose value is being discarded, e.g., it's a void
+expression.  Check that its result_is_not_used flag is set correctly.
+*/
+{
+  if (!node->result_is_not_used) {
+    internal_error("check_result_not_used_flag: flag is not set");
+  }  /* if */
+  /* For some operations, subnodes get marked too. */
+  if (node->kind == (an_expr_node_kind)enk_operation) {
+    an_expr_operator_kind op = node->variant.operation.kind;
+    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
+
+    if (op == (an_expr_operator_kind)eok_comma) {
+      /* Given a comma operation, the second operand is not used if the
+         entire operation is not used. */
+      check_result_not_used_flag(operand_1->next);
+    } else if (op == (an_expr_operator_kind)eok_question) {
+      /* Given a question mark operation, the second and third operands
+         are not used if the entire operation is not used. */
+      check_result_not_used_flag(operand_1->next);
+      check_result_not_used_flag(operand_1->next->next);
+    }  /* if */
+  }  /* if */
+}  /* check_result_not_used_flag */
+
+#endif /* CHECKING */
 
 static void dump_operation(an_expr_node_ptr expr,
 			   a_boolean        need_parens)
@@ -3845,6 +3875,9 @@ char_compare:
       dump_expression(operand_2, /*need_parens=*/TRUE);
       break;
     case eok_comma:
+#if CHECKING
+      check_result_not_used_flag(operand_1);
+#endif /* CHECKING */
       dump_expression(operand_1, /*need_parens=*/TRUE);
       fputs(", ", f_C_output);
       /* Avoid ridiculously long output lines. */
@@ -7163,6 +7196,9 @@ Generate C for a statement.
   }  /* if */
   switch (statement->kind) {
     case stmk_expr:
+#if CHECKING
+      check_result_not_used_flag(statement->expr);
+#endif /* CHECKING */
       dump_expression(statement->expr, /*need_parens=*/FALSE);
       fputc(';', f_C_output);
       break;
