@@ -452,7 +452,7 @@ kinds are at the beginning of the list.
 /*
 Macro that returns TRUE if the current expression is evaluated.
 */
-#define curr_expr_is_evaluated() (expr_stack->evaluated)
+#define curr_expr_is_evaluated() ((a_boolean)expr_stack->evaluated)
 
 
 /* Copy an operand. */

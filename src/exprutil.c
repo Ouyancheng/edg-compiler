@@ -3193,7 +3193,8 @@ on function_type.  *call_pos gives the source position of the call.
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              curr_expr_is_evaluated(),
-                             expr_stack->in_return_by_cctor_expression,
+                             (a_boolean)expr_stack->
+                                                 in_return_by_cctor_expression,
                              call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
@@ -3667,7 +3668,7 @@ been adjusted, etc.).
   /* Create the dynamic initialization entry and the enk_temp_init node. */
   temp_init_node = create_expr_temporary(class_type, result_is_addr,
                                          curr_expr_is_evaluated(),
-                                         expr_stack->
+                                         (a_boolean)expr_stack->
                                                  in_return_by_cctor_expression,
                                          position);
   dip = temp_init_node->variant.init.dynamic_init;
@@ -3742,7 +3743,7 @@ of the temporary.  Only used in C++ mode.
     /* Allocate the dynamic initialization entry and the enk_temp_init node. */
     temp_init_node = create_expr_temporary(temp_type, /*result_is_addr=*/TRUE,
                                            curr_expr_is_evaluated(),
-                                           expr_stack->
+                                           (a_boolean)expr_stack->
                                                  in_return_by_cctor_expression,
                                            &operand->position);
     dip = temp_init_node->variant.init.dynamic_init;
@@ -4301,7 +4302,8 @@ operand.
     make_ptr_to_member_constant_operand(fund_sym, func_sym,
                                         &orig_operand.position,
                                        !operand->access_control_error_reported,
-                                        operand->is_operand_of_address_of,
+                                        (a_boolean)operand->
+                                                      is_operand_of_address_of,
                                         operand);
   } else {
 #if CHECKING
@@ -9409,7 +9411,8 @@ is suppressed in that case).
   } else {
     dip = alloc_dtor_dynamic_init(kind,
                                   temp_type, curr_expr_is_evaluated(),
-                                  expr_stack->in_return_by_cctor_expression,
+                                  (a_boolean)expr_stack->
+                                                 in_return_by_cctor_expression,
                                   position);
   }  /* if */
   return dip;

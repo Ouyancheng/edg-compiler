@@ -362,11 +362,6 @@ extern void insert_statement(a_statement_ptr        statement,
 extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
                                            an_expr_node_ptr arg_list);
 
-extern a_routine_ptr make_rout_entry(char            *name,
-                                     a_storage_class rout_storage_class,
-                                     a_type_ptr      return_type,
-                                     a_type_ptr      param_1_type);
-
 extern a_variable_ptr make_lowered_variable(char            *var_name,
                                             a_boolean       already_il_name,
                                             a_type_ptr      var_type,
