@@ -123,9 +123,6 @@ extern a_boolean equivalent_paths(a_derivation_step_ptr  path1,
 
 extern void check_class_linkage(void);
 
-extern void check_type_for_linkage_change(a_type_ptr type,
-                                          int        *count);
-
 extern void class_decl_init(void);
 
 #if DEBUG

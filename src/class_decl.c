@@ -7111,6 +7111,9 @@ skip_tag_scan:
   return !err;
 }  /* class_specifier */
 
+/* Forward declaration for recursive call. */
+static void check_type_for_linkage_change(a_type_ptr type,
+                                          int        *count);
 
 static void make_class_externally_linked(a_type_ptr type,
                                          int        *count)
@@ -7280,8 +7283,8 @@ is nothing that prevents it from being changed to having external linkage.
 }  /* is_candidate_for_linkage_change */
 
 
-void check_type_for_linkage_change(a_type_ptr type,
-                                   int        *count)
+static void check_type_for_linkage_change(a_type_ptr type,
+                                          int        *count)
 /*
 If type is a class type that is eligible for change from internal to
 external linkage, make that change.  If it contains such a type, make
