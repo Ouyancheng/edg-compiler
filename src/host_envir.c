@@ -1492,6 +1492,12 @@ execution of the front end (for example, SIGINT).
 {
   (void)signal(SIGINT, term_on_signal);
   (void)signal(SIGTERM, term_on_signal);
+#ifdef SIGXFSZ
+  /* On SVR4 systems, ignore the signal sent when the file size limit
+     is exceeded.  Note that the write operation will still fail, so the
+     error be reported where the file is written. */
+  (void)signal(SIGXFSZ, SIG_IGN);
+#endif /* SIGXFSZ */
 #if __MSDOS__
   /* Under MS-DOS, establish an atexit routine to close and delete all
      temporary files. */
