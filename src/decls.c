@@ -132,18 +132,23 @@ is not done.
 {
   a_symbol_ptr assoc_symbol;
 
-  /* Look up the current token identifier, which may be a qualified name.
-     Since curr_type_symbol is often called as part of a test of the presence
-     of a type name identifier, it is inappropriate to cause a projection
-     symbol to be created in the current scope if in fact it projects something
-     other than a type name.  It's easier to suppress the creation of such
-     gratuitous projections here than to try to ignore them in symbol entry
-     later. */
-  assoc_symbol = get_normal_id_or_qualified_name(
-                                 IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME);
-  if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
-    /* Symbol was found, but it is not a type name symbol.  Return NULL. */
+  if (curr_token == tok_colon_colon && is_global_new_or_delete()) {
+    /* "::new" and "::delete" are not type names. */
     assoc_symbol = NULL;
+  } else {
+    /* Look up the current token identifier, which may be a qualified name.
+       Since curr_type_symbol is often called as part of a test of the
+       presence of a type name identifier, it is inappropriate to cause a
+       projection symbol to be created in the current scope if in fact it
+       projects something other than a type name.  It's easier to suppress
+       the creation of such gratuitous projections here than to try to ignore
+       them in symbol entry later. */
+    assoc_symbol = get_normal_id_or_qualified_name(
+                                 IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME);
+    if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
+      /* Symbol was found, but it is not a type name symbol.  Return NULL. */
+      assoc_symbol = NULL;
+    }  /* if */
   }  /* if */
   return assoc_symbol;
 }  /* curr_type_symbol */
@@ -229,6 +234,29 @@ function-definitions, since they can start with the declarator.
 
   return(is_start);
 }  /* is_decl_start */
+
+
+#if 0
+a_boolean f_is_decl_start_not_expression(void)
+/*
+This routine is called in C++ only by statement processing routines in
+situations where a declaration must be distinguished from a statement
+expression.  The need for disambiguation arises from the use of
+function-style type casts in statements.  For instance, "int(a)++;"
+means to cast "a" to integer and increment, but "int(a);" is equivalent
+to "int a;".  In order to distinguish them we must look scan past the
+parentheses and examine what follows.  The technique is discussed in ARM
+6.8.
+*/
+{
+  is_decl_start();
+}  /* f_is_decl_start_not_expression */
+
+
+#define is_decl_start_not_expression                                  \
+  ((C_dialect == C_dialect_cplusplus) ?                               \
+      is_decl_start() : f_is_decl_start_not_expression)
+#endif /* if 0 */
 
 
 /*
