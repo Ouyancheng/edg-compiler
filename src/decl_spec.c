@@ -948,21 +948,24 @@ the template.
          identifier as a syntax error. */
       syntax_error(ec_exp_identifier);
       err = TRUE;
-    } else if (scope_stack[depth_scope_stack].kind ==
-                        (a_scope_kind)sck_template_declaration) {
-      syntax_error(ec_exp_identifier);
-      err = TRUE;
     } else if (curr_token == tok_lbrace ||
                (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
       /* This is a tagless class definition. */
     } else {
       /* Neither the tag id nor the {...} is present.  This is an error. */
-      add_stop_token(tok_lbrace);
-      if (C_dialect == C_dialect_cplusplus) add_stop_token(tok_colon);
-      syntax_error(ec_exp_definition_of_tag);
+      if (scope_stack[depth_scope_stack].kind ==
+                        (a_scope_kind)sck_template_declaration) {
+        /* Inside a template-declaration scope -- don't issue a diagnostic
+           that suggests a definition would be appropriate. */
+        syntax_error(ec_exp_identifier);
+      } else {
+        add_stop_token(tok_lbrace);
+        if (C_dialect == C_dialect_cplusplus) add_stop_token(tok_colon);
+        syntax_error(ec_exp_definition_of_tag);
+        if (C_dialect == C_dialect_cplusplus) remove_stop_token(tok_colon);
+        remove_stop_token(tok_lbrace);
+      }  /* if */
       err = TRUE;
-      if (C_dialect == C_dialect_cplusplus) remove_stop_token(tok_colon);
-      remove_stop_token(tok_lbrace);
     }  /* if */
   }  /* if */
   /* If the next token is a "{" or, in C++, a ":" (introducing a list of
