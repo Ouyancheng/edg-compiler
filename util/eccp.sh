@@ -1123,7 +1123,8 @@ process_option()
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
       case $arg in
-        -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4)
+        -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4 | \
+	--gcc | --no_gcc)
           c_mode=1
           ;;
         -b | --c++ | --cfront_2.1 | --cfront_3.0)
