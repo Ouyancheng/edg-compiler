@@ -949,6 +949,7 @@ to the declaration information for the template declaration scope being pushed.
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
   ssep->assoc_namespace          = assoc_namespace;
+  ssep->vla_fixup_list           = NULL;
   ssep->extern_type_fixup_list   = NULL;
   ssep->shareable_constants_list = NULL;
   ssep->last_routine_fixup       = NULL;

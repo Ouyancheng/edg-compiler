@@ -91,9 +91,11 @@ extern void scan_pp_expression(a_constant *constant);
 
 extern void scan_integral_constant_expression(a_constant *constant);
 
-extern void scan_new_array_dimension_expression(a_boolean        *is_constant,
-                                                an_expr_node_ptr *expression,
-                                                a_constant       *constant);
+extern void scan_nonconstant_dimension_expression(
+                                           a_boolean        is_vla_decl,
+                                           a_boolean        *is_constant,
+                                           an_expr_node_ptr *expression,
+                                           a_constant       *constant);
 
 extern void scan_initializer_expression(
                                        a_type_ptr       required_type,

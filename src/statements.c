@@ -1655,6 +1655,21 @@ from the structured statement stack entry.
 }  /* wrapup_decl_statement */
 
 
+void set_vla_size_statement(a_vla_dimension_ptr  vdp,
+                            a_source_position    *pos)
+/*
+Generate a stmk_set_vla_size statement for a variable length array
+(represented by vdp) to indicate when (at runtime) the VLA dimension
+expression is to be evaluated to fix the size of the array.
+*/
+{
+  a_statement_ptr          vla_stmt;
+
+  vla_stmt = add_statement_at_stmt_pos(stmk_set_vla_size, pos);
+  vla_stmt->variant.vla_dimension = vdp;
+}  /* set_vla_size_statement */
+
+
 static void stmt_update_source_sequence_list(a_statement_ptr  sp)
 /*
 Allocate a source sequence entry for statement sp and add it to the list for
@@ -4994,6 +5009,19 @@ branching into it is disallowed).
        with an explicit return type. */
     if (explicit_return_type) {
       struct_stmt_stack->rout_type_explicitly_specified = TRUE;
+    }  /* if */
+    if (vla_enabled) {
+      /* Generate a stmk_set_vla_size for each vla_dimension appearing in
+         function scope.  At this point, the list will include only
+         declarations that appeared in the function prototype.  (All other
+         cases are handled in array_declarator when the VLA is parsed.) */
+      a_vla_dimension_ptr      vdp;
+
+      check_assertion(decl_scope_level == depth_innermost_function_scope);
+      vdp = scope_stack[decl_scope_level].il_scope->vla_dimensions;
+      for (; vdp != NULL; vdp = vdp->next) {
+        set_vla_size_statement(vdp, &pos_curr_token);
+      }  /* for */
     }  /* if */
   } else if (is_catch_clause) {
     block = alloc_statement((a_statement_kind)stmk_block);

@@ -246,6 +246,8 @@ extern a_type_ptr return_type_of(a_type_ptr routine_type);
 
 extern a_type_ptr il_return_type_of(a_type_ptr routine_type);
 
+extern a_vla_dimension_ptr find_vla_dimension(a_type_ptr array_type);
+
 extern a_type_ptr make_field_selection_type(a_field_ptr           field,
                                             a_type_qualifier_set  qualifiers);
 
@@ -369,6 +371,9 @@ extern a_local_static_variable_init_ptr make_local_static_variable_init(
 extern a_local_static_variable_init_ptr find_local_static_variable_init(
                                                       a_variable_ptr  var,
                                                       a_scope_ptr     scope);
+
+extern a_vla_dimension_ptr make_vla_dimension(a_type_ptr        array_type,
+                                              an_expr_node_ptr  expr_node);
 
 extern void get_variable_initializer(a_variable_ptr     variable,
                                      a_scope_ptr        var_scope,

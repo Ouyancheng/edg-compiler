@@ -3711,6 +3711,7 @@ Syntax:
   a_local_expr_options_set
                         local_options;
   an_expr_stack_entry   expr_stack_entry;
+  a_boolean             non_constant_sizeof_allowed = FALSE;
 
   db_enter(4, "scan_sizeof_operator");
 
@@ -3720,6 +3721,7 @@ Syntax:
     internal_error("scan_sizeof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  non_constant_sizeof_allowed = vla_enabled && !curr_expr_kind_is_const();
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
@@ -3823,31 +3825,48 @@ Syntax:
   sizeof_type = skip_typerefs(sizeof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(sizeof_type);
-  /* The operand of a sizeof may not have function type or incomplete type. */
+  /* The operand of a sizeof may not have function type or incomplete
+     type. */
   if (is_function_type(sizeof_type)) {
     pos_error(ec_sizeof_function, &type_position);
     sizeof_type = error_type();
   } else if (is_incomplete_type(sizeof_type)) {
     pos_error(ec_incomplete_type_not_allowed, &type_position);
     sizeof_type = error_type();
+  } else if (!non_constant_sizeof_allowed && is_vla_type(sizeof_type)) {
+    /* One or more of the top array types is a VLA, but the sizeof
+       expression must be a constant. */
+    pos_error(ec_expr_not_constant, &start_position);
+    sizeof_type = error_type();
   }  /* if */
 
-  /* The result of a sizeof is an integer indicating the size of the operand
-     in bytes, of type size_t (see 3.3.3.4 and <stddef.h>). */
-  if (is_error_type(sizeof_type)) {
-    set_error_constant(&constant);
-  } else if (!C_mode() && is_or_contains_template_param(sizeof_type)) {
-    /* For the size of a template type, use a ck_template_param. */
-    clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(&constant,
-                                  (a_template_param_constant_kind)tpck_sizeof);
-    constant.variant.template_param.variant.type = sizeof_type;
-    constant.type = integer_type(targ_size_t_int_kind);
+  if (is_vla_type(sizeof_type)) {
+    /* One or more of the top array types is a VLA. */
+    an_expr_node_ptr node;
+
+    node = alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
+    node->type = integer_type(targ_size_t_int_kind);
+    node->variant.sizeof_type = sizeof_type;
+    make_expression_operand(node, node->type, result);
   } else {
-    set_unsigned_integer_constant(&constant, (unsigned long)sizeof_type->size,
-                                  targ_size_t_int_kind);
+    /* The result of a sizeof is an integer indicating the size of the operand
+       in bytes, of type size_t (see 3.3.3.4 and <stddef.h>). */
+    if (is_error_type(sizeof_type)) {
+      set_error_constant(&constant);
+    } else if (!C_mode() && is_or_contains_template_param(sizeof_type)) {
+      /* For the size of a template type, use a ck_template_param. */
+      clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
+      set_template_param_constant_kind(&constant,
+                                (a_template_param_constant_kind)tpck_sizeof);
+      constant.variant.template_param.variant.type = sizeof_type;
+      constant.type = integer_type(targ_size_t_int_kind);
+    } else {
+      set_unsigned_integer_constant(&constant,
+                                    (unsigned long)sizeof_type->size,
+                                    targ_size_t_int_kind);
+    }  /* if */
+    make_constant_operand(&constant, result);
   }  /* if */
-  make_constant_operand(&constant, result);
 
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
@@ -5355,7 +5374,8 @@ As an anachronism, allow an expression inside the [ ].
       if (microsoft_mode) sev = (an_error_severity)es_warning;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       diagnostic(sev, ec_delete_count_anachronism);
-      scan_new_array_dimension_expression(&is_constant, &expr, &constant);
+      scan_nonconstant_dimension_expression(/*is_vla_decl=*/FALSE,
+                                            &is_constant, &expr, &constant);
       /* The expression is ignored. */
     }  /* if */
     (void)required_token(tok_rbracket, ec_exp_rbracket);
@@ -9793,12 +9813,42 @@ normal_function:
           break;
         case sk_parameter:
           if (expr_stack->is_default_arg_expression ||
-              !curr_expr_kind_is(ek_sizeof)) {
+              (!curr_expr_kind_is(ek_sizeof) &&
+               !curr_expr_kind_is(ek_vla))) {
             /* This is a parameter referenced within a C++ default argument
                expression, which is an error (ARM 8.2.6); or, any reference
-               except in a sizeof. */
+               except in a sizeof or function prototype VLA dimension
+               expression. */
             error_and_make_error_operand(ec_param_not_allowed, result);
             change_refs_to_error(rep);
+          } else if (curr_expr_kind_is(ek_vla)) {
+            /* Use of a parameter in function prototype VLA dimension
+               expression, e.g.:
+                   void f(a, int b[a]);
+               Since no variable has been created for the parameter yet,
+               create a dummy "placeholder" variable to use in the
+               expression.  Also, create a_vla_fixup for the parameter
+               so that the dummy variable can be replaced with the real
+               variable for the parameter once it is created. */
+            /* Create the dummy placeholder variable with the same type
+               as the parameter. */
+            var_ptr = sym_ptr->variant.param_id->dummy_vla_variable;
+            if (var_ptr == NULL) {
+              var_ptr = alloc_variable((a_storage_class)sc_auto);
+              var_ptr->type = sym_ptr->variant.param_id->type;
+              var_ptr->source_corresp.assoc_info = (char *)sym_ptr;
+              sym_ptr->variant.param_id->dummy_vla_variable = var_ptr;
+            }  /* if */
+            /* Generate an expression node referring to the dummy variable. */
+            make_lvalue_variable_operand(var_ptr, result, rep);
+            check_assertion(result->kind == (an_operand_kind)ok_expression);
+            check_assertion(result->variant.expression->kind ==
+                            (an_expr_node_kind)enk_variable_address);
+            /* Create a_vla_fixup for the parameter, initialize its
+               members, and link it into the list of vla fixups for the
+               current function prototype scope. */
+            add_vla_fixup_entry((a_type_ptr)NULL, result->variant.expression,
+                                sym_ptr);
           } else {
             /* Use of a parameter in a sizeof expression, something like
                  void f(a, int b[sizeof(a)]);
@@ -9806,9 +9856,8 @@ normal_function:
                of the right type, since there is no variable yet (the
                parameter is represented by an sk_parameter symbol). */
             a_constant constant;
-            a_type_ptr param_type;
-            check_assertion(sym_ptr->kind == (a_symbol_kind)sk_parameter);
-            param_type = sym_ptr->variant.param_id->type;
+            a_type_ptr param_type = sym_ptr->variant.param_id->type;
+
             make_zero_of_proper_type(make_pointer_type(param_type), &constant);
             make_constant_operand(&constant, result);
             result->state = (an_operand_state)os_lvalue;
@@ -10836,16 +10885,18 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
 }  /* scan_integral_constant_expression */
 
 
-void scan_new_array_dimension_expression(a_boolean        *is_constant,
-                                         an_expr_node_ptr *expression,
-                                         a_constant       *constant)
+void scan_nonconstant_dimension_expression(a_boolean        is_vla_decl,
+                                           a_boolean        *is_constant,
+                                           an_expr_node_ptr *expression,
+                                           a_constant       *constant)
 /*
-Scan an array dimension in a new-type-name (see 5.3.3 in the ARM); it's
-an integral expression that might be non-constant.  (It's also required
-to be non-negative, but the caller must check that.)  Return either
+Scan an array dimension that might be non-constant.  The array dimension
+must be an integral expression.  (It's also required to be non-negative, but
+the caller must check that.)  If is_vla_decl is FALSE, this function is being
+called in C++ mode for new-type-name (see 5.3.3 in the ARM); if is_vla_decl
+is TRUE it is being for array dimensions which may be VLAs.  Return either
 *is_constant TRUE and a constant value in *constant, or *is_constant FALSE
-and a pointer to the expression tree in *expression.  Used only in
-C++ mode.
+and a pointer to the expression tree in *expression.
 */
 {
   an_operand          result;
@@ -10853,9 +10904,9 @@ C++ mode.
   int                 constant_sign;
   a_boolean           processed = FALSE;
 
-  db_enter(3, "scan_new_array_dimension_expression");
+  db_enter(3, "scan_nonconstant_dimension_expression");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+  push_expr_stack(is_vla_decl ? ek_vla : ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
@@ -10895,7 +10946,7 @@ C++ mode.
 #if CHECKING
         if (constant->kind != (a_constant_repr_kind)ck_integer) {
           internal_error(
-                    "scan_new_array_dimension_expression: array size not int");
+                 "scan_nonconstant_dimension_expression: array size not int");
         }  /* if */
 #endif /* CHECKING */
         constant_sign = sign_of_integer_constant(constant);
@@ -10913,7 +10964,8 @@ C++ mode.
       break;
 #if CHECKING
     default:
-      internal_error("scan_new_array_dimension_expression: bad operand kind");
+      internal_error(
+               "scan_nonconstant_dimension_expression: bad operand kind");
 #endif /* CHECKING */
   }  /* switch */
   pop_expr_stack();
@@ -10929,7 +10981,7 @@ C++ mode.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-}  /* scan_new_array_dimension_expression */
+}  /* scan_nonconstant_dimension_expression */
 
 
 static a_boolean constant_references_non_external_entity(

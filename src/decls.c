@@ -3493,7 +3493,7 @@ cross-reference output describing this declaration.
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
-    /* A function declaration but not a definition. */
+    /* A variable declaration but not a definition. */
     (void)set_src_seq_secondary_decl_type((char *)variable_ptr, declared_type,
                                           /*is_specialization=*/FALSE);
   } else {
@@ -3503,6 +3503,19 @@ cross-reference output describing this declaration.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (vla_enabled) {
+    if (is_variable_def && is_vla_type(type_ptr)) {
+      /* VLA variable (C only).  Create an stmk_alloc_vla_variable statement
+         to set the location where the VLA is to be allocated. */
+      a_statement_ptr vla_stmt;
+
+      vla_stmt = add_statement_at_stmt_pos(stmk_alloc_vla_variable,
+                                           &locator->source_position);
+      vla_stmt->variant.vla_variable = variable_ptr;
+      /* Indicate that the VLA variable needs to be deallocated. */
+      variable_ptr->vla_requires_deallocation = TRUE;
+    }
+  }  /* if */
   if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  (We use "is_variable_def" to exclude cases like
@@ -5409,7 +5422,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
 */
 {
   a_storage_class              storage_class;
-  a_decl_flag_set              dso_flags, do_flags;
+  a_decl_flag_set              dso_flags, do_flags, di_flags;
   a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers;
   a_source_position            start_pos;
@@ -5434,8 +5447,17 @@ In C++ mode an error is issued if a type definition appears in a type-name
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
-    declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
-               &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
+    di_flags = DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED;
+    if (vla_enabled) {
+      a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+      if (ssep->kind == (a_scope_kind)sck_func_prototype ||
+          ssep->kind == (a_scope_kind)sck_function ||
+          ssep->kind == (a_scope_kind)sck_block) {
+        di_flags |= DI_VLA_ALLOWED;
+      }  /* if */
+    }  /* if */
+    declarator(di_flags, &do_flags, *type_ptr,
+               /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL);
   }  /* if */
@@ -5543,12 +5565,16 @@ within this routine if is_parenthesized comes in FALSE.
       /* Scan array declarators.  The first one allows an expression
          as the size; the others require a constant size. */
       array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE,
+                       /*vla_is_allowed=*/FALSE,
+                       /*vla_asterisk_syntax_is_allowed=*/FALSE,
                        /*top_level_field_decl=*/FALSE,
                        /*restrict_allowed=*/FALSE, &restrict_seen);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type);
       while (curr_token == tok_lbracket) {
         array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
+                         /*vla_is_allowed=*/FALSE,
+                         /*vla_asterisk_syntax_is_allowed=*/FALSE,
                          /*top_level_field_decl=*/FALSE,
                          /*restrict_allowed=*/FALSE, &restrict_seen);
         /* Add the new type to the bottom of the existing derived type list.
@@ -7735,6 +7761,14 @@ continue_with_declaration:
     }  /* if */
     if (is_old_style_param_decl) {
       di_flags |= DI_IS_PARAMETER_DECL;
+      if (vla_enabled) di_flags |= DI_VLA_ALLOWED;
+    } else if (vla_enabled) {
+      if (!function_definition_allowed &&
+          declared_storage_class != (a_storage_class)sc_extern &&
+          declared_storage_class != (a_storage_class)sc_static &&
+          declared_storage_class != (a_storage_class)sc_asm) {
+        di_flags |= DI_VLA_ALLOWED;
+      }  /* if */
     }  /* if */
     if (!has_explicit_type_specifier && qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
@@ -8257,6 +8291,11 @@ continue_with_declaration:
 #endif /* DECL_MODIFIERS_IN_USE */
       } else if (is_function) {
         /* A function declaration with no body. */
+        if (func_info.vla_fixup_list != NULL) {
+          /* Throw away VLA info created for the function prototype. */
+          free_vla_fixup_list(func_info.vla_fixup_list);
+          func_info.vla_fixup_list = NULL;
+        }  /* if */
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
                      &local_decl_modifiers, &symbol_ptr, &linkage, &old_type,

@@ -1756,9 +1756,14 @@ returned set to TRUE.
          again, and we have the variable from the earlier declaration). */
       pos_sy_error(ec_already_initialized, source_pos, symbol_ptr);
       var_err = TRUE;
+    } else if (is_vla_type(vp->type)) {
+      /* VLAs can not be initialized. */
+      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
+      var_err = TRUE;
+      vp_type = NULL;
     } else {
-      /* Only object types and incomplete arrays are allowed to be
-         initialized. */
+      /* Only object types (except for VLAs) and incomplete arrays are
+         allowed to be initialized. */
       if (is_object_type(vp_type)) {
         /* Object type -- okay. */
       } else if (is_array_type(vp_type) &&

@@ -165,7 +165,12 @@ abstract or real declarator.
 #define DI_IS_EXPLICIT_INSTANTIATION (a_decl_flag_set)(0x4000)
 			/* If this bit is set the declaration is that of a
 			   C++ explicit template instantiation directive. */
-#define DI_NO_TYPE_SPECIFIERS (a_decl_flag_set)(0x8000)
+#define DI_VLA_ALLOWED (a_decl_flag_set)(0x8000)
+			/* If this bit is set a VLA type is allowed. */
+#define DI_VLA_ASTERISK_ALLOWED (a_decl_flag_set)(0x10000)
+			/* If this bit is set "[*]" is allowed to specify
+			   a VLA of unknown size in a function prototype. */
+#define DI_NO_TYPE_SPECIFIERS (a_decl_flag_set)(0x20000)
 			/* If this bit is set no type specifiers appeared
 			   among the declaration specifiers. */
 #define DI_LAST DI_NO_TYPE_SPECIFIERS
@@ -241,6 +246,8 @@ a_type_ptr pointer_declarator(
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed,
+                             a_boolean  vla_allowed,
+                             a_boolean  vla_asterisk_allowed,
                              a_boolean  top_level_field_decl,
                              a_boolean  restrict_allowed,
                              a_boolean  *restrict_seen);

@@ -780,7 +780,13 @@ Dump the contents of the indicated type entry, for debug purposes.
       break;
     case tk_array:
       fputs("array [", f_debug);
-      if (tp->variant.array.is_variable_size_array) {
+      if (tp->variant.array.is_vla) {
+        if (tp->variant.array.has_assoc_vla_dimension) {
+          fputs("**EXPR**", f_debug);
+        } else {
+          fputc("*", f_debug);
+        }  /* if */
+      } else if (tp->variant.array.is_variable_size_array) {
         fputs("**EXPR**", f_debug);
       } else {
         fprintf(f_debug, "%lu",
@@ -5267,6 +5273,29 @@ it would appear as the type on a call of the function in the IL.
   return return_type;
 }  /* il_return_type_of */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_vla_dimension_ptr find_vla_dimension(a_type_ptr array_type)
+/*
+Find the VLA (variable-length array) dimension entry associated with the
+given array type, and return a pointer to it.  innermost_function_scope
+must be set to the scope for the current function.
+*/
+{
+  a_vla_dimension_ptr vlap;
+
+  check_assertion_str(innermost_function_scope != NULL,
+                      "find_vla_dimension: innermost_function_scope is NULL");
+  for (vlap = innermost_function_scope->vla_dimensions;
+       ;
+       vlap = vlap->next) {
+    check_assertion_str(vlap != NULL, "find_vla_dimension: not found");
+    if (vlap->type == array_type) break;
+  }  /* for */
+  return vlap;
+}  /* find_vla_dimension */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_type_ptr make_field_selection_type(a_field_ptr           field,
                                      a_type_qualifier_set  qualifiers)
@@ -5720,6 +5749,50 @@ linked list for the specified scope and points to the specified variable.
                        "none found for specified variable and scope");
   return lsvip;
 }  /* find_local_static_variable_init */
+
+
+a_vla_dimension_ptr make_vla_dimension(a_type_ptr        array_type,
+                                       an_expr_node_ptr  expr_node)
+/*
+Allocate a_vla_dimension entry for the indicated array_type and set its
+type and dimension_expr fields to the values passed in as parameters.
+Add the entry to the list for the current scope.  Return a pointer to
+the entry.
+*/
+{
+  a_scope_stack_entry_ptr ssep;
+  a_scope_ptr             il_scope;
+  a_vla_dimension_ptr     vdp, end_of_list;
+
+  db_enter(5, "make_vla_dimension");
+  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+                  scope_stack[decl_scope_level].kind !=
+                                    (a_scope_kind)sck_func_prototype);
+  check_assertion(array_type != NULL &&
+                  array_type->kind == (a_type_kind)tk_array);
+  /* VLA in block or function scope.  Allocate the vla_dimension in
+     the current IL memory region and add it to the vla_dimensions
+     list in the IL scope for the function. */
+  ssep = &scope_stack[depth_innermost_function_scope];
+  il_scope = ensure_il_scope_exists(ssep);
+  check_assertion_str(il_scope != NULL,
+                      "make_vla_dimension:  NULL IL scope");
+  /* Allocate and initialize the vla_dimension. */
+  vdp = alloc_vla_dimension();
+  vdp->type = array_type;
+  vdp->dimension_expr = expr_node;
+  array_type->variant.array.has_assoc_vla_dimension = TRUE;
+  /* Add the vla_dimension to the end of the list. */
+  if (il_scope->vla_dimensions == NULL) {
+    il_scope->vla_dimensions = vdp;
+  } else {
+    end_of_list = il_scope->vla_dimensions;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = vdp;
+  }  /* if */
+  db_exit();
+  return vdp;
+}  /* make_vla_dimension */
 
 
 void get_variable_initializer(a_variable_ptr     variable,

@@ -26,6 +26,7 @@ typedef struct a_symbol        *a_symbol_ptr;
 typedef struct a_symbol_header *a_symbol_header_ptr;
 typedef struct a_macro_param   *a_macro_param_ptr;
 typedef struct a_macro_def     *a_macro_def_ptr;
+typedef struct a_vla_fixup     *a_vla_fixup_ptr;
 typedef struct an_extern_type_fixup *an_extern_type_fixup_ptr;
 typedef struct a_template_param *a_template_param_ptr;
 typedef struct an_access_error_descr *an_access_error_descr_ptr;
@@ -785,6 +786,10 @@ typedef struct a_param_id {
 			   but is kept here also so we can be sure of
 			   associating the proper identifier and type
 			   in error cases. */
+  a_type_ptr	declared_type;
+			/* The type as actually declared by the program --
+			   before array-to-pointer adjustment and before
+			   type-qualifiers are stripped off. */
   a_source_position
 		type_pos;
 			/* Source position of the start of the type
@@ -804,6 +809,11 @@ typedef struct a_param_id {
 			/* Source-sequence information saved during declarator
 			   processing. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_variable_ptr
+		dummy_vla_variable;
+			/* A dummy variable created for scanning a VLA
+			   expression that refers to the parameter before
+			   its "real" variable entry is allocated. */
 } a_param_id;
 
 
@@ -834,6 +844,15 @@ typedef struct a_func_info_block {
 			/* The scope number used for the function prototype
 			   scope for the parameters, to be reused for the
 			   function scope if a body is found. */
+  a_vla_fixup_ptr
+                vla_fixup_list;
+			/* A list of entries representing fixups that are
+			   required resulting from a VLA declaration in a
+			   function prototype scope.  Originally the list
+			   appears in the sck_function_prototype scope stack
+			   entry; it is moved when the scope stack is popped,
+			   and the fixups are done if the function prototype
+			   is associated with a function definition. */
   a_bit_field	any_prototype_names_omitted:1;
 			/* TRUE if the parameter list is a prototype list,
 			   and it includes at least one parameter with
@@ -2032,6 +2051,58 @@ EXTERN an_active_using_directive_ptr
 EXTERN sizeof_t	size_scope_stack /* = 0*/;
 			/* Allocated size of scope_stack in elements.
 			   Not per-file. */
+
+
+/*
+Entry describing a fixup that is required for a VLA that appears in a
+function prototype paramenter declaration.  There are two sorts of fixup that
+happen once the function scope and its associated memory region are created:
+(1) Parameter variable fixup -- If the dimension expression refers to a
+    parameter name, the expression will have been scanned before the param
+    variable was actually created (since it cannot be created until the
+    function's IL scope exists).  Instead, the expression will refer to a
+    dummy variable, and the fixup involves replacing the dummy variable with
+    the "real" param variable.
+(2) Dimension expression fixup -- Every VLA dimension expression is
+    eventually represented by a VLA-dimension entry, which points to the
+    expression node.  Both the VLA-dimension entry and the expression node
+    have to be in the scope of the function, but when the expression is
+    originally scanned, the function's IL scope does not yet exist, so the
+    fixup involves copying the expression node into the function scope memory
+    region and allocaing the VLA-dimension entry to point to it.
+When no function definition is associated with the function prototype
+declaration, the fixup entries are discarded.
+*/
+typedef struct a_vla_fixup {
+  a_vla_fixup_ptr
+		next;
+			/* Pointer to the next fixup entry on the list. */
+  a_type_ptr	array_type;
+			/* Pointer to a type entry for a variable length
+			   array.  If it is non-NULL, dimension expression
+			   fixup is required; otherwise, parameter variable
+			   fixup is required. */
+  an_expr_node_ptr
+                expr;   /* If array_type is NULL, a pointer to an enk_variable
+			   or enk_variable_address expression node which needs
+			   to be patched with the correct variable for the
+			   function parameter.  If array_type is non-NULL, a
+			   pointer to an expression representing a variable
+			   dimension, and dimension expression fixup will be
+			   done. */
+  a_symbol_ptr	param_sym;
+			/* If array_type is NULL, a pointer to the parameter
+			   symbol associated with the param variable fixup.
+			   NULL if array_type is non-NULL. */
+} a_vla_fixup;
+
+
+extern void add_vla_fixup_entry(a_type_ptr        array_type,
+                                an_expr_node_ptr  expr_node,
+                                a_symbol_ptr      param_sym);
+
+extern void free_vla_fixup_list(a_vla_fixup_ptr vfp);
+
 
 typedef struct an_extern_type_fixup {
   /* Entry on a list indicating variables and routines whose types must

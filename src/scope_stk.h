@@ -342,6 +342,12 @@ typedef struct a_scope_stack_entry {
 			/* When kind == sck_namespace, sck_namespace_extension,
 			   or sck_namespace_reactivation, this points to the
 			   namespace. */
+  a_vla_fixup_ptr
+		vla_fixup_list;
+			/* When kind == sck_func_prototype.  C mode only.
+			   Temporary holding place for the vla_fixup_list.
+			   When the scope_stack is popped the vla_fixup_list
+			   is moved to a_func_info_block for the function. */
   an_extern_type_fixup_ptr
 		extern_type_fixup_list;
 			/* List of types of variables and routines to be

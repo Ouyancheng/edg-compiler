@@ -3316,7 +3316,8 @@ value is used).
                types.  We can only check the subscript if the array type
                is complete. */
             if (is_array_type(underlying_type) &&
-                !is_incomplete_type(underlying_type)) {
+                !is_incomplete_type(underlying_type) &&
+                !is_vla_type(underlying_type)) {
               array_type = skip_typerefs(underlying_type);
               /* See if the element type of the array type matches the
                  type pointed to by ptr_type. */

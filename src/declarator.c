@@ -26,6 +26,8 @@ declarator.c -- Scanning of declarators.
 
 /* Additional header files. */
 #include "disambig.h"
+#include "exprutil.h"
+#include "statements.h"
 
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
 /*
@@ -317,6 +319,7 @@ type is legal.
           /* Okay. */
         } else if (temp_type->kind == (a_type_kind)tk_array &&
                    (temp_type->variant.array.is_variable_size_array ||
+                    temp_type->variant.array.is_vla ||
                     temp_type->
                            variant.array.variant.number_of_elements != 0)) {
           /* Okay. */
@@ -930,7 +933,7 @@ issue an error if a default argument expression is encountered.
 {
   a_param_type_ptr        ptp;
   a_storage_class         param_storage_class;
-  a_type_ptr              param_type_ptr;
+  a_type_ptr              param_type_ptr, declared_type;
   a_decl_flag_set         dso_flags;
   a_type_qualifier_set    qualifiers;
   a_decl_modifiers_block  decl_modifiers;
@@ -1147,12 +1150,16 @@ issue an error if a default argument expression is encountered.
         param_ssep = NULL;
         if (!dangling_type_specifier &&
             is_abstract_or_real_declarator_start()) {
-          a_decl_flag_set  do_flags;
+          a_decl_flag_set  do_flags, di_flags;
 
-          declarator(DI_IS_PARAMETER_DECL |
-                       DI_REAL_DECLARATOR_ALLOWED |
-                       DI_ABSTRACT_DECLARATOR_ALLOWED,
-                     &do_flags, param_type_ptr,
+          di_flags = DI_IS_PARAMETER_DECL |
+                     DI_REAL_DECLARATOR_ALLOWED |
+                     DI_ABSTRACT_DECLARATOR_ALLOWED;
+          if (vla_enabled) {
+            /* Permit a variable lenth array declaration. */
+            di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
+          }  /* if */
+          declarator(di_flags, &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr,
                      &param_ssep, (a_func_info_block_ptr)NULL);
@@ -1167,6 +1174,9 @@ issue an error if a default argument expression is encountered.
           restrict_qualified = FALSE;
 #endif /* RESTRICT_ALLOWED */
         }  /* if */
+        /* Save a pointer to the type as it was declared (i.e., before the
+           array-to-pointer adjustment, if any). */
+        declared_type = param_type_ptr;
         /* Check that the type is legal, and do required adjustments. */
         check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos,
                                         restrict_qualified);
@@ -1203,6 +1213,7 @@ issue an error if a default argument expression is encountered.
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
                              func_info, param_ssep, &last_param_id);
+        last_param_id->declared_type = declared_type;
         if (remove_qualifiers_from_param_types) {
           /* Strip off top-level type qualifiers.  They are not part of the
              type signature of a C++ function -- see 8.3.5 para 3.  However,
@@ -1466,6 +1477,10 @@ issue an error if a default argument expression is encountered.
     /* Process pragmas associated with the closing paren before the current
        scope is popped. */
     process_curr_token_pragmas();
+    /* Before popping the scope, move the vla_fixup_list from the scope_stack
+       to func_info. */
+    func_info->vla_fixup_list = scope_stack[depth_scope_stack].vla_fixup_list;
+    scope_stack[depth_scope_stack].vla_fixup_list = NULL;
     /* Pop the function prototype scope. */
     pop_scope();
   } else if (any_params) {
@@ -1670,26 +1685,31 @@ issue an error if a default argument expression is encountered.
 #endif /* !RESTRICT_ALLOWED */
 void array_declarator(a_type_ptr *new_type_ptr,
                       a_boolean  nonconstant_dimension_allowed,
+                      a_boolean  vla_allowed,
+                      a_boolean  vla_asterisk_allowed,
                       a_boolean  top_level_field_decl,
                       a_boolean  restrict_allowed,
                       a_boolean  *restrict_seen)
 /*
-Scan an array declarator (3.5.4.2), or an array declarator in an
-abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
-appropriate array type.  The initial opening bracket is the current
-token.  In C++ the dimension may sometimes be a nonconstant
-expression (e.g., with a new type name); that case is indicated by
-nonconstant_dimension_allowed.  When RESTRICT_ALLOWED is TRUE,
-restrict_allowed may be TRUE to indicate that this is a function parameter
-declaration for which the special restrict-array syntax is permitted.
-If "restrict" is seen, set *restrict_seen to TRUE.  top_level_field_decl
-is TRUE to indicate that this is the declaration of nonstatic data member
-of a class.
+Scan an array declarator (3.5.4.2), or an array declarator in an abstract
+declarator (3.5.5).  Allocate and return in *new_type_ptr an appropriate
+array type.  The initial opening bracket is the current token.  In C++ the
+dimension may sometimes be a nonconstant expression (e.g., with a new type
+name); that case is indicated by nonconstant_dimension_allowed.  In C (when
+VLA_ENABLED is TRUE), the dimension may be a nonconstant expression when
+vla_allowed is TRUE; and when vla_asterisk_allowed is TRUE, a VLA of unknown
+size can be indicated with the "[*]" syntax in a function prototype.  When
+RESTRICT_ALLOWED is TRUE, restrict_allowed may be TRUE to indicate that this
+is a function parameter declaration for which the special restrict-array
+syntax is permitted.  If "restrict" is seen, set *restrict_seen to TRUE.
+top_level_field_decl is TRUE to indicate that this is the declaration of
+nonstatic data member of a class.
 */
 {
   a_targ_size_t           num_of_elements;
   a_constant              constant;
   a_boolean               err = FALSE;
+  a_boolean               has_vla_asterisk = FALSE;
   a_source_position       start_pos;
   an_expr_node_ptr        dim_expr = NULL;
   a_memory_region_number  region_to_switch_back_to;
@@ -1725,12 +1745,24 @@ of a class.
   if (curr_token == tok_rbracket) {
     /* Empty brackets, indicating an incomplete array type. */
     num_of_elements = 0;
+  } else if (vla_enabled && curr_token == tok_star &&
+             next_token() == tok_rbracket) {
+    /* [*] syntax for a VLA in a prototype. */
+    if (vla_asterisk_allowed) {
+      has_vla_asterisk = TRUE;
+    } else {
+      error(ec_vla_with_unspecified_bound_not_allowed);
+      err = TRUE;
+    }
+    /* Pass over the asterisk. */
+    (void)get_token();
   } else {
     /* Scan the array size. */
-    if (nonconstant_dimension_allowed) {
+    if (nonconstant_dimension_allowed || vla_allowed) {
       a_boolean  is_constant;
 
-      scan_new_array_dimension_expression(&is_constant, &dim_expr, &constant);
+      scan_nonconstant_dimension_expression(vla_allowed, &is_constant,
+                                            &dim_expr, &constant);
       check_assertion(is_constant == (dim_expr == NULL));
     } else {
       scan_integral_constant_expression(&constant);
@@ -1781,10 +1813,44 @@ of a class.
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
     /* Store the array size. */
-    if (dim_expr != NULL) {
+    if (has_vla_asterisk) {
+      /* [*] case (C only).  Since the size of the VLA is not specified,
+         there is no need to allocate a_vla_dimension. */
+      (*new_type_ptr)->variant.array.is_vla = TRUE;
+      (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
+    } else if (dim_expr != NULL) {
       /* Expression case. */
       (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
-      (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
+      if (vla_allowed) {
+        /* VLA case (C only). */
+        (*new_type_ptr)->variant.array.is_vla = TRUE;
+        /* A VLA dimension entry will be created to record the array
+           dimension expression. */
+#if 0
+        if (expr_stack == NULL) {
+          /* No stmk_set_vla_size is generated for a VLA in an expression
+             (i.e. not in a declaration).  A VLA in this case is allowed
+             only in cast and sizeof operators and its dimension expression
+             is evaluated (implicitly) at the location of the IL operator. */
+        } else
+#endif /* if 0 */
+        if (scope_stack[decl_scope_level].kind ==
+                                           (a_scope_kind)sck_func_prototype) {
+          /* For a VLA in a function parameter declaration, generation of the
+             stmk_set_vla_size statement is delayed until it is determined
+             that the parameter is part of a function definition, not a
+             declaration.  */
+          add_vla_fixup_entry(*new_type_ptr, dim_expr, (a_symbol_ptr)NULL);
+        } else {
+          /* Generate a stmk_set_vla_size statement for the VLA to indicate
+             when (at runtime) the VLA dimension expression is to be
+             evaluated to fix the size of the array. */
+          set_vla_size_statement(make_vla_dimension(*new_type_ptr, dim_expr),
+                                 &start_pos);
+        }  /* if */
+      } else {
+        (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
+      }  /* if */
     } else {
       (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                            num_of_elements;
@@ -2955,6 +3021,8 @@ The syntax is:
   a_boolean       is_name_start;
   a_boolean       is_nonstatic_member_function = FALSE;
   a_boolean       nonconstant_dimension_allowed;
+  a_boolean       vla_allowed;
+  a_boolean       vla_asterisk_allowed;
   a_boolean       parenthesized_initializer_allowed;
   a_call_conv_descr
                   left_call_conv, inner_left_call_conv, unbound_call_conv;
@@ -2974,6 +3042,8 @@ The syntax is:
                        (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED);
   nonconstant_dimension_allowed =
                             (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
+  vla_allowed = (input_flags & DI_VLA_ALLOWED) != 0;
+  vla_asterisk_allowed = (input_flags & DI_VLA_ASTERISK_ALLOWED) != 0;
   if (!real_declarator_allowed) {
     func_info = NULL;
     locator = NULL;
@@ -3334,6 +3404,7 @@ function_lparen:
       top_level_field_decl = (input_flags & DI_NONSTATIC_MEMBER) &&
                              derived_type == NULL;
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
+                       vla_allowed, vla_asterisk_allowed,
                        top_level_field_decl, restrict_allowed, &restrict_seen);
 #if RESTRICT_ALLOWED
       if (restrict_seen) {

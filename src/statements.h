@@ -376,6 +376,9 @@ EXTERN int	depth_stmt_stack
 
 extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                                  a_source_position  *stmt_pos);
+extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
+                                   a_source_position    *pos);
+
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
                                           a_boolean is_catch_clause);

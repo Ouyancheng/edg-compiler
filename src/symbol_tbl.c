@@ -83,6 +83,7 @@ static unsigned long
 		num_template_decl_info_allocated,
 		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
+		num_vla_fixups_allocated,
 		num_extern_type_fixups_allocated,
 		num_projection_descrs_allocated,
 		num_used_symbol_buckets,
@@ -128,14 +129,18 @@ static an_access_error_descr_ptr
 
 static a_symbol_list_entry_ptr
 		avail_symbol_list_entries;
-			/* List of symbol list entries freed and
-			   available for reuse. */
+			/* List of symbol list entries freed and available for
+			   reuse. */
 
 static a_template_cache_segment_ptr
 		avail_template_cache_segments;
-			/* List of template cache segments freed and
-			   available for reuse. */
+			/* List of template cache segments freed and available
+			   for reuse. */
 
+static a_vla_fixup_ptr
+		avail_vla_fixups;
+			/* List of vla fixup entries freed and available for
+			   reuse. */
 
 
 void form_symbol_name(a_symbol_ptr                          sym,
@@ -7369,6 +7374,72 @@ created if a projected symbol cannot be found in any of the real bases.
 }  /* find_projected_symbol */
 
 
+void add_vla_fixup_entry(a_type_ptr        array_type,
+                         an_expr_node_ptr  expr_node,
+                         a_symbol_ptr      param_sym)
+/*
+Allocate and initialize a VLA fixup entry.  expr_node is an expression node
+and will never be NULL.  Either array_type or param_sym will be non-NULL (but
+not both).  The current scope will be a function prototype scope.  Add the
+fixup entry to the end of the vla_fixup_list of the current scope stack entry.
+*/
+{
+  a_vla_fixup_ptr          vfp;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  db_enter(5, "add_vla_fixup_entry");
+  if (avail_vla_fixups != NULL) {
+    vfp = avail_vla_fixups;
+    avail_vla_fixups = vfp->next;
+  } else {
+    vfp = (a_vla_fixup_ptr)alloc_fe(sizeof(a_vla_fixup));
+#if DEBUG
+    num_vla_fixups_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  check_assertion_str(expr_node != NULL &&
+                      ((array_type != NULL) ?
+                         (param_sym == NULL &&
+                          array_type->kind == (a_type_kind)tk_array) :
+                         (param_sym != NULL &&
+                          param_sym->kind == (a_symbol_kind)sk_parameter)),
+                      "add_vla_fixup_entry: unexpected argument values");
+  vfp->next = NULL;
+  vfp->array_type = array_type;
+  vfp->expr = expr_node;
+  vfp->param_sym = param_sym;
+  check_assertion_str(ssep->kind == (a_scope_kind)sck_func_prototype,
+                      "add_vla_fixup_entry: not func-prototype scope");
+  if (ssep->vla_fixup_list == NULL) {
+    ssep->vla_fixup_list = vfp;
+  } else {
+    a_vla_fixup_ptr  end_of_list = ssep->vla_fixup_list;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = vfp;
+  }  /* if */
+  db_exit();
+}  /* add_vla_fixup_entry */
+
+
+void free_vla_fixup_list(a_vla_fixup_ptr vfp)
+/*
+Add the indicated list of vla fixup entries to the available list.
+*/
+{
+  if (avail_vla_fixups == NULL) {
+    avail_vla_fixups = vfp;
+  } else if (vfp != NULL) {
+    /* Find the last entry on the list. */
+    a_vla_fixup_ptr  end_of_list = vfp;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    end_of_list->next = avail_vla_fixups;
+    avail_vla_fixups = vfp;
+  }  /* if */
+}  /* free_vla_fixup_list */
+
+
 an_extern_type_fixup_ptr alloc_etype_fixup(void)
 /*
 Allocate an_extern_type_fixup entry and return a pointer to it.  A list
@@ -7423,12 +7494,14 @@ locator_for_curr_id.
   pip->next = NULL;
   pip->symbol = NULL;
   pip->type = NULL;
+  pip->declared_type = NULL;
   pip->type_pos = null_source_position;
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pip->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  pip->dummy_vla_variable = NULL;
   db_exit();
   return(pip);
 }  /* alloc_param_id */
@@ -7583,6 +7656,7 @@ Clear the fields of a function information block to default values.
   func_info->exception_specification     = NULL;
   func_info->throw_position              = null_source_position;
   func_info->scope_number                = NO_SCOPE_NUMBER;
+  func_info->vla_fixup_list              = NULL;
   func_info->any_prototype_names_omitted = FALSE;
   func_info->is_inline                   = FALSE;
   func_info->is_definition               = FALSE;
@@ -8107,6 +8181,8 @@ for space tracking purposes.
   db_space_used_lost("dependent type fixups", avail_dependent_type_fixups,
                      num_dependent_type_fixups_allocated,
                      a_dependent_type_fixup);
+  db_space_used_lost("vla fixup", avail_vla_fixups, num_vla_fixups_allocated,
+                     a_vla_fixup);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
   db_space_used("symbol list entry", num_symbol_list_entries_allocated,
@@ -8293,6 +8369,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
+      pch_saved_var_array_elem(avail_vla_fixups),
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
@@ -8310,6 +8387,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_conversion_headers_allocated),
       pch_saved_var_array_elem(num_dependent_type_fixups_allocated),
       pch_saved_var_array_elem(num_extern_symbol_descrs_allocated),
+      pch_saved_var_array_elem(num_vla_fixups_allocated),
       pch_saved_var_array_elem(num_extern_type_fixups_allocated),
       pch_saved_var_array_elem(num_fast_id_lookups),
       pch_saved_var_array_elem(num_namespace_list_entries_allocated),
@@ -8378,6 +8456,7 @@ of the front end.
   avail_active_using_directives = NULL;
   avail_symbol_list_entries = NULL;
   avail_template_cache_segments = NULL;
+  avail_vla_fixups = NULL;
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;
@@ -8409,6 +8488,7 @@ of the front end.
   num_namespace_list_entries_allocated         = 0;
   num_symbol_list_entries_allocated            = 0;
   num_extern_symbol_descrs_allocated           = 0;
+  num_vla_fixups_allocated                     = 0;
   num_extern_type_fixups_allocated             = 0;
   num_projection_descrs_allocated              = 0;
   num_used_symbol_buckets                      = 0;

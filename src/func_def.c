@@ -873,6 +873,55 @@ and for the instantiation of template functions.
       /* Be sure param-id and param-type lists are in sync. */
       check_assertion((param_id->next == NULL) == (ptp->next == NULL));
     }  /* for */
+    if (vla_enabled) {
+      /* Do fixups on VLA declarations that appeared in the function prototype
+         scopes.  They are required because the function memory region was not
+         not yet available when the function prototype was scanned. */
+      a_vla_fixup_ptr      vfp;
+
+      /* On the first pass over the fixup list, adjust parameter references
+         in VLA dimension expressions.  Replace references to a dummy
+         param variable with the references to the real param variable. */
+      for (vfp = func_info->vla_fixup_list; vfp != NULL; vfp = vfp->next) {
+        if (vfp->array_type == NULL) {
+          /* This entry represents a parameter variable fixup. */
+          check_assertion(vfp->param_sym != NULL &&
+                          vfp->param_sym->kind == (a_symbol_kind)sk_variable);
+          vfp->expr->variant.variable = vfp->param_sym->variant.variable.ptr;
+        }  /* if */
+      }  /* for */
+      /* On the second pass over the fixup list, create the VLA dimension
+         entries and add them to the vla_dimensions list for the routine's IL
+         scope. */
+      for (vfp = func_info->vla_fixup_list; vfp != NULL; vfp = vfp->next) {
+        if (vfp->array_type != NULL) {
+          /* This entry represents a dimension expression fixup.  Copy the
+             expression list to the function memory region and then create
+             the vla_dimension entry. */
+          (void)make_vla_dimension(vfp->array_type,
+                                   copy_expr_tree(vfp->expr, CE_NO_OPTIONS));
+        }  /* if */
+      }  /* for */
+      free_vla_fixup_list(func_info->vla_fixup_list);
+      func_info->vla_fixup_list = NULL;
+      /* Check for VLA errors. */
+      param_id = func_info->param_id_list;
+      ptp = rtsp->param_type_list;
+      for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+        if (is_or_contains_vla_type_with_unspecified_bound(
+                                               param_id->declared_type)) {
+          /* The [*] syntax for VLAs is not allowed for a parameter in a
+             function definition.  When parsing a function declarator the [*]
+             syntax is allowed because it is impossible to tell between a
+             function prototype and a function definition at that point.  Now
+             that the opening brace has been seen, the presence of [*] can be
+             detected as an error. */
+          pos_error(ec_vla_with_unspecified_bound_not_allowed,
+                    &param_id->type_pos);
+          param_id->type = ptp->type = error_type();
+        }  /* if */
+      }  /* for */
+    }  /* if */
     if (!is_instantiation) {
       /* Parameter symbols that were created in the prototype scope (and then
          removed in pop_scope) have to be reentered in the function scope;
@@ -1374,6 +1423,7 @@ associated with the function is returned.
         if (param_id->type == NULL) {
           /* Enter any undeclared parameters with a type of int. */
           param_id->type = integer_type((an_integer_kind)ik_int);
+          param_id->declared_type = param_id->type;
           param_id->storage_class = (a_storage_class)sc_auto;
           param_id->implicitly_declared = TRUE;
           copy_source_position(param_id->symbol->decl_position,
@@ -1427,6 +1477,11 @@ associated with the function is returned.
          the function prototype scope; it's different for prototyped
          param lists. */
       process_curr_token_pragmas();
+      /* Before popping the scope, move the vla_fixup_list from the
+         scope_stack to func_info. */
+      func_info->vla_fixup_list =
+                         scope_stack[depth_scope_stack].vla_fixup_list;
+      scope_stack[depth_scope_stack].vla_fixup_list = NULL;
       /* Pop the function prototype scope. */
       pop_scope();
     } else {

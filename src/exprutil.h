@@ -105,6 +105,8 @@ enum an_expression_kind_tag {
 			   3.4).  Limited use in C++. */
   /* Non-constant expression kinds: */
   ek_normal,		/* Normal expression, no restrictions. */
+  ek_vla,		/* Dimension expression of a variable length array
+			   declaration. */
   ek_sizeof		/* The operand of sizeof.  This is almost the same
 			   as a normal expression. */
 };
