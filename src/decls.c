@@ -6989,18 +6989,20 @@ continue_with_declaration:
              level. */
           symbol_ptr->defined = TRUE;
         }  /* if */
-      } else if (!is_parameter && !is_error_locator(locator)) {
-        /* Determine whether a default initializer should be generated for
-           this symbol, and if so do it.  The function returns TRUE if default
-           initialization was performed (or if it was attempted but an error
-           was reported). */
-        if (!def_initializer(symbol_ptr, &locator.source_position)) {
-          /* No default initialization, so do some additional checking (unless
-             this is the redeclaration of an already initialized variable). */
-          if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-              symbol_ptr->variant.variable->init_kind ==
-                                              (an_init_kind)initk_none) {
-            a_variable_ptr  vp = symbol_ptr->variant.variable;
+      } else if ((symbol_ptr->kind == (a_symbol_kind)sk_variable ||
+                  symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) &&
+                 !is_parameter && !is_error_locator(locator)) {
+        a_variable_ptr  vp = symbol_ptr->variant.variable;
+        if (vp->init_kind != (an_init_kind)initk_none) {
+          /* Already initialized -- this must be a redeclaration. */
+        } else {
+          /* Determine whether a default initializer should be generated for
+             this symbol, and if so do it.  The function returns TRUE if
+             default initialization was performed (or if it was attempted but
+             an error was reported). */
+          if (!def_initializer(symbol_ptr, &locator.source_position) &&
+              symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+            /* No default initialization, so do some additional checking. */
             if (is_reference_type(local_type_ptr) &&
                 vp->storage_class != (a_storage_class)sc_extern) {
               /* Non-extern reference variables must be initialized
