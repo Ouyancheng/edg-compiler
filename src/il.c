@@ -3068,14 +3068,7 @@ they are not already present.
     }  /* if */
     ptr = get_based_type(base_type, kind);
     if (ptr == NULL) {
-      /* No allocated entry, need to allocate one.  If the entry is a typeref
-         to a file-scope type, make sure it gets allocated in the file-scope
-         memory region. */
-#if CHECKING
-      if (!in_file_scope((char *)base_type)) {
-        internal_error("make_qualified_type: base type not in file scope");
-      }  /* if */
-#endif /* CHECKING */
+      /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type        = base_type;
       ptr->variant.typeref.is_const    = (is_const != 0);
@@ -3120,6 +3113,43 @@ they are not already present.
 
   return ptr;
 }  /* make_qualified_type */
+
+
+a_type_ptr make_identically_qualified_type(a_type_ptr type,
+                                           a_type_ptr model_type)
+/*
+Make a version of type that has the same qualifiers as model_type, and return
+a pointer to it.  The original qualifiers on type, if any, are ignored.
+Note that type and model_type need not be the same (or even similar) types
+under the qualifiers.
+*/
+{
+  a_type_ptr new_type;
+
+  new_type = make_qualified_type(skip_typerefs(type),
+                                 is_const_qualified_type(model_type),
+                                 is_volatile_qualified_type(model_type));
+  return new_type;
+}  /* make_identically_qualified_type */
+
+
+a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,
+                                                 a_type_ptr model_type)
+/*
+Make a version of type that has the same qualifiers as model_type, and return
+a pointer to it.  The original qualifiers on type, if any, are preserved,
+which means that the result type has all the qualifiers of both types.
+Note that type and model_type need not be the same (or even similar) types
+under the qualifiers.
+*/
+{
+  a_type_ptr new_type;
+
+  new_type = make_qualified_type(type,
+                                 is_const_qualified_type(model_type),
+                                 is_volatile_qualified_type(model_type));
+  return new_type;
+}  /* type_plus_qualifiers_from_second_type */
 
 
 a_type_ptr make_unqualified_type(a_type_ptr type)
