@@ -784,16 +784,21 @@ variable lists.
     for (psvp = saved_variable_array_list[i];
          psvp->var_address != NULL;
          psvp++) {
+      a_void_ptr	address = psvp->var_address;
+      /* If the indirect flag is set, get the address stored at the
+         specified addrerss. */
+      if (psvp->indirect) address = *(a_void_ptr*)address;
 #if DEBUG
       if (debug_level >= 5) {
-        fprintf(f_debug, "Saving %5lu bytes at %p, variable %s\n",
-                psvp->var_size, psvp->var_address,
+        fprintf(f_debug, "Saving %5lu bytes at %p, variable %s %s\n",
+                psvp->var_size, address,
                 psvp->var_name == NULL
                   ? "(name not available)"
-                  : psvp->var_name);
+                  : psvp->var_name,
+                psvp->indirect ? "(indirect)" : "");
       }  /* if */
 #endif /* DEBUG */
-      fwrite_with_check(psvp->var_address, psvp->var_size, f_pch_output);
+      fwrite_with_check(address, psvp->var_size, f_pch_output);
     }  /* for */
   }  /* for */
   db_exit();
@@ -816,16 +821,21 @@ variable lists.
     for (psvp = saved_variable_array_list[i];
          psvp->var_address != NULL;
          psvp++) {
+      a_void_ptr	address = psvp->var_address;
+      /* If the indirect flag is set, get the address stored at the
+         specified addrerss. */
+      if (psvp->indirect) address = *(a_void_ptr*)address;
 #if DEBUG
       if (debug_level >= 5) {
-        fprintf(f_debug, "Restoring %5lu bytes at %p, variable %s\n",
-                psvp->var_size, psvp->var_address,
+        fprintf(f_debug, "Restoring %5lu bytes at %p, variable %s %s\n",
+                psvp->var_size, address,
                 psvp->var_name == NULL
                   ? "(name not available)"
-                  : psvp->var_name);
+                  : psvp->var_name,
+                psvp->indirect ? "(indirect)" : "");
       }  /* if */
 #endif /* DEBUG */
-      fread_with_check(psvp->var_address, psvp->var_size, f_pch_input);
+      fread_with_check(address, psvp->var_size, f_pch_input);
     }  /* for */
   }  /* for */
   db_exit();
