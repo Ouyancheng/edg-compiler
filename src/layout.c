@@ -3234,7 +3234,7 @@ static void adjust_size_for_empty_bases(a_layout_block_ptr lob)
 There may be empty base classes that are located "off the end" of the
 class. Update lob->byte_offset to reflect the real end of the class.
 Note that GNU compilers do not perform this adjustment if the trailing
-empty base class is virtual.
+empty base class is virtual and indirect.
 */
 {
   a_base_class_ptr bcp;
@@ -3242,7 +3242,8 @@ empty base class is virtual.
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
     if (is_empty_class_type(bcp->type) && 
         bcp->offset + bcp->type->size > lob->byte_offset &&
-        !(emulate_gnu_abi_bugs && bcp->is_virtual)) {
+        !(emulate_gnu_abi_bugs && !bcp->direct &&
+          any_virtual_steps_in_derivation(bcp))) {
       lob->byte_offset = bcp->offset + bcp->type->size;
       lob->bit_offset = 0;
     }  /* if */
