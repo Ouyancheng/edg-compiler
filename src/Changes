@@ -1,5 +1,17 @@
 Version 2.36
 
+6/1/97    pointer_types_have_same_repr macro
+
+A macro pointer_types_have_same_repr can now be defined if an implementation
+has different types of pointers and the differences between them are
+not completely determined by the type pointed to.  (For example, an
+implementation might have 32-bit and 64-bit pointers for any underlying
+types, and a language extension to choose the size.)  This new macro
+is used in places that compare pointer and reference types for equality,
+and can be used to distinguish the different pointer representations.
+Note that this is not needed for near/far support, as the near/far
+attribute for those cases is attached to the underlying type.
+
 5/30/97   In constructor wrapper code, virtual base class pointers set earlier
 
 In the wrapper code generated around constructors in IL lowering, the code

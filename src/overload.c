@@ -7890,6 +7890,10 @@ direct binding is "possible" and not whether it is "valid".
   } else if ((any_cfront_mode() || microsoft_bugs) &&
              is_pointer_type(unqual_dest_type) &&
              is_pointer_type(unqual_source_type) &&
+#ifdef pointer_types_have_same_repr
+             pointer_types_have_same_repr(unqual_dest_type,
+                                          unqual_source_type) &&
+#endif /* ifdef pointer_types_have_same_repr */
              same_type_with_added_qualifiers(unqual_source_type,
                                              unqual_dest_type,
                                              /*ignore_qualifiers=*/FALSE,

@@ -1625,7 +1625,11 @@ and standalone utility programs.
   } else if (type_1->kind != type_2->kind) {
     /* Type kinds do not match, so types do not match. */
     /* types_match = FALSE; -- already set. */
-  } else if (type_1->kind == (a_type_kind)tk_pointer) {
+  } else if (type_1->kind == (a_type_kind)tk_pointer
+#ifdef pointer_types_have_same_repr
+             && pointer_types_have_same_repr(type_1, type_2)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                            ) {
     /* Continue at the next level for pointers. */
     types_match = types_match_ignoring_qualifiers(type_pointed_to(type_1),
                                                   type_pointed_to(type_2));

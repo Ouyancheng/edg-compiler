@@ -2168,7 +2168,11 @@ for more information.
                                         type_2->variant.pointer.is_reference) {
             identical = f_identical_types(type_1->variant.pointer.type,
                                           type_2->variant.pointer.type,
-                                          flags);
+                                          flags)
+#ifdef pointer_types_have_same_repr
+                        && pointer_types_have_same_repr(type_1, type_2)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                                       ;
           }  /* if */
           break;
         case tk_array:
@@ -2584,7 +2588,11 @@ for exact pointer equality.
                                         type_2->variant.pointer.is_reference) {
             compat = f_types_are_compatible(type_1->variant.pointer.type,
                                             type_2->variant.pointer.type,
-                                            flags);
+                                            flags)
+#ifdef pointer_types_have_same_repr
+                     && pointer_types_have_same_repr(type_1, type_2)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                                    ;
           }  /* if */
           break;
         case tk_array:
@@ -2799,7 +2807,11 @@ that is not required to be checked by the ANSI C standard.
     }  /* if */
   } else if (type_1->kind == (a_type_kind)tk_pointer &&
              !type_1->variant.pointer.is_reference &&
-             !type_2->variant.pointer.is_reference) {
+             !type_2->variant.pointer.is_reference
+#ifdef pointer_types_have_same_repr
+             && pointer_types_have_same_repr(type_1, type_2)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                            ) {
     /* Pointer types.  Get the underlying types. */
     ptr_type_1 = skip_typerefs(type_1->variant.pointer.type);
     ptr_type_2 = skip_typerefs(type_2->variant.pointer.type);
@@ -2910,7 +2922,11 @@ can be NULL if the caller does not need this flag returned.
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+      if (is_pointer_type(dest_type) && is_pointer_type(source_type)
+#ifdef pointer_types_have_same_repr
+          && pointer_types_have_same_repr(dest_type, source_type)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                                 ) {
 	/* Continue at the next level for pointers. */
         dest_type = type_pointed_to(dest_type);
 	source_type = type_pointed_to(source_type);

@@ -1679,7 +1679,11 @@ the class of which the overriding function is a member.
     /* They're not "simply" compatible.  Do the other checking. */
     if ((is_reference_type(tp1) && is_reference_type(tp2)) ||
         (is_pointer_type(tp1) && is_pointer_type(tp2) &&
-         type_qualifiers_match(tp1, tp2))) {
+         type_qualifiers_match(tp1, tp2))
+#ifdef pointer_types_have_same_repr
+        && pointer_types_have_same_repr(tp1, tp2)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                 ) {
       /* Both types are references or both are pointers with identical type
          qualifiers on top of the pointer type.  Now check the types pointed
          to. */

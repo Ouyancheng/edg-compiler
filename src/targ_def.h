@@ -639,6 +639,12 @@ are not used in 32-bit Microsoft mode.
 /*
 Are all pointers the same size?
 
+If not, see also size_of_pointer_to, and you may want to define
+pointer_types_have_same_repr if there's some aspect of pointer representation
+that is not completely determined by the type pointed to (e.g., you have
+both 32-bit and 64-bit pointers, for any underlying type, and you can choose
+between them with some language extension).
+
 Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in 16-bit Microsoft
 mode, where near and far pointers exist.  So this really means "ignoring
 16-bit Microsoft mode, are all pointers the same size?"
