@@ -10968,7 +10968,9 @@ in a template instantiation) just do the scan.
 
   db_enter(3, "scan_default_arg_expr");
   /* Save, clear, and later restore the expression stack, since this expression
-     is not part of any expression we may currently be inside of. */
+     is not part of any expression we may currently be inside of.  Note
+     that push_scope cleared the object lifetime stack on pushing the
+     prototype scope. */
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -11952,13 +11954,11 @@ this routine is called only when microsoft_mode is TRUE.
   a_variable_ptr          variable = NULL;
   a_symbol_ptr            sym_ptr, projection_sym_ptr;
   an_expr_stack_entry     expr_stack_entry;
-  an_expr_stack_entry_ptr saved_expr_stack;
 
   /* Even though this is not an expression scan, make sure the expr_stack
-     has something on it.  If there is already something on the stack,
-     save it, clear the stack, and restore it later. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+     has something on it.  Do not clear the stack, because we may already
+     be inside an expression and we don't want to push another object lifetime
+     for an expression if there's already one on the object lifetime stack. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
   /* The variable is not evaluated (at least not here). */
@@ -11995,7 +11995,6 @@ this routine is called only when microsoft_mode is TRUE.
     }  /* if */
   }  /* if */
   pop_expr_stack();
-  expr_stack = saved_expr_stack;
   return variable;
 }  /* based_variable */
 
