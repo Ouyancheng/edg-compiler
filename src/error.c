@@ -1136,6 +1136,9 @@ error code.
     case ec_inaccessible_conversion_function:
       m = "conversion function is inaccessible";
       break;
+    case ec_bad_arg_type_for_operator_new:
+      m = "operator new requires first argument of type \"size_t\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

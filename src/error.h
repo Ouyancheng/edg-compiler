@@ -399,7 +399,8 @@ typedef enum /*an_error_code*/ {
   ec_inaccessible_assignment_operator,
   ec_no_matching_operator_function,
   ec_ambiguous_operator_function,
-  ec_inaccessible_conversion_function
+  ec_inaccessible_conversion_function,
+  ec_bad_arg_type_for_operator_new
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
