@@ -1,5 +1,13 @@
 Version 3.2
 
+5/10/03  USE_PATCH_INIT_STARTUP
+
+A separate configuration flag USE_PATCH_INIT_STARTUP now controls
+whether IL lowering puts out the code needed for startup initialization
+for the Cfront "patch" approach.  This is a mostly-obsolete technique,
+and the default is FALSE.  Previously, this code was put out in
+many configurations, and was harmless but unneeded.
+
 5/9/03   Internal error on overlong bit field on some configurations
 
 When both configuration macros TARG_MICROSOFT_BIT_FIELD_ALLOCATION and

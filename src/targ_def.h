@@ -2110,7 +2110,7 @@ has .init sections (e.g., SVR4), this flag is TRUE to enable generation of
 asm directives to get startup routines called (thus eliminating the need
 for patch or munch).  Note that gcc has a better of way of doing this,
 so it's not necessarily helpful to set this to TRUE when using gcc as the
-target C compiler.
+target C compiler.  Likewise for the Sunpro C compiler and MSVC++.
 */
 #ifndef USE_INIT_SECTION_IN_GENERATED_C
 #define USE_INIT_SECTION_IN_GENERATED_C FALSE
@@ -2775,6 +2775,21 @@ involved.
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
+
+/*
+If TRUE, IL lowering should generate the code that the Cfront
+"patch" program needs for startup initialization.  This invoves a
+generated variable called "__link" that points to the startup
+initialization routine.  This is a mostly-obsolete technique.
+*/
+#ifndef USE_PATCH_INIT_STARTUP
+#define USE_PATCH_INIT_STARTUP FALSE
+#endif /* ifndef USE_PATCH_INIT_STARTUP */
+
+#if USE_PATCH_INIT_STARTUP && USE_INIT_SECTION_IN_GENERATED_C
+ #error -- USE_PATCH_INIT_STARTUP and USE_INIT_SECTION_IN_GENERATED_C \
+           cannot both be specified
+#endif /* USE_PATCH_INIT_STARTUP && USE_INIT_SECTION_IN_GENERATED_C */
 
 /*
 This switch controls whether zeroing is added to variable definitions

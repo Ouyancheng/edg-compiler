@@ -15898,16 +15898,14 @@ translation units (their statics are picked up after copying).
   for (var = scope->variables;
        var != NULL;
        var = var->next) {
-#if !USE_INIT_SECTION_IN_GENERATED_C
+#if USE_PATCH_INIT_STARTUP
     char *var_name = var->source_corresp.name;
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
-#if !USE_INIT_SECTION_IN_GENERATED_C
     if (var_name != NULL && var_name[0] == '_' &&
         strcmp(var_name, "__link") == 0) {
       /* Do not rename the __link variable.  It is specific to a particular
          slice. */
     } else
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* USE_PATCH_INIT_STARTUP */
     /* Do not insert code here.  This is the "else" of an "if". */
     if (var->source_corresp.static_used_by_instantiation
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
