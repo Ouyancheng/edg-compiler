@@ -1395,6 +1395,52 @@ This is used when the constant is already an allocated IL constant.
 }  /* make_node_for_il_constant */
 
 
+static void promote_integer_constant(a_constant *cp)
+/*
+Do integral promotion on the indicated integer constant.
+*/
+{
+  a_type_ptr promoted_type = type_after_integral_promotion(cp->type);
+  a_boolean  did_not_fold;
+
+  if (promoted_type != cp->type) {
+    type_change_constant(cp, promoted_type,
+                         /*is_implicit_cast=*/TRUE,
+                         /*constant_context=*/TRUE,
+                         /*evaluated_context=*/TRUE,
+                         /*fold_constant_addr_exprs=*/TRUE,
+                         &did_not_fold, &error_position);
+  }  /* if */
+}  /* promote_integer_constant */
+
+
+static
+an_expr_node_ptr node_for_promoted_integer_constant(long            value,
+                                                    an_integer_kind kind)
+/*
+Make a node for an integer constant with value "value" and kind "kind",
+applying any applicable integral promotions, and return a pointer to it.
+*/
+{
+  an_expr_node_ptr node;
+  a_constant       constant;
+
+  set_integer_constant(&constant, value, kind);
+  promote_integer_constant(&constant);
+  node = alloc_node_for_constant(&constant);
+
+  return node;
+}  /* node_for_promoted_integer_constant */
+
+
+/*
+Macro that is TRUE if the integer kind chosen to represent pointers to
+data members is a promoted integral type.
+*/
+#define targ_ptr_to_data_member_is_promoted_integral_type()           \
+  ((int)targ_ptr_to_data_member_int_kind >= (int)ik_int)
+
+
 static an_expr_node_ptr node_to_select_field_from_rvalue(
                                                         an_expr_node_ptr node,
                                                         a_field_ptr      field)
@@ -1530,6 +1576,32 @@ type of the node is already "char *" return the original node.
 {
   return add_cast_if_necessary(node, char_star_type());
 }  /* add_cast_to_char_star */
+
+
+static an_expr_node_ptr integral_promote_node(an_expr_node_ptr expr)
+/*
+Add a cast to do integral promotion to expr, if necessary.
+*/
+{
+  /* Note that this doesn't handle bit fields. */
+  expr = add_cast_if_necessary(expr,
+                               type_after_integral_promotion(expr->type));
+  return expr;
+}  /* integral_promote_node */
+
+
+static an_expr_node_ptr integral_promote_pm_node(an_expr_node_ptr expr)
+/*
+Add a cast to do integral promotion on expr, which is a pointer-to-data-member
+node.  integral_promote_node can't be used because the source type is
+still pointer to member and therefore doesn't look promotable.
+*/
+{
+  expr = add_cast(expr,
+                  type_after_integral_promotion(
+                              integer_type(targ_ptr_to_data_member_int_kind)));
+  return expr;
+}  /* integral_promote_pm_node */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 
@@ -5158,7 +5230,8 @@ used as an lvalue if is_lvalue is TRUE.
       /* Make "temp.i != 0". */
       temp_node = var_lvalue_expr(temp_var);
       select_i_node = field_rvalue_selection_expr(temp_node, mptr_i_field);
-      select_i_node->next = node_for_integer_constant(0L,
+      select_i_node = integral_promote_node(select_i_node);
+      select_i_node->next = node_for_promoted_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
       compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
                                         integer_type((an_integer_kind)ik_int),
@@ -5168,10 +5241,11 @@ used as an lvalue if is_lvalue is TRUE.
       select_d_node = field_lvalue_selection_expr(temp_node, mptr_d_field);
       /* Make a node for the offset constant. */
       set_delta_constant(offset, &offset_constant);
+      promote_integer_constant(&offset_constant);
       offset_node = alloc_node_for_constant(&offset_constant);
       select_d_node->next = offset_node;
       incr_node = make_operator_node((an_expr_operator_kind)eok_iadd_assign,
-                                     offset_node->type, select_d_node);
+                                     mptr_d_field->type, select_d_node);
       /* Make "(temp.i != 0) ? temp.d += offset : 0". */
       compare_node->next = incr_node;
       incr_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
@@ -5198,8 +5272,12 @@ used as an lvalue if is_lvalue is TRUE.
       /* Pointer to data member.  Change the node to
            (pdm != 0) ? pdm + offset : 0
       */
+      a_type_ptr pm_type = source_node->type;
       /* Make "pdm != 0". */
-      source_node->next = node_for_integer_constant(0L,
+      if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
+        source_node = integral_promote_pm_node(source_node);
+      }  /* if */
+      source_node->next = node_for_promoted_integer_constant(0L,
                                              targ_ptr_to_data_member_int_kind);
       compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
                                         integer_type((an_integer_kind)ik_int),
@@ -5218,9 +5296,17 @@ used as an lvalue if is_lvalue is TRUE.
                                              &offset_constant,
                                              (unsigned long)offset,
                                              targ_ptr_to_data_member_int_kind);
+      if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
+        promote_integer_constant(&offset_constant);
+      }  /* if */
       offset_node = alloc_node_for_constant(&offset_constant);
       source_node->next = offset_node;
       plus_node = make_operator_node(op, source_node->type, source_node);
+      /* Cast back to the pointer to member type if it is an unpromoted
+         type. */
+      if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
+        plus_node = add_cast(plus_node, pm_type);
+      }  /* if */
       /* Make the "?" operation by overwriting the original node. */
       compare_node->next = plus_node;
       plus_node->next = node_for_integer_constant(0L,
@@ -5710,7 +5796,8 @@ the expression have already been lowered.
     /* Make "pmf.i < 0". */
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     select_i_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
-    select_i_node->next = node_for_integer_constant(0L,
+    select_i_node = integral_promote_node(select_i_node);
+    select_i_node->next = node_for_promoted_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
     compare_node = make_operator_node((an_expr_operator_kind)eok_ilt,
                                       integer_type((an_integer_kind)ik_int),
@@ -5942,7 +6029,9 @@ Lower comparison of two pointers to members.
     (void)make_mptr_type();
     /* Make "op1.i == op2.i". */
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
+    select1_node = integral_promote_node(select1_node);
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_i_field);
+    select2_node = integral_promote_node(select2_node);
     select1_node->next = select2_node;
     compare_i_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                         int_type, select1_node);
@@ -5951,7 +6040,8 @@ Lower comparison of two pointers to members.
     /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
     op1_node = make_reusable_copy(op1_node, vars_can_change);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
-    select1_node->next = node_for_integer_constant(0L,
+    select1_node = integral_promote_node(select1_node);
+    select1_node->next = node_for_promoted_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
     compare_i0_node = make_operator_node
                         ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
@@ -5959,8 +6049,10 @@ Lower comparison of two pointers to members.
     /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
     op1_node = make_reusable_copy(op1_node, vars_can_change);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_d_field);
+    select1_node = integral_promote_node(select1_node);
     op2_node = make_reusable_copy(op2_node, vars_can_change);
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_d_field);
+    select2_node = integral_promote_node(select2_node);
     select1_node->next = select2_node;
     compare_d_node = make_operator_node
                        ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
@@ -5994,6 +6086,13 @@ Lower comparison of two pointers to members.
                       or_node->type, compare_i_node);
   } else {
     /* Pointer-to-data-member comparison: turns into integer comparison. */
+    if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
+      op2_node = op1_node->next;
+      op1_node = integral_promote_pm_node(op1_node);
+      expr->variant.operation.operands = op1_node;
+      op2_node = integral_promote_pm_node(op2_node);
+      op1_node->next = op2_node;
+    }  /* if */
     expr->variant.operation.kind = ne_case ? (an_expr_operator_kind)eok_ine :
                                              (an_expr_operator_kind)eok_ieq;
   }  /* if */
@@ -6020,7 +6119,11 @@ the expression have already been lowered.
      pointer addition. */
   cast_node = add_cast_to_char_star(object_node);
   /* Make the node for "pdm-1". */
-  one_node = node_for_integer_constant(1L, targ_ptr_to_data_member_int_kind);
+  if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
+    pdm_node = integral_promote_pm_node(pdm_node);
+  }  /* if */
+  one_node = node_for_promoted_integer_constant(1L,
+                                             targ_ptr_to_data_member_int_kind);
   pdm_node->next = one_node;
   minus_node = make_operator_node((an_expr_operator_kind)eok_isubtract,
                                   pdm_node->type, pdm_node);

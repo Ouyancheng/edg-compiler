@@ -1,5 +1,15 @@
 Version 2.30
 
+8/4/95   Missing promotions on IL-lowering-generated pointer-to-data-member
+         operations
+
+When the integer kind chosen for pointers to data members is one that
+is subject to integral promotions (e.g., unsigned short), some of the
+operations on pointers to members (casting, calling, comparing,
+dereferencing) did not include the casts necessary to promote the
+pointers to data members when they were operands of operators that
+force integral promotions (e.g., "+", "==").  The casts have been added.
+
 8/2/95   Definitions now allowed in template friend declarations
 
 The X3J16/WG21 working paper now permits templates to be defined in
