@@ -1,5 +1,19 @@
 Version 2.46
 
+7/12/01  Sun compatibility: typename is ignored in most contexts
+
+The Sun compiler ignores the typename keyword in most contexts.  It
+accepts the typename keyword in contexts where it is not permitted
+and does not enforce the semantic constraints required by the language.
+The front end now emulates this behavior in Sun mode.
+
+  // The Sun compiler does recognize typename in a template parameter list
+  template <typename T> class C {
+    // Illegal uses of typename that are accepted by the Sun compiler
+    typename T t;
+    typename typename T typename typename x;
+  };
+
 7/12/01  Flag defined_in_friend_decl incorrectly set in routine entries
 
 The field defined_in_friend_decl (see Changes entry of 2/25/96) was set

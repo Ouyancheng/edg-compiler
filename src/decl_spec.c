@@ -5296,6 +5296,9 @@ process_class_specifier:
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
+        } else if (sun_mode && implicit_typename_enabled) {
+          /* typename is ignored in Sun mode.  Simply discard the token
+             unless the user has disabled implicit typename mode. */
         } else {
           if (basic_type == bt_none) {
             typename_specifier(type_ptr, /*within_using_decl=*/FALSE,
