@@ -332,7 +332,7 @@ directory name is being used, a pointer to the original name is returned.
     ensure_file_name_buffer_space(buffer, name_size);
     result = combine_dir_and_file_name(pch_dir_name, file_name,
                                        buffer.name,
-                                       buffer.size);
+                                       (int)buffer.size);
   }  /* if */
   return result;
 }  /* build_pch_file_name */
@@ -1946,13 +1946,15 @@ may be used.
 
   db_enter(2, "restore_precompiled_header_information");
   if (!automatic_pch_processing) {
+    sizeof_t	size;
+    char	*name_with_dir;
     /* In non-automatic mode, the input file name will not yet have
        had the PCH directory name added.  Do it now. */
     pch_input_file_name = build_pch_file_name(pch_input_file_name);
     /* Make a copy of the name in general memory. */
-    pch_input_file_name =
-               strcpy((char *)alloc_general(strlen(pch_input_file_name) + 1),
-                                            pch_input_file_name);
+    size = strlen(pch_input_file_name) + 1;
+    name_with_dir = strcpy((char *)alloc_general(size), pch_input_file_name);
+    pch_input_file_name = name_with_dir;
   }  /* if */
   if (open_pch_input_file(pch_input_file_name)) {
     /* Make sure the the PCH can still be used.  Also make sure that
