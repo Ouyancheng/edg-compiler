@@ -477,6 +477,30 @@ Free a list of return memo entries by putting them on the available list.
 }  /* free_return_memo_list */
 
 
+static void set_curr_cleanup_state_to_latest_initialization(void)
+/*
+Set curr_context->curr_cleanup_state to match
+curr_context->latest_initialization.  If the latest initialization pointer is
+NULL, set the current cleanup state to the proper pointer from the parent
+lifetime.
+*/
+{
+  a_dynamic_init_ptr cleanup_state = curr_context->latest_initialization;
+
+  /* The current lifetime can be NULL if there are no lifetimes at all. */
+  if (cleanup_state == NULL && curr_context->lifetime != NULL) {
+    /* No cleanups at this level, so the cleanup state is the position at which
+       the current lifetime fits into the cleanup lists of its parents. */
+    a_context *context;
+    for (context = curr_context; context != NULL; context = context->parent) {
+      cleanup_state = context->lifetime->parent_destruction_sublist;
+      if (cleanup_state != NULL) break;
+    }  /* for */
+  }  /* if */
+  curr_context->curr_cleanup_state = cleanup_state;
+}  /* set_curr_cleanup_state_to_latest_initialization */
+
+
 void push_context(a_context              *context,
                   a_scope_ptr            scope,
                   an_object_lifetime_ptr lifetime)
@@ -516,11 +540,12 @@ scope, or the lifetime from the parent context, will be used.
   if (!new_lifetime && parent_context != NULL) {
     context->latest_initialization = parent_context->latest_initialization;
   }  /* if */
-  /* The curr_cleanup_state field is inherited from the parent -- it spans
-     lifetimes. */
-  context->curr_cleanup_state = NULL;
-  if (parent_context != NULL) {
-    context->curr_cleanup_state = parent_context->curr_cleanup_state;
+  if (parent_context == NULL) {
+    curr_context->curr_cleanup_state = NULL;
+  } else if (new_lifetime) {
+    set_curr_cleanup_state_to_latest_initialization();
+  } else {
+    curr_context->curr_cleanup_state = parent_context->curr_cleanup_state;
   }  /* if */
   context->successor_lifetime_at_statement = NULL;
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -7518,8 +7543,8 @@ are enabled.
     dip = need_regions_for_temps ? first_temp : first_nontemp;
     curr_context->latest_initialization = dip;
     curr_context->curr_cleanup_state = dip;
-    /* set_curr_cleanup_state is not called on purpose, because no code
-       need be generated to record the cleanup state. */
+    /* insert_code_to_indicate_cleanup_state is not called on purpose,
+       because no code need be generated to record the cleanup state. */
   }  /* if */
 }  /* adjust_region_table_to_remove_long_lifetime_temps */
 
@@ -7713,7 +7738,7 @@ it; otherwise, switch_lifetime is NULL.
     clause_statements = clause->statements;
     /* If the previous clause, or the body statement, ended with a return
        or goto, the current cleanup state may be wrong, so restore it. */
-    curr_context->curr_cleanup_state = curr_context->latest_initialization;
+    set_curr_cleanup_state_to_latest_initialization();
     /* See if this clause is associated with the next object lifetime
        in sequence. */
     if (lifetime != NULL &&
@@ -7850,48 +7875,33 @@ lifetime.  The lifetime must be present on the current context stack.
 }  /* context_for_lifetime */
 
 
-static a_dynamic_init_ptr effective_curr_cleanup_state(void)
+static a_dynamic_init_ptr first_destruction_in_unordered_set(
+                                                   a_dynamic_init_ptr orig_dip)
 /*
-Return the effective value of curr_context->curr_cleanup_state.  Deal
-with cases where the current value is outside of the current lifetime,
-and with unordered cases.
+orig_dip points to a destruction that is a member of an unordered set.
+Find and return a pointer to the first member of the set (i.e., the first
+in order on the next_in_destruction_list field).
 */
 {
-  a_dynamic_init_ptr cleanup_state = curr_context->curr_cleanup_state;
+  a_dynamic_init_ptr dip, first_in_unordered_set = NULL;
 
-  if (cleanup_state == NULL) {
-    /* Nothing to check. */
-  } else if (cleanup_state->lifetime != curr_object_lifetime) {
-    /* If the current cleanup state is not in the current lifetime, the
-       cleanup list for the current lifetime should be considered empty.
-       This happens when cleanup code has been emitted for a lifetime inside
-       the current one, and the current lifetime has no associated
-       destructions (there may be cleanup associated with the lifetime
-       itself). */
-    cleanup_state = NULL;
-  } else if (cleanup_state->unordered) {
-    /* Find the first cleanup in a set of unordered cleanups, because all of
-       them must be done. */
-    a_dynamic_init_ptr dip, first_in_unordered_set = NULL;
-    for (dip = curr_object_lifetime->destructions;
-         ;
-         dip = dip->next_in_destruction_list) {
-      check_assertion(dip != NULL);
-      if (dip->unordered) {
-        if (first_in_unordered_set == NULL) {
-          /* Remember the first in a set of unordered entries. */
-          first_in_unordered_set = dip;
-        }  /* if */
-      } else {
-        first_in_unordered_set = NULL;
+  for (dip = orig_dip->lifetime->destructions;
+       ;
+       dip = dip->next_in_destruction_list) {
+    check_assertion(dip != NULL);
+    if (dip->unordered) {
+      if (first_in_unordered_set == NULL) {
+        /* Remember the first in a set of unordered entries. */
+        first_in_unordered_set = dip;
       }  /* if */
-      /* Stop on reaching the cleanup entry we are looking for. */
-      if (dip == cleanup_state) break;
-    }  /* for */
-    cleanup_state = first_in_unordered_set;
-  }  /* if */
-  return cleanup_state;
-}  /* effective_curr_cleanup_state */
+    } else {
+      first_in_unordered_set = NULL;
+    }  /* if */
+    /* Stop on reaching the entry we are looking for. */
+    if (dip == orig_dip) break;
+  }  /* for */
+  return first_in_unordered_set;
+}  /* first_destruction_in_unordered_set */
 
 
 static a_boolean gen_cleanup_actions_or_check_if_needed(
@@ -7908,12 +7918,16 @@ code.
 */
 {
   a_boolean              any_cleanup_needed = FALSE, skip_temporaries = FALSE;
-  a_dynamic_init_ptr     dip;
+  a_dynamic_init_ptr     dip = curr_context->latest_initialization;
   an_object_lifetime_ptr lifetime = curr_object_lifetime;
 
   /* Do nothing at all if there are no lifetimes involved. */
   if (outer_lifetime != NULL) {
-    dip = effective_curr_cleanup_state();
+    /* If the current cleanup entry is part of an unordered set, start with the
+       first in the set. */
+    if (dip != NULL && dip->unordered) {
+      dip = first_destruction_in_unordered_set(dip); 
+    }  /* if */
     /* Loop outward through the indicated scopes.  At each level, there may
        be destructions from the current position back to the beginning
        of the lifetime, and there may be cleanup actions associated with the
@@ -8741,7 +8755,7 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
-        curr_context->curr_cleanup_state = curr_context->latest_initialization;
+        set_curr_cleanup_state_to_latest_initialization();
         if (exceptions_enabled &&
             innermost_function_scope->lifetime != NULL) {
           /* Exceptions are enabled and the current function has
