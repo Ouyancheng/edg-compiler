@@ -496,8 +496,7 @@ done:;
 }  /* class_template_declaration */
 
 
-static void function_template_declaration(a_symbol_ptr  *sym,
-                                          a_type_ptr    *p_rout_type)
+static void function_template_declaration(a_symbol_ptr  *sym)
 /*
 */
 {
@@ -528,9 +527,7 @@ static void function_template_declaration(a_symbol_ptr  *sym,
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type, (a_type_ptr)NULL,
              &locator, &type, &bottom_derived_type, &func_info,
              &dim_expr_ptr);
-  *p_rout_type = type;
-  *sym = enter_symbol((a_symbol_kind)sk_function_template, &locator,
-                     DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
+  decl_function_template(&locator, type, sym);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
   tssp = (*sym)->variant.template.extra_info;
@@ -724,7 +721,11 @@ by means of recursive calls.
                               tparam_type, underlying_array_element_type(tp));
         break;
       case tk_routine:
-        /* Check both the return type and all the parameter types. */
+        /* Check both the return type and all the parameter types.  Note that
+           cfront 3.0 does not consider a template parameter that appears in
+           return type of a pointer-to-function as a "use" in forming the
+           signature of the function template; we believe this is a cfront
+           bug. */
         found = (template_param_appears_in_type_tree(
                               tparam_type, tp->variant.routine.return_type) ||
                  template_param_appears_in_param_list(tparam_type, tp));
@@ -751,6 +752,12 @@ by means of recursive calls.
             }  /* if */
           }  /* if */
         }  /* for */
+        break;
+      case tk_error:
+        /* We assume, with no justification other than to avoid apparently
+           spurious diagnostics, that the error (of which the error type is
+           a representation) involved the very type we are looking at. */
+        found = TRUE;
         break;
       default:
         /* We have reached a leaf in the type tree without finding the
@@ -845,11 +852,14 @@ entry is pushed on the scope stack.
   if (class_template_declaration(&sym, &tag_resolution)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
+    tssp = sym->variant.template.extra_info;
   } else {
     /* It must be a function template declaration. */
-    function_template_declaration(&sym, &rout_type);
+    function_template_declaration(&sym);
     /* Go back through the template params and be sure there are only type
        args.  The other kind is allowed only for class templates. */
+    tssp = sym->variant.template.extra_info;
+    rout_type = tssp->variant.function.routine->type;
     for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
       a_symbol_ptr  param_sym = tpp->param_symbol;
       if (param_sym->kind != (a_symbol_kind)sk_type) {
@@ -865,7 +875,6 @@ entry is pushed on the scope stack.
       }  /* if */
     }  /* for */
   }  /* if */
-  tssp = sym->variant.template.extra_info;
   tssp->parameters = template_param_list;
   tssp->declaration_scope = scope_stack[decl_scope_level].number;
   pop_scope();
