@@ -72,13 +72,13 @@ EXTERN unsigned long array_bound_walk_index;
 EXTERN unsigned long num_walk_array_bounds;
 #endif /* ifdef FFE */
 
-#if IL_WALK_NEEDED
-
 EXTERN a_remap_function_ptr
 		walk_remap_func;
 			/* The function to be used to remap each pointer
 			   from an old value to a new value.  NULL if no
 			   remapping is to be done. */
+
+#if IL_WALK_NEEDED 
 
 /* Walk the intermediate language tree for the file scope. */
 extern void walk_file_scope_il(

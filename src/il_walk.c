@@ -45,12 +45,10 @@ static an_entry_process_function_ptr
 		entry_process_func;
 			/* The function to be called for each non-string entry.
 			   NULL if no function is to be called. */
-#if IL_WALK_NEEDED
 static a_string_entry_process_function_ptr
 		string_entry_process_func;
 			/* The function to be called for each string entry.
 			   NULL if no function is to be called. */
-#endif /* IL_WALK_NEEDED */
 static a_walk_termination_test_function_ptr
 		walk_termination_test_func;
 			/* The function to be called to decide on pruning
@@ -77,16 +75,14 @@ routines.
 typedef struct an_il_walk_state {
   an_entry_process_function_ptr
 		entry_process_func;
-  a_walk_termination_test_function_ptr
-		walk_termination_test_func;
-  a_boolean	walking_file_scope;
-  int		flag_value_meaning_visited;
-#if IL_WALK_NEEDED
   a_string_entry_process_function_ptr
 		string_entry_process_func;
+  a_walk_termination_test_function_ptr
+		walk_termination_test_func;
   a_remap_function_ptr
 		walk_remap_func;
-#endif /* IL_WALK_NEEDED */
+  a_boolean	walking_file_scope;
+  int		flag_value_meaning_visited;
 } an_il_walk_state;
 
 
@@ -94,7 +90,6 @@ typedef struct an_il_walk_state {
 Save the current state of the global variables in the IL walk routines in
 the variable saved_state for later restoration.
 */
-#if IL_WALK_NEEDED
 #define save_il_walk_state(saved_state)                               \
 { (saved_state).entry_process_func         = entry_process_func;      \
   (saved_state).string_entry_process_func  = string_entry_process_func; \
@@ -103,20 +98,11 @@ the variable saved_state for later restoration.
   (saved_state).walking_file_scope         = walking_file_scope;      \
   (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
 }  /* save_il_walk_state */
-#else /* !IL_WALK_NEEDED */
-#define save_il_walk_state(saved_state)                               \
-{ (saved_state).entry_process_func         = entry_process_func;      \
-  (saved_state).walk_termination_test_func = walk_termination_test_func; \
-  (saved_state).walking_file_scope         = walking_file_scope;      \
-  (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
-}  /* save_il_walk_state */
-#endif /* IL_WALK_NEEDED */
 
 /*
 Restore the current state of the global variables in the IL walk routines
 from the saved values in the variable saved_state.
 */
-#if IL_WALK_NEEDED
 #define restore_il_walk_state(saved_state)                            \
 { entry_process_func         = (saved_state).entry_process_func;      \
   string_entry_process_func  = (saved_state).string_entry_process_func; \
@@ -125,14 +111,6 @@ from the saved values in the variable saved_state.
   walking_file_scope         = (saved_state).walking_file_scope;      \
   flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
 }  /* restore_il_walk_state */
-#else /* !IL_WALK_NEEDED */
-#define restore_il_walk_state(saved_state)                            \
-{ entry_process_func         = (saved_state).entry_process_func;      \
-  walk_termination_test_func = (saved_state).walk_termination_test_func; \
-  walking_file_scope         = (saved_state).walking_file_scope;      \
-  flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
-}  /* restore_il_walk_state */
-#endif /* IL_WALK_NEEDED */
 
 #if IL_WALK_NEEDED
 /* Generic IL walk routines (as opposed to, say, the versions that walk
@@ -1336,17 +1314,13 @@ of the front end.
 */
 {
   /* Variables in il_walk.h: */
-#if IL_WALK_NEEDED
   walk_remap_func = NULL;
-#endif /* IL_WALK_NEEDED */
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
   end_of_file_scope_needed_flags_phase = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
   /* Variables in il_walk.c: */
   entry_process_func = NULL;
-#if IL_WALK_NEEDED
   string_entry_process_func = NULL;
-#endif /* IL_WALK_NEEDED */
   walk_termination_test_func = NULL;
   walking_file_scope = FALSE;
   flag_value_meaning_visited = 0;
