@@ -456,6 +456,7 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
   /* Build an entry for the end-of-source token. */
   alloc_cached_token(ctp);
   ctp->token = (a_byte_token_kind)tok_end_of_source;
+  ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
   /* Add the end-of-source token to the end of the cache. */
   add_cached_token_to_cache(ctp, cache);
@@ -5662,10 +5663,28 @@ by the options.  Returns TRUE if any errors were diagnosed.
         pos_ty_error(ec_not_a_class_template, &pos_curr_token, type);
         any_errors = TRUE;
       } else if (!is_prototype_instantiation_symbol(type_sym)) {
-	/* The class is a template class but not the prototype
-	   instantiation. */
-        pos_error(ec_must_be_prototype_instantiation, &pos_curr_token);
-        any_errors = TRUE;
+        /* The class is a template class but not the prototype
+           instantiation.  Decide which of two errors should be issued
+           for this case.  The usual cause of this error is using an
+           incorrect template argument list (one that does not match the
+           template parameter list, but this may also be caused if the
+           class template definition is currently incomplete (so there is
+           no prototype instantiation yet). */
+        a_symbol_ptr	template_sym;
+        template_sym =
+              type_sym->variant.class_struct_union.extra_info->class_template;
+        if (template_sym->variant.template_info->
+                    variant.class_template.prototype_instantiation == NULL) {
+          /* There is no prototype yet.  This is probably caused by the
+             class template being incomplete at this point. */
+          pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
+          any_errors = TRUE;
+        } else {
+          /* The class is a template class but not the prototype
+             instantiation. */
+          pos_error(ec_must_be_prototype_instantiation, &pos_curr_token);
+          any_errors = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
