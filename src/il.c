@@ -629,6 +629,7 @@ If tp is a routine type, dump the function parameters, for debug purposes.
   a_param_type_ptr              ptp;
   a_boolean	                comma_required = FALSE;
 
+  tp = skip_typerefs(tp);
   if (tp->kind == (a_type_kind)tk_routine) {
     fputs("(", f_debug);
     for (ptp = tp->variant.routine.extra_info->param_type_list;
@@ -1218,21 +1219,10 @@ dik_constructor.
 */
 {
   an_expr_node_ptr  arg;
-  a_param_type_ptr  ptp;
 
   fputs("constructor ", f_debug);
   db_name(&dip->variant.constructor.ptr->source_corresp);
-  (void)fputc('(', f_debug);
-  ptp = f_skip_typerefs(dip->variant.constructor.ptr->type)->
-                          variant.routine.extra_info->param_type_list;
-  if (ptp != NULL) {
-    db_abbreviated_type(ptp->type);
-    for (ptp = ptp->next; ptp != NULL; ptp = ptp->next) {
-      fputs(", ", f_debug);
-      db_abbreviated_type(ptp->type);
-    }  /* for */
-  }  /* if */
-  (void)fputc(')', f_debug);
+  db_function_param_list(dip->variant.constructor.ptr->type);
   if ((arg = dip->variant.constructor.args) == NULL) {
     if (dip->destructor != NULL) {
       fputs("; ", f_debug);
