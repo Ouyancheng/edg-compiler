@@ -1722,32 +1722,6 @@ the primary translation unit, respectively) that are being merged.
 }  /* merge_object_lifetimes */
 
 
-/*ARGSUSED*/
-static void merge_class_details(a_type_ptr type,
-                                a_type_ptr primary_type)
-/*
-The class primary_type (in the primary IL) has just been overwritten by,
-or is otherwise being merged with, the class "type" from a secondary
-translation unit.  Do merging of minor information.
-*/
-{
-  /* Does nothing at present. */
-}  /* merge_class_details */
-
-
-/*ARGSUSED*/
-static void merge_routine_details(a_routine_ptr rout,
-                                  a_routine_ptr primary_rout)
-/*
-The routine primary_rout (in the primary IL) has just been overwritten by,
-or is otherwise being merged with, the routine rout from a secondary
-translation unit.  Do merging of minor information.
-*/
-{
-  /* Does nothing at present. */
-}  /* merge_routine_details */
-
-
 /*
 Macros that do saves/restores needed for each overwrite_primary_xxx
 routine, used when an IL entry in the secondary translation unit
@@ -1827,7 +1801,7 @@ the secondary translation unit IL).
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* Note that used_in_exception_or_rtti was previously updated in the
-     primary routine, so we just save the value determined. */
+     primary type, so we just save the value determined. */
   primary_type->used_in_exception_or_rtti = saved_used_in_exception_or_rtti;
   establish_as_canonical(&primary_type->source_corresp);
   if (sym != NULL) {
@@ -2016,9 +1990,6 @@ unit set to the primary translation unit.
         }  /* if */
 #endif /* DEBUG */
         add_to_list = FALSE;
-        if (is_immediate_class_type(corresp_type)) {
-          merge_class_details(corresp_type, primary_type);
-        }  /* if */
         if (!entry_should_overwrite_primary_entry(type)) {
           /* No overwriting is needed, so we're done.  This happens,
              for example, when the only reason the class is marked to be
@@ -2225,7 +2196,6 @@ unit set to the primary translation unit.
         }  /* if */
 #endif /* DEBUG */
         add_to_list = FALSE;
-        merge_routine_details(corresp_routine, primary_routine);
         if (!entry_should_overwrite_primary_entry(routine)) {
           /* No overwriting is needed, so we're done. */
         } else {
