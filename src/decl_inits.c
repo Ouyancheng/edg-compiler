@@ -331,6 +331,21 @@ of constant initializers.
 }  /* scan_initializer_of_simple_object */
 
 
+static void flush_initializers(void)
+{
+  a_dynamic_init  local_di;
+
+  do {
+    add_stop_token(tok_comma);
+    scan_initializer_of_simple_object(/*nonconst_allowed=*/
+                                           (C_dialect == C_dialect_cplusplus),
+                                      error_type(), &local_di);
+    remove_stop_token(tok_comma);
+    
+  } while (loop_token(tok_comma) && curr_token != tok_rbrace);
+}  /* flush_initialzers */
+  
+
 static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
@@ -356,7 +371,7 @@ for unions and aggregates at that level).
   a_constant_ptr      member_con;
   a_targ_size_t       curr_array_element;
   a_field_ptr         curr_field;
-  a_boolean           done, no_more_members;
+  a_boolean           any_more_initializers, any_more_members;
   a_type_kind         kind;
   a_boolean           array_too_long_error_given = FALSE;
   a_boolean           took_extra_comma;
@@ -463,7 +478,8 @@ for unions and aggregates at that level).
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type.  Note that local_type has already
          been stripped of typerefs above. */
-      done = FALSE;
+      any_more_initializers = TRUE;
+      any_more_members = TRUE;
       is_incomplete_array = FALSE;
       /* In ANSI C, the top-level initializer for a struct, union, or
          array must be surrounded by braces.  e.g., "int a[1] = 1;" is
@@ -476,12 +492,10 @@ for unions and aggregates at that level).
       }  /* if */
       kind = local_type->kind;
       if (kind == (a_type_kind)tk_error) {
-        member_type = local_type;
-        if (brace_flag && curr_token == tok_rbrace) {
-          /* Avoid an extra possibly spurious error. */
-          done = TRUE;
-        }  /* if */
-      } else if (kind == (a_type_kind)tk_array) {
+        flush_initializers();
+        goto end_of_initializer_list;
+      }  /* if */
+      if (kind == (a_type_kind)tk_array) {
         curr_array_element = 0;
         is_incomplete_array = is_incomplete_type(local_type);
         member_type = local_type->variant.array.element_type;
@@ -496,15 +510,26 @@ for unions and aggregates at that level).
         }  /* if */
 #endif /* CHECKING */
         curr_field = local_type->variant.class_struct_union.field_list;
-        no_more_members = done = (curr_field == NULL);
+        any_more_members = (curr_field != NULL);
+        if (brace_flag && curr_token == tok_rbrace) {
+          /* Error */
+          any_more_initializers = FALSE;
+        } else if (!any_more_members) {
+          if (!top_level) {
+            any_more_initializers = FALSE;
+          } else {
+            flush_initializers();
+            goto end_of_initializer_list;
+          }  /* if */
+        }  /* if */
       }  /* if */
       con_list = end_of_con_list = NULL;
       took_extra_comma = FALSE;
       /* Loop, scanning initializers. */
       do {
-        if (!done) {
+        if (any_more_initializers) {
           /* Determine the type of the member being initialized. */
-          if (kind == (a_type_kind)tk_array || kind == (a_type_kind)tk_error) {
+          if (kind == (a_type_kind)tk_array) {
             /* member_type was set outside the loop. */
 #if DEBUG
             if (debug_level == 4 && kind == (a_type_kind)tk_array) {
@@ -514,8 +539,8 @@ for unions and aggregates at that level).
               fputc('\n', f_debug);
             }  /* if */
 #endif /* DEBUG */
-          } else if (is_immediate_class_type(local_type)) {
-            /* Get the type of the current field. */
+          } else {
+            /* Class type: get the type of the current field. */
             member_type = curr_field->type;
 #if DEBUG
             if (debug_level == 4) {
@@ -547,10 +572,7 @@ for unions and aggregates at that level).
           }  /* if */
           end_of_con_list = member_con;
           /* Advance to the next member. */
-          no_more_members = FALSE;
-          if (kind == (a_type_kind)tk_error) {
-            /* No processing for this case. */
-          } else if (kind == (a_type_kind)tk_array) {
+          if (kind == (a_type_kind)tk_array) {
             if (curr_array_element == TARG_SIZE_T_MAX) {
               /* Array too long; presumably, this is an incomplete array
                  being initialized with a ridiculous number of initial
@@ -566,7 +588,7 @@ for unions and aggregates at that level).
               if (!is_incomplete_array &&
                   local_type->variant.array.number_of_elements <=
                                                          curr_array_element) {
-                no_more_members = TRUE;
+                any_more_members = FALSE;
               }  /* if */
             }  /* if */
           } else if (kind == (a_type_kind)tk_class ||
@@ -575,7 +597,7 @@ for unions and aggregates at that level).
             curr_field = curr_field->next;
             /* Exit the loop if there are no fields remaining. */
             if (curr_field == NULL) {
-              no_more_members = TRUE;
+              any_more_members = FALSE;
             } else if (curr_field->next == NULL &&
                        is_incomplete_type(curr_field->type)) {
               /* Also exit on an incomplete array at the final field of a
@@ -583,7 +605,7 @@ for unions and aggregates at that level).
                  initialized).  This would come up in a case like
                    struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
               */
-              no_more_members = TRUE;
+              any_more_members = FALSE;
             }  /* if */
           } else {
 #if CHECKING
@@ -594,7 +616,7 @@ for unions and aggregates at that level).
 #endif /* CHECKING */
             /* Only the first field in a union is initialized, so having done
                that field, we are done with the union. */
-            no_more_members = TRUE;
+            any_more_members = FALSE;
           }  /* if */
         }  /* if */
         /* If there are no more members and this is not a brace-enclosed list,
@@ -602,10 +624,10 @@ for unions and aggregates at that level).
            Likewise if this is a top-level list that is not brace-enclosed
            (an error except in pcc mode), end the loop now, having taken only
            one value. */
-        if (!brace_flag && (no_more_members || top_level)) break;
+        if (!brace_flag && (!any_more_members || top_level)) break;
         /* Skip a comma separating initializers.  This might be an extra
            comma at the end of the list. */
-        done = !loop_token(tok_comma);
+        any_more_initializers = loop_token(tok_comma);
         /* Always end the loop upon encountering a right brace.  This might
            be the right brace matching the opening brace for this list
            (in the case that there was one), or a brace closing some
@@ -614,82 +636,94 @@ for unions and aggregates at that level).
            just taken, it is "extra" and no extra comma should be allowed
            outside the loop. */
         if (curr_token == tok_rbrace) {
-          took_extra_comma = !done;
-          done = TRUE;
+          took_extra_comma = any_more_initializers;
+          any_more_initializers = FALSE;
         }  /* if */
-        if (!done && no_more_members) {
-          /* There are more initializers, but we've run out of members
-             into which to put them. */
+        /* Keep looping if there are more initializers and if there are more
+           array elements or fields to initialize. */
+      } while (any_more_initializers && any_more_members);
+      if (any_more_initializers && !any_more_members) {
+        /* There are more initializers, but we've run out of members
+           into which to put them. */
+        if (!brace_flag && !top_level) {
+        } else {
           error(ec_too_many_initializer_values);
-          /* Read the rest of the constants as part of an error type. */
-          kind = (a_type_kind)tk_error;
-          member_type = error_type();
-        } else if (done && !no_more_members && kind != (a_type_kind)tk_error) {
-          if (kind == (a_type_kind)tk_array) {
-            /* We have been initializing the elements of an array, but we
-               ran out of initializers before reaching the end of the array.
-               If the array element is const qualified or is a class type
-               with const or ref members, the initialization is considered
-               incomplete. */
+          flush_initializers();
+          goto end_of_initializer_list;
+        }  /* if */
+      }  /* if */
+      if (!any_more_initializers && any_more_members) {
+        /* Set a flag indicating an "incomplete initialization" if (1) there
+           are more fields or array elements and (2) those fields or array
+           element are const or ref or have const or ref components. */
+        if (kind == (a_type_kind)tk_array) {
+          /* We have been initializing the elements of an array, but we
+             ran out of initializers before reaching the end of the array.
+             If the array element is const qualified or is a class type
+             with const or ref members, the initialization is considered
+             incomplete. */
+          a_type_ptr                     tp;
+          a_class_symbol_supplement_ptr  cssp = NULL;
+
+          tp = underlying_array_element_type(local_type);
+          if (C_dialect == C_dialect_cplusplus &&
+              is_class_struct_union_type(tp)) {
+            cssp = symbol_supplement_for_class(tp);
+          }  /* if */
+          if (cssp != NULL && cssp->constructor != NULL) {
+            /* The initialization of the rest of the array elements will use
+               a default constructor, if one exists. */
+          } else if (is_const_qualified_type(tp)) {
+            /* Element type is const qualified. */
+            *incomplete_init = TRUE;
+          } else if (is_class_struct_union_type(tp)) {
+            tp = skip_typerefs(tp);
+            /* Element type is a class.  Check for const or ref members. */
+            if (tp->variant.class_struct_union.any_const_member ||
+                (cssp != NULL && cssp->any_ref_member)) {
+              *incomplete_init = TRUE;
+            }  /* if */
+          }  /* if */
+        } else {
+          /* We have been initializing the fields of a class object, but we
+             ran out of initializers before reaching the last field.  See if
+             any of the remaining fields are const or ref types. */
+          if (local_type->variant.class_struct_union.any_const_member ||
+              (C_dialect == C_dialect_cplusplus &&
+               symbol_supplement_for_class(local_type)->any_ref_member)) {
+            /* We know there is at least one const or ref member.  Check the
+               remaining fields (the ones that have not yet been matched up
+               with an initial value in the initializer list) for one that
+               needs to be initialized. */
+            a_field_ptr  fp = curr_field;
             a_type_ptr   tp;
 
-            tp = underlying_array_element_type(local_type);
-            if (is_const_qualified_type(tp)) {
-              /* Element type is const qualified. */
-              *incomplete_init = TRUE;
-            } else {
-              tp = skip_typerefs(tp);
-              if (tp->kind == (a_type_kind)tk_class ||
-                  tp->kind == (a_type_kind)tk_struct) {
-                /* Element type is a class.  Check for const or ref members. */
+            /* Make a pass over the remaining fields.  Break out of the loop
+             if a const or ref type is encountered. */
+            for (; fp != NULL; fp = fp->next) {
+              tp = fp->type;
+              if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+              if (is_const_qualified_type(tp) || is_reference_type(tp)) {
+                /* Const qualified type or reference type. */
+                *incomplete_init = TRUE;
+                break;
+              } else if (is_class_struct_union_type(tp)) {
+                /* Field is a class type (or an array of class-type
+                   elements). */
+                tp = skip_typerefs(tp);
                 if (tp->variant.class_struct_union.any_const_member ||
                     (C_dialect == C_dialect_cplusplus &&
                      symbol_supplement_for_class(tp)->any_ref_member)) {
-                  *incomplete_init = TRUE;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          } else {
-            /* We have been initializing the fields of a class object, but we
-               ran out of initializers before reaching the last field.  See if
-               any of the remaining fields are const or ref types. */
-            if (local_type->variant.class_struct_union.any_const_member ||
-                (C_dialect == C_dialect_cplusplus &&
-                 symbol_supplement_for_class(local_type)->any_ref_member)) {
-              /* We know there is at least one const or ref member.  Check the
-                 remaining fields (the ones that have not yet been matched up
-                 with an initial value in the initializer list) for one that
-                 needs to be initialized. */
-              a_field_ptr  fp = curr_field;
-              a_type_ptr   tp;
-
-              /* Make a pass over the remaining fields.  Break out of the loop
-               if a const or ref type is encountered. */
-              for (; fp != NULL; fp = fp->next) {
-                tp = fp->type;
-                if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-                if (is_const_qualified_type(tp) || is_reference_type(tp)) {
-                  /* Const qualified type or reference type. */
+                  /* At least one sub-field of the field is a const or
+                     ref. */
                   *incomplete_init = TRUE;
                   break;
-                } else if (is_class_struct_union_type(tp)) {
-                  /* Field is a class type (or an array of class-type
-                     elements). */
-                  tp = skip_typerefs(tp);
-                  if (tp->variant.class_struct_union.any_const_member ||
-                      (C_dialect == C_dialect_cplusplus &&
-                       symbol_supplement_for_class(tp)->any_ref_member)) {
-                    /* At least one sub-field of the field is a const or
-                       ref. */
-                    *incomplete_init = TRUE;
-                    break;
-                  }  /* if */
                 }  /* if */
-              }  /* for */
-            }  /* if */
+              }  /* if */
+            }  /* for */
           }  /* if */
         }  /* if */
-      } while (!done);
+      }  /* if */
       /* The entire list of values for the entity being initialized has
          now been read.  We stopped either because we exhausted the
          initial values or because we ran out of members to initialize. */
@@ -713,6 +747,7 @@ for unions and aggregates at that level).
                                       &con_list, &end_of_con_list, di_list,
                                       end_of_di_list, incomplete_init);
       }  /* if */
+end_of_initializer_list:
       /* Allocate the aggregate constant that is the value for the
          initializer. */
       init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
@@ -737,7 +772,7 @@ for unions and aggregates at that level).
     a_dynamic_init  local_di;
 
     scan_initializer_of_simple_object(/*nonconst_allowed=*/
-                                            (C_dialect == C_dialect_cplusplus),
+                                           (C_dialect == C_dialect_cplusplus),
                                       local_type, &local_di);
     switch (local_di.kind) {
       case dik_constant:
