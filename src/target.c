@@ -290,7 +290,9 @@ to match the source dialect (including the version of the dialect).
 #if CHECKING
   {
     int n_dialects =
-       /*lint !e514*/(gnu_mode != 0) + (microsoft_mode != 0) + (sun_mode != 0);
+       (gnu_mode != 0) +
+       (microsoft_mode != 0) + /*lint !e514*/
+       (sun_mode != 0); /*lint !e514*/
     check_assertion(n_dialects < 2);
   }
 #endif /* CHECKING */
