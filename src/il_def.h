@@ -4299,7 +4299,7 @@ typedef struct a_class_type_supplement {
 			   non-NULL, this is still the offset within the
 			   current class.  If any_virtual_functions in the
 			   associated type entry is FALSE, this field is
-			   undefined.  */
+			   undefined. */
   a_base_class_ptr
 		virtual_function_info_base_class;
 			/* If virtual function info is shared between the
@@ -4757,7 +4757,7 @@ typedef struct a_type {
   a_bit_field	alignment_set_explicitly:1;
 			/* TRUE if this type differs from the type it
 			   refers to because its alignment has been
-			   explicitly set, via an attribute.  */
+			   explicitly set, via an attribute. */
   a_bit_field	variables_are_implicitly_referenced:1;
 			/* TRUE if no warnings about unused variables
 			   should be emitted for variables that have
@@ -4765,7 +4765,7 @@ typedef struct a_type {
   a_bit_field	copy_with_additional_attributes:1;
 			/* TRUE if this is a type that is the same as
 			   some other type, but with additional
-			   attributes.  */
+			   attributes. */
   a_bit_field   has_gnu_deprecated_attribute:1;
 			/* TRUE if this type was declared with the GNU
 			   "deprecated" attribute. */
@@ -8756,7 +8756,7 @@ typedef struct a_statement {
                            logical expression.
                              The switch expression for stmk_switch.
                              The selector expression for stmk_assigned_goto,
-			     if GNU extensions are allowed.  */
+			     if GNU extensions are allowed. */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* Also:
@@ -9641,7 +9641,7 @@ enum a_scope_kind_tag {
   sck_template_instantiation,
                         /* Used during the instantiation of class and function
                            templates to make the template arguments visible
-                           (C++ only).  Used only in the front end.  */
+                           (C++ only).  Used only in the front end. */
   sck_pragma,
 			/* Used while processing certain #pragma directives
 			   to affect the visibility of other scopes.  Used
@@ -9689,7 +9689,7 @@ typedef struct a_scope {
 		number;	/* Scope number (unique identifier) for this scope. */
   a_scope_kind	kind;
 			/* Kind of scope (file, function, block, function
-			   prototype, etc.).  */
+			   prototype, etc.). */
   a_byte_boolean
 		function_body_processing_finished;
 			/* Front-end only, for sck_function scopes: set to
@@ -10035,7 +10035,7 @@ typedef struct an_il_header {
 			/* Pointer to a list of entries that point to lists
 			   of "orphaned" file scope IL entries -- entries
 			   whose parents are in a function scope memory
-			   region.  */
+			   region. */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   a_source_language
                 source_language;
