@@ -1726,12 +1726,15 @@ their operands.
 */
 {
   an_expr_node_ptr node_next = node->next;
+  a_boolean        result_is_not_used = node->result_is_not_used;
 
-  /* Copy the node.  Preserve the original "next" field. */
+  /* Copy the node.  Preserve the original "next" field and the 
+     result_is_not_used flag. */
   /* Note that the new/delete supplement from the source node is used
      by the destination node; no copy is needed. */
   *node = *source_node;
   node->next = node_next;
+  node->result_is_not_used = result_is_not_used;
 }  /* overwrite_node */
 
 
