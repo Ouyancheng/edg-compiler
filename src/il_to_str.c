@@ -2437,8 +2437,6 @@ parentheses are not needed.
       check_assertion_str(constant->variant.address.kind ==
                                               (an_address_base_kind)abk_uuidof,
                           "form_lvalue_for_addressed_entity: bad kind");
-      /* The constant represents the address of the __uuidof, so add a "&". */
-      octl->output_str("(&");
       form_uuidof_reference(constant->variant.address.variant.type, octl);
       octl->output_str(")");
     }  /* if */
@@ -3535,6 +3533,9 @@ precedence confusion.  Do the output in the way described by octl.
           octl->output_str(")");
           break;
         case tpck_uuidof:
+          /* The constant represents the address of the __uuidof, so add
+             a "&". */
+          octl->output_str("(&");
           form_uuidof_reference(constant->variant.template_param.variant.type,
                                 octl);
           break;
