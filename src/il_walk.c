@@ -654,7 +654,7 @@ only the entries marked as "needed" are marked to keep in the IL.
   walking_to_set_keep_in_il = TRUE;
 
   /* Walk the IL tree. */
-  walk_tree_and_set_needed(entry_ptr, entry_kind);
+  walk_entry_and_subtree(entry_ptr, entry_kind);
 
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
