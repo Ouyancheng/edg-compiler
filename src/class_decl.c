@@ -1090,9 +1090,11 @@ routine entry and return TRUE; otherwise return FALSE.
   a_routine_ptr                rout, rp;
   a_scope_number               base_class_scope_number;
   a_class_type_supplement_ptr  ctsp;
+  a_virtual_function_number    virtual_function_number = 0;
 
   db_enter(4, "check_for_virtual_function");
   rout = rout_sym->variant.routine;
+  ctsp = class_type->variant.class_struct_union.extra_info;
   is_virtual = virtual_specified;
   /* We scan symbols on the inactive list, since we are only interested in
      base classes symbols. */
@@ -1111,6 +1113,9 @@ routine entry and return TRUE; otherwise return FALSE.
           /* Base class destructor is virtual. */
           is_virtual = TRUE;
           record_virtual_function_override(bcp, rp, rout);
+          if (bcp == ctsp->virtual_function_info_base_class) {
+            virtual_function_number = rp->virtual_function_number;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -1163,6 +1168,9 @@ routine entry and return TRUE; otherwise return FALSE.
                    entry.  It can be used later, e.g., for building a virtual
                    function table. */
                 record_virtual_function_override(bcp, rp, rout);
+                if (bcp == ctsp->virtual_function_info_base_class) {
+                  virtual_function_number = rp->virtual_function_number;
+                }  /* if */
               } else {
                 /* Error -- cannot differ in return type only (ARM 10.2). */
                 pos_error(ec_bad_return_type_on_virtual_function_override,
@@ -1181,19 +1189,22 @@ next_base_class:;
   if (is_virtual) {
     /* Mark the routine entry. */
     rout_sym->variant.routine->is_virtual = TRUE;
-    /* The number of virtual functions declared so far in this routine has
-       is recorded in the class type supplement.  Increment that number and
-       enter it in the routine entry.  It is used by the front end in
-       managing virtual function override entries and can be used by the
-       back end for indexing into a virtual function table. */
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    if (ctsp->virtual_function_count >= MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
-      pos_error(ec_too_many_virtual_functions, source_pos);
-      /* Reset to zero, to avoid more such messages. */
-      ctsp->virtual_function_count = 0;
+    class_type->variant.class_struct_union.any_virtual_functions = TRUE;
+    if (virtual_function_number == 0) {
+      /* The number of virtual functions declared so far in this routine has
+         is recorded in the class type supplement.  Increment that number and
+         enter it in the routine entry.  It is used by the front end in
+         managing virtual function override entries and can be used by the
+         back end for indexing into a virtual function table. */
+      if (ctsp->virtual_function_count >= MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
+        pos_error(ec_too_many_virtual_functions, source_pos);
+        /* Reset to zero, to avoid more such messages. */
+        ctsp->virtual_function_count = 0;
+      }  /* if */
+      virtual_function_number = ++(ctsp->virtual_function_count);
     }  /* if */
-    rout_sym->variant.routine->virtual_function_number = 
-                                      ++(ctsp->virtual_function_count);
+    rout_sym->variant.routine->virtual_function_number =
+                                                    virtual_function_number;
   }  /* if */
   db_exit();
   return is_virtual;
@@ -2331,9 +2342,7 @@ or struct definition.  The syntax is
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
   a_boolean                     any_base_class_with_override_list;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -2605,11 +2614,21 @@ or struct definition.  The syntax is
           }  /* if */
         }  /* for */
       }  /* if */
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-      if (!is_virtual) {
+      if (first_direct_nonvirtual_base_class && !is_virtual) {
+        a_class_type_supplement_ptr  base_ctsp;
+        base_ctsp = base_class_type->variant.class_struct_union.extra_info;
+        if (base_ctsp->virtual_function_count > 0) {
+          bcp = base_ctsp->virtual_function_info_base_class;
+          if (bcp == NULL) {
+            ctsp->virtual_function_info_base_class = new_direct_bcp;
+          } else {
+            ctsp->virtual_function_info_base_class =
+                     corresponding_base_class(bcp, (a_type_ptr)NULL, type_ptr);
+          }  /* if */
+          ctsp->virtual_function_count = base_ctsp->virtual_function_count;
+        }  /* if */
         first_direct_nonvirtual_base_class = FALSE;
       }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 skip_base_class:
       /* Advance past the base class name to the comma or right brace. */
       (void)get_token();
@@ -6046,8 +6065,7 @@ next_declaration:
       }  /* if */
       /* Issue a warning on a class with virtual functions but no virtual
          destructor. */
-      if (class_type->variant.class_struct_union.
-                                 extra_info->virtual_function_count > 0) {
+      if (class_type->variant.class_struct_union.any_virtual_functions) {
         if (cssp->destructor != NULL &&
             !cssp->destructor->variant.routine->is_virtual) {
           /* The class has virtual functions and a destructor, but the latter
