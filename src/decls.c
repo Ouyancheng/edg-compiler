@@ -1670,7 +1670,12 @@ issued a similar error).  Return FALSE if there is some error.
          an error for certain cases in SVR4 C compatibility mode. */
       if (SVR4_C_mode) {
         if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
-          if (types_are_SVR4_compatible(old_type, type_ptr)) {
+          /* Functions and variables are treated differently.  For example:
+               void f() { extern unsigned g(); extern int x; }
+               int g();      // Warning in SVR4 C mode.
+               int x;        // Error in SVR4 C mode.
+          */
+          if (is_routine && types_are_SVR4_compatible(old_type, type_ptr)) {
             severity = es_warning;
             /* Record the most recent type as the external symbol's type. */
             esdp->type = type_ptr;
@@ -1747,8 +1752,9 @@ issued a similar error).  Return FALSE if there is some error.
                else there was an intervening declaration.  Issue a warning. */
             severity = es_warning;
             if (types_are_SVR4_compatible(old_type, type_ptr)) {
-              /* Record the most recent type as the external symbol's type. */
-              esdp->type = type_ptr;
+              /* If this is a variable, record the most recent type as the
+                 external symbol's type. */
+              if (!is_routine) esdp->type = type_ptr;
             } else {
               okay = FALSE;
               if (file_scope_decl_found) {
@@ -2912,7 +2918,7 @@ skip_overloading:;
          internal or external linkage, it is entered at the file scope. */
       variable_ptr = make_variable(type_ptr, storage_class, at_file_scope);
       source_corresp_ptr = &variable_ptr->source_corresp;
-      if (!linked_redecl_error && *ext_sym != NULL &&
+      if (*ext_sym != NULL &&
           (*ext_sym)->variant.extern_symbol_descr->variant.variable != NULL) {
         /* A new variable entry has been created, yet the external symbol
            already refers to a different variable.  This can occur when there
@@ -2921,11 +2927,14 @@ skip_overloading:;
              void f(int i) { { extern int i; } }
            where the second declaration of i has an incompatible type, yet
            no error is issued. */
-        check_assertion_str2((storage_class == (a_storage_class)sc_extern) &&
-                               !is_variable_def,
-                             "decl_var_or_routine:",
-                             "can't set superseded_external");
-        variable_ptr->superseded_external = TRUE;
+        if (!linked_redecl_error &&
+            !is_error_type((*ext_sym)->variant.extern_symbol_descr->type)) {
+          check_assertion_str2(SVR4_C_mode && !is_variable_def &&
+                               (storage_class == (a_storage_class)sc_extern),
+                               "decl_var_or_routine:",
+                               "can't set superseded_external");
+          variable_ptr->superseded_external = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       /* There is an existing IL entry that we are reusing. */
