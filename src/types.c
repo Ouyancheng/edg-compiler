@@ -100,7 +100,8 @@ return a pointer to that.  Note that the typeref may have some type
 qualifiers (const, volatile), and they will be dropped here.  Therefore,
 this routine should not be used when checking type qualifiers.  Note
 that ordinarily this routine should not be called directly; use the macro
-"skip_typerefs".
+"skip_typerefs".  However, it does make sense to call this routine instead
+of the macro to avoid multiple evaluations of the argument.
 */
 /*
 There are copies of this routine, under the name local_skip_typerefs,
@@ -988,7 +989,32 @@ promotions case).
 }  /* default_argument_promotion */
 
 
-a_type_ptr type_of_complete_object(an_expr_node_ptr node)
+a_type_ptr con_complete_object_type(a_constant_ptr constant)
+/*
+Return the type of the complete object that contains the location indicated
+by constant, or NULL if no complete object can be determined or the constant
+is not an address constant.  NULL is always a safe answer; non-NULL values
+may permit optimizations.  Note that "complete object" means an object that
+is not a base class of another object, not necessarily a top-level object.
+This is used only in C++ mode; it is useful to know what the complete object
+type is to optimize base class casts and virtual function calls.
+*/
+{
+  a_type_ptr complete_object_type = NULL;
+
+  if (constant->kind == (a_constant_repr_kind)ck_address &&
+      constant->variant.address.kind == (an_address_base_kind)abk_variable &&
+      constant->variant.address.offset == 0 &&
+      !constant->implicit_cast) {
+    /* Unmodified address of a variable.  The variable is the complete
+       object and its type is the complete object type. */
+    complete_object_type = constant->variant.address.variant.variable->type;
+  }  /* if */
+  return complete_object_type;
+}  /* con_complete_object_type */
+
+
+a_type_ptr node_complete_object_type(an_expr_node_ptr node)
 /*
 Return the type of the complete object that contains the location indicated
 by node (an lvalue address), or NULL if no complete object can be determined.
@@ -1000,7 +1026,6 @@ base class casts and virtual function calls.
 */
 {
   a_type_ptr            complete_object_type = NULL;
-  a_constant_ptr        constant;
   an_expr_operator_kind op;
   an_expr_node_ptr      first_operand;
 
@@ -1010,17 +1035,7 @@ base class casts and virtual function calls.
       /* Complete object not known. */
       break;
     case enk_constant:
-      constant = node->variant.constant;
-      if (constant->kind == (a_constant_repr_kind)ck_address &&
-          constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable &&
-          constant->variant.address.offset == 0 &&
-          !constant->implicit_cast) {
-        /* Unmodified address of a variable.  The variable is the complete
-           object and its type is the complete object type. */
-        complete_object_type =
-                              constant->variant.address.variant.variable->type;
-      }  /* if */
+      complete_object_type = con_complete_object_type(node->variant.constant);
       break;
     case enk_variable_address:
       /* Address of a variable.  The variable is the complete object and its
@@ -1034,27 +1049,28 @@ base class casts and virtual function calls.
       if (op == (an_expr_operator_kind)eok_field ||
           op == (an_expr_operator_kind)eok_bit_field) {
         /* Field selection (normal or bit-field).  The field itself is a
-           complete object. */
+           complete object (recall that "complete" means "not a base class"
+           rather than "not part of another object"). */
         complete_object_type = first_operand->next->variant.field->type;
       } else if (op == (an_expr_operator_kind)eok_base_class_cast) {
         /* Cast to a base class.  Do a recursive call on the first operand
            to find the complete object. */
-        complete_object_type = type_of_complete_object(first_operand);
+        complete_object_type = node_complete_object_type(first_operand);
       } else if (op == (an_expr_operator_kind)eok_padd ||
                  op == (an_expr_operator_kind)eok_padd_subsc ||
                  op == (an_expr_operator_kind)eok_psubtract) {
         /* Pointer addition (subscripting) or subtraction.  Do a recursive
            call on the first operand to find the complete object. */
-        complete_object_type = type_of_complete_object(first_operand);
+        complete_object_type = node_complete_object_type(first_operand);
       }  /* if */
       break;
 #if CHECKING
     default:
-      internal_error("type_of_complete_object: bad expression kind");
+      internal_error("node_complete_object_type: bad expression kind");
 #endif /* CHECKING */
   }  /* switch */
   return complete_object_type;
-}  /* type_of_complete_object */
+}  /* node_complete_object_type */
 
 
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
