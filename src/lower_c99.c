@@ -340,12 +340,13 @@ done:
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #if LOWER_COMPLEX || (VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS)
 
-static an_expr_node_ptr make_prototyped_runtime_call(
+static an_expr_node_ptr make_prototyped_runtime_call_full(
                                                char             *name,
                                                a_routine_ptr    *routine,
                                                a_type_ptr       return_type,
                                                a_type_ptr       param1_type,
                                                a_type_ptr       param2_type,
+                                               a_type_ptr       param3_type,
                                                an_expr_node_ptr arg_expr_list)
 /*
 Create a call node to a runtime routine with arguments given by arg_expr_list.
@@ -369,14 +370,40 @@ argument).
       rout_type->variant.routine.extra_info->param_type_list = first_param;
       if (param2_type != NULL) {
         first_param->next = alloc_param_type(param2_type);
+        if (param3_type != NULL) {
+          first_param->next->next = alloc_param_type(param3_type);
+        }  /* if */
+      } else {
+        check_assertion(param3_type == NULL);
       }  /* if */
     } else {
-      check_assertion(param2_type == NULL);
+      check_assertion(param2_type == NULL && param3_type == NULL);
     }  /* if */
   }  /* if */
   /* Make the call node. */
   result = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
                           (an_insert_location *)NULL);
+  return result;
+}  /* make_prototyped_runtime_call_full */
+
+
+static an_expr_node_ptr make_prototyped_runtime_call(
+                                               char             *name,
+                                               a_routine_ptr    *routine,
+                                               a_type_ptr       return_type,
+                                               a_type_ptr       param1_type,
+                                               a_type_ptr       param2_type,
+                                               an_expr_node_ptr arg_expr_list)
+/*
+Version of make_prototyped_runtime_call that handles one or two parameter
+types.
+*/
+{
+  an_expr_node_ptr result;
+
+  result = make_prototyped_runtime_call_full(name, routine, return_type,
+                                             param1_type, param2_type,
+                                             (a_type_ptr)NULL, arg_expr_list);
   return result;
 }  /* make_prototyped_runtime_call */
  
@@ -1269,6 +1296,13 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
 
+/*
+Integer kind for the fxmask parameter to fixed-point runtime routines.
+Must match the size chosen in the runtime.
+*/
+#define FXMASK_INT_KIND ((an_integer_kind)ik_unsigned_short)
+
+
 static int fxtype_value(a_fixed_point_type_descr descr)
 /*
 Return the "fxtype" value that describes the indicated fixed-point
@@ -1407,9 +1441,8 @@ destination) to a runtime call).
   a_type_ptr        return_type;
   a_routine_ptr     *routine;
   char              *routine_name;
-  an_integer_kind   fxmask_int_kind = (an_integer_kind)ik_unsigned_short;
   a_float_kind      fkind;
-  unsigned long     fxmask = 0;
+  unsigned long     fxmask;
   int               shift_amount = 0;
   a_constant        zero_constant;
 
@@ -1490,12 +1523,12 @@ destination) to a runtime call).
       routine = &fixed_float_conv_routine[(int)fkind];
       return_type = float_type(fkind);
     }  /* if */
-    fxmask_expr = node_for_integer_constant((long)fxmask, fxmask_int_kind);
+    fxmask_expr = node_for_integer_constant((long)fxmask, FXMASK_INT_KIND);
     /* Make the call of the runtime cast routine. */
     fxmask_expr->next = src;
     new_expr = make_prototyped_runtime_call(routine_name, routine,
                                             return_type,
-                                            integer_type(fxmask_int_kind),
+                                            integer_type(FXMASK_INT_KIND),
                                             fxvalue_type(),
                                             fxmask_expr);
     /* Cast the value returned by the runtime routine to the final
@@ -1560,6 +1593,97 @@ Transform the given cast expression into a function call (compatible with C89).
   }  /* if */
 }  /* lower_c99_cast */
 
+#if LOWER_FIXED_POINT
+
+/*
+Runtime routines for fixed-point comparisons.
+*/
+static a_routine_ptr
+		fixed_eq_routine,
+		fixed_ne_routine,
+		fixed_gt_routine,
+		fixed_lt_routine,
+		fixed_ge_routine,
+		fixed_le_routine;
+
+
+static void lower_c99_fixed_point_comparison(an_expr_node_ptr expr)
+/*
+Lower a fixed-point comparison expression, e.g., one with an eok_fxeq
+operator.
+*/
+{
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      op1 = expr->variant.operation.operands;
+  an_expr_node_ptr      op2 = op1->next;
+  an_expr_node_ptr      fxmask_expr, new_expr;
+  char                  *routine_name;
+  a_routine_ptr         *routine;
+  unsigned long         fxmask;
+  int                   shift_amount = 0;
+
+  /* Select the proper runtime routine for the operation. */
+  switch (op) {
+    case eok_fxeq:
+      routine_name = "_Fixed_eq";
+      routine = &fixed_eq_routine;
+      break;
+    case eok_fxne:
+      routine_name = "_Fixed_ne";
+      routine = &fixed_ne_routine;
+      break;
+    case eok_fxgt:
+      routine_name = "_Fixed_gt";
+      routine = &fixed_gt_routine;
+      break;
+    case eok_fxlt:
+      routine_name = "_Fixed_lt";
+      routine = &fixed_lt_routine;
+      break;
+    case eok_fxge:
+      routine_name = "_Fixed_ge";
+      routine = &fixed_ge_routine;
+      break;
+    case eok_fxle:
+      routine_name = "_Fixed_le";
+      routine = &fixed_le_routine;
+      break;
+    default:
+      unexpected_condition_str("bad fixed point comparison operator");
+  }  /* switch */
+  /* Build up the fxmask argument describing the operand types. */
+  fxmask = fxcontrol_value();
+  shift_amount = FXCONTROL_SIZE;
+  fxmask |= (fxtype_value_for_type(op1->type) << shift_amount);
+  shift_amount += FXTYPE_SIZE;
+  fxmask |= (fxtype_value_for_type(op2->type) << shift_amount);
+  fxmask_expr = node_for_integer_constant((long)fxmask, FXMASK_INT_KIND);
+  /* Convert the first operand to the fxvalue type used to interface to the
+     runtime. */
+  op1->next = NULL;
+  op1 = add_cast_if_necessary(op1, fxvalue_type());
+  /* Convert the second operand to the fxvalue type used to interface to the
+     runtime. */
+  op2 = add_cast_if_necessary(op2, fxvalue_type());
+  /* Make the call of the runtime comparison routine. */
+  fxmask_expr->next = op1;
+  op1->next = op2;
+  new_expr = make_prototyped_runtime_call_full(
+                                         routine_name, routine,
+                                         integer_type((an_integer_kind)ik_int),
+                                         integer_type(FXMASK_INT_KIND),
+                                         fxvalue_type(),
+                                         fxvalue_type(),
+                                         fxmask_expr);
+  /* Cast the value returned by the runtime routine to the final
+     desired type (probably does nothing except add a typedef if
+     appropriate). */
+  new_expr = add_cast_if_necessary(new_expr, expr->type);
+  /* Overwrite the original node with the lowered expression. */
+  overwrite_node(expr, new_expr);
+}  /* lower_c99_fixed_point_comparison */
+
+#endif /* LOWER_FIXED_POINT */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void lower_binary_conditional(an_expr_node_ptr  expr)
@@ -1856,8 +1980,20 @@ _Bool type, and VLA types.
       break;
 #if FIXED_POINT_ALLOWED
     case eok_fxassign:
+#if LOWER_FIXED_POINT
       /* Fixed-point assignment becomes integer assignment. */
       expr->variant.operation.kind = (an_expr_operator_kind)eok_iassign;
+#endif /* LOWER_FIXED_POINT */
+      break;
+    case eok_fxeq:
+    case eok_fxne:
+    case eok_fxgt:
+    case eok_fxlt:
+    case eok_fxge:
+    case eok_fxle:
+#if LOWER_FIXED_POINT
+      lower_c99_fixed_point_comparison(expr);
+#endif /* LOWER_FIXED_POINT */
       break;
 #endif /* FIXED_POINT_ALLOWED */
     case eok_iadd_assign:
@@ -3212,6 +3348,12 @@ Do one-time initialization of variables related to C99 IL lowering.
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
       pch_saved_var_array_elem(fixed_conv_routine),
+      pch_saved_var_array_elem(fixed_eq_routine),
+      pch_saved_var_array_elem(fixed_ne_routine),
+      pch_saved_var_array_elem(fixed_gt_routine),
+      pch_saved_var_array_elem(fixed_lt_routine),
+      pch_saved_var_array_elem(fixed_ge_routine),
+      pch_saved_var_array_elem(fixed_le_routine),
       pch_array_saved_var_array_elem(float_fixed_conv_routine),
       pch_array_saved_var_array_elem(fixed_float_conv_routine),
 #endif /* LOWER_FIXED_POINT */
@@ -3273,6 +3415,12 @@ for each translation unit.
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
   fixed_conv_routine = NULL;
+  fixed_eq_routine = NULL;
+  fixed_ne_routine = NULL;
+  fixed_gt_routine = NULL;
+  fixed_lt_routine = NULL;
+  fixed_ge_routine = NULL;
+  fixed_le_routine = NULL;
   { int k;
     for (k = 0; k < (int)fk_last; ++k) {
       float_fixed_conv_routine[k] = NULL;
