@@ -1,5 +1,24 @@
 Version 2.35
 
+2/11/97 Incorrect handling of member function template declared inline
+        after having been called
+
+If a member function template declared within a class template was
+called and then defined as an inline function, the function was being
+incorrectly treated as noninline until it was instantiated.  This could
+result in an instantiation loop when using the prelinker.  This has
+been fixed.
+
+  template <class T> struct A {
+    template <class T2> void f(T2);
+  };
+  int main() {
+    A<int> a;
+    a.f(1);
+  }
+  template <class T> template <class T2> void inline A<T>::f(T2){}
+
+
 2/11/97 Function-local const variable as operand of "?" operator
 
 When a function-local const integral variable appeared as an operand

@@ -9110,7 +9110,7 @@ is inline.
         a_template_symbol_supplement_ptr	tssp;
         tssp = template_supplement_for_symbol(tip->template_sym);
         result = tssp->variant.function.routine->is_inline ||
-                 tssp->variant.function.func_info.is_inline;
+                 func_info_for_template(tssp)->is_inline;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9462,22 +9462,6 @@ defer_inline is TRUE.
       tip->referencing_namespace =
                   scope_stack[depth_innermost_namespace_scope].assoc_namespace;
     }  /* if */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode) {
-      /* Set the instantiation required flag in the routine or variable
-         entry. */
-      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-        a_variable_ptr	variable;
-        variable = sym->variant.static_data_member.variable;
-        variable->instance_required = TRUE;
-      } else if (!is_static_or_inline_template_function(tip)) {
-        /* A noninline function. */
-        a_routine_ptr	routine;
-        routine = sym->variant.routine.ptr;
-        routine->instance_required = TRUE;
-      }  /* if */
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     if (!defer_inline && is_inline_template_function(tip)) {
       if (!tip->already_instantiated &&
           should_be_instantiated(tip, /*implicit_inclusion_ok=*/FALSE)) {
@@ -9872,9 +9856,11 @@ is set by update_instantiation_required_flag.
     if (is_static_data_member) {
       variable->can_be_instantiated = can_instantiate;
       variable->do_not_instantiate = tip->explicit_do_not_instantiate;
+      variable->instance_required = tip->instantiation_required;
     } else {
       routine->can_be_instantiated = can_instantiate;
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
+      routine->instance_required = tip->instantiation_required;
     }  /* if */
   }  /* for */
   db_exit();
