@@ -4822,11 +4822,14 @@ is called only in C++ mode.
 
 
 void make_this_variable_operand(a_variable_ptr this_var,
+                                a_boolean      is_implicit,
                                 an_operand     *result)
 /*
-Make an operand for the value of the "this" variable this_var.  The source
-position of the operand is set to "pos_curr_token".  The operand is an
-rvalue.
+Make an operand for the value of the "this" variable this_var.  The reference
+is implicit if is_implicit is TRUE.  The source position of the operand is
+set to "pos_curr_token".  The position in the expression, which exists when
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, is set only when is_implicit is
+FALSE.  The operand is an rvalue.
 */
 {
   an_expr_node_ptr node;
@@ -4835,6 +4838,13 @@ rvalue.
   node = var_rvalue_expr(this_var);
   /* Make an operand for the node. */
   make_expression_operand(node, node->type, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (!is_implicit) {
+    /* Set the position in the expression too when the reference is
+       explicit. */
+    set_operand_expr_position_if_expr(result);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* make_this_variable_operand */
 
 
@@ -4855,7 +4865,8 @@ member of an unrelated class, issue an error and return an error operand.
 member_pos is the position of the member, for use in errors and as the
 source position of the result operand.  Return TRUE if the "this"
 operand was built without error.  This routine is called only in
-C++ mode.
+C++ mode.  Note that this routine is called only for an implicit "this->",
+not for the explicit case.
 */
 {
   a_variable_ptr   this_var;
@@ -4912,7 +4923,7 @@ C++ mode.
          an access through "this" is always acceptable under the rules in
          that section. */
       /* Make an operand for the value of the "this" pointer. */
-      make_this_variable_operand(this_var, result);
+      make_this_variable_operand(this_var, /*is_implicit=*/TRUE, result);
       /* Get position right in case of errors below. */
       result->position = *member_pos;
       if (template_case) {

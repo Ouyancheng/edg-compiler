@@ -11917,7 +11917,8 @@ see expr.h).
                                        &local_result);
         } else {
           /* Make an rvalue for the "this" variable. */
-          make_this_variable_operand(this_var, &local_result);
+          make_this_variable_operand(this_var, /*is_implicit=*/FALSE,
+                                     &local_result);
         }  /* if */
       }  /* if */
       (void)get_token();
