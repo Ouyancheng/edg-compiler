@@ -4,10 +4,11 @@ Version 2.36
           continue after a catastrophic error
 
 In templates.c, a static variable in process_deferred_instantiation_requests
-has been moved to the file scope so that it can be reinitialized in the
-initialization routine.  This was done to permit the front end to continue
-compiling files even after a compilation that terminated abnormally (e.g.,
-via a catastrophic error).
+has been moved to the file scope so that it can be reinitialized by
+the routine used to initialize the front end before each translation unit.
+This was done to permit the front end to continue compiling files even
+after a compilation that terminated abnormally (e.g., via a
+catastrophic error).
 
 5/28/97   READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS made default for Microsoft OSs
 
