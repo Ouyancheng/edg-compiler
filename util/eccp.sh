@@ -84,7 +84,7 @@ fe_only=0
 # Among other things, the front end will not create or remove the .ii
 # file when only doing preprocessing
 #
-preprocess_only=0
+preprocessor_only=0
 #
 # Name of the executable after linking.
 #
