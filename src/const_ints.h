@@ -22,6 +22,12 @@ const_ints.h -- Declarations related to manipulation of target integer
 #include "il.h"
 #endif /* ifndef IL_H */
 
+extern void set_integer_value(an_integer_value *intval,
+                              long             value);
+
+extern void set_unsigned_integer_value(an_integer_value *intval,
+                                       unsigned long    value);
+
 extern a_boolean int_kind_is_signed(an_integer_kind kind);
 
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
@@ -50,7 +56,7 @@ extern int cmplit_integer_constant(a_constant *con1,
 extern int cmpulit_integer_constant(a_constant    *con1,
                                     unsigned long unsigned_value2);
 
-extern void incr_integer_constant(a_constant *cp);
+extern void incr_integer_value(an_integer_value *intval);
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
 
@@ -58,14 +64,6 @@ extern char *str_for_integer_constant(a_constant *cp);
 
 extern void write_integer_constant(FILE       *f_output,
                                    a_constant *cp);
-
-extern void set_value_of_integer_constant(a_constant *cp,
-                                          long       value,
-                                          a_type_ptr type);
-
-extern void set_unsigned_value_of_integer_constant(a_constant    *cp,
-                                                   unsigned long value,
-                                                   a_type_ptr type);
 
 #endif /* ifndef CONST_INTS_H */
 

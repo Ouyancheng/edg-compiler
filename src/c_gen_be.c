@@ -1745,7 +1745,7 @@ Dump an enum.  Print the associated source name if there is one.
     /* Make an integer constant 0 of the same type as the first enumeration
        constant. */
     enum_value = *constant;
-    set_value_of_integer_constant(&enum_value, 0L, constant->type);
+    set_integer_value(&enum_value.variant.integer_value, 0L);
     indent += 2;
     for (;;) {
       /* Put out each enumeration constant, with a value if it's not the
@@ -1757,7 +1757,7 @@ Dump an enum.  Print the associated source name if there is one.
         write_integer_constant(f_C_output, constant);
         enum_value = *constant;
       }  /* if */
-      incr_integer_constant(&enum_value);
+      incr_integer_value(&enum_value.variant.integer_value);
       constant = constant->next;
       if (constant == NULL) break;
       fputc(',', f_C_output);
