@@ -5114,6 +5114,7 @@ instantiations are recorded in the IL.
                              locator->parent.namespace_ptr);
   }  /* if */
   if (locator->template_arg_list != NULL) {
+    process_unattached_template_argument_list(locator->template_arg_list);
     rp->template_arg_list = locator->template_arg_list;
     rp->expl_template_arg_list_used = TRUE;
   }  /* if */
