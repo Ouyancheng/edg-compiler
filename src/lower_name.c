@@ -401,6 +401,50 @@ mangled form.
 }  /* mangled_encoding_for_constant_cast */
 
 
+static sizeof_t mangled_encoding_for_sizeof(a_type_ptr type,
+                                            a_boolean  is_alignof,
+                                            char       *store_at)
+/*
+Place a mangled representation of sizeof(type) (or __ALIGNOF__(type), if
+is_alignof is TRUE) at *store_at if store_at != NULL, and (always) return
+the length of the mangled form.
+*/
+{
+  sizeof_t mangled_expr_length, section_length;
+
+  /* Output has the form
+       OszZ1Z0O <-- "sizeof(Z1)", Z1 indicating a template parameter.
+              ^---- "O" to end the operation encoding.
+             ^----- Count of operands, always 0 for sizeof.
+          ^^^------ Encoding for type.
+        ^^--------- Operation.
+       ^----------- "O" for operation.
+     mangled_encoding_for_expression generates a compatible structure, so
+     if you change this be sure to change that as well.
+  */
+  /* Put out the initial "O". */
+  mangled_expr_length = 1;
+  if (store_at != NULL) *store_at++ = 'O';
+  /* Put out the operator name "sz" or "af". */
+  mangled_expr_length += 2;
+  if (store_at != NULL) {
+    (void)strcpy(store_at, is_alignof ? "af" : "sz");
+    store_at += 2;
+  }  /* if */
+  /* The operator name is followed by the encoding for the type. */
+  section_length = mangled_encoding_for_type(type, store_at);
+  mangled_expr_length += section_length;
+  if (store_at != NULL) store_at += section_length;
+  /* Put out the count of operands. */
+  mangled_expr_length++;
+  if (store_at != NULL) *store_at++ = '0';
+  /* Put out the final "O". */
+  mangled_expr_length++;
+  if (store_at != NULL) *store_at++ = 'O';
+  return mangled_expr_length;
+}  /* mangled_encoding_for_sizeof */
+
+
 static sizeof_t literal_representation(a_constant_ptr con,
                                        a_boolean      old_form,
                                        char           *store_at)
@@ -716,6 +760,14 @@ mangling for lengths of literals.
           break;
         case tpck_sizeof:
         case tpck_alignof:
+          literal_length = mangled_encoding_for_sizeof(
+                                      con->variant.template_param.variant.type,
+                                      /*is_alignof=*/
+                                            con->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_alignof,
+                                      store_at);
+          if (store_at != NULL) store_at += literal_length;
+          break;
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");
