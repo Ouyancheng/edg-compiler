@@ -3751,17 +3751,23 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     if (is_an_lvalue(&operand) &&
         is_expression_operand(&operand) &&
         is_polymorphic_class_type(typeid_type)) {
-      expr = operand.variant.expression;
-      if (is_variable_node(expr)) {
-        /* The expression is, effectively, *variable. */
-      } else if (is_operation_node(expr) &&
-                 expr->variant.operation.kind ==
-                                      (an_expr_operator_kind)eok_padd_subsc &&
-                 is_variable_node(expr->variant.operation.operands)) {
-        /* The expression is, effectively, p[expr]. */
-      } else {
-        /* Anything else.  Not handled as a special case. */
+#if 0
+      /* This processing (checking the complete object type) is not exactly
+         what the WP calls for.  The WP singles out the cases *p and p[x],
+         though it probably means that p is an arbitrary, and there's a test
+         suite test that checks something like typeid(*f(x)).  However,
+         Bjarne's paper, N0198=92-0121, voted in at the 3/93 Portland meeting,
+         included examples using references.  The present processing seems
+         closer to the intent, it's safe, and it's easier to do. */
+#endif /* 0 */
+      if (operand_complete_object_type(&operand,
+                                       /*call_case=*/FALSE) != NULL) {
+        /* The complete object type can be determined, so runtime processing
+           is not needed. */
         expr = NULL;
+      } else {
+        /* The type must be determined dynamically. */
+        expr = operand.variant.expression;
       }  /* if */
     }  /* if */
   }  /* if */
