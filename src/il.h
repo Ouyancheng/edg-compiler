@@ -102,9 +102,8 @@ EXTERN unsigned long
 			   and template static data members that were generated
 			   by this translation unit.  This is used when
 			   generating one instantiation per object file to
-			   determine the amount of space that must be reserved
-			   to compute the needed flags for each of the
-			   instances. */
+			   assign bit numbers to the needed flags for each
+			   of the instances. */
 
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 
