@@ -1233,11 +1233,11 @@ should be put out.
   /* See if template arguments are needed.  For partial specializations,
      there are two argument lists. */
   template_args = ctsp->template_arg_list;
-#if ABI_COMPATIBILITY_VERSION < 242
+#if ABI_COMPATIBILITY_VERSION < 241
   /* Before this change, all names included partial specialization
      arguments. */
   show_partial_spec_args = distinct_template_signatures;
-#endif /* ABI_COMPATIBILITY_VERSION < 242 */
+#endif /* ABI_COMPATIBILITY_VERSION < 241 */
   if (show_partial_spec_args &&
       ctsp->partial_spec_template_arg_list != NULL) {
     /* A partial specialization.  The first list is the argument list
