@@ -1616,7 +1616,7 @@ typeinfo variable in a COMDAT group.
           } else {
             pointed_to_type = pm_member_type(type);
           }  /* if */
-          if (emulate_gnu_abi_bugs &&
+          if (emulate_gnu_abi_bugs && gnu_abi_version < 30300 &&
               pointed_to_type->kind == (a_type_kind)tk_array) {
             /* g++ 3.2 fails to put the cv-qualifier bits on an array type. */
           } else {

@@ -1,5 +1,15 @@
 Version 3.4
 
+3/14/04  IA-64 ABI: typeinfo bug with array cv-qualifiers fixed in g++ 3.3
+
+g++ 3.2 has a bug in generating typeinfo information for
+cv-qualified arrays: it drops the cv-qualifier bits in the
+typeinfo object.  The EDG front end emulates this bug when
+GNU ABI bug emulation is on.  This bug has been fixed in
+g++ 3.3 (even when -fabi-version=0 is not specified), so
+the emulation is now done only when gnu_abi_version is
+less than 30300.
+
 3/13/04  Suboptimal operator for pointer-to-member bitwise copy
 
 IL lowering generated an eok_bassign operator for the bitwise copy
