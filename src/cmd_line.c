@@ -414,9 +414,6 @@ Initialize the option information table.
   add_option_description(optk_microsoft_mode, "no_microsoft",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_microsoft_16_mode, "microsoft_16",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
   add_option_description(optk_microsoft_version, "microsoft_version",
                          '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -426,6 +423,11 @@ Initialize the option information table.
   add_option_description(optk_microsoft_bugs, "no_microsoft_bugs",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if NEAR_AND_FAR_ALLOWED
+  add_option_description(optk_microsoft_16_mode, "microsoft_16",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -1707,16 +1709,18 @@ common_cfront_mode_settings:
 enable_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
+#if NEAR_AND_FAR_ALLOWED
         il_header.near_and_far_are_enabled = FALSE;
+#endif /* NEAR_AND_FAR_ALLOWED */
         break;
+#if NEAR_AND_FAR_ALLOWED
       case optk_microsoft_16_mode:
         /* Enable or disable Microsoft extensions, in 16-bit mode. */
         check_assertion(opt_value == TRUE);
         microsoft_mode = TRUE;
-#if NEAR_AND_FAR_ALLOWED
         il_header.near_and_far_are_enabled = TRUE;
-#endif /* NEAR_AND_FAR_ALLOWED */
         break;
+#endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:

@@ -108,9 +108,11 @@ typedef enum /*an_option_kind*/ {
   optk_long_lifetime_temps,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_microsoft_mode,
-  optk_microsoft_16_mode,
   optk_microsoft_version,
   optk_microsoft_bugs,
+#if NEAR_AND_FAR_ALLOWED
+  optk_microsoft_16_mode,
+#endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   optk_far_data_pointers,
