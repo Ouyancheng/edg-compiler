@@ -8464,23 +8464,32 @@ update_instantiation_required_flag to do the appropriate processing.
 */
 {
   a_symbol_list_entry_ptr	slep;
+  static a_boolean		in_process = FALSE;
 
-  for (slep = deferred_instantiations; slep != NULL; slep = slep->next) {
-    a_template_instance_ptr	tip;
-    a_symbol_ptr		sym = slep->symbol;
-    if (is_function_symbol(sym)) {
-      tip = sym->variant.routine.instance_ptr;
-    } else {
-      check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-      tip = sym->variant.static_data_member.instance_ptr;
-    }  /* if */
-    update_instantiation_required_flag(tip, /*value=*/TRUE,
-                                       /*defer_inline=*/FALSE);
-  }  /* for */
-  /* Free any list entries that were used. */
-  free_list_of_symbol_list_entries(deferred_instantiations);
-  deferred_instantiations = NULL;
-  deferred_instantiations_tail = NULL;
+  /* The processing of this list may result in additional deferred
+     instantiations that will get added to the end of the list.  The
+     static flag in_process is used to make sure that the list is
+     not processed during potential recursive calls of this routine. */
+  if (!in_process) {
+    in_process = TRUE;
+    for (slep = deferred_instantiations; slep != NULL; slep = slep->next) {
+      a_template_instance_ptr	tip;
+      a_symbol_ptr		sym = slep->symbol;
+      if (is_function_symbol(sym)) {
+        tip = sym->variant.routine.instance_ptr;
+      } else {
+        check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+        tip = sym->variant.static_data_member.instance_ptr;
+      }  /* if */
+      update_instantiation_required_flag(tip, /*value=*/TRUE,
+                                         /*defer_inline=*/FALSE);
+    }  /* for */
+    /* Free any list entries that were used. */
+    free_list_of_symbol_list_entries(deferred_instantiations);
+    deferred_instantiations = NULL;
+    deferred_instantiations_tail = NULL;
+    in_process = FALSE;
+  }  /* if */
 }  /* process_deferred_instantiation_requests */
 
 
