@@ -3105,6 +3105,7 @@ This routine is called during IL walking.
     case iek_template_arg:
     case iek_new_delete_supplement:
     case iek_throw_supplement:
+    case iek_accessible_base_class:
 #endif /* ifdef CFE */
       break;
     default:
