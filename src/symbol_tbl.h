@@ -648,9 +648,18 @@ typedef struct a_class_symbol_supplement {
   unsigned int  has_operator_new:1;
 			/* TRUE if a member operator new() has been declared
 			   for this class or a class from which it derived. */
+  unsigned int  has_operator_array_new:1;
+			/* TRUE if a member operator new[]() has been
+			   declared for this class or a class from which it
+			   is derived. */
   unsigned int  has_operator_delete:1;
-			/* TRUE if a member operator delete() has been declared
-			   for this class or a class from which it derived. */
+			/* TRUE if a member operator delete() has been
+			   declared for this class or a class from which it
+			   is derived. */
+  unsigned int  has_operator_array_delete:1;
+			/* TRUE if a member operator delete[]() has been
+			   declared for this class or a class from which it
+			   is derived. */
   unsigned int  is_nonreal_class:1;
 			/* TRUE if the class is an instantiation of a class
 			   template based on template arguments that include

@@ -1418,7 +1418,9 @@ state.
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
         cssp->has_operator_new = FALSE;
+        cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;
+        cssp->has_operator_array_delete = FALSE;
         cssp->is_nonreal_class = FALSE;
         cssp->is_prototype_instantiation = FALSE;
         cssp->is_specific_template_def = FALSE;
