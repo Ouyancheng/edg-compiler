@@ -590,8 +590,10 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
 /* size_t, used for size of arrays, offsets in fields, type of sizeof, etc.
    This type must be unsigned.  See 3.3.3.4 in the standard and the header
    file <stddef.h>. */
+/* a_targ_size_t is the container used to hold size_t values on the host.
+   It must be large enough to hold all the target size_t values, but can
+   be larger. */
 typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
-
 /* TARG_SIZE_T_MAX defines the limit of the host representation
    of size_t constants; the range it defines can be equal to or smaller
    than the integer size implied by TARG_SIZE_T_INT_KIND.  Except when
