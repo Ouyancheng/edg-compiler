@@ -1,6 +1,6 @@
 Version 3.6
 
-1/12/04  Microsaoft compatibility: __noop accepted in C mode
+1/12/04  Microsoft compatibility: __noop accepted in C mode
 
 The Microsoft __noop extension (see entry of 4/1/03) is now also
 accepted in Microsoft C mode.
