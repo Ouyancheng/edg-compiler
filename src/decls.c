@@ -3461,8 +3461,9 @@ cross-reference output describing this declaration.
   }  /* if */
   if (redeclaration) {
     if (linked_symbol->kind == (a_symbol_kind)sk_variable) {
-      if (C_mode() && linked_symbol->defined) {
-        if (linked_symbol->variant.variable.ptr->init_kind !=
+      if (C_mode() || (microsoft_mode && (srk_flags & SRK_TENTATIVE_DEF))) {
+        if (linked_symbol->defined &&
+            linked_symbol->variant.variable.ptr->init_kind !=
                                                (an_init_kind)initk_none) {
           /* The variable was initialized on a prior declaration, so this
              cannot be a definition or a tentative definition.  (The error
@@ -3642,10 +3643,11 @@ cross-reference output describing this declaration.
       /* This is definition of a variable that has previously been declared.
          In C++ only one declaration of a variable can be construed to be
          its definition, so if we are in C++ mode this is it. */
-      if (C_mode() && sym->defined && (srk_flags & SRK_TENTATIVE_DEF)) {
+      if (sym->defined && (srk_flags & SRK_TENTATIVE_DEF)) {
         /* In C ignore a tentative definition (i.e., one for which no
            initializer is present) if the variable has already been defined
-           in a previous tentative definition. */
+           in a previous tentative definition.  This may also come up in
+           Microsoft mode for arrays of unknown dimension. */
       } else {
         /* This is a definition of a variable that was not previously
            defined, so unlink the variable entry and relink it at the end
@@ -8773,17 +8775,6 @@ continue_with_declaration:
                    An "extern" storage class is implied (ARM 7.4, comment on
                    p. 118). */
                 local_storage_class = (a_storage_class)sc_extern;
-              } else if (microsoft_mode && !C_mode()) {
-                if (is_incomplete_type(local_type_ptr) &&
-                    is_array_type(local_type_ptr) &&
-                    !is_const_qualified_type(local_type_ptr)) {
-                  /* In Microsoft C++ mode, a non-const variable at file
-                     scope that is a zero-length array is treated as though
-                     it were declared "extern" (unless it has an initializer,
-                     which is checked later).  That is, it is not treated as
-                     a definition. */
-                  local_storage_class = (a_storage_class)sc_extern;
-                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -8920,9 +8911,20 @@ continue_with_declaration:
           }  /* if */
           srk_flags |= SRK_INITIALIZATION;
         } else if (C_dialect == C_dialect_cplusplus) {
-          /* In C++ all other variable declarations are definitions, except
-             those with a storage class of extern. */
-          if (local_storage_class != (a_storage_class)sc_extern) {
+          /* Variable declaration in C++ mode with no explicit initializer. */
+          if (microsoft_mode &&
+              local_storage_class == (a_storage_class)sc_unspecified &&
+              is_incomplete_type(local_type_ptr) &&
+              is_array_type(local_type_ptr) &&
+              !is_const_qualified_type(local_type_ptr)) {
+            /* In Microsoft C++ mode, a non-const variable at file scope
+               that is a zero-length array is treated like a C-mode tentative
+               definition. */
+            is_tentative_definition = TRUE;
+            srk_flags |= SRK_TENTATIVE_DEF;
+          } else if (local_storage_class != (a_storage_class)sc_extern) {
+            /* In C++ all other variable declarations are definitions, except
+               those with a storage class of extern. */
             is_variable_def = TRUE;
             /* Even without an explicit initializer this is an initializing
                declaration if the variable is nontrivially constructible
@@ -9082,8 +9084,8 @@ continue_with_declaration:
            declaration.  Such a variable may be assumed to be initialized
            at the point of definition, so flag it as "set" (even if it is not
            actually set at the current declaration). */
-        /* Or else:  This is a tentative definition (C mode only), which should
-           be treated as though it were a definition. */
+        /* Or else:  This is a tentative definition, which should be treated
+           as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
