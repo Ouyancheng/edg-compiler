@@ -6214,6 +6214,7 @@ declaration following this one is such a continuation.
   a_storage_class              storage_class;
   a_type_ptr                   var_type;
   a_boolean                    is_specialization;
+  a_boolean                    force_unqualified_name;
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
@@ -6340,6 +6341,10 @@ declaration following this one is such a continuation.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  /* An unqualified name is used in the declarator if this is a declaration
+     rather than a definition.  Specializations are an exception, and
+     get the full normal handling. */
+  force_unqualified_name = !is_definition && !is_specialization;
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,
@@ -6349,7 +6354,9 @@ declaration following this one is such a continuation.
                                      sec_decl,
                                      TQ_NONE,
                                      suppress_specifiers,
-                                     GDO_NO_OPTIONS);
+                                     force_unqualified_name ?
+                                                   GDO_FORCE_UNQUALIFIED_NAME :
+                                                   GDO_NO_OPTIONS);
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than
