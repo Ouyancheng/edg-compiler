@@ -1,5 +1,24 @@
 Version 2.38
 
+1/9/98    Order of template specialization entries in source sequence during
+          instantiation wrapup
+
+During the instantiation wrapup phase, when GENERATE_SOURCE_SEQUENCE_LISTS
+and NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS are
+configured to TRUE, a function template instantiation triggered within
+another function template instantiation will always be represented as
+preceding the referencing instantiation in the source-sequence list.  For
+instance:
+
+  template <class T> inline void f(T t) { }
+  template <class T> void g(T t) { f(t); }
+  main() {
+    g(0);
+  }
+
+In this example, the source-sequence entry representing the instantiation
+of f<int> used to follow the entry for g<int> but now precedes it.
+
 1/9/98    Microsoft compatibility: extern template directive that references
           a class template that is declared but not defined
 
