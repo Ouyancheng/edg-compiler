@@ -486,19 +486,21 @@ Flag that is TRUE if "&..." should be accepted in the source code.  This
 extension is provided to support the form of macro va_start that is provided
 in some versions of stdarg.h, e.g.,
   #define va_start(list, name) (void)(list = (void *)((char *)&...))
+This is the default value for address_of_ellipsis_allowed.
 */
-#ifndef ADDRESS_OF_ELLIPSIS_ALLOWED
-#define ADDRESS_OF_ELLIPSIS_ALLOWED FALSE
-#endif /* ifndef ADDRESS_OF_ELLIPSIS_ALLOWED */
+#ifndef DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED
+#define DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED FALSE
+#endif /* ifndef DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED */
 
 /*
 Flag that is TRUE if an ellipsis alone is permitted in a function declaration
 in C mode -- something like "void f(...)".  A diagnostic is issued in strict
-ANSI C mode.  (This usage is standard in C++ mode.)
+ANSI C mode.  (This usage is standard in C++ mode.)  This is the default value
+for allow_ellipsis_only_param_in_C_mode.
 */
-#ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
-#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE FALSE
-#endif /* ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
+#ifndef DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
+#define DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE FALSE
+#endif /* ifndef DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
 
 /*
 Flag that is TRUE if, in ANSI C mode, a set of features found in the

@@ -3130,8 +3130,8 @@ operation is a pointer-to-member (see ARM 5.3).
 
   /* Advance past the "&". */
   (void)get_token();
-#if ADDRESS_OF_ELLIPSIS_ALLOWED
-  if (curr_token == (a_token_kind)tok_ellipsis) {
+  if (address_of_ellipsis_allowed &&
+      curr_token == (a_token_kind)tok_ellipsis) {
     /* Allow the &... extension, used in stdarg.h macros to get the
        address of the ellipsis arguments. */
     if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
@@ -3155,7 +3155,6 @@ operation is a pointer-to-member (see ARM 5.3).
     /* Advance past the "...". */
     (void)get_token();
   } else {
-#endif /* ADDRESS_OF_ELLIPSIS_ALLOWED */
     /* Scan the operand. */
     scan_expr(&operand, PREC_PREFIX, EOPT_OPERAND_OF_ADDRESS_OF);
 
@@ -3236,9 +3235,7 @@ operation is a pointer-to-member (see ARM 5.3).
         }  /* if */
       }  /* if */
     }  /* if */
-#if ADDRESS_OF_ELLIPSIS_ALLOWED
   }  /* if */
-#endif /* ADDRESS_OF_ELLIPSIS_ALLOWED */
 
   error_position = start_position;
   result->position = start_position;

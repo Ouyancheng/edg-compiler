@@ -877,18 +877,16 @@ scope is that of a class definition.
       extra_info->prototyped = FALSE;
     }  /* if */
     any_params = FALSE;
-  } else if (curr_token == tok_ellipsis
-#if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
-             && C_dialect == C_dialect_cplusplus
-#endif /* !ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
-                                                ) {
+  } else if (curr_token == tok_ellipsis &&
+             (!C_mode() || allow_ellipsis_only_param_in_C_mode)) {
+    /* The first thing in the parameter list is an ellipsis. */
     if (is_destructor) {
       /* Destructors are allowed no arguments. */
       error(ec_too_many_params_for_destructor);
     } else {
       /* In C++ f(...) is legal, though it is not recommended since it is not
          portable (ARM 8.3).  In C it's an extension that is supported when
-         ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE is TRUE. */
+         allow_ellipsis_only_param_in_C_mode is TRUE. */
       extra_info->has_ellipsis = TRUE;
       /* An ellipsis only occurs in prototyped param lists. */
       extra_info->prototyped = TRUE;
@@ -897,13 +895,11 @@ scope is that of a class definition.
         pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
       } else {
 #endif /* ASM_FUNCTION_ALLOWED */
-#if ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
         if (C_mode() && strict_ansi_mode) {
           /* Issue a diagnostic on use of a nonstandard feature. */
           pos_diagnostic(strict_ansi_error_severity,
                          ec_nonstd_ellipsis_only_param, &pos_curr_token);
         }  /* if */
-#endif /* ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
 #if ASM_FUNCTION_ALLOWED
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */

@@ -1030,13 +1030,11 @@ compiling ANSI C code in SVR4 C compatibility mode.
 /*
 If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put out
 as the parameter list for a routine with no parameters and has_ellipsis
-set to TRUE.  Note: by default this flag is set to correspond to whether
-the construct is also accepted in a C source program, but there is no
-requirement that the two flags have the same value.
+set to TRUE.  The setting of this switch is irrelevant if the construct
+is not allowed in the source (see allow_ellipsis_only_param_in_C_mode).
 */
 #ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
-#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C                       \
-                ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
+#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C TRUE
 #endif /* !define(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
 
 /*

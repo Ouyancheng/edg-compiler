@@ -584,10 +584,27 @@ EXTERN a_boolean
 #if VAR_INITIALIZERS
                             = DEFAULT_SVR4_C_MODE
 #endif /* VAR_INITIALIZERS */
-                                                ;
+                                                 ;
                         /* TRUE if the C++ operator keywords (such as
 			   "and", "or", "not", etc.) and digraphs should
 			   be allowed. */
+
+EXTERN a_boolean
+		address_of_ellipsis_allowed
+#if VAR_INITIALIZERS
+                            = DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                           ;
+			/* TRUE if "&..." is accepted. */
+
+EXTERN a_boolean
+		allow_ellipsis_only_param_in_C_mode
+#if VAR_INITIALIZERS
+                            = DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
+#endif /* VAR_INITIALIZERS */
+                                                   ;
+			/* TRUE if an ellipsis alone is allowed as a parameter
+			   list in C mode (e.g., "void f(...)"). */
 
 EXTERN a_boolean
                 allow_nonconst_ref_anachronism

@@ -1,5 +1,14 @@
 Version 2.30
 
+8/30/95  Allowing "&..." and, in C mode, "(...)"
+
+The lang_feat.h configuration switches ADDRESS_OF_ELLIPSIS_ALLOWED and
+ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE have been renamed
+DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED and
+DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE.  They are now the initial
+values of variables.  The variables are set to TRUE if the --svr4
+command-line option is specified.
+
 8/30/95  Instantiation of classes in expression processing
 
 Template classes are instantiated automatically when needed in expression

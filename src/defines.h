@@ -118,8 +118,6 @@ Flags to be set when using the KAI inliner.
 #endif
 #define DEFAULT_SVR4_C_MODE 0
 #define PRAGMA_WEAK_ALLOWED 1
-#define ADDRESS_OF_ELLIPSIS_ALLOWED 1
-#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE 1
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
