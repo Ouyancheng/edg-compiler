@@ -3127,6 +3127,7 @@ in having type qualifiers.  This routine is called only in C++ mode.
     node = result->variant.expression;
     node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
     node->type = make_pointer_type(result_type);
+    result->type = result_type;
     /* Keep the reference entries from the lvalue operand. */
     result->ref_entries_list = lvalue_operand->ref_entries_list;
   }  /* if */

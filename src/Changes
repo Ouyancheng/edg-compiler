@@ -1,5 +1,19 @@
 Version 2.37
 
+8/1/97    cv-qualifiers preserved on type of lvalue result of assignment
+          operation
+
+Assignment operations in C++ return lvalues.  The cv-qualifiers on
+such lvalues had inadvertently been dropped.  Now they are preserved.
+This was significant only if the cv-qualifiers were "volatile", since the
+left operand of an assignment cannot be const-qualified.
+
+  void f(int&);
+  void g(int p) {
+    volatile int i = 0, j = 0;
+    f(p ? i += 1 : i += 0x100);  // Now gets error, as it should
+  }
+
 7/31/97   Cast of template-parameter-based expression to bool type
 
 A cast of a template-parameter-based expression to bool type was
