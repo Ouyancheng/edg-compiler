@@ -252,7 +252,8 @@ must be unsigned.
 
 void scan_bit_field_size(a_boolean  unnamed_bit_field,
                          a_type_ptr *p_base_type,
-                         long       *p_bit_field_size)
+                         long       *p_bit_field_size,
+                         a_boolean  *p_is_signed)
 /*
 Scan the size in a bit-field declaration:
 
@@ -263,11 +264,12 @@ The current token is the colon preceding the size.  If unnamed_bit_field
 is TRUE, the bit-field is unnamed.  *p_base_type gives the base type
 of the declaration (unsigned int in the above example); it may be updated
 on return.  *p_bit_field_size is set to the bit field size in bits.
+*p_is_signed is set to indicate whether or not the bit field is signed.
 */
 {
   unsigned long bit_field_size, max_size_allowed;
   a_type_ptr    base_type = *p_base_type;
-  a_boolean     err;
+  a_boolean     err, is_signed = FALSE;
   a_constant    constant;
   a_type_ptr    bit_field_type;
 
@@ -347,43 +349,33 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       /* The integral type is an enum type.  Give a warning if any of the
          enumeration's constants will not fit in the bit field, and determine
          whether the bit field should be signed or unsigned. */
-      a_boolean need_signed_type;
       check_enum_type_for_bit_field(bit_field_type, bit_field_size,
-                                    &need_signed_type);
-      /* Change the base type for the bit field if necessary to get the
-         right signedness. */
-      if (need_signed_type !=
-          int_kind_is_signed[(int)bit_field_type->variant.integer.int_kind]) {
-        /* Change to a signed or unsigned int type with the enum type
-           indicated in it.  Note that this is a new and unshared type. */
-#if 0
-        /* This needs to be changed. */
-#endif /* 0 */
-        a_type_ptr new_enum_type = alloc_type((a_type_kind)tk_integer);
-        new_enum_type->variant.integer.int_kind =
-                           need_signed_type ? (an_integer_kind)ik_int :
-                                              (an_integer_kind)ik_unsigned_int;
-        new_enum_type->variant.integer.enum_type = FALSE;
-        new_enum_type->variant.integer.enum_info.affiliated_type =
-                                                                bit_field_type;
-        set_type_size(new_enum_type);
-        bit_field_type = new_enum_type;
-      }  /* if */
+                                    &is_signed);
     } else if (bit_field_type->variant.integer.explicitly_signed) {
-      /* The integral type was explicitly signed in the source.  (This
-         information comes from the type entry itself.)  The integral type
-         stays what it is (specifically, "int" stays "int" and therefore
-         signed).  Give a warning for an explicitly signed one-bit field;
-         ANSI allows it, but it's strange. */
+      /* The integral type was explicitly signed in the source, e.g.,
+         "signed int" instead of just "int".  (This information comes
+         from the type entry itself.)  That forces the bit field to
+         be signed.  The integral type already has the right kind and
+         signedness. */
+      is_signed = TRUE;
+      /* Give a warning for an explicitly signed one-bit field; ANSI C
+         allows it, but it's strange. */
       if (bit_field_size == 1) warning(ec_signed_one_bit_field);
-    } else if (bit_field_type->variant.integer.int_kind ==
-                                                     (an_integer_kind)ik_int) {
-      /* The integral type is a "plain" int, i.e., it's int, it's not
-         explicitly signed, and it's not an enum type.  This is converted
-         to the target preference with regard to signedness.  A one-bit field
-         is probably not intended to be signed, so make it unsigned. */
-      if (bit_field_size == 1 || TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) {
-        bit_field_type =integer_type((an_integer_kind)ik_unsigned_int);
+    } else {
+      an_integer_kind ikind = bit_field_type->variant.integer.int_kind;
+      if (int_kind_is_signed[(int)ikind]) {
+        /* The integral type is a signed kind, but it is not explicitly
+           signed, and it's not an enum type.  This is converted
+           to the target preference with regard to signedness.  A one-bit field
+           is probably not intended to be signed, so make it unsigned. */
+        is_signed = TRUE;
+        if (bit_field_size == 1 || TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) {
+          is_signed = FALSE;
+          /* Use the unsigned type corresponding to the kind we have.
+             The unsigned version of a kind always immediately follows
+             the signed version. */
+          bit_field_type = integer_type((an_integer_kind)((int)ikind + 1));
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -398,6 +390,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   }  /* if */
   *p_base_type = base_type;
   *p_bit_field_size = bit_field_size;
+  *p_is_signed = is_signed;
 }  /* scan_bit_field_size */
 
 
