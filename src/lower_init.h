@@ -36,9 +36,7 @@ EXTERN a_boolean
 
 extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
-#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
 extern void do_default_arg_promotions_on_node(an_expr_node_ptr expr);
-#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
 
 extern a_routine_ptr make_runtime_routine(char          *name,
                                           a_routine_ptr *routine,

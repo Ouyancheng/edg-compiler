@@ -470,6 +470,16 @@ EXTERN a_targ_alignment
 
 #if DO_IL_LOWERING
 
+EXTERN a_boolean
+		make_all_functions_unprototyped
+#if VAR_INITIALIZERS
+                                          = MAKE_ALL_FUNCTIONS_UNPROTOTYPED
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
+			/* If TRUE, all functions are rewritten to be
+			   unprototyped. */
+            
+
 EXTERN unsigned int
 		targ_jmp_buf_num_elements
 #if VAR_INITIALIZERS

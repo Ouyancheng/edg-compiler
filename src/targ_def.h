@@ -840,7 +840,9 @@ does, in generating old-style C that is compiled by a C compiler.
 This change is important if one wants to be able to call libraries that
 were compiled by cfront.  (cfront's +a1 option requests generation of ANSI C
 code; if one wants compatibility with cfront in that mode, this option
-should be set to FALSE.)
+should be set to FALSE.)  This is the initial value of the variable
+make_all_functions_unprototyped.  There is no command-line option to
+change that variable, but having a variable makes it possible to have one.
 */
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED CFRONT_OBJECT_CODE_COMPATIBILITY
 

@@ -1,5 +1,17 @@
 Version 2.27
 
+12/22/94 MAKE_ALL_FUNCTIONS_UNPROTOTYPED as variable
+
+The build option MAKE_ALL_FUNCTIONS_UNPROTOTYPED, which controls whether
+IL lowering turns all functions into unprototyped functions (for
+compartibility with the +a0 mode of cfront), is now selectable at
+compile-time.  The setting of MAKE_ALL_FUNCTIONS_UNPROTOTYPED is transferred
+to the new variable make_all_functions_unprototyped, which is then tested
+in IL lowering.  There is no command-line option to change this setting
+(since, basically, we think it's a mistake to make this user-selectable
+except after thorough consideration), but having the variable makes it
+easy for those who want a command-line option to add one.
+
 12/15/94 Generation of unique externally visible names
 
 Unique external names are generated for the "sti" and "std" routines

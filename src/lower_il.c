@@ -3810,19 +3810,19 @@ Do IL lowering of the indicated type and everything under it.
         lower_type(type->variant.routine.return_type);
         { a_routine_type_supplement_ptr rtsp =type->variant.routine.extra_info;
           a_param_type_ptr ptp;
-#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
-          /* Make all function types unprototyped.  Note that the
-             param_type_list is not cleared even if the function has no
-             body.  This can create a function type with prototyped == FALSE,
-             assoc_routine == NULL, and param_type_list != NULL, which is
-             not otherwise possible. */
-          rtsp->prototyped = FALSE;
-          /* We do not change old_style_params_scanned, because it's used in
-             another part of lowering to tell whether the interface used to
-             be old-style.  Back ends must watch out for that. */
-          /* We do not clear has_ellipsis on purpose.  The C-generating
-             back end depends on it in this case. */
-#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
+          if (make_all_functions_unprototyped) {
+            /* Make all function types unprototyped.  Note that the
+               param_type_list is not cleared even if the function has no
+               body.  This can create a function type with prototyped == FALSE,
+               assoc_routine == NULL, and param_type_list != NULL, which is
+               not otherwise possible. */
+            rtsp->prototyped = FALSE;
+            /* We do not change old_style_params_scanned, because it's used in
+               another part of lowering to tell whether the interface used to
+               be old-style.  Back ends must watch out for that. */
+            /* We do not clear has_ellipsis on purpose.  The C-generating
+               back end depends on it in this case. */
+          }  /* if */
           if (rtsp->value_returned_by_cctor) {
             /* Add an extra parameter in which the return address will be
                passed. */
@@ -4253,7 +4253,7 @@ to skip the input parameter).
   } else if (rtsp->old_style_params_scanned) {
     /* Old-style parameter list, so no parameter information. */
     /* Note that we do not test rtsp->prototyped because it may have been
-       cleared by lowering when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is TRUE. */
+       cleared by lowering when make_all_functions_unprototyped is TRUE. */
     param = NULL;
   } else {
     /* Start with the first parameter. */
@@ -4264,13 +4264,13 @@ to skip the input parameter).
     lower_expr(expr, FALSE);
     if (param != NULL) {
       /* Prototyped parameter. */
-#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
-      /* Do default argument promotions on any arguments that need it,
-         because they were generated for a call to a prototyped function, but
-         we're changing all functions to unprototyped (for cfront
-         compatibility). */
-      do_default_arg_promotions_on_node(expr);
-#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
+      if (make_all_functions_unprototyped) {
+        /* Do default argument promotions on any arguments that need it,
+           because they were generated for a call to a prototyped function, but
+           we're changing all functions to unprototyped (for cfront
+           compatibility). */
+        do_default_arg_promotions_on_node(expr);
+      }  /* if */
       param = param->next;
     } else {
       /* Unprototyped parameter: old-style function or ellipsis. */

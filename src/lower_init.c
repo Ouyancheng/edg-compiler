@@ -75,7 +75,7 @@ should be specified as NULL.
   rout_type = alloc_type((a_type_kind)tk_routine);
   rout_type->variant.routine.return_type = return_type;
   rout_type->variant.routine.extra_info->prototyped =
-                                              !MAKE_ALL_FUNCTIONS_UNPROTOTYPED;
+                                              !make_all_functions_unprototyped;
   if (param_1_type != NULL) {
     ptp = alloc_param_type(param_1_type);
     /* It is not necessary to clear il_lowering_flag; the entry does not need
@@ -285,7 +285,6 @@ to data members are lowered into a small integer type.
   }  /* if */
 }  /* do_ptr_to_data_member_arg_promotion_on_node */
 
-#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
 
 void do_default_arg_promotions_on_node(an_expr_node_ptr expr)
 /*
@@ -341,7 +340,6 @@ function).
 done:;
 }  /* do_default_arg_promotions_on_node */
 
-#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
 
 static an_expr_node_ptr make_call_node(a_routine_ptr    routine,
                                        an_expr_node_ptr arg_list,
@@ -356,20 +354,19 @@ is virtual and honor_virtual is TRUE.  The virtual call is *not* lowered.
   a_type_ptr            rout_type, rout_return_type;
   an_expr_operator_kind op;
 
-#if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
-  /* If transforming all functions to old-style unprototyped form (for
-     cfront compatibility), do default argument promotions on the arguments.
-     It might seem wasteful to do this on every argument list, since
-     not many of the arguments will require promotion.  However, doing it
-     here guarantees that all calls created by IL lowering will have
-     properly-promoted arguments without special-case checks all over the
-     place. */
-  { an_expr_node_ptr arg_node;
+  if (make_all_functions_unprototyped) {
+    /* If transforming all functions to old-style unprototyped form (for
+       cfront compatibility), do default argument promotions on the arguments.
+       It might seem wasteful to do this on every argument list, since
+       not many of the arguments will require promotion.  However, doing it
+       here guarantees that all calls created by IL lowering will have
+       properly-promoted arguments without special-case checks all over the
+       place. */
+    an_expr_node_ptr arg_node;
     for (arg_node = arg_list; arg_node != NULL; arg_node = arg_node->next) {
       do_default_arg_promotions_on_node(arg_node);
     }  /* for */
-  }
-#endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
+  }  /* if */
   /* Make a node for the address of the routine. */
   rout_node = function_addr_expr(routine, /*set_address_taken_flag=*/FALSE);
   routine->called = TRUE;
