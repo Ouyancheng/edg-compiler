@@ -1,5 +1,20 @@
 Version 2.42
 
+7/12/99  Cfront and Microsoft compatibility: implicit int return type and
+         member functions whose name is found as a type name
+
+In Microsoft and Cfront modes, the front end now accepts member function
+declarations of the following form:
+
+  typedef int I;
+  struct X {
+    I(); // Declares "int X::I()" in Microsoft and Cfront modes
+    I(int); // Error.
+  };
+
+The member function parameter list must be empty for such member declarations
+to be accepted.
+
 7/12/99  Microsoft compatibility: __BOOL_DEFINED predefined macro
 
 In Microsoft mode, the macro __BOOL_DEFINED is predefined when bool

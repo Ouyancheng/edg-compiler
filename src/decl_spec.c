@@ -3756,6 +3756,35 @@ from decl_specifiers only.
 }  /* add_type_qualifiers */
 
 
+static a_boolean implicit_int_member_with_name_of_type()
+/*
+Helper called from decl_specifiers to determine if the current identifier
+might have meant to be a declarator in Cfront or Microsoft mode.  Both those
+modes accept:
+   struct X; struct Y { X(); };
+and take Y::X to be an ordinary member function returning int.
+Note that Microsoft will not accept such function declarations if they take
+any parameters.  Cfront will, but at the cost of not being able to parse:
+   struct X; struct Y { X(*p)(); };
+and hence that behavior is not imitated here.
+*/
+{
+  a_boolean    result;
+  a_symbol_ptr sym;
+  a_token_kind token_after_next;
+
+  check_assertion(curr_token == tok_identifier);
+  sym = locator_for_curr_id.symbol_header->symbol;
+  if (sym && is_type_symbol(sym)) {
+    (void)next_two_tokens(tok_lparen, &token_after_next);
+    result = (token_after_next == tok_rparen);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* implicit_int_member_with_name_of_type */
+
+
 /* Define a bit vector to be used within decl_specifiers to track which
    specifiers have been encountered. */
 typedef long a_decl_specifiers_set;
@@ -4892,6 +4921,12 @@ process_class_specifier:
                    is bypassed.  This means curr_token will still represent
                    the constructor name (= class name) upon return to the
                    caller. */
+                goto exit_loop;
+              } else if ((microsoft_bugs || any_cfront_mode()) &&
+                         implicit_int_member_with_name_of_type()) {
+                /* Microsoft and Cfront will accept:
+                     struct X; struct Y { X(); }; */
+                *output_flags |= DSO_NO_DECL_SPECIFIERS;
                 goto exit_loop;
               }  /* if */              
             }  /* if */              
