@@ -2486,7 +2486,13 @@ without regard for the presence of const on the previous qualifiers.
   a_boolean   qualifiers_added = FALSE;
 
   for (same = TRUE; same == TRUE;) {
-    if (!ignore_qualifiers && any_qualifier_missing(dest_type, source_type)) {
+    a_type_qualifier_set dest_type_qualifiers;
+    a_type_qualifier_set source_type_qualifiers;
+    dest_type_qualifiers = get_type_qualifiers(dest_type);
+    source_type_qualifiers = get_type_qualifiers(source_type);
+    if (!ignore_qualifiers &&
+	any_qualifier_in_set_missing(dest_type_qualifiers,
+				     source_type_qualifiers)) {
       /* Some qualifier is missing. */
       same = FALSE;
     } else {
@@ -2494,7 +2500,8 @@ without regard for the presence of const on the previous qualifiers.
         /* In standard mode, if the destination has additional qualifiers
            not found in the source, any previous qualifiers must have
            included const. */
-	if (any_qualifier_missing(source_type, dest_type)) {
+	if (any_qualifier_in_set_missing(source_type_qualifiers,
+					 dest_type_qualifiers)) {
           qualifiers_added = TRUE;
 	  same = previous_qualifiers_include_const;
 	  if (!same) break;
@@ -2515,7 +2522,8 @@ without regard for the presence of const on the previous qualifiers.
         /* Continue at the next level for pointers to members. */
 	dest_type = pm_member_type(dest_type);
 	source_type = pm_member_type(source_type);
-      } else if (is_array_type(dest_type) && is_array_type(source_type) &&
+      } else if (nonstandard_test &&
+		 is_array_type(dest_type) && is_array_type(source_type) &&
 		 !dest_type->variant.array.is_variable_size_array &&
 		 !source_type->variant.array.is_variable_size_array &&
 		 dest_type->variant.array.variant.number_of_elements ==
@@ -2740,19 +2748,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            with a warning. */
         okay = TRUE;
         std_conv->warning_suggested = default_warning_code;
-      } else if (!C_mode() &&
-		 qualification_conversion_possible(dest_type_pointed_to,
-						   source_type_pointed_to,
-						   &qualifiers_added)) {
-        /* Type qualifiers can be added at any level under the pointer. */
-	okay = TRUE;
-        std_conv->type_qualifiers_added = qualifiers_added;
-      } else if ((!suppress_extensions || any_cfront_mode()) &&
-                 same_type_with_added_qualifiers
+      } else if (same_type_with_added_qualifiers
                       (dest_type_pointed_to,
 		       source_type_pointed_to,
   		       /*ignore_qualifiers=*/check_as_operands_not_conversion,
-		       /*nonstandard_test=*/TRUE, (a_boolean*)NULL)) {
+		       /*nonstandard_test=*/any_cfront_mode(),
+		       &qualifiers_added)) {
         /* Allow conversion between pointers where type qualifiers are
            being added at levels other than the first, e.g.,
            "int **" -> "const int **".  This is an extension, and a
@@ -2760,9 +2761,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            that mode. */
         okay = TRUE;
         std_conv->nontrivial_conversion = FALSE;
-        if (!any_cfront_mode()) {
-          std_conv->warning_suggested = default_warning_code;
-        } /* if */
+        std_conv->type_qualifiers_added = qualifiers_added;
       } else if (C_mode() && !suppress_extensions &&
                  interchangeable_types(unqual_dest_type_pointed_to,
                                        unqual_source_type_pointed_to)) {
