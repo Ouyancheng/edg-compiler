@@ -2344,11 +2344,12 @@ static void set_master_instance_for_new_canonical_class(
 					a_type_ptr	primary_class,
 					a_type_ptr	secondary_class)
 /*
-primary_routine is a routine in the primary IL and is the new canonical
-entry.  secondary_routine is a routine in a secondary translation unit
-and was formerly the canonical entry.  Update the template instance for
-primary_routine so that it refers to the master instance entry that
-the template instance of secondary_routine refers to.
+primary_class is a class in the primary IL and is the new canonical
+entry.  secondary_class is a class in a secondary translation unit
+and was formerly the canonical entry.  Update the template instances for
+the variables and routines that are members of primary_class so that they
+refer to the master instance entries that the template instances of the
+members of secondary_class refer to.
 */
 {
   a_scope_ptr  primary_scope = primary_class->
@@ -2425,10 +2426,12 @@ type.
       } else if ((a_type_ptr)trans_unit_corresp_pointer_of(sec) == type) {
         establish_trans_unit_correspondences_for_class(sec);
         (void)verify_class_type_correspondence(sec);
-        /* The master instance is found using the canonical entry.  We are
-           creating a new canonical entry, so we must make sure its master
-           instance pointer is set for the class members. */
-        set_master_instance_for_new_canonical_class(type, sec);
+        if (sec->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+          /* The master instance is found using the canonical entry.  We are
+             creating a new canonical entry, so we must make sure its master
+             instance pointer is set for the class members. */
+          set_master_instance_for_new_canonical_class(type, sec);
+        }  /* if */
         break;
       }  /* if */
     }  /* for */
