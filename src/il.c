@@ -5079,6 +5079,32 @@ linked list for the specified scope and points to the specified variable.
 }  /* find_local_static_variable_init */
 
 
+void get_variable_initializer(a_variable_ptr     variable,
+                              a_scope_ptr        var_scope,
+                              an_init_kind       *init_kind,
+                              an_initializer_ptr *initializer)
+/*
+Fetch the initialization kind and initializer pointer for the indicated
+variable (which is a member of the scope var_scope), and return them
+in *init_kind and *initializer.  This is useful for local static variables,
+where the initialization information may be provided remotely in
+a local-static-variable-init entry to sidestep memory region problems
+(the variable is in the file scope memory region, but the initialization
+is in the function scope).
+*/
+{
+  *init_kind = variable->init_kind;
+  *initializer = &variable->initializer;
+  if (*init_kind == (an_init_kind)initk_function_local) {
+    /* This is a local static variable whose initialization is described
+       by an entry of type a_local_static_variable_init. */
+    a_local_static_variable_init_ptr lsvip =
+                          find_local_static_variable_init(variable, var_scope);
+    *initializer = &lsvip->initializer;
+  }  /* if */
+}  /* get_variable_initializer */
+
+
 a_variable_ptr alloc_variable(a_storage_class  storage_class)
 /*
 Allocate a variable entry, clear it to default values, and return a pointer

@@ -314,6 +314,11 @@ extern a_local_static_variable_init_ptr find_local_static_variable_init(
                                                       a_variable_ptr  var,
                                                       a_scope_ptr     scope);
 
+extern void get_variable_initializer(a_variable_ptr     variable,
+                                     a_scope_ptr        var_scope,
+                                     an_init_kind       *init_kind,
+                                     an_initializer_ptr *initializer);
+
 extern void add_to_local_static_variable_inits_list(
                                    a_local_static_variable_init_ptr  lsvip);
 
