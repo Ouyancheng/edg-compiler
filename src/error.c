@@ -2456,8 +2456,9 @@ do_tag_name:
       form_type_name(type, seg_ptr);
       break;
     case tk_template_param:
-      /* Just put out the template parameter's name. */
-      add_string_to_segment(type->source_corresp.name, seg_ptr);
+      form_class_qualifier(type->source_corresp.class_of_which_a_member,
+                           seg_ptr);
+      form_type_name(type, seg_ptr);
       break;
 #if CHECKING
     default:
