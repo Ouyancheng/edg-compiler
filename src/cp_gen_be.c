@@ -5057,6 +5057,7 @@ this one is such a continuation.
       }  /* if */
     }  /* if */
   }  /* if */
+  check_assertion(!(type->size != 0 && type->incomplete));
   kind = type->kind;
   if (!is_autonomous_decl(type, sec_decl)) {
     /* This type declaration is embedded in another declaration.

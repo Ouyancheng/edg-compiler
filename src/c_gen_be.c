@@ -3133,6 +3133,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 {
   a_boolean output_defn;
 
+  check_assertion(!(type->size != 0 && type->incomplete));
   switch (type->kind) {
     case tk_enum:
       /* Enumeration. */
