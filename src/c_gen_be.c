@@ -118,7 +118,7 @@ static a_seq_number
 		curr_output_seq_number;
 			/* A value of 0 for the current sequence number
 			   indicates that the output position is unknown. */
-static a_column_number
+static unsigned long
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
@@ -483,7 +483,7 @@ Print a number of spaces for indentation.
 */
 #define do_indentation()					      \
 { register int a;						      \
-  for (a = 0; a < indent; a++) {				      \
+  for (a = 0; a < (int)indent; a++) {				      \
     (void)putc(' ', f_C_output);				      \
   }  /* for */							      \
 }  /* do_indentation */
@@ -692,7 +692,7 @@ This is the macro version.
 */
 #define m_write_tok_str(str)                                          \
 { register char *p = (str);                                           \
-  sizeof_t      len = strlen(p);                                      \
+  sizeof_t      len = (sizeof_t)strlen(p);                            \
   register char ch;                                                   \
   ensure_enough_room_on_line(len);                                    \
   while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
@@ -780,7 +780,7 @@ digit2:
   m_write_ch(digitch);
   num = num - digit*10;
 digit1:
-  digitch = num + '0';
+  digitch = (int)num + '0';
   m_write_ch(digitch);
 done:;
 }  /* write_unsigned_num */
