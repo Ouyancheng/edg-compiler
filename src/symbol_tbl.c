@@ -1750,7 +1750,7 @@ them up one level.
   }  /* if */
   sym_ptr->next = NULL;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  if (cfront_compatibility_mode) {
+  if (cfront_2_1_mode) {
     /* If the is a type symbol that has previously been designated as the
        symbol receiving special transitional nested type name mangling, then
        reset that flag now that it has been promoted to another scope.  The
@@ -1904,7 +1904,7 @@ this is not allowed, an error will be issued by the caller.
       record_defeatable_name_hiding(old_sym, /*tag_hidden_by_nontag=*/TRUE);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
-  } else if ((cfront_compatibility_mode || C_dialect == C_dialect_pcc) &&
+  } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&
              old_sym->variant.variable.ptr->is_parameter &&
 	     (new_sym->kind != (a_symbol_kind)sk_variable ||
@@ -4397,7 +4397,7 @@ Issue the appropriate error on the inaccessibility of sym.
       error_code = ec_inaccessible_special_function;
     }  /* if */
   } else if (is_type_symbol(sym)) {
-    if (cfront_compatibility_mode) {
+    if (any_cfront_mode()) {
       /* In cfront mode access errors on types are only warnings.  cfront
          doesn't check access to types at all. */
       error_severity = es_warning;
@@ -5928,7 +5928,7 @@ C and C++.
       for (first_scope = TRUE;; first_scope = FALSE) {
         if (ssep->kind == (a_scope_kind)sck_class_reactivation ||
 	    ssep->kind == (a_scope_kind)sck_template_instantiation) {
-          if (cfront_compatibility_mode &&
+          if (cfront_2_1_mode &&
               ssep->kind == (a_scope_kind)sck_class_reactivation &&
               skip_first_class_reactivation_scope) {
             /* This is used to skip class reactivation scopes when
@@ -6053,8 +6053,7 @@ C and C++.
 next_scope:
         /* End the loop when we reach the bottom of the scope stack. */
         if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) break;
-        if (cfront_compatibility_mode && ssep->kind ==
-                                               (a_scope_kind)sck_function) {
+        if (cfront_2_1_mode && ssep->kind == (a_scope_kind)sck_function) {
           /* In cfront compatibility mode friend functions defined within
              a class ignore the innermost class reactivation scope.
              If this is a friend function, set a flag that will cause
@@ -6124,7 +6123,7 @@ next_scope:
     }  /* if */
 end_lookup:
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-    if (cfront_compatibility_mode &&
+    if (cfront_2_1_mode &&
         (sym != NULL || projection_symbol_found)) {
       /* Special case to emulate a cfront 2.1 bug.  See the comments
          in check_for_cfront_name_lookup_bug for more information.  The
@@ -7631,7 +7630,7 @@ End a name scope by popping an entry off the scope stack.
              cfront behavior, sets a flag for the first nested type with
              a given name and issues errors on subsequent definitions. */
           {
-            if (cfront_compatibility_mode) {
+            if (cfront_2_1_mode) {
               /* Only do this if the name is not a type name at file
                  scope. */
               if (!check_for_file_scope_type_with_same_name(sym)) {
@@ -7661,7 +7660,7 @@ End a name scope by popping an entry off the scope stack.
        type flag set.  This indicates that a file scope symbol with the same
        name was defined after the nested class was seen.  This is an error
        in cfront compatibility mode. */
-    if (kind == (a_scope_kind)sck_file && cfront_compatibility_mode) {
+    if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
       if (sym->header->has_cfront_transitional_nested_type_mangled_name) {
         if (is_type_symbol(sym)) {
           a_type_ptr	sym_type = type_symbol_type(sym);
