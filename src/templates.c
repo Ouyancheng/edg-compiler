@@ -11636,15 +11636,15 @@ instantiation.
     /* We are using the newly specified default arguments.  Do a prototype
        instantiation of the new defaults.  For declarations within classes
        this is done in class fixup processing. */
-    if (nonclass_prototype_instantiations &&
-        decl_state->class_declared_in == NULL) {
-      /* Record the declaration sequence number for the default argument.
-         This is done here because the value for the containing declaration
-         has not been set yet. */
-      decl_state->decl_info->decl_seq = ++decl_seq_counter;
-      default_arg_prototype_instantiation(template_sym,
-                                          curr_default_args,
-					  decl_state->prototype_scope_symbols);
+    if (nonclass_prototype_instantiations) {
+      if (decl_state->class_declared_in == NULL) {
+        /* Record the declaration sequence number for the default argument.
+           This is done here because the value for the containing declaration
+           has not been set yet. */
+        decl_state->decl_info->decl_seq = ++decl_seq_counter;
+        default_arg_prototype_instantiation(template_sym, curr_default_args,
+                                          decl_state->prototype_scope_symbols);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* update_function_template_default_args */
@@ -11796,7 +11796,8 @@ caller.
          of the enclosing class. */
       add_routine_fixup_for_template_decl(sym,
                                           decl_state->prototype_scope_symbols,
-                                          decl_state->class_declared_in);
+                                          decl_state->class_declared_in,
+					  curr_default_args);
     }  /* if */
     /* Update the default argument information for this template from
        either curr_default_args or from the corresponding declaration

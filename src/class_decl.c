@@ -236,7 +236,11 @@ Return a routine fixup entry, along with any default arg expr fixup entries
 associated with it, to their respective available-lists.
 */
 {
-  free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
+  if (!rfp->is_template) {
+    /* For templates, don't free the default argument entries because they
+       are pointed to from elsewhere. */
+    free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
+  }  /* if */
   rfp->def_arg_expr_fixup_list = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (rfp->preserve_param_id_list) {
@@ -347,13 +351,16 @@ in class contexts.
 
 
 void add_routine_fixup_for_template_decl(
-				a_symbol_ptr	symbol,
-				a_symbol_ptr	prototype_scope_symbols,
-				a_type_ptr	class_type)
+		a_symbol_ptr			symbol,
+		a_symbol_ptr			prototype_scope_symbols,
+		a_type_ptr			class_type,
+		a_def_arg_expr_fixup_ptr	default_args)
+				
 /*
 Create a routine fixup entry for a template function declaration that was
 declared in a class scope.  symbol points to the function template symbol.
-class_type is the class in which the declaration appeared.
+class_type is the class in which the declaration appeared.  default_args
+is a list of default arguments to be fixed up.
 */
 {
   a_routine_fixup_ptr	rfp;
@@ -362,6 +369,7 @@ class_type is the class in which the declaration appeared.
   rfp->symbol = symbol;
   rfp->is_template = TRUE;
   rfp->prototype_scope_symbols = prototype_scope_symbols;
+  rfp->def_arg_expr_fixup_list = default_args;
   add_to_routine_fixup_list(rfp);
 }  /* add_routine_fixup_for_template_decl */
 
