@@ -1,5 +1,21 @@
 Version 2.35
 
+1/23/97 Microsoft and cfront compatibility: return expression in void function
+
+In Microsoft C compatibility mode, a return statement with a return
+expression is now permitted in a function with a void return type; a
+warning is issued.
+
+In cfront 2.1 mode, only an expression of void type is accepted in a return
+statement of a void function.
+
+  void f(int i) {
+    return i;            // Now an error in cfront 2.1 mode; no longer an
+  };                     //   error in Microsoft C mode
+  void g(int i) {
+    return (void)i;      // Still allowed in cfront 2.1 mode; no longer an
+  };                     //   error in Microsoft C mode
+    
 1/22/97 Microsoft compatibility: __declspec preceding linkage specification
 
 In Microsoft compatibility mode the following declaration is accepted:
