@@ -4025,7 +4025,10 @@ skip_overloading:;
     a_src_seq_secondary_decl_ptr  sssdp;
     sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr,
                                             declared_type);
-    if (sssdp != NULL && is_friend_decl) sssdp->friend_decl = TRUE;
+    if (sssdp != NULL) {
+      if (is_friend_decl) sssdp->friend_decl = TRUE;
+      if (func_info->is_implicit_declaration) sssdp->implicit_decl = TRUE;
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {

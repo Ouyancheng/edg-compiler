@@ -2192,6 +2192,7 @@ and return a pointer to it.
   sssdp->declared_type = NULL;
   sssdp->autonomous_tag_decl  = FALSE;
   sssdp->friend_decl          = FALSE;
+  sssdp->implicit_decl        = FALSE;
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

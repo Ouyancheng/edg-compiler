@@ -7370,6 +7370,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     lparen_printed = FALSE;
       a_boolean                     autonomous = FALSE;
       a_boolean                     is_friend = FALSE;
+      a_boolean                     is_implicit = FALSE;
       a_type_ptr                    declared_type = NULL;
       a_boolean                     print_type = FALSE;
       a_src_seq_secondary_decl_ptr  sssdp = NULL;
@@ -7386,6 +7387,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
           if (sssdp->friend_decl) is_friend = TRUE;
+          if (sssdp->implicit_decl) is_implicit = TRUE;
         } else {
           scp = source_corresp_for_il_entry(
                                          ssep->entity.ptr,
@@ -7420,6 +7422,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (is_friend) {
           fprintf(f_debug, "%sfriend",
+                           (lparen_printed ? ", " : " ("));
+          lparen_printed = TRUE;
+        }  /* if */
+        if (is_implicit) {
+          fprintf(f_debug, "%simplicit decl",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
