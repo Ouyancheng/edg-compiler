@@ -1872,7 +1872,7 @@ error code.
       m = "extra argument of postfix \"operator%s\" must be of type \"int\"";
       break;
     case ec_function_type_required:
-      m = "operator declaration requires a function type";
+      m = "an operator name must be declared as a function";
       break;
     case ec_operator_name_not_allowed:
       m = "operator name is not allowed";
