@@ -4435,9 +4435,15 @@ instantiation.
         pos_error(ec_template_friend_definition_not_allowed,
                      &locator.source_position);
       }  /* if */
-      /* Adjust the effective declaration level.  Friend declarations
-         are added to the nearest enclosing namespace scope. */
-      effective_decl_level = depth_innermost_namespace_scope;
+      if (!in_prototype_instantiation) {
+        /* Adjust the effective declaration level.  Friend declarations
+           are added to the nearest enclosing namespace scope. */
+        effective_decl_level = depth_innermost_namespace_scope;
+      } else {
+        /* In the prototype instantiation, friend declarations are
+           added to the template instantiation scope. */
+        effective_decl_level = depth_innermost_instantiation_scope;
+      }  /* if */
     } else {
       /* A friend declaration in a nonclass scope. */
       pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
@@ -4593,58 +4599,55 @@ instantiation.
       set_to_named_error_locator(locator);
     }  /* if */
   }
-  if (!is_template_friend || !in_prototype_instantiation) {
-    /* Create the symbol entry for this template.  This is not done for
-       template friend declarations in prototype instantiations. */
-    /* Make sure that the default arguments for the template parameters
-       are valid (i.e., that they are at the end of the parameter list).
-       This is done now because we have to wait until the parameter lists
-       have been merged to do the test. */
-    check_template_param_default_args(templ_params);
-    if (sym == NULL) {
-      /* Enter the symbol at the scope indicated by effective_decl_level. */
-      a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
-      sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-                         effective_decl_level, suppress_redecl_error);
-      tssp = sym->variant.template_info;
-      if (ssep->kind == (a_scope_kind)sck_namespace ||
-          ssep->kind == (a_scope_kind)sck_namespace_extension) {
-        set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                 ssep->il_scope->variant.assoc_namespace);
-      } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-        set_class_membership(sym, (a_source_correspondence *)NULL,
-                             class_declared_in);
-        tssp->variant.class_template.access = access; 
-      }  /* if */
-      /* Set the name-linkage for this template -- it will be propagated
-         into the instances. */
-      if (ssep->within_unnamed_namespace ||
-          instantiation_mode == tim_local) {
-        /* Templates declared inside an unnamed namespace have internal
-           linkage -- as do all templates in "local instantiation mode". */
-        tssp->variant.class_template.name_linkage =
-                                         (a_name_linkage_kind)nlk_internal;
-      } else {
-        /* Normally, a template has C++ linkage. */
-        tssp->variant.class_template.name_linkage =
-                                (a_name_linkage_kind)nlk_cplusplus_external;
-      }  /* if */
-      is_redecl = FALSE;
-    }	/* if */
-    if (is_definition || !is_redecl) {
-      /* Either this is the first declaration of the template class or a
-	 defining redeclaration. */
-
-      /* Save the type kind (corresponding to the class/struct/union token)
-	 in the class template symbol's supplement -- it will be needed when
-	 type entries for instantiations are created. */
-      tssp->variant.class_template.type_kind = type_kind;
-    }	/* if */
-    if (is_template_friend) {
-      /* This is a template friend declaration, add the current class to
-	 the list of friend classes associated with this template. */
-      add_befriending_class_to_class_template(tssp, class_declared_in);
+  /* Create the symbol entry for this template. */
+  /* Make sure that the default arguments for the template parameters
+     are valid (i.e., that they are at the end of the parameter list).
+     This is done now because we have to wait until the parameter lists
+     have been merged to do the test. */
+  check_template_param_default_args(templ_params);
+  if (sym == NULL) {
+    /* Enter the symbol at the scope indicated by effective_decl_level. */
+    a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
+    sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
+                       effective_decl_level, suppress_redecl_error);
+    tssp = sym->variant.template_info;
+    if (ssep->kind == (a_scope_kind)sck_namespace ||
+        ssep->kind == (a_scope_kind)sck_namespace_extension) {
+      set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                               ssep->il_scope->variant.assoc_namespace);
+    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+      set_class_membership(sym, (a_source_correspondence *)NULL,
+                           class_declared_in);
+      tssp->variant.class_template.access = access; 
     }  /* if */
+    /* Set the name-linkage for this template -- it will be propagated
+       into the instances. */
+    if (ssep->within_unnamed_namespace ||
+        instantiation_mode == tim_local) {
+      /* Templates declared inside an unnamed namespace have internal
+         linkage -- as do all templates in "local instantiation mode". */
+      tssp->variant.class_template.name_linkage =
+                                       (a_name_linkage_kind)nlk_internal;
+    } else {
+      /* Normally, a template has C++ linkage. */
+      tssp->variant.class_template.name_linkage =
+                              (a_name_linkage_kind)nlk_cplusplus_external;
+    }  /* if */
+    is_redecl = FALSE;
+  }	/* if */
+  if (is_definition || !is_redecl) {
+    /* Either this is the first declaration of the template class or a
+	defining redeclaration. */
+
+    /* Save the type kind (corresponding to the class/struct/union token)
+       in the class template symbol's supplement -- it will be needed when
+       type entries for instantiations are created. */
+    tssp->variant.class_template.type_kind = type_kind;
+  }	/* if */
+  if (is_template_friend && !in_prototype_instantiation) {
+    /* This is a template friend declaration, add the current class to
+       the list of friend classes associated with this template. */
+    add_befriending_class_to_class_template(tssp, class_declared_in);
   }  /* if */
   if (!in_prototype_instantiation && sym->is_class_member &&
       sym->kind == (a_symbol_kind)sk_class_template) {
