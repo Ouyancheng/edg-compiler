@@ -1,5 +1,11 @@
 Version 2.28
 
+1/16/95  Top-level cv-qualifiers are removed function parameter types
+
+In C++ (except in cfront compatibility mode) top-level const and volatile
+qualifiers are removed from function parameter types (see WP 8.3.5 para 3).
+They still constitute part of the type of the parameter variable, however.
+
 1/16/95  Default argument on declaration of operator delete()
 
 Default argument expressions are now allowed for the second parameter of

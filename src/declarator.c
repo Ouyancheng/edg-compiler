@@ -1043,19 +1043,6 @@ scope is that of a class definition.
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
         }  /* if */
-        /* Put the parameter type on the type list attached to the function
-           type, and the name (if present) on the id list. */
-        ptp = make_param_type(param_type_ptr, &param_type_pos);
-        if (last_param_type == NULL) {
-          extra_info->param_type_list = ptp;
-        } else {
-          last_param_type->next = ptp;
-        }  /* if */
-        last_param_type = ptp;
-        /* A parameter name is present. */
-        if (is_error_locator(param_locator)) {
-          func_info->any_prototype_names_omitted = TRUE;
-        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Make adjustments on the param source sequence entry before it is
            bound to the param_id entry. */
@@ -1075,9 +1062,31 @@ scope is that of a class definition.
           param_ssep = add_empty_source_sequence_entry();
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        /* Add an entry to record the parameter name and other information
+           associated with the parameter declaration.  These go on to the
+           the param-id list. */
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
                              func_info, param_ssep, &last_param_id);
+        if (is_error_locator(param_locator)) {
+          func_info->any_prototype_names_omitted = TRUE;
+        }  /* if */
+        /* Create a param-type entry and add it to the list of param-types
+           associated with the routine type. */
+        if (!C_mode() && !any_cfront_mode()) {
+          /* Strip off top-level type qualifiers.  They are not part of the
+             type signature of the function -- see 8.3.5 para 3.  However,
+             because they do belong to the type of the parameter variable,
+             they were not removed before add_to_param_id_list was called. */
+          param_type_ptr = make_unqualified_type(param_type_ptr);
+        }  /* if */
+        ptp = make_param_type(param_type_ptr, &param_type_pos);
+        if (last_param_type == NULL) {
+          extra_info->param_type_list = ptp;
+        } else {
+          last_param_type->next = ptp;
+        }  /* if */
+        last_param_type = ptp;
         if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
           /* Argument expressions are not allowed in overloaded operator
              declarations.  Issue an error, but go ahead and scan the
