@@ -6682,7 +6682,7 @@ respectively.
 #if MICROSOFT_EXTENSIONS_ALLOWED
          /* In Microsoft mode the incomplete-array-type field *can* be the
             only field in the struct.  Moreover, a final field of incomplete-
-            array-type is also accepted in C++, as long as the it's a public
+            array-type is also accepted in C++, as long as it's a public
             member of an aggregate class. */
          || (microsoft_mode &&
              (C_mode() ||
@@ -6704,7 +6704,7 @@ respectively.
       if (!C_mode() && is_error_locator(*locator) &&
           !decl_info->is_unnamed_field) {
         /* Don't issue an error since we can't be sure this was intended to
-           be field -- it could be an ill-formed function declaration with
+           be a field -- it could be an ill-formed function declaration with
            a void return type, such as
              void operator?:();
            in which the param list is not processed. */
