@@ -6683,11 +6683,7 @@ in a declarator of a template declaration.
       tp = sym->parent.class_type;
       type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       is_prototype_instantiation = is_prototype_instantiation_symbol(type_sym);
-      if (is_real_class_symbol(type_sym)) {
-        /* The class is a real class type (either normal or template based).
-           Let any possible errors be reported by the normal declaration
-           processing routines. */
-      } else if (!is_class_struct_union_symbol(type_sym)) {
+      if (!is_nonreal_instance_class_symbol(type_sym)) {
         /* The qualifier type is not a template class of some kind. */
         pos_ty_error(ec_not_a_class_template, error_pos, tp);
         any_errors = TRUE;

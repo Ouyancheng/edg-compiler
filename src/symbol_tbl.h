@@ -2621,6 +2621,14 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
   (is_real_class_symbol(sym) &&						\
    (sym)->variant.class_struct_union.extra_info->is_instance)
 
+/* Return TRUE if the symbol is a template class symbol for a nonreal
+   class template instance or a class nested within a nonreal class
+   template.  This will include prototype instantiations. */
+#define is_nonreal_instance_class_symbol(sym)				\
+  (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
+    (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
+    (sym)->variant.class_struct_union.extra_info->is_nonreal_class)
+
 /* Return TRUE if the symbol is a specific definition of a class template
    instance or a class nested within a class template. */
 #define is_template_instance_specific_def_symbol(sym)			\
