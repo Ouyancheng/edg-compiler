@@ -31,8 +31,11 @@ instead of K&R C.
 #endif /* !BACK_END_IS_C_GEN_BE */
 #endif /* ifdef STANDALONE_C_GEN_BE */
 
+#include "basic_hdrs.h"
+#if BACK_END_IS_C_GEN_BE
 /* Header files common to all files. */
 #include "fe_common.h"
+#endif /* BACK_END_IS_C_GEN_BE */
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -44,7 +47,6 @@ instead of K&R C.
 #if BACK_END_IS_C_GEN_BE
 
 #include "c_gen_be.h"
-#include "types.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
