@@ -5192,12 +5192,11 @@ class/struct/union is actually defined.
             } else if (is_class_struct_union_type(member_type) &&
                        member_storage_class == (a_storage_class)sc_unspecified
                        && !local_defines_something && !virtual_specified) {
-              /* This is an illegal friend declaration of the form:
+              /* This is a "non-standard" friend declaration of the form:
                          friend A;
-                 where A is already defined as a class name.  We accept it
-                 only to provide upward compatibility, even though it is not
-                 listed as an anachronism; however, we do issue a warning. */
-              pos_warning(ec_bad_friend_decl, &decl_start_pos);
+                 where A is already defined as a class name.  Only a remark
+                 is issued since this is fairly common practice. */
+              pos_remark(ec_bad_friend_decl, &decl_start_pos);
               (void)decl_friend_class(class_type, member_type);
             } else {
               /* Invalid friend declaration. */
