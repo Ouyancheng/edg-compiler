@@ -1966,14 +1966,37 @@ IA-64 ABI; see comments below.
        The latter is for the two-argument delete case. */
     check_assertion(entity_node == NULL);
     dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
-    new_addr_node = expr_for_pointer_to_routine(new_routine);
-    delete_addr_node = expr_for_pointer_to_routine(delete_routine);
     is_two_arg_delete = (delete_routine != NULL &&
                          is_two_argument_delete(delete_routine));
 #if !IA64_ABI
     is_two_arg_node = node_for_integer_constant((long)is_two_arg_delete,
                                                 (an_integer_kind)ik_int);
+#else /* IA64_ABI */
+    /* In the IA-64 ABI, if the allocation or deallocation routine is
+       missing we have to pass the implied default routine because we
+       can't pass NULL for that pointer. */
+    /* See the interface for __cxa_vec_new2. */
+    if (new_routine == NULL) {
+      a_boolean    ambiguous;
+      a_symbol_ptr new_sym =
+                         opname_function_symbol((an_opname_kind)onk_array_new);
+      check_assertion(new_sym != NULL);
+      new_sym = find_default_operator_new_sym(new_sym, &ambiguous);
+      check_assertion(new_sym != NULL);
+      new_routine = new_sym->variant.routine.ptr;
+    }  /* if */
+    if (delete_routine == NULL) {
+      a_boolean    ambiguous;
+      a_symbol_ptr delete_sym =
+                      opname_function_symbol((an_opname_kind)onk_array_delete);
+      check_assertion(delete_sym != NULL && !is_two_arg_delete);
+      delete_sym = find_default_operator_delete_sym(delete_sym, &ambiguous);
+      check_assertion(delete_sym != NULL);
+      delete_routine = delete_sym->variant.routine.ptr;
+    }  /* if */
 #endif /* !IA64_ABI */
+    new_addr_node = expr_for_pointer_to_routine(new_routine);
+    delete_addr_node = expr_for_pointer_to_routine(delete_routine);
     arg_expr_list = num_elem_node;
     num_elem_node->next = size_elem_node;
 #if !IA64_ABI

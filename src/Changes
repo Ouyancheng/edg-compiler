@@ -1,5 +1,17 @@
 Version 3.2
 
+4/16/03  IA-64 ABI: null pointer passed to __cxa_vec_new2 runtime routine
+
+The IA-64 ABI runtime routine __cxa_vec_new2 has parameters for
+the allocation and deallocation routines to be used.  Somewhat
+surprisingly, the ABI spec says that one cannot pass null pointers
+for those if they are not needed (as one can for the constructor and
+destructor routines).  We assumed null pointers were okay and
+did pass them in some cases, and the versions of the runtime
+routines we provide handle that okay, but it does not conform
+to the ABI spec.  Now, the front end passes the address of the
+appropriate default operator new[] or operator delete[].
+
 4/16/03  Global scope va_list alias not created when cstdarg is included first
 
 When using built-in stdarg processing, if <stdarg.h> was included after
