@@ -1764,10 +1764,14 @@ the latter will be NULL for variables.
         break;
       } else if (kind == (a_symbol_kind)sk_extern_routine) {
         /* A type compatibility check may also be required for routines. */
-        if (rout_type != NULL && C_dialect == C_dialect_cplusplus &&
-            linkage != (a_name_linkage_kind)nlk_external) {
+        if (rout_type != NULL && C_dialect == C_dialect_cplusplus) {
           a_type_ptr  tp = sym_ptr->variant.extern_symbol_descr->type;
-          if (!is_error_type(tp) && !arg_types_are_compatible(rout_type, tp)) {
+#if CHECKING
+          if (tp->kind != (a_type_kind)tk_routine) {
+            internal_error("find_external_symbol: expected tk_routine");
+          }  /* if */
+#endif /* CHECKING */
+          if (!arg_types_are_compatible(rout_type, tp)) {
             /* This looks like a C++ overloaded function name.   Continue
                searching until the type matches as well as the name.  */
             continue;
