@@ -26,7 +26,16 @@ extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  template_arg_list,
                                         a_source_position   *source_pos);
 
+extern a_symbol_ptr find_template_function
+                                  (a_symbol_ptr        function_template_sym,
+                                   a_template_arg_ptr  template_arg_list,
+                                   a_source_position   *source_pos);
+
 extern void instantiate_template_class(a_type_ptr  type);
+
+extern void instantiate_template_function(a_routine_ptr   rout,
+                                          a_token_cache   *token_cache,
+                                          a_scope_number  scope_number);
 
 /* Macro to call instantiate_template_class if tp is plausibly a class
    in need of instantiation or an array whose underlying element type is such
