@@ -2244,7 +2244,7 @@ typedef struct a_routine_type_supplement {
                            Also used for types and tags declared in an
                            old-style parameter list, because those types
                            are likewise needed outside the routine in order
-                           to check type compatibility. */
+                           to check type compatibility.  Always NULL in C++. */
   an_exception_specification_ptr
 		exception_specification;
 			/* In C++ only, pointer to an entry describing the
