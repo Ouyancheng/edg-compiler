@@ -749,6 +749,9 @@ specified (rather than defaulted to "int").
                     /*extern_implied=*/FALSE,
                     /*is_old_style_param_decl=*/TRUE,
                     func_info->param_id_list);
+        /* Since declaration does not advance beyond the final token of the
+           declaration (which should be a ';') do it now. */
+        if (curr_token == tok_semicolon) (void)get_token();
       }  /* while */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
