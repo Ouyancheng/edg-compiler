@@ -1046,7 +1046,7 @@ Dump the contents of the indicated expression node for debug purposes.
 	      node->variant.routine->source_corresp.name);
       break;
     case enk_field:
-      fputs("field node\n", f_debug);
+      fprintf(f_debug, "field %s\n", node->variant.field->source_corresp.name);
       break;
     case enk_temp_init:
       fputs("temp init: ", f_debug);
@@ -1055,6 +1055,7 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs("new init: ", f_debug);
 initializer:
       db_dynamic_initializer(node->variant.init.dynamic_init, level);
+      db_expr_node(node->variant.init.expr, level + 2);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
