@@ -4222,6 +4222,8 @@ operand.
   an_operand   orig_operand;
   a_symbol_ptr func_sym, fund_sym;
 
+  /* If you change this routine, see also the code in determine_arg_match_level
+     that does a similar transformation without generating errors. */
   orig_operand = *operand;
   /* See if there's an underlying symbol. */
   if (is_sym_for_member_operand(operand) ||
@@ -4934,6 +4936,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        T*         (qualified T)*
        T[]        T*
        T(args)    (*T)(args)
+       T(args)    (X::*T)(args)    -- not in ARM (extension)
      T& --> T is done automatically in expression processing; an argument
      here never has a reference type T& -- it's an lvalue of type T.  Cases
      that involve
@@ -5000,21 +5003,35 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
           arg_operand = &implicit_arg_operand;
         }  /* if */
       } else if (is_a_function_designator(arg_operand)) {
-        /* Function designator.  This is the "T(args) --> T(*)(args)" case.
+        /* Function designator.  This is the "T(args) --> T(*)(args)" case
+           or the equivalent pointer-to-member case (an extension).
            Make an operand that is the function converted to an rvalue
            that's a pointer to the function.  Do not use
            conv_function_designator_to_ptr_to_function because it
            can generate errors. */
-        copy_operand(arg_operand, &implicit_arg_operand);
-        arg_operand = &implicit_arg_operand;
-        /* Watch out for indefinite function designators.  Leave their types
-           unknown (or leave arg_type as determined by the match-up code
-           above). */
-        if (!is_indefinite_function_operand(arg_operand)) {
-          arg_operand->type = arg_type = make_pointer_type(arg_operand->type);
+        if (is_sym_for_member_operand(arg_operand)) {
+          /* Pointer-to-member case. */
+          a_symbol_ptr func_sym = arg_operand->variant.symbol;
+          a_symbol_ptr fund_sym = fundamental_symbol_of(func_sym);
+          /* Use the flag settings that will suppress errors. */
+          make_ptr_to_member_constant_operand(fund_sym, func_sym,
+                                              &arg_operand->position,
+                                              /*check_protected_access=*/FALSE,
+                                             /*is_operand_of_address_of=*/TRUE,
+                                              &implicit_arg_operand);
+          arg_operand = &implicit_arg_operand;
+          arg_type = arg_operand->type;
+        } else {
+          copy_operand(arg_operand, &implicit_arg_operand);
+          arg_operand = &implicit_arg_operand;
+          /* Watch out for indefinite function designators.  Leave their types
+             unknown. */
+          if (!is_indefinite_function_operand(arg_operand)) {
+            arg_operand->type = arg_type= make_pointer_type(arg_operand->type);
+          }  /* if */
+          arg_operand->state = (an_operand_state)os_rvalue;
+          arg_operand->came_from_reference = FALSE;
         }  /* if */
-        arg_operand->state = (an_operand_state)os_rvalue;
-        arg_operand->came_from_reference = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
