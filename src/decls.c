@@ -6046,6 +6046,30 @@ the symbol and its linkage (which is always "none").
 }  /* define_static_data_member */
 
 
+static void remove_any_inherited_type_synonym(a_symbol_locator  *locator)
+/*
+Microsoft compilers accept code like:
+  struct B { typedef int I; };
+  struct D: B {
+    typedef I J;      // Uses B::I
+    typedef double I; // Introduces D::I
+  };
+To emulate this, we must remove projections of a type synonymous with the
+type being declared.
+*/
+{
+  if (curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED) != NULL) {
+    a_symbol_ptr  sym = locator->specific_symbol;
+
+    if (sym->kind == (a_symbol_kind)sk_projection &&
+        !sym->variant.projection.is_using_decl) {
+      remove_symbol(sym);
+    }  /* if */
+    clear_specific_symbol(*locator);
+  }  /* if */
+}  /* remove_any_inherited_type_synonym */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -6072,11 +6096,15 @@ return a pointer to it in *symbol_ptr.
   a_namespace_ptr          nsp;
 
   db_enter(3, "decl_typedef");
-  if (curr_scope_id_lookup(locator, IDL_NO_OPTIONS) != NULL) {
+  sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
+  if (microsoft_bugs && sym == NULL &&
+      ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    remove_any_inherited_type_synonym(locator);
+  }  /* if */
+  if (sym != NULL) {
     /* This name already exists in the current scope.  C++ allows a
        redefinition of the typedef with the same type, and we allow that
        also in C.  See if this is a redefinition. */
-    sym = fundamental_symbol_of(locator->specific_symbol);
     if (sym->kind == (a_symbol_kind)sk_type ||
         (C_dialect == C_dialect_cplusplus && is_type_symbol(sym))) {
       /* sym is a type name symbol from the current scope.  Issue an error

@@ -1,5 +1,17 @@
 Version 2.43
 
+11/16/99 Microsoft compatibility: use and replacement of inherited typename
+
+In Microsoft bugs mode, an inherited typename can be used with an unqualified
+name in a class definition, and later that same name can be declared as a new
+typedef synonym.
+
+  struct A { typedef int I; };
+  struct B : A {
+    typedef I J;       // Refers to A::I
+    typedef double I;  // Now accepted in Microsoft mode (introduces B::I)
+  };
+
 11/16/99 Overloaded function as call argument, with argument-dependent lookup
 
 An argument of a call that is the address of an overloaded function
