@@ -1828,7 +1828,6 @@ except for casts to ambiguous or inaccessible base classes.
   an_arg_match_level
                     match_level;
   a_std_conv_descr  std_conversion;
-  a_base_class_ptr  bcp;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -1855,34 +1854,12 @@ except for casts to ambiguous or inaccessible base classes.
           /* Do nothing. */
           break;
         case ok_expression:
-          /* Check for a special case, the derived --> base (class, not
-             pointer) standard conversion in C++.  This is done at the operand
-             level rather than the expression node level because it's only
-             needed at this level and the routines to do it exist at the
-             operand level. */
-          if (!C_mode() &&
-              is_class_struct_union_type(new_type) &&
-              is_class_struct_union_type(operand->type) &&
-              (bcp = find_base_class_of(operand->type, new_type)) != NULL) {
-            a_boolean is_arrow_operator = TRUE;
-            /* Derived --> base cast in C++. */
-            conv_class_operand_to_object_pointer(operand);
-            base_class_cast_operand(operand, bcp, &is_arrow_operator,
-                                    /*check_cast_access=*/TRUE,
-                                    /*implicit_in_naming=*/FALSE);
-            /* Make an address (an lvalue) for the base class object. */
-            conv_object_pointer_to_lvalue(operand);
-            /* And back to an rvalue. */
-            conv_lvalue_to_rvalue(operand);
-          } else {
-            /* Normal case. */     
-            /* Cast the expression node.  If the expression is a constant,
-               change its type in place.  Otherwise, add a cast expression
-               node. */
-            node = operand->variant.expression;
-            cast_node(&node, new_type, is_implicit_cast, &operand->position);
-            make_expression_operand(node, new_type, operand);
-          }  /* if */
+          /* Cast the expression node.  If the expression is a constant,
+             change its type in place.  Otherwise, add a cast expression
+             node. */
+          node = operand->variant.expression;
+          cast_node(&node, new_type, is_implicit_cast, &operand->position);
+          make_expression_operand(node, new_type, operand);
           break;
         case ok_constant:
           /* Cast the constant by changing its type.  In a nonconstant
