@@ -32,7 +32,7 @@ enum an_expression_kind_tag {
   /* Note that the constant expression kinds must appear at the beginning
      of the list so that one can determine if an expression is constant
      by a "<=" comparison instead of several "==" comparisons.  See
-     is_const_expr_kind below.  ek_init_constant must be the last constant
+     curr_expr_kind_is_const below.  ek_init_constant must be the last constant
      expression kind. */
   ek_pp,		/* Preprocessing expression (see 3.8.1). */
   ek_integral_constant,	/* Integral constant expression (see 3.4). */
