@@ -1872,16 +1872,17 @@ type.  Such initialization is required whenever the class has a constructor;
 the default constructor (if one exists) is called.
 */
 {
-  a_boolean                      def_init_performed = FALSE;
-  a_variable_ptr                 var = NULL;
-  a_type_ptr                     var_type, tp;
-  a_class_symbol_supplement_ptr  cssp;
-  a_dynamic_init_ptr             init_dip, orig_init_dip;
-  a_routine_ptr                  ctor = NULL, dtor = NULL;
-  a_boolean                      static_lifetime;
-  an_object_lifetime_ptr         local_static_lifetime = NULL;
-  a_local_static_variable_init_ptr
-                                 local_static_var_init = NULL;
+  a_boolean                         def_init_performed = FALSE;
+  a_variable_ptr                    var = NULL;
+  a_type_ptr                        var_type, tp;
+  a_class_symbol_supplement_ptr     cssp;
+  a_dynamic_init_ptr                init_dip, orig_init_dip;
+  a_routine_ptr                     ctor = NULL, dtor = NULL;
+  a_boolean                         static_lifetime;
+  an_object_lifetime_ptr            local_static_lifetime = NULL;
+  a_local_static_variable_init_ptr  local_static_var_init = NULL;
+  a_param_type_ptr                  ptp;
+  an_object_lifetime_ptr            expr_temp_lifetime;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -1939,7 +1940,7 @@ the default constructor (if one exists) is called.
       } else {
         if (ctor != NULL) {
           /* Normal case -- there's a constructor to do the initialization. */
-          a_param_type_ptr  ptp = (skip_typerefs(ctor->type))->
+          ptp = (skip_typerefs(ctor->type))->
                                    variant.routine.extra_info->param_type_list;
 
           init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
@@ -1947,21 +1948,26 @@ the default constructor (if one exists) is called.
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           if (ptp != NULL) {
-            /* Push an object lifetime, in case the expression requires
-               generating a temporary. */
-            an_object_lifetime_ptr expr_temp_lifetime;
-            push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
-                                 (an_object_lifetime_kind)olk_expr_temporary);
-            expr_temp_lifetime = curr_object_lifetime;
+            if (!long_lifetime_temps) {
+              /* Push an object lifetime, in case the expression requires
+                 generating a temporary. */
+              push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                                  (an_object_lifetime_kind)olk_expr_temporary);
+              expr_temp_lifetime = curr_object_lifetime;
+            }  /* if */
             /* Copy the default-arg list. */
             init_dip->variant.constructor.args =
                                           copy_default_arg_expr_list(ptp);
-            if (!is_useless_object_lifetime(expr_temp_lifetime)) {
-              bind_object_lifetime(expr_temp_lifetime,
-                                   (an_il_entry_kind)iek_dynamic_init,
-                                   (char *)init_dip);
+            if (!long_lifetime_temps) {
+              /* Pop the object lifetime for the temp, binding the lifetime
+                 and dynamic init entry if appropriate. */
+              if (!is_useless_object_lifetime(expr_temp_lifetime)) {
+                bind_object_lifetime(expr_temp_lifetime,
+                                     (an_il_entry_kind)iek_dynamic_init,
+                                     (char *)init_dip);
+              }  /* if */
+              (void)pop_object_lifetime();
             }  /* if */
-            (void)pop_object_lifetime();
           }  /* if */
           if (var_type != tp) {
             /* The object has an array type.  We need to build an aggregate
