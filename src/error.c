@@ -1771,6 +1771,9 @@ error code.
     case ec_union_nonunion_mismatch:
       m = "invalid reference to %n (union/nonunion mismatch)";
       break;
+    case ec_local_type_in_template_arg:
+      m = "a template argument may not reference a local type";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

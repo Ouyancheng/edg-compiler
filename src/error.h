@@ -508,7 +508,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_template_arg_use,
   ec_static_data_member_anon_union,
   ec_function_template_named_main,
-  ec_union_nonunion_mismatch
+  ec_union_nonunion_mismatch,
+  ec_local_type_in_template_arg
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
