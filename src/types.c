@@ -7427,6 +7427,9 @@ attribute or using a Microsoft declspec specifier).  Also set
       sym_warning(ec_deprecated_entity,
                   (a_symbol_ptr)type_ptr->source_corresp.assoc_info);
     }  /* if */
+  } else if (type_ptr->kind == (a_type_kind)tk_typeref &&
+             typeref_is_typedef(type_ptr)) {
+    *force_end_of_traversal = TRUE;
   }  /* if */
   return found;
 }  /* ttt_warn_about_use_of_deprecated_type */
@@ -7445,7 +7448,6 @@ the given position.
   saved_pos = error_position;
   error_position = *pos;
   (void)traverse_type_tree(type, ttt_warn_about_use_of_deprecated_type,
-                           TTT_STOP_AT_TYPEDEFS |
                            TTT_RETURN_TYPE | TTT_PARAM_TYPES |
                            TTT_EXCEPTION_SPECS | TTT_TEMPLATE_ARGS);
   error_position = saved_pos;

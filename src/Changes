@@ -1,6 +1,18 @@
 Version 3.6
 
-11/17/04 Gnu compatibility: Numeric register names
+11/17/04 GNU and Microsoft compatibility: Deprecated declarations
+
+In Microsoft and GNU modes, the front end allows declarations to be marked as
+deprecated (using "__declspec(deprecated)" and __attribute__((deprecated))"
+respectively).  However, the use of deprecated typedef declarations was not
+diagnosed with a warning.  For example (GNU mode):
+
+  typedef int I __attribute__((deprecated));
+  I i;  // The use of I now triggers a warning (previously not).
+
+This is now fixed.
+
+11/17/04 GNU compatibility: Numeric register names
 
 When GNU_X86_ASM_EXTENSIONS_ALLOWED is set, the front end now accepts numeric
 register names in GNU modes.  For example:
