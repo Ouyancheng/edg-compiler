@@ -5280,7 +5280,7 @@ class/struct/union is actually defined.
     /* Create a new class, struct, or union type.  All such types are
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
-    class_type = alloc_unlinked_type(type_kind);
+    class_type = alloc_type(type_kind);
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */

@@ -3646,7 +3646,7 @@ a pointer to it in *symbol_ptr.
                            decl_scope_level, suppress_redecl_error);
   /* Create a new type entry and add it to the types list for the current
      scope. */
-  sym->variant.type = tp = alloc_unlinked_type((a_type_kind)tk_typeref);
+  sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
   add_to_types_list(tp, decl_scope_level, in_old_style_param_decl_list);
@@ -4692,7 +4692,7 @@ to indicate whether an enumeration is actually defined.
   if (tag_sym == NULL) {
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
-    enum_type = alloc_unlinked_type((a_type_kind)tk_integer);
+    enum_type = alloc_type((a_type_kind)tk_integer);
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
