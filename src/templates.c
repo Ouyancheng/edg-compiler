@@ -311,13 +311,14 @@ no need to actually instantiate X<int> in the example above.
 }  /* find_template_class */
 
 
-a_type_ptr copy_type_with_substitution(a_type_ptr          type,
-                                       a_template_arg_ptr  templ_arg_list)
+static a_type_ptr copy_type_with_substitution(
+                                          a_type_ptr          type,
+                                          a_template_arg_ptr  templ_arg_list)
 /*
-If type, a pointer to a type entry, is a template-parameter type,
-return the corresponding real type, based on the template argument list.
-If it contains a template-parameter type, return a copy with the substitution
-made.  If it contains nor template-paramter type, simple return the type.
+If "type", a pointer to a type entry, is a template-parameter type, return
+the corresponding real type, based on the template argument list.  If "type"
+contains a template-parameter type, return a copy with the substitution made.
+If it involves no template-parameter type, simply return "type".
 */
 {
   a_type_ptr          tp, tp2;
@@ -546,6 +547,9 @@ templ_sym).
   a_memory_region_number              region_to_switch_back_to;
   a_function_instantiation_entry_ptr  fiep;
   a_routine_ptr                       templ_rout, rp;
+  a_type_ptr                          tp;
+  a_param_type_ptr                    ptp, new_ptp, prev_ptp;
+  a_routine_type_supplement_ptr       extra_info, new_extra_info;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -562,6 +566,42 @@ templ_sym).
      memory region if necessary to allocate the routine entry. */
   switch_to_file_scope_region(&region_to_switch_back_to);
   sym->variant.routine.ptr = rp = alloc_routine();
+  if (rout_type == NULL) {
+    /* If the routine type does not already exist, create one, based on the
+       function template's parameter list (the function parameters, that is,
+       not the template parameters) along with the template argument list. */
+    rout_type = alloc_type((a_type_kind)tk_routine);
+    /* Fill in the return type. */
+    tp = templ_rout->type->variant.routine.return_type;
+    rout_type->variant.routine.return_type =
+                               copy_type_with_substitution(tp, templ_arg_list);
+    /* Clone the routine type supplement, except for the pointers. */
+    new_extra_info = rout_type->variant.routine.extra_info;
+    extra_info = templ_rout->type->variant.routine.extra_info;
+    *new_extra_info = *extra_info;
+    new_extra_info->assoc_routine = NULL;
+    /* Make copies of the function template's param types list, making the
+       appropriate substitutions for template parameter type entries. */
+    prev_ptp = NULL;
+    for (ptp = extra_info->param_type_list; ptp != NULL; ptp = ptp->next) {
+      tp = copy_type_with_substitution(ptp->type, templ_arg_list);
+      new_ptp = alloc_param_type(tp);
+      if (ptp->has_default_arg) {
+        new_ptp->has_default_arg = TRUE;
+        new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
+                                                   /*clone_temps=*/TRUE);
+      }  /* if */
+      if (prev_ptp == NULL) {
+        new_extra_info->param_type_list = new_ptp;
+      } else {
+        prev_ptp->next = new_ptp;
+      }  /* if */
+      prev_ptp = new_ptp;
+    }  /* for */
+    set_routine_calling_method_flag(rout_type);
+    add_to_types_list(rout_type, DEPTH_OF_FILE_SCOPE,
+                      /*in_old_style_param_decl_list=*/FALSE);
+  }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   /* Give the routine entry the type passed in, and set other fields in
      accord with the settings in the template. */
