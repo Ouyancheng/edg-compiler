@@ -1499,12 +1499,10 @@ not return.
 }  /* term_compilation */
 
 
-#ifdef __cplusplus
 /*
 In C++, signal handlers must be extern "C".
 */
-extern "C" {
-#endif /* ifdef __cplusplus */
+BEGIN_EXTERN_C_BLOCK
 
 /*ARGSUSED*/ /* <-- Because "sig" is not used. */
 static a_signal_handler_return_value term_on_signal(int sig)
@@ -1533,10 +1531,7 @@ typedef a_signal_handler_return_value a_signal_handler(int p, ...);
 typedef a_signal_handler_return_value a_signal_handler(int p);
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
 
-#ifdef __cplusplus
-}  /* extern "C" */
-#endif /* ifdef __cplusplus */
-
+END_EXTERN_C_BLOCK
 
 static void set_signal_handlers(void)
 /*

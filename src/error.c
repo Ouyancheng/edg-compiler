@@ -3073,7 +3073,7 @@ and doing any required expansions, the diagnostic is written.
 }  /* diag_message */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
+BEGIN_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_tag_info(a_const_void_ptr arg1,
@@ -3092,7 +3092,7 @@ the tag.
 }  /* compare_tag_info */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
+END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 a_boolean set_severity_for_error_tag(char		*tag,

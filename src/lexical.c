@@ -5339,7 +5339,7 @@ pp tokens).
 }  /* scan_boolean_constant */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
+BEGIN_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_boolean UCN_char_is_in_range(const void* char_ptr,
@@ -5360,7 +5360,7 @@ or +1 if the character follows the range.
 }  /* UCN_char_is_in_range */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
+END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_boolean is_valid_UCN_identifier_char(unsigned long uchar)

@@ -237,7 +237,7 @@ typedef struct a_tag_info {
 
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
+BEGIN_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_error_info(a_const_void_ptr arg1,
@@ -272,7 +272,7 @@ the tag.
 }  /* compare_tag_info */
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
+END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 

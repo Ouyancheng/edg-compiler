@@ -56,12 +56,18 @@ interface.
 /*
 EXTERN_C is used to declare an external function with C linkage.  When
 compiling with a C compiler this is just set to ``extern'', but when
-compiling with a C++ compiler it is set to ``extern "C"''.
+compiling with a C++ compiler it is set to ``extern "C"''.  The extern
+C block macros are used to begin and end an extern "C" block.  In C
+mode, these expand to nothing.
 */
 #ifdef __cplusplus
 #define EXTERN_C extern "C"
+#define BEGIN_EXTERN_C_BLOCK extern "C" {
+#define END_EXTERN_C_BLOCK }  /* extern "C" */
 #else /* !defined(__cplusplus) */
 #define EXTERN_C extern
+#define BEGIN_EXTERN_C_BLOCK /* nothing */
+#define END_EXTERN_C_BLOCK /* nothing */
 #endif /* __cplusplus */
 
 /*
