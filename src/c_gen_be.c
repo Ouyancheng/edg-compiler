@@ -4673,19 +4673,17 @@ to saved_list, the saved value from the scope surrounding the current one.
 }  /* unbind_wide_string_constants */
 
 
-static void dump_designator(a_constant_ptr con,
-                            a_field_ptr    *field)
+static void dump_designator(a_constant_ptr con)
 /*
 Generate code for a ck_designator constant, i.e., a designator in a
-designated initializer.  If the designator is for a field, set *field to
-the field.
+designated initializer.
 */
 {
-  *field = con->variant.designator.field;
-  if (*field != NULL) {
+  a_field_ptr field = con->variant.designator.field;
+  if (field != NULL) {
     /* Field designator. */
     write_tok_ch('.');
-    dump_field_name(*field);
+    dump_field_name(field);
   } else {
     /* Array element designator. */
     write_tok_ch('[');
@@ -4856,7 +4854,7 @@ block with state information for the processing.
              ignored. */
           if (!*gen_assignments) {
             start_initializer_constants(icbp);
-            dump_designator(elem_con, &ipdp->curr_field);
+            dump_designator(elem_con);
           }  /* if */
           if (type->kind == (a_type_kind)tk_array) {
             ipdp->curr_elem = elem_con->variant.designator.array_element;
