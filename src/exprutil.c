@@ -3732,100 +3732,107 @@ rewriting is possible, and set *converted accordingly; do not change
 the expression.
 */
 {
-  an_expr_node_ptr node = *p_node, op1, op2, op3;
-  a_boolean        is_operation, op1_possible, op2_possible, op3_possible;
+  an_expr_node_ptr      node = *p_node, op1, op2, op3;
+  an_expr_operator_kind op;
+  a_boolean             possible;
+  a_boolean             op1_possible, op2_possible, op3_possible;
+  a_type_ptr            orig_type = node->type;
 
-  *converted = FALSE;
-  is_operation = is_operation_node(node);
-  if (is_operation &&
-      node->variant.operation.kind == (an_expr_operator_kind)eok_indirect) {
-    /* The top operator is an indirection, so we can just remove it. */
-    *converted = TRUE;
+  possible = FALSE;
+  if (is_variable_node(node)) {
+    /* The value of a variable.  Change it to the address of the variable. */
+    possible = TRUE;
     if (!see_if_possible) {
-      node = node->variant.operation.operands;
+      node->kind = (an_expr_node_kind)enk_variable_address;
     }  /* if */
-  } else if (is_operation && node->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_question) {
-    /* "?" operator -- transform each branch independently to an address. */
-    op1 = node->variant.operation.operands;
-    op2 = op1->next;
-    op3 = op2->next;
-    /* See if both branches can be rewritten. */
-    conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
-                                             /*see_if_possible=*/TRUE);
-    conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
-                                             /*see_if_possible=*/TRUE);
-    if (op2_possible && op3_possible) {
-      /* Both branches can be rewritten, so rewrite the whole expression. */
-      *converted = TRUE;
-      if (!see_if_possible) {
-        conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
-                                                 /*see_if_possible=*/FALSE);
-        conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
-                                                 /*see_if_possible=*/FALSE);
-        op1->next = op2;
-        op2->next = op3;
-        node->type = op2->type;
-      }  /* if */
-    }  /* if */
-  } else if (is_operation && node->variant.operation.kind ==
-                                       (an_expr_operator_kind)eok_subscript) {
-    /* "[]" operator -- transform to pointer addition. */
-    op1 = node->variant.operation.operands;
-    /* See if the operand can be rewritten. */
-    conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                             /*see_if_possible=*/TRUE);
-    if (op1_possible) {
-      *converted = TRUE;
-      if (!see_if_possible) {
-        conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                                 /*see_if_possible=*/FALSE);
-        node->variant.operation.kind = (an_expr_operator_kind)eok_padd_subsc;
-        node->type = make_pointer_type(node->type);
-      }  /* if */
-    }  /* if */
-  } else if (is_operation && node->variant.operation.kind ==
-                                      (an_expr_operator_kind)eok_value_field) {
-    /* Selection of a field from an rvalue.  Try to find an lvalue in
-       the struct rvalue, and if one can be found rewrite the operation
-       as a normal field selection. */
-    op1 = node->variant.operation.operands;
-    /* See if the operand can be rewritten. */
-    conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                             /*see_if_possible=*/TRUE);
-    if (op1_possible) {
-      *converted = TRUE;
-      if (!see_if_possible) {
-        conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                                 /*see_if_possible=*/FALSE);
-        node->variant.operation.kind = (an_expr_operator_kind)eok_field;
-        node->type = make_pointer_type(node->type);
-      }  /* if */
-    }  /* if */
-  } else if (is_operation &&
-             node->variant.operation.kind ==
-                                          (an_expr_operator_kind)eok_sassign &&
-             !node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-    /* An assignment operation that returns an rvalue.  It can be optimized
-       by changing it to the lvalue case. */
-    /* This case is here for the sake of completeness.  It's probably not
-       needed. */
-    *converted = TRUE;
-    if (!see_if_possible) {
-      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-      node->type = make_pointer_type(node->type);
-    }  /* if */
-  } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
-    /* A temporary initialization.  Flip the flag that indicates the value
-       or address of the temporary. */
-    check_assertion(!node->variant.init.result_is_addr);
-    *converted = TRUE;
+  } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
+             !node->variant.init.result_is_addr) {
+    /* A temporary initialization indicating the value of a temporary.
+       Change it to the address of the temporary. */
+    possible = TRUE;
     if (!see_if_possible) {
       node->variant.init.result_is_addr = TRUE;
-      node->type = make_pointer_type(node->type);
+    }  /* if */
+  } else if (is_operation_node(node)) {
+    /* An operator node. */
+    op = node->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_indirect) {
+      /* The top operator is an indirection, so we can just remove it. */
+      possible = TRUE;
+      if (!see_if_possible) {
+        node = node->variant.operation.operands;
+      }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_question) {
+      /* "?" operator -- transform each branch independently to an address. */
+      op1 = node->variant.operation.operands;
+      op2 = op1->next;
+      op3 = op2->next;
+      /* See if both branches can be rewritten. */
+      conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
+                                               /*see_if_possible=*/TRUE);
+      conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
+                                               /*see_if_possible=*/TRUE);
+      if (op2_possible && op3_possible) {
+        /* Both branches can be rewritten, so rewrite the whole expression. */
+        possible = TRUE;
+        if (!see_if_possible) {
+          conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
+                                                   /*see_if_possible=*/FALSE);
+          conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
+                                                   /*see_if_possible=*/FALSE);
+          op1->next = op2;
+          op2->next = op3;
+        }  /* if */
+      }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_subscript) {
+      /* "[]" operator -- transform to pointer addition. */
+      op1 = node->variant.operation.operands;
+      /* See if the operand can be rewritten. */
+      conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                               /*see_if_possible=*/TRUE);
+      if (op1_possible) {
+        possible = TRUE;
+        if (!see_if_possible) {
+          conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                                   /*see_if_possible=*/FALSE);
+          op = (an_expr_operator_kind)eok_padd_subsc;
+        }  /* if */
+      }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_value_field) {
+      /* Selection of a field from an rvalue.  Try to find an lvalue in
+         the struct rvalue, and if one can be found rewrite the operation
+         as a normal field selection. */
+      op1 = node->variant.operation.operands;
+      /* See if the operand can be rewritten. */
+      conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                               /*see_if_possible=*/TRUE);
+      if (op1_possible) {
+        possible = TRUE;
+        if (!see_if_possible) {
+          conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                                   /*see_if_possible=*/FALSE);
+          node->variant.operation.kind = (an_expr_operator_kind)eok_field;
+        }  /* if */
+      }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_sassign &&
+             !node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+      /* An assignment operation that returns an rvalue.  It can be optimized
+         by changing it to the lvalue case. */
+      /* This case is here for the sake of completeness.  It's probably not
+         needed. */
+      possible = TRUE;
+      if (!see_if_possible) {
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
+  /* If the node was transformed, its type is now a pointer to the type it
+     had previously. */
+  if (!see_if_possible && possible) {
+    node->type = make_pointer_type(orig_type);
+  }  /* if */
   *p_node = node;
+  *converted = possible;
 }  /* conv_class_rvalue_expr_to_object_pointer */
 
 
@@ -3917,13 +3924,40 @@ replaced by its value, return *constant_case TRUE.
   a_boolean             optimized_case = FALSE;
   an_expr_operator_kind op;
   an_expr_node_ptr      op1, op2, op3;
-  a_type_ptr            new_type;
+  a_type_ptr            orig_type = node->type;
   a_boolean             constant_case2, constant_case3;
+  a_constant_ptr        var_value = NULL;
 
  *constant_case = FALSE;
-  if (is_operation_node(node)) {
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Look for constant-valued variables in C++. */
+    if (is_constant_node(node)) {
+      (void)const_is_addr_of_const_variable(node->variant.constant,
+                                            &var_value);
+    } else if (is_variable_address_node(node)) {
+      /* The lvalue address is given by an enk_variable_address node.  See
+         if the variable is constant-valued. */
+      var_value = var_constant_value(node->variant.variable);
+    }  /* if */
+  }  /* if */
+  if (var_value != NULL) {
+    /* The lvalue address is the address of a constant-valued
+       variable.  Substitute the constant value. */
+    optimized_case = TRUE;
+    *constant_case = TRUE;
+    node = alloc_node_for_constant(var_value);
+  } else if (is_variable_address_node(node)) {
+    /* A variable address node.  Change to the value of the variable. */
+    optimized_case = TRUE;
+    node->kind = (an_expr_node_kind)enk_variable;
+  } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
+             node->variant.init.result_is_addr) {
+    /* enk_temp_init node.  Change from "address of temporary" to "value
+       of temporary". */
+    optimized_case = TRUE;
+    node->variant.init.result_is_addr = FALSE;
+  } else if (is_operation_node(node)) {
     /* An operation node. */
-    new_type = type_pointed_to(node->type);
     op = node->variant.operation.kind;
     op1 = node->variant.operation.operands;
     if (op == (an_expr_operator_kind)eok_padd ||
@@ -3965,32 +3999,19 @@ replaced by its value, return *constant_case TRUE.
       optimized_case = TRUE;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
     }  /* if */
-    if (optimized_case) {
-      /* For the optimized cases, set the node type to the type pointed to. */
-      node->type = new_type;
-    }  /* if */
-  } else if (C_dialect == C_dialect_cplusplus) {
-    a_constant_ptr var_value = NULL;
-    /* Look for constant-valued variables in C++. */
-    if (is_constant_node(node)) {
-      (void)const_is_addr_of_const_variable(node->variant.constant,
-                                            &var_value);
-    } else if (is_variable_address_node(node)) {
-      /* The lvalue address is given by an enk_variable_address node.  See
-         if the variable is constant-valued. */
-      var_value = var_constant_value(node->variant.variable);
-    }  /* if */
-    if (var_value != NULL) {
-      /* The lvalue address is the address of a constant-valued
-         variable.  Substitute the constant value. */
-      optimized_case = TRUE;
-      *constant_case = TRUE;
-      node = alloc_node_for_constant(var_value);
-    }  /* if */
   }  /* if */
-  if (!optimized_case) {
+  if (optimized_case) {
+    /* For the optimized cases, set the node type to the type pointed to. */
+    node->type = type_pointed_to(orig_type);
+  } else {
     /* Not an optimized case.  Just add an indirection. */
     node = add_indirection_to_node(node);
+  }  /* if */
+  /* Drop type qualifiers because they are meaningless on rvalues.
+     Note that no cast is needed to drop the qualifiers: an IL shorthand
+     applies in this case. */
+  if (is_qualified_type(node->type)) {
+    node->type = make_unqualified_type(node->type);
   }  /* if */
   return node;
 }  /* conv_lvalue_expr_to_rvalue */
@@ -4009,7 +4030,7 @@ not an lvalue, it is left alone.
   an_operand       orig_operand;
   an_expr_node_ptr operand_node, cast_node;
   a_type_ptr       cast_orig_type, unqualified_type;
-  a_boolean        constant_case = FALSE;
+  a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
 
   /* Ignore non-lvalues. */
   if (is_an_lvalue(operand)) {
@@ -4096,15 +4117,17 @@ not an lvalue, it is left alone.
             operand->variant.expression = cast_node;
           }  /* if */
         } else {
-          /* Not an lvalue cast (normal case). */
+          /* Normal expression case (not an lvalue cast). */
           /* Convert the expression to an rvalue. */
           operand->variant.expression =
                               conv_lvalue_expr_to_rvalue(node, &constant_case);
           operand->state = (an_operand_state)os_rvalue;
+          /* The subroutine handles dropping type qualifiers. */
+          qualifiers_dropped = TRUE;
         }  /* if */
       }  /* if */
       /* Drop any type qualifiers on the operand type. */
-      if (is_qualified_type(operand->type)) {
+      if (!qualifiers_dropped && is_qualified_type(operand->type)) {
         unqualified_type = make_unqualified_type(operand->type);
         if (is_expression_operand(operand)) {
           /* For an expression node, just change the expression type.
