@@ -7000,7 +7000,7 @@ The IL is already available when this routine is called.
   octl.output_name = gen_name_reference;
   octl.output_temp_name = dump_temp_name;
   octl.output_func_declarator = dump_function_declarator;
-  octl.output_vla_expression = dump_vla_expression;
+  octl.output_expression = dump_vla_expression;
   octl.gen_compilable_code = TRUE;
 #if !C_GEN_BE_GENERATES_ANSI_C
   octl.gen_pcc_code = TRUE;
