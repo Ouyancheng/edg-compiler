@@ -1,5 +1,13 @@
 Version 3.6
 
+1/31/05  GNU C++ value-initialization quirks
+
+The GNU C++ compiler does not zero base classes named in ctor-initializers
+with empty parentheses, contrary to the requirements of the C++ standard.
+Now, when DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS is TRUE
+(not the default), we emulate that behavior.  See the Changes entry of
+8/17/03 for the similar Microsoft issue.
+
 1/31/05  Microsoft routine specifier differences across translation units
 
 When simultaneously processing multiple translation units in Microsoft mode,

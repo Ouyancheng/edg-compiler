@@ -4396,7 +4396,9 @@ scan_paren:
                Note that this is a so-called "value-initialization" case
                and hence the object must be zeroed. */
             a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
-            if (!value_initialization_enabled) {
+            if (!value_initialization_enabled ||
+                (gpp_mode &&
+                 emulate_gnu_value_initialization_bugs)) {
               init_kind = (a_dynamic_init_kind)dik_none;
             }  /* if */
             dip = alloc_dynamic_init(init_kind);
@@ -4432,11 +4434,15 @@ scan_paren:
                 a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
                 if ((microsoft_bugs && microsoft_version < 1310 &&
                      emulate_msvc_value_initialization_bugs) ||
+                    (gpp_mode &&
+                     emulate_gnu_value_initialization_bugs &&
+                     new_cip->kind != (a_constructor_init_kind)cik_field) ||
                     flexible_array_member) {
-                  /* MSVC++ up to version 7.0 never initialize the entity in
-                     cases like this.  The flexible array member case cannot
-                     be initialized since the array has no known number of
-                     elements. */
+                  /* MSVC++ up to version 7.0 never initializes the entity in
+                     cases like this.  g++ up to 3.4 at least does not
+                     initialize base classes.  The flexible array member case
+                     cannot be initialized since the array has no known number
+                     of elements. */
                   init_kind = (a_dynamic_init_kind)dik_none;
                 }  /* if */
                 dip = alloc_dynamic_init(init_kind);

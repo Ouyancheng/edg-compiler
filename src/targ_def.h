@@ -2390,6 +2390,15 @@ that are trying to detect uninitialized values, but not in general.
 #define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS FALSE
 #endif /* DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS */
 
+/*
+Switch that is TRUE if bugs in some versions of g++ regarding
+value-initialization should be emulated.  This is desirable in products
+that are trying to detect uninitialized values, but not in general.
+*/
+#ifndef DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS
+#define DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS FALSE
+#endif /* DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS */
+
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should

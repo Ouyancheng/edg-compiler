@@ -1728,6 +1728,16 @@ EXTERN a_boolean
 			   value-initialization should be emulated.  This
 			   is desirable in products that are trying to
 			   detect uninitialized values, but not in general. */
+EXTERN a_boolean
+		emulate_gnu_value_initialization_bugs
+#if VAR_INITIALIZERS
+			= DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS
+#endif /* VAR_INITIALIZERS */
+			                                               ;
+			/* TRUE if bugs in g++ regarding
+			   value-initialization should be emulated.  This
+			   is desirable in products that are trying to
+			   detect uninitialized values, but not in general. */
 
 EXTERN a_boolean
 		thread_local_storage_specifier_enabled
