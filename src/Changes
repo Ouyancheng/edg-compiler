@@ -2066,7 +2066,7 @@ made).
     B b = r;
   }
 
-5/10/96 IL CHANGE: no top-level qualifier on implicit_this_param_type
+5/10/96 No top-level qualifier on implicit_this_param_type
 
 In the unlowered IL for nonstatic member functions, a top-level const
 qualifier is no longer applied to the type entry pointed to by the
