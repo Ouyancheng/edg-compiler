@@ -1015,6 +1015,8 @@ checked for; in boundary cases, like an error in an expression with
 but this is not a meaningful problem.
 */
 typedef unsigned char
+		a_token_set_array_element;
+typedef a_token_set_array_element
 		a_token_set_array[(int)tok_last+1];
 			/* Generic array-of-unsigned-char both for global
 			   variable stop_token_array and for local arrays
