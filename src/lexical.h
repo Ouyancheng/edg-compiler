@@ -476,11 +476,11 @@ These must not conflict with any characters than can be read from input.
    however; this is only for lint checking. */
 #define END_OF_TOKEN_MARKER '`'
 #define ATTENTION_MARKER    '@'
-#else
+#else /* line */
 #if CHAR_MIN < 0
 /* Host has signed characters. */
 #define UNUSED_CHAR_POS (-1)
-#else
+#else /* CHAR_MIN < 0 */
 /* Host has unsigned characters. */
 #define UNUSED_CHAR_POS UCHAR_MAX
 #endif /* CHAR_MIN < 0 */
@@ -835,6 +835,28 @@ typedef struct a_cached_token {
 			/* New state for the lint and pragma flags. */
   } variant;
 } a_cached_token;
+
+/*
+The token cache stack is used to manipulate persistent token caches
+used for template instantiations.
+*/
+typedef struct a_reusable_cache_entry *a_reusable_cache_entry_ptr;
+typedef struct a_reusable_cache_entry {
+  a_reusable_cache_entry_ptr
+                next;
+                        /* Pointer to the next entry on the stack. */
+  a_cached_token_ptr
+                previous_token_rescan_list;
+                        /* Contains a pointer to the token rescan list at
+                           the time the new persistent cache was pushed
+                           onto the stack. */
+  a_cached_token_ptr
+                next_cached_token;
+                        /* Points to the next token in the persistent cache
+                           to be rescanned. */
+} a_reusable_cache_entry;
+
+
 /* Initialize a token cache. */
 extern void clear_token_cache(a_token_cache *cache);
 /* Discard the contents of a token cache. */
@@ -845,6 +867,8 @@ extern void cache_curr_token(a_token_cache *cache);
 extern void cache_token_stream(a_token_cache *cache);
 /* Put some cached tokens on the get_token rescan list. */
 extern void rescan_cached_tokens(a_token_cache *cache);
+/* Push a reusable cache on to the reusable cache stack. */
+extern void rescan_reusable_cache(a_token_cache *cache);
 
 /*
 Data structure used in deciding where to put extra blanks to separate

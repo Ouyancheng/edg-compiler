@@ -190,6 +190,22 @@ static a_constant_ptr
 			   freed and available for reuse. */
 
 /*
+Information about data structures used for working with persistent token
+caches.
+*/
+
+static a_reusable_cache_entry_ptr
+		avail_reusable_cache_entries;
+			/* List of reusable cache stack entries (allocated
+                           in front end storage) freed and available for
+                           reuse. */
+
+static a_reusable_cache_entry_ptr
+                reusable_cache_stack;
+                        /* The stack of reusable caches that are currently
+                           active. */
+
+/*
 Flag that indicates whether a dollar sign was found in any identifiers.
 Used in strict ANSI mode to make sure that this diagnostic is only given
 once per compilation unit.
@@ -205,7 +221,8 @@ static unsigned long
 		num_orig_line_modifs_allocated,
 		num_source_line_modifs_allocated,
 		num_cached_tokens_allocated,
-		num_cached_constants_allocated;
+		num_cached_constants_allocated,
+		num_reusable_cache_entries_allocated;
 #endif /* DEBUG */
 
 
@@ -255,7 +272,7 @@ Clear the lint and pragma state in a token cache.
 
 
 #if 0
-#else
+#else /* 0 */
 static void unimplemented_keyword_warning(a_symbol_ptr  sym)
 /*
 Issue a warning on unimplemented keywords.  These warnings appear once per
@@ -334,6 +351,32 @@ Allocate a cached token entry.  Reuse a freed entry if possible.
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
   return ctp;
 }  /* alloc_cached_token */
+
+
+static a_reusable_cache_entry_ptr alloc_reusable_cache_entry(void)
+/*
+Allocate a reusable cache entry.  Reuse a freed entry if possible.
+*/
+{
+  a_reusable_cache_entry_ptr rsep;
+
+  if (avail_reusable_cache_entries != NULL) {
+    /* Reuse a freed entry. */
+    rsep = avail_reusable_cache_entries;
+    avail_reusable_cache_entries = avail_reusable_cache_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    rsep = (a_reusable_cache_entry_ptr)
+                                 alloc_fe(sizeof(a_reusable_cache_entry));
+#if DEBUG
+    num_reusable_cache_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  rsep->next = NULL;
+  rsep->previous_token_rescan_list = NULL;
+  rsep->next_cached_token = NULL;
+  return rsep;
+}  /* alloc_reusable_cache_entry */
 
 
 static a_constant_ptr alloc_cached_constant(void)
@@ -565,6 +608,67 @@ in the cache, nothing is done.
 }  /* rescan_cached_tokens */
 
 
+void rescan_reusable_cache(a_token_cache *cache)
+/*
+This routine is similar to rescan_cached_tokens except that the token
+cache provided by the caller is not destroyed while it is scanned.
+This is used by template processing for instantiation processing.
+The token cache passed by the caller is put on the top of a stack of
+reusable caches being scanned.  The cached token rescan list
+pointer is saved in the entry for the reusable cache so that
+it can be restored when the cache has been exhausted.  The current
+token is cached so that it will be fetched again after the reusable
+tokens have been rescanned.
+*/
+{
+  a_lint_and_pragma_state     laps;
+  a_token_cache               cache_for_curr_token;
+  a_reusable_cache_entry_ptr  rcep;
+
+  db_enter(4, "rescan_reusable_cache");
+  if (cache->first_token != NULL) {
+    /* Create a token cache for the current token so that (a) it is
+       not lost, and (b) the lint/pragma state is properly updated in
+       the transition from the end of the new list to the existing
+       current token. */
+    clear_token_cache(&cache_for_curr_token);
+    cache_curr_token(&cache_for_curr_token);
+    /* Append the current rescan list to the end of the cache just created
+       for the current token. */
+    cache_for_curr_token.last_token->next = cached_token_rescan_list;
+    cached_token_rescan_list = cache_for_curr_token.first_token;
+    /* Create a new reusable cache entry for the new cache and put on the
+       front of the list of active reusable caches. */
+    rcep = alloc_reusable_cache_entry();
+    rcep->next = reusable_cache_stack;
+    reusable_cache_stack = rcep;
+    /* Save and clear the current value of the regular token rescan list. */
+    rcep->previous_token_rescan_list = cached_token_rescan_list;
+    cached_token_rescan_list = NULL;
+    /* Set the next token pointer of the reusable cache entry to the front
+       of the cache. */
+    rcep->next_cached_token = cache->first_token;
+    /* Start the lint and pragma flags off with default values.  They will be
+       changed from that by teik_lint_and_pragma entries on the token list. */
+    clear_lint_and_pragma_state(&laps);
+    set_globals_from_lint_and_pragma_state(&laps);
+    /* Fetch the first cached token. */
+    (void)get_token();
+  }  /* if */
+  db_exit();
+}  /* rescan_reusable_cache */
+
+
+static void free_reusable_cache_entry(a_reusable_cache_entry_ptr rsep)
+/*
+Free a token cache stack entry, i.e., put it on the avail list to be reused.
+*/
+{
+  rsep->next = avail_reusable_cache_entries;
+  avail_reusable_cache_entries = rsep;
+}  /* free_reusable_cache_entry */
+
+
 static void free_cached_token(a_cached_token_ptr ctp)
 /*
 Free a cached token entry, i.e., put it on the avail list to be reused.
@@ -600,7 +704,10 @@ tokens therein and clear the cache.
 static a_token_kind get_token_from_cached_token_rescan_list(void)
 /*
 Remove the first token from cached_token_rescan_list, establish it as the
-current token, and return its token kind.
+current token, and return its token kind.  This routine and
+get_token_from_reusable_cache_stack are very similar.  If a change is
+made to one routine the other should be checked to see if it needs
+an equivalent change.
 */
 {
   a_token_kind       ctoken;
@@ -637,6 +744,60 @@ current token, and return its token kind.
   db_exit();
   return ctoken;
 }  /* get_token_from_cached_token_rescan_list */
+
+
+static a_token_kind get_token_from_reusable_cache_stack(void)
+/*
+Return a token from the current entry on the reusable cache stack,
+establish it as the current token, and return its token kind.  This routine
+and get_token_from_cached_token_rescan_list are very similar.  If a change is
+made to one routine the other should be checked to see if it needs
+an equivalent change.
+*/
+{
+  a_token_kind       ctoken;
+  a_cached_token_ptr ctp;
+
+  db_enter(4, "get_token_from_reusable_cache_stack");
+  for (;;) {
+    /* Remove the first entry from the list. */
+    ctp = reusable_cache_stack->next_cached_token;
+    reusable_cache_stack->next_cached_token = ctp->next;
+    /* If it is a special entry indicating a lint comment or pragma,
+       process it and take another entry.  Otherwise, exit the loop. */
+    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_lint_and_pragma){
+      break;
+    }  /* if */
+    set_globals_from_lint_and_pragma_state(
+                                          &ctp->variant.lint_and_pragma_state);
+  }  /* for */
+  /* Entry is for a token (normal case). */
+  ctoken = (a_token_kind)ctp->token;
+  pos_curr_token = ctp->source_position;
+  error_position = pos_curr_token;
+  start_of_curr_token = end_of_curr_token = NULL;
+  len_of_curr_token = 0;
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
+    /* For an identifier, restore the locator. */
+    locator_for_curr_id = ctp->variant.locator;
+  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
+    /* For a literal constant, restore const_for_curr_token. */
+    copy_constant(ctp->variant.constant, &const_for_curr_token);
+  }  /* if */
+  /* Check whether we have reached the end of this cache. */
+  if (reusable_cache_stack->next_cached_token == NULL) {
+    a_reusable_cache_entry_ptr  rcep = reusable_cache_stack;
+    /* Restore the cached token rescan list to the state before the
+       current reusable cache was pushed onto the stack.  These tokens
+       should be rescanned before we resume use of the next entry on the
+       reusable stack. */
+    cached_token_rescan_list = rcep->previous_token_rescan_list;
+    reusable_cache_stack = rcep->next;
+    free_reusable_cache_entry(rcep);
+  }  /* if */
+  db_exit();
+  return ctoken;
+}  /* get_token_from_reusable_cache_stack */
 
 
 static an_orig_line_modif_ptr add_orig_line_modif(
@@ -3394,7 +3555,9 @@ will be processed normally.
 
 If cached_token_rescan_list is non-NULL, it points to a list of cached
 tokens which are to be rescanned; the first token on that list is removed
-and returned.
+and returned.  Otherwise, if reusable_cache_stack is non-NULL, it points
+to a list of reusable cache entries; the next token on that list is
+returned without destroying the reusable cache.
 
 In the case where an invalid token is scanned, tok_error is returned
 and err_code_for_error_token is set to indicate a diagnostic that
@@ -3425,9 +3588,20 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
 
+  /* If there are cached tokens to be rescanned, first check the
+     cached_token_rescan_list and take the first token on the list if
+     it is non-NULL, otherwise check the reusable cache stack. */
   /* If there are cached tokens to be rescanned, take the first on the list. */
   if (cached_token_rescan_list != NULL) {
     ctoken = get_token_from_cached_token_rescan_list();
+#if DEBUG
+    gotten_from_cache = TRUE;
+#endif /* DEBUG */
+    goto return_from_token_scan;
+  } else if (reusable_cache_stack != NULL) {
+    /* If there are tokens to be rescanned from the reusable cache stack
+       take the next one on the list. */
+    ctoken = get_token_from_reusable_cache_stack();
 #if DEBUG
     gotten_from_cache = TRUE;
 #endif /* DEBUG */
@@ -3899,7 +4073,7 @@ id_scan:
               ctoken = assoc_symbol->variant.keyword_token;
 #if 0
               goto end_id_scan;
-#else
+#else /* 0 */
               /* The keywords defined to support C++ exceptions
                  are for the time being ignored and treated as identifiers.
                  However, a warning is issued.  This check will be removed
@@ -4811,6 +4985,8 @@ Display and return the amount of space used for various lexical tables.
                                  a_source_line_modif);
   write_one("cached token", num_cached_tokens_allocated, a_cached_token);
   write_one("cached constant", num_cached_constants_allocated, a_constant);
+  write_one("cache stack entry", num_reusable_cache_entries_allocated,
+            a_reusable_cache_entry);
 
   total = after_end_of_curr_source_line - curr_source_line;
   fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "curr_source_line",
@@ -4871,12 +5047,15 @@ of the front end.
   cached_token_rescan_list = NULL;
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
+  avail_reusable_cache_entries = NULL;
+  reusable_cache_stack = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
   num_cached_tokens_allocated = 0;
   num_cached_constants_allocated = 0;
+  num_reusable_cache_entries_allocated = 0;
 #endif /* DEBUG */
 
   /* Do the initial allocation for curr_source_line the first time this
