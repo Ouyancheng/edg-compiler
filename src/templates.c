@@ -4189,7 +4189,7 @@ the same constant.
         equiv = FALSE;
       } else if (eq_constants(con1, con2)) {
         /* Okay. */
-      } else if (is_prototype && (microsoft_bugs || gpp_mode) &&
+      } else if (is_prototype && 
                  equiv_nontype_template_param_names(con1, con2)) {
         /* Two template parameter names that have a type mismatch but
            that should be considered equivalent in the current mode. */
