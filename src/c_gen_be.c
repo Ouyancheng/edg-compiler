@@ -1854,48 +1854,55 @@ Dump the length for the indicated character variable.
 #endif /* ifdef FFE */
 #ifdef CFE
 
+#if !INCLUDE_ANNOTATIONS
+/*ARGSUSED*/ /* <-- type used only if INCLUDE_ANNOTATIONS is TRUE. */
+#endif /* !INCLUDE_ANNOTATIONS */
 static void dump_enum(a_type_ptr type)
 /*
 Dump an enum.  Print the associated source name if there is one.
 */
 {
+#if INCLUDE_ANNOTATIONS
   a_constant_ptr constant;
   a_constant     enum_value;
 
   /* Enumerated and types and the enumerated constants end up being replaced
      by the underlying types and values, so the enum declaration itself
      is not needed. */
-  fputs("\n#if 0", f_C_output);
-  startline(type->source_corresp.decl_position.seq);
-  (void)fprintf(f_C_output, "enum %s", get_name(&type->source_corresp));
-  constant = type->variant.integer.enum_info.constant_list;
-  if (constant != NULL) {
-    fputs(" {", f_C_output);
-    /* Make an integer constant 0 of the same type as the first enumeration
-       constant. */
-    enum_value = *constant;
-    set_integer_value(&enum_value.variant.integer_value, 0L);
-    indent += 2;
-    for (;;) {
-      /* Put out each enumeration constant, with a value if it's not the
-         next value in sequence. */
-      startline(constant->source_corresp.decl_position.seq);
-      fputs(get_name(&constant->source_corresp), f_C_output);
-      if (cmp_integer_constants(constant, &enum_value) != 0) {
-        (void)fprintf(f_C_output, " = ");
-        write_integer_constant(f_C_output, constant);
-        enum_value = *constant;
-      }  /* if */
-      constant = constant->next;
-      if (constant == NULL) break;
-      fputc(',', f_C_output);
-      incr_integer_value(&enum_value.variant.integer_value);
-    }  /* for */
-    indent -= 2;
-    fputc('}', f_C_output);
+  if (annotate) {
+    fputs("\n#if 0", f_C_output);
+    startline(type->source_corresp.decl_position.seq);
+    (void)fprintf(f_C_output, "enum %s", get_name(&type->source_corresp));
+    constant = type->variant.integer.enum_info.constant_list;
+    if (constant != NULL) {
+      fputs(" {", f_C_output);
+      /* Make an integer constant 0 of the same type as the first enumeration
+         constant. */
+      enum_value = *constant;
+      set_integer_value(&enum_value.variant.integer_value, 0L);
+      indent += 2;
+      for (;;) {
+        /* Put out each enumeration constant, with a value if it's not the
+           next value in sequence. */
+        startline(constant->source_corresp.decl_position.seq);
+        fputs(get_name(&constant->source_corresp), f_C_output);
+        if (cmp_integer_constants(constant, &enum_value) != 0) {
+          (void)fprintf(f_C_output, " = ");
+          write_integer_constant(f_C_output, constant);
+          enum_value = *constant;
+        }  /* if */
+        constant = constant->next;
+        if (constant == NULL) break;
+        fputc(',', f_C_output);
+        incr_integer_value(&enum_value.variant.integer_value);
+      }  /* for */
+      indent -= 2;
+      fputc('}', f_C_output);
+    }  /* if */
+    fputc(';', f_C_output);
+    fputs("\n#endif", f_C_output);
   }  /* if */
-  fputc(';', f_C_output);
-  fputs("\n#endif", f_C_output);
+#endif /* INCLUDE_ANNOTATIONS */
 }  /* dump_enum */
 
 #endif /* ifdef CFE */
