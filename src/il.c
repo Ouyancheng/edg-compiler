@@ -7549,7 +7549,7 @@ is required and to FALSE otherwise.
                                         lifetime_of_uninitialized_storage;
       break;
     case iek_dynamic_init:
-      lifetime_addr = &((a_dynamic_init_ptr)entity_ptr)->lifetime;
+      lifetime_addr = &((a_dynamic_init_ptr)entity_ptr)->init_expr_lifetime;
       break;
 #if CHECKING
     default:
@@ -7634,11 +7634,12 @@ scope entry that should be updated.
   /* Get the address of the appropriate field of the IL entry and point
      back to the object lifetime entry. */
   lifetime_addr = addr_of_lifetime_ptr(entity_kind, entity_ptr, olp->kind);
+  check_assertion(*lifetime_addr == NULL);
   *lifetime_addr = olp;
 }  /* bind_object_lifetime */
 
 
-static void unbind_object_lifetime(an_object_lifetime_ptr  olp)
+void unbind_object_lifetime(an_object_lifetime_ptr  olp)
 /*
 Undo the binding between an object lifetime entry and the IL entry to which
 it points.
