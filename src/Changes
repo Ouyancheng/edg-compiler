@@ -1,5 +1,44 @@
 Version 2.28
 
+2/5/94   Partial IL lowering of exception handling
+
+Exception handling constructs can now be handled three different ways
+by IL lowering:
+- With DO_FULL_PORTABLE_EH_LOWERING set, all EH constructs are lowered to
+  C.  That means code is generated to maintain an EH stack, try/catch are
+  fully lowered (using setjmp), throw is fully lowered, cleanup tables
+  and typeinfo entries are generated, and __eh_curr_region is maintained.
+  This has been the default implementation since we added the EH features.
+  This mode is compatible with the C-generating back end and the minimal
+  runtime supplied.  Setting DO_FULL_PORTABLE_EH_LOWERING forces the
+  setting of GENERATE_EH_TABLES.
+- With GENERATE_EH_TABLES set (and DO_FULL_PORTABLE_EH_LOWERING not set),
+  the cleanup tables and typeinfo entries are generated, but throw/try/catch
+  are retained.  Other low-level executable code is represented as
+  enk_lowered_eh_construct expression nodes.  Also, the object address
+  table is not maintained, and the handle numbers for entities in the
+  cleanup tables use stack offsets represented as ck_stack_offset
+  constants.  This mode is very similar to the portable mode, but more
+  efficient in not using the object address table.  It also allows the
+  back end to redefine or eliminate the separate exception handling stack,
+  and to use something other than setjmp for try/catch.
+- With neither flag set, no tables are generated (but the object lifetime
+  information is preserved), throw/try/catch are retained, and all other
+  executable constructs are represented as enk_lowered_eh_construct nodes.
+  This mode is intended for back ends that want to handle all the code
+  generation for exception handling.  (This mode was formerly controlled
+  by DO_LOWERING_OF_EXCEPTION_HANDLING, and was available in version 2.27,
+  but the implementation had some holes in that version.)
+The statements and expressions attached under exception handling
+constructs (e.g., try/catch, throw) are lowered in all modes (as long as
+IL lowering itself is done).
+
+2/5/95   Dynamic initialization for throw doesn't indicate destruction
+
+The dynamic initialization for a throw no longer indicates a destruction,
+because the runtime is supposed to do the destruction, not the point
+of throw.
+
 2/3/95   IL CHANGE: asm entries
 
 Some new fields have been added to allow an_asm_entry to represent the
