@@ -5637,6 +5637,88 @@ parameters.
 }  /* dump_variable_decl */
 
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void dump_asm_operands(an_asm_entry_ptr  aep)
+/*
+Dump the GNU C operand descriptions for the given asm entry.
+*/
+{
+  int                i;
+  a_boolean          output = TRUE;
+  an_asm_operand_ptr aop;
+
+  /* Check for the case of no operands at all, or just no outputs. */
+  if (aep->num_operands == 0 ||
+      !(aep->operands[0].modifiers & (an_asm_operand_modifier)aom_output)) {
+    output = FALSE;
+    write_tok_str(" :");
+  }  /* if */
+  for (i = 0; i < aep->num_operands; i++) {
+    aop = &aep->operands[i];
+    write_tok_ch(' ');
+    m_write_ch('"');
+    if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
+      if (aop->modifiers & (an_asm_operand_modifier)aom_input) {
+        m_write_ch('+');
+      } else {
+        m_write_ch('=');
+      }  /* if */
+    }  /* if */
+    if (aop->modifiers & (an_asm_operand_modifier)aom_earlyclobber) {
+      m_write_ch('&');
+    }  /* if */
+    m_write_ch(asm_operand_constraint_letters[aop->constraint]);
+    m_write_ch('"');
+    write_tok_str(" (");
+    if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
+      dump_lvalue(aop->expression);
+    } else {
+      dump_expression(aop->expression);
+    }  /* if */
+    m_write_ch(')');
+    /* If this is the last output, but not the last entry, write a
+       colon.  Else if this is not the last operand, write a comma. */
+    if (output && i < aep->num_operands - 1 &&
+        !(aep->operands[i+1].modifiers &
+                                       (an_asm_operand_modifier)aom_output)) {
+      write_tok_str(" :");
+      output = FALSE;
+    } else if (i < aep->num_operands - 1) {
+      m_write_ch(',');
+    }  /* if */
+  }  /* for */
+}  /* dump_asm_operands */
+
+
+static void dump_asm_clobbers(an_asm_entry_ptr aep)
+/*
+Dump the GNU C clobber specifications for the given asm entry.
+*/
+{
+  int i;
+
+  /* GCC does not want to see empty clobbers lists. */
+  if (aep->num_clobbers > 0) {
+    write_tok_str(" :");
+    for (i = 0; i < aep->num_clobbers; i++) {
+      /* Permit line breaking here. */
+      write_tok_ch(' ');
+      /* Register names are assumed not to have any characters that need
+         to be escaped in string constants. */
+      m_write_ch('"');
+      m_write_str(named_register_names[aep->clobbers[i]]);
+      m_write_ch('"');
+      if (i < aep->num_clobbers - 1) {
+        m_write_ch(',');
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* dump_asm_clobbers */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+
 static void dump_asm_entry(an_asm_entry_ptr aep)
 /*
 Generate C for an asm statement or declaration.
@@ -5659,8 +5741,21 @@ Generate C for an asm statement or declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here; this is the "else" of an "if". */
   {
-    write_tok_str("asm(");
+    write_tok_str("asm");
+#if GNU_EXTENSIONS_ALLOWED
+    if (aep->is_volatile) {
+      write_tok_str(" volatile");
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    write_tok_ch('(');
     dump_constant(aep->asm_string);
+#if GNU_EXTENSIONS_ALLOWED
+    if (aep->num_operands > 0 || aep->num_clobbers > 0 || !aep->is_volatile) {
+      write_tok_str(" :");
+      dump_asm_operands(aep);
+      dump_asm_clobbers(aep);
+    }
+#endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_str(");");
   }  /* if */
 }  /* dump_asm_entry */

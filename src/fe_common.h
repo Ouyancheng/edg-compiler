@@ -25,6 +25,7 @@ incorporated:
     defines.h
     err_codes.h
     error.h
+    extasm.h
     float_pt.h
     host_envir.h
     il.h
@@ -106,6 +107,9 @@ incorporated:
 
 /* Attributes. */
 #include "attribute.h"
+
+/* Extended asm statements. */
+#include "extasm.h"
 
 #if DEBUG
 /* Debug declarations. */

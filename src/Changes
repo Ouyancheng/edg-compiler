@@ -256,7 +256,7 @@ also preserve the lvalueness of their operands.  [10/12/01] Case ranges.
 [10/30/01] Implicit conversions between integer and pointer types, and
 between incompatible pointer types, with a warning.  Also implicit
 conversions between pointer types that drop cv-qualifiers. [11/1/01] typedef
-initializers.
+initializers. [11/1/01] Extended asm syntax.
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 

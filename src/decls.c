@@ -8432,11 +8432,27 @@ instructions (unquoted).
 Microsoft asm blocks are converted into a string when the __asm token
 is encountered.  The string is pointed to by curr_token_asm_string and
 is saved and restored as needed by the token caching mechanism.
+
+In GNU mode support is provided for additional syntax:
+
+  asm volatile    ( string-literal : operand-spec )
+              opt
+
+This may appear only at function or block scope.  The operand-spec tells
+the compiler how to map C/C++ variables into and out of the assembly
+instruction's operands.
 */
 {
-  a_constant        asm_string;
-  an_asm_entry_ptr  ap = NULL;
-  a_source_position asm_pos;
+  a_constant          asm_string;
+  an_asm_entry_ptr    ap = NULL;
+  a_source_position   asm_pos;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean           is_volatile = FALSE;
+  an_asm_operand_ptr  operands = NULL;
+  a_named_register    *clobbers = NULL;
+  int                 num_operands = 0;
+  int                 num_clobbers = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "asm_declaration");
   check_assertion(curr_token == tok_asm || curr_token == tok_microsoft_asm);
@@ -8465,6 +8481,13 @@ is saved and restored as needed by the token caching mechanism.
   } else {
     /* Skip past the "asm". */
     (void)get_token();
+#if GNU_EXTENSIONS_ALLOWED
+    /* Skip a potential "volatile". */
+    if (gcc_mode && curr_token == tok_volatile) {
+      is_volatile = TRUE;
+      (void)get_token();
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Check for and skip the opening parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_stop_token(tok_rparen);
@@ -8476,6 +8499,22 @@ is saved and restored as needed by the token caching mechanism.
       copy_constant(&const_for_curr_token, &asm_string);
       (void)get_token();
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    /* Check for operands spec. */
+    if (gcc_mode && is_asm_statement) {
+      if (curr_token == tok_colon || curr_token == tok_colon_colon) {
+        num_operands = asm_operands_spec(&operands);
+        num_clobbers = asm_clobbers_spec(&clobbers);
+        validate_operands_and_clobbers(operands, num_operands,
+                                       clobbers, num_clobbers);
+      }  /* if */
+      /* In GNU mode, an asm() with no outputs is automatically volatile. */
+      if (num_operands == 0 ||
+          !(operands[0].modifiers & (an_asm_operand_modifier)aom_output)) {
+        is_volatile = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Check for and skip the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -8491,6 +8530,13 @@ is saved and restored as needed by the token caching mechanism.
     ap = alloc_asm_entry();
     ap->asm_string = alloc_unshared_constant(&asm_string);
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
+#if GNU_EXTENSIONS_ALLOWED
+    ap->is_volatile = is_volatile;
+    ap->operands = operands;
+    ap->clobbers = clobbers;
+    ap->num_operands = num_operands;
+    ap->num_clobbers = num_clobbers;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (!is_asm_statement) {
       /* Add the asm entry to the list for the current scope.  This is only
          done for asm declarations that do not appear in an executable context

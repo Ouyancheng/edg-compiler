@@ -1824,6 +1824,13 @@ to it.
   set_default_source_corresp(ap->source_corresp);
   ap->next = NULL;
   ap->asm_string = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  ap->num_operands = 0;
+  ap->num_clobbers = 0;
+  ap->is_volatile = 0;
+  ap->operands = NULL;
+  ap->clobbers = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
   return ap;
 }  /* alloc_asm_entry */

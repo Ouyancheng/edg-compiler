@@ -104,6 +104,10 @@ extern void scan_nonconstant_dimension_expression(
                                            an_expr_node_ptr *expression,
                                            a_constant       *constant);
 
+#if GNU_EXTENSIONS_ALLOWED
+an_expr_node_ptr scan_asm_operand_expression(a_boolean output);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern void scan_initializer_expression(
                                        a_type_ptr       required_type,
                                        a_boolean        static_lifetime,

@@ -4568,9 +4568,53 @@ static void disp_asm_entry(an_asm_entry_ptr ptr)
 Display the indicated asm entry.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
+  int i;
+#endif
+
   disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_asm_entry);
   disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->is_volatile) {
+    disp_boolean("is_volatile", TRUE);
+  }  /* if */
+  for (i = 0; i < ptr->num_operands; i++) {
+    printf("operand %d:\n", i);
+    if (ptr->operands[i].modifiers & aom_output) {
+      disp_boolean("aom_output", TRUE);
+    }  /* if */
+    if (ptr->operands[i].modifiers & aom_input) {
+      disp_boolean("aom_input", TRUE);
+    }  /* if */
+    if (ptr->operands[i].modifiers & aom_earlyclobber) {
+      disp_boolean("aom_earlyclobber", TRUE);
+    }  /* if */
+    if (ptr->operands[i].modifiers & aom_commutative) {
+      disp_boolean("aom_commutative", TRUE);
+    }  /* if */
+    if (ptr->operands[i].modifiers & aom_ignore_next) {
+      disp_boolean("aom_ignore_next", TRUE);
+    }  /* if */
+    if (ptr->operands[i].modifiers & aom_ignore_till_comma) {
+      disp_boolean("aom_ignore_till_comma", TRUE);
+    }  /* if */
+    if (ptr->operands[i].modifiers & aom_poor_choice) {
+      disp_boolean("aom_poor_choice", TRUE);
+    }  /* if */
+    if (ptr->operands[i].modifiers & aom_bad_choice) {
+      disp_boolean("aom_bad_choice", TRUE);
+    }  /* if */
+    printf("constraint: %c\n",
+           asm_operand_constraint_letters[ptr->operands[i].constraint]);
+    disp_ptr("expr", (char *)ptr->operands[i].expression, iek_expr_node);
+  }  /* for */
+  (void)printf("clobbers:");
+  for (i = 0; i < ptr->num_clobbers; i++) {
+    printf(" %s", named_register_names[ptr->clobbers[i]]);
+  }  /* for */
+  putchar('\n');
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_asm_entry */
 
 #endif /* CFE */

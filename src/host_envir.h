@@ -1863,7 +1863,7 @@ extern int compare_dir_names(char	*dir1,
 
 #ifndef STDLIB_H_INCLUDED
 /*
-When stdlib.h is not used, provide a declaration for bsearch.
+When stdlib.h is not used, provide a declaration for bsearch and qsort.
 */
 EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                             a_const_void_ptr base,
@@ -1871,6 +1871,23 @@ EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                             sizeof_t         size,
                             int(*compar)(a_const_void_ptr,
                                          a_const_void_ptr));
+
+#if GNU_EXTENSIONS_ALLOWED
+#if __BSD__
+EXTERN_C int qsort(a_void_ptr       base,
+                   int              nmemb,
+                   int              size,
+                   int(*compar)(a_const_void_ptr,
+                                a_const_void_ptr));
+#else /* !__BSD__ */
+EXTERN_C void qsort(a_void_ptr       base,
+                    sizeof_t         nmemb,
+                    sizeof_t         size,
+                    int(*compar)(a_const_void_ptr,
+                                 a_const_void_ptr));
+#endif /* __BSD__ */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #endif /* ifndef STDLIB_H_INCLUDED */
 
 #if defined(__SUNPRO_CC) && __BSD__
@@ -1881,6 +1898,15 @@ typedef const char * a_bsearch_arg_type;
 typedef a_const_void_ptr a_bsearch_arg_type;
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
 
+#if GNU_EXTENSIONS_ALLOWED
+/* BSD systems use (signed) int to count the number of elements to be sorted
+   by qsort. */
+#if __BSD__
+typedef int qsort_nmemb_type;
+#else /* !__BSD__ */
+typedef sizeof_t qsort_nmemb_type;
+#endif /* __BSD__ */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
 The C++ standard specifies that two versions of bsearch and qsort must

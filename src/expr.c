@@ -3771,6 +3771,71 @@ current token on entry.
   db_exit();
 }  /* scan_address_of_label_expression */
 
+
+an_expr_node_ptr scan_asm_operand_expression(a_boolean output)
+/*
+Scan and return the statement associated with an asm operand.  This is similar
+to scan_integer_expression with slightly different checks.
+*/
+{
+  an_expr_node_ptr    expression;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
+  a_boolean           processed = FALSE;
+
+  db_enter(3, "scan_asm_operand_expression");
+
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Scan the expression. */
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  /* Convert from a class type to an integer if necessary. */
+  if (!C_mode() && is_class_struct_union_type(result.type)) {
+    try_to_convert_class_operand_to_builtin_type(&result, 
+                                                 BTK_INTEGRAL |
+                                                 BTK_ENUM |
+                                                 BTK_FLOATING |
+                                                 BTK_POINTER |
+                                                 BTK_BOOL,
+                                                 &processed);
+  }  /* if */
+  if (!processed) {
+    /* Non-class (i.e., normal) case. */
+    do_operand_transformations(&result,
+                               output ?
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION :
+                               TOPT_NO_OPTIONS); 
+    /* Can't check the type of a template parameter in a prototype
+       instantiation. */
+    if (!is_template_param_type(result.type)) {
+      (void)check_scalar_operand(&result);
+    }  /* if */
+  }  /* if */
+  if (output) {
+    /* Output operands must be modifiable lvalues. */
+    if (check_modifiable_lvalue_operand(&result)) {
+      modifying_lvalue(&result, /*value_used=*/FALSE);
+    }  /* if */
+  }  /* if */
+  expression = make_node_from_operand(&result);
+  expression = wrap_up_full_expression(expression);
+  pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+#if DEBUG
+  if (debug_level >= 3) {
+    db_expression(expression);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+
+  return expression;
+}  /* scan_asm_operand_expression */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_indirection_operator(an_operand *result)

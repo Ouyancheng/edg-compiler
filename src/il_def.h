@@ -2296,6 +2296,247 @@ EXTERN char *type_mode_kind_names[(int)tmk_last + 1]
 #endif /* VAR_INITIALIZERS */
 ;
 
+/*
+Enumeration of input/output constraint categories for GNU extended
+asm.  The first block of these is independent of the target processor,
+the rest are machine dependent.
+*/
+enum an_asm_operand_constraint_tag {
+  aoc_invalid = 0,
+  aoc_any,              /* X: unconstrained */
+  aoc_general,          /* g: r or i or m */
+  aoc_match_0, aoc_match_1, aoc_match_2, aoc_match_3, aoc_match_4,
+  aoc_match_5, aoc_match_6, aoc_match_7, aoc_match_8, aoc_match_9,
+                        /* 0-9: same as a previous operand */
+  /* registers */
+  aoc_reg_integer,      /* r: any integer register */
+  aoc_reg_float,        /* f: any float register */
+  /* memory */
+  aoc_mem_any,          /* m: any memory location */
+  aoc_mem_offset,       /* o: memory location, if (val + sizeof(object))
+                           is also acceptable in this context */
+  aoc_mem_nonoffset,    /* V: m but not o */
+  aoc_mem_autoinc,      /* >: mem, ptr incremented before or after op */
+  aoc_mem_autodec,      /* <: mem, ptr decremented before or after op */
+  /* immediates */
+  aoc_imm_int,          /* i: any integer (including symbolic references) */
+  aoc_imm_number,       /* n: any number known to the compiler (no symbols) */
+  aoc_imm_symbol,       /* s: any symbolic reference */
+  aoc_imm_float,        /* E, F: any floating point constant */
+#if TARG_IS_X86
+  /* registers */
+  aoc_reg_a,            /* a: ax */
+  aoc_reg_b,            /* b: bx */
+  aoc_reg_c,            /* c: cx */
+  aoc_reg_d,            /* d: dx */
+  aoc_reg_si,           /* s: si */
+  aoc_reg_di,           /* d: di */
+  aoc_reg_legacy,       /* R: ax bx cx dx si di bp sp (avail. on non-x86-64) */
+  aoc_reg_q,            /* Q: ax bx cx dx (non-x86-64), same as 'r' (x86-64) */
+  aoc_reg_ad,           /* A: ax dx */
+  aoc_reg_float_tos,    /* t: %st(0) */
+  aoc_reg_float_second, /* u: %st(1) */
+  aoc_reg_sse,          /* x: any SSE register */
+  aoc_reg_sse2,         /* Y: any SSE2 register */
+  aoc_reg_mmx,          /* y: any MMX register */
+  /* immediates */
+  aoc_imm_short_shift,  /* I: [0, 32) */
+  aoc_imm_long_shift,   /* J: [0, 64) */
+  aoc_imm_lea_shift,    /* M: [0, 4) */
+  aoc_imm_signed8,      /* K: [-128, 127] */
+  aoc_imm_unsigned8,    /* N: [0, 255] */
+  aoc_imm_and_zext,     /* L: {0xFF, 0xFFFF} */
+  aoc_imm_80387,        /* G: any 80387 standard constant */
+  aoc_imm_sse,          /* H: any SSE standard constant */
+  aoc_imm_sext32,       /* e: any 32-bit quantity sign extended to 64 bits */
+  aoc_imm_zext32,       /* Z: any 32-bit quantity zero extended to 64 bits */
+#endif /* TARG_IS_X86 */
+  aoc_last
+};
+typedef a_byte an_asm_operand_constraint;
+
+/*
+Names of operand constraints.  Used by il_display.c.
+*/
+EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
+#if VAR_INITIALIZERS
+= {
+  /* aoc_invalid */             '@',
+  /* aoc_any */                 'X',
+  /* aoc_general */             'g',
+  /* aoc_match_0 */             '0',
+  /* aoc_match_1 */             '1',
+  /* aoc_match_2 */             '2',
+  /* aoc_match_3 */             '3',
+  /* aoc_match_4 */             '4',
+  /* aoc_match_5 */             '5',
+  /* aoc_match_6 */             '6',
+  /* aoc_match_7 */             '7',
+  /* aoc_match_8 */             '8',
+  /* aoc_match_9 */             '9',
+  /* aoc_reg_integer */         'r',
+  /* aoc_reg_float */           'f',
+  /* aoc_mem_any */             'm',
+  /* aoc_mem_offset */          'o',
+  /* aoc_mem_nonoffset */       'V',
+  /* aoc_mem_autoinc */         '>',
+  /* aoc_mem_autodec */         '<',
+  /* aoc_imm_int */             'i',
+  /* aoc_imm_number */          'n',
+  /* aoc_imm_symbol */          's',
+  /* aoc_imm_float */           'F',
+#if TARG_IS_X86
+  /* aoc_reg_a */               'a',
+  /* aoc_reg_b */               'b',
+  /* aoc_reg_c */               'c',
+  /* aoc_reg_d */               'd',
+  /* aoc_reg_si */              'S',
+  /* aoc_reg_di */              'D',
+  /* aoc_reg_legacy */          'R',
+  /* aoc_reg_q */               'Q',
+  /* aoc_reg_ad */              'A',
+  /* aoc_reg_float_tos */       't',
+  /* aoc_reg_float_second */    'u',
+  /* aoc_reg_sse */             'x',
+  /* aoc_reg_sse2 */            'Y',
+  /* aoc_reg_mmx */             'y',
+  /* aoc_imm_short_shift */     'I',
+  /* aoc_imm_long_shift */      'J',
+  /* aoc_imm_lea_shift */       'M',
+  /* aoc_imm_signed8 */         'K',
+  /* aoc_imm_unsigned8 */       'N',
+  /* aoc_imm_and_zext */        'L',
+  /* aoc_imm_80387 */           'G',
+  /* aoc_imm_sse */             'H',
+  /* aoc_imm_sext32 */          'e',
+  /* aoc_imm_zext32 */          'z',
+#endif /* TARG_IS_X86 */
+  /* aoc_last */                '~'
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+/* Enumeration of registers and their names. All machine-specific. */
+enum a_named_register_tag {
+  anr_invalid = 0,
+#if TARG_IS_X86
+  anr_a,   anr_b,   anr_c,   anr_d,   /* eax, ebx, ecx, edx */
+  anr_si,  anr_di,  anr_bp,  anr_sp,  /* esi, edi, ebp, esp */
+  anr_r8,  anr_r9,  anr_r10, anr_r11, /* x86-64 extra integer registers */
+  anr_r12, anr_r13, anr_r14, anr_r15,
+  anr_st0, anr_st1, anr_st2, anr_st3, /* 80387 floating point stack */
+  anr_st4, anr_st5, anr_st6, anr_st7,
+  anr_mm0, anr_mm1, anr_mm2, anr_mm3, /* MMX registers */
+  anr_mm4, anr_mm5, anr_mm6, anr_mm7,
+  anr_f0,  anr_f1,  anr_f2,  anr_f3,  /* SSE/SSE2 registers */
+  anr_f4,  anr_f5,  anr_f6,  anr_f7,
+  anr_f8,  anr_f9,  anr_f10, anr_f11, /* x86-64 extra SSE registers */
+  anr_f12, anr_f13, anr_f14, anr_f15,
+  anr_flags, anr_fpsr, anr_dirflag,   /* control registers */
+#endif /* TARG_IS_X86 */
+  anr_last
+};
+typedef a_byte a_named_register;
+
+/*
+Names of named registers.  Note that the user is allowed to
+give additional variants, see extasm.c.
+*/
+EXTERN char *named_register_names[(int)anr_last + 1]
+#if VAR_INITIALIZERS
+= {
+  /* anr_invalid */ "invalid",
+#if TARG_IS_X86
+  /* anr_a */       "ax",
+  /* anr_b */       "bx",
+  /* anr_c */       "cx",
+  /* anr_d */       "dx",
+  /* anr_si */      "si",
+  /* anr_di */      "di",
+  /* anr_bp */      "bp",
+  /* anr_sp */      "sp",
+  /* anr_r8 */      "r8",
+  /* anr_r9 */      "r9",
+  /* anr_r10 */     "r10",
+  /* anr_r11 */     "r11",
+  /* anr_r12 */     "r12",
+  /* anr_r13 */     "r13",
+  /* anr_r14 */     "r14",
+  /* anr_r15 */     "r15",
+  /* anr_st0 */     "st(0)",
+  /* anr_st1 */     "st(1)",
+  /* anr_st2 */     "st(2)",
+  /* anr_st3 */     "st(3)",
+  /* anr_st4 */     "st(4)",
+  /* anr_st5 */     "st(5)",
+  /* anr_st6 */     "st(6)",
+  /* anr_st7 */     "st(7)",
+  /* anr_mm0 */     "mm0",
+  /* anr_mm1 */     "mm1",
+  /* anr_mm2 */     "mm2",
+  /* anr_mm3 */     "mm3",
+  /* anr_mm4 */     "mm4",
+  /* anr_mm5 */     "mm5",
+  /* anr_mm6 */     "mm6",
+  /* anr_mm7 */     "mm7",
+  /* anr_f0 */      "xmm0",
+  /* anr_f1 */      "xmm1",
+  /* anr_f2 */      "xmm2",
+  /* anr_f3 */      "xmm3",
+  /* anr_f4 */      "xmm4",
+  /* anr_f5 */      "xmm5",
+  /* anr_f6 */      "xmm6",
+  /* anr_f7 */      "xmm7",
+  /* anr_f8 */      "xmm8",
+  /* anr_f9 */      "xmm9",
+  /* anr_f10 */     "xmm10",
+  /* anr_f11 */     "xmm11",
+  /* anr_f12 */     "xmm12",
+  /* anr_f13 */     "xmm13",
+  /* anr_f14 */     "xmm14",
+  /* anr_f15 */     "xmm15",
+  /* anr_flags */   "flags",
+  /* anr_fpsr */    "fpsr",
+  /* anr_dirflag */ "dirflag",
+#endif /* TARG_IS_X86 */
+  /* anr_last */    "last"
+}
+#endif /* VAR_INITIALIZERS */
+;
+  
+/*
+Modifiers to asm operand strings.  These are all machine independent.
+Many of them do not make sense in asm() but are included anyway for
+completeness.  Note that these are bitmasks, and that aom_input +
+aom_output == aom_modify.
+*/
+enum an_asm_operand_modifier_tag {
+  aom_invalid           = 0x00, /* error */
+  aom_input             = 0x01, /* no mod: input operand */
+  aom_output            = 0x02, /* =: output operand */
+  aom_modify            = 0x03, /* +: read-mod-write operand */
+  aom_earlyclobber      = 0x04, /* &: modified early, cannot overlap inputs */
+  aom_commutative       = 0x08, /* %: commutative with next operand */
+  aom_ignore_next       = 0x10, /* *: ignore next letter as a register pref */
+  aom_ignore_till_comma = 0x20, /* #: ignore up to comma as a register pref */
+  aom_poor_choice       = 0x40, /* ?: avoid choosing this */
+  aom_bad_choice        = 0x80  /* !: really avoid choosing this */
+};
+typedef a_byte an_asm_operand_modifier;
+
+typedef struct an_asm_operand_tag {
+  an_asm_operand_constraint
+                constraint;     /* Constraint on where the operand may
+                                   appear in order to make it a valid
+                                   assembly instruction. */
+  an_asm_operand_modifier
+                modifiers;      /* Modifiers to the constraint. */
+  a_source_position
+                position;       /* Source position of this operand. */
+  an_expr_node_ptr
+                expression;     /* The expression constituting the operand. */
+} an_asm_operand, *an_asm_operand_ptr;
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
@@ -5999,6 +6240,23 @@ typedef struct an_asm_entry {
 			   assembly language).  In Microsoft mode, this can
 			   also contain a sequence of lines enclosed in
 			   braces. */
+#if GNU_EXTENSIONS_ALLOWED
+  int		num_operands;
+			/* Number of operands for this asm. */
+  int		num_clobbers;
+                        /* Number of registers clobbered by this asm. */
+  a_bit_field	is_volatile:1;
+                        /* asm is marked volatile (not to be reordered). */
+  an_asm_operand_ptr
+		operands;
+			/* Array of an_asm_operand structures.  Note that
+			   all output operands will always appear before
+			   all input operands.  */
+  a_named_register
+                *clobbers;
+                        /* Array of named register enumerators, one for
+			   each register clobbered. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 } an_asm_entry;
 
 

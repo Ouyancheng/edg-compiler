@@ -356,6 +356,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     /* Enable alternative token spellings. */
     enter_keyword((a_token_kind)tok_asm, "__asm__");
+    enter_keyword((a_token_kind)tok_volatile, "__volatile__");
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_enabled()) {
@@ -731,7 +732,8 @@ after the command-line processing has been done.
   name_lower_one_time_init();
 #endif /* NEED_NAME_MANGLING */
 #if GNU_EXTENSIONS_ALLOWED
-  attribute_one_time_init(); 
+  attribute_one_time_init();
+  extasm_one_time_init();
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* fe_one_time_init */
 
