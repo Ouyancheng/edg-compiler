@@ -6225,6 +6225,7 @@ Scan the body of a class definition, including the base classes list.
                 a_type_ptr  rout_type = skip_typerefs(local_type);
                 a_boolean   copy_needed = TRUE;
 
+                func_info.function_type_from_typedef = TRUE;
                 if (cfront_compatibility_mode &&
                     rout_type->variant.routine.extra_info->
                                             implicit_this_param_type != NULL) {
