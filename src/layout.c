@@ -2235,12 +2235,22 @@ for handling virtual bases and functions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     class_type->size = 1;
   }  /* if */
+  /* If the class has virtual base classes, the size and alignment without
+     virtual base classes will already have been recorded; otherwise, record
+     it now. */
   if (!C_mode() &&
       !lob.class_type->variant.class_struct_union.any_virtual_base_classes) {
     a_class_type_supplement_ptr	ctsp = lob.class_type->
                                         variant.class_struct_union.extra_info;
     ctsp->size_without_virtual_base_classes = class_type->size;
     ctsp->alignment_without_virtual_base_classes = class_type->alignment;
+  }  /* if */
+  /* The alignment for the class is (by definition) no less than
+     targ_minimum_struct_alignment, but its size may have been computed to
+     be smaller (e.g., for an empty class or a class with a single char
+     field).  Adjust the size if appropriate. */
+  if (class_type->size < class_type->alignment) {
+    class_type->size = class_type->alignment;
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
