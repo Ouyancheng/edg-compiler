@@ -3166,6 +3166,9 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   an_operand            operand_clone;
   a_boolean             operand_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "scan_postfix_incr_decr");
 
@@ -3347,6 +3350,10 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     }  /* if */
   }  /* if */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Save the end position of the operator. */
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Get past the "++" or "--". */
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3354,8 +3361,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     operand_will_not_be_used_because_of_error(&operand_clone);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  copy_source_position(operand->position, error_position);
-  copy_source_position(operand->position, result->position);
+  set_operand_position(result, &operand->position, &end_position,
+                       &operator_position);
 
   db_exit();
 }  /* scan_postfix_incr_decr */
