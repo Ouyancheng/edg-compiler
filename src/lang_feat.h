@@ -399,7 +399,6 @@ flag alternate_tokens_allowed.
 #define DEFAULT_ALTERNATE_TOKENS_ALLOWED FALSE
 #endif /* ifndef DEFAULT_ALTERNATE_TOKENS_ALLOWED */
 
-
 /*
 Flag that is TRUE if "&..." should be accepted in the source code.  This
 extension is provided to support the form of macro va_start that is provided
@@ -418,6 +417,15 @@ ANSI C mode.  (This usage is standard in C++ mode.)
 #ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
 #define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE FALSE
 #endif /* ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
+
+/*
+Flag that is TRUE if, in ANSI C mode, a set of features found in the
+SVR4 ANSI C compiler should be recognized.  This is the default value
+for the global flag SVR4_C_mode.
+*/
+#ifndef DEFAULT_SVR4_C_MODE
+#define DEFAULT_SVR4_C_MODE FALSE
+#endif /* ifndef DEFAULT_SVR4_C_MODE */
 
 #endif /* ifndef LANG_FEAT_H */
 

@@ -114,6 +114,7 @@ typedef enum /*an_option_kind*/ {
 #if MINIMAL_INLINING
   optk_inlining,
 #endif /* MINIMAL_INLINING */
+  optk_SVR4_C_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -505,6 +506,16 @@ EXTERN a_boolean
 			/* TRUE if minimal inlining should be done by IL
 			   lowering. */
 #endif /* MINIMAL_INLINING */
+
+EXTERN a_boolean
+                SVR4_C_mode
+#if VAR_INITIALIZERS
+                            = DEFAULT_SVR4_C_MODE;
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
+                        /* TRUE if the C++ operator keywords (such as
+			   "and", "or", "not", etc.) and digraphs should
+			   be allowed. */
 
 
 /* Process the command line arguments. */

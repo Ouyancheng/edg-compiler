@@ -5870,6 +5870,135 @@ class_type that is a ck_template_param.
 }  /* add_member_to_proxy_or_nonreal_class */
 
 
+static
+a_symbol_ptr enter_sym_for_out_of_scope_routine(a_symbol_ptr     extern_sym,
+						a_symbol_locator *locator)
+/*
+Create a symbol entry in the current scope for the external routine
+designated by extern_sym.  Return the symbol pointer to the caller.
+This routine is only used in SVR4 C compatibility mode.
+*/
+{
+  an_id_linkage_kind     linkage;
+  a_type_ptr             rout_type, old_type;
+  a_symbol_ptr           ext_sym;
+  a_func_info_block      func_info;
+  a_symbol_ptr           sym;
+
+  /* This routine must only be called in ANSI C mode. */
+  check_assertion(C_dialect == C_dialect_ANSI);
+  /* Enter the symbol in the symbol table.  decl_var_or_routine expects
+     this to be done by the caller for implicitly declared routines. */
+  sym = enter_symbol(sk_routine, locator, depth_scope_stack,
+		     /*suppress_error=*/FALSE);
+  /* Create a local declaration of the external routine.  Use the
+     type from the sk_extern_routine symbol. */
+  rout_type = extern_sym->variant.extern_symbol_descr->type;
+  /* Declare the function identifier. */
+  clear_func_info(&func_info);
+  func_info.is_implicit_declaration = TRUE;
+  if (exceptions_enabled) func_info.throw_position = locator->source_position;
+  decl_var_or_routine(locator, (a_storage_class)sc_extern, rout_type,
+                      &func_info, (a_source_sequence_entry_ptr)NULL,
+                      (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE,
+                      &sym, &linkage, &old_type, &ext_sym);
+  done_with_func_info(func_info);
+  /* Set the referenced flag on the routine entry.  The implicit declaration
+     is also an immediate reference. */
+  sym->variant.routine.ptr->source_corresp.referenced = TRUE;
+#if DEBUG
+  if (debug_level >= 3) {
+    db_symbol(sym, "", 4);
+  }  /* if */
+#endif /* DEBUG */
+  return sym;
+}  /* enter_sym_for_out_of_scope_routine */
+
+
+static
+a_symbol_ptr enter_sym_for_out_of_scope_variable(a_symbol_ptr     extern_sym,
+						 a_symbol_locator *locator)
+/*
+Create a symbol entry in the current scope for the external variable
+designated by extern_sym.  Return the symbol pointer to the caller.
+This routine is only used in SVR4 C compatibility mode.
+*/
+{
+  an_id_linkage_kind     linkage;
+  a_type_ptr             var_type, old_type;
+  a_symbol_ptr           ext_sym;
+  a_symbol_ptr           sym;
+
+  /* This routine must only be called in ANSI C mode. */
+  check_assertion(C_dialect == C_dialect_ANSI);
+  /* Create a local declaration of the external variable.  Use the type
+     from the sk_extern_variable symbol. */
+  var_type = extern_sym->variant.extern_symbol_descr->type;
+  decl_var_or_routine(locator, (a_storage_class)sc_extern, var_type,
+                      (a_func_info_block_ptr)NULL,
+		      (a_source_sequence_entry_ptr)NULL,
+                      (SRK_DECLARATION | SRK_IMPLICIT), DM_NONE,
+                      &sym, &linkage, &old_type, &ext_sym);
+  /* Set the referenced flag on the variable entry.  The implicit declaration
+     is also an immediate reference. */
+  sym->variant.variable.ptr->source_corresp.referenced = TRUE;
+#if DEBUG
+  if (debug_level >= 3) {
+    db_symbol(sym, "", 4);
+  }  /* if */
+#endif /* DEBUG */
+  return sym;
+}  /* enter_sym_for_out_of_scope_variable */
+
+
+static
+a_symbol_ptr find_svr4_out_of_scope_declaration(a_symbol_locator *locator)
+/*
+This routine is used in SVR4 C compatibility mode to make external symbol
+declarations from other scopes visible in the current scope.  For example
+
+int f1(void)
+{
+  extern void f();
+  extern int i;
+}
+
+int f2()
+{
+  int j;
+  f();
+  j = i;
+}
+
+In this example, symbols for f and i are entered in function f2.  They
+refer to the external entities declared by the declarations in f1.
+
+When a symbol lookup fails, this routine is called to see if an external
+symbol exists with the name being looked up.  If so, a new symbol is
+entered in the current scope that refers to the external entity.
+A warning is issued.  A pointer to the new symbol is returned.  If no
+such pointer is found, NULL is returned.
+*/
+{
+  a_symbol_locator  new_locator;
+  a_symbol_ptr      sym = NULL;;
+
+  sym = find_external_symbol(locator, nlk_external, (a_type_ptr)NULL,
+			     &new_locator);
+  if (sym != NULL) {
+    sym_warning(ec_using_out_of_scope_declaration, sym);
+    if (sym->kind == (a_symbol_kind)sk_extern_routine) {
+      sym = enter_sym_for_out_of_scope_routine(sym, locator);
+    } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
+      sym = enter_sym_for_out_of_scope_variable(sym, locator);
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* find_svr4_out_of_scope_declaration */
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
@@ -6215,6 +6344,13 @@ next_scope:
          as a member of the class. */
       sym = add_member_to_proxy_or_nonreal_class(class_with_nonreal_base,
 						 options, locator);
+    }  /* if */
+    if (sym == NULL && SVR4_C_mode) {
+      /* In SVR4 C compatibility mode, a symbol declared as a block extern in
+         a block that is no longer in scope may be referenced later.  Look
+         for an external variable or routine that matches the name being
+         looked up. */
+      sym = find_svr4_out_of_scope_declaration(locator);
     }  /* if */
 end_lookup:
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG

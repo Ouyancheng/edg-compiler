@@ -410,6 +410,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* MINIMAL_INLINING */
+  add_option_description(optk_SVR4_C_mode,
+			 "svr4",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_SVR4_C_mode,
+			 "no_svr4",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1252,6 +1260,12 @@ Process the arguments on the command line that invoked the compiler.
         inlining_enabled = opt_value;
         break;
 #endif /* MINIMAL_INLINING */
+      case optk_SVR4_C_mode:
+        /* SVR4 C compatibility mode should or should not be used.  This
+           option implies ANSI C mode. */
+        SVR4_C_mode = opt_value;
+        C_dialect = C_dialect_ANSI;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1266,6 +1280,13 @@ Process the arguments on the command line that invoked the compiler.
       }  /* if */
     }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  /* Check for the use of ANSI C options when the dialect being compiled
+     is not ANSI C. */
+  if (C_dialect != C_dialect_ANSI) {
+    if (option_kind_used[(int)optk_SVR4_C_mode]) {
+      command_line_error(ec_cl_SVR4_C_option_only_in_ansi_C);
+    }  /* if */
+  }  /* if */
   /* Check for the use of C++ options when the dialect being compiled
      is not C++. */
   if (C_dialect != C_dialect_cplusplus) {
@@ -1300,6 +1321,11 @@ Process the arguments on the command line that invoked the compiler.
     /* Set wchar_t_is_keyword to FALSE, just in case the default value
        is TRUE.  The value must not be TRUE in C mode. */
     wchar_t_is_keyword = FALSE;
+  } else {
+    /* The dialect is C++. */
+    /* Reset the SVR4 C compatibility flag just in case it is set by
+       default. */
+    SVR4_C_mode = FALSE;
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
@@ -1331,6 +1357,16 @@ Process the arguments on the command line that invoked the compiler.
         /* Anachronisms enabled by default.  Silently disable them in
            strict mode. */
         allow_anachronisms = FALSE;
+      }  /* if */
+    }  /* if */
+    if (SVR4_C_mode) {
+      if (option_kind_used[(int)optk_SVR4_C_mode]) {
+        command_line_error(ec_cl_strict_ansi_incompatible_with_SVR4);
+      } else {
+        /* SVR4 C mode enabled by default.  Silently disable it. */
+#if 0
+	SVR4_C_mode = FALSE;
+#endif /* 0 */
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

@@ -723,7 +723,8 @@ ec_const_volatile_ref_init_anachronism;;"temporary used for initial value of ref
 ec_bad_const_volatile_ref_init;;"initial value of reference to const volatile has incorrect type"
 ec_const_volatile_ref_init_from_rvalue;;"initial value of reference to const volatile must be an lvalue"
 ec_cl_SVR4_C_option_only_in_ansi_C;;"SVR4 C compatibility option can be used only when compiling ANSI C"
-ec_using_out_of_scope_declaration;;"using out of scope declaration of %nfd"
+ec_using_out_of_scope_declaration;;"using out of scope declaration of %nd"
+ec_cl_strict_ansi_incompatible_with_SVR4;;"strict ANSI mode is incompatible with SVR4 C mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
