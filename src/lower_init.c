@@ -1559,9 +1559,10 @@ typedef struct a_generated_routine_context {
   a_context	context;
   a_memory_region_number
 		region_to_switch_back_to;
-  a_scope_depth	saved_depth_innermost_function_scope;
+  a_scope_depth	depth_innermost_function_scope;
   a_cleanup_region_number
-		saved_curr_cleanup_region_number;
+		curr_cleanup_region_number;
+  a_scope_ptr	nearest_function_scope;
 } a_generated_routine_context;
 
 
@@ -1577,10 +1578,11 @@ grcontext is a local variable used to save state for later restoration.
 {
   grcontext->region_to_switch_back_to = curr_il_region_number;
   switch_il_region(region_number);
-  grcontext->saved_depth_innermost_function_scope =
-                                                depth_innermost_function_scope;
+  grcontext->depth_innermost_function_scope = depth_innermost_function_scope;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
-  grcontext->saved_curr_cleanup_region_number = curr_cleanup_region_number;
+  grcontext->curr_cleanup_region_number = curr_cleanup_region_number;
+  grcontext->nearest_function_scope = nearest_function_scope;
+  nearest_function_scope = scope;
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
   curr_object_lifetime = il_header.primary_scope->lifetime;
   push_object_lifetime(iek_scope, (char *)(scope),
@@ -1602,9 +1604,9 @@ Pop function corresponding to push_generated_routine_context.
      pop_object_lifetime call. */
   pop_context();
   clean_up_all_object_lifetimes(scope);
-  curr_cleanup_region_number = grcontext->saved_curr_cleanup_region_number;
-  depth_innermost_function_scope =
-                               grcontext->saved_depth_innermost_function_scope;
+  nearest_function_scope = grcontext->nearest_function_scope;
+  curr_cleanup_region_number = grcontext->curr_cleanup_region_number;
+  depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
   done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
 }  /* pop_generated_routine_context */
@@ -2378,7 +2380,8 @@ void init_conditional_flag_var(a_variable_ptr     cond_var,
 Insert code to initialize a conditional flag variable to zero.
 cond_var is the variable.  The code (if any is needed) is inserted at
 *insert_location.  That location follows an executable statement in its block
-if follows_an_exec_statement is TRUE.
+if follows_an_exec_statement is TRUE (if the flag is FALSE, this routine
+will not generate anything that will change that state).
 */
 {
   /* If the conditional flag is static, initialization to zero is
@@ -2703,6 +2706,7 @@ be kept, FALSE if it should be deleted.
                      lsvip = NULL;
   an_insert_location insert_location2;
   an_insert_location *eff_insert_location = insert_location;
+  a_boolean          follows_an_exec_statement= dip->follows_an_exec_statement;
   an_object_lifetime_ptr
                      lifetime, init_expr_lifetime;
   a_context          context, static_context;
@@ -2758,18 +2762,22 @@ be kept, FALSE if it should be deleted.
   }  /* if */
   init_expr_lifetime = dip->init_expr_lifetime;
   if (init_expr_lifetime != NULL) {
-    /* The dynamic init defines a lifetime that surrounds the initialization.
-       Push a context for the lifetime.  */
-    push_context(&context, (a_scope_ptr)NULL, init_expr_lifetime);
+    /* The dynamic init defines a lifetime that surrounds the
+       initialization. */
     if (processing_file_scope_init_routine) {
       /* When generating the file-scope initialization routine, the object
          lifetime is in the file scope but we need it in the function scope,
          so make a copy. */
-      curr_object_lifetime = context.lifetime->parent_lifetime;
+      an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+      curr_object_lifetime = nearest_function_scope->lifetime;
       push_object_lifetime(iek_none, (char *)NULL, init_expr_lifetime->kind);
+      /* The file-scope lifetime won't be used, so unbind it. */
       unbind_object_lifetime(init_expr_lifetime);
-      curr_context->lifetime = init_expr_lifetime = curr_object_lifetime;
+      init_expr_lifetime = curr_object_lifetime;
+      curr_object_lifetime = saved_curr_object_lifetime;
     }  /* if */
+    /* Push a context for the lifetime.  */
+    push_context(&context, (a_scope_ptr)NULL, init_expr_lifetime);
     if (keep_object_lifetime_info_in_lowered_il) {
       a_statement_ptr block_stmt;
       /* This dynamic initialization entry defines an object lifetime that
@@ -2793,12 +2801,48 @@ be kept, FALSE if it should be deleted.
       insert_statement(block_stmt, insert_location);
       set_block_start_insert_location(block_stmt, &insert_location2);
       eff_insert_location = &insert_location2;
+      follows_an_exec_statement = FALSE;
       /* Rebind the object lifetime to the block. */
-      if (init_expr_lifetime->entity.ptr != NULL) {
+      if (!processing_file_scope_init_routine) {
         unbind_object_lifetime(init_expr_lifetime);
       }  /* if */
       bind_object_lifetime(init_expr_lifetime, iek_block,
                            (char *)block_stmt->variant.block.extra_info);
+    }  /* if */
+  }  /* if */
+  if (processing_file_scope_init_routine) {
+    /* When processing an initialization in the file-scope initialization
+       routine, the expressions pointed to are in the file scope, but we
+       want to use them in the function scope, so copy them.  Note that
+       (a) this must be done before they are lowered (so the temporaries
+       have not yet been made into variables), and (b) this copies the
+       object lifetimes too. */
+    an_object_lifetime_ptr temp_lifetime = NULL;
+    if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+        dip->kind == (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+      an_expr_node_ptr expr =
+                  copy_expr_to_function_memory_region(dip->variant.expression);
+      dip->variant.expression = expr;
+      if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+        temp_lifetime = expr->variant.object_lifetime.ptr;
+      }  /* if */
+    } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      dip->variant.constructor.args =
+                        copy_list_of_expr_trees(dip->variant.constructor.args);
+    }  /* if */
+    /* temp_lifetime will be the init_expr_lifetime if there is one, or
+       failing that the lifetime for the top enk_object_lifetime if there
+       is one. */
+    if (init_expr_lifetime != NULL) temp_lifetime = init_expr_lifetime;
+    if (temp_lifetime != NULL) {
+      /* When processing initializations within a function, all lifetimes
+         have already been visited.  When generating the file-scope
+         initialization routine, however, any lifetimes involved in
+         the initialization have not been processed yet and must be
+         processed now (e.g., to initialize conditional flags). */
+      begin_object_lifetime(temp_lifetime,
+                            follows_an_exec_statement,
+                            eff_insert_location);
     }  /* if */
   }  /* if */
   switch (dip->kind) {
@@ -2826,12 +2870,6 @@ be kept, FALSE if it should be deleted.
       goto do_assignment;
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
-      if (processing_file_scope_init_routine) {
-        /* Copy a file-scope expression into the current (function scope)
-           memory region. */
-        dip->variant.expression =
-                  copy_expr_to_function_memory_region(dip->variant.expression);
-      }  /* if */
       lower_normal_expr(dip->variant.expression);
 do_assignment:;
 #if CHECKING
@@ -2847,12 +2885,6 @@ do_assignment:;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
          via a copy constructor. */
-      if (processing_file_scope_init_routine) {
-        /* Copy a file-scope expression into the current (function scope)
-           memory region. */
-        dip->variant.expression =
-                  copy_expr_to_function_memory_region(dip->variant.expression);
-      }  /* if */
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
       lower_call(dip->variant.expression, ipdp);
@@ -2863,12 +2895,6 @@ do_assignment:;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
       /* The routine does not need to be lowered from here. */
-      if (processing_file_scope_init_routine) {
-        /* Copy a file-scope expression into the current (function scope)
-           memory region. */
-        dip->variant.constructor.args =
-                        copy_list_of_expr_trees(dip->variant.constructor.args);
-      }  /* if */
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                           /*using_as_dest=*/TRUE);
