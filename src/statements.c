@@ -84,7 +84,7 @@ Set var to indicate that the associated code is unreachable.
 /*
 Declarations needed because of mutual recursion:
 */
-static void statement(void);
+static a_boolean statement(void);
 
 
 /*
@@ -715,17 +715,29 @@ call statement().  In C mode or when the dependent statement is a compound
 statement no new scope is required.
 */
 {
-  a_boolean       block_added;
-  a_statement_ptr block;
+  a_boolean         block_added, is_executable;
+  a_statement_ptr   block;
+  a_source_position start_position;
 
   db_enter(3, "dependent_statement");
-  if (C_dialect != C_dialect_cplusplus || curr_token == tok_lbrace) {
+  start_position = pos_curr_token;
+  /* In C++, add a block (and potential scope).  Do not do so, however,
+     if a block will be created anyway.  Also do not do so in cfront
+     compatibility mode.  In the ARM and in cfront 2.1 no scope was
+     created. */
+  if (C_dialect != C_dialect_cplusplus || curr_token == tok_lbrace ||
+      cfront_compatibility_mode) {
     block_added = FALSE;
   } else {
     start_block_statement(&block);
     block_added = TRUE;
   }  /* if */
-  statement();
+  is_executable = statement();
+  if (cfront_compatibility_mode && !is_executable) {
+    /* In cfront mode, the dependent statement is not allowed to be a
+       declaration. */
+    pos_error(ec_dependent_stmt_is_declaration, &start_position);
+  }  /* if */
   if (block_added) finish_block_statement(block);
   db_exit();
 }  /* dependent_statement */
@@ -1731,9 +1743,11 @@ Scan a default case label definition.  The syntax is:
 }  /* default_label */
 
 
-static void statement(void)
+static a_boolean statement(void)
 /*
-Scan a statement.  Add it to the current statement sequence.
+Scan a statement.  Add it to the current statement sequence.  Return
+TRUE if the statement is executable, FALSE if it is a declaration (C++ mode
+only).
 */
 {
   a_label_ptr      label;
@@ -1883,6 +1897,7 @@ expr_statement:
   if (get_another_statement) goto rescan_statement;
 
   db_exit();
+  return !is_declaration;
 }  /* statement */
 
 
@@ -1955,7 +1970,7 @@ come out on the closing "}".
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ mode, where declarations can be interspersed with executable
          statements, statement() handles declarations, too. */
-      statement();
+      (void)statement();
     } else {
       /* In C mode the declarations are expected to appear first. */
       if (is_decl_start(/*expr_context=*/TRUE,
@@ -1976,7 +1991,7 @@ come out on the closing "}".
       } else {
         /* Scan a statement. */
         any_statements = TRUE;
-        statement();
+        (void)statement();
       }  /* if */
     }  /* if */
   }  /* while */

@@ -5672,6 +5672,61 @@ NULL if there are no statements in the block.
 }  /* pop_block_scope_context */
 
 
+static void lower_dependent_statement(a_statement_ptr statement)
+/*
+Do IL lowering of the indicated statement and everything under it.
+The statement is the dependent statement of another statement, so in
+cfront mode any destruction required within the dependent statement must be
+done on exit from that statement.
+*/
+{
+  if (!cfront_compatibility_mode) {
+    /* When not in cfront compatibility mode, no special processing is
+       needed. */
+    lower_statement(statement);
+  } else {
+    /* The special case is something like
+           if (y) for (A a(x); f(a); g(a)) {}
+       The variable "a" is constructed conditionally and must be destroyed
+       at the end of the "if" rather than the end of the surrounding scope.
+       This special processing is only needed in cfront mode because in the
+       normal mode dependent statements are always implicitly surrounded by a
+       block. */
+    /* Remember what's on the required destructor list, lower the dependent
+       statement, and see if any required destructor calls were added. */
+    a_required_destructor_call_ptr required_destructor_calls_before =
+                                       curr_context->required_destructor_calls;
+    an_insert_location             insert_location;
+    lower_statement(statement);
+    if (required_destructor_calls_before !=
+                                     curr_context->required_destructor_calls) {
+      a_statement_ptr last_statement;
+      /* Some destructor calls must be emitted.  Make the statement into a
+         block if it is not already a block, then find the last statement
+         within the block so we can insert after it. */
+      if (statement->kind != (a_statement_kind)stmk_block) {
+        turn_statement_into_block(statement);
+      }  /* if */
+      last_statement = statement->variant.block.statements;
+      if (last_statement == NULL) {
+        /* Empty block; insert at start. */
+        set_block_start_insert_location(statement, &insert_location);
+      } else {
+        /* Find the last statement. */
+        for (; last_statement->next != NULL;
+             last_statement = last_statement->next) {}
+        set_insert_location(last_statement, &insert_location);
+      }  /* if */
+      /* Generate the required destructor calls and remove the entries
+         for those from the list. */
+      gen_and_remove_required_destructor_calls_up_to(
+                                              required_destructor_calls_before,
+                                              &insert_location);
+    }  /* if */
+  }  /* if */
+}  /* lower_dependent_statement */
+
+
 static void lower_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated statement and everything under it.
@@ -5679,7 +5734,6 @@ Do IL lowering of the indicated statement and everything under it.
 {
   a_routine_ptr      curr_routine;
   a_context          context;
-  a_context_ptr      switch_context;
   a_scope_ptr        scope;
   an_insert_location insert_location;
   a_statement_ptr    last_statement, body_statement;
@@ -5790,12 +5844,12 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_if:
-        lower_statement(statement->variant.if_stmt.then_statement);
-        lower_statement(statement->variant.if_stmt.else_statement);
+        lower_dependent_statement(statement->variant.if_stmt.then_statement);
+        lower_dependent_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
       case stmk_end_test_while:
-        lower_statement(statement->variant.loop_statement);
+        lower_dependent_statement(statement->variant.loop_statement);
         break;
       case stmk_block:
         /* Push a block context around the processing of the block.
@@ -5813,23 +5867,25 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_switch:
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
-        scope = NULL;
-        switch_context = NULL;
         body_statement = statement->variant.switch_stmt.body_statement;
         if (body_statement != NULL &&
             body_statement->kind == (a_statement_kind)stmk_block) {
+          /* The body statement is a block with an associated scope. */
           scope = body_statement->variant.block.extra_info->assoc_scope;
-          if (scope != NULL) {
-            push_context(&context, scope);
-            switch_context = curr_context;
-          }  /* if */
-          body_statement = body_statement->variant.block.statements;
+          push_context(&context, scope);
+          lower_statement_list(body_statement->variant.block.statements,
+                               &last_statement);
+          lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
+                                   curr_context);
+          /* Generate any required destructor calls and pop the context. */
+          pop_block_scope_context(last_statement);
+        } else {
+          /* There is no body statement, or the body statement is something
+             other than a block statement with a scope. */
+          lower_dependent_statement(body_statement);
+          lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
+                                   (a_context_ptr)NULL);
         }  /* if */
-        lower_statement_list(body_statement, &last_statement);
-        lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                                 switch_context);
-        /* Generate any required destructor calls and pop the context. */
-        if (scope != NULL) pop_block_scope_context(last_statement);
         break;
       case stmk_init:
         lower_stmk_init(statement);
