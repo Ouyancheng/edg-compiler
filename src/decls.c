@@ -5939,14 +5939,17 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   a_type_qualifier_set        qualifiers;
   a_decl_modifiers_block      decl_modifiers;
   a_source_position           pos;
+  a_decl_pos_block            decl_pos_block;
 
   check_assertion(microsoft_mode);
   pos = pos_curr_token;
+  clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
-                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
+                        &decl_modifiers, &decl_pos_block);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
+  curr_construct_end_position = decl_pos_block.specifiers_range.end;
   return type_ptr;
 }  /* simple_type_specifier_sequence */
 
