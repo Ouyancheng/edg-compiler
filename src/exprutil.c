@@ -2381,13 +2381,36 @@ conversions.
 }  /* cast_node */
 
 
+void prep_generic_template_argument(an_operand *operand)
+/*
+The template argument indicated by "operand" is going to be saved in
+the template argument list for an unknown template in a prototype
+instantiation.  Process it so it can be turned into a constant
+and saved in the IL with enough information to recover whether it
+was an lvalue or rvalue, etc.
+*/
+{
+  prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+  if ((is_constant_operand(operand) && is_an_rvalue(operand)) ||
+      is_error_operand(operand)) {
+    /* The operand is a constant rvalue or an error, which we can use
+       directly. */
+  } else {
+    /* The argument is something more complicated, e.g., an expression.
+       Make an expression and put it under a tpck_expression constant. */
+    an_expr_node_ptr expr = make_node_from_operand(operand);
+    make_template_param_expr_constant_operand(expr, operand);
+  }  /* if */
+}  /* prep_generic_template_argument */
+
+
 static void prep_generic_template_argument_list(
                                           a_template_arg_ptr template_arg_list)
 /*
 The template argument list pointed to by template_arg_list is going to be
-saved as the template argument list for an unknown function template in
-a prototype instantiation.  Go through it and add constants for any
-arg_operand entries so it can go into the IL.
+saved as the template argument list for an unknown template in a prototype
+instantiation.  Go through it and add constants for any arg_operand entries
+so it can go into the IL.
 */
 {
   a_template_arg_ptr tap;
@@ -2399,17 +2422,7 @@ arg_operand entries so it can go into the IL.
       a_constant             constant;
       a_memory_region_number region_to_switch_back_to;
 
-      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
-      if ((is_constant_operand(operand) && is_an_rvalue(operand)) ||
-          is_error_operand(operand)) {
-        /* The operand is a constant rvalue or an error, which we can use
-           directly. */
-      } else {
-        /* The argument is something more complicated, e.g., an expression.
-           Make an expression and put it under a tpck_expression constant. */
-        an_expr_node_ptr expr = make_node_from_operand(operand);
-        make_template_param_expr_constant_operand(expr, operand);
-      }  /* if */
+      prep_generic_template_argument(operand);
       /* Fetch the constant and use it as the template argument. */
       extract_constant_from_operand(operand, &constant);
       switch_to_file_scope_region(&region_to_switch_back_to);

@@ -912,6 +912,8 @@ extern void extract_constant_from_operand(an_operand     *operand,
 
 extern void discard_operand(an_operand *operand);
 
+extern void prep_generic_template_argument(an_operand *operand);
+
 extern void make_unknown_dependent_function_operand(
                                           a_symbol_ptr       sym,
                                           a_boolean          is_template_id,
