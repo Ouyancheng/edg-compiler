@@ -1,5 +1,18 @@
 Version 2.45
 
+8/15/00  Nested class redeclarations
+
+The redeclaration of a nested class inside the enclosing class is valid only
+if that redeclaration is the definition of that class.  The front end now
+diagnoses the invalid cases with an error in strict ANSI mode and with a
+warning otherwise.
+
+  struct S {
+    struct N;
+    struct N {};  // Redeclaration is definition: OK
+    struct N;     // Redeclaration is not definition: error or warning
+  };
+
 8/15/00  Comparison of conversions to ambiguous base classes in overload
          resolution
 

@@ -1483,6 +1483,14 @@ it is left unchanged.
                    strict_ansi_discretionary_severity : es_warning;
       pos_sy_diagnostic(severity, error_code, tag_position, tag_sym);
     }  /* if */
+    if (tag_sym->defined || !is_class_definition) {
+      /* The only standard conforming nested class redeclaration is a
+         definition following a nondefining declaration. */
+      pos_diagnostic(strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_invalid_nested_class_redecl, tag_position);
+
+    }  /* if */
   }  /* if */
 } /* check_nested_class_redeclaration */
 
