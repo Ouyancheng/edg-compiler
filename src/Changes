@@ -1,6 +1,22 @@
 Version 2.43
 
-10/2899  Microsoft compatibility: error in vacuous destructor call
+10/28/99  Microsoft compatibility: ambiguous class reference allowed
+
+If a lookup of a name before a "::" finds both a typedef to a class and
+a class name made visible by a using-directive, the Microsoft compiler
+chooses the class name rather than issuing an ambiguity error as is
+required by the language.  We now duplicate this behavior in Microsoft
+bugs mode.
+
+  template <class T> struct basic_ios { };
+  typedef basic_ios<char> ios;
+  namespace std {
+    struct ios { const static int i;};
+  };
+  using namespace std;
+  int i = ios::i;  // uses std::ios
+
+10/28/99  Microsoft compatibility: error in vacuous destructor call
 
 A bug was introduced in 2.42 that caused the following example to be
 rejected in Microsoft bugs mode.  This has been fixed.

@@ -950,6 +950,53 @@ scope lookup.  options specifies the options being used for the lookup.
 }  /* merge_function_into_lookup_set */
 
 
+static a_boolean check_for_microsoft_qualifier_using_directive_bug(
+				a_symbol_ptr			*curr_sym,
+				a_symbol_ptr			fund_curr_sym,
+				a_symbol_ptr			new_sym,
+				an_id_lookup_options_set	options)
+/*
+In certain cases, the Microsoft compiler prefers a class name made visible
+by a using-directive to a typedef-to-class that is visible in a scope
+where using-directives apply.  For example:
+
+  template <class T> struct basic_ios { };
+  typedef basic_ios<char> ios;
+  namespace std { struct ios { const static int i;}; };
+  using namespace std;
+  int i = ios::i;
+
+The Microsoft compiler uses std::ios instead of reporting an ambiguity.
+
+This routine checks for this case.  curr_sym could be the typedef symbol
+or the class symbol.  Likewise for new_sym.  "options" is the set of
+lookup options.  fund_curr_sym is the fundamental symbol associated with
+curr_sym.  The special processing is only done when a "must be class or
+namespace" lookup is done.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if ((options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0) {
+    a_boolean	curr_is_typedef;
+    a_boolean	new_is_typedef;
+    curr_is_typedef = fund_curr_sym->kind == (a_symbol_kind)sk_type;
+    new_is_typedef = new_sym->kind == (a_symbol_kind)sk_type;
+    if (!curr_is_typedef && new_is_typedef) {
+      /* Use the current symbol. */
+      result = TRUE;
+    } else if (!new_is_typedef && curr_is_typedef) {
+      /* Use the new symbol. */
+     result = TRUE;
+     set_namespace_projection_symbol(*curr_sym, new_sym,
+                                     depth_scope_stack);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_for_microsoft_qualifier_using_directive_bug */
+				
+
+
 static a_boolean symbols_from_same_scope(a_symbol_ptr curr_sym,
                                          a_symbol_ptr new_sym)
 /*
@@ -1114,6 +1161,17 @@ scope lookup.  options specifies the options being used for the lookup.
                                             qualified_lookup,
                                             qualifier_namespace, options,
                                             &err);
+      } else {
+        /* An ambiguous symbol. */
+        if (microsoft_bugs) {
+          /* Check for cases where the Microsoft compiler prefers a given
+             symbol. */
+          if (check_for_microsoft_qualifier_using_directive_bug(
+                                 &curr_sym, fund_curr_sym, new_sym, options)) {
+            /* curr_sym is set by the call above. */
+            err = FALSE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     } else {
       /* Both symbols are functions. */
