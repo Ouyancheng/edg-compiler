@@ -246,6 +246,8 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_type_ptr          *old_type,
                                 a_symbol_ptr        *ext_sym);
 
+extern an_asm_entry_ptr asm_declaration(a_boolean asm_decl_allowed);
+
 /* Bit vector used to pass flags into declarator and into and out of
    decl_specifiers.  Each bit represents a flag. */
 typedef int a_decl_flag_set;

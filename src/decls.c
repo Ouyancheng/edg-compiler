@@ -7118,6 +7118,68 @@ specifier is restored.
 }  /* linkage_specification */
 
 
+an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed)
+/*
+Scan an asm declaration, create an entry to represent it in the IL, and
+return a pointer to the asm entry.  An asm declaration is specified as
+follows in the ARM:
+
+  asm ( string-literal ) ;
+
+We infer that it can appear as a declaration at file scope, function scope,
+and block scope.  It can also appear as a block of executable code, so
+in C mode, where declarations and executable statements may not be mingled,
+an asm "declaration" is actually treated as an executable statement.
+*/
+{
+  a_constant        asm_string;
+  an_asm_entry_ptr  ap = NULL;
+
+  db_enter(3, "asm_declaration");
+
+#if CHECKING
+  if (curr_token != tok_asm) {
+    internal_error("asm_declaration: expected asm");
+  }  /* if */
+#endif  /* CHECKING */
+  if (!asm_decl_allowed) {
+    /* An asm declaration is not allowed in the current scope. */
+    error(ec_asm_not_allowed);
+  } else if (C_dialect != C_dialect_cplusplus && strict_ansi_mode) {
+    /* "asm" is not part of ANSI C, though it is defined (vaguely) for C++. */
+    warning(ec_nonstd_asm_declaration);
+  }  /* if */
+  /* Skip past the "asm". */
+  (void)get_token();
+  /* Check for and skip the opening parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_stop_token(tok_rparen);
+  /* Scan the enclosed string. */
+  if (curr_token != tok_string_literal) {
+    syntax_error(ec_exp_asm_string);
+    set_error_constant(&asm_string);
+  } else {
+    copy_constant(&const_for_curr_token, &asm_string);
+    (void)get_token();
+  }  /* if */
+  /* Check for and skip the closing parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
+  /* Check for and skip the semicolon. */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  /* Update the IL. */
+  if (asm_decl_allowed) {
+    ap = alloc_asm_entry();
+    ap->asm_string = alloc_unshared_constant(&asm_string);
+    /* Add the asm entry to the list for the current scope. */
+    add_to_asm_entries_list(ap);
+  }  /* if */
+
+  db_exit();
+  return ap;
+}  /* asm_declaration */
+
+
 /*
 Local macro for the routine "declaration".  Does any remove_stop_token
 calls that have not yet been done.  Useful in ensuring that all the stop
@@ -7232,16 +7294,22 @@ of local variables (and types, etc.) of functions and in blocks.
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
   is_parameter = (param_id_list != NULL);
+  if (curr_token == tok_asm) {
 #if ASM_FUNCTION_ALLOWED
-  /* Check for "asm", which indicates the start of an asm function.
-     "asm" is not a keyword.  It's recognized here as an identifier
-     that is not defined as anything meaningful in the current context. */
-  if (function_definition_allowed && is_asm_function_start()) {
-    is_asm_function = TRUE;
-    /* Skip over the "asm". */
-    (void)get_token();
-  }  /* if */
+    if (function_definition_allowed && next_token() != tok_lparen) {
+      is_asm_function = TRUE;
+      /* Skip over the "asm". */
+      (void)get_token();
+    } else {
 #endif /* ASM_FUNCTION_ALLOWED */
+      /* Scan the asm declaration. */
+      (void)asm_declaration(/*asm_decl_allowed=*/!is_parameter);
+      goto return_point;
+#if ASM_FUNCTION_ALLOWED
+    }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
+  }  /* if */
+
   if (C_dialect == C_dialect_cplusplus) {
     /* Check for and discard declarations of the form "overload f;". */
     if (check_for_overload_anachronism()) goto return_point;
