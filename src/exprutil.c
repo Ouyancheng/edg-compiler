@@ -2333,7 +2333,19 @@ instantiations when the function to be selected is not known.
 */
 {
   a_symbol_ptr unk_sym = find_unknown_function_symbol(sym);
+  a_symbol_ptr simple_sym;
 
+  simple_sym = fundamental_symbol_of(sym);
+  if (simple_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* Mark each function in the overload set as "referenced", because
+       potentially it is. */
+    for (simple_sym = simple_sym->variant.overloaded_function.symbols;
+         simple_sym != NULL;
+         simple_sym = simple_sym->next) {
+      a_symbol_ptr fund_sym = fundamental_symbol_of(simple_sym);
+      fund_sym->referenced = TRUE;
+    }  /* for */
+  }  /* for */
   /* The symbol is a constant whose value is the "address" of the
      unknown function. */
   make_sym_constant_operand(unk_sym, operand);
