@@ -1403,6 +1403,7 @@ Do integral promotion on the indicated integer constant.
                          /*constant_context=*/TRUE,
                          /*evaluated_context=*/TRUE,
                          /*fold_constant_addr_exprs=*/TRUE,
+                         /*is_reinterpret_cast=*/FALSE,
                          &did_not_fold, &error_position);
   }  /* if */
 }  /* promote_integer_constant */
@@ -2568,6 +2569,7 @@ and if not, issue an error.  This version is for signed integer kinds.
                        /*constant_context=*/TRUE,
                        /*evaluated_context=*/TRUE,
                        /*fold_constant_addr_exprs=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
                        &did_not_fold, &error_position);
 }  /* set_integer_constant_with_overflow_check */
 
@@ -2593,6 +2595,7 @@ and if not, issue an error.  This version is for unsigned integer kinds.
                        /*constant_context=*/TRUE,
                        /*evaluated_context=*/TRUE,
                        /*fold_constant_addr_exprs=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
                        &did_not_fold, &error_position);
 }  /* set_unsigned_integer_constant_with_overflow_check */
 
@@ -2686,6 +2689,7 @@ Do IL lowering of a pointer-to-member constant.
                          /*constant_context=*/TRUE,
                          /*evaluated_context=*/TRUE,
                          /*fold_constant_addr_exprs=*/TRUE,
+                         /*is_reinterpret_cast=*/FALSE,
                          &did_not_fold, &error_position);
     /* Change the original constant into a ck_aggregate constant. */
     set_constant_kind(constant, (a_constant_repr_kind)ck_aggregate);

@@ -638,6 +638,7 @@ static void conv_pointer_to_whatever(
                                     a_constant        *new_constant,
                                     a_boolean         is_implicit_cast,
                                     a_boolean         fold_constant_addr_exprs,
+                                    a_boolean         is_reinterpret_cast,
                                     a_boolean         *did_not_fold,
                                     a_source_position *err_pos,
                                     an_error_code     *err_code,
@@ -647,6 +648,8 @@ Convert a pointer constant to a constant of type as specified by
 "new_constant".  If is_implicit_cast is TRUE, the cast is implicit.
 If fold_constant_addr_exprs is TRUE, fold related class casts in constant
 form; if it's FALSE, do not do such folding and return *did_not_fold TRUE.
+If is_reinterpret_cast is TRUE, this is a reinterpret_cast; related
+class casts are treated like casts between unrelated classes.
 If there is an error, either issue it immediately at *err_pos (if it
 cannot be reduced to a warning in a nonconstant context), or return
 *err_code and *err_severity set appropriately.  Note that this routine
@@ -680,7 +683,8 @@ type.
       *err_code = ec_integer_truncated;
       *err_severity = es_error;
     }  /* if */
-  } else if (related_class_pointers(old_type, new_type,
+  } else if (!is_reinterpret_cast &&
+             related_class_pointers(old_type, new_type,
                                     &baseward_cast, &bcp)) {
     /* In C++, a cast of a pointer to a class to a pointer to a base class
        or derived class. */
@@ -923,15 +927,20 @@ If there is an error, it is issued at *err_pos.
 
 
 static void conv_ptr_to_member_to_ptr_to_member(
-                                            a_constant        *old_constant,
-                                            a_constant        *new_constant,
-                                            a_boolean         is_implicit_cast,
-                                            a_source_position *err_pos,
-                                            an_error_code     *err_code,
-                                            an_error_severity *err_severity)
+                                         a_constant        *old_constant,
+                                         a_constant        *new_constant,
+                                         a_boolean         is_implicit_cast,
+                                         a_boolean         is_reinterpret_cast,
+                                         a_source_position *err_pos,
+                                         an_error_code     *err_code,
+                                         an_error_severity *err_severity)
 /*
 Convert a pointer-to-member constant to a pointer-to-member constant of
-a different type.
+a different type.  old_constant is the original constant.  new_constant->type
+indicates the desired new type.  The converted constant is put into
+*new_constant.  This is an implicit cast if is_implicit_cast is TRUE.
+This is a reinterpret_cast (and therefore related class casts are not
+given special treatment) if is_reinterpret_cast is TRUE.
 */
 {
   a_type_ptr       new_type = new_constant->type, new_class;
@@ -952,17 +961,23 @@ a different type.
        changing. */
     copy_constant(old_constant, new_constant);
     implicit_cast(new_constant, new_type);
-  } else if ((bcp = find_base_class_of(old_class, new_class)) != NULL) {
+  } else if (!is_reinterpret_cast &&
+             (bcp = find_base_class_of(old_class, new_class)) != NULL) {
     /* Derived --> base (allowed only as an explicit cast).  Valid unless
        the cast is ambiguous. */
     fold_pm_base_class_cast(old_constant, bcp, new_constant, err_pos);
-  } else if ((bcp = find_base_class_of(new_class, old_class)) != NULL) {
+  } else if (!is_reinterpret_cast &&
+             (bcp = find_base_class_of(new_class, old_class)) != NULL) {
     /* Base --> derived (allowed as an implicit or explicit cast).  Valid
        unless the cast is ambiguous, the base class is inaccessible (if
        the cast is implicit), or the base class is a virtual base of the
        derived class. */
     fold_pm_derived_class_cast(old_constant, bcp, new_constant,
                                is_implicit_cast, err_pos);
+  } else {
+    /* Unrelated class types. */
+    copy_constant(old_constant, new_constant);
+    implicit_cast(new_constant, new_type);
   }  /* if */
 }  /* conv_ptr_to_member_to_ptr_to_member */
 
@@ -1078,6 +1093,7 @@ void type_change_constant(a_constant        *constant,
                           a_boolean         constant_context,
                           a_boolean         evaluated_context,
                           a_boolean         fold_constant_addr_exprs,
+                          a_boolean         is_reinterpret_cast,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos)
 /*
@@ -1092,7 +1108,9 @@ so any error is thrown away and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE in other cases where the folding
 cannot be done.  fold_constant_addr_exprs is TRUE if constant address
 expressions should be folded (e.g., base class casts); if it is FALSE,
-*did_not_fold is set instead for those.
+*did_not_fold is set instead for those.  If is_reinterpret_cast is TRUE,
+this cast is a reinterpret_cast; related-class casts are treated like
+casts between unrelated classes.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
@@ -1158,7 +1176,7 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
-                             fold_constant_addr_exprs,
+                             fold_constant_addr_exprs, is_reinterpret_cast,
                              did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
   }  /* if */
@@ -1220,7 +1238,7 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
     case tk_pointer:
       /* Converting from pointer. */
       conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
-                               fold_constant_addr_exprs,
+                               fold_constant_addr_exprs, is_reinterpret_cast,
                                did_not_fold, err_pos,
                                &err_code, &err_severity);
       break;
@@ -1228,7 +1246,8 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
     case tk_ptr_to_member:
       /* Converting from pointer-to-member to pointer-to-member. */
       conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
-                                          is_implicit_cast, err_pos,
+                                          is_implicit_cast,
+                                          is_reinterpret_cast, err_pos,
                                           &err_code, &err_severity);
       break;
 

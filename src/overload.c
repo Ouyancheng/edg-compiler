@@ -5233,7 +5233,7 @@ gives the type of the routine being called.
   }  /* if */
   /* The cast here handles const/volatile differences and error cases. */
   cast_operand(this_param_type, operand, /*check_cast_access=*/TRUE,
-               /*is_implicit_cast=*/TRUE);
+               /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
 }  /* prep_special_selector_operand */
 
 
@@ -6625,7 +6625,8 @@ be a constructor call.
           /* Adjust cv-qualifiers. */
           cast_operand(make_pointer_type(dest_type), operand,
                        /*check_cast_access=*/TRUE,
-                       /*is_implicit_cast=*/TRUE);
+                       /*is_implicit_cast=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE);
           /* Make an address (an lvalue) for the adjusted class object. */
           conv_object_pointer_to_lvalue(operand);
         }  /* if */
@@ -6647,7 +6648,8 @@ be a constructor call.
       /* Do any necessary standard or trivial conversion. */
       if (dest_type != NULL && is_an_rvalue(operand)) {
         cast_operand(dest_type, operand, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/TRUE);
+                     /*is_implicit_cast=*/TRUE,
+                     /*is_reinterpret_cast=*/FALSE);
       }  /* if */
     }  /* if */
   } else {
@@ -6693,7 +6695,8 @@ conversion (which might involve a user-defined conversion).
   } else {
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE);
+                 /*is_implicit_cast=*/TRUE,
+                 /*is_reinterpret_cast=*/FALSE);
   }  /* if */
 }  /* convert_operand */
 
@@ -7362,7 +7365,8 @@ type.  Only used in C++.  This is copy-initialization.
     }  /* if */
     /* Handle base class casts, cv-qualifier adjustments. */
     cast_operand(make_pointer_type(dest_type), source_operand,
-                 /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE);
+                 /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
+                 /*is_reinterpret_cast=*/FALSE);
   } else {
     /* The conversion is not possible.  The error has already been issued. */
     *err = TRUE;
@@ -7647,7 +7651,7 @@ to be acceptable, and *conversion describes it.
     dest_type = make_pointer_type(base_dest_type);
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE);
+                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
   } else if (direct_binding_possible &&
              is_a_function_designator(source_operand)) {
     /* The initial value is a function designator of the right type;
@@ -7686,7 +7690,7 @@ to be acceptable, and *conversion describes it.
        destination. */
     dest_type = make_pointer_type(base_dest_type);
     cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE);
+                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
     if (dropping_qualifiers) {
       /* Type qualifiers were dropped on this binding. */
       if (bitwise_assignment_param) {

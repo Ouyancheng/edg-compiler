@@ -1,5 +1,20 @@
 Version 2.32
 
+4/16/96 reinterpret_cast between related classes should ignore relationship
+
+A reinterpret_cast operation on pointers or pointers to members to
+inheritance-related classes should ignore the inheritance relationship
+(i.e., the pointer should not be adjusted in the presence of
+multiple inheritance).  Also, ambiguity is not significant.
+
+  struct A {};
+  struct B1 : public A {};
+  struct B2 : public A {};
+  struct C : public B1, public B2 {};
+  C cvar;
+  A& aref_3 = reinterpret_cast<A&>(cvar);     // Okay, ambiguity doesn't matter
+  A* aptr_4 = reinterpret_cast<A*>(&cvar);    // Okay, ambiguity doesn't matter
+
 4/11/96 More conversion functions considered when binding to reference
 
 Following WP changes made at the recent Santa Cruz X3J16/WG21 meeting,

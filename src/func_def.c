@@ -1430,7 +1430,8 @@ passed by reference.  *err_pos is the source position for diagnostics.
       tp = make_pointer_type(type_pointed_to(tp));
     }  /* if */
     cast_node(&source_expr, tp, /*check_cast_access=*/TRUE,
-              /*is_implicit_cast=*/TRUE, err_pos);
+              /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+              err_pos);
   }  /* if */
   sp = make_call_assignment_statement(rp, dest_expr, source_expr, err_pos);
   return sp;
@@ -1632,10 +1633,10 @@ operator routine or do bitwise assignment.
                  pointer-to-array to pointer-to-array-element. */
               cast_node(&source_expr, make_pointer_type(tp),
                         /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                        err_pos);
+                        /*is_reinterpret_cast=*/FALSE, err_pos);
               cast_node(&dest_expr, make_pointer_type(tp),
                         /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                        err_pos);
+                        /*is_reinterpret_cast=*/FALSE, err_pos);
               /* Add the subscript to the source_expr. */
               source_expr->next = var_rvalue_expr(temp_var);
               source_expr =

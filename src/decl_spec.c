@@ -1663,6 +1663,7 @@ to indicate whether an enumeration is actually defined.
                                      /*constant_context=*/TRUE,
                                      /*evaluated_context=*/TRUE,
                                      /*fold_constant_addr_exprs=*/TRUE,
+                                     /*is_reinterpret_cast=*/FALSE,
                                      &did_not_fold,
                                      &error_position);
               }  /* if */

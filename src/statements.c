@@ -4583,6 +4583,7 @@ Scan a case label definition.  The syntax is:
                            /*constant_context=*/TRUE,
                            /*evaluated_context=*/TRUE,
                            /*fold_constant_addr_exprs=*/TRUE,
+                           /*is_reinterpret_cast=*/FALSE,
                            &did_not_fold, &error_position);
     }  /* if */
     /* Allocate a copy of the case constant. */

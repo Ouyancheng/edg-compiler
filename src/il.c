@@ -3529,6 +3529,7 @@ for making NULL pointer constants.
                        /*constant_context=*/TRUE,
                        /*evaluated_context=*/TRUE,
                        /*fold_constant_addr_exprs=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
                        &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
 
