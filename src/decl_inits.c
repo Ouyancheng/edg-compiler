@@ -3085,7 +3085,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
         }  /* if */
       }  /* if */
     } else {
-      /* Uninitialized const new-object.  Issue an discretionary error.  If
+      /* Uninitialized const new-object.  Issue a discretionary error.  If
          it's an empty class, issue a discretionary error in strict mode,
          otherwise a warning. */
       if (is_empty_class &&
