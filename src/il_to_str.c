@@ -3998,7 +3998,7 @@ described by octl.
   *need_leading_space = TRUE;
 }  /* form_string_argument_attribute */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
+#if USER_CONTROL_OF_STRUCT_PACKING || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 
 static void form_unsigned_argument_attribute(
                    char                                   *attribute_name,
@@ -4024,7 +4024,7 @@ described by octl.
   *need_leading_space = TRUE;
 }  /* form_unsigned_argument_attribute */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING || GNU_INIT_PRIORITY_ATTRIBUTE... */
 
 static void form_routine_type_attributes(
                    a_type_ptr                             type,
@@ -4149,6 +4149,8 @@ TRUE.  Do the output in the way described by octl.
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+#if BACK_END_IS_CP_GEN_BE
+
 void form_mode_attribute(
                    a_type_mode_kind                       mode,
                    a_boolean                              *need_leading_space,
@@ -4168,6 +4170,7 @@ to TRUE in all cases.
   *need_leading_space = TRUE;
 }  /* form_mode_attribute */
 
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 void form_variable_attributes(
                    a_variable_ptr                         var,

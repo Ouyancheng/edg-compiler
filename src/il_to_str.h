@@ -313,10 +313,12 @@ extern void form_type_attributes(
                    a_boolean                              *need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
+#if BACK_END_IS_CP_GEN_BE
 extern void form_mode_attribute(
                    a_type_mode_kind                       mode,
                    a_boolean                              *need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 extern void form_variable_attributes(
                    a_variable_ptr                         var,
