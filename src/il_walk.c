@@ -610,10 +610,12 @@ C) are always walked immediately.  is_class is TRUE if the entity is a class.
 #if DO_IL_LOWERING
 /*
 Macro that returns TRUE if the class parent information in an entry of kind
-entry_kind will remain after IL lowering is done.
+entry_kind will remain after IL lowering is done.  Note that lowering
+is never done in secondary translation units.
 */
 #define parent_will_exist_after_lowering(entry_kind) \
-  (suppress_il_lowering || entry_kind == iek_field)
+  (suppress_il_lowering || !is_primary_translation_unit || \
+   (entry_kind) == iek_field)
 #endif /* DO_IL_LOWERING */
 
 
