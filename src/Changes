@@ -1,5 +1,16 @@
 Version 2.32
 
+5/9/96  Abort following error in conversion operator reference
+
+Certain invalid operator references, such as the one below, could result
+in an abort or internal error.  This has been fixed.
+
+  struct A { };
+  template <class T> struct X {};
+  int main () {
+    A::operator X();
+  }
+
 5/8/96  Cv-qualifier now allowed on new-type-id in strict mode
 
 The restriction that prohibited a cv-qualifier on a new-type-id has been

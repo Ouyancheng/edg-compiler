@@ -7751,13 +7751,14 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
       qualifier_namespace = qualifier_namespace_ptr(locator_for_curr_id);
       is_vacuous_dtor = locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;
+      *err |= is_error_locator(locator_for_curr_id);
       /* Perform error checks as specified in "options". */
-      if (check_for_generalized_identifier_errors(options,
-						  &pos_curr_token)) {
-        *err = TRUE;
-        okay = FALSE;
-      } else if (*err) {
+      if (*err) {
         /* Don't try to lookup the identifier if an error occurred earlier. */
+        okay = FALSE;
+      } else if (check_for_generalized_identifier_errors(options,
+		   				         &pos_curr_token)) {
+        *err = TRUE;
         okay = FALSE;
       } else {
         a_boolean			is_vacuous_dtor =
