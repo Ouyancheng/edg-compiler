@@ -258,6 +258,9 @@ Instantiate the body of the template function associated with tip.
   a_template_symbol_supplement_ptr  tssp;
   a_param_id_ptr                    pip;
   a_param_type_ptr                  ptp;
+  int                               saved_container_pos;
+  int                               saved_depth_stmt_stack;
+  a_reachability_summary            saved_curr_reachability;
 
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
@@ -359,8 +362,18 @@ Instantiate the body of the template function associated with tip.
     default:;
       /* No action. */
   }  /* switch */
+  /* Save structured statement stack state before calling compound_statement
+     (so that it can be restored upon return) and create a new structured
+     statement stack.  This is required for function definitions in classes
+     defined within a function definition.  An indefinite nesting depth is
+     supported */
+  new_struct_stmt_stack(&saved_container_pos, &saved_depth_stmt_stack,
+                        &saved_curr_reachability);
   scope->assoc_block = compound_statement(/*at_function_level=*/TRUE,
                                           /*explicit_return_type=*/TRUE);
+  /* Restore the original structured statement stack. */
+  restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
+                            &saved_curr_reachability);
   /* Pop the function scope. */
   pop_scope();
   if (rout_sym->class_of_which_a_member != NULL) {
