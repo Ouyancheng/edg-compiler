@@ -819,13 +819,14 @@ A number of changes have been made to the way source-sequence lists are
 generated.  Most important is the elimination of "proxies" and the use
 instead of "sublists" (see a_src_seq_sublist) to deal with source-sequence
 entries for file scope entities that are part of the function-scope list.
-In addition, the ends of class and enum definitions, function prototype
-scopes, and statement blocks are indicated in the source-sequence list by
-markers (see a_src_seq_end_of_construct).  Finally, classes no longer have
-their own source sequence lists; instead, the source-sequence entries for
-class members appear on the file scope list (or on a function scope
-sublist), bounded by the entry for the class itself and the entry marking
-the end of the class definition.
+In addition, the ends of class and enum definitions and statement blocks
+are indicated in the source-sequence list by markers (see
+a_src_seq_end_of_construct).  Finally, classes no longer have their own
+source sequence lists; instead, the source-sequence entries for class
+members appear on the file scope list (or on a function scope sublist),
+bounded by the entry for the class itself and the entry marking the end of
+the class definition.  Unnamed class and enums are recorded in the source
+sequence list.
 
 The other IL change, besides the new structs a_src_seq_sublist and
 a_src_seq_end_of_construct, is the addition of a pointer to a linked list
