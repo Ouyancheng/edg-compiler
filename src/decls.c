@@ -144,7 +144,8 @@ is not done.
        the creation of such gratuitous projections here than to try to ignore
        them in symbol entry later. */
     assoc_symbol = get_normal_id_or_qualified_name(
-                                 IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME);
+                                 IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME |
+                                 IDL_PTR_TO_MEMBER_ALLOWED);
     if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
       /* Symbol was found, but it is not a type name symbol.  Return NULL. */
       assoc_symbol = NULL;
@@ -541,6 +542,12 @@ type is legal.
         }  /* if */
 	if (err) new_type_ptr = error_type();
         (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
+      } else if (is_ptr_to_member_type(*bottom_derived_type)) {
+        /* Pointer-to-member type. */
+#if 0
+        /* Error checking is needed. */
+#endif /* if 0 */
+        (*bottom_derived_type)->variant.ptr_to_member.type = new_type_ptr;
       } else {
         /* Function type. */
 #if CHECKING
@@ -605,7 +612,8 @@ type is legal.
            is_error_type(new_type_ptr))) {
         while (tkind == (a_type_kind)tk_array ||
                tkind == (a_type_kind)tk_pointer ||
-               tkind == (a_type_kind)tk_typeref) {
+               tkind == (a_type_kind)tk_typeref ||
+               tkind == (a_type_kind)tk_ptr_to_member) {
           /* Determine the type size.  For the "array of incomplete struct or
              union" case, this will put the type entry on a list for later
              fixup. */
@@ -633,6 +641,9 @@ type is legal.
                   break;
                 case tk_typeref:
                   pt = prev_temp_type->variant.typeref.type;
+                  break;
+                case tk_ptr_to_member:
+                  pt = prev_temp_type->variant.ptr_to_member.type;
                   break;
 #if CHECKING
                 default:
@@ -3379,8 +3390,7 @@ Only the first form is accepted in C.
   a_boolean     err;
 
   db_enter(4, "pointer_declarator");
-  while (curr_token == tok_star ||
-         (C_dialect == C_dialect_cplusplus && curr_token == tok_ampersand)) {
+  for (;;) {
     /* Add a pointer type to the top of the existing type.  Note that this
        works out right.  For example, if one has
 
@@ -3391,45 +3401,71 @@ Only the first form is accepted in C.
        "const pointer to int" to "volatile pointer to const pointer to int"
        on successive iterations. */
     err = FALSE;
-    set_err_pos_to_curr_token();
-    if (complete_type != NULL) {
-      /* Normal case -- the specifiers type is given, and the pointer or
-         reference type can be attached directly to it.  (Or, this is a
-         pointer to a pointer type or a reference to a pointer type). */
-      a_type_ptr  temp_type = skip_typerefs(complete_type);
-      if (curr_token == tok_star) {
-        if (is_reference_type(temp_type)) {
-	  /* Type "pointer to reference to anything" is illegal. */
-	  error(ec_pointer_to_reference);
-          err = TRUE;
+    if (curr_token == tok_star ||
+        (C_dialect == C_dialect_cplusplus && curr_token == tok_ampersand)) {
+      set_err_pos_to_curr_token();
+      if (complete_type != NULL) {
+        /* Normal case -- the specifiers type is given, and the pointer or
+           reference type can be attached directly to it.  (Or, this is a
+           pointer to a pointer type or a reference to a pointer type). */
+        a_type_ptr  temp_type = skip_typerefs(complete_type);
+        if (curr_token == tok_star) {
+          if (is_reference_type(temp_type)) {
+            /* Type "pointer to reference to anything" is illegal. */
+            error(ec_pointer_to_reference);
+            err = TRUE;
+          }  /* if */
+          complete_type = make_pointer_type(err ? error_type() :
+                                                  complete_type);
+        } else {
+          if (is_reference_type(temp_type)) {
+            /* Type "reference to reference" is illegal. */
+            error(ec_reference_to_reference);
+            err = TRUE;
+          } else if (is_void_type(temp_type)) {
+            /* Type "reference to void" is illegal. */
+            error(ec_reference_to_void);
+            err = TRUE;
+          }  /* if */
+          complete_type = make_reference_type(err ? error_type() :
+                                                    complete_type);
         }  /* if */
-        complete_type = make_pointer_type(err ? error_type() : complete_type);
       } else {
-	if (is_reference_type(temp_type)) {
-	  /* Type "reference to reference" is illegal. */
-	  error(ec_reference_to_reference);
-          err = TRUE;
-	} else if (is_void_type(temp_type)) {
-	  /* Type "reference to void" is illegal. */
-	  error(ec_reference_to_void);
-          err = TRUE;
-	}  /* if */
-        complete_type = make_reference_type(err ? error_type() :
-						  complete_type);
+        /* The specifiers type is not known, so the bottom-most pointer type
+           modifier is built but not attached to anything.  It will be
+           connected later.  Note that the size is not set (set_type_size is
+           not called) at this point; that's done in add_to_derived_type_list,
+           once the type pointed to is known, in case pointers to different
+           types have different sizes. */
+        a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
+        new_type_ptr->variant.pointer.type = complete_type;
+        if (curr_token == tok_ampersand) {
+          new_type_ptr->variant.pointer.is_reference = TRUE;
+        }  /* if */
+        complete_type = new_type_ptr;
       }  /* if */
+    } else if (C_dialect == C_dialect_cplusplus &&
+               is_qualified_name_start()) {
+      a_type_ptr     class_type;
+      a_boolean      is_file_scope_qualifier, has_global_qualifier;
+      a_boolean      qualifier_err;
+      a_token_cache  cache;
+
+      clear_token_cache(&cache);
+      if (get_class_qualifier(&cache, &class_type,
+                              &is_file_scope_qualifier,
+                              &has_global_qualifier, &qualifier_err)) {
+        if (curr_token == tok_star) {
+          complete_type = ptr_to_member_type(complete_type, class_type);
+        } else {
+          rescan_cached_tokens(&cache);
+          break;
+        }  /* if */
+      } else {
+        break;
+      }  /* if */          
     } else {
-      /* The specifiers type is not known, so the bottom-most pointer type
-         modifier is built but not attached to anything.  It will be
-         connected later.  Note that the size is not set (set_type_size is
-         not called) at this point; that's done in add_to_derived_type_list,
-         once the type pointed to is known, in case pointers to different
-         types have different sizes. */
-      a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
-      new_type_ptr->variant.pointer.type = complete_type;
-      if (curr_token == tok_ampersand) {
-        new_type_ptr->variant.pointer.is_reference = TRUE;
-      }  /* if */
-      complete_type = new_type_ptr;
+      break;
     }  /* if */
     if (err || *bottom_pointer_derived_type == NULL) {
       *bottom_pointer_derived_type = complete_type;
