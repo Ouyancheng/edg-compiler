@@ -2144,14 +2144,14 @@ the default constructor (if one exists) is called.
       tp = skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
     if (is_class_struct_union_type(tp)) {
-      /* Default initialization is done only for objects that are defined
-         in the current translation unit (i.e., storage class other than
-         "extern") and that require constructor initialization. */
       cssp = symbol_supplement_for_class(tp);
     }  /* if */
+    /* Default initialization is done only for non-POD class objects that
+       are defined in the current translation unit (i.e., storage class
+       other than "extern"). */
     if (cssp != NULL && !cssp->is_POD &&
         var->storage_class != (a_storage_class)sc_extern &&
-        !is_incomplete_type(var_type) && !cssp->is_POD) {
+        !is_incomplete_type(var_type)) {
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
@@ -2169,6 +2169,7 @@ the default constructor (if one exists) is called.
           push_namespace_reactivation_scope(sym->parent.namespace_ptr);
         }  /* if */
       }  /* if */
+      /* Find a default constructor. */
       if (cssp->constructor != NULL) {
         /* There are user-declared constructor(s) and/or implicitly-declared
            nontrivial constructors.  Look for a default constructor. */
@@ -2176,24 +2177,33 @@ the default constructor (if one exists) is called.
                                           /*evaluated=*/TRUE);
         if (is_const && ctor != NULL && ctor->compiler_generated) {
           /* A default constructor was found, but it isn't a user-declared
-             constructor.  No initialization is performed, and an error
-             will be issued later. */
+             constructor, which is required for a const-qualified variable.
+             Leave def_init_performed FALSE, to assure that an error will be
+             issued later. */
         } else {
+          /* Set def_init_performed, which is returned to the caller. */
           /* Even if ctor is NULL (as a result of failing to find a default
              constructor) we still set def_init_performed as though default
              initialization were done even though it wasn't -- this will
              prevent a redundant diagnostic from being issued. */
           def_init_performed = TRUE;
         }  /* if */
-      } else if (!is_const) {
-        /* There is no user-declared or nontrivial implicitly declared
-           default constructor.  However, the language definition says an
-           object is "default initialized", which means the trivial default
-           constructor will be called.  We apply the as-if rule and suppress
-           the call (since it's a no-op), but the definition still needs to
-           be generated, since it may have side-effects. */
-        if (reference_to_trivial_default_constructor(tp, err_pos)) {
-          def_init_performed = TRUE;
+      } else {
+        /* The class has no non-trivial constructors. */
+        if (is_const) {
+          /* Since this is a non-POD class, a user-declared default
+             constructor should have been provided.  Leave def_init_performed
+             set to FALSE so that a diagnostic will be issued later. */
+        } else {
+          /* There is no user-declared or nontrivial implicitly declared
+             default constructor.  However, the language definition says an
+             object is "default initialized", which means the trivial default
+             constructor will be called.  We apply the as-if rule and suppress
+             the call (since it's a no-op), but the definition still needs to
+             be generated, since it may have side-effects. */
+          if (reference_to_trivial_default_constructor(tp, err_pos)) {
+            def_init_performed = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       dtor = select_destructor(tp, tp, err_pos,
