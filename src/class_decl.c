@@ -11849,7 +11849,6 @@ bits of information that were acquired while parsing.
     /* Report errors in virtual function declarations that result from
        the failure to redeclare a virtual function originally declared in
        a virtual base class. */
-    set_err_pos_to_curr_token();
     report_virtual_function_ambiguities(class_type);
     /* If the current class is not already marked as "abstract", run
        through its base classes to determine whether it is abstract by
