@@ -1876,9 +1876,10 @@ whose definition has not yet been generated, force the definition now.
        in case there is some sort of recursive reference. */
     if (rp->assoc_scope == NULL_region_number) {
       if (rp->is_trivial_default_constructor && rp->defined) {
-        /* Already defined even though there in no associated memory region --
-           this can happen with a trivial default constructor, whose memory
-           region is freed immediately after it's created. */
+        /* Trivial default constructor is already defined even though there
+           is no associated memory region -- this can happen because its
+           memory region is freed immediately after the pseudo-definition has
+           been completed. */
       } else {
         /* Only force a definition for constructors, destructors, and
            operator= functions.  In particular, do not try to define operator
