@@ -19,6 +19,7 @@ C++-generating back end to produce incorrect code for the following:
     ::x = 47;
   }
 
+A bug in the C++-generating back end's use of this information was also fixed.
 
 2/14/96   Conflict between user-declared and predeclared class type_info
 
