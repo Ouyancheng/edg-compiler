@@ -968,6 +968,10 @@ because any exception it can handle would be caught by type_1's handler.
   a_base_class_ptr  bcp;
 
   db_enter(5, "type_masks_handler_param_type");
+  if (is_reference_type(type_1)) type_1 = type_pointed_to(type_1);
+  type_1 = skip_typerefs(type_1);
+  if (is_reference_type(type_2)) type_2 = type_pointed_to(type_2);
+  type_2 = skip_typerefs(type_2);
   if (identical_types(type_1, type_2)) {
     masked = TRUE;
   } else if (is_class_struct_union_type(type_1) &&
