@@ -218,15 +218,21 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
   a_boolean			projection_allowed =
                                            (options & IDL_PROJ_SYMBOL_ALLOWED);
   a_scope_stack_entry_ptr	ssep;
+  a_name_space_kind		required_name_space_kind = nsk_other;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                             \
    ((!must_be_tag || is_tag_symbol(fund_sym)) &&			\
+    (name_space_for_symbol_kind[(int)sym->kind] ==			\
+                                           required_name_space_kind) && \
     (projection_allowed || sym->kind != (a_symbol_kind)sk_projection))
 
   check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
                                     IDL_PROJ_SYMBOL_ALLOWED)) == 0,
                        "curr_scope_id_lookup:", "invalid_option");
+  /* In C mode, a "must be tag" lookup only considers symbols in the tag
+     name space kind. */
+  if (C_mode() && must_be_tag) required_name_space_kind = nsk_tag;
   sym = locator->specific_symbol;
   if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
