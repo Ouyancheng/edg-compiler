@@ -202,7 +202,9 @@ If this flag is TRUE an_integer_value is larger than a host long.
 This would be true when simulated integers are being used but might
 also be true if an_integer_value is represented using a host long long.
 */
+#ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
 #define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG	TRUE
+#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
 
 /*
 If this flag is TRUE, overflows on signed integer operations do
