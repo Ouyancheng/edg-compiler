@@ -5911,9 +5911,14 @@ functions could still apply).
              that will make the built-in operator feasible.  The argument
              matches are compared to the best match so far from the above
              searches. */
-          try_conversions_for_builtin_operator(kind, unary_operator,
-                                               arg_operand_list,
-                                               &candidate_functions);
+          if (microsoft_mode && candidate_functions != NULL) {
+            /* In Microsoft mode do not consider conversions for built-ins
+               if viable functions were found above. */
+          } else {
+            try_conversions_for_builtin_operator(kind, unary_operator,
+                                                 arg_operand_list,
+                                                 &candidate_functions);
+          }  /* if */
         }  /* if */
         if (!ambiguous) {
           /* The candidate_functions list now contains all the viable
