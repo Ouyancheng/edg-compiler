@@ -1,5 +1,12 @@
 Version 3.1
 
+10/8/02  GNU compatibility: Attributes in parenthesized declarator
+
+In GNU C and C++ mode, the front end now accepts a GNU-style attribute
+specifier as the first element of a parenthesized declarator.  For example:
+
+  typedef void (__attribute__((stdcall)) *WinCall)();
+
 10/8/02  GNU compatibility: cc clobber ignored
 
 In GNU C and C++ modes, the front end now ignores (with a warning) the use

@@ -3798,6 +3798,15 @@ The syntax is:
     a_decl_flag_set  local_do_flags;
 
     (void)get_token();
+#if GNU_EXTENSIONS_ALLOWED
+    /* Attributes may appear as the first construct of a parenthesized
+       declarator. */
+    if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
+      *attributes = scan_attributes();
+      /* Advance to the end of the list. */
+      attributes = last_attribute_link(attributes);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (abstract_declarator_allowed) {
       if (curr_token == tok_rparen ||
           is_decl_start(/*expr_context=*/FALSE,
