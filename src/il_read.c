@@ -491,7 +491,7 @@ necessary to make it directly accessible in memory.
     entry_ptr = remap_encoded_number_to_ptr(entry_number, entry_kind);
     /* Set the entry prefix appropriately. */
     clear_il_entry_prefix(&il_entry_prefix_of(entry_ptr),
-                          reading_file_scope_il);
+                          reading_file_scope_il, FALSE);
     /* If this is a string entry, read the length.  Otherwise, compute the
        length from the entry kind. */
     is_string_entry = is_string_entry_kind(entry_kind);

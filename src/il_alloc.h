@@ -208,6 +208,8 @@ unsigned long show_il_alloc_space_used(unsigned long grand_total);
 
 extern void il_alloc_one_time_init(void);
 
+extern void compute_il_prefix_size(void);
+
 extern void il_alloc_init(void);
 
 #ifdef TRACE_ALLOC

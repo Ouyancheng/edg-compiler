@@ -87,7 +87,8 @@ static unsigned long
 		num_using_decls_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
-		string_literal_text_space_allocated;
+		string_literal_text_space_allocated,
+                num_canonical_il_pointers_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_source_sequence_entries_allocated,
@@ -141,6 +142,11 @@ static a_source_correspondence
 		def_source_corresp;
 #define set_default_source_corresp(sc) (sc) = def_source_corresp;
 
+static int	file_scope_entry_prefix_size;
+			/* The size of the entry prefix for IL entries
+			   allocated in the file scope of the current
+			   translation unit. */
+
 
 /*
 Macro to increment the entry prefix allocation count only if DEBUG
@@ -166,7 +172,7 @@ happens that it is usually known by the caller).
 { ptr = alloc_in_region((region_number),                              \
                          (sizeof_t)((size)+SPACE_FOR_IL_ENTRY_PREFIX)); \
   incr_num_il_entry_prefixes_allocated();                             \
-  clear_il_entry_prefix(ptr, file_scope);                             \
+  clear_il_entry_prefix(ptr, file_scope, !is_primary_translation_unit); \
   ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                   \
 }  /* do_alloc */
 
@@ -182,6 +188,41 @@ DEBUG is TRUE.  Used in do_fs_alloc.
 #define incr_num_fs_orphan_pointers_allocated() /* Nothing */
 #endif /* ORPHAN_PROCESSING_NEEDED && ... */
 
+/*
+Macro to increment the count of canonical IL pointers allocated.  When
+not generating debugging code, this expands to nothing.
+DEBUG is TRUE.  Used in do_fs_alloc.
+*/
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#define incr_num_canonical_il_pointers_allocated()                       \
+  num_canonical_il_pointers_allocated++
+#else /* !(DEBUG && !STANDALONE_UTILITY_PROGRAM) */
+#define incr_num_canonical_il_pointers_allocated() /* Nothing */
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+
+/*
+Macro that clears the orphan pointer, increments the count of orphan
+pointers allocated, and updates the pointer provided to point past
+the orphan pointer.  When orphan pointers are not used, this macro
+expands to nothing.
+*/
+#if ORPHAN_PROCESSING_NEEDED
+#define clear_and_incr_past_orphan_pointer(ptr)				\
+  incr_num_fs_orphan_pointers_allocated();                            \
+  *(char **)ptr = NULL;                                               \
+  ptr += SPACE_FOR_FS_ORPHAN_POINTER;
+#else /* !ORPHAN_PROCESSING_NEEDED */
+#define clear_and_incr_past_orphan_pointer(ptr) /* nothing */
+#endif /* ORPHAN_PROCESSING_NEEDED */
+
+/*
+Macro that clears the pointer to the canonical IL entry when compiling
+multiple translation units.
+*/
+#define clear_and_incr_past_canonical_il_pointer(ptr)		      \
+  incr_num_canonical_il_pointers_allocated();                         \
+  *(char **)ptr = NULL;                                               \
+  ptr += SPACE_FOR_CANONICAL_IL_POINTER;
 
 /*
 Allocate a file-scope IL entry of size "size" preceded by an_il_entry_prefix
@@ -189,36 +230,24 @@ and (if appropriate) an orphan list pointer, and initialize the prefix
 and orphan pointer to default values.  ptr is a "char *" pointer and is set
 to point to the entry proper.
 */
-#if ORPHAN_PROCESSING_NEEDED
-/*
-When orphan processing is needed, also allocate space for the
-next-orphaned-entry pointer preceding the entry and the entry prefix.
-*/
 #define do_fs_alloc(ptr, size)                                        \
-{ ptr = alloc_in_region(file_scope_region_number,                     \
-                        (sizeof_t)((size) +                           \
-                                   SPACE_FOR_FS_ORPHAN_POINTER +      \
-                                   SPACE_FOR_IL_ENTRY_PREFIX));       \
-  incr_num_fs_orphan_pointers_allocated();                            \
-  *(char **)ptr = NULL;                                               \
-  ptr += SPACE_FOR_FS_ORPHAN_POINTER;                                 \
+{ ptr = alloc_in_region(					      \
+          file_scope_region_number,				      \
+          (sizeof_t)((size) + file_scope_entry_prefix_size));         \
+  if (!is_primary_translation_unit) {				      \
+    clear_and_incr_past_canonical_il_pointer(ptr);		      \
+  }  /* if */							      \
+  clear_and_incr_past_orphan_pointer(ptr);			      \
   incr_num_il_entry_prefixes_allocated();                             \
-  clear_il_entry_prefix(ptr, TRUE);                                   \
+  clear_il_entry_prefix(ptr, TRUE, !is_primary_translation_unit);     \
   ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                   \
 }  /* do_fs_alloc */
-#else /* !ORPHAN_PROCESSING_NEEDED */
-/* When orphan processing is not needed, file-scope allocation is like
-   allocation in any other memory region. */
-#define do_fs_alloc(ptr, size)                                        \
-  do_alloc((ptr), file_scope_region_number, TRUE, (size))
-#endif /* ORPHAN_PROCESSING_NEEDED */
 
 
 /*
 Allocate space in an arbitrary memory region (i.e., choose between the
 file-scope and normal allocation methods as necessary).
 */
-#if ORPHAN_PROCESSING_NEEDED
 #define do_any_alloc(ptr, region_number, size)                        \
 { if ((region_number) == file_scope_region_number) {                  \
     do_fs_alloc((ptr), (size));                                       \
@@ -226,13 +255,7 @@ file-scope and normal allocation methods as necessary).
     do_alloc((ptr), (region_number), FALSE, (size));                  \
   }  /* if */                                                         \
 }  /* do_any_alloc */
-#else /* !ORPHAN_PROCESSING_NEEDED */
-/* No space needed for next-orphan pointer.  Allocation in the file scope
-   is the same as allocation in any other region. */
-#define do_any_alloc(ptr, region_number, size)                        \
-  do_alloc((ptr), (region_number),                                    \
-           ((region_number) == file_scope_region_number), (size))
-#endif /* ORPHAN_PROCESSING_NEEDED */
+
 
 #ifdef TRACE_ALLOC
 /*
@@ -3089,6 +3112,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+  db_space_used_nontype("canonical IL pointers",
+                        num_canonical_il_pointers_allocated,
+                        SPACE_FOR_CANONICAL_IL_POINTER);
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
                 an_il_entry_prefix);
 #if ASM_SUPPORT_NEEDED
@@ -3240,6 +3266,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_src_seq_sublists_allocated),
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      pch_saved_var_array_elem(num_canonical_il_pointers_allocated),
 #if ORPHAN_PROCESSING_NEEDED
       pch_saved_var_array_elem(num_fs_orphan_pointers_allocated),
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -3272,7 +3299,28 @@ in il_alloc_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(file_scope_entry_prefix_size);
 }  /* il_alloc_one_time_init */
+
+
+void compute_il_prefix_size(void)
+/*
+Compute the size of the IL entry prefix for file scope IL entries in this
+translation unit.
+*/
+{
+  /* All entries allocated in the file scope have a prefix.  If we are
+     doing orphan processing, they also have an orphan pointer.  In
+     secondary translation units they also have a canonical IL entry
+     pointer. */
+  file_scope_entry_prefix_size =
+            (is_primary_translation_unit ? 0
+                                         : SPACE_FOR_CANONICAL_IL_POINTER) +
+#if ORPHAN_PROCESSING_NEEDED
+            SPACE_FOR_FS_ORPHAN_POINTER +
+#endif /* ORPHAN_PROCESSING_NEEDED */
+            SPACE_FOR_IL_ENTRY_PREFIX;
+}  /* compute_il_prefix_size */
 
 
 void il_alloc_init(void)
@@ -3351,6 +3399,7 @@ initializations that are done for each compilation.
   num_src_seq_sublists_allocated         = 0;
   num_instantiation_directives_allocated = 0;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  num_canonical_il_pointers_allocated    = 0;
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */

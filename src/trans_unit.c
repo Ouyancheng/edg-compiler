@@ -245,6 +245,7 @@ treated as separate translation units of a single compilation.
   }  /* if */
   /* Initialize the front end. */
   is_primary_translation_unit = is_primary;
+  compute_il_prefix_size();
   if (is_primary_translation_unit) fe_init_part_1();
   trans_unit = alloc_translation_unit();
   /* Add this translation unit to the list of translation units. */

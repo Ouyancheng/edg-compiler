@@ -85,6 +85,9 @@ typedef struct an_il_entry_prefix {
   a_bit_field	file_scope:1;
 			/* TRUE if this IL entry is allocated in the file
 			   scope memory region. */
+  a_bit_field	secondary_trans_unit:1;
+			/* TRUE if this IL entry is in a memory region for
+			   a secondary translation unit. */
   a_bit_field	il_walk_flag:1;
 			/* Flipped between 0 and 1 to indicate entries that
 			   have been visited on a given walk through an IL
@@ -118,7 +121,7 @@ typedef struct an_il_entry_prefix {
      other sizes will work too.) */
 #define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
          /*lint --e(506)*/                                             \
-         (3 + ((DO_IL_LOWERING != 0)?1:0) + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
+         (4 + ((DO_IL_LOWERING != 0)?1:0) + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
 #if EDG_MSDOS
   /* Under MS-DOS compilers this bit field is probably bigger than
      an "int", so use "unsigned long". */
@@ -185,10 +188,13 @@ IL entry prefix only if it exists.
 Initialize an IL entry prefix to default values.  ptr is a pointer (of
 any type) to the location containing the prefix.  is_in_file_scope is TRUE if
 the entry has been allocated in the file scope memory region, FALSE otherwise.
+in_sec_trans_unit is TRUE if the entry has been allocated in a memory
+region of a secondary translation unit, FALSE otherwise.
 */
-#define clear_il_entry_prefix(ptr, is_in_file_scope)                  \
+#define clear_il_entry_prefix(ptr, is_in_file_scope, in_sec_trans_unit) \
 { an_il_entry_prefix_ptr epp = (an_il_entry_prefix_ptr)ptr;           \
   epp->file_scope = is_in_file_scope;                                 \
+  epp->secondary_trans_unit = in_sec_trans_unit;		      \
   epp->il_walk_flag = 0;                                              \
   clear_il_lowering_flag(epp);                                        \
   clear_keep_in_il_flag(epp);                                         \
@@ -233,6 +239,16 @@ the file-scope IL entry at ptr.
   (*(char **)((char *)(ptr) -                                         \
               SPACE_FOR_IL_ENTRY_PREFIX - SPACE_FOR_FS_ORPHAN_POINTER))
 #endif /* ORPHAN_PROCESSING_NEEDED */
+
+/* Amount of space to allocate for the canonical IL entry pointer
+   that is used when compiling multiple translation units.  This is
+   allocated for file scope memory regions of secondary translation
+   units.  The size is the smallest multiple of HOST_ALIGNMENT_REQUIRED
+   that is at least as large as the size of a "char *".  This preserves the
+   necessary alignment for the entry itself. */
+#define SPACE_FOR_CANONICAL_IL_POINTER                                \
+ ((((sizeof(char *)-1)/HOST_ALIGNMENT_REQUIRED)+1)*                   \
+  HOST_ALIGNMENT_REQUIRED)
 
 /*
 Return TRUE if the IL entry pointed to by ptr is in the file scope
