@@ -55,11 +55,11 @@ accept this form of reference.  Now fixed.  For example:
 9/1/04  GNU/Microsoft compatibility: Flexible array member initializers
 
 In Microsoft modes and in GNU C mode, the front end now accepts aggregate
-initializers for flexible array members.  An variable entry with such an
+initializers for flexible array members.  A variable entry with such an
 initializer has its (new) flag has_flexible_array_initializer set to TRUE,
 and the aggregate constant representing the portion of the initializer for
 the flexible array member also has a flag flexible_array_initializer set
-to TRUE.  For example:
+to TRUE (IL CHANGE).  For example:
 
   struct S {
     int n;
