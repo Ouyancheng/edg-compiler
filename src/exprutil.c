@@ -156,26 +156,26 @@ next_operand_ref field, i.e., the list attached to an operand.
 
 
 void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
-                              a_ref_entry_ptr keep_list2,
-                              a_ref_entry_ptr saved_list)
+                              a_ref_entry_ptr keep_list2)
 /*
 Look for reference entries on the curr_expr_ref_entries list that are not
 also on either of the keep_list1 or keep_list2 lists.  For each such entry,
-record the indicated reference and free the entry.  Also restore the entries
-on saved_list to the global list.  This is used at the ends of expressions
-to commit the references that are not being passed up to the caller and
-therefore cannot be modified further.
+record the indicated reference and free the entry.  This is used at the
+ends of expressions to commit the references that are not being passed
+up to the caller and therefore cannot be modified further.
 */
 {
   a_ref_entry_ptr rep, last_rep, next_rep;
 
+  rep = curr_expr_ref_entries;
+  curr_expr_ref_entries = NULL;
   last_rep = NULL;
-  for (rep = curr_expr_ref_entries; rep != NULL; rep = next_rep) {
+  for (; rep != NULL; rep = next_rep) {
     next_rep = rep->next;
     if (on_operand_ref_list(rep, keep_list1) ||
         on_operand_ref_list(rep, keep_list2)) {
       /* This entry appears on a list, so keep it on the global list. */
-      if (last_rep == NULL) {
+      if (curr_expr_ref_entries == NULL) {
         curr_expr_ref_entries = rep;
       } else {
         last_rep->next = rep;
@@ -186,13 +186,7 @@ therefore cannot be modified further.
       /* This entry does not appear on a list, so record it and free it. */
       record_and_free_ref_entry(rep);
     }  /* if */
-  }  /* while */
-  /* Put the saved_list on the end of what's left of the global list. */
-  if (last_rep == NULL) {
-    curr_expr_ref_entries = saved_list;
-  } else {
-    last_rep->next = saved_list;
-  }  /* if */
+  }  /* for */
 }  /* flush_ref_entries_except */
 
 
@@ -225,7 +219,7 @@ freed.  If the proper kind of reference is known right away, it is
 recorded right away and no entry is created; NULL is returned.
 */
 {
-  a_ref_entry_ptr rep;
+  a_ref_entry_ptr rep, last_rep;
   a_boolean       ref_kind_can_be_affected_by_context;
   a_boolean       evaluated = curr_expr_is_potentially_evaluated();
   a_symbol_ptr    fund_sym = fundamental_symbol_of(sym_ptr);
@@ -264,9 +258,16 @@ recorded right away and no entry is created; NULL is returned.
        for it. */
     rep = alloc_ref_entry(srk_reference, sym_ptr, source_position);
     /* Put the entry on the list of entries for the current expression.
-       The list is dumped when flush_ref_entries_list is called. */
-    rep->next = curr_expr_ref_entries;
-    curr_expr_ref_entries = rep;
+       The list is dumped when flush_ref_entries_list is called.
+       The entry is put at the end of the list to preserve source order. */
+    if (curr_expr_ref_entries == NULL) {
+      curr_expr_ref_entries = rep;
+    } else {
+      for (last_rep = curr_expr_ref_entries;
+           last_rep->next != NULL;
+           last_rep = last_rep->next) {}
+      last_rep->next = rep;
+    }  /* if */
   }  /* if */
   return rep;
 }  /* ref_entry */

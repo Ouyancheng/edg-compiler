@@ -433,8 +433,7 @@ constant expressions.  See ARM 7.1.6.
 
 
 extern void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
-                                     a_ref_entry_ptr keep_list2,
-                                     a_ref_entry_ptr saved_list);
+                                     a_ref_entry_ptr keep_list2);
 
 extern a_ref_entry_ptr ref_entry(a_symbol_ptr      sym_ptr,
                                  a_source_position *source_position);

@@ -5759,8 +5759,7 @@ is one of the valid interpretations, so it's okay.
 */
 {
   /* Flush the entries not directly associated with the operand. */
-  flush_ref_entries_except(operand->ref_entries_list, (a_ref_entry_ptr)NULL,
-                           (a_ref_entry_ptr)NULL);
+  flush_ref_entries_except(operand->ref_entries_list, (a_ref_entry_ptr)NULL);
   /* Record the modifications in the operand. */
   record_operand_modification_refs(operand);
 }  /* potential_sequence_point_after_operand */
@@ -7601,7 +7600,7 @@ see expr.h).
   an_operand        operand;
   an_operand        local_result, local_bound_function_selector;
   a_token_kind      ntoken;
-  a_ref_entry_ptr   saved_ref_list, selector_ref_entry_list;
+  a_ref_entry_ptr   saved_ref_list, selector_ref_entry_list, last_rep;
 
   db_enter(4, "scan_expr_full");
 #if DEBUG
@@ -7959,10 +7958,17 @@ bad_start_of_primary:
      list cannot be changed from here on, so they are removed from the
      global list now and the references they indicate are recorded.
      The references in the selector object (if there is one) are also kept.
-     The global list of references is updated, including adding back in the
-     list saved at the entry to this routine. */
-  flush_ref_entries_except(result->ref_entries_list, selector_ref_entry_list,
-                           saved_ref_list);
+     The global list of references is updated. */
+  flush_ref_entries_except(result->ref_entries_list, selector_ref_entry_list);
+  /* Put the references saved at the beginning of this routine back on
+     the front of the global list. */
+  if (saved_ref_list != NULL) {
+    for (last_rep = saved_ref_list;
+         last_rep->next != NULL;
+         last_rep = last_rep->next) {}
+    last_rep->next = curr_expr_ref_entries;
+    curr_expr_ref_entries = saved_ref_list;
+  }  /* if */
   db_exit();
 }  /* scan_expr_full */
 
