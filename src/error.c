@@ -2454,20 +2454,26 @@ array, print out the dimension information.
   } else if (type->kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (need_parens) add_string_to_segment(")", seg_ptr);
-    if (type->variant.array.number_of_elements == 0) {
+    if (type->variant.array.is_variable_size_array) {
+#if 0
+/* THIS IS TEMPORARY AND SHOULD BE IMPROVED. */
+#endif /* if 0 */
+      add_string_to_segment("[<expr>]", seg_ptr);
+    } else if (type->variant.array.variant.number_of_elements == 0) {
       add_string_to_segment("[]", seg_ptr);
     } else {
       char	buffer[BASE_MSG_SEGMENT_SIZE];
 #if CHECKING
       if (digits_to_represent(
-                    (unsigned long)type->variant.array.number_of_elements)
+                (unsigned long)type->variant.array.variant.number_of_elements)
                             >= BASE_MSG_SEGMENT_SIZE) {
         internal_error
               ("form_type_second_part: tk_array: buffer size too small");
       }  /* if */
 #endif /* CHECKING */
       (void)sprintf(buffer, "[%lu]",
-                    (unsigned long)type->variant.array.number_of_elements);
+                    (unsigned long)type->
+                                     variant.array.variant.number_of_elements);
       add_string_to_segment(buffer, seg_ptr);
     }  /* if */
     local_type = type->variant.array.element_type;

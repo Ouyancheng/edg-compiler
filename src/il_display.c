@@ -1254,8 +1254,14 @@ do_float_complex:
       (void)printf("tk_array\n");
       disp_ptr("element_type", (char *)ptr->variant.array.element_type,
                iek_type);
-      disp_unsigned_long("number_of_elements",
-                         (unsigned long)ptr->variant.array.number_of_elements);
+      if (ptr->variant.array.is_variable_size_array) {
+        disp_ptr("element_count_expr",
+                 (char *)ptr->variant.array.variant.element_count_expr,
+                 iek_expr_node);
+      } else {
+        disp_unsigned_long("number_of_elements",
+                           (unsigned long)ptr->
+                                    variant.array.variant.number_of_elements);
       break;
     case tk_class:
       (void)printf("tk_class\n");

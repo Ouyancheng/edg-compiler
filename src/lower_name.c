@@ -860,17 +860,20 @@ See ARM 7.2.1c for name encoding.
       case tk_array:
         /* Put out the array size, an underscore, and then the element type,
            i.e., int[10] is put out as A10_i. */
-        section_length = digits_to_represent((unsigned long)type->variant.
-                                                 array.number_of_elements) + 1;
+        check_assertion(!type->variant.array.is_variable_size_array);
+        section_length =
+           digits_to_represent((unsigned long)type->variant.array.
+                                               variant.number_of_elements) + 1;
         mangled_name_length += section_length;
         if (store_at != NULL) {
           (void)sprintf(store_at, "%lu_",
-                        (unsigned long)type->variant.array.number_of_elements);
+                        (unsigned long)type->
+                                     variant.array.variant.number_of_elements);
           store_at += section_length;
         }  /* if */
         mangled_name_length +=
-                    mangled_encoding_for_type(type->variant.array.element_type,
-                                              store_at);
+            mangled_encoding_for_type(type->variant.array.element_type,
+                                      store_at);
         break;
       default:;
         /* Many cases don't require any handling. */

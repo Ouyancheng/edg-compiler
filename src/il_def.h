@@ -437,19 +437,23 @@ typedef struct a_dynamic_init {
 
 
 typedef enum a_template_param_constant_kind_tag {
+  /* When a constant is marked as a template parameter it may one of several
+     kinds. */
   tpck_param,		/* The template param constant represents a simple
 			   non-type template parameter, e.g., for I in the
 			   following:
-			     template <int I> class A; */
-  tpck_expression,
-			/* The template param constant represents an
+			     template <int I> class A {
+                               int a[I];
+                             };
+			   This is the most common and obvious case. */
+  tpck_expression,	/* The template param constant represents an
 			   expression, e.g., for I+1 in the following:
 			     template <int I> class A {
 			       static char s[I+1];
 			     };
 			     template <int I> char A<I>::s[I+1] = { 0 }; */
-  tpck_member           /* The template param constant represents the member
-			   of a tk_template_param class, e.g., for T::k in the
+  tpck_member           /* The template param constant represents a member of
+			   a tk_template_param class, e.g., for T::k in the
 			   following:
 			     template <class T> class A {
 			       int a[T::k];
@@ -659,11 +663,12 @@ typedef struct a_constant {
 	/* When template param constant kind == tpck_expression: */
 	an_expr_node_ptr
 		expr;
-			/* Expression node representing a constant value
-			   in terms of a ck_template_param constant -- e.g.,
-			   if "I" is a template param constant (of kind
-			   tpck_param), "I+1" is also a template param
-			   constant (of kind tpck_expression). */
+			/* Expression node representing a constant value in
+			   terms of an expression involving one or more
+			   ck_template_param constants -- e.g., if "I" is
+			   a template param constant (of kind tpck_param),
+			   "I+1" is also a template param constant (of kind
+			   tpck_expression). */
 	/* When template param constant kind == tpck_member, no variant
            fields. */
       } variant;
@@ -1435,16 +1440,17 @@ typedef struct a_class_type_supplement {
 typedef struct a_template_param_type_descr *a_template_param_type_descr_ptr;
 typedef struct a_template_param_type_descr {
   /* Information about a template parameter type that may be inferred from
-     how it is used -- in particular, when a template parameter may used in a
-     way which requires that it be a class.  (C++ only.) */
+     how it is used -- in particular, when a template parameter is used in a
+     way requiring that it be a class.  (C++ only.) */
   a_type_ptr	class_type;
 			/* A dummy class type associated with a given template
-			   parameter.  This becomes useful if a template
-			   parameter is used in such a way as to indicate
-			   that it has members.  For example:
+			   parameter.  This becomes useful in name lookup if
+			   a template parameter is used in a way requiring it
+			   to be a class with members -- e.g.,
 			     template <class T> void f(T::X);
 			   Here we know T must represent a class type with a
-			   member type X.  Pointer is NULL if no class use
+			   member type X, and the X can be entered in a scope
+			   associated with T.  Pointer is NULL if no class use
 			   has been encountered. */
   a_scope_number
 		member_scope_number;
@@ -1644,10 +1650,25 @@ typedef struct a_type {
       a_type_ptr
                 element_type;
                         /* Type of the elements of the array type. */
-      a_targ_size_t
+      a_byte_boolean
+		is_variable_size_array;
+			/* TRUE is the array size depends on the evaluation of
+			   an expression, either at compile time (in the case
+			   of an array bound defined in terms of a
+			   parameter constant) or at compile time (for a
+			   new with a nonconstant first bound). */
+      union {
+        /* When is_variable_size_array is FALSE: */
+        a_targ_size_t
                 number_of_elements;
                         /* Number of elements in the array.  0 indicates
                            the [] incomplete-type case. */
+        /* When is_variable_size_array is TRUE: */
+	an_expr_node_ptr
+		element_count_expr;
+			/* An expression representing the number of elements
+			   in the array. */
+      } variant;
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */
     struct {
@@ -1739,7 +1760,7 @@ typedef struct a_type {
 			   template parameter in its declaration list (1 is
 			   first param declared, 2 is second, etc.). */
       a_template_param_type_descr_ptr
-		extra_info;
+		descr;
 			/* Pointer to a descriptor containing additional
 			   information about this template parameter type. */
     } template_param;

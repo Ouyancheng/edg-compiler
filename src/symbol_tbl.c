@@ -247,8 +247,12 @@ putting line-feeds at more or less the right places.
         (void)str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
         break;
       case tk_array:
-        (void)sprintf(&buffer[strlen(buffer)], "array [%lu] of ",
-                      tp->variant.array.number_of_elements);
+        if (tp->variant.array.is_variable_size_array) {
+          (void)sprintf(&buffer[strlen(buffer)], "array [**EXPR**] of ");
+        } else {
+          (void)sprintf(&buffer[strlen(buffer)], "array [%lu] of ",
+                        tp->variant.array.variant.number_of_elements);
+        }  /* if */
         (void)str_type(&buffer[strlen(buffer)], tp->variant.pointer.type);
         break;
       case tk_typeref:
@@ -6110,7 +6114,9 @@ NULL.
               /* Change the array size to 1. */
               a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
               copy_type(var_type, array_type);
-              array_type->variant.array.number_of_elements = 1;
+              check_assertion(
+                          !array_type->variant.array.is_variable_size_array);
+              array_type->variant.array.variant.number_of_elements = 1;
               set_type_size(array_type);
               var_ptr->type = array_type;
               /* No need to call check_linked_entity_type here.  We

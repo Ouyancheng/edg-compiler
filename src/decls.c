@@ -928,7 +928,8 @@ type is legal.
         temp_type = skip_typerefs(new_type_ptr);
         if (is_object_type(temp_type) || is_pointer_type(temp_type) ||
             (temp_type->kind == (a_type_kind)tk_array &&
-             temp_type->variant.array.number_of_elements != 0)) {
+             (temp_type->variant.array.is_variable_size_array ||
+              temp_type->variant.array.variant.number_of_elements != 0))) {
           /* Okay. */
         } else if (is_ptr_to_member_type(temp_type) &&
                    pm_member_type(temp_type) == NULL) {
@@ -2147,7 +2148,8 @@ token.
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
     /* Store the array size. */
-    (*new_type_ptr)->variant.array.number_of_elements = num_of_elements;
+    (*new_type_ptr)->variant.array.variant.number_of_elements =
+                                                           num_of_elements;
     /* The size of the array (in bytes) is updated in 
        add_to_derived_type_list. */
   }  /* if */
@@ -2208,7 +2210,14 @@ is set to NULL and the constant value is used for the size.
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
     /* Store the array size. */
-    (*new_type_ptr)->variant.array.number_of_elements = num_of_elements;
+    if (*dim_expr != NULL) {
+      check_assertion(num_of_elements == 0);
+      (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
+      (*new_type_ptr)->variant.array.variant.element_count_expr = *dim_expr;
+    } else {
+      (*new_type_ptr)->variant.array.variant.number_of_elements =
+                                                            num_of_elements;
+    }  /* if */
     /* The size of the array (in bytes) is updated in 
        add_to_derived_type_list. */
   }  /* if */

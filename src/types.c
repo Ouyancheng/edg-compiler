@@ -1069,7 +1069,14 @@ array_type.
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
-    temp = array_type->variant.array.number_of_elements;
+    if (!array_type->variant.array.is_variable_size_array) {
+      temp = array_type->variant.array.variant.number_of_elements;
+    } else {
+      /* We don't know the element count because it is not a constant value.
+         Since a size of zero mean "incomplete type", set the size as though
+         the element count were 1. */
+      temp = 1;
+    }  /* if */
     /* Next get the size of an element.  If it is itself an array, its own
        size may need to be set. */
     elem_type = array_type->variant.array.element_type;
@@ -1867,10 +1874,19 @@ initial test for exact pointer equality.
           if (f_types_are_compatible(type_1->variant.array.element_type,
                                      type_2->variant.array.element_type,
                                      flags)) {
-            if (type_1->variant.array.number_of_elements == 0 ||
-                type_2->variant.array.number_of_elements == 0 ||
-                type_1->variant.array.number_of_elements ==
-                type_2->variant.array.number_of_elements) {
+            if (type_1->variant.array.is_variable_size_array) {
+              if (type_2->variant.array.is_variable_size_array) {
+                /* Both are variable size arrays. */
+                check_assertion(FALSE);
+              } else {
+                /* Not compatible. */
+              }  /* if */
+            } else if (type_2->variant.array.is_variable_size_array) {
+              /* Not compatible. */
+            } else if (type_1->variant.array.variant.number_of_elements == 0 ||
+                       type_2->variant.array.variant.number_of_elements == 0 ||
+                       type_1->variant.array.variant.number_of_elements ==
+                            type_2->variant.array.variant.number_of_elements) {
               compat = TRUE;
             }  /* if */
           }  /* if */
@@ -2111,8 +2127,10 @@ ignores type qualifiers.
                                              type_pointed_to(source_type),
                                              ignore_qualifiers);
     } else if (is_array_type(dest_type) && is_array_type(source_type) &&
-               dest_type->variant.array.number_of_elements ==
-               source_type->variant.array.number_of_elements) {
+               !dest_type->variant.array.is_variable_size_array &&
+               !source_type->variant.array.is_variable_size_array &&
+               dest_type->variant.array.variant.number_of_elements ==
+                  source_type->variant.array.variant.number_of_elements) {
       /* Continue at the next level for arrays. */
       same = same_type_with_added_qualifiers(array_element_type(dest_type),
                                              array_element_type(source_type),
@@ -3018,27 +3036,31 @@ is allocated, it is allocated in the file scope.
              because if both types are equivalent to the composite type,
              the first operand is returned, and we'd like the element type
              to be the one from the non-incomplete array. */
+          check_assertion(!base_type_1->variant.array.is_variable_size_array);
+          check_assertion(!base_type_2->variant.array.is_variable_size_array);
           if (base_type_1->variant.array.number_of_elements != 0) {
-            num_elems = base_type_1->variant.array.number_of_elements;
+            num_elems = base_type_1->variant.array.variant.number_of_elements;
             comp_elem = composite_type(base_type_1->variant.array.element_type,
                                       base_type_2->variant.array.element_type);
           } else {
-            num_elems = base_type_2->variant.array.number_of_elements;
+            num_elems = base_type_2->variant.array.variant.number_of_elements;
             comp_elem = composite_type(base_type_2->variant.array.element_type,
                                       base_type_1->variant.array.element_type);
           }  /* if */
           /* Try to use one of the two types we already have.  If that's
              not possible, build a new array type. */
           if (comp_elem == base_type_1->variant.array.element_type &&
-              num_elems == base_type_1->variant.array.number_of_elements) {
+              num_elems == base_type_1->
+                                  variant.array.variant.number_of_elements) {
             comp_type = base_type_1;
           } else if (comp_elem == base_type_2->variant.array.element_type &&
-              num_elems == base_type_2->variant.array.number_of_elements) {
+              num_elems == base_type_2->
+                                  variant.array.variant.number_of_elements) {
             comp_type = base_type_2;
           } else {
             comp_type = alloc_type((a_type_kind)tk_array);
-            comp_type->variant.array.element_type       = comp_elem;
-            comp_type->variant.array.number_of_elements = num_elems;
+            comp_type->variant.array.element_type = comp_elem;
+            comp_type->variant.array.variant.number_of_elements = num_elems;
             set_type_size(comp_type);
           }  /* if */
           break;

@@ -333,6 +333,10 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #ifdef CFE
           case tk_array:
+            if (ptr->variant.array.is_variable_size_array) {
+              walk_ptr(ptr->variant.array.variant.element_count_expr,
+                       an_expr_node_ptr, iek_expr_node);
+            }  /* if */
             walk_ptr(ptr->variant.array.element_type, a_type_ptr, iek_type);
             break;
           case tk_class:

@@ -1352,8 +1352,10 @@ be NULL if the caller does not need to know whether a conversion was performed.
         case tk_array:
           /* Array types match if their element types match and the number of
              elements is the same. */
-          if (type->variant.array.number_of_elements !=
-                        templ_type->variant.array.number_of_elements) {
+          check_assertion(!type->variant.array.is_variable_size_array);
+          check_assertion(!templ_type->variant.array.is_variable_size_array);
+          if (type->variant.array.variant.number_of_elements !=
+                        templ_type->variant.array.variant.number_of_elements) {
             /* Not a match. */
           } else {
             tp = type->variant.array.element_type;

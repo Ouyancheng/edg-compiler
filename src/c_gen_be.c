@@ -1733,12 +1733,14 @@ function definition with a body (this controls dumping of parameters).
     }  /* if */
 #ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
+    check_assertion(!type->variant.array.is_variable_size_array);
     if (need_paren) fputc(')', f_C_output);
-    if (type->variant.array.number_of_elements == 0) {
+    if (type->variant.array.variant.number_of_elements == 0) {
       fputs("[]", f_C_output);
     } else {
       (void)fprintf(f_C_output, "[%lu]",
-                        (unsigned long)type->variant.array.number_of_elements);
+                    (unsigned long)type->
+                                    variant.array.variant.number_of_elements);
     }  /* if */
     dump_type_second_part(type->variant.array.element_type,
 			  /*need_paren=*/TRUE, /*for_func_with_body=*/FALSE);

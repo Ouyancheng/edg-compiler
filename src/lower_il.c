@@ -2228,7 +2228,7 @@ It might be changed later to add a definition.
   /* Note that the array type must not be shared, because it is modified
      later. */
   array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.number_of_elements = 0;  /* i.e., [] */
+  array_type->variant.array.variant.number_of_elements = 0;  /* i.e., [] */
   array_type->variant.array.element_type = make_mptr_type();
   set_type_size(array_type);
   /* Make the variable. */
@@ -2752,7 +2752,7 @@ to the current compilation even if the class is externally linked.
   /* The "+1" is to skip the [0] entry, which makes the code to access
      the table a little cleaner.  It's also necessary for cfront
      compatibility. */
-  vtbl_var->type->variant.array.number_of_elements =
+  vtbl_var->type->variant.array.variant.number_of_elements =
                                      ctsp->highest_virtual_function_number + 1
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   /* Add an extra zeroed entry at the end of the table for full cfront

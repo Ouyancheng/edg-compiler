@@ -684,8 +684,13 @@ Dump the contents of the indicated type entry, for debug purposes.
       db_abbreviated_type(tp->variant.pointer.type);
       break;
     case tk_array:
-      fprintf(f_debug, "array [%lu] of ",
-                       tp->variant.array.number_of_elements);
+      fputs("array [", f_debug);
+      if (tp->variant.array.is_variable_size_array) {
+        fputs("**EXPR**", f_debug);
+      } else {
+        fprintf(f_debug, "%lu", tp->variant.array.variant.number_of_elements);
+      }  /* if */
+      fputs("] of ", f_debug);
       db_abbreviated_type(tp->variant.array.element_type);
       break;
     case tk_struct:
@@ -2181,9 +2186,11 @@ to refine the hash value developed in hash_constant.
       hash_value = hash_type(type->variant.pointer.type) + 107;
       break;
     case tk_array:
-      hash_value = hash_type(type->variant.array.element_type) +
-                   (a_constant_hash_value)
-                      (type->variant.array.number_of_elements) + 307;
+      hash_value = hash_type(type->variant.array.element_type) + 307;
+      if (!type->variant.array.is_variable_size_array) {
+        hash_value += (a_constant_hash_value)
+                            (type->variant.array.variant.number_of_elements);
+      }  /* if */
       break;
     case tk_struct:
     case tk_class:
@@ -3125,7 +3132,8 @@ to default values.
       break;
     case tk_array:
       pte->variant.array.element_type = NULL;
-      pte->variant.array.number_of_elements = 0;
+      pte->variant.array.is_variable_size_array = FALSE;
+      pte->variant.array.variant.number_of_elements = 0;
       break;
     case tk_class:
     case tk_struct:
@@ -3184,7 +3192,7 @@ to default values.
       break;
     case tk_template_param:
       pte->variant.template_param.list_position = 0;
-      pte->variant.template_param.extra_info    = NULL;
+      pte->variant.template_param.descr         = NULL;
       break;
 #if CHECKING
     default:
@@ -3428,7 +3436,7 @@ and return a pointer to it.
     /* The type must be created. */
     pst = alloc_type((a_type_kind)tk_array);
     pst->variant.array.element_type = integer_type(plain_char_int_kind);
-    pst->variant.array.number_of_elements = num_chars;
+    pst->variant.array.variant.number_of_elements = num_chars;
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
       string_types[num_chars] = pst;
@@ -3461,7 +3469,7 @@ and return a pointer to it.
     pst = alloc_type((a_type_kind)tk_array);
     pst->variant.array.element_type =
                           integer_type((an_integer_kind)TARG_WCHAR_T_INT_KIND);
-    pst->variant.array.number_of_elements = num_chars;
+    pst->variant.array.variant.number_of_elements = num_chars;
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
       wide_string_types[num_chars] = pst;

@@ -38,9 +38,10 @@ a copy is made and modified.
 {
   a_type_ptr array_type;
 
+  check_assertion(!(*type)->variant.array.is_variable_size_array);
   array_type = alloc_type((a_type_kind)tk_array);
   copy_type(*type, array_type);
-  array_type->variant.array.number_of_elements = size;
+  array_type->variant.array.variant.number_of_elements = size;
   set_type_size(array_type);
   *type = array_type;
 }  /* set_initialized_array_size */
@@ -91,7 +92,8 @@ and return *err TRUE if there is an error of some kind.
       } else {
         /* The object being initialized is an array that has a definite
            size.  See if the string will fit in the array. */
-        array_length = array_type->variant.array.number_of_elements;
+        check_assertion(!array_type->variant.array.is_variable_size_array);
+        array_length = array_type->variant.array.variant.number_of_elements;
         if (num_elems > array_length) {
           /* The string is longer than the array.  Check to see if the
              string will fit if we drop the final null.  See 3.5.7.  In C++
@@ -215,8 +217,9 @@ member remains uninitialized.  This routine is called in C++ mode only.
 
   db_enter(4, "init_remaining_array_elements");
 
+  check_assertion(!array_type->variant.array.is_variable_size_array);
   number_of_uninitialized_elements =
-                  array_type->variant.array.number_of_elements - curr_element;
+          array_type->variant.array.variant.number_of_elements - curr_element;
   if (number_of_uninitialized_elements > 0) {
     /* There are one or more uninitialized elements. */
     element_type = array_element_type(array_type);
@@ -615,8 +618,9 @@ ref field of a class object (or an array of same) remains uninitialized.
           } else {
             /* Advance to next array element. */
             curr_array_element++;
+            check_assertion(!local_type->variant.array.is_variable_size_array);
             if (!is_incomplete_array &&
-                local_type->variant.array.number_of_elements <=
+                local_type->variant.array.variant.number_of_elements <=
                                                        curr_array_element) {
               /* No more elements in the array. */
               any_more_members = FALSE;

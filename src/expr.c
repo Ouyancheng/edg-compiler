@@ -3689,8 +3689,9 @@ specification allow a variable-sized array as the top type.
       /* Variable-length array; count is deferred to runtime. */
       effective_num_of_elements = 0;
     } else {
+      check_assertion(!unqual_new_type->variant.array.is_variable_size_array);
       effective_num_of_elements =
-                             unqual_new_type->variant.array.number_of_elements;
+                    unqual_new_type->variant.array.variant.number_of_elements;
     }  /* if */
     while (is_array_type(base_new_type)) {
       /* For multi-dimensional arrays: even though only one level of array is
@@ -3700,8 +3701,9 @@ specification allow a variable-sized array as the top type.
          multi-dimensional array is a class, so we can know whether or not
          to call a constructor. */
       base_new_type = skip_typerefs(base_new_type);
+      check_assertion(!base_new_type->variant.array.is_variable_size_array);
       effective_num_of_elements *=
-                               base_new_type->variant.array.number_of_elements;
+                    base_new_type->variant.array.variant.number_of_elements;
       base_new_type = array_element_type(base_new_type);
     }  /* while */
   }  /* if */
