@@ -568,6 +568,20 @@ extern a_type_ptr make_field_selection_type(a_field_ptr           field,
 extern void skip_common_type_qualifiers(a_type_ptr  *type1,
                                         a_type_ptr  *type2);
 
+extern a_boolean dynamic_init_has_side_effects(
+                                        a_dynamic_init_ptr dip,
+                                        a_boolean          *suppress_warning);
+
+extern a_boolean expr_list_has_side_effects(
+                                           an_expr_node_ptr expr_list,
+                                           a_boolean        *suppress_warning);
+
+extern a_boolean node_has_side_effects(an_expr_node_ptr node,
+                                       a_boolean        *suppress_warning);
+
+extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change);
+
 extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                             a_source_position  *err_pos);
 

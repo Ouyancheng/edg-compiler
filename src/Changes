@@ -1,5 +1,12 @@
 Version 3.3
 
+6/19/03  Side-effect testing routines moved into il.c
+
+The various routines that test expressions and dynamic initializations
+for side effects have been moved into il.c (from expr.c and
+decl_inits.c) to make them more easily accessible from various
+parts of the front end and from back ends.
+
 6/19/03  Bug in C99 designated initializer processing
 
 Defect Report 253 from the C standard committee clarifies the

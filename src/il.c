@@ -11110,6 +11110,462 @@ class need not be an immediate base class.
 }  /* base_class_selection_expr */
 
 
+static a_boolean init_con_has_side_effects(a_constant_ptr con,
+                                           a_boolean      *suppress_warning)
+/*
+Return TRUE if the indicated constant (part of an initialization)
+has side effects.  Return *suppress_warning TRUE if a warning about
+the expression doing nothing should be suppressed.
+*/
+{
+  a_boolean      has_side_effects = FALSE, suppress = FALSE;
+  a_constant_ptr subcon;
+
+  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* For aggregates, visit the enclosed constants. */
+    for (subcon = con->variant.aggregate.first_constant;
+         subcon != NULL && !has_side_effects;
+         subcon = subcon->next) {
+      a_boolean local_suppress;
+      has_side_effects = init_con_has_side_effects(subcon, &local_suppress);
+      suppress |= local_suppress;
+    }  /* for */
+  } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    /* For dynamic init entries, check the dynamic initialization. */
+    has_side_effects = dynamic_init_has_side_effects(con->variant.dynamic_init,
+                                                     &suppress);
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    /* For a repeat, look at the repeated constant. */
+    has_side_effects =
+                   init_con_has_side_effects(con->variant.init_repeat.constant,
+                                             &suppress);
+  } else if (con->kind == (a_constant_repr_kind)ck_error) {
+    /* An error constant could have been anything, including something
+       with side effects. */
+    has_side_effects = TRUE;
+    suppress = TRUE;
+  }  /* if */
+  *suppress_warning = suppress;
+  return has_side_effects;
+}  /* init_con_has_side_effects */
+
+
+a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip,
+                                        a_boolean          *suppress_warning)
+/*
+Return TRUE if the indicated dynamic initialization has side effects,
+i.e., it does something other than just return a value for the initialization.
+Return *suppress_warning TRUE if a warning about the expression doing nothing
+should be suppressed.
+*/
+{
+  a_boolean has_side_effects = FALSE, suppress = FALSE;
+
+  if (dip->destructor != NULL) {
+    /* A destructor call causes side effects. */
+    has_side_effects = TRUE;
+  } else {
+    switch (dip->kind) {
+      case dik_none:
+      case dik_zero:
+        /* No side effects. */
+        break;
+      case dik_constant:
+        if (dip->variant.constant->kind == (a_constant_repr_kind)ck_error) {
+          /* An error constant could have been anything, including something
+             with side effects. */
+          has_side_effects = TRUE;
+          suppress = TRUE;
+        }  /* if */
+        break;
+      case dik_expression:
+      case dik_call_returning_class_via_cctor:
+        /* An expression might have side effects.  See if it does. */
+        has_side_effects = node_has_side_effects(dip->variant.expression,
+                                                 &suppress);
+        break;
+      case dik_constructor:
+        /* A constructor call causes side effects. */
+        has_side_effects = TRUE;
+        break;
+      case dik_nonconstant_aggregate:
+        /* A non-constant aggregate must be examined recursively. */
+        has_side_effects = init_con_has_side_effects(dip->variant.constant,
+                                                     &suppress);
+        break;
+#if CHECKING
+      case dik_bitwise_copy:
+      default:
+        internal_error("dynamic_init_has_side_effects: bad dyn init kind");
+#endif /* CHECKING */
+    }  /* switch */
+  }  /* if */
+  *suppress_warning = suppress;
+  return has_side_effects;
+}  /* dynamic_init_has_side_effects */
+
+
+a_boolean expr_list_has_side_effects(an_expr_node_ptr expr_list,
+                                     a_boolean        *suppress_warning)
+/*
+Return TRUE if the indicated expression list has side effects.  If
+suppress_warning != NULL, return *suppress_warning TRUE if a warning
+about the expression list doing nothing should be suppressed.
+*/
+{
+  a_boolean        has_side_effects = FALSE, suppress = FALSE;
+  an_expr_node_ptr expr;
+  
+  for (expr = expr_list; expr != NULL; expr = expr->next) {
+    a_boolean local_suppress;
+    has_side_effects = node_has_side_effects(expr, &local_suppress);
+    suppress |= local_suppress;
+    if (has_side_effects) break;
+  }  /* for */
+  if (suppress_warning != NULL) *suppress_warning = suppress;
+  return has_side_effects;
+}  /* expr_list_has_side_effects */
+
+
+static a_boolean operation_has_side_effects(an_expr_node_ptr node,
+                                            a_boolean        *suppress_warning)
+/*
+Return TRUE if the (operation) node has side effects.  Return
+*suppress_warning TRUE if a warning about the expression doing nothing
+should be suppressed.
+*/
+{
+  a_boolean        has_side_effects = FALSE, suppress = FALSE;
+  an_expr_node_ptr operand;
+  a_type_ptr       operand_type, node_type;
+
+  switch (node->variant.operation.kind) {
+    case eok_ipost_incr:
+    case eok_fpost_incr:
+    case eok_ppost_incr:
+    case eok_ipost_decr:
+    case eok_fpost_decr:
+    case eok_ppost_decr:
+    case eok_ipre_incr:
+    case eok_fpre_incr:
+    case eok_ppre_incr:
+    case eok_ipre_decr:
+    case eok_fpre_decr:
+    case eok_ppre_decr:
+    case eok_iassign:
+    case eok_fassign:
+    case eok_passign:
+    case eok_sassign:
+    case eok_bassign:
+    case eok_pmassign:
+    case eok_imultiply_assign:
+    case eok_fmultiply_assign:
+    case eok_idivide_assign:
+    case eok_fdivide_assign:
+    case eok_remainder_assign:
+    case eok_iadd_assign:
+    case eok_fadd_assign:
+    case eok_padd_assign:
+    case eok_isubtract_assign:
+    case eok_fsubtract_assign:
+    case eok_psubtract_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_xassign:
+    case eok_xmultiply_assign:
+    case eok_xdivide_assign:
+    case eok_xadd_assign:
+    case eok_xsubtract_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case eok_call:
+    case eok_virtual_call:
+    case eok_pm_call:
+    case eok_va_start:
+    case eok_va_arg:
+    case eok_va_end:
+    case eok_va_copy:
+    case eok_post_incr:
+    case eok_post_decr:
+    case eok_pre_incr:
+    case eok_pre_decr:
+    case eok_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+    case eok_generic_call:
+    case eok_generic_member_call:
+      /* These all cause side effects. */
+      has_side_effects = TRUE;
+      break;
+    case eok_extract_bit_field:
+      /* A bit field extraction causes a side effect if the bit field is
+         volatile.  This has to be tested separately because the volatile
+         qualifier doesn't appear in the result type (it's an rvalue). */
+      operand = node->variant.operation.operands->next;
+      check_assertion(operand->kind == (an_expr_node_kind)enk_field);
+      if (is_volatile_qualified_type(operand->variant.field->type)) {
+        has_side_effects = TRUE;
+        break;
+      }  /* if */
+      /* Go test whether the struct is volatile. */
+      goto first_op_volatile_test;
+    case eok_indirect:
+    case eok_subscript:
+first_op_volatile_test:
+      /* Causes a side effect if the type of the thing pointed to
+         is volatile. */
+      /* Note that we test the pointer operand's type, not the node type,
+         because of an IL shorthand that allows omission of the cast to the
+         unqualified version of the type. */
+      operand_type = node->variant.operation.operands->type;
+      if (is_pointer_type(operand_type)) {
+        a_type_ptr und_type = type_pointed_to(operand_type);
+        has_side_effects = is_volatile_qualified_type(und_type);
+      }  /* if */
+      break;
+    case eok_vacuous_destructor_call:
+    case eok_value_vacuous_destructor_call:
+      /* A vacuous destructor call like
+           p->int::~int();
+         is an expression that intentionally does nothing, so suppress
+         the warning. */
+      suppress = TRUE;
+      break;
+    case eok_dynamic_cast:
+      /* A dynamic_cast to a reference to a polymorphic class type can throw
+         an exception. */
+      node_type = node->type;
+      if (is_reference_type(node_type) &&
+          is_polymorphic_class_type(type_pointed_to(node_type))) {
+        has_side_effects = TRUE;
+      }  /* if */
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case eok_assume:
+      /* __assume(expr) intentionally does nothing, so suppress the
+         warning. */
+      suppress = TRUE;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_fnegate:
+    case eok_fadd:
+    case eok_fsubtract:
+    case eok_fmultiply:
+    case eok_fdivide:
+    case eok_feq:
+    case eok_fne:
+    case eok_fgt:
+    case eok_flt:
+    case eok_fge:
+    case eok_fle:
+    case eok_fgnu_min:
+    case eok_fgnu_max:
+      if (c99_mode) {
+        /* In C99, the floating-point status flags can be tested, so a
+           floating-point operation is considered to have side effects. */
+        a_boolean fp_operations_can_cause_side_effects = FALSE;
+        /* Floating-point operations can cause side effects unless
+           FENV_ACCESS is set to off.  Outside of the front end proper,
+           we don't know the current state of that flag so we assume
+           side effects are possible. */
+        if (!in_front_end) {
+          fp_operations_can_cause_side_effects = TRUE;
+#if DO_IL_LOWERING
+        } else if (il_lowering_underway) {
+          fp_operations_can_cause_side_effects = TRUE;
+#endif /* DO_IL_LOWERING */
+        } else {
+          fp_operations_can_cause_side_effects =
+                  (curr_fenv_access_state != (a_stdc_pragma_value)stdc_pv_off);
+        }  /* if */
+        if (fp_operations_can_cause_side_effects) has_side_effects = TRUE;
+      }  /* if */
+      break;
+    default:;
+  }  /* switch */
+
+  /* For the operations that do not cause side effects, check the operands for
+     side effects. */
+  if (!has_side_effects) {
+    a_boolean local_suppress;
+    has_side_effects = expr_list_has_side_effects(
+                                              node->variant.operation.operands,
+                                              &local_suppress);
+    suppress |= local_suppress;
+  }  /* if */
+
+  *suppress_warning = suppress;
+  return has_side_effects;
+}  /* operation_has_side_effects */
+
+
+a_boolean node_has_side_effects(an_expr_node_ptr node,
+                                a_boolean        *suppress_warning)
+/*
+Return TRUE if the expression node has side effects.  Return
+*suppress_warning TRUE if a warning about the expression doing nothing
+should be suppressed.  If suppress_warning == NULL, it is not set.
+*/
+{
+  a_boolean has_side_effects = FALSE, suppress = FALSE;
+
+  switch (node->kind) {
+    case enk_error:
+      /* Who knows what an error node might have done -- suppress the
+         warning. */
+      has_side_effects = TRUE;
+      suppress = TRUE;
+      break;
+    case enk_constant:
+      if (is_error_constant(node->variant.constant)) {
+        /* An error constant might have been anything -- suppress the
+           warning. */
+        has_side_effects = TRUE;
+        suppress = TRUE;
+      }  /* if */
+      break;
+    case enk_variable_address:
+    case enk_routine_address:
+    case enk_field:
+    case enk_address_of_ellipsis:
+    case enk_runtime_sizeof:
+      /* No side effects. */
+      break;
+    case enk_operation:
+      has_side_effects = operation_has_side_effects(node, &suppress);
+      break;
+    case enk_variable:
+      /* Note that we test the variable's type, not the node type, because of
+         an IL shorthand that allows omission of the cast to the unqualified
+         version of the type. */
+      has_side_effects =
+                      is_volatile_qualified_type(node->variant.variable->type);
+      break;
+    case enk_temp_init:
+      /* At the very least, this has the side effect of initializing
+         something.  It might also call a constructor, etc.  In C99
+         mode, enk_temp_init is used for compound literals, which
+         can be considered not to be side effects. */
+      if (!c99_mode) {
+        has_side_effects = TRUE;
+      } else {
+        has_side_effects = dynamic_init_has_side_effects(
+                                               node->variant.init.dynamic_init,
+                                               &suppress);
+      }  /* if */
+      break;
+    case enk_condition:
+      /* At the very least, this has the side effect of initializing
+         something.  It might also call a constructor, etc. */
+      has_side_effects = TRUE;
+      break;
+    case enk_new_delete:
+      /* A new or delete always has a side effect. */
+      has_side_effects = TRUE;
+      break;
+    case enk_throw:
+      /* A throw always has side effects. */
+      has_side_effects = TRUE;
+      break;
+    case enk_object_lifetime:
+      has_side_effects = node_has_side_effects(
+                                            node->variant.object_lifetime.expr,
+                                            &suppress);
+      break;
+    case enk_typeid:
+      if (node->variant.typeid_info.expr != NULL) {
+        has_side_effects = node_has_side_effects(
+                                            node->variant.typeid_info.expr,
+                                            &suppress);
+        /* A typeid applied to an expression that is a pointer to a
+           polymorphic class type can throw an exception if the pointer is
+           NULL. */
+        if (is_polymorphic_class_type(node->variant.typeid_info.type)) {
+          has_side_effects = TRUE;
+        }  /* if */
+      }  /* if */
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      /* Assume a statement has side effects. */
+      has_side_effects = TRUE;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+    /* Nodes generated by IL lowering for partial lowering of exception
+       handling features. */
+    case enk_lowered_eh_construct:
+      has_side_effects = TRUE;
+      break;
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type. */
+      /* Probably not expected, but give the safe answer just in case. */
+      has_side_effects = TRUE;
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+    default:
+      unexpected_condition_str("node_has_side_effects: bad node kind");
+  }  /* switch */
+
+  if (!has_side_effects && !C_mode() && in_front_end &&
+      is_template_dependent_context() &&
+      is_template_dependent_type(node->type)) {
+    /* A node with a template parameter type is considered to have
+       side effects.  This is because it's possible that when the type
+       is actually known an overloaded operator function would be chosen,
+       which would mean a function call. */
+    has_side_effects = TRUE;
+  }  /* if */
+  if (suppress_warning != NULL) *suppress_warning = suppress;
+  return has_side_effects;
+}  /* node_has_side_effects */
+
+
+a_boolean is_invariant_expr(an_expr_node_ptr expr,
+                            a_boolean        vars_can_change)
+/*
+Return TRUE if the indicated expression is invariant, meaning it has no
+side effects and will give the same value if evaluated more than once.
+vars_can_change indicates whether the values of variables should be
+considered to be changeable between successive evaluations for purposes
+of this determination.
+*/
+{
+  a_boolean is_invariant = FALSE;
+
+  if (vars_can_change) {
+    /* For the vars_can_change case, do a crude analysis: if the expression
+       is constant, it cannot be affected by changes in the values of
+       variables.  This could be improved, but it probably doesn't matter. */
+    if (is_constant_node(expr) || is_variable_address_node(expr) ||
+        is_routine_address_node(expr)) {
+      is_invariant = TRUE;
+    } else if (is_variable_node(expr) &&
+               expr->variant.variable->source_corresp.name == NULL) {
+      /* An unnamed variable is a temporary.  Assume that such a thing is
+         not changed in the "vars_can_change" mode.  This is important,
+         because if the expression has been assigned to a temporary once,
+         we want to use that temporary directly on subsequent calls to
+         make_reusable_copy. */
+      is_invariant = TRUE;
+    }  /* if */
+  } else {
+    /* Variables cannot change.  See if the expression has side effects. */
+    if (!node_has_side_effects(expr, (a_boolean *)NULL)) is_invariant = TRUE;
+  }  /* if */
+  return is_invariant;
+}  /* is_invariant_expr */
+
+
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
 /*

@@ -33,10 +33,6 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_dynamic_init_ptr  new_dip,
                                     a_targ_size_t       count);
 
-extern a_boolean dynamic_init_has_side_effects(
-                                        a_dynamic_init_ptr dip,
-                                        a_boolean          *suppress_warning);
-
 extern void initializer(a_symbol_ptr       symbol_ptr,
                         a_source_position  *source_pos,
                         an_id_linkage_kind linkage,
