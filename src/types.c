@@ -54,7 +54,7 @@ predicates.
    enumerated types (in C mode), and bool (in C++ mode). */
 #define is_integral(tp) \
   (type_kind_is_integer(tp) && \
-   (C_mode() || !(tp)->variant.integer.enum_type))
+   (enum_type_is_integral || !(tp)->variant.integer.enum_type))
 
 /* Enum types are integral types that are tagged as enums. */
 #define is_enum(tp) \

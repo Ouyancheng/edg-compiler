@@ -27,6 +27,12 @@ types.h -- Declarations related to types.c (having to do with types).
 #include "expr.h"
 #endif /* ifndef EXPR_H */
 
+EXTERN a_boolean
+		enum_type_is_integral /* = FALSE */;
+			/* TRUE if an enum type is considered an integral
+			   type.  Typically TRUE in C mode and FALSE in C++
+			   mode. */
+
 /* Strip typerefs off a type. */
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
