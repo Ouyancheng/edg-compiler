@@ -241,9 +241,9 @@ a source correspondence).
   conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
                             &full_name, &line, &at_end_of_source);
   if (line != 0) {
-    fprintf(f_debug, " in file %s (line %ld)\n", file_name, line);
+    fprintf(f_debug, " in file %s (line %ld)", file_name, line);
   } else {
-    fprintf(f_debug, " (built-in; line %ld)\n", line);
+    fprintf(f_debug, " (built-in; line %ld)", line);
   }  /* if */
 }  /* db_scp */
 
@@ -356,25 +356,25 @@ The given entity should have a source correspondence.
       /* Note: assoc_sym_defined not used because when unneeded routines are
          removed the "defined" flag in the symbol is not cleared. */
       if (((a_routine_ptr)entity)->assoc_scope != NULL_region_number) {
-        rank += 8;
+        rank += 16;
       }  /* if */
       if (((a_routine_ptr)entity)->is_specialized) {
-        rank += 16;
+        rank += 8;
       }  /* if */
       break;
     case iek_template:
       if (assoc_sym_defined(entity)) {
-        rank += 8;
+        rank += 16;
       }  /* if */
       break;
     case iek_type:
       { a_type_ptr  type = (a_type_ptr)entity;
         if (type_has_definition(type)) {
-          rank += 8;
+          rank += 16;
         }  /* if */
         if (is_immediate_class_type(type) &&
             type->variant.class_struct_union.is_specialized) {
-          rank += 16;
+          rank += 8;
         }  /* if */
       }
       break;
@@ -384,10 +384,10 @@ The given entity should have a source correspondence.
           if (var->init_kind != (an_init_kind)initk_none) {
             rank += 4;
           }  /* if */
-          rank += 8;
+          rank += 16;
         }  /* if */
         if (var->is_specialized) {
-          rank += 16;
+          rank += 8;
         }  /* if */
       }
       break;
