@@ -55,6 +55,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,crc_32)*/
 /*lint -esym(714,db_format_integer_value)*/
 /*lint -esym(714,db_sym)*/
+/*lint -esym(759,int_kind_name_full)*/
+/*lint -esym(765,int_kind_name_full)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */

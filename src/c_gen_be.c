@@ -2066,7 +2066,8 @@ final semicolon if output_final_semi is TRUE.
                  appropriate, it was put out above. */
               base_ikind = (an_integer_kind)ik_char;
             }  /* if */
-            type_str = int_kind_name(base_ikind);
+            type_str = int_kind_name_full(base_ikind,
+                                          /*for_generated_code=*/TRUE);
           }
 #else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
           /* Use only standard "int" or "unsigned int" base types.

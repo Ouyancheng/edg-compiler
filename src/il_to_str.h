@@ -156,6 +156,9 @@ void form_unqualified_name(a_source_correspondence               *scp,
                            an_il_entry_kind                      entry_kind,
                            an_il_to_str_output_control_block_ptr octl);
 
+extern char *int_kind_name_full(an_integer_kind kind,
+                                a_boolean       for_generated_code);
+
 extern char *int_kind_name(an_integer_kind kind);
 
 extern char *int_type_name(a_type_ptr type);

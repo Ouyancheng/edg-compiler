@@ -276,6 +276,14 @@ EXTERN a_boolean
 			/* If TRUE, generate old-style line directives in
 			   generated C/C++ output, i.e., "# nnn" instead of
 			   "#line nnn". */
+EXTERN a_boolean
+		msvc_is_generated_code_target
+#if VAR_INITIALIZERS
+                                              = MSVC_IS_GENERATED_CODE_TARGET
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if code is being generated for the Microsoft
+			   MSVC++ compiler. */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 EXTERN a_boolean
 		gen_line_info_in_pp_output /* = FALSE */;
