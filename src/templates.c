@@ -12071,6 +12071,15 @@ and "do not instantiate" flags are set here.
       instantiation_file_generated = is_static_data_member
                                    ? variable->instantiation_needed_bit_number
                                    : routine->instantiation_needed_bit_number;
+#if MAINTAIN_NEEDED_FLAGS
+      if (instantiation_file_generated) {
+        /* Don't generate an instantiation file for the entity unless the
+           needed flag is also set. */
+        instantiation_file_generated = is_static_data_member
+                                   ? variable->source_corresp.needed
+                                   : routine->source_corresp.needed;
+      }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
       if (instantiation_file_generated) {
         a_source_correspondence	*scp;
         char			*file_name;
