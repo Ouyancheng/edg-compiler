@@ -11122,9 +11122,15 @@ being constructed that represents the tokens in the cache.
 #endif /* DEBUG */
   for (; ctp != NULL; ctp = ctp->next) {
     a_token_extra_info_kind	teik_kind;
-    teik_kind = ctp->extra_info_kind;
     /* Stop when we run out of tokens or hit an end-of-source token. */
     if ((a_token_kind)ctp->token == tok_end_of_source) break;
+    if (ctp->token == tok_removed_default_arg) {
+      /* A special token that indicates the location of a removed
+         default argument.  The actual default argument tokens should
+         still be used for purposes of generating the template string. */
+      ctp = ctp->variant.extracted_template.next_in_token_string;
+    }  /* if */
+    teik_kind = ctp->extra_info_kind;
     if (teik_kind == (a_token_extra_info_kind)teik_pragma) {
       /* This token entry represents one or more pragmas.  Call a routine
          to add the pragmas to the string. */

@@ -1345,7 +1345,11 @@ typedef struct an_extracted_template_descr {
 			/* This field is used only for extracted body entries
 			   associated with friend functions whose bodies are
 			   not actually removed from the token cache, but
-			   should be skipped when creating a token string. */
+			   should be skipped when creating a token string.
+			   It is also used for the opposite purpose for
+			   default arguments.  Default arguments are skipped
+			   for normal processing, but are included when
+			   generating template strings. */
 } an_extracted_template_descr;
 
 

@@ -2222,11 +2222,13 @@ semicolon, add a semicolon to the cache.
 }  /* replace_body_with_semicolon */
 
 
-static void remove_default_arg(a_template_cache_segment_ptr tcsp,
-			       a_token_cache		    *enclosing_cache)
+static void remove_default_arg(a_template_cache_segment_ptr tcsp)
 /*
 Remove a default argument from a token cache.  Replace it with a
-special "removed default argument" token.
+special "removed default argument" token.  Then tokens are removed
+from the list linked by the "next" pointer in the token cache, but
+are still pointed to by the "next_in_token_string" link so that they
+can still be put in the token string that is generated.
 */
 {
   a_cached_token_ptr	before_first_token = tcsp->before_first_token;
@@ -2245,9 +2247,6 @@ special "removed default argument" token.
      the default argument. */
   replacement_token->next = last_token->next;
   before_first_token->next = replacement_token;
-  /* Unlink the rest of the cache from the last token of the default
-     argument. */
-  last_token->next = NULL;
   /* Flag the replacement token as representing an extracted body.  This
      is somewhat redundant as in this particular case the token kind
      already indicates that. */
@@ -2257,9 +2256,8 @@ special "removed default argument" token.
                                   (a_token_extra_info_kind)teik_extracted_body;
   replacement_token->variant.extracted_template.symbol = NULL;
   replacement_token->variant.extracted_template.semicolon_inserted = FALSE;
-  replacement_token->variant.extracted_template.next_in_token_string = NULL;
-  /* Remove the tokens from the enclosing cache. */
-  free_tokens_from_reusable_cache(first_token, enclosing_cache);
+  replacement_token->variant.extracted_template.next_in_token_string =
+                                                                   first_token;
 }  /* remove_default_arg */
 
 
@@ -2306,7 +2304,7 @@ and a list of the unprocessed entries is returned to the caller.
       } else {
         /* A default argument.  Remove the default argument and replace it
            with a "removed default argument" token. */
-        remove_default_arg(tcsp, &tcp->tokens);
+        remove_default_arg(tcsp);
       }  /* if */
     } else {
       switch (tcsp->symbol->kind) {

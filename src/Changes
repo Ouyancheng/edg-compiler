@@ -1,5 +1,18 @@
 Version 2.43
 
+10/13/99 Abort while generating template strings
+
+A bug was introduced in 2.42 that would cause an abort when generating
+template strings (when RECORD_TEMPLATES_IN_IL is TRUE).  The abort would
+occur when a function with default arguments was declared in a member class
+template declared with another class template.  This has been fixed.
+
+  template <class X> struct A {
+    template <class Y> struct B {
+      template <class Z> void foo(Z z = Z());
+    };
+  };
+
 10/13/99 IL file reading abort on macros inside dllimport function definitions
 
 In Microsoft mode, when a macro appeared inside a dllimport function body,
