@@ -7328,7 +7328,6 @@ expression and its subtree.
 }  /* dump_dynamic_init_prescan_temps */
 
 #endif /* CFE */
-
 #ifdef FFE
 
 static void dump_io_list_prescan_temps(an_io_list_item_ptr iolp)
