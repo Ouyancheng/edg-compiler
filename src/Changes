@@ -1,5 +1,11 @@
 Version 3.6
 
+1/19/05  Extended position information lost on field declarations
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the additional position information
+recorded for field declarations was often lost (all the positions were set to
+zero).  This is now fixed.
+
 1/19/05  Spurious error on __declspec(nothrow) across translation units
 
 When simultaneously processing multiple translation units in Microsoft mode,

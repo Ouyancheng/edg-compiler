@@ -9727,9 +9727,6 @@ non-NULL, *p_ms_attributes is returned NULL.
     member_sym->variant.field.ptr = field;
     decl_info->member_sym = member_sym;
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
   set_class_membership(member_sym, &field->source_corresp, class_type);
@@ -9773,6 +9770,11 @@ non-NULL, *p_ms_attributes is returned NULL.
        field. */
     cannot_bind_to_curr_construct();
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* The extended position information must be updated after the call to
+     record_symbol_declaration (since the latter clears that information). */
+  update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply the attributes to the field. */
