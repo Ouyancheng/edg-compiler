@@ -1,5 +1,12 @@
 Version 2.21
 
+11/14/93 Abort with -x on file-scope termination routine
+
+A bug has been fixed that caused an abort in IL lowering or in
+the C-generating back end for source files that require a file-scope
+termination routine but no file-scope initialization routine.
+This occurs only with exceptions enabled.
+
 11/14/93 Transformations on arguments of user-defined conversions
 
 Array --> pointer-to-array and function --> pointer-to-function

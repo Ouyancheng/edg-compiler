@@ -4864,6 +4864,12 @@ Do lowering on the file-scope dynamic initializations list.
   an_init_pos_descr  ipd;
   a_context          context;
 
+  if (exceptions_enabled) {
+    /* Initialize for exception handling lowering.  This is done here so that
+       it gets done if there is no need for an initialization routine but
+       there is the need for a termination routine. */
+    eh_function_lower_init(/*file_scope_term_routine=*/FALSE);
+  }  /* if */
   dip = file_scope->dynamic_inits;
   if (dip != NULL) {
     /* There are some file-scope dynamic initializations.  Generate a routine
@@ -4872,10 +4878,6 @@ Do lowering on the file-scope dynamic initializations list.
     switch_il_region(file_scope_init_routine_il_region);
     push_context(&context, scope, /*subscope_region=*/FALSE);
     processing_file_scope_init_routine = TRUE;
-    if (exceptions_enabled) {
-      /* Initialize for exception handling lowering. */
-      eh_function_lower_init(/*file_scope_term_routine=*/FALSE);
-    }  /* if */
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip->next) {
       set_var_init_pos_descr(dip->variable, &ipd);
@@ -4917,6 +4919,10 @@ Do lowering on the file-scope dynamic initializations list.
     scope = file_scope_term_insert_location(&insert_location);
     switch_il_region(file_scope_term_routine_il_region);
     push_context(&context, scope, /*subscope_region=*/FALSE);
+    if (exceptions_enabled) {
+      /* Initialize for exception handling lowering. */
+      eh_function_lower_init(/*file_scope_term_routine=*/TRUE);
+    }  /* if */
     /* Put cleanup actions for local static variables on the front of
        the file-scope list.  The list gets reversed in the process. */
     while (cleanup_actions_for_local_static_variables != NULL) {
@@ -4932,10 +4938,6 @@ Do lowering on the file-scope dynamic initializations list.
       }  /* if */
     }  /* if */
     end_cleanup_actions_for_local_static_variables = NULL;  /* Be neat. */
-    if (exceptions_enabled) {
-      /* Initialize for exception handling lowering. */
-      eh_function_lower_init(/*file_scope_term_routine=*/TRUE);
-    }  /* if */
     /* Generate the cleanup actions. */
     gen_cleanup_actions(file_scope_context, &insert_location);
     if (exceptions_enabled) {
