@@ -898,8 +898,9 @@ consistent with that of the previous declaration.
     }  /* if */
   }  /* if */
   if (!(is_function_type(prev_type) && is_function_type(new_rout_type))) {
-    /* Something must have gone wrong earlier on.  Skip this processing. */
-    check_assertion(total_errors != 0);
+    /* There is something more fundamentally wrong that an exception
+       specification mismatch (likely the same name is used for two very
+       different kinds of entities).  Skip this processing. */
     goto done;
   }  /* if */
   if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
