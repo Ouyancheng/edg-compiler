@@ -746,6 +746,17 @@ type.
         old_constant->variant.address.kind ==
                                           (an_address_base_kind)abk_constant) {
       *did_not_fold = FALSE;
+    } else if (is_implicit_cast &&
+               is_pointer_type(old_type) &&
+               is_pointer_type(new_type)) {
+      /* Do fold implicit decay from array to pointer. */
+      a_type_ptr underlying_old_type = type_pointed_to(old_type);
+      a_type_ptr underlying_new_type = type_pointed_to(new_type);
+      if (is_array_type(underlying_old_type) &&
+          identical_types(array_element_type(underlying_old_type),
+                          underlying_new_type)) {
+        *did_not_fold = FALSE;
+      }  /* if */
     }  /* if */
   } else if (!is_reinterpret_cast &&
              related_class_pointers(old_type, new_type,
