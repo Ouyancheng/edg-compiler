@@ -290,6 +290,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,type_info_names)*/
 /*lint -esym(759,expr_list_has_side_effects)*/
 /*lint -esym(765,expr_list_has_side_effects)*/
+/*lint -esym(759,get_mangled_function_name_full)*/
+/*lint -esym(765,get_mangled_function_name_full)*/
 #endif /* IA64_ABI */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 /*lint -esym(769,ec_cfront_multiple_nested_types)*/
