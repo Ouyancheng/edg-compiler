@@ -465,11 +465,6 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
-extern void node_prepare_assignment(an_expr_node_ptr  *right_side_node,
-				    a_type_ptr        left_side_type,
-                                    an_error_code     incompatible_err,
-				    a_boolean         *err);
-
 extern a_boolean prepare_assignment_operand(
                                      an_operand         *right_side_operand,
                                      a_type_ptr         left_side_type,
