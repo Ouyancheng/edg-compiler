@@ -33,6 +33,12 @@ extern a_macro_def_ptr alloc_macro_def(void);
 /* Find a macro symbol on a list of symbols. */
 extern a_symbol_ptr find_defined_macro(a_symbol_ptr assoc_symbol);
 
+/* Adjust addresses in the curr_source_line structure after something
+   has been realloc'd. */
+extern void adjust_curr_source_line_structure_after_realloc(char *old_ptr,
+                                                     char *old_after_end_ptr,
+                                                     char *new_ptr);
+
 /* Expand a macro invocation. */
 extern a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                                      a_boolean     *rescan);
@@ -46,7 +52,7 @@ extern void proc_define(void);
 
 #if DEBUG
 /* Show and return the amount of space used by macro entries. */
-extern unsigned long show_macro_space_used(void);
+extern unsigned long show_macro_space_used(unsigned long *general_space);
 #endif /* DEBUG */
 
 extern void macro_proc_init(void);
