@@ -105,7 +105,7 @@ The field "range_end" in switch case entry fields was neither initialized
 
 3/6/03   Spurious type incompatibility errors with multiple translation units
 
-I some relative rare situations, the front end would issue an error that
+In some relative rare situations, the front end would issue an error that
 a type in a secondary translation unit is incompatible with the same
 type in the primary translation unit.  The types were members of class
 type instantiations.  The problem has been fixed.
