@@ -1,5 +1,14 @@
 Version 2.29
 
+4/19/95  asm statements in Microsoft mode
+
+In Microsoft mode asm statements of the form
+
+  __asm assembly-instruction
+  __asm { assembly-instruction-list }
+
+are now supported, where assembly-instruction is unquoted text.
+
 4/19/95  Using "long long" for host integer operations
 
 It is now possible to use integral types larger than a host long
