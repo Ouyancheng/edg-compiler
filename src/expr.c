@@ -2123,6 +2123,7 @@ bound with the function in *bound_function_selector.
           /* We found a field we can use. */
           member_sym = other_field_sym;
           make_locator_for_symbol(member_sym, &locator_for_curr_id);
+          locator_for_curr_id.source_position = member_position;
           if (is_arrow_operator) {
             /* "->" operator. */
             warning(ec_old_fashioned_ptr_field_selection);
