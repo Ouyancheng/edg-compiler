@@ -1,5 +1,21 @@
 Version 2.29
 
+4/6/95   ABI_COMPATIBILITY_VERSION
+
+Since we are beginning to add language features that have an effect
+on release-to-release binary compatibility, we have added a mechanism
+to deal with ABI changes.  If you set ABI_COMPATIBILITY_VERSION to a
+version number (e.g., 228 for 2.28), ABI changes made after that version
+will be suppressed.  Of course, language features that require those
+ABI changes will also be suppressed.  This allows you to delay
+all ABI changes and associated language changes to a single release
+of your choice in the future.  The default setting of
+ABI_COMPATIBILITY_VERSION -- a large value -- requests the latest
+version of the ABI at each release.
+
+The first use of this flag is for RTTI: see ABI_CHANGES_FOR_RTTI,
+which is enabled for ABI_COMPATIBILITY_VERSION >= 229.
+
 4/5/95   Binding of a next-construct pragma
 
 When a declaration involving an elaborated-type specifier of the form enum
