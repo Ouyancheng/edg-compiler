@@ -2039,6 +2039,7 @@ Display the name of an expression operator.
     case eok_or:                s = "eok_or";                     break;
     case eok_xor:               s = "eok_xor";                    break;
     case eok_comma:             s = "eok_comma";                  break;
+    case eok_static_selection:  s = "eok_static_selection";       break;
     case eok_virtual_function_ptr:
                                 s = "eok_virtual_function_ptr";   break;
     case eok_vacuous_destructor_call:

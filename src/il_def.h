@@ -5411,6 +5411,14 @@ enum an_expr_operator_kind_tag {
   eok_or,               /* Bitwise or ("|" operator). */
   eok_xor,              /* Exclusive or ("^" operator). */
   eok_comma,            /* The comma operator. */
+  eok_static_selection,	/* Static selection, e.g., p->m where m is a static
+			   member.  The first operand (p) is evaluated and
+			   discarded.  The second operand (m) is evaluated and
+			   returned as the value of the expression.  Semantics
+			   are effectively the same as eok_comma, including
+			   the fact that the second operand can be an lvalue
+			   or an rvalue.  C++ only, and eliminated by IL
+			   lowering. */
   eok_virtual_function_ptr,
 			/* Produce a normal function pointer for a C++ virtual
 			   member function.  This is (only) used to implement
@@ -7664,7 +7672,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "<<=", ">>=", "&=", "|=", "^=",
    "[]", "->", "v.", "b->", "bv.", "b.", "->*",
    "<<", ">>",
-   "&", "|", "^", ",",
+   "&", "|", "^", ",", "s->",
    "virt func ptr",
    "vacuous dtor",
    "value vacuous dtor",
