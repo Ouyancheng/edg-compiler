@@ -4246,6 +4246,7 @@ template associated with error_code.  After constructing the segment list
           form_type_summary(error_msg_types[curr_seg->sequence_no], curr_seg);
           break;
         case msk_source_position:
+#if !STANDALONE_UTILITY_PROGRAM
 #if CHECKING
           if (error_msg_positions[curr_seg->sequence_no] == NULL) {
             internal_error("diag_message: missing position substitution");
@@ -4253,6 +4254,7 @@ template associated with error_code.  After constructing the segment list
 #endif /* CHECKING */
           form_source_position(error_msg_positions[curr_seg->sequence_no],
                                error_pos, "", "",  curr_seg);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
           break;
         case msk_symbol:
 #if !STANDALONE_UTILITY_PROGRAM
