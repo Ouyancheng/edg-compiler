@@ -4258,6 +4258,12 @@ Do IL lowering of the indicated type and everything under it.
             set_class_definition_needed(new_type);
           }  /* if */
         }  /* if */
+        if (il_entry_prefix_of(type).keep_in_il) {
+          mark_to_keep_in_il((char *)new_type, iek_type);
+          if (is_immediate_class_type(new_type)) {
+            set_class_keep_definition_in_il(new_type);
+          }  /* if */
+        }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
         break;
       case tk_routine:
