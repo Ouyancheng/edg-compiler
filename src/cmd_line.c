@@ -2659,6 +2659,7 @@ order of development of this front end, and is inconsistent and strange.
       exclude_gcc_mode(ec_cl_incompatible_language_modes);
       exclude_gpp_mode(ec_cl_incompatible_language_modes);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && DEFAULT_MICROSOFT_MODE == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode,
          K&R mode, and cfront mode have already been checked for. */
@@ -2667,6 +2668,7 @@ order of development of this front end, and is inconsistent and strange.
       exclude_gpp_mode(ec_cl_incompatible_language_modes);
       exclude_sun_mode(ec_cl_sun_incompatible_with_cfront);
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (gnu_mode && DEFAULT_GNU_COMPATIBILITY == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode,
          K&R mode, and cfront mode have already been checked for. */
