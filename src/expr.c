@@ -3734,6 +3734,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
   typeid_node->variant.typeid_info.expr = expr;
   typeid_node->variant.typeid_info.type = typeid_type;
+  typeid_node->implicit_reference_indirection = TRUE;
   /* The result is a reference to type_info, which means a pointer to
      type_info as an lvalue address. */
   typeid_node->type = make_pointer_type(type_of_type_info);
