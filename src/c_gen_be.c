@@ -6330,7 +6330,7 @@ If C_output_file_name is NULL, use stdout for the output.
 {
   a_boolean         cannot_open, bad_name;
   a_scope_ptr       scope;
-  a_source_position pos;
+  a_source_file_ptr prim_source_file;
 
   if (C_output_file_name == NULL) {
     /* For a NULL name, use stdout. */
@@ -6373,16 +6373,10 @@ If C_output_file_name is NULL, use stdout for the output.
   /* Start with a #line directive that identifies the primary file.  If the
      source file contains #line directives, start with the file indicated
      therein as the primary file. */
-  pos.seq = 1;
-  pos.column = SP_COL_UNKNOWN;
-  if (eff_primary_source_file() != il_header.primary_source_file) {
-    /* There is an effective source file other than the actual one.  Sequence
-       number 2 gets
-         #line 1 "file.c"
-       for the effective primary source file. */
-    pos.seq = 2;
-  }  /* if */
-  set_output_position(&pos);
+  prim_source_file = eff_primary_source_file();
+  write_line_directive(prim_source_file->first_seq_number,
+                       prim_source_file->first_line_number,
+                       prim_source_file);
 
   /* Dump all of the declarative information at the top-most (file) level. */
   curr_scope = scope = il_header.primary_scope;
