@@ -7402,13 +7402,19 @@ Also, add the instance to the definitions list for the template.
     for (; vp != NULL; vp = vp->next) {
       sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
       if (sym != NULL) {
-        a_template_symbol_supplement_ptr	tssp;
-        tssp = sym->variant.static_data_member.instance_ptr->template_info;
-        check_assertion(tssp != NULL);
-        if (tssp->token_sequence_number == curr_token_sequence_number) {
-          break;
-        } else {
+        if (sym->variant.static_data_member.instance_ptr == NULL) {
+          /* Something went very wrong with this symbol, discard it. */
+          check_assertion(sym->is_error);
           sym = NULL;
+        } else {
+          a_template_symbol_supplement_ptr	tssp;
+          tssp = sym->variant.static_data_member.instance_ptr->template_info;
+          check_assertion(tssp != NULL);
+          if (tssp->token_sequence_number == curr_token_sequence_number) {
+            break;
+          } else {
+            sym = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
