@@ -1837,7 +1837,7 @@ a base class of class_1.  Only called in C++ mode.
   /* Drop typedefs. */
   class_1 = skip_typerefs(class_1);
   class_2 = skip_typerefs(class_2);
-  if (same_entities(class_1, class_2) ||
+  if (identical_types(class_1, class_2) ||
       find_base_class_of(class_1, class_2) != NULL) {
     is_same_or_base = TRUE;
   }  /* if */
