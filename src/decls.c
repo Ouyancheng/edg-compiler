@@ -3653,6 +3653,8 @@ on a prior declaration.
     }  /* if */
     mark_declared(sym, &locator->source_position,
                   /*save_as_decl_position=*/TRUE);
+    copy_source_position(locator->source_position,
+                         rp->source_corresp.decl_position);
   }  /* if */
   if (inline_specified) sym->variant.routine->is_inline = TRUE;
   sym->defined = TRUE;
