@@ -5439,14 +5439,23 @@ in the result type.
            type. */
         op1_type = op1_enum->type;
 #if CHECKING
-        if (!is_integral_type(*result_type) ||
-            !is_integral_type(op1_type) ||
-            skip_typerefs(*result_type)->variant.integer.int_kind !=
-                           skip_typerefs(op1_type)->variant.integer.int_kind) {
-          internal_error("keep_enum_in_result_type: bad enum result type");
+        if (!is_integral_type(*result_type) || !is_integral_type(op1_type)) {
+          internal_error(
+                        "keep_enum_in_result_type: bad result type for enums");
         }  /* if */
 #endif /* CHECKING */
-        *result_type = op1_type;
+        if (skip_typerefs(*result_type)->variant.integer.int_kind ==
+                           skip_typerefs(op1_type)->variant.integer.int_kind) {
+          *result_type = op1_type;
+        } else {
+          /* In some cases involving bit-fields in pcc mode that get widened
+             to unsigned int instead of int, create a tagged version of the
+             unsigned type.  Note that the type is not shared, but this case
+             should not come up often. */
+          op1_type = alloc_type((a_type_kind)tk_integer);
+          *op1_type = **result_type;
+          op1_type->variant.integer.enum_constant_list = op1_enum;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

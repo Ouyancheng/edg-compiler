@@ -1,5 +1,17 @@
 Version 2.13
 
+11/30/92 Abort in pcc mode fixed
+
+In pcc mode, an enum bit-field whose type promotes to unsigned int
+used as the second or third operand of a "?" operator would
+cause an internal error in keep_enum_in_result_type:
+
+  enum X {A, B, C=127};
+  struct Y {enum X x: 8; enum X y: 7;};
+  int f(int i, struct Y *p, struct Y *q) {return i ? p->x : q->y;}
+
+That is now fixed.
+
 11/25/92 Additional context information added to error output
 
 Additional context information is supplied for errors encountered
