@@ -565,7 +565,6 @@ indicates the source position at which the error should be put out.
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_extended_decl_info_for_class(
                             a_type_ptr                  class_type,
-                            a_boolean                   is_class_definition,
                             an_extended_decl_info_block *extended_decl_info,
                             a_source_position           *err_pos)
 /*
@@ -1989,8 +1988,7 @@ the template.
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if (!C_mode() && (microsoft_mode or_near_and_far_enabled()) &&
       tag_sym->kind != (a_symbol_kind)sk_type) {
-    update_extended_decl_info_for_class(class_type, is_class_definition,
-                                        &extended_decl_info,
+    update_extended_decl_info_for_class(class_type, &extended_decl_info,
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */

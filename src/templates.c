@@ -3290,9 +3290,8 @@ included in the search.
 #if NEAR_AND_FAR_ALLOWED
         extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
-        update_extended_decl_info_for_class(class_type,
-                                            /*is_class_definition=*/TRUE,
-                                            &extended_decl_info, &pos);
+        update_extended_decl_info_for_class(class_type, &extended_decl_info,
+                                            &pos);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -7020,7 +7019,6 @@ Make sure that any default arguments are at the end of the parameter list.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void update_extended_decl_info_for_class_template(
                          a_template_symbol_supplement_ptr tssp,
-                         a_boolean                        is_class_definition,
                          an_extended_decl_info_block      *extended_decl_info,
                          a_source_position                *err_pos)
 /*
@@ -7035,16 +7033,15 @@ template.  Also update any instances that have already been generated.
   /* Update the prototype instantiation. */
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   prototype_type = type_symbol_type(prototype_sym);
-  update_extended_decl_info_for_class(prototype_type, is_class_definition,
-                                      extended_decl_info, err_pos);
+  update_extended_decl_info_for_class(prototype_type, extended_decl_info,
+                                      err_pos);
   /* Update any instances that have already been created. */
   for (instance_sym = tssp->variant.class_template.instantiations;
        instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
     a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym) &&
         !tp->variant.class_struct_union.is_specialized) {
-      update_extended_decl_info_for_class(tp, is_class_definition,
-                                          extended_decl_info, err_pos);
+      update_extended_decl_info_for_class(tp, extended_decl_info, err_pos);
     }  /* if */
   }  /* for */
   if (tssp->subordinate_templates != NULL) {
@@ -7059,7 +7056,6 @@ template.  Also update any instances that have already been generated.
       subordinate_sym = slep->symbol;
       subordinate_tssp = template_supplement_for_symbol(subordinate_sym);
       update_extended_decl_info_for_class_template(subordinate_tssp,
-                                                   is_class_definition,
                                                    extended_decl_info,
                                                    err_pos);
     }  /* for */
@@ -8285,8 +8281,7 @@ instantiation.
       /* Update any decl modifiers that may have been specified.  Don't
          do this for subordinate templates -- the prototype of the prototype
          template is used. */
-      update_extended_decl_info_for_class_template(tssp, is_definition,
-                                                   &extended_decl_info,
+      update_extended_decl_info_for_class_template(tssp, &extended_decl_info,
                                                    &locator.source_position);
     }  /* if */
   }  /* if */
