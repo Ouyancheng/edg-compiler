@@ -1,5 +1,23 @@
 Version 3.0
 
+4/28/02  C++-generating back end: explicit call of destructor not qualified
+
+The C++-generating back end was always using a qualified name for the
+destructor when it put out explicit calls of destructors.  This is
+incorrect when the destructor is virtual, because it suppresses the
+virtual property of the call.  Now fixed (a qualified name is used
+only when it is needed).
+
+  struct A {
+    A();
+    virtual ~A();
+  };
+  int main() {
+    A *p;
+    p->~A();
+    p->A::A~A();
+  }
+
 4/25/02  Spurious access error using template default arguments
 
 Access checks were not done properly on default arguments of template

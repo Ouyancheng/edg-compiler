@@ -5863,11 +5863,9 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so force a qualified name. */
     force_qualified_name = TRUE;
-  } else if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-             rout->special_kind == (a_special_function_kind)sfk_destructor) {
+  } else if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
     /* Force use of a qualified name when a constructor is called explicitly
-       (a Microsoft extension).  Also use a qualified name for explicit
-       destructor calls (in any mode). */
+       (a Microsoft extension). */
     force_qualified_name = TRUE;
   }  /* if */
   if (suppress_this && selection_class == naming_class && !rout->is_virtual) {
