@@ -977,8 +977,8 @@ Dump the entire scope stack (for debugging).
 #endif /* DEBUG */
 
 
-a_scope_depth scope_depth_of(a_symbol_ptr  sym,
-                             a_boolean     *is_local_to_function)
+a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
+                                    a_boolean     *is_local_to_function)
 /*
 Given a symbol with a decl_scope (which is a scope number), search the
 scope stack for the scope stack entry that corresponds to it, and return
@@ -1025,7 +1025,7 @@ is in within a function body.
     }  /* for */
   }  /* if */
   return scope_depth;
-}  /* scope_depth_of */
+}  /* scope_depth_of_symbol */
 
 
 void set_source_corresp(a_source_correspondence *sc,
@@ -1060,9 +1060,9 @@ scope for the symbol must still be active.
 #if RECORD_SCOPE_DEPTH_IN_IL
   /* Record the scope depth of the declaration of this entity in the source
      correspondence. */
-  sc->scope_depth = scope_depth_of(sp, &is_local_to_function);
+  sc->scope_depth = scope_depth_of_symbol(sp, &is_local_to_function);
 #else /* RECORD_SCOPE_DEPTH_IN_IL */
-  (void)scope_depth_of(sp, &is_local_to_function);
+  (void)scope_depth_of_symbol(sp, &is_local_to_function);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   /* Set the is_local_to_function flag. */
   sc->is_local_to_function = is_local_to_function;
@@ -7273,6 +7273,8 @@ scope lookup.  options specifies the options being used for the lookup.
   a_symbol_ptr	fund_curr_sym;
   a_boolean	err = FALSE;
 
+  /* Make sure the lookup set points to the fundamental symbol. */
+  new_sym = fundamental_symbol_of(new_sym);
   if (curr_sym == NULL) {
     if (is_function_symbol(new_sym)) {
       curr_sym = merge_function_into_lookup_set((a_symbol_ptr)NULL,
@@ -7565,7 +7567,8 @@ C and C++.
       }  /* if */
     }  /* if */
 #endif /* CHECKING */
-    force_slow_lookup = skip_curr_function_scope || skip_class_scopes;
+    force_slow_lookup = skip_curr_function_scope || skip_class_scopes ||
+                        is_linkage_lookup;
     if (C_dialect != C_dialect_cplusplus ||
         ((inactive_symbol_list == NULL ||
           !ssep->inactive_symbols_may_be_visible) &&

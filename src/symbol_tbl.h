@@ -2880,7 +2880,8 @@ extern void pop_namespace_reactivation_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
 
-extern a_scope_depth scope_depth_of(a_symbol_ptr  sym,
+extern
+a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
                                     a_boolean     *is_local_to_function);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
