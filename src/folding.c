@@ -948,6 +948,15 @@ cannot be done.
        new_constant is already set appropriately. */
     goto exit;
   }  /* if */
+#if 0
+#else
+  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* For now, an operation on a ck_template_param constant yields an
+       error constant. */
+    set_error_constant(&new_constant);
+    goto exit;
+  }  /* if */
+#endif /* 0 */  
   if (identical_types(constant_type, new_type)) {
     /* The current and new types are the same, so no change is required. */
     copy_constant(constant, &new_constant);
@@ -1325,6 +1334,13 @@ diagnostics issued.
     /* The constant is an error constant; set the result to an error
        constant and return. */
     set_error_constant(result);
+#if 0
+#else
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* For now, an operation on a ck_template_param constant yields an
+       error constant. */
+    set_error_constant(result);
+#endif /* 0 */  
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -2381,6 +2397,14 @@ reason.  *err_pos is used as the position for any diagnostics issued.
     /* One and/or the other of the constants is an error constant; set the
        result to an error constant and return. */
     set_error_constant(result);
+#if 0
+#else
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param ||
+             constant_2->kind == (a_constant_repr_kind)ck_template_param) {
+    /* For now, an operation on a ck_template_param constant yields an
+       error constant. */
+    set_error_constant(result);
+#endif /* 0 */  
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -2588,6 +2612,13 @@ field cannot be passed as a constant.
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
+#if 0
+#else
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param) {
+    /* For now, an operation on a ck_template_param constant yields an
+       error constant. */
+    set_error_constant(result);
+#endif /* 0 */  
   } else if (field->bit_size != 0) {
     /* Cannot fold a bit-field selection. */
     *did_not_fold = TRUE;
