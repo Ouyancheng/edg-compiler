@@ -1,5 +1,18 @@
 Version 2.32
 
+3/21/96   Typedef name as name "for linkage purposes" of tagless enum
+
+In accord with recent changes to 7.1.3 [dcl.typedef], tagless enums are now
+handled exactly like tagless classes in acquiring a typedef name when they
+appear within a typedef declaration -- for instance:
+
+  typedef enum { e1, e2, e3 } E;
+
+The name specified in the enum's type entry is now "E".  (This had already
+been the behavior when CFRONT_OBJECT_CODE_COMPATIBILITY was configured to
+TRUE and ABI_COMPATIBILITY_VERSION was at least 230; it is now done this
+way unconditionally.)
+
 3/21/96   Default initialization of fields in aggregate initialization
 
 A bug has been fixed in aggregate initialization: implicit default
