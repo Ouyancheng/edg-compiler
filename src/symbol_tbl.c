@@ -480,6 +480,7 @@ and indentation is the indentation desired.
   if (sym->synthesized_namespace_projection) {
     put_string("synth_namespace_proj");
   }  /* if */
+  if (sym->is_invisible) put_string("invisible");
   switch (sym->kind) {
     case sk_undefined:
     case sk_extern_variable:
@@ -1895,6 +1896,7 @@ state.
         cssp->referencing_namespace = NULL;
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
+        cssp->friend_functions = NULL;
         cssp->has_nontrivial_default_constructor = FALSE;
         cssp->has_user_declared_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
@@ -9149,6 +9151,10 @@ are handled in symbol_tbl_init.)
   cleared_symbol.ambiguous                         = FALSE;
   cleared_symbol.hidden_by_old_for_init            = FALSE;
   cleared_symbol.overload_set_member               = FALSE;
+  cleared_symbol.is_invisible                      = FALSE;
+#if CHECKING 
+  cleared_symbol.avoid_codecenter_warnings         = FALSE;
+#endif /* CHECKING */
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

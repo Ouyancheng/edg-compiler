@@ -698,6 +698,15 @@ typedef struct a_class_symbol_supplement {
 			   class type.  The entire list or some portion
 			   of the end of the list may be shared between
 			   classes in a given namespace. */
+  a_symbol_ptr	friend_functions;
+			/* Pointer to a list of non-class-member functions
+			   declared as friends of the current class.  The
+			   symbols on the list will be sk_namespace_projection
+			   symbols that point to an sk_routine symbol that
+			   is a friend (or sk_overloaded_function symbols that
+			   point to sk_namespace_projection symbols).  This
+			   list is used to assist with namespace and class
+			   directed lookup. */
   a_bit_field	has_nontrivial_default_constructor:1;
 			/* TRUE if a default constructor has been explicitly
 			   declared or a nontrivial default constructor has
@@ -1850,6 +1859,14 @@ typedef struct a_symbol {
   a_bit_field	overload_set_member:1;
 			/* TRUE for a symbol that is on the symbols list of
 			   an sk_overloaded_function symbol. */
+  a_bit_field	is_invisible:1;
+			/* TRUE for a symbol that is "invisible" (i.e., to be
+			   ignored during normal lookup).  This occurs when
+			   the initial declaration of a function or class is
+			   a friend declaration; the entity becomes visible
+			   only when it is subsequently declared in the
+			   scope to which it belongs. */
+  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
