@@ -1550,6 +1550,9 @@ scope is that of a class definition.
   a_boolean               defines_something;
   a_boolean               default_arg_expr_allowed = FALSE;
   an_expr_node_ptr        dim_expr_ptr;
+  a_boolean               may_be_copy_constructor = FALSE;
+  a_boolean               bad_first_param_for_copy_constructor = FALSE;
+  a_source_position       pos_of_first_param_type;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1669,24 +1672,24 @@ scope is that of a class definition.
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
         } else {
-        /* Mark the type as referenced.  This is important for a
-           parameter declaration like "struct s {int a;} p;" --
-           the structure is referenced (because it's the type of "p")
-           even through the struct is not referenced by name.  This is
-           usually redundant, since the type is also marked as
-           referenced in declarator.  But if declarator is not called,
-           we still consider this use of the type as a reference, since
-           it is incorporated into the definition of the function. */
-        (skip_typerefs(param_type_ptr))->source_corresp.referenced = TRUE;
-      }  /* if */
-      /* Scan an optional declarator or abstract declarator.  Don't bother
-         looking for a declarator when there's a comma or right paren or
-         when decl_specifiers has found a badly formed type specifier or
-         when the next token is an ellipsis.  If an error is to be put out,
-         that's done later. */
-      if (curr_token != tok_comma && curr_token != tok_rparen &&
-          !dangling_type_specifier && curr_token != tok_ellipsis) {
-        a_decl_flag_set  do_flags;
+          /* Mark the type as referenced.  This is important for a
+             parameter declaration like "struct s {int a;} p;" --
+             the structure is referenced (because it's the type of "p")
+             even through the struct is not referenced by name.  This is
+             usually redundant, since the type is also marked as
+             referenced in declarator.  But if declarator is not called,
+             we still consider this use of the type as a reference, since
+             it is incorporated into the definition of the function. */
+          (skip_typerefs(param_type_ptr))->source_corresp.referenced = TRUE;
+        }  /* if */
+        /* Scan an optional declarator or abstract declarator.  Don't bother
+           looking for a declarator when there's a comma or right paren or
+           when decl_specifiers has found a badly formed type specifier or
+           when the next token is an ellipsis.  If an error is to be put out,
+           that's done later. */
+        if (curr_token != tok_comma && curr_token != tok_rparen &&
+            !dangling_type_specifier && curr_token != tok_ellipsis) {
+          a_decl_flag_set  do_flags;
 
           if (curr_token == tok_identifier &&
               !(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
@@ -1705,13 +1708,7 @@ scope is that of a class definition.
         /* Adjust the type if necessary (for example, "array of x"
            becomes "pointer to x"). */
         adjust_parameter_type(&param_type_ptr);
-        if (is_constructor &&
-            identical_types(member_function_parent_type,
-                            skip_typerefs(param_type_ptr))) {
-          /* X::X(X) is not allowed -- ARM 12.1. */
-          pos_error(ec_bad_constructor_param, &param_type_pos);
-          param_type_ptr = error_type();
-        } else if (C_dialect == C_dialect_cplusplus &&
+        if (C_dialect == C_dialect_cplusplus &&
                    is_illegal_abstract_class_type(param_type_ptr)) {
           /* Abstract class may not be used as an arg type (ARM 10.3). */
           pos_error(ec_abstract_class_object_not_allowed,
@@ -1858,6 +1855,85 @@ scope is that of a class definition.
           (void)get_token();
           done = TRUE;
           extra_info->has_ellipsis = TRUE;
+        }  /* if */
+        if (is_constructor) {
+          /* In case this is an ill-formed copy constructor, we need to do
+             some additional error checking.  We're looking for cases like
+               A::A(A);                // case 1
+               A::A(A, T=x);           // case 2
+               A::A(A&, A=y);          // case 3
+               A::A(A&, T=x, A=y);     // case 4
+             It's not actually possible to know whether a constructor is a
+             (legal or illegal) copy constructor without looking past the
+             first parameter.  That's part of what makes this check a little
+             complicated.  (See ARM 12.1.) */
+          if (extra_info->param_type_list->next == NULL) {
+            /* This is the first item on the list. */
+            if (identical_types(member_function_parent_type,
+                                skip_typerefs(param_type_ptr))) {
+              /* Type of the first parameter is identical to the type of the
+                 parent class. */
+              if (done) {
+                /* This is like case 1 above. */
+                pos_ty_error(ec_bad_constructor_param, &param_type_pos,
+                             member_function_parent_type);
+                ptp->type = error_type();
+              } else {
+                /* Depending on whether the next parameter has a default
+                   argument (see case 2 above), this may be an (illegal)
+                   copy constructor. */
+                may_be_copy_constructor = TRUE;
+                /* Record information to assure that an error will be issued
+                   if this does turn out to be an error case. */
+                bad_first_param_for_copy_constructor = TRUE;
+                pos_of_first_param_type = param_type_pos;
+              }  /* if */
+            } else if (!done) {
+              /* We're looking at the first parameter.  See if this may be a
+                 copy constructor.  This will help find cases 3 and 4. */
+              if (is_reference_type(param_type_ptr) &&
+                  identical_types(member_function_parent_type,
+                                  skip_typerefs(type_pointed_to(
+                                                          param_type_ptr)))) {
+                /* Depending on whether the next parameter has a default
+                   argument, this may be a copy constructor. */
+                may_be_copy_constructor = TRUE;
+              }  /* if */
+            }  /* if */
+          } else if (may_be_copy_constructor) {
+            /* We are beyond the first parameter on the list of what may
+               be a copy constructor. */
+            if (ptp == extra_info->param_type_list->next) {
+              /* This is the second parameter in the list. */
+              if (!ptp->has_default_arg) {
+                /* The second parameter lacks a default argument so this must
+                   not be a copy constructor. */
+                may_be_copy_constructor = FALSE;
+              } else if (bad_first_param_for_copy_constructor) {
+                /* The second parameter does have a default argument and the
+                   first argument is not a ref.  This is like case 2.  Issue
+                   the error using the source position of the first param
+                   type. */
+                pos_ty_error(ec_bad_constructor_param,
+                             &pos_of_first_param_type,
+                             member_function_parent_type);
+                extra_info->param_type_list->type = error_type();
+                may_be_copy_constructor = FALSE;
+              }  /* if */
+            }  /* if */
+            if (may_be_copy_constructor) {
+              if (identical_types(member_function_parent_type,
+                                  skip_typerefs(ptp->type))) {
+                /* Type of this parameter is identical to the type of the
+                   parent class (see cases 3 and 4 above).  Since this is a
+                   copy constructor, an error is in order. */
+                pos_ty_error(ec_bad_constructor_param, &param_type_pos,
+                             member_function_parent_type);
+                ptp->type = error_type();
+                may_be_copy_constructor = FALSE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
       } while (!done);
