@@ -9056,8 +9056,8 @@ Syntax:
                            /*is_implicit_cast=*/FALSE,
                            /*is_reference_cast=*/FALSE);
     } else if (microsoft_lvalue_cast_case) {
-      /* The Microsoft case of a cast of an enum value to the same enum
-         type with possibly adjusted cv-qualifiers does nothing but
+      /* The Microsoft case of an lvalue cast of an enum value to the same
+         enum type with possibly adjusted cv-qualifiers does nothing but
          adjust the cv-qualifiers. */
       microsoft_lvalue_cv_qual_adjustment(&operand, cast_type);
     } else {
