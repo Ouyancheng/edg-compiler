@@ -5751,6 +5751,8 @@ Set the output position to match the statement position given by *spos.
 
 static void dump_local_label_declarations(a_scope_ptr  scope)
 /*
+Dump out the local label declarations (a GNU C extension) of the given scope
+(if any).
 */
 {
   a_label_ptr  label;
