@@ -666,18 +666,7 @@ to indicate whether the class/struct/union is actually defined.
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
   ssep = &scope_stack[depth_scope_stack];
-  if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-    is_template_class_instantiation = TRUE;
-    class_type = scope_stack[depth_scope_stack].assoc_type;
-    tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-    if (curr_token == tok_struct) {
-      class_type->kind = (a_type_kind)tk_struct;
-    }  /* if */
-    type_kind = class_type->kind;
-    (void)get_token();
-    (void)get_token();
-    goto skip_tag_scan;
-  } else if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+  if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
              inside_local_class) {
     /* This declaration appears within a function or block scope, or else it
        is a nested class declaration within a local class.  In either case,
@@ -846,7 +835,6 @@ to indicate whether the class/struct/union is actually defined.
       remove_stop_token(tok_lbrace);
     }  /* if */
   }  /* if */
-skip_tag_scan:
   /* If the next token is a "{" or, in C++, a ":" (introducing a list of
      base classes) we should expect to scan a class definition.  The exception
      to this is when an elaborated class name (e.g., "struct S" instead of

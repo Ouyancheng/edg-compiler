@@ -1,5 +1,15 @@
 Version 2.31
 
+10/23/95  Abort in template function declaration containing elaborated type
+
+If the return type of a function template was a template class specified
+using an elaborated type specifier, an abort could result.  This
+has been fixed.
+
+  template <class T> struct A { };
+  template <class T> struct A<T> B(T) { return A<T>; }
+  int main() { B(1); }
+
 10/19/95  IL lowering vs. source-sequence lists
 
 In general, you should not configure both DO_IL_LOWERING and
