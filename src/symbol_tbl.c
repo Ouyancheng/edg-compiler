@@ -57,6 +57,7 @@ static unsigned long
                 num_template_params_allocated,
                 num_param_ids_allocated,
                 num_function_instantiation_entries_allocated,
+                num_template_definitions_allocated,
                 num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
@@ -112,19 +113,16 @@ static sizeof_t size_ident_buffer = 0;
 			/* Incremental allocation for ident_buffer.  Should
 			   be bigger than most identifiers. */
 
-static a_function_instantiation_entry_ptr  instantiations_required_head;
-			/* Points to the first entry on a list of
-			   function instantiation entries for which
-			   instantiations are required.  Entries are
-			   added to the end of the list.  The instantiation
-			   required flag can be reset after the entry
-			   has been added to the list, so the flag must
-			   still be checked before assuming that entries
-			   on the list must be instantiated. */
-static a_function_instantiation_entry_ptr  instantiations_required_tail;
-			/* Points to the last entry on a list of function
-			   instantiation entries for which instantiations
-			   are required. */
+static a_template_definition_ptr instantiations_required;
+			/* Points to the first entry on a list of template
+			   definition entries for which either function
+			   instantiations or compiler-generated static data
+			   member definitions are required.  Entries are
+			   added to the end of the list.  */
+static a_template_definition_ptr instantiations_required_tail;
+			/* Points to the end of the instantiations_required
+			   list; needed because entries added to this list
+			   must be added at the end. */
 
 static a_param_id_ptr
 		avail_param_ids;
@@ -647,7 +645,7 @@ and indentation is the indentation desired.
       break;
     case sk_class_template:
     case sk_function_template:
-    case sk_variable_template:
+    case sk_static_data_member_template:
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
@@ -746,7 +744,7 @@ and indentation is the indentation desired.
             fiep = fiep->next;
           }  /* while */
         } else {
-          /* sk_variable_template -- not yet implemented. */
+          /* sk_static_data_member_template -- not yet implemented. */
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
@@ -855,7 +853,9 @@ Dump the entire scope stack (for debugging).
           switch (ssep->template_sym->kind) {
             case sk_class_template:    s = "<class-template>";    break;
             case sk_function_template: s = "<function-template>"; break;
-            case sk_variable_template: s = "<variable-template>"; break;
+            case sk_static_data_member_template:
+                                       s = "<static-data-member-template>";
+                                                                  break;
             default:                   s = "<BAD SYMBOL KIND>";   break;
           }  /* switch */
           fprintf(f_debug, "%s %s", s, ssep->template_sym->header->identifier);
@@ -1220,7 +1220,7 @@ state.
       break;
     case sk_class_template:
     case sk_function_template:
-    case sk_variable_template:
+    case sk_static_data_member_template:
       {
         a_template_symbol_supplement_ptr  tssp;
         /* Allocate a template symbol supplement. */
@@ -1246,8 +1246,8 @@ state.
             tssp->variant.function.instantiations = NULL;
             tssp->variant.function.routine = NULL;
             break;
-          case sk_variable_template:
-            tssp->variant.function.instantiations = NULL;
+          case sk_static_data_member_template:
+            tssp->variant.static_data_member.definition = NULL;
             break;
         }  /* switch */
       }
@@ -6509,7 +6509,6 @@ Allocate a new function instantiation entry and return a pointer to it.
   num_function_instantiation_entries_allocated++;
 #endif /* DEBUG */
   ptr->next    = NULL;
-  ptr->next_instantiation_required = NULL;
   ptr->routine_sym = NULL;
   ptr->template_sym = NULL;
   ptr->arg_list = NULL;	
@@ -6520,6 +6519,40 @@ Allocate a new function instantiation entry and return a pointer to it.
   db_exit();
   return ptr;
 }  /* alloc_function_instantiation_entry */
+
+
+static void add_to_instantiations_required_list(
+                                    a_function_instantiation_entry_ptr fiep,
+                                    a_static_data_member_def_ptr       sdmdp)
+/*
+*/
+{
+  a_template_definition_ptr  tdp;
+
+  tdp = (a_template_definition_ptr)alloc_fe(sizeof(a_template_definition));
+#if DEBUG
+  num_template_definitions_allocated++;
+#endif /* DEBUG */
+#if CHECKING
+  if ((fiep == NULL) == (sdmdp == NULL)) {
+    internal_error("add_to_instantiation_required_list: bad ptr combination");
+  }  /* if */
+#endif /* CHECKING */
+  if (fiep != NULL) {
+    tdp->is_function_instantiation = TRUE;
+    tdp->variant.function_instance = fiep;
+  } else {
+    tdp->is_function_instantiation = FALSE;
+    tdp->variant.static_data_member_def = sdmdp;
+  }  /* if */
+  if (instantiations_required == NULL) {
+    instantiations_required = tdp;
+  } else {
+    instantiations_required_tail->next = tdp;
+  }  /* if */
+  instantiations_required_tail = tdp;
+  tdp->next = NULL;
+}  /* add_to_instantiations_required_list */
 
 
 void update_instantiation_required_flag
@@ -6553,24 +6586,15 @@ from the list.
   /* Nothing needs to be done if the flag already has the new value. */
   if (fiep->instantiation_required != value) {
     fiep->instantiation_required = value;
-    /* This entry could already be on the list if it was previously
-       set to TRUE, then FALSE, and is being set TRUE again.  If
-       its next pointer is non-NULL or if the head pointer points to
-       this record, then it is on the list already. */
-    if (value && fiep->next_instantiation_required == NULL &&
-        instantiations_required_head != fiep) {
-      /* Add the entry to the list. */
-      if (instantiations_required_head == NULL) {
-        instantiations_required_head = fiep;
-        instantiations_required_tail = fiep;
-      } else {
-        instantiations_required_tail->next_instantiation_required = fiep;
-        instantiations_required_tail = fiep;
-      }  /* if */
+    if (value) {
+      /* It is permitted that an entry appear on the list more than once.
+         (This can happen if the flag was originally set to TRUE, then was
+         cleared, and is being reset again.) */
+      add_to_instantiations_required_list(fiep,
+                                          (a_static_data_member_def_ptr)NULL);
     }  /* if */
   }  /* if */
 }  /* update_instantiation_required_flag */
-
 
 
 void instantiation_wrapup(void)
@@ -6580,42 +6604,51 @@ This currently consists of going through a list of functions for
 which instantiations are required.
 */
 {
-  a_function_instantiation_entry_ptr fiep;
+  a_template_definition_ptr           tdp;
+  a_function_instantiation_entry_ptr  fiep;
+  a_static_data_member_def_ptr        sdmdp;
 
   db_enter(3, "instantiation_wrapup");
-  fiep = instantiations_required_head;
-  if (instantiation_mode == tim_none) {
-    /* No instantiations are done in this mode. */
-  } else {
-    /* If the instantiation mode is tim_all, instantiate all functions
-       that have bodies regardless of whether or not the function was used.
-       If the mode is tim_used or tim_local then instantiate any routines
-       for which the instantiation required flag is set and for which a
-       body has been supplied. */
-    a_boolean	do_all;
-    do_all = (instantiation_mode == tim_all);
-    while (fiep != NULL) {
-      if (fiep->template_sym->variant.templ.extra_info->
-                                           token_cache.first_token != NULL) {
-        /* There is a body. */
-        if (do_all || fiep->instantiation_required) {
+  tdp = instantiations_required;
+  for (tdp = instantiations_required; tdp != NULL; tdp = tdp->next) {
+    if (tdp->is_function_instantiation) {
+      /* Function instantiation. */
+      if (instantiation_mode == tim_none) {
+        /* No instantiations are done in this mode. */
+      } else {
+        fiep = tdp->variant.function_instance;
+        if (fiep->instantiation_required) {
+          /* Something can appear on the list with this flag FALSE if, for
+             instance, a reference that forced instantiation was followed by
+             a specific definition that made it unnecessary. */
+        } else if (fiep->template_sym->variant.templ.extra_info->
+                                           token_cache.first_token == NULL) {
+          /* A function template can be declared and referenced without ever
+             being defined. */
+        } else {
+          /* There is a body. */
 #if DEBUG
           if (debug_level >= 4) {
             db_symbol(fiep->routine_sym, "Instantiating:", 2);
           }  /* if */
 #endif /* DEBUG */
           instantiate_template_function(fiep);
-          if (do_all) {
-            /* Set the referenced flag.  Otherwise the back-end might decide
-  	       not to generate the function because it wasn't called. */ 
-            fiep->routine_sym->variant.routine.ptr->
+          /* Usually template functions are instantiated "on demand" and the
+             referenced flag will already have been set.  But if the
+             instantiation mode says to instantiate whether or not there is
+             a reference, we should set the referenced flag anyway, so that
+             the back-end will be sure to generate the function. */ 
+          fiep->routine_sym->variant.routine.ptr->
 					source_corresp.referenced = TRUE;
-          }  /* if */
         }  /* if */
       }  /* if */
-      fiep = fiep->next_instantiation_required;
-    }  /* while */
-  }  /* if */
+    } else {
+      /* Static data member definition. */
+#if 0
+      /* Not yet implemented. */
+#endif /* if 0 */
+    }  /* if */
+  }  /* for */
   db_exit();
 }  /* instantiation_wrapup */
 
@@ -6647,17 +6680,19 @@ for space tracking purposes.
             an_extern_symbol_descr);
   write_one("extern type fixup", num_extern_type_fixups_allocated,
             an_extern_type_fixup);
-  write_one("class symbol supplements", num_class_symbol_supplements_allocated,
+  write_one("class symbol supplement", num_class_symbol_supplements_allocated,
             a_class_symbol_supplement);
   write_one("template symbol suppl.",
             num_template_symbol_supplements_allocated,
             a_template_symbol_supplement);
-  write_one("template params", num_template_params_allocated,
+  write_one("template param", num_template_params_allocated,
             a_template_param);
   write_one("param ids", num_param_ids_allocated, a_param_id);
   write_one("func instantiation entry",
             num_function_instantiation_entries_allocated,
             a_function_instantiation_entry);
+  write_one("template definition", num_template_definitions_allocated,
+            a_template_definition);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
             a_conversion_list_entry);
   write_one("projection symbol descr", num_projection_descrs_allocated,
@@ -6781,7 +6816,7 @@ to avoid an 8-character external name clash with symbol_table.)
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
-  instantiations_required_head = NULL;
+  instantiations_required = NULL;
   instantiations_required_tail = NULL;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
@@ -6796,6 +6831,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
   num_function_instantiation_entries_allocated = 0;
+  num_template_definitions_allocated           = 0;
   num_conversion_list_entries_allocated        = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_extern_type_fixups_allocated             = 0;
