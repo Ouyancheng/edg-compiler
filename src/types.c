@@ -2641,6 +2641,13 @@ that is not required to be checked by the ANSI C standard.
                (is_character(ptr_type_1) && is_void(ptr_type_2))) {
       /* void * and char * are interchangeable. */
       interch = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && C_mode() &&
+               !is_pointer(ptr_type_1) && !is_pointer(ptr_type_2)) {
+      /* In Microsoft C mode, allow things like "int **" <--> "float **"; the
+         pointer levels have to match up. */
+      interch = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   db_exit();
