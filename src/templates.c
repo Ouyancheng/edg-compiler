@@ -2002,6 +2002,18 @@ structure.
   } else {
     tssp = templ_sym->variant.template_info;
   }  /* if */
+  /* Check for the use of local types in the template arguments.  Issue
+     an error if any are found.  This is only done for noninline
+     functions. */
+  if (!tssp->variant.function.routine->is_inline) {
+    a_template_arg_ptr	tap = *new_list;
+    while (tap != NULL) {
+      if (is_or_contains_local_type(tap->variant.type)) {
+        pos_error(ec_local_type_in_template_arg, source_pos);
+      }  /* if */
+      tap = tap->next;
+    }  /* while */
+  }  /* if */
   tip = tssp->variant.function.instantiations;
   prev_tip = NULL;
   for (; tip != NULL; tip = tip->next) {
