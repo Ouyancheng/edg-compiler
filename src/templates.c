@@ -562,6 +562,7 @@ and the class instantiation will detect the runaway case.
   static_data_member_sym->defined = TRUE;
   if (tssp->token_cache.first_token != NULL) {
     a_boolean  incomplete_type_error_reported;
+    a_boolean  has_parenthesized_initializer;
     a_type_ptr tp = tip->template_sym->class_of_which_a_member;
     while (tp->source_corresp.class_of_which_a_member != NULL) {
       tp = tp->source_corresp.class_of_which_a_member;
@@ -582,14 +583,31 @@ and the class instantiation will detect the runaway case.
     
 
     rescan_reusable_cache(&tssp->token_cache);
+    /* If the first token is an equals sign then this is not a parenthesized
+       initializer.   Initializers that begin with an invalid token will
+       have already been discarded. */
+    if (curr_token == tok_assign) {
+      /* Discard the equals sign. */
+      has_parenthesized_initializer = FALSE;
+      (void)get_token();
+    } else {
+      has_parenthesized_initializer = TRUE;
+    }  /* if */
     initializer(static_data_member_sym, &static_data_member_sym->decl_position,
-                idl_internal, /*has_parenthesized_initializer=*/FALSE,
+                idl_internal, has_parenthesized_initializer,
                 /*is_old_style_param_decl=*/FALSE,
                 &incomplete_type_error_reported);
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
     }  /* if */
+    /* Usually template functions are instantiated "on demand" and the
+       referenced flag will already have been set.  But if the
+       instantiation mode says to instantiate whether or not there is
+       a reference, we should set the referenced flag anyway, so that
+       the back-end will be sure to generate the function. */ 
+    tip->instance_sym->variant.variable.ptr->source_corresp.referenced = TRUE;
+    tip->already_instantiated = TRUE;
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
@@ -2793,6 +2811,7 @@ entry is pushed on the scope stack.
     a_func_info_block  func_info;
     a_type_ptr         bottom_derived_type = NULL;
     an_expr_node_ptr   dim_expr_ptr;
+    a_boolean          has_parenthesized_initializer = FALSE;
 
     add_stop_token(tok_semicolon);
     add_stop_token(tok_lbrace);
@@ -2810,9 +2829,12 @@ entry is pushed on the scope stack.
       declarator((DI_IS_TEMPLATE_DECLARATION |
                   DI_REAL_DECLARATOR_ALLOWED |
                   DI_QUALIFIED_NAME_ALLOWED |
+                  DI_PARENTHESIZED_INITIALIZER_ALLOWED |
                   DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                  &bottom_derived_type, &func_info, &dim_expr_ptr);
+      has_parenthesized_initializer = 
+                             (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     }  /* if */
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
@@ -2872,10 +2894,11 @@ entry is pushed on the scope stack.
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
       }  /* if */
-      /* Scan the initializer expression, if any, and cache its tokens. */
-      if (curr_token == tok_assign) {
-        /* Bypass the "=". */
-        (void)get_token();
+      /* Scan the initializer expression, if any, and cache its tokens.
+         The initializer may be of the form "= ...;" or "(...);".
+         Anything else will not get cached and an error will be generated
+         on this declaration. */
+      if (curr_token == tok_assign || has_parenthesized_initializer) {
         add_stop_token(tok_semicolon);
         p_token_cache = err ? &local_token_cache : &tssp->token_cache;
         clear_token_cache(p_token_cache, /*reusable=*/TRUE);
