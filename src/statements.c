@@ -1682,7 +1682,7 @@ the current function scope.
 void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                             a_source_position    *pos)
 /*
-Generate a stmk_set_vla_size statement for a variable length array
+Generate an stmk_set_vla_size statement for a variable length array
 (represented by vdp) to indicate when (at runtime) the VLA dimension
 expression is to be evaluated to fix the size of the array.
 */
@@ -5012,7 +5012,7 @@ branching into it is disallowed).
       struct_stmt_stack->rout_type_explicitly_specified = TRUE;
     }  /* if */
     if (vla_enabled) {
-      /* Generate a stmk_set_vla_size for each vla_dimension appearing in
+      /* Generate an stmk_set_vla_size for each vla_dimension appearing in
          function scope.  At this point, the list will include only
          declarations that appeared in the function prototype.  (All other
          cases are handled in array_declarator when the VLA is parsed.) */
