@@ -233,7 +233,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                 break;
 #if CHECKING
               default:
-                internal_error("walk_constant: bad address const kind");
+                internal_error(
+                             "walk_entry_and_subtree: bad address const kind");
 #endif /* CHECKING */
             }  /* switch */
             break;
