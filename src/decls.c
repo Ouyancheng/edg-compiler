@@ -2587,7 +2587,7 @@ otherwise, set *ext_sym to NULL.
 #endif /* CHECKING */
         *old_type = variable_ptr->type;
         if (!types_are_compatible(type_ptr, *old_type)) {
-          pos_error(ec_type_must_be_compat_with_prev_def,
+          pos_error(ec_not_compatible_with_previous_decl,
                     &locator->source_position);
           redecl_error_already_issued = TRUE;
           linked_redecl_error = TRUE;
@@ -2626,7 +2626,7 @@ otherwise, set *ext_sym to NULL.
            after old-style parameter declarations are scanned, if this
            declaration has a body (see function_definition). */
         if (!types_are_compatible(routine_ptr->type, type_ptr)) {
-          pos_error(ec_type_must_be_compat_with_prev_def,
+          pos_error(ec_not_compatible_with_previous_decl,
                     &locator->source_position);
           redecl_error_already_issued = TRUE;
           if (!old_decl_has_body) {
@@ -2646,7 +2646,7 @@ otherwise, set *ext_sym to NULL.
     } else {
       /* The linked symbol is a variable, while the new one is a routine,
          or vice-versa; error. */
-      pos_error(ec_type_must_be_compat_with_prev_def,
+      pos_error(ec_not_compatible_with_previous_decl,
                 &locator->source_position);
       redecl_error_already_issued = TRUE;
       linked_redecl_error = TRUE;
@@ -2966,7 +2966,7 @@ the symbol and its linkage (which is always "none").
       pos_error(ec_redefinition_not_allowed, &locator->source_position);
       err = TRUE;
     } else if (!types_are_compatible(type_ptr, var->type)) {
-      pos_error(ec_type_must_be_compat_with_prev_def,
+      pos_error(ec_not_compatible_with_previous_decl,
                 &locator->source_position);
       err = TRUE;
     } else {
@@ -2990,7 +2990,7 @@ the symbol and its linkage (which is always "none").
                 &locator->source_position);
     } else if (is_member_function_symbol(sym)) {
       /* A member function -- this is treated as a type incompatibility. */
-      pos_error(ec_type_must_be_compat_with_prev_def,
+      pos_error(ec_not_compatible_with_previous_decl,
                 &locator->source_position);
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
       /* A member of a base class. */
@@ -3052,33 +3052,40 @@ on a prior declaration.
   a_routine_ptr  rp;
 
   db_enter(3, "define_member_function");
-  /* Look for a member function symbol of this type in the symbol table.
-     It is an error if it is  not already there. */
-  sym = member_function_redecl_sym(locator->specific_symbol, type_ptr);
   class_type = locator->specific_symbol->class_of_which_a_member;
-  if (sym == NULL) {
-    /* No member function with a matching type was found.  Issue an error. */
-    if (locator->specific_symbol->kind ==
-                                   (a_symbol_kind)sk_overloaded_function) {
-      /* Special message for overloaded function. */
-      pos_st_error(ec_overloaded_function_incompatible_type,
-                   &locator->source_position,
-                   locator->symbol_header->identifier);
-    } else {
-      pos_error(ec_type_must_be_compat_with_prev_def,
+  if (!is_member_function_symbol(locator->specific_symbol)) {
+    /* We must have nonfunction class member.  This is an error, so set sym
+       to NULL to force the creation of a fake member function symbol. */
+    pos_error(ec_not_compatible_with_previous_decl, &locator->source_position);
+    sym = NULL;
+  } else {
+    /* Look for a member function symbol of this type in the symbol table.
+       It is an error if it is  not already there. */
+    sym = member_function_redecl_sym(locator->specific_symbol, type_ptr);
+    if (sym == NULL) {
+      /* No member function with a matching type was found.  Issue an error. */
+      if (locator->specific_symbol->kind ==
+                                     (a_symbol_kind)sk_overloaded_function) {
+        /* Special message for overloaded function. */
+        pos_st_error(ec_overloaded_function_incompatible_type,
+                     &locator->source_position,
+                     locator->symbol_header->identifier);
+      } else {
+        pos_error(ec_not_compatible_with_previous_decl,
+                  &locator->source_position);
+      }  /* if */
+    } else if (sym->variant.routine->compiler_generated) {
+      /* Attempting to give a definition for a function that was implicitly
+         declared. */
+      pos_error(ec_definition_of_implicitly_declared_function,
                 &locator->source_position);
+      sym = NULL;
+    } else if (sym->defined) {
+      /* Type was okay, but this member function has a body. */
+      pos_error(ec_function_redefinition, &locator->source_position);
+      /* Force a new symbol to be created. */
+      sym = NULL;
     }  /* if */
-  } else if (sym->variant.routine->compiler_generated) {
-    /* Attempting to give a definition for a function that was implicitly
-       declared. */
-    pos_error(ec_definition_of_implicitly_declared_function,
-              &locator->source_position);
-    sym = NULL;
-  } else if (sym->defined) {
-    /* Type was okay, but this member function has a body. */
-    pos_error(ec_function_redefinition, &locator->source_position);
-    /* Force a new symbol to be created. */
-    sym = NULL;
   }  /* if */
   if (sym == NULL) {
     /* An error has been detected.  Make a "fake" symbol and routine entry so
@@ -6072,7 +6079,7 @@ explicitly specified (rather than defaulted to "int").
            Note that there is a first test for compatibility in
            decl_var_or_routine.  If that one fails, old_type will be NULL,
            so we won't do this part of the test and won't give two errors. */
-        pos_error(ec_type_must_be_compat_with_prev_def, 
+        pos_error(ec_not_compatible_with_previous_decl, 
                   &locator->source_position);
         linked_redecl_error = TRUE;
       }  /* if */
