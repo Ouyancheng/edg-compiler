@@ -1568,6 +1568,7 @@ is non-NULL, in which case that is the function scope.
                name from the parameter variable.  Note that the type in the
                variable might be slightly different than (though, of course,
                compatible with) the type in the param_type entry. */
+            check_assertion(param_var != NULL);
             set_output_position(&param_var->source_corresp.decl_position);
             if (param_var->storage_class == (a_storage_class)sc_register) {
               dump_variable_storage_class(param_var);
