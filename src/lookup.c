@@ -1074,8 +1074,13 @@ scope lookup.  options specifies the options being used for the lookup.
                                        (a_symbol_kind)sk_namespace_projection,
                                  "add_symbol_to_lookup_set:",
                                  "expected a namespace projection symbol");
-            set_namespace_projection_symbol(curr_sym, new_sym,
-                                            depth_scope_stack);
+            /* Reset the namespace projection to NULL, then recall this routine
+               to add the new symbol.  This is done to handle cases where
+               new_sym points to an overload set. */
+            curr_sym->variant.namespace_projection.fundamental_symbol = NULL;
+            curr_sym = add_symbol_to_lookup_set(
+                                 curr_sym, new_sym, locator, qualified_lookup,
+                                 qualifier_namespace, options, any_errors);
           } else {
             /* The current symbol is a nontag and the new one is a tag.
                Simply ignore the new one. */
