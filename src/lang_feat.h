@@ -64,17 +64,6 @@ a command line option.
 #endif /* ifndef DEFAULT_ALLOW_ANACHRONISMS */
 
 /*
-Flag that is TRUE to enable Microsoft mode as the default mode.  This
-is the default value used to initialize microsoft_mode.  This may
-be modified by a command line option.
-*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#ifndef DEFAULT_MICROSOFT_MODE
-#define DEFAULT_MICROSOFT_MODE TRUE
-#endif /* ifndef DEFAULT_MICROSOFT_MODE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-/*
 Flag that is TRUE if integer arguments to prototyped functions are passed
 the same way as integer arguments to unprototyped functions, i.e., they are
 widened to something like "int", for example by being passed in a register.
@@ -260,6 +249,17 @@ a set of configuration flags.
 #ifndef MICROSOFT_EXTENSIONS_ALLOWED
 #define MICROSOFT_EXTENSIONS_ALLOWED FALSE
 #endif /* ifndef MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE to enable Microsoft mode as the default mode.  This
+is the default value used to initialize microsoft_mode.  This may
+be modified by a command line option.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#ifndef DEFAULT_MICROSOFT_MODE
+#define DEFAULT_MICROSOFT_MODE TRUE
+#endif /* ifndef DEFAULT_MICROSOFT_MODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Flag that is TRUE if a stack model is used to manage the include search
