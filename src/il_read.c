@@ -148,42 +148,18 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
 #if ALTERNATE_IL_FILE_FORMAT
 
 /*
-Helper macros to do the CHECKING code for m_remap_entry_number.
+Helper macro to do the CHECKING code for m_remap_entry_number.
 */
-#if CHECKING
-#define decl_checking_array() an_il_entry_number *entry_count_array_ptr
-#else /* !CHECKING */
-#define decl_checking_array() /* Nothing */
-#endif /* CHECKING */
-
-#if CHECKING
-#define fs_remap_checking() (entry_count_array_ptr = fs_entry_count_array)
-#else /* !CHECKING */
-#define fs_remap_checking() /* Nothing */
-#endif /* CHECKING */
-
 #if CHECKING
 #define non_fs_remap_checking()                                       \
 { if (reading_file_scope_il) {                                        \
     /* There shouldn't be any function-scope numbers in the file scope. */ \
     internal_error("non_fs_remap_checking: func number in file scope"); \
   }  /* if */                                                         \
-  entry_count_array_ptr = entry_count_array;                          \
 }  /* non_fs_remap_checking */
 #else /* !CHECKING */
 #define non_fs_remap_checking() /* Nothing */
 #endif /* CHECKING */
-
-#if CHECKING
-#define remap_limit_checking()                                        \
-{ if (entry_number > entry_count_array_ptr[(int)entry_kind]) {        \
-    internal_error("remap_limit_checking: bad entry number");    \
-  }  /* if */                                                         \
-}  /* remap_limit_checking */
-#else /* !CHECKING */
-#define remap_limit_checking() /* Nothing */
-#endif /* CHECKING */
-
 
 /*
 Macro to remap an entry number (entry_number), from the file scope if
@@ -194,13 +170,11 @@ used a lot.
 */
 #define m_remap_entry_number()                                        \
 { char               **entry_array_base_array_ptr;                    \
-  decl_checking_array();                                              \
   sizeof_t           gross_entry_size, prefix_size;                   \
   if (is_in_file_scope) {                                             \
     /* This is a file-scope entry number. */                          \
     gross_entry_size = fs_entry_length_with_prefix[(int)entry_kind];  \
     prefix_size = fs_length_of_entry_prefix[(int)entry_kind];         \
-    fs_remap_checking();                                              \
     entry_array_base_array_ptr = fs_entry_array_base_array;           \
   } else {                                                            \
     /* This is a function-scope entry number. */                      \
@@ -209,7 +183,6 @@ used a lot.
     non_fs_remap_checking();                                          \
     entry_array_base_array_ptr = entry_array_base_array;              \
   }  /* if */                                                         \
-  remap_limit_checking();                                             \
   /* Compute the entry address by multiplying the entry number minus  \
      one by the size of the entry, and adding the base address of     \
      the array of entries of that kind. */                            \
