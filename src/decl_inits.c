@@ -579,7 +579,8 @@ identifies the next element to be initialized.  *con_list is a list of
 constant entries that represents the initialization of the array;
 *end_of_con_list points to the terminal entry on the list.  init_info is
 a pointer to a block of information tracking this initialization.  TRUE
-is returned if the remaining array elements are indeed initialized.  This
+is returned if the remaining array elements are indeed completely initialized
+(including any zeroing required by the value-initialization rules).  This
 routine is called in C++ mode only.
 */
 {
@@ -636,6 +637,7 @@ routine is called in C++ mode only.
       /* Initialization is required. */
       if (cssp == NULL || cssp->constructor == NULL) {
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+        init_done = TRUE;
       } else {
         /* Get the default constructor.  Note that it is an error if it
            is missing. */
@@ -644,6 +646,7 @@ routine is called in C++ mode only.
         if (ctor_rp == NULL) {
           /* Error of some sort. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          init_done = TRUE;
         } else  {
           /* If there's a constructor routine create a dik_constructor
              dynamic init entry. */
@@ -653,6 +656,12 @@ routine is called in C++ mode only.
              should be incorporated into the constructor call. */
           copy_ctor_default_args_to_dynamic_init(dip);
         }  /* if */
+        /* If the default constructor is generated and some component of the
+           class requires zeroing, initialization is not really done because
+           the value-initialization rules require that the zeroing occurs. */
+        init_done = !(ctor_rp->compiler_generated &&
+                      element_type
+                        ->variant.class_struct_union.has_zero_init_component);
       }  /* if */
       if (cssp != NULL) {
         if (exceptions_enabled && cssp->destructor != NULL) {
@@ -685,7 +694,6 @@ routine is called in C++ mode only.
         init_context->end_of_constant_list->next = cp;
       }  /* if */
       init_context->end_of_constant_list = cp;
-      init_done = TRUE;
       init_context->any_dynamic_initialization = TRUE;
     }  /* if */
   }  /* if */
@@ -706,8 +714,9 @@ default constructor).  *curr_field is the first of the uninitialized fields.
 *con_list is a list of constant entries that represents the initialization of
 the array; *end_of_con_list points to the terminal entry on the list.
 init_info is a pointer to a block of information tracking this initialization.
-TRUE is returned if any of the remaining fields is indeed initialized.  This
-routine is called in C++ mode only.
+TRUE is returned if all of the remaining fields are indeed completely
+initialized (including the zeroing required by value-initialization rules).
+This routine is called in C++ mode only.
 */
 {
   a_type_ptr                     tp, array_type;
@@ -715,7 +724,8 @@ routine is called in C++ mode only.
   a_dynamic_init_ptr             dip;
   a_class_symbol_supplement_ptr  cssp;
   a_routine_ptr                  ctor_rp;
-  a_boolean                      init_done = FALSE;
+  a_boolean                      init_done = FALSE,
+                                 incomplete_value_init = FALSE;
   a_boolean                      found_constructible_field = FALSE;
 
   db_enter(4, "init_remaining_fields");
@@ -761,6 +771,13 @@ routine is called in C++ mode only.
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           copy_ctor_default_args_to_dynamic_init(dip);
+          /* If the default constructor for the field was not user-written,
+             a part of the field might need to be zeroed according to the
+             rules for value-initialization. */
+          if (!incomplete_value_init && ctor_rp->compiler_generated &&
+              tp->variant.class_struct_union.has_zero_init_component) {
+            incomplete_value_init = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (cssp != NULL) {
@@ -819,7 +836,7 @@ routine is called in C++ mode only.
     }  /* for */
   }  /* if */
   db_exit();
-  return init_done;
+  return init_done && !incomplete_value_init;
 }  /* init_remaining_fields */
 
 

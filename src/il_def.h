@@ -4798,7 +4798,11 @@ typedef struct a_variable {
 			   array or class aggregate and has been initialized
 			   but only partially -- i.e., one or more array
 			   elements or fields remains uninitialized (or
-			   partially uninitialized). */
+			   partially uninitialized).  This can also indicate
+			   that trailing elements not covered by an aggregate
+			   initializer need to be zeroed prior to being
+			   initialized by a generated default constructor
+			   (because of the value-initialization rules). */
   a_bit_field	is_anonymous_parent_object:1;
 			/* TRUE if type is the type of an anonymous union --
 			   this variable is the "parent object" of which the
