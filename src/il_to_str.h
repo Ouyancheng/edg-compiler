@@ -93,14 +93,18 @@ typedef struct an_il_to_str_output_control_block {
 } an_il_to_str_output_control_block;
 
 /*
-Options for form_type_first_part, in bit set form.
+Options for form_type_first_part/form_type_second_part, in bit set form.
 */
-typedef int a_form_type_first_part_options_set;
-#define FTFP_NO_OPTIONS 0
-#define FTFP_ADD_CONST 0x1
+typedef int a_form_type_options_set;
+#define FT_NO_OPTIONS 0
+#define FT_ADD_CONST 0x1
 			/* Add an extra "const" over the type. */
-#define FTFP_SUPPRESS_CONST 0x2
+#define FT_SUPPRESS_CONST 0x2
 			/* Suppress top-level "const" on the type. */
+#if MICROSOFT_KEYWORDS_ALLOWED
+#define FT_SUPPRESS_MICROSOFT_QUALIFIERS 0x4
+			/* Suppress the Microsoft qualifiers like __cdecl. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
 extern void clear_il_to_str_output_control_block(
@@ -134,7 +138,7 @@ extern void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
                     a_boolean                             need_trailing_space,
-                    a_form_type_first_part_options_set    options,
+                    a_form_type_options_set               options,
                     an_il_to_str_output_control_block_ptr octl);
 
 extern void form_function_declarator(
@@ -144,7 +148,7 @@ extern void form_function_declarator(
 extern void form_type_second_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
-                    a_boolean                             suppress_const,
+                    a_form_type_options_set               options,
                     an_il_to_str_output_control_block_ptr octl);
 
 extern void form_type(a_type_ptr                            type,
