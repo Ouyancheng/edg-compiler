@@ -2186,7 +2186,8 @@ Called as part of the IL walk for
 rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary to
 do the pointer remapping.  Remaps pointers to entities in secondary
 translation units to pointers to the corresponding entities in the
-primary IL.  The correspondences must exist.
+primary IL.  The correspondences must exist, at least for entities
+with linkage.
 */
 {
   char *new_ptr = old_ptr;
@@ -2194,9 +2195,38 @@ primary IL.  The correspondences must exist.
   if (old_ptr == NULL) {
     /* Leave a NULL pointer alone. */
   } else if (in_secondary_trans_unit(old_ptr)) {
-    new_ptr = canonical_il_entry_of(old_ptr);
-    check_assertion_str(!in_secondary_trans_unit(new_ptr),
+    check_assertion_str(in_file_scope(old_ptr),
+                        "remap_secondary_pointer: not in file scope");
+    if (trans_unit_corresp_pointer_of(old_ptr) == NULL) {
+      /* No correspondence established.  This is okay for things
+         that don't go on lists.  For example, the type "pointer to int"
+         wouldn't necessarily have a correspondence here, but A<int>
+         must. */
+#if CHECKING
+      /* Only constants and types are okay, and only if they don't
+         go on lists. */
+      a_type_ptr type;
+      check_assertion_str((kind == (an_il_entry_kind)iek_constant &&
+                           !has_name((a_constant_ptr)old_ptr)) ||
+                          (kind == (an_il_entry_kind)iek_type &&
+                           ((type = (a_type_ptr)old_ptr),
+                            !has_name(type)) &&
+                           !is_immediate_class_type(type) &&
+                           !(type->kind == (a_type_kind)tk_enum &&
+                             type->variant.integer.enum_type)),
                  "remap_secondary_pointer: missing primary IL correspondence");
+#endif /* CHECKING */
+      /* Make a copy of the entry in the primary IL. */
+      new_ptr = alloc_il(sizeof_il_entry[(int)kind]);
+      trans_unit_corresp_pointer_of(old_ptr) = new_ptr;
+      copy_entry(old_ptr, kind);
+      /* Make sure the copy is processed. */
+      il_entry_prefix_of(new_ptr).il_walk_flag = !flag_value_meaning_visited;
+    } else {
+      new_ptr = canonical_il_entry_of(old_ptr);
+      check_assertion_str(!in_secondary_trans_unit(new_ptr),
+                       "remap_secondary_pointer: correspondence to secondary");
+    }  /* if */
   }  /* if */
   return new_ptr;
 }  /* remap_secondary_pointer */
