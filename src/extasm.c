@@ -457,7 +457,8 @@ even if they are invalid.
 */
 {
   a_byte                        regs_clobbered[(int)anr_last];
-  a_byte                        regs_used[(int)anr_last];
+  a_byte                        regs_used_in[(int)anr_last];
+  a_byte                        regs_used_out[(int)anr_last];
   an_asm_operand_ptr            operand;
   a_named_register_list_ptr     clobber;
   an_asm_operand_constraint_ptr c;
@@ -465,21 +466,29 @@ even if they are invalid.
   a_named_register              r;
 
   memzero((char*)regs_clobbered, sizeof regs_clobbered);
-  memzero((char*)regs_used, sizeof regs_used);
+  memzero((char*)regs_used_in, sizeof regs_used_in);
+  memzero((char*)regs_used_out, sizeof regs_used_out);
   for (operand = operands; operand != NULL; operand = operand->next) {
     for (i = 0;
          single_register_constraints[i].cons !=
                                       (an_asm_operand_constraint_kind)aoc_last;
          i++) {
+      a_boolean  input =
+                   (operand->modifiers & (aom_input | aom_earlyclobber)) != 0;
+      a_boolean  output =
+                   (operand->modifiers & (aom_output | aom_earlyclobber)) != 0;
       for (c = operand->constraints; c != NULL; c = c->next) {
         if (c->kind == single_register_constraints[i].cons) {
           r = single_register_constraints[i].reg;
           /* Test used == 1 so the error is issued once per register. */
-          if (r != (a_named_register)anr_invalid && regs_used[(int)r] == 1) {
+          if (r != (a_named_register)anr_invalid &&
+              ((input && regs_used_in[(int)r] == 1) ||
+               (output && regs_used_out[(int)r] == 1))) {
             pos_st_error(ec_register_used_twice, &operand->position,
                          named_register_names[(int)r]);
           }  /* if */
-          regs_used[(int)r]++;
+          if (input) ++regs_used_in[(int)r];
+          if (output) ++regs_used_out[(int)r];
         }  /* if */
       }  /* for */
     }  /* for */
@@ -487,7 +496,8 @@ even if they are invalid.
   for (clobber = clobbers; clobber != NULL; clobber = clobber->next) {
     r = clobber->reg;
     /* Test used and not clobbered so the error is issued once per register. */
-    if (regs_used[(int)r] && !regs_clobbered[(int)r]) {
+    if ((regs_used_in[(int)r] || regs_used_out[(int)r]) &&
+        !regs_clobbered[(int)r]) {
       str_error(ec_register_used_and_clobbered, named_register_names[(int)r]);
     /* Test clobbered == 1 so the error is issued once per register. */
     } else if (r != (a_named_register)anr_invalid &&
@@ -498,7 +508,7 @@ even if they are invalid.
   }  /* for */
   for (i = 0; fixed_registers[i] != (a_named_register)anr_last; i++) {
     r = fixed_registers[i];
-    if (regs_used[(int)r]) {
+    if (regs_used_in[(int)r] || regs_used_out[(int)r]) {
       str_error(ec_fixed_register_used, named_register_names[(int)r]);
     } else if (regs_clobbered[(int)r]) {
       str_error(ec_fixed_register_clobbered, named_register_names[(int)r]);
@@ -511,7 +521,7 @@ static void asm_operand (an_asm_operand_ptr operand,
                          a_boolean output)
 /*
 Scan a single asm-statement operand, writing it into the structure
-pointed to by OPERAND.  The syntax is
+pointed to by operand.  The syntax is
 
    string-literal ( expression )
 */
@@ -642,16 +652,16 @@ The syntax is
         reg = (a_named_register)anr_memory;
       } else {
         reg = name_to_register(name);
-        if (reg != (a_named_register)anr_invalid) {
-          /* Add this register to our list. */
-          if (first_reg == NULL) {
-            first_reg = last_reg = alloc_named_register_list();
-          } else {
-            last_reg->next = alloc_named_register_list();
-            last_reg = last_reg->next;
-          }  /* if */
-          last_reg->reg = reg;
+      }  /* if */
+      if (reg != (a_named_register)anr_invalid) {
+        /* Add this register to our list. */
+        if (first_reg == NULL) {
+          first_reg = last_reg = alloc_named_register_list();
+        } else {
+          last_reg->next = alloc_named_register_list();
+          last_reg = last_reg->next;
         }  /* if */
+        last_reg->reg = reg;
       }  /* if */
       /* Advance past the string literal. */
       (void)get_token();

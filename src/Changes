@@ -1,5 +1,17 @@
 Version 3.1
 
+8/28/02  GNU compatibility: Extended asm operand constraints
+
+In GNU modes, the front end now distinguishes between "input" and "output"
+operations when verifying that an operand is used only once.  Now, an operand
+can be used once for input and once for output ("early clobber" is treated as
+both input and output).  For example:
+
+  void f(int p) {
+    __asm__ ("movl %0, %1" : "=b"(p) : "b"(p));  // Accepted now.
+  }                                              // ("b" used once for input,
+                                                 // and once for output.)
+
 8/27/02  Microsoft compatibility: selectany constraints
 
 In Microsoft versions prior to 1300, variables definitions with selectany had
