@@ -1,5 +1,20 @@
 Version 2.45
 
+12/16/00 Abort on block extern with same name as member function
+
+A block extern declaration in a member function, with the same name
+as a member function of the class or one of its base classes, could
+result in an abort in routine_linkages_are_compatible or
+compute_name_linkage.  Now fixed.  For example, the following case
+aborted when compiled with --no_extern_inline:
+
+  #include <stdio.h>
+  struct Print {
+    void printf( const char* str ) {
+      extern int printf( const char*, ... );
+    }
+  };
+
 12/16/00 Overload resolution: comparison of conversions to const void *
 
 Overload resolution incorrectly compared the standard conversions
