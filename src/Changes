@@ -1,5 +1,13 @@
 Version 3.4
 
+10/21/03 GNU mode: Unused parameters
+
+The front end now no longer issues a remark for unused parameters of a
+function definition is the parameter was marked using the GNU attribute
+"unused" or if the type of the parameter was so marked.  For example:
+
+  void f(int __attribute__((__unused__)) x) {}  // No remark for x.
+
 10/21/03 C++-generating back end: Nonstandard anonymous union class qualifiers
 
 In some situations, the C++-generating back end was emitting an invented

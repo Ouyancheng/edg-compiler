@@ -3651,6 +3651,13 @@ NULL.
             /* Parameters of "asm" functions are not referenced in the 
                usual way, so do not issue warnings. */
 #endif /* ASM_FUNCTION_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+          } else if (var_ptr->has_gnu_unused_attribute ||
+                     var_type->variables_are_implicitly_referenced) {
+            /* Do not issue a remark about an unused parameter if the
+               source explicitly annotated the parameter as being unused
+               through a GNU attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           } else {
             /* Unreferenced parameter. */
             report_unreferenced(sym, ec_unreferenced_function_param,
