@@ -76,7 +76,7 @@ by setting DEFAULT_VA_LIST_IN_STD_NAMESPACE to FALSE.
 
 9/10/02  GNU C compatibility: Invalid type specifier combinations
 
-In GNU C mode (but not in GNU C++ mode) the front end now ingores extraneous
+In GNU C mode (but not in GNU C++ mode) the front end now ignores extraneous
 "short" and "long" specifiers in typedef declarations (with a warning).
 For example:
 
