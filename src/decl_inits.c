@@ -426,12 +426,17 @@ ref field of a class object (or an array of same) remains uninitialized.
         } else {
           whole_object_initialization = TRUE;
         }  /* if */
-      } else if (local_type->variant.class_struct_union.field_list == NULL) {
-        /* An empty class.*/
-        if (curr_token == tok_lbrace) {
-          /* An empty class can be initialized with "{}". */
-        } else {
-          whole_object_initialization = TRUE;
+      } else {
+        a_field_ptr  fp;
+        fp = next_initializable_field(local_type->
+                                        variant.class_struct_union.field_list);
+        if (fp == NULL) {
+          /* An empty class.*/
+          if (curr_token == tok_lbrace) {
+            /* An empty class can be initialized with "{}". */
+          } else {
+            whole_object_initialization = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
