@@ -739,13 +739,12 @@ static void gen_dynamic_initialization(a_variable_ptr      vp,
                                        a_dynamic_init_ptr  dip,
                                        a_source_position   *source_pos)
 /*
-Generate a dynamic initialization of the variable vp.  If
-kind == dik_constant, constant points to the initial value constant;
-if kind == dik_expression, expression points to the initial value expression.
-Except for a dynamic initialization at file scope (possible only in C++),
-also create an stmk_init statement at the current point in the code.
-*source_pos is the source position for an error (dynamic initialization is
-in unreachable code).
+Generate a dynamic initialization of the variable vp based on the
+dynamic init entry pointed to by dip.  Except for a dynamic
+initialization at file scope (possible only in C++), also create an
+stmk_init statement at the current point in the code.  *source_pos is
+the source position for an error (dynamic initialization is in
+unreachable code).
 */
 {
   a_dynamic_init_ptr      new_dip;

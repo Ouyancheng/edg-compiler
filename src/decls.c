@@ -1693,14 +1693,9 @@ scope is that of a class definition.
             }  /* if */
             /* Advance past the equal sign. */
             (void)get_token();
-            /* Code has been removed to cache the tokens in the expression
-               when the function declaration appears within a class scope;
-               this allowed the expression to be rescanned once the
-               entire class had been seen and therefore to contain forward
-               references to class members.  The ARM does not require this
-               behavior and Cfront does not provide it, either. */
             /* Check the scope immediately containing the current scope, which
-               is a function prototype scope. */
+               is a function prototype scope.  We may have to cache the
+               default argument tokens and rescan them later. */
             if (default_arg_expr_allowed &&
                 scope_stack[depth_scope_stack-1].kind ==
                                    (a_scope_kind)sck_class_struct_union &&
@@ -1711,8 +1706,8 @@ scope is that of a class definition.
                  The tokens for the default argument expression are cached at
                  this point and only scanned once the entire class has been
                  defined.  This is because forward references may legally
-                 appear in the default argument expression (as specified by
-                 the C++ draft standard of 9/23/91, section 8.2.6, para 3). */
+                 appear in the default argument expression (C++ draft standard,
+                 section 8.2.6, para 3). */
               prescan_default_arg_expr(ptp);
             } else {
               /* Not a class scope -- or else a syntax error.  Go ahead and
@@ -7618,6 +7613,7 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (!is_function && C_dialect == C_dialect_cplusplus) {
+          /* Abstract class objects are prohibited (ARM 10.3). */
           if (is_illegal_abstract_class_type(local_type_ptr)) {
             error(ec_abstract_class_object_not_allowed);
           }  /* if */
