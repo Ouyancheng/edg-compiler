@@ -1,5 +1,10 @@
 Version 2.34
 
+11/25/96 Warning on for-init difference turned off in strict mode
+
+The warning about a difference of behavior between the old and new
+for-init scope rules is now turned off by default in strict mode.
+
 11/25/96 Overload resolution: comparison of non-bitwise class copy
 
 In overload resolution, a non-bitwise class copy that involves a

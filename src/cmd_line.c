@@ -1927,6 +1927,11 @@ common_cfront_mode_settings:
            off use_nonstandard_for_init_scope now. */
         use_nonstandard_for_init_scope = FALSE;
       }  /* if */
+      if (!(option_kind_used[(int)optk_for_init_diff_warning])) {
+        /* If for_init_diff_warning was not specified on the command line, turn
+           off warning_on_for_init_difference now. */
+        warning_on_for_init_difference = FALSE;
+      }  /* if */
       if (!(option_kind_used[(int)optk_old_specializations])) {
         /* If old_specializations_allowed was not set on the command line,
            turn it off now. */
