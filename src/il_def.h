@@ -3182,6 +3182,13 @@ typedef struct a_type {
 			   outside the scope of the parent class; the class
 			   type entry pointed to will be on the types list
 			   of the scope of the parent class. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		explicit_memory_attribute_made_implicit:1;
+			/* TRUE if an explicit memory attribute (e.g., near)
+			   was omitted from this typeref because it is the
+			   default.  Used only in 16-bit Microsoft mode. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */

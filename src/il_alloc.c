@@ -911,6 +911,7 @@ to default values.
       pte->variant.typeref.is_placeholder_for_class_instantiation = FALSE;
       pte->variant.typeref.is_placeholder_for_namespace_type = FALSE;
       pte->variant.typeref.is_placeholder_for_nested_class_def = FALSE;
+      pte->variant.typeref.explicit_memory_attribute_made_implicit = FALSE;
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

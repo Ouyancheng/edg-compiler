@@ -3991,19 +3991,24 @@ Make or find a type entry for a void type, and return a pointer to it.
 static a_type_ptr get_based_type(a_type_ptr            base_type,
                                  a_based_type_kind     kind,
                                  a_type_qualifier_set  qualifiers,
+                                 a_boolean             expl_mem_attr_implicit,
                                  a_type_ptr            class_type)
 /*
 Search the based_types list of base_type to see if it contains a based type
 of the kind indicated by "kind".  If the kind is "btk_qualified", the
-"qualifiers" parameter must match the "qualifiers" field of the based type.
-If the kind is "btk_ptr_to_member", the specified "class_type" must also
-match "class_of_which_a_member" of that based type.  Return a pointer to
-the type if such an entry exists, or NULL if no such entry exists.  The
-based_types list is used to hold pointers to types based on the base type,
-so that only one copy of pointer-to that type, reference-to that type,
-etc., is allocated.  As a simple optimization to based type lookup, move
-the desired based type, if found, to the front of the list.  This will tend
-to keep frequently asked for based types at the front of the list.
+"qualifiers" parameter must match the "qualifiers" field of the based type,
+and expl_mem_attr_implicit must match the
+explicit_memory_attribute_made_implicit flag of the based type (that's used
+for memory attributes like near/far).  If the kind is
+"btk_ptr_to_member", the specified "class_type" must also match
+"class_of_which_a_member" of that based type.  Return a pointer to the
+type if such an entry exists, or NULL if no such entry exists.  The
+based_types list is used to hold pointers to types based on the base
+type, so that only one copy of pointer-to that type, reference-to that
+type, etc., is allocated.  As a simple optimization to based type lookup,
+move the desired based type, if found, to the front of the list.  This
+will tend to keep frequently-asked-for based types at the front of the
+list.
 */
 {
   register a_type_ptr                   ptr = NULL;
@@ -4025,7 +4030,9 @@ to keep frequently asked for based types at the front of the list.
            looking. */
         ptr = NULL;
       } else if (kind == (a_based_type_kind)btk_qualified &&
-                 ptr->variant.typeref.qualifiers != qualifiers) {
+                 (ptr->variant.typeref.qualifiers != qualifiers ||
+                  ptr->variant.typeref.explicit_memory_attribute_made_implicit
+                                                  != expl_mem_attr_implicit)) {
         /* Qualifiers do not match -- keep looking. */
         ptr = NULL;
       } else {
@@ -4084,7 +4091,9 @@ existing type entry.
        stored in the based_types list of the member type, and the pointer
        can be reused. */
     tp = get_based_type(member_type, (a_based_type_kind)btk_ptr_to_member,
-                        (a_type_qualifier_set)TQ_NONE, class_type);
+                        (a_type_qualifier_set)TQ_NONE,
+                        /*expl_mem_attr_implicit=*/FALSE,
+                        class_type);
   }  /* if */
   if (member_type == NULL || tp == NULL) {
     /* No member type (as of yet) or no previously allocated entry, need
@@ -4192,6 +4201,7 @@ an existing entry if possible.
      for the base type, and the pointer type can be reused. */
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer,
                        (a_type_qualifier_set)TQ_NONE,
+                       /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
@@ -4241,6 +4251,7 @@ an existing entry if possible.
      reused. */
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference,
                        (a_type_qualifier_set)TQ_NONE,
+                       /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
@@ -4313,7 +4324,7 @@ are not already present.
 */
 {
   a_type_ptr            orig_base_type, ptr;
-  a_boolean             is_array = FALSE;
+  a_boolean             is_array = FALSE, expl_mem_attr_implicit = FALSE;
   a_type_qualifier_set  base_type_qualifiers;
   a_type_qualifier_set  qualifiers_to_add;
 
@@ -4331,17 +4342,24 @@ are not already present.
   }  /* if */
   base_type_qualifiers = get_type_qualifiers(base_type);
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (il_header.microsoft_16_mode &&
-      (qualifiers_to_add & (TQ_NEAR | TQ_FAR))) {
-    /* Don't add explicit qualifiers for memory attributes that are
-       implied anyway. */
-    a_type_qualifier_set implied_qualifier = is_far_type(base_type) ? TQ_FAR :
-                                                                      TQ_NEAR;
-    qualifiers_to_add &= ~implied_qualifier;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (qualifiers_to_add != TQ_NONE) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (il_header.microsoft_16_mode &&
+        (qualifiers_to_add & (TQ_NEAR | TQ_FAR))) {
+       /* Don't add explicit qualifiers for memory attributes that are
+         implied anyway.  Note that even if only one qualifier is being
+         added and it's implied, we add a typeref (containing no qualifiers)
+         so we can put on the explicit_memory_attribute_made_implicit flag. */
+      a_type_qualifier_set implied_qualifier =
+                                     is_far_type(base_type) ? TQ_FAR : TQ_NEAR;
+      if (qualifiers_to_add & implied_qualifier) {
+        /* A qualifier being added is implied.  Don't add it, but record
+           that it was explicit. */
+        qualifiers_to_add &= ~implied_qualifier;
+        expl_mem_attr_implicit = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Some qualifiers need to be added. */
     if (base_type_qualifiers != TQ_NONE) {
       /* The typeref(s) containing qualifiers, if any, are removed to get down
@@ -4361,12 +4379,16 @@ are not already present.
     /* See if the properly qualified version of base_type already exists.
        If so, a pointer to it is stored in the based_types for base_type. */
     ptr = get_based_type(base_type, (a_based_type_kind)btk_qualified,
-                         qualifiers_to_add, /*class_type=*/(a_type_ptr)NULL);
+                         qualifiers_to_add,
+                         expl_mem_attr_implicit,
+                         /*class_type=*/(a_type_ptr)NULL);
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type = base_type;
       ptr->variant.typeref.qualifiers = qualifiers_to_add;
+      ptr->variant.typeref.explicit_memory_attribute_made_implicit =
+                                                        expl_mem_attr_implicit;
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
       add_based_type_list_member(base_type, (a_based_type_kind)btk_qualified,
@@ -4374,7 +4396,7 @@ are not already present.
     }  /* if */
     if (is_array) {
       /* For the strange array case, the array type entries must be
-         copied in order to avoid changing the typedef type. */
+         copied in case they are shared. */
       ptr = copy_array_type_replacing_element_type(orig_base_type, ptr);
       /* Save a pointer to the original type on the based types list for
          the new type created by the copy. */
