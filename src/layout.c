@@ -127,8 +127,6 @@ B.  Layout options
 
 /* Header files common to all files. */
 #include "fe_common.h"
-/* Header files used by files involved in declaration processing. */
-#include "decl_hdrs.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -138,6 +136,14 @@ B.  Layout options
 
 /* Additional header files. */
 #include "layout.h"
+#if DEBUG
+/* For db_base_class: */
+#include "class_decl.h"
+#endif /* DEBUG */
+#if USER_CONTROL_OF_STRUCT_PACKING
+#include "pch.h"
+#include "pragma.h"
+#endif /*USER_CONTROL_OF_STRUCT_PACKING */
 
 /* Data structure to track some information about the layout of a class
    as it is being constructed. */
