@@ -4632,7 +4632,6 @@ white_space_loop:
              and we want to exit this routine.  If we are already at the
              final end of file, don't try reading again, just exit. */
           if (after_end_of_all_source ||
-              pos_curr_token.seq == 0 ||
               read_logical_source_line(/*do_pop_on_end_of_file=*/TRUE)) {
             /* End of file, end the white-space skip. */
             goto end_skip;
