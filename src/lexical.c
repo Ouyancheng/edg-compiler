@@ -12322,6 +12322,7 @@ are handled in lexical_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(next_token_is_top_level_decl_start);
 }  /* lexical_one_time_init */
 
 
@@ -12375,6 +12376,9 @@ Initialize variables that are specific to a given translation unit.
 */
 {
   lexical_reset();
+  /* The following variable is declared in decls.h, but initialized here
+     since it is related to tokenization. */
+  next_token_is_top_level_decl_start = FALSE;
 }  /* lexical_trans_unit_init */
 
 
