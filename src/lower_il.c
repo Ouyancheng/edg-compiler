@@ -273,6 +273,7 @@ and return a pointer to it.
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
   clear_init_pos_descr(&rdcp->init_pos_descr);
   rdcp->is_expr_temporary = FALSE;
+  rdcp->region_number = NULL_EH_REGION_NUMBER;
   return rdcp;
 }  /* alloc_required_destructor_call */
 
@@ -1023,6 +1024,23 @@ indicated type and returns a pointer to the variable.
 }  /* make_lowered_temporary */
 
 
+a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type)
+/*
+Make an unnamed static variable of type temp_type in the file scope.
+Return a pointer to the variable.
+*/
+{
+  a_variable_ptr         temp_var;
+  a_memory_region_number region_to_switch_back_to;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  temp_var = make_temporary_in_scope(temp_type, il_header.primary_scope,
+                                     /*force_static=*/TRUE);
+  switch_back_to_original_region(region_to_switch_back_to);
+  return temp_var;
+}  /* make_file_scope_temporary */
+
+
 a_variable_ptr make_temporary_possibly_at_file_scope(a_type_ptr temp_type,
                                                      a_boolean  at_file_scope)
 /*
@@ -1038,11 +1056,7 @@ otherwise, allocate it in the current scope.
     temp_var = make_lowered_temporary(temp_type);
   } else {
     /* Make the temporary in the file scope. */
-    a_memory_region_number region_to_switch_back_to;
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    temp_var = make_temporary_in_scope(temp_type, il_header.primary_scope,
-                                       /*force_static=*/FALSE);
-    switch_back_to_original_region(region_to_switch_back_to);
+    temp_var = make_file_scope_temporary(temp_type);
   }  /* if */
   return temp_var;
 }  /* make_temporary_possibly_at_file_scope */
@@ -1054,6 +1068,8 @@ Make an unnamed local static variable with the indicated type and return
 a pointer to it.
 */
 {
+  check_assertion_str(curr_context != NULL,
+                   "make_unnamed_local_static_variable: curr_context is NULL");
   return make_temporary_in_scope(type, curr_context->scope,
                                  /*force_static=*/TRUE);
 }  /* make_unnamed_local_static_variable */
@@ -1395,6 +1411,21 @@ type of the node is already "char *" return the original node.
 {
   return add_cast_if_necessary(node, char_star_type());
 }  /* add_cast_to_char_star */
+
+
+an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var)
+/*
+Create an expression tree for the address of the array associated with the
+variable var, and return a pointer to it.  This differs from var_lvalue_expr
+in that it does the cast to pointer-to-element.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = var_lvalue_expr(var);
+  node = add_cast(node, make_pointer_type(array_element_type(var->type)));
+  return node;
+}  /* array_var_lvalue_expr */
 
 
 static a_field_ptr field_at_offset(a_type_ptr    class_type,
@@ -2096,6 +2127,50 @@ Do IL lowering of the indicated source correspondence.
 }  /* lower_source_correspondence */
 
 
+void set_integer_constant_with_overflow_check(a_constant_ptr  con,
+                                              long            con_val,
+                                              an_integer_kind ikind)
+/*
+Set the constant "con" to the integer value "con_val" with integer kind
+"ikind".  Check to make sure that the value will fit an integer of that size,
+and if not, issue an error.  This version is for signed integer kinds.
+*/
+{
+  a_boolean did_not_fold;
+
+  /* Create the constant as a long and then change its type to get any
+     truncation error. */
+  set_integer_constant(con, con_val, (an_integer_kind)ik_long);
+  type_change_constant(con, integer_type(ikind),
+                       /*is_implicit_cast=*/TRUE,
+                       /*constant_context=*/TRUE, &did_not_fold,
+                       &error_position);
+}  /* set_integer_constant_with_overflow_check */
+
+
+void set_unsigned_integer_constant_with_overflow_check(
+                                              a_constant_ptr  con,
+                                              long            con_val,
+                                              an_integer_kind ikind)
+/*
+Set the constant "con" to the integer value "con_val" with integer kind
+"ikind".  Check to make sure that the value will fit an integer of that size,
+and if not, issue an error.  This version is for unsigned integer kinds.
+*/
+{
+  a_boolean did_not_fold;
+
+  /* Create the constant as an unsigned long and then change its type to
+     get any truncation error. */
+  set_unsigned_integer_constant(con, con_val,
+                                (an_integer_kind)ik_unsigned_long);
+  type_change_constant(con, integer_type(ikind),
+                       /*is_implicit_cast=*/TRUE,
+                       /*constant_context=*/TRUE, &did_not_fold,
+                       &error_position);
+}  /* set_unsigned_integer_constant_with_overflow_check */
+
+
 static void set_delta_constant(a_targ_ptrdiff_t delta,
                                a_constant_ptr   delta_con)
 /*
@@ -2104,21 +2179,12 @@ delta.  The value is an address offset.  Issue an error if the constant
 will not fit in an integer of kind TARG_DELTA_INT_KIND.
 */
 {
-  a_boolean did_not_fold;
-
-  set_integer_constant(delta_con, (long)delta,
-                       (an_integer_kind)TARG_PTRDIFF_T_INT_KIND);
-  /* Convert ptrdiff_t to short to get any truncation error if the
-     delta is too large for a short. */
-  type_change_constant(delta_con,
-                       integer_type(TARG_DELTA_INT_KIND),
-                       /*is_implicit_cast=*/TRUE,
-                       /*constant_context=*/TRUE, &did_not_fold,
-                       &error_position);
+  set_integer_constant_with_overflow_check(delta_con, delta,
+                                           TARG_DELTA_INT_KIND);
 }  /* set_delta_constant */
 
 
-a_targ_ptrdiff_t pm_cast_offset(a_constant_ptr constant)
+static a_targ_ptrdiff_t pm_cast_offset(a_constant_ptr constant)
 /*
 constant is a pointer to member constant.  Return the byte offset to be
 added to the basic member offset to account for casts done on the pointer
@@ -6009,6 +6075,7 @@ the destructor calls at *insert_location.
 {
   a_context_ptr                  context_ptr;
   a_required_destructor_call_ptr rdcp;
+  a_boolean                      any_calls_generated = FALSE;
 
   /* Loop outward through the indicated contexts. */
   for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
@@ -6016,11 +6083,23 @@ the destructor calls at *insert_location.
     for (rdcp = context_ptr->required_destructor_calls;
          rdcp != NULL;
          rdcp = rdcp->next) {
-      gen_one_required_destructor_call(rdcp, insert_location);
+      /* Ignore label markers. */
+      if (rdcp->label_marker == NULL) {
+        gen_one_required_destructor_call(rdcp, insert_location);
+        any_calls_generated = TRUE;
+      }  /* if */
     }  /* for */
     /* Stop when the outer context is reached. */
     if (context_ptr == outer_context) break;
   }  /* for */
+  if (exceptions_enabled && any_calls_generated) {
+    /* One or more calls was generated and exceptions are enabled.
+       Reset eh_curr_region.   Do not do this if the context being exited
+       is the function context. */
+    if (outer_context != nearest_function_context) {
+      set_eh_curr_region(outer_context->parent, insert_location);
+    }  /* if */
+  }  /* if */
 }  /* gen_required_destructor_calls */
 
 
@@ -6312,6 +6391,11 @@ Do IL lowering of the indicated statement and everything under it.
         rdcp->label_marker = statement->variant.label;
         rdcp->next = curr_context->required_destructor_calls;
         curr_context->required_destructor_calls = rdcp;
+        if (exceptions_enabled) {
+          /* Exceptions are enabled. Reset eh_curr_region. */
+          set_insert_location(statement, &insert_location);
+          set_eh_curr_region(curr_context, &insert_location);
+        }  /* if */
         break;
       case stmk_return:
         return_expr = statement->expr;
@@ -6837,6 +6921,7 @@ Do IL lowering of the indicated scope and everything under it.
     /* Clear the list of return statements found in the routine.  This list
        is built so that epilogue code can be added at each return. */
     return_memo_list = NULL;
+    if (exceptions_enabled) eh_function_lower_init();
     /* Lower the executable code. */
     /* Note that the statements are done after the declarations, and they
        are done only for functions, not for blocks; the statements in the
@@ -6852,7 +6937,7 @@ Do IL lowering of the indicated scope and everything under it.
       lower_destructor_code(scope);
     }  /* if */
     /* Add prologue code for exceptions. */
-    add_eh_function_prologue(scope);
+    if (exceptions_enabled) add_eh_function_prologue(scope);
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
   }  /* if */
