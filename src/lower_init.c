@@ -1268,15 +1268,19 @@ A pointer to the expression created is returned.
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
   an_expr_node_ptr func_addr_node;
   a_constant       null_constant;
+  a_type_ptr       gen_func_ptr_type;
 
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
+  gen_func_ptr_type = make_vptp_type();
   if (ctor_routine != NULL) {
     func_addr_node = function_addr_expr(ctor_routine);
+    /* Cast the function pointer to the generic function type. */
+    func_addr_node = add_cast_if_necessary(func_addr_node, gen_func_ptr_type);
   } else {
     /* No constructor routine to call; use 0 cast to the right function
        pointer type. */
-    make_zero_of_proper_type(make_vptp_type(), &null_constant);
+    make_zero_of_proper_type(gen_func_ptr_type, &null_constant);
     func_addr_node = alloc_node_for_constant(&null_constant);
   }  /* if */
   /* The call looks like
@@ -1290,7 +1294,9 @@ A pointer to the expression created is returned.
   size_elem_node->next = func_addr_node;
   if (exceptions_enabled && dtor_routine != NULL) {
     /* __vec_new_eh call, with destructor. */
-    func_addr_node->next = function_addr_expr(dtor_routine);
+    an_expr_node_ptr dtor_addr_node = function_addr_expr(dtor_routine);
+    dtor_addr_node = add_cast_if_necessary(dtor_addr_node, gen_func_ptr_type);
+    func_addr_node->next = dtor_addr_node;
     call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
                                        void_star_type(), arg_expr_list);
   } else {
@@ -1320,6 +1326,7 @@ array is to be freed.  A pointer to the expression created is returned.
   an_expr_node_ptr call_node, arg_expr_list, num_elem_node, size_elem_node;
   an_expr_node_ptr func_addr_node, free_storage_node;
   a_constant       null_constant;
+  a_type_ptr       gen_func_ptr_type;
 
   /* Build a constant node for the number of array elements. */
   num_elem_node = num_elem_node_from_count(array_element_count);
@@ -1328,12 +1335,15 @@ array is to be freed.  A pointer to the expression created is returned.
   /* Build the "free_storage" argument: 1 to free storage, 0 otherwise. */
   free_storage_node = node_for_integer_constant(free_storage ? 1L : 0L,
                                                 (an_integer_kind)ik_int);
+  gen_func_ptr_type = make_vptp_type();
   if (dtor_routine != NULL) {
     func_addr_node = function_addr_expr(dtor_routine);
+    /* Cast the function pointer to the generic function type. */
+    func_addr_node = add_cast_if_necessary(func_addr_node, gen_func_ptr_type);
   } else {
     /* No destructor routine to call; use 0 cast to the right function
        pointer type. */
-    make_zero_of_proper_type(make_vptp_type(), &null_constant);
+    make_zero_of_proper_type(gen_func_ptr_type, &null_constant);
     func_addr_node = alloc_node_for_constant(&null_constant);
   }  /* if */
   /* The call looks like
@@ -1375,7 +1385,10 @@ A pointer to the expression created is returned.
   num_elem_node = num_elem_node_from_count(array_element_count);
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
+  /* Build a node for the address of the copy constructor. */
   func_addr_node = function_addr_expr(cctor_routine);
+  /* Cast the function pointer to the generic function type. */
+  func_addr_node = add_cast_if_necessary(func_addr_node, make_vptp_type());
   /* The call looks like
        __vec_cctor(entity_node, num_elems, size_elem, cctor_routine,
                    source_node)
@@ -4164,7 +4177,7 @@ constructor, but may instead be after an assignment to "this".
              class pointer. */
           vbptr_node = make_vbptr_field_lvalue_from_var(this_param_var, bcp);
           /* Add a cast if necessary to convert from a pointer to the
-             type-as_subobject for the base class type to a pointer to the
+             type-as-subobject for the base class type to a pointer to the
              base class type. */
           vbase_param_node = add_cast_if_necessary(vbase_param_node,
                                             type_pointed_to(vbptr_node->type));
