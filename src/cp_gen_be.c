@@ -4695,7 +4695,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               /* For typedefs that have not yet been put out, go down to
                  the underlying type. */
               type = type->variant.typeref.type;
-            }  /* if */
+            }  /* while */
             if (has_name(type)) {
               /* Don't use gen_type here, because we don't want the template
                  arguments, if any, listed, and we don't want a qualified
