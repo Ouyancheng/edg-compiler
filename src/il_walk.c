@@ -491,7 +491,7 @@ to be kept.
     if (entry_kind == iek_type) {
       a_type_ptr type = (a_type_ptr)entry_ptr;
       if (is_immediate_class_type(type)) {
-        type->variant.class_struct_union.definition_needed = TRUE;
+        type->variant.class_struct_union.keep_definition_in_il = TRUE;
       }  /* if */
     }  /* if */
 #endif /* 0 */
