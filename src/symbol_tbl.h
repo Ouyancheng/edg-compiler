@@ -1270,11 +1270,8 @@ extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 
 /* Return TRUE if a symbol is a destructor symbol. */
 #define is_destructor_symbol(sym)                                     \
-  (((sym)->kind == (a_symbol_kind)sk_member_function &&               \
-    is_special_kind_function_symbol((sym), sfk_destructor)) ||        \
-   ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&           \
-    is_special_kind_function_symbol(                                  \
-       (sym)->variant.overloaded_function.symbols, sfk_destructor)))
+  ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
+   is_special_kind_function_symbol((sym), sfk_destructor))
 
 /* Return TRUE if a symbol is a copy constructor symbol. */
 #define is_copy_constructor_symbol(sym, p_const_okay, p_volatile_okay)\
