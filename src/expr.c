@@ -8478,6 +8478,10 @@ the cast.  Note that the cast is not actually done; the operand is
 merely transformed to something to which the cast may apply.
 */
 {
+  check_assertion(operand->bound_function);
+  /* Convert function to pointer, etc. */
+  do_operand_transformations(operand,
+                             TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
   if (allow_anachronisms &&
       is_pointer_type(type_cast_to) &&
       is_function_type(type_pointed_to(type_cast_to)) &&
@@ -8493,7 +8497,6 @@ merely transformed to something to which the cast may apply.
        See ARM 18.3.4. */
     pos_diagnostic(anachronism_error_severity,
                    ec_bound_function_cast_anachronism, start_position);
-    conv_lvalue_to_rvalue(operand);
     if (operand->virtual_function) {
       an_expr_node_ptr func_ptr_node, object_node;
       /* The function is a virtual function, so use an
