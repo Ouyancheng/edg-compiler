@@ -395,24 +395,22 @@ stmk_asm statement is returned to the caller.
 
 a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_source_position  *err_pos,
-                                     a_boolean          is_expr_use)
+                                     a_boolean          is_expr_use,
+                                     a_routine_ptr      rout_ptr)
 /*
 Given a routine type, check that the return type is valid, issuing an
 error if not, and also set the routine calling method flag if appropriate.
 is_expr_use is TRUE if the function is being called or its address is
-being taken.
+being taken.  rout_ptr is a pointer to the routine that is being defined or
+called; may be NULL.
 */
 {
-  a_type_ptr                     return_type;
-  an_error_code                  error_code;
-  a_boolean                      err = FALSE;
-  a_routine_type_supplement_ptr  rtsp;
+  a_type_ptr  return_type;
+  a_boolean   err = FALSE;
+  a_boolean   incomplete_type_error = FALSE;
 
   rout_type = skip_typerefs(rout_type);
   return_type = rout_type->variant.routine.return_type;
-  /* If return_type is an uninstantiated template class, force its
-     instantiation. */
-  complete_type_is_needed(return_type);
   /* 3.7.1, constraints: The return type of a function shall be void
      or an object type other than array.  See also the constraints of
      3.5.4.3 on function declarators, enforced previously by
@@ -432,24 +430,27 @@ being taken.
   } else if (is_error_type(return_type)) {
     /* No diagnostic this time. */
   } else {
+    /* If return_type is an uninstantiated template class, force its
+       instantiation. */
+    complete_type_is_needed(return_type);
     if (is_expr_use) {
       /* The type check is simpler on function calls, because function and
          array types have already been filtered out. */
       check_assertion(!is_array_type(return_type) &&
                       !is_function_type(return_type));
       if (is_incomplete_type(return_type)) {
+        a_routine_type_supplement_ptr  rtsp = rout_type->
+                                                 variant.routine.extra_info;
+
+        if (!rtsp->suppress_diagnostic_on_incomplete_return_type) {
+          /* If a diagnostic has already been issued on calling (or taking the
+             address of) this routine.  No need to do it again. */
+          incomplete_type_error = TRUE;
+        }  /* if */
+        rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
         /* Note that err is set (for the return value) even if no diagnostic
            is actually issued. */
         err = TRUE;
-        rtsp = rout_type->variant.routine.extra_info;
-        if (rtsp->suppress_diagnostic_on_incomplete_return_type) {
-          /* A diagnostic has already been issued on calling (or taking the
-             address of) this routine.  No need to do it again. */
-          error_code = ec_no_error;
-        } else {
-          error_code = ec_incomplete_function_return_type;
-          rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
-        }  /* if */
       }  /* if */
     } else {
       /* Declaration case. */
@@ -460,14 +461,23 @@ being taken.
         err = TRUE;
         if (is_class_struct_union_type(return_type) &&
                is_incomplete_type(return_type)) {
-          error_code = ec_incomplete_function_return_type;
+          incomplete_type_error = TRUE;
         } else {
-          error_code = ec_bad_function_return_type;
+          pos_error(ec_bad_function_return_type, err_pos);
         }  /* if */
       }  /* if */
     }  /* if */
-    if (err && error_code != ec_no_error) {
-      pos_error(error_code, err_pos);
+    if (incomplete_type_error) {
+      if (rout_ptr != NULL) {
+        /* We know the routine that is being defined or called. */
+        pos_syty_error(ec_incomplete_function_return_type, err_pos,
+                       (a_symbol_ptr)rout_ptr->source_corresp.assoc_info,
+                       return_type);
+      } else {
+        /* The name of the function is not available, presumably because it
+           is called through a pointer-to-function variable. */
+        pos_ty_error(ec_incomplete_return_type, err_pos, return_type);
+      }  /* if */
     }  /* if */
   }  /* if */
   return !err;
@@ -672,7 +682,7 @@ and for the instantiation of template functions.
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,
                                    &rout_ptr->source_corresp.decl_position,
-                                   /*is_expr_use=*/FALSE);
+                                   /*is_expr_use=*/FALSE, rout_ptr);
   /* In certain very obscure cases, the routine type associated with
      rout_ptr may be replaced by an equivalent type entry.  Refetch the type,
      just in case. */

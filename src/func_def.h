@@ -49,7 +49,8 @@ extern void scan_function_body(a_routine_ptr      rout_ptr,
 
 extern a_boolean check_function_return_type(a_type_ptr         return_type,
                                             a_source_position  *err_pos,
-                                            a_boolean          is_expr_use);
+                                            a_boolean          is_expr_use,
+                                            a_routine_ptr      rout_ptr);
 
 extern
 a_symbol_ptr function_definition(a_symbol_locator  *locator,
