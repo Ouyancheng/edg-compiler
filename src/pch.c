@@ -345,10 +345,10 @@ associated with this compiler version.
 */
 {
   char		*format_string = "EDG C/C++ version %s (%s %s)\n";
-  check_assertion_str2(strlen(format_string) +
+  check_assertion_str2((sizeof_t)(strlen(format_string) +
                        strlen(VERSION_NUMBER) +
                        strlen(build_date) +
-                       strlen(build_time) <= PCH_ID_STRING_LENGTH,
+                       strlen(build_time)) <= (sizeof_t)(PCH_ID_STRING_LENGTH),
                        "initialize_pch_id_string:", "PCH ID string too long");
   sprintf(pch_id_string, format_string, VERSION_NUMBER, build_date,
           build_time);
