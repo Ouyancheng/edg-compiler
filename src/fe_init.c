@@ -575,9 +575,7 @@ unit, in case multiple source files are allowed.  This initialization is done
 after the command-line processing has been done.
 */
 {
-#if CHECKING
-  check_target_configuration();
-#endif /* CHECKING */
+  target_one_time_init();
   host_envir_one_time_init();
   class_decl_one_time_init();
   def_arg_one_time_init();

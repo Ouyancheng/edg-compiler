@@ -70,7 +70,7 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 
 #if CHECKING
 
-void check_target_configuration(void)
+static void check_target_configuration(void)
 /*
 Perform consistency check on target configuration variables.
 */
@@ -196,6 +196,18 @@ Perform consistency check on target configuration variables.
 }  /* check_target_configuration */
 
 #endif /* CHECKING */
+
+void target_one_time_init(void)
+/*
+Do one-time initialization of variables related to the target.  This is
+executed once after command-line processing, and not again for each source
+file.
+*/
+{
+#if CHECKING
+  check_target_configuration();
+#endif /* CHECKING */
+}  /* target_one_time_init */
 
 
 /******************************************************************************
