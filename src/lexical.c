@@ -11081,8 +11081,8 @@ can be avoided.
       } else if (ch == '<') {
         /* A "<" that could be a template argument list delimiter. */
         /* delim_does_not_follow = FALSE;  -- already set. */
-      } else if (ch == '.' && cfront_2_1_mode) {
-        /* Definitely a "." in cfront mode. */
+      } else if (ch == '.' && (cfront_2_1_mode || microsoft_bugs)) {
+        /* Definitely a "." in cfront and Microsoft bugs modes. */
         /* delim_does_not_follow = FALSE;  -- already set. */
       } else if (ch == '#') {
         /* The beginning of a preprocessing directive.  We don't know what
@@ -11569,6 +11569,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			is_super_qualified = FALSE;
   a_boolean			is_conversion_type = FALSE;
   a_boolean			qualified_conversion_operator = FALSE;
+  a_boolean			separator_warning_issued = FALSE;
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr          name_qualifier = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -11647,21 +11648,23 @@ selection operator, in which case it points to the type of the left operand.
     if (next_tok == tok_colon_colon || next_tok == tok_lt ||
         follows_template || is_conversion_type) {
       might_be_qualifier = TRUE;
-    } else if (cfront_2_1_mode && next_tok == tok_period &&
+    } else if ((cfront_2_1_mode || microsoft_bugs) && next_tok == tok_period &&
                !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
       /* Check for the anachronism of allowing a "." as a qualifier separator
-         where a "::" should be used.  This is only done in cfront mode
-         because this is something that cfront labels as an anachronism but
-         is not in the ARM list of anachronisms.  Note that when using the
+         where a "::" should be used.  This is done in cfront and Microsoft
+         bugs modes.  This is something that cfront labels as an anachronism
+         but is not in the ARM list of anachronisms.  Note that when using the
          "." notation, you must use "." at all levels of qualification
          except global.  That is, you must say A.B.C not A.B::C or A::B.C.
          Also "." qualifiers are not supported for vacuous destructor
          references or template references.  We can't tell yet whether this
          is a qualified name or simply a normal field reference.  We'll
          assume this is a qualifier for now and make a final decision after
-         we try to look up the identifier.  A warning will be issued,
-         if appropriate, after the lookup is done.  The "." may not
-         be used as a qualifier separator in a field selection operator. */
+         we try to look up the identifier.  A warning will be issued if
+         appropriate, after the lookup is done.  The "." may not be used as a
+         qualifier separator in a field selection operator.  The Microsoft
+         compiler also allows usage like "A::B.C".  This is handled below
+         without changing qualifier_separator. */
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
     }  /* if */
@@ -11831,11 +11834,12 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
       if (qualifier_separator == tok_period) {
         if (qualifier_sym != NULL && is_class_symbol(qualifier_sym)) {
-          /* In cfront mode we have a construct like "A." where A is a
-             class name.  This is a use of a cfront anachronism where "."
-             is used in a qualified name where "::" should be used.
-             Issue a warning. */
+          /* In cfront mode or Microsoft bugs mode we have a construct like
+             "A." where "A" is a class name.  This is a use of a cfront
+	     anachronism where "." is used in a qualified name where "::"
+             should be used.  Issue a warning. */
           warning(ec_period_used_as_qualifier);
+          separator_warning_issued = TRUE;
         } else {
           /* In cfront mode we have found a construct like "A." and A is not
              a class name.  What we have is probably just a normal field
@@ -11887,13 +11891,17 @@ selection operator, in which case it points to the type of the left operand.
       (void)get_token();  /* Gets the type name. */
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
-    } else if (next_token() == qualifier_separator &&
+    } else if (((next_tok = next_token()) == qualifier_separator ||
+                (is_qualified_name &&
+                 microsoft_bugs && next_tok == tok_period)) &&
                ((!microsoft_bugs || microsoft_version >= 1300) ||
                 is_vacuous_dtor ||
                 in_if_exists ||
                 is_microsoft_qualifier_start(qualifier_sym))) {
       /* This is an identifier followed by the qualifier separator
-         (usually something like "X::").  Scan the qualified name. */
+         (usually something like "X::").  In Microsoft bugs mode, a "." can be
+         used as the separator even if "::" was used earlier in the name.  Scan
+         the qualified name. */
       a_source_position type_position;
       type_position = start_position;
       /* This is a qualifier. */
@@ -12051,9 +12059,14 @@ selection operator, in which case it points to the type of the left operand.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token != tok_identifier ||
-            (next_tok != qualifier_separator && next_tok != tok_lt &&
+            ((next_tok != qualifier_separator &&
+              (!microsoft_bugs ||
+               (is_qualified_name && next_tok != tok_period))) &&
+             next_tok != tok_lt &&
              !is_template)) {
-          /* Not an identifier followed by "::" or "<", so end the loop. */
+          /* Not an identifier followed by "::" or "<", so end the loop.  In
+             Microsoft bugs mode a "." can be used in place of "::" in some
+             cases. */
           break;
         }  /* if */
         /* There is another level of qualification.  Search for the identifier
@@ -12181,6 +12194,16 @@ selection operator, in which case it points to the type of the left operand.
                   qualifier_sym = NULL;
                 }  /* if */
               }  /* if */
+            }  /* if */
+          }  /* if */
+          /* If we have a Microsoft qualified name of the form "X::Y.Z",
+             exit the loop if Y was not found by the lookups above.  This
+             occurs when Y is, for example, a static data member of Z. */
+          if (next_tok == tok_period) {
+            if (qualifier_sym == NULL) break;
+            if (!separator_warning_issued) {
+              warning(ec_period_used_as_qualifier);
+              separator_warning_issued = TRUE;
             }  /* if */
           }  /* if */
           if (qualifier_sym != NULL) {

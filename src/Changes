@@ -1,5 +1,20 @@
 Version 3.6
 
+1/31/05  Microsoft compatibility: "." in place of "::" in qualified names
+
+The Microsoft compiler allows a "." to be used in certain qualified names
+where a "::" is actually required.  We now emulate this behavior in
+Microsoft bugs mode.  A warning is issued.
+
+  struct A {
+    enum E { e = 1 };
+    struct B { enum E { e = 2 }; };
+  };
+  int main() {
+    int i = A.e;
+    int k = A::B.e;
+  }
+
 1/28/05  UPC and GNU C mode: Spurious error on THREADS-dimensioned arrays
 
 When UPC and GNU C modes were combined the front end incorrectly rejected
