@@ -1387,7 +1387,8 @@ a pointer to its routine entry.  Otherwise, return NULL.
   if (is_constant_operand(operand)) {
     con = &operand->variant.constant;
     if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_routine) {
+        con->variant.address.kind == (an_address_base_kind)abk_routine &&
+        con->variant.address.offset == 0 && !con->implicit_cast) {
       routine = con->variant.address.variant.routine;
     }  /* if */
   }  /* if */
