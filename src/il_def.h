@@ -687,12 +687,6 @@ enum a_float_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_float_kind;
 
-/* Numbering for virtual functions.  Each virtual member function in a given
-   class is assigned a unique number.  Although no specific implementation
-   of virtual function calls is predetermined by the front end, this number
-   can be used to define a virtual function table index value. */
-typedef unsigned short a_virtual_function_number;
-#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS USHRT_MAX
 
 /* Entry used on parameter type lists for functions.  Note that these
    can be shared between multiple routine definitions. */
