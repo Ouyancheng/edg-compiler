@@ -6624,6 +6624,7 @@ caller.
         /* A definition for the unnamed namespace has already appeared.  This
            definition will extend it, so reuse the symbol that was found. */
       }  /* if */
+      make_locator_for_symbol(ns_sym, &locator);
     }  /* if */
   } else {
     /* A named namespace definition or a namespace alias.  Look up the
