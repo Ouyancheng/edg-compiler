@@ -638,17 +638,20 @@ ref field of a class object (or an array of same) remains uninitialized.
             fputc('\n', f_debug);
           }  /* if */
 #endif /* DEBUG */
-          /* Members of unions or aggregates cannot be incomplete. */
-          check_assertion(!is_incomplete_type(member_type)
+#if CHECKING
+          if (is_incomplete_type(member_type)) {
+            /* Members of unions or aggregates cannot be incomplete. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                          /* ... except that in Microsoft C mode it's okay
-                             to initialize a field of incomplete array type
-                             when it's the last field in the struct. */
-                          || (microsoft_mode && C_mode() &&
-                              is_array_type(member_type) &&
-                              curr_field->next == NULL)
+            if (microsoft_mode && C_mode() && is_array_type(member_type) &&
+                curr_field->next == NULL) {
+              /* ... except that in Microsoft C mode it's okay to initialize
+                 a field of incomplete array type when it's the last field in
+                 the struct. */
+            } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                       );
+            internal_error("get_initializer: can't initialize 0-size member");
+          }  /* if */
+#endif /* CHECKING */
         }  /* if */
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
