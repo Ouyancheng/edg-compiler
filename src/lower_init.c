@@ -5643,7 +5643,7 @@ the aggregate.
   } else {
     a_field_ptr field = aggr_pos->curr_field;
     check_assertion(field != NULL);
-    field = field->next;
+    field = next_initializable_field(field->next);
     check_assertion(field != NULL);
     set_aggregate_position_for_field(field, aggr_pos);
   }  /* if */

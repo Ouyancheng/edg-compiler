@@ -1,5 +1,22 @@
 Version 2.45
 
+12/7/00  Internal error while lowering designated initializers in structures
+         with unnamed fields
+
+The C-generating back end sometimes aborted with an internal error while
+attempting to lower a designator for a structure with unnamed fields.
+For example:
+
+  struct A {
+    int x: 2;
+    int: 0;
+    int y: 3;
+  };
+  struct A a = {.y = 5, .x = 1, 2};  /* Used to abort when lowering of
+                                        designated initializers is enabled. */
+
+This is now fixed.
+
 12/7/00  Microsoft mode: errors in #pragma pack parentheses
 
 In Microsoft mode, missing opening or closing parentheses in a
