@@ -4832,7 +4832,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->lifetime   = NULL;
   dip->prev_in_lifetime = NULL;
   dip->dynamic_inits_unordered_with_respect_to_this_one = NULL;
-  dip->entity.kind = iek_none;
+  dip->entity.kind = (a_byte_il_entry_kind)iek_none;
   dip->entity.ptr = NULL;
   dip->init_expr_lifetime = NULL;
   dip->follows_an_exec_statement = FALSE;
