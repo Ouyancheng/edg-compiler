@@ -307,43 +307,6 @@ specifier if the name has been declared.  Called only in C++.
 }  /* is_overload_specifier */
 
 
-static a_boolean is_class_template_decl(void)
-/*
-Return TRUE if the current token sequence matches the pattern for a class
-template declaration.
-*/
-{
-  a_token_cache  token_cache;
-  a_boolean      match = FALSE;
-
-#if CHECKING
-  if (curr_token != tok_class && curr_token != tok_struct &&
-      curr_token != tok_union) {
-    internal_error("is_class_template_decl: no class/struct/union token");
-  } else if (scope_stack[depth_scope_stack].kind !=
-                                   (a_scope_kind)sck_template_declaration) {
-    internal_error("is_class_template_decl: bad scope kind");
-  }  /* if */
-#endif /* CHECKING */
-  clear_token_cache(&token_cache);
-  cache_curr_token(&token_cache);
-  if (get_token() == tok_identifier) {
-    cache_curr_token(&token_cache);
-    (void)get_token();
-    /* We could test for "{", ":", or ";", which is what the next token
-       must be if this is a valid template declaration.  But in the error
-       case, it seems a better default to treat the construct as an invalid
-       class template than as an invalid function template.  So unless it
-       looks like a declarator following, we consider "class X ... " to be
-       a class template. */
-    if (!is_declarator_start()) match = TRUE;
-  }  /* if */
-  /* Restore the tokens. */
-  rescan_cached_tokens(&token_cache);
-  return match;
-}  /* is_class_template_decl */
-
-
 a_boolean is_decl_start(a_boolean  expr_context,
                         a_boolean  real_declarator_allowed)
 /*
@@ -5720,20 +5683,6 @@ process_class_specifier:
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
-        } else if ((input_flags & DSI_IS_TEMPLATE_DECLARATION) &&
-                   is_class_template_decl()) {
-          if (basic_type != bt_none || sign != sign_none ||
-              size != size_none) {
-            /* Basic type has already been specified in some way. */
-            bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
-          }  /* if */
-          *output_flags |= DSO_CLASS_TEMPLATE;
-          /* We don't worry about the type at this time. */
-          basic_type = bt_no_type;
-          *type_ptr = void_type();
-          /* There will be no declarator. */
-          goto exit_loop;
         } else {
           if (basic_type == bt_none) {
             if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
