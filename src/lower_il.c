@@ -303,6 +303,7 @@ static void lower_scope(a_scope_ptr scope);
 static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
+                                                     a_boolean      const_okay,
                                                      a_variable_ptr *temp_var);
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
@@ -1727,7 +1728,9 @@ This is used when the constant is already an allocated IL constant.
      used directly in an expression.  For that case, create a temporary
      variable initialized with the ck_aggregate, and use the value of the
      variable. */
-  if (check_for_troublesome_ptr_to_member_constant(constant, &temp_var)) {
+  if (check_for_troublesome_ptr_to_member_constant(constant,
+                                                   /*const_okay=*/TRUE,
+                                                   &temp_var)) {
     node = var_rvalue_expr(temp_var);
   } else {
     /* Normal case; make a constant node. */
@@ -3260,19 +3263,30 @@ Do IL lowering of a pointer-to-member constant.
 
 
 static a_boolean check_for_troublesome_ptr_to_member_constant(
-                                                      a_constant_ptr constant,
-                                                      a_variable_ptr *temp_var)
+                                                     a_constant_ptr constant,
+                                                     a_boolean      const_okay,
+                                                     a_variable_ptr *temp_var)
 /*
 Return TRUE if constant is a pointer-to-member constant that has been
 or will be changed into a ck_aggregate for a struct during lowering
 (that's done for pointers to member functions).  If so, create a
 temporary variable and initialize it with the ck_aggregate constant.
-Return a pointer to the variable in *temp_var.  The variable is saved
-and reused.  This trick is necessary for cases where such a pointer
-to member constant is referenced from executable code, because a
-ck_aggregate can only be referenced in an initialization.  The caller
-will rewrite the reference to use the temporary variable instead of
-the constant.
+If const_okay is TRUE, make the variable const.  Return a pointer to
+the variable in *temp_var.  The variable is saved and reused.  This
+trick is necessary for cases where such a pointer to member constant
+is referenced from executable code, because a ck_aggregate can only
+be referenced in an initialization.  The caller will rewrite the
+reference to use the temporary variable instead of the constant.
+
+Note that this routine is also used in cases where a structure
+constant is being assigned, e.g.,
+
+  struct oo { int count;  ~oo() { } };
+  int main () {
+    oo bb[] = {1111, 1112};
+    return 0;
+  }
+
 */
 {
   a_boolean      troublesome = FALSE;
@@ -3284,16 +3298,17 @@ the constant.
   if (constant->kind == (a_constant_repr_kind)ck_aggregate ||
       (constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
        constant->variant.ptr_to_member.is_function_ptr)) {
-    /* This is a troublesome pointer-to-member constant. */
+    /* This is a troublesome pointer-to-member constant or other
+       troublesome aggregate. */
     troublesome = TRUE;
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the assoc_info field. */
     if (constant->assoc_var_assigned) {
       assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
     } else {
-      a_type_ptr var_type;
+      a_type_ptr var_type = constant->type;
       /* The variable must be allocated. */
-      var_type = make_qualified_type(make_mptr_type(), TQ_CONST);
+      if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
       if (in_file_scope((char *)constant)) {
         /* The constant is in the file scope, so use a file-scope variable.
            The constant is possibly shared, but we're going to rewrite
@@ -3590,6 +3605,8 @@ Do IL lowering of the indicated constant and everything under it.
             addressed_con = constant->variant.address.variant.constant;
             lower_os_constant(addressed_con);
             if (check_for_troublesome_ptr_to_member_constant(addressed_con,
+                                                             /*const_okay=*/
+                                                                         FALSE,
                                                              &temp_var)) {
               /* This constant node is using the address of a pointer-to-
                  member-function constant, which has or will become a
@@ -10751,6 +10768,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_constant:
       lower_os_constant(expr->variant.constant);
       if (check_for_troublesome_ptr_to_member_constant(expr->variant.constant,
+                                                       /*const_okay=*/TRUE,
                                                        &temp_var)) {
         /* This expression node is loading the value of a pointer-to-
            member-function, which has or will become a struct represented by
@@ -10759,8 +10777,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
            initialized with the ck_aggregate constant. */
         set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
         expr->variant.variable = temp_var;
-        /* Note that the type will already have been adjusted to the proper
-           struct type. */
+        /* Note that the type will be lowered to the proper struct type.
+           The const on the variable type won't be there, but that's
+           correct; it should be dropped because the reference is an
+           rvalue. */
       }  /* if */
       break;
     case enk_temp_init:
