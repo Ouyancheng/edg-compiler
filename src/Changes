@@ -1,5 +1,21 @@
 Version 2.18
 
+5/19/93 Incorrect warning no longer issued
+
+A warning about a temporary being used for the initial value of a ref to
+non-const is no longer issued for:
+
+  struct A {
+      A(A &s);
+      A();
+  };
+  struct B {
+      int insert(A);
+      int insert(int);
+      int foo() { A ns; return insert(ns); }
+  };
+
+
 5/18/93 Fixed infinite loop bug
 
 The following caused an infinite loop while recovering from an error
