@@ -30,6 +30,7 @@ lower_eh.c -- IL lowering for exception handling constructs.
 #include "const_ints.h"
 #include "cmd_line.h"
 #include "folding.h"
+#include "mem_manage.h"
 
 
 static a_cleanup_region_number
@@ -359,9 +360,7 @@ match the runtime's definition.
 			/* TRUE if the offset gives the position of a
 			   pointer to the (virtual) base class rather than
 			   the offset to the base class itself. */
-#define BCS_AMBIGUOUS		0x02
-			/* TRUE if the base class is ambiguous. */
-#define BCS_LAST		0x04
+#define BCS_LAST		0x02
 			/* TRUE if this is the last base class specification
 			   in the array. */
 
@@ -445,9 +444,8 @@ This is used as part of the typeinfo information.
   for (bcp = type->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
-    /* Include information only on direct, virtual, or ambiguous base
-       classes. */
-    if (bcp->direct || bcp->is_virtual || bcp->ambiguous) {
+    /* Include information only on direct or virtual base classes. */
+    if (bcp->direct || bcp->is_virtual) {
       /* The base class specification consists of three fields:
            1)  A pointer to the typeinfo variable for the base class.
            2)  The offset of the base class in the derived class.
@@ -476,8 +474,6 @@ This is used as part of the typeinfo information.
                                                         (unsigned long)offset,
                                                         TARG_DELTA_INT_KIND);
       /* Make the flags constant. */
-      /* If the base class is ambiguous, turn on the ambiguous bit. */
-      if (bcp->ambiguous) flags_value |= BCS_AMBIGUOUS;
       flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_unsigned_integer_constant(flags_con, flags_value,
                                     (an_integer_kind)ik_unsigned_char);
@@ -1113,6 +1109,146 @@ information on it.
 }  /* type_is_used_in_exception */
 
 
+static char	*access_string_buffer = NULL;
+static sizeof_t	size_access_string_buffer /* = 0 */;
+			/* Buffer used to build the access string for throws.
+			   General storage; reallocated if necessary to
+			   make it larger. */
+static sizeof_t	curr_size_access_string_buffer;
+			/* Number of characters currently used in
+			   access_string_buffer. */
+
+
+static void expand_access_string_buffer(sizeof_t size_needed)
+/*
+Expand the access_string_buffer by reallocating it, so that its total size
+is at least size_needed.
+*/
+{
+  sizeof_t new_size;
+
+  db_enter(4, "expand_access_string_buffer");
+  new_size = size_access_string_buffer + 200;
+  if (new_size < size_needed) new_size  = size_needed;
+  access_string_buffer = realloc_general(access_string_buffer,
+                                         size_access_string_buffer, new_size);
+  size_access_string_buffer = new_size;
+  db_exit();
+}  /* expand_access_string_buffer */
+
+
+static add_char_to_access_string_buffer(char ch)
+/*
+Add the indicated character to the access_string_buffer.
+*/
+{
+  if (curr_size_access_string_buffer == size_access_string_buffer) {
+    /* Increase the size of the buffer. */
+    expand_access_string_buffer((sizeof_t)1);
+  }  /* if */
+  access_string_buffer[curr_size_access_string_buffer++] = ch;
+}  /* add_char_to_access_string_buffer */
+
+
+static void add_to_throw_access_string(a_type_ptr                   type,
+                                       an_accessible_base_class_ptr abcp,
+                                       a_base_class_ptr             parent_bcp)
+/*
+Generate part of the access control string for a throw.  type is a
+class type to be processed.  abcp is the list of accessible base classes
+from the throw expression.  parent_bcp is the base class pointer for the
+immediate parent of this base class as we descend recursively, or NULL
+if there is no parent.
+*/
+{
+  a_base_class_ptr bcp, throw_bcp;
+  a_type_ptr       throw_class = abcp->base_class->derived_class;
+  char             ch;
+  an_accessible_base_class_ptr
+                   temp_abcp;
+
+  /* Go through the direct and virtual base classes (the same ones listed
+     in the typeinfo base class list).  Do the top level first before
+     looking at base classes of base classes because we want to find
+     virtual base classes at the top. */
+  for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+   if (bcp->direct || bcp->is_virtual) {
+      /* Add "Y" if this base class is on the list of accessible base classes,
+         "N" otherwise.  Ambiguous classes are considered inaccessible. */
+      ch = 'N';
+      if (!bcp->ambiguous) {
+        /* Find the base class entry on the throw type that corresponds to the
+           base class we are examining here. */
+        throw_bcp = corresponding_base_class(bcp, throw_class, parent_bcp);
+        /* See if the base class is on the list of accessible base classes. */
+        for (temp_abcp = abcp;
+             temp_abcp != NULL;
+             temp_abcp = temp_abcp->next) {
+          if (temp_abcp->base_class == throw_bcp) {
+            /* Yes, the base class is accessible. */
+            ch = 'Y';
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      add_char_to_access_string_buffer(ch);
+    }  /* if */
+  }  /* for */
+  /* Go through the base classes of the direct and virtual base classes. */
+  for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp->direct || bcp->is_virtual) {
+      /* Find the base class entry on the throw type that corresponds to the
+         base class we are examining here. */
+      throw_bcp = corresponding_base_class(bcp, throw_class, parent_bcp);
+      add_to_throw_access_string(bcp->type, abcp, throw_bcp);
+    }  /* if */
+  }  /* for */
+}  /* add_to_throw_access_string */
+
+
+static a_constant_ptr make_throw_access_string(an_expr_node_ptr expr)
+/*
+expr is a throw expression node.  If necessary, generate a string
+constant to describe the accessible base classes of the thrown type and
+return a pointer to it.  The constant is shareable.  If no constant
+is needed, return NULL.
+*/
+{
+  a_type_ptr                   type;
+  an_accessible_base_class_ptr abcp;
+  a_constant_ptr               string_con = NULL;
+  a_constant                   constant;
+  char                         *pstr;
+
+  /* No constant is needed if there are no accessible base classes
+     (that includes the case where the type involved is not a class type). */
+  abcp = expr->variant.throw_info->accessible_base_classes;
+  if (abcp != NULL) {
+    /* A string is needed.  Get the class involved in the throw. */
+    type = abcp->base_class->derived_class;
+    /* Start with an empty string. */
+    curr_size_access_string_buffer = 0;
+    /* Build the string. */
+    add_to_throw_access_string(type, abcp, (a_base_class_ptr)NULL);
+    /* Put a terminating null on the string. */
+    add_char_to_access_string_buffer('\0');
+    /* Build the string constant. */
+    pstr = alloc_text_of_string_literal(curr_size_access_string_buffer);
+    (void)strcpy(pstr, access_string_buffer);
+    clear_constant(&constant, (a_constant_repr_kind)ck_string);
+    constant.type = string_type(curr_size_access_string_buffer);
+    constant.variant.string.length = curr_size_access_string_buffer;
+    constant.variant.string.value  = pstr;
+    string_con = alloc_shareable_constant(&constant);
+  }  /* if */
+  return string_con;
+}  /* make_throw_access_string */
+
+
 /*
 Pointers to routine entries for the runtime routines __throw_alloc,
 __throw, and __rethrow, used in throwing exceptions.  NULL until allocated.
@@ -1131,9 +1267,11 @@ Lower an enk_throw expression node.
   a_type_ptr         throw_type, ptr_throw_type;
   a_variable_ptr     temp_var, typeinfo_var;
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
-  an_expr_node_ptr   temp_node, assign_node;
+  an_expr_node_ptr   access_node, temp_node, assign_node;
   a_dynamic_init_ptr dip;
-  unsigned long      flags_value;                
+  unsigned long      flags_value;
+  a_constant         access_con;
+  a_constant_ptr     string_con;
   an_init_pos_descr  ipd;
   an_insert_location insert_location;
   a_boolean          keep_dynamic_init;
@@ -1152,12 +1290,14 @@ Lower an enk_throw expression node.
     throw_type = f_skip_typerefs(throw_type);  /* Probably unnecessary. */
     dip = expr->variant.throw_info->dynamic_init;
     /* Make the assignment
-         temp = __throw_alloc(&typeinfo, size, flags)
+         temp = __throw_alloc(&typeinfo, size, flags, access)
        This allocates the space into which the thrown object is copied and
        sets temp to point to that space.  typeinfo is the typeinfo variable
        for the base type of the type thrown; size is the size in bytes of
-       the type thrown; and flags has the ETS_IS_POINTER bit set to indicate
-       that a pointer to the typeinfo type is being thrown. */
+       the type thrown; flags has the ETS_IS_POINTER bit set to indicate
+       that a pointer to the typeinfo type is being thrown; and access
+       is non-NULL when throwing a class -- it is a character string
+       indicating which of the base classes are accessible. */
     ptr_throw_type = make_pointer_type(throw_type);
     temp_var = make_lowered_temporary(ptr_throw_type);
     /* Make the typeinfo variable for the throw type. */
@@ -1170,6 +1310,18 @@ Lower an enk_throw expression node.
     flags_node = node_for_integer_constant((long)flags_value,
                                            (an_integer_kind)ik_int);
     size_node->next = flags_node;
+    /* Make a string to describe the accessible base classes, and pass
+       its address to the runtime routine. */
+    string_con = make_throw_access_string(expr);
+    if (string_con == NULL) {
+      /* No access string.  Use a NULL pointer. */
+      make_zero_of_proper_type(char_star_type(), &access_con);
+    } else {
+      set_constant_address_constant(string_con, &access_con);
+      implicit_cast(&access_con, char_star_type());
+    }  /* if */
+    access_node = alloc_node_for_constant(&access_con);
+    flags_node->next = access_node;
     /* Make the __throw_alloc call. */
     call_node = make_runtime_rout_call("__throw_alloc", &throw_alloc_routine,
                                        void_star_type(), typeinfo_node);
