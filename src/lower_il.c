@@ -4044,34 +4044,27 @@ subobject being built.  If they don't, then they don't share a
 virtual function table pointer with the next class up.
 */
 {
-  a_base_class_ptr derived, most_derived_virtual = NULL;
+  a_base_class_ptr derived;
 
   check_assertion(bcp->shares_virtual_function_info);
   while (bcp->shares_virtual_function_info) {
-    if (bcp->is_virtual) most_derived_virtual = bcp;
+    if (bcp->is_virtual && ctor_bcp != NULL) {
+      /* For a virtual base class, see if it is actually allocated in the
+         subobject we are constructing.  If not, stop here. */
+      a_base_class_ptr corresp_virtual = corresp_base_class(bcp, ctor_bcp);
+      if (corresp_virtual->offset != ctor_bcp->offset) break;
+    }  /* if */
     if (bcp->derived_class->variant.class_struct_union.extra_info->
                                                   primary_base_class == bcp) {
       bcp = NULL;
       break;
-    } else {
-      /* Loop until we find the most derived base that shares its virtual
-         function table with bcp. */
-      derived = base_classes_of(bcp->derived_class);
-      while (derived->primary_base_class != bcp) derived = derived->next;
-      bcp = derived;
     }  /* if */
+    /* Loop until we find the most derived base that shares its virtual
+       function table with bcp. */
+    derived = base_classes_of(bcp->derived_class);
+    while (derived->primary_base_class != bcp) derived = derived->next;
+    bcp = derived;
   }  /* while */
-  if (ctor_bcp != NULL && most_derived_virtual != NULL) {
-    a_base_class_ptr corresp_virtual =
-                              corresponding_base_class(most_derived_virtual,
-                                                       ctor_bcp->derived_class,
-                                                       (a_base_class_ptr)NULL);
-    if (corresp_virtual->offset != ctor_bcp->offset) {
-      /* The virtual base class is not in the subobject, so stop at the
-         virtual base. */
-      bcp = most_derived_virtual;
-    }  /* if */
-  }  /* if */
   return bcp;
 }  /* find_base_sharing_virtual_function_table */
 
