@@ -2093,6 +2093,7 @@ do_assoc_type:
       break;
 #endif /* ifdef FIL */
     case sck_function:
+      (void)printf("sck_function\n");
       disp_ptr("routine.ptr", (char *)ptr->variant.routine.ptr, iek_routine);
       disp_ptr("parameters", (char *)ptr->variant.routine.parameters,
                iek_variable);
