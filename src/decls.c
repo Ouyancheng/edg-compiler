@@ -3375,7 +3375,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
             }  /* if */
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
           case dmt_thread:
             if (!has_static_storage_duration(variable->storage_class)) {
               /* The "thread" specifier can only be applied to variables with
@@ -3384,7 +3384,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
               new_modifiers->flags &= (~modifier_value);
             }  /* if */
             break;
-#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || MICROSOFT_EXTENSIONS_... */
 #if SUN_EXTENSIONS_ALLOWED
           case dmt_global_link_scope:
           case dmt_symbolic_link_scope:
@@ -7866,8 +7866,8 @@ static void diagnose_decl_modifiers_on_type_declaration(
                                     a_decl_modifiers_block_ptr  decl_modifiers,
                                     a_source_position           *pos)
 /*
-At least one invalid extended declaration modifier appeared on a type
-declaration.  Issue a diagnostic.
+At least one extended declaration modifier appeared on a type declaration.
+Issue a diagnostic if the modifier is invalid.
 */
 {
   a_decl_modifier  flags = decl_modifiers->flags;
@@ -7885,6 +7885,9 @@ declaration.  Issue a diagnostic.
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  /* The dllimport and dllexport attributes can validly appear on type
+     declarations. */
+  flags &= ~(a_decl_modifier)(DM_DLLIMPORT | DM_DLLEXPORT);
   if (microsoft_mode && flags != 0) {
     pos_diagnostic(es_discretionary_error, ec_declspec_invalid, pos);
   }  /* if */
@@ -11832,9 +11835,9 @@ continue_with_declaration:
 #if DECL_MODIFIERS_IN_USE
   if (declarator_omitted ||
       declared_storage_class == (a_storage_class)sc_typedef) {
-    /* A class type or typedef declaration: Diagnose invalid extended
-       declaration modifiers. */
+    /* A class type or typedef declaration. */
     if (decl_modifiers.flags != 0) {
+      /* Most declaration modifiers are not valid on type declarations. */
       diagnose_decl_modifiers_on_type_declaration(&decl_modifiers,
                                                   &decl_start_pos);
     }  /* if */
