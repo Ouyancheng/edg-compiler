@@ -1064,6 +1064,7 @@ ec_friend_is_nonreal_template;;"a qualified friend template declaration must ref
 ec_bad_class_template_decl;;"invalid specifier in class template declaration"
 ec_simple_incompatible_param;;"argument is incompatible with formal parameter"
 ec_cl_dep_name_option_only_in_cplusplus;;"option \"dep_name\" can be used only when compiling C++"
+ec_op_arrow_loop;;"loop in sequence of \"operator->\" functions starting at class %t1"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

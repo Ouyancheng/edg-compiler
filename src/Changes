@@ -1,5 +1,27 @@
 Version 2.44
 
+3/15/00  Detection of loop in operator-> sequence
+
+The front end looped when given a source program containing an
+operator-> loop.  This is now corrected, and an error message is
+issued.
+
+  struct B;
+  struct C;
+  struct A {
+    int z;
+    B& operator->();
+  };
+  struct B {
+    C& operator->();
+  };
+  struct C {
+    A& operator->();
+  };
+  void func(A p) {
+    int i = p->z;
+  }
+
 3/10/00  Lowering of condition declarations: missing "!= 0" test
 
 Boolean controlling expressions in the IL are supposed to be normalized,

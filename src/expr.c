@@ -1591,12 +1591,10 @@ The result is placed in *result.
 }  /* do_field_selection_operation */
 
 
-static a_boolean is_valid_op_arrow_return_type(a_type_ptr  return_type,
-                                               a_type_ptr  class_type)
+static a_boolean is_valid_op_arrow_return_type(a_type_ptr return_type)
 /*
 Return TRUE if return_type is a valid return type for an operator-> function
-that is called.  class_type is the class of which the function is a
-member.
+that is called.
 */
 {
   a_boolean  err = FALSE;
@@ -1619,14 +1617,90 @@ member.
     if (!is_immediate_class_type(return_type)) {
       /* Not a class type. */
       err = TRUE;
-    } else if (identical_types(return_type, class_type)) {
-      /* X& X::operator->() would involve unbounded recursion at runtime,
-         so we issue an error on such cases. */
-      err = TRUE;
     }  /* if */
   }  /* if */
   return !err;
 }  /* is_valid_op_arrow_return_type */
+
+
+/*
+Data structure used by process_overloaded_operator_arrow to check for
+loops in operator-> conversions.
+*/
+typedef struct an_operator_arrow_block *an_operator_arrow_block_ptr;
+typedef struct an_operator_arrow_block {
+  an_operator_arrow_block_ptr
+		parent;
+			/* The block for the previous iteration, or NULL if
+			   this is the first. */
+  a_type_ptr	class_type;
+			/* The class type in this iteration. */
+} an_operator_arrow_block;
+
+
+static void process_overloaded_operator_arrow(
+                                          an_operand                  *operand,
+                                          an_operator_arrow_block_ptr parent)
+/*
+operand is the first operand of a "->" field selection in C++.  See
+whether an operator-> function (or several) applies to convert the
+operand to a class or pointer to class.  If so, do the transformation
+and return the updated operand.  parent points to a list of blocks
+indicating transformations done so far on this operand, as a way to
+catch loops.
+*/
+{
+  /* Note that we do not use "is_overloadable_type_operand" here.  That's
+     deliberate: doing so could cause infinite loops. */
+  if (is_class_struct_union_type(operand->type)) {
+    an_operand                  result;
+    a_boolean                   processed;
+    a_type_ptr                  class_type = skip_typerefs(operand->type);
+    an_operator_arrow_block_ptr aobp;
+
+    /* See whether the class type has been encountered previously.
+       If so, we have a loop. */
+    for (aobp = parent; aobp != NULL; aobp = aobp->parent) {
+      if (class_type == aobp->class_type) {
+        /* Loop in operator-> return types. */
+        pos_ty_error(ec_op_arrow_loop, &operand->position, class_type);
+        conv_to_error_operand(operand);
+        goto end_of_routine;
+      }  /* if */
+    }  /* for */
+    /* Check for an overloaded operator->. */
+    /* The operator is treated as a unary operator (i.e., the field
+       following the "->" is not significant at this point). */
+    check_for_operator_overloading((an_opname_kind)onk_arrow,
+                                   /*unary_operator=*/TRUE,  /* sic */
+                                   /*must_be_member_function=*/TRUE,
+                                   /*try_conversions=*/FALSE,
+                                   /*has_predef_meaning=*/TRUE,
+                                   operand, (an_operand *)NULL,
+                                   &operand->position,
+                                   &result, &processed);
+    if (processed) {
+      /* An operator-> function was found and applied. */
+      copy_operand(&result, operand);
+      /* Check that the return type of the operator-> function is valid. */
+      if (!is_valid_op_arrow_return_type(result.type)) {
+        pos_ty2_error(ec_bad_return_type_for_op_arrow,
+                      &operand->position, class_type, result.type);
+        conv_to_error_operand(operand);
+      } else {
+        /* If the operator function returns a class object or reference to
+           class object, look for another operator->() function.  Maintain
+           a list of classes already encountered to allow checking for
+           loops. */
+        an_operator_arrow_block block;
+        block.parent = parent;
+        block.class_type = class_type;
+        process_overloaded_operator_arrow(operand, &block);
+      } /* if */
+    }  /* if */
+  }  /* if */
+end_of_routine:;
+}  /* process_overloaded_operator_arrow */
 
 
 static void scan_field_selection_operator
@@ -1645,7 +1719,7 @@ bound with the function in *bound_function_selector.
   a_boolean             is_arrow_operator, rvalue_result;
   a_type_ptr            class_struct_union_type = NULL;
   a_type_ptr            orig_class_struct_union_type;
-  a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
+  a_boolean             err = FALSE, found_id = FALSE;
   a_boolean             operand_1_is_complete_class = FALSE, local_err;
   a_boolean             need_operand_1_type_check = FALSE;
   a_boolean             allow_integral_constant_selection = FALSE;
@@ -1700,40 +1774,10 @@ bound with the function in *bound_function_selector.
     /* Operation is not allowed in this kind of expression. */
     operand_will_not_be_used_because_of_error(operand_1);
   } else {
-    /* In C++, the first operand of "->" may be a class object that is
-       converted to a class pointer via an operator->() function.  The operator
-       is treated as a unary operator (i.e., the field following the "->" is
-       not significant at this point).  If the operator function returns a
-       class object or reference to class object, look for another
-       operator->() function. */
     if (is_arrow_operator && C_dialect == C_dialect_cplusplus) {
-      /* Note that we do not use "is_overloadable_type_operand" here.  That's
-         deliberate: doing so could cause infinite loops. */
-      if (is_class_struct_union_type(operand_1->type)) {
-        do {
-          a_type_ptr class_type = skip_typerefs(operand_1->type);
-
-          check_for_operator_overloading((an_opname_kind)onk_arrow,
-                                         /*unary_operator=*/TRUE,  /* sic */
-                                         /*must_be_member_function=*/TRUE,
-                                         /*try_conversions=*/FALSE,
-                                         /*has_predef_meaning=*/TRUE,
-                                         operand_1, (an_operand *)NULL,
-                                         &operand_1->position,
-                                         result, &processed);
-          if (!processed) break;
-          /* An operator-> function was found and applied. */
-          copy_operand(result, operand_1);
-          /* Check that the return type of the operator-> function is
-             valid. */
-          if (!is_valid_op_arrow_return_type(result->type, class_type)) {
-            pos_ty2_error(ec_bad_return_type_for_op_arrow,
-                          &operand_1->position, class_type, result->type);
-            conv_to_error_operand(operand_1);
-            break;
-          }  /* if */
-        } while (is_class_struct_union_type(operand_1->type));
-      }  /* while */
+      /* Process overloaded operator->, if applicable. */
+      process_overloaded_operator_arrow(operand_1,
+                                        (an_operator_arrow_block_ptr)NULL);
     }  /* if */
     { an_expression_kind saved_expr_kind = expr_stack->expression_kind;
       if (allow_integral_constant_selection) {
