@@ -2621,6 +2621,16 @@ final semicolon if output_final_semi is TRUE.
     write_space();
     dump_type_name(type);
     write_tok_str(" {");
+    if (annotate) {
+      /* Display the struct alignment in an annotation comment. */
+      write_space();
+      start_comment();
+      write_tok_str(" alignment = ");
+      write_unsigned_num((unsigned long)type->alignment);
+      write_space();
+      end_comment();
+      write_space();
+    }  /* if */
     indent += 2;
     for (field = type->variant.class_struct_union.field_list;
          field != NULL;
@@ -2763,6 +2773,9 @@ final semicolon if output_final_semi is TRUE.
           write_unsigned_num(temp);
           write_tok_str((char *)((temp == 1) ? " bit" : " bits"));
         }  /* if */
+        write_tok_str(", type alignment = ");
+        write_unsigned_num((unsigned long)skip_typerefs(field->type)->
+                                                                    alignment);
         write_space();
         end_comment();
         write_space();
