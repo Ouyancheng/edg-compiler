@@ -3808,7 +3808,7 @@ then converting the result back to being THREADS-based if appropriate.
     switch (op) { 
       case eok_imultiply: 
         binary_operation(op, constant_1, constant_2, result_type, result, 
-          	             constant_context, evaluated_context, did_not_fold, 
+                         constant_context, evaluated_context, did_not_fold,
                          template_constant, err_pos); 
         if (!*did_not_fold) { 
           /* Convert the folded result back to a multiple of THREADS (unless
