@@ -1,5 +1,10 @@
 Version 2.43
 
+10/13/99 Improved wording on nontype template parameter with class type
+
+The diagnostic issued when a nontype template parameter has been declared
+with class type has been changed to make its meaning clearer.
+
 10/13/99 operator= that takes base class no longer taken as default operator=
 
 The default value for DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM
