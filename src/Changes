@@ -1,5 +1,25 @@
 Version 2.36
 
+5/1/97    Microsoft compatibility: explicit specializations inside a class
+          definition
+
+The Microsoft compiler permits a new-style specialization of a member
+function template within the class definition, even though this is
+not permitted by the Working Paper.  Furthermore, when a constructor
+is specialized with a signature that would, for a normal function,
+be considered a copy constructor, such a specialization suppresses the
+generation of an implicitly declared copy constructor.  The front
+end now emulates this behavior in Microsoft mode.
+
+  extern "C" int printf(char *, ...);
+  template <class T> struct A {
+    A(){}
+    template <class T2> A(const T2&);
+    template <> A(const A&){ printf("A(const A&) called\n"); }
+  };
+  A<int> ai;
+  A<int> ai2(ai);
+
 4/30/97   C++-generating back end: "extern" on definition of const variable
 
 In C++, the definition of a variable with a const-qualified type is

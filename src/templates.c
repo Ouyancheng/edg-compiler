@@ -3042,7 +3042,7 @@ matches a class type from the parameter list of a template function.
        is important that if type and templ_type are both A<T>, that the
        template argument lists are processed by the code above.  This is
        needed for binding template parameter values when doing partial
-       ordering comparisions. */
+       ordering comparisons. */
     match = TRUE;
   }  /* if */
   return match;
@@ -8647,24 +8647,30 @@ issued.
      a class template or a nested class within a class template will not
      have a template argument list. */
   if (arg_list != NULL) depth++;
-  /* Check the parent classes.  Stop if we find a parent class that is
-     specialized. */
-  parent_tp = sym->is_class_member ? sym->parent.class_type : NULL;
-  while (parent_tp != NULL) {
-    a_class_type_supplement_ptr	ctsp;
-    parent_tp = skip_typerefs(parent_tp);
-    /* If the parent class is a specialization, don't search any further.
-       The nesting depth is relative to the innermost specialization. */
-    if (parent_tp->variant.class_struct_union.is_specialized) break;
-    ctsp = parent_tp->variant.class_struct_union.extra_info;
-    /* If the enclosing class has a template argument list, increment the
-       nesting depth of this entity. */
-    if (ctsp->template_arg_list != NULL) depth++;
-    /* Process the next enclosing class, if any. */
-    parent_tp = parent_tp->source_corresp.is_class_member
-                                ? parent_tp->source_corresp.parent.class_type
-                                : NULL;
-  }  /* while */
+  if (decl_state->is_member_decl) {
+    /* If this declaration appears within a class, don't count the enclosing
+       classes.  This should only occur in Microsoft mode when an explicit
+       specialization appears within a class definition. */
+  } else {
+    /* Check the parent classes.  Stop if we find a parent class that is
+       specialized. */
+    parent_tp = sym->is_class_member ? sym->parent.class_type : NULL;
+    while (parent_tp != NULL) {
+      a_class_type_supplement_ptr	ctsp;
+      parent_tp = skip_typerefs(parent_tp);
+      /* If the parent class is a specialization, don't search any further.
+         The nesting depth is relative to the innermost specialization. */
+      if (parent_tp->variant.class_struct_union.is_specialized) break;
+      ctsp = parent_tp->variant.class_struct_union.extra_info;
+      /* If the enclosing class has a template argument list, increment the
+         nesting depth of this entity. */
+      if (ctsp->template_arg_list != NULL) depth++;
+      /* Process the next enclosing class, if any. */
+      parent_tp = parent_tp->source_corresp.is_class_member
+                                  ? parent_tp->source_corresp.parent.class_type
+                                  : NULL;
+    }  /* while */
+  }  /* if */
   if (depth != decl_state->number_of_template_param_clauses &&
       !decl_state->decl_scope_err) {
     /* The depths do not match, issue a diagnostic. */
@@ -8690,6 +8696,7 @@ that follows.
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
+  a_boolean			keep_func_info = FALSE;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
   a_source_position             decl_start_pos, id_pos;
   a_boolean                     has_parenthesized_initializer;
@@ -8697,6 +8704,7 @@ that follows.
   a_routine_ptr                 rp;
   a_variable_ptr                vp;
   a_boolean			is_definition;
+  a_boolean			is_constructor = FALSE;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -8758,13 +8766,14 @@ that follows.
                DI_QUALIFIED_NAME_ALLOWED |
                DI_IS_SPECIALIZATION |
                DI_PARENTHESIZED_INITIALIZER_ALLOWED |
-               DI_OPERATOR_NAME_ALLOWED;
+               DI_OPERATOR_NAME_ALLOWED |
+               (dso_flags & DSO_CONSTRUCTOR ? DI_IS_CONSTRUCTOR : 0);
     if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
         qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-               &declarator_ssep, &func_info);
+    declarator(di_flags, &do_flags, type, decl_state->class_declared_in,
+               &locator, &type, &declarator_ssep, &func_info);
     sym = NULL;
     has_parenthesized_initializer =
                               (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
@@ -8791,7 +8800,14 @@ that follows.
         reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
       if (is_function_type(type) && is_function_or_template_symbol(sym)) {
-        sym = find_matching_template_instance(sym, type);
+        if (decl_state->in_prototype_instantiation) {
+          /* A specialization in a prototype instantiation.  This can only
+             occur when a specialization appears within a class in Microsoft
+             mode.  Don't try to process the specialization. */
+          sym = NULL;
+        } else {
+          sym = find_matching_template_instance(sym, type);
+        }  /* if */
         if (sym == NULL) {
           /* No match was found and an error was issued. */
         } else if (sym->variant.routine.instance_ptr == NULL) {
@@ -8857,9 +8873,10 @@ that follows.
         is_definition = (curr_token == tok_assign ||
                          has_parenthesized_initializer);
       } else {
+        is_constructor = is_constructor_symbol(sym);
         is_definition = (curr_token == tok_lbrace ||
                          (curr_token == tok_colon &&
-                          is_constructor_symbol(sym)));
+                          is_constructor));
       }  /* if */
       if (scp->referenced && !already_specialized) {
         pos_sy_error(ec_specialization_of_referenced_entity,
@@ -9004,8 +9021,35 @@ that follows.
             sym->variant.routine.ptr->type = type;
           }  /* if */
           /* Scan the function body. */
-          scan_function_body(sym->variant.routine.ptr, &func_info,
-                             SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
+          if (decl_state->is_member_decl) {
+            /* A Microsoft mode specialization that appears in a class context.
+               Cache the function body now and scan it later during the class
+               fixup process. */
+            a_boolean		local_defines_something;
+            a_token_cache	body_cache;
+            clear_token_cache(&body_cache, /*reusable=*/TRUE);
+            cache_function_template_body(&body_cache, is_constructor,
+                                         &local_defines_something,
+                                         &locator.source_position);
+            /* Add the specialization to the routine fixup list for the class
+               being defined.  This routine makes a copy of the body cache
+               so body_cache should not be discarded here. */
+            add_routine_fixup_for_specialization(decl_state->class_declared_in,
+                                                 sym, &func_info, &body_cache);
+            /* The param_id_list is needed because the func_info information
+               is on the routine fixup list.  Don't discard it below. */
+            keep_func_info = TRUE;
+            /* Determine if this is a copy constructor.  If so, set the class
+               symbol supplement flags appropriately.  Note that in-class
+               specializations are only permitted in Microsoft mode, so
+               a specialization can only be considered a copy constructor
+               in Microsoft mode too. */
+            member_decl_is_copy_constructor(rp, decl_state->class_declared_in,
+                                            /*compiler_generated=*/FALSE);
+          } else {
+            scan_function_body(sym->variant.routine.ptr, &func_info,
+                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
+          }  /* if */
           /* Leave it to the caller to advance past the closing right brace. */
           *(decl_state->final_token_ptr) = tok_rbrace;
         } else {
@@ -9014,7 +9058,7 @@ that follows.
         }  /* if */
       }  /* if */
     }  /* if */
-    done_with_func_info(func_info);
+    if (!keep_func_info) done_with_func_info(func_info);
     remove_stop_token(tok_semicolon);
   }  /* if */
   db_exit();
@@ -9155,6 +9199,9 @@ are either the specialization of a template or a template declaration.
         ssep->kind == (a_scope_kind)sck_namespace ||
         ssep->kind == (a_scope_kind)sck_namespace_extension)) {
       /* A valid template specialization scope. */
+    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+               microsoft_mode) {
+      /* Microsoft permits specializations to appear in class scopes. */
     } else {
       if (!decl_state.decl_scope_err) {
         pos_error(ec_explicit_specialization_not_in_namespace_scope,

@@ -68,6 +68,11 @@ typedef struct a_routine_fixup {
   a_token_cache function_body_token_cache;
 			/* A pointer to the token cache that describes the
 			   function body. */
+  a_byte_boolean
+		is_specialization;
+			/* TRUE if this entry is for a Microsoft mode
+			   explicit specialization that appeared within
+			   the class definition. */
 } a_routine_fixup;
 
 
@@ -168,6 +173,7 @@ initialize it.
   rfp->symbol = NULL;
   rfp->class_type = class_type;
   rfp->def_arg_expr_fixup_list = NULL;
+  rfp->is_specialization = FALSE;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -233,6 +239,27 @@ the current class.  Otherwise free it for later use.
   }  /* if */
   curr_routine_fixup = NULL;
 }  /* dispose_of_curr_routine_fixup */
+
+
+void add_routine_fixup_for_specialization(a_type_ptr		class_type,
+					  a_symbol_ptr		symbol,
+					  a_func_info_block	*func_info,
+					  a_token_cache_ptr	body_cache)
+/*
+Create a routine fixup entry for a specialization and add it to the routine
+fixup list.  This is used for Microsoft mode specializations that can appear
+in class contexts.
+*/
+{
+  a_routine_fixup_ptr	rfp;
+
+  rfp = alloc_routine_fixup(class_type);
+  rfp->symbol = symbol;
+  rfp->func_info = *func_info;
+  rfp->function_body_token_cache = *body_cache;
+  rfp->is_specialization = TRUE;
+  add_to_routine_fixup_list(rfp);
+}  /* add_routine_fixup_for_specialization */
 
 
 static a_class_fixup_ptr alloc_class_fixup(void)
@@ -882,7 +909,8 @@ routine recursively for each nested class.
                                                      is_template_based);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
-        if ((is_real_template_instantiation && !is_friend) ||
+        if ((is_real_template_instantiation &&
+             !is_friend && !rfp->is_specialization) ||
             (is_nonreal_template_instantiation && is_friend)) {
           /* Discard the token cache for member functions of template
              classes -- instantiate_function_template does its thing based
@@ -4982,6 +5010,35 @@ is TRUE when this is called for a member function definition.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+void member_decl_is_copy_constructor(a_routine_ptr	rout_ptr,
+				     a_type_ptr		class_type,
+				     a_boolean		compiler_generated)
+/*
+Determine whether the routine pointed to by rout_ptr is a copy constructor.
+Update the flags in the class symbol supplement accordingly.
+*/
+{
+  a_class_symbol_supplement_ptr	cssp;
+  a_type_qualifier_set          qualifiers;
+
+  cssp = symbol_supplement_for_class(class_type);
+  if (is_copy_constructor(rout_ptr, class_type, &qualifiers,
+                          /*is_declarative_context=*/TRUE)) {
+    cssp->has_copy_constructor = TRUE;
+    cssp->has_copy_constructor_for_const_object |= 
+                                               ((qualifiers & TQ_CONST) != 0);
+    if (!compiler_generated) {
+      /* If a user-defined copy constructor is declared for the class,
+         construction by bitwise copying is not allowed.  (On the other
+         hand, this flag *may* be TRUE even when the compiler generates
+         a copy constructor.) */
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* member_decl_is_copy_constructor */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_type_ptr              class_type,
                                  a_type_ptr              member_type,
@@ -5004,7 +5061,6 @@ declared member functions.
   a_symbol_ptr                  sym, overload_sym;
   a_routine_ptr                 rtn;
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
-  a_type_qualifier_set          qualifiers;
   a_type_ptr                    tp;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
@@ -5274,19 +5330,7 @@ declared member functions.
         }  /* if */
         /* Determine if this is a copy constructor.  If so, set the class
            symbol supplement flags appropriately. */
-        if (is_copy_constructor(rtn, class_type, &qualifiers,
-                                /*is_declarative_context=*/TRUE)) {
-          cssp->has_copy_constructor = TRUE;
-          cssp->has_copy_constructor_for_const_object |= 
-                                               ((qualifiers & TQ_CONST) != 0);
-          if (!compiler_generated) {
-            /* If a user-defined copy constructor is declared for the class,
-               construction by bitwise copying is not allowed.  (On the other
-               hand, this flag *may* be TRUE even when the compiler generates
-               a copy constructor.) */
-            cssp->construction_by_bitwise_copy_allowed = FALSE;
-          }  /* if */
-        }  /* if */
+        member_decl_is_copy_constructor(rtn, class_type, compiler_generated);
       }  /* if */
     } else if (rtn->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Set the pointer to the destructor symbol in the class symbol
