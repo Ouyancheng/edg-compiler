@@ -3152,12 +3152,13 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void prepare_property_ref_incr_decr(a_boolean         is_increment,
-                                    a_source_position *operator_position,
-                                    an_operand        *operand,
-                                    an_operand        *operand_clone,
-                                    an_operand        *result,
-                                    a_boolean         *processed)
+static void prepare_property_ref_incr_decr(
+                                          a_boolean         is_increment,
+                                          a_source_position *operator_position,
+                                          an_operand        *operand,
+                                          an_operand        *operand_clone,
+                                          an_operand        *result,
+                                          a_boolean         *processed)
 /*
 Do the first part of processing for an increment or decrement of a
 reference to a field declared with the Microsoft C++ extension
