@@ -2075,9 +2075,9 @@ an existing entry if possible.  The qualifiers are added only if
 they are not already present.
 */
 {
-  register a_type_ptr ptr;
-  register a_type_ptr *btaep;
-  int                 element_num;
+  register a_type_ptr            ptr;
+  register a_type_ptr            *btaep;
+  a_based_type_array_element_num element_num;
 
   /* Add only qualifiers not present already in the type. */
   is_const = is_const && !is_const_qualified_type(base_type);
