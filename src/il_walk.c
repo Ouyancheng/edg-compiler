@@ -29,10 +29,6 @@ il_walk.c -- Routines to walk the intermediate language tree.
 /* Additional header files. */
 #include "il_walk.h"
 
-#if DO_IL_LOWERING
-#include "lower_il.h"
-#endif /* DO_IL_LOWERING */
-
 #if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
 
 #if !ORPHAN_PROCESSING_NEEDED
