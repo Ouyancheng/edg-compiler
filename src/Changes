@@ -2,6 +2,19 @@ Version 3.3, July 31, 2003
 
 7/31/03  IL version number changed to 3.3
 
+7/31/03  Export template enabling
+
+The EXPORT_ENABLING_POSSIBLE configuration macro has been added to make
+it possible to prevent users from enabling exported templates.
+
+7/31/03  Export template and mangling without distinct template signatures
+
+The export mechanism requires that distinct template signatures be
+used.  Previously, the front end did not enforce this requirement and
+an internal error could result if exported templates were used when
+distinct template signatures were disabled.  The front end now enforces
+this requirement.
+
 7/31/03  Unset variable in instantiation_directive
 
 In certain error cases, the do_flags variable in instantiation_directive

@@ -265,6 +265,7 @@ Initialize the option information table.
                          "definition_list_file",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+#if EXPORT_ENABLING_POSSIBLE
   add_option_description(optk_exported_template_file_name,
                          "exported_template_file",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -272,6 +273,7 @@ Initialize the option information table.
   add_option_description(optk_template_directory, "template_directory", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+#endif /* EXPORT_ENABLING_POSSIBLE */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   add_option_description(optk_implicit_template_inclusion,
@@ -908,6 +910,7 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if EXPORT_ENABLING_POSSIBLE
   add_option_description(optk_export_template,
                          "export",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -916,6 +919,7 @@ Initialize the option information table.
                          "no_export",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* EXPORT_ENABLING_POSSIBLE */
 #if DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
   /* When passing stdarg references to the back end by default, give the
      ability to turn off this feature.  When not passing such references,
@@ -2349,7 +2353,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!(option_kind_used[(int)optk_export_template])) {
       /* If export template processing was not explicitly set by a command line
          option, set it now. */
-      export_template_allowed = TRUE;
+      export_template_allowed = EXPORT_ENABLING_POSSIBLE;
     }  /* if */
     if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
       /* If nonstandard using-decl was not explicitly set by a command line
@@ -3743,6 +3747,14 @@ enable_microsoft_mode:
       export_template_allowed = FALSE;
     }  /* if */
   }  /* if */
+  if (!distinct_template_signatures && export_template_allowed) {
+    /* We're not generating distinct signatures for template instances, but
+       export template is enabled.  If export template processing was not
+       explicitly requested, turn it off. */
+    if (!option_kind_used[(int)optk_export_template]) {
+      export_template_allowed = FALSE;
+    }  /* if */
+  }  /* if */
   if (export_template_allowed) {
     /* Export template processing requires dependent name processing. */
     if (option_kind_used[(int)optk_dependent_name_processing] &&
@@ -3750,6 +3762,12 @@ enable_microsoft_mode:
       /* The option --no_dep_name was used: export template requires
          that dependent name processing is done. */
       command_line_error(ec_cl_export_template_requires_dep_name);
+    }  /* if */
+    /* Export template processing requires distinct template signatures. */
+    if (!distinct_template_signatures) {
+      /* Distinct template signatures are not being used: export template
+         requires distinct template signatures. */
+      command_line_error(ec_cl_export_template_requires_distinct_templ_sigs);
     }  /* if */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (option_kind_used[(int)optk_implicit_template_inclusion] &&
@@ -4121,7 +4139,13 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
+#if EXPORT_ENABLING_POSSIBLE
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED;
+#else /* !EXPORT_ENABLING_POSSIBLE */
+  /* Export is not supported by this configuration -- force it to be
+     disabled. */
+  export_template_allowed = FALSE;
+#endif /* EXPORT_ENABLING_POSSIBLE */
   export_keyword_enabled = TRUE;
   curr_command_line_macro_def = NULL;
   gpp_dependent_name_lookup = FALSE;
