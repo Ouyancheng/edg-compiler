@@ -4329,6 +4329,19 @@ is not a template declaration scope.
   }  /* if */
   check_assertion(scope_stack[depth_scope_stack].kind ==
                                 (a_scope_kind)sck_template_declaration);
+  if (curr_token == tok_lbrace ||
+      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
+    /* This is a defining declaration of the function template. */
+    func_info->is_definition = TRUE;
+    if (func_info->function_type_from_typedef) {
+      /* Just as it is an error when a normal function is defined for the
+         function type to come from a typedef, so too is that an error when
+         a function template is being defined. */
+      error(ec_function_type_must_come_from_declarator);
+      /* Copy the type entry, since the typedef type may not be shared. */
+      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr));
+    }  /* if */
+  }  /* if */
   /* Compute the effective declaration level.  If this is a friend,
      the proper adjustment will be made. */
   effective_decl_level =
@@ -4353,6 +4366,12 @@ is not a template declaration scope.
       /* We must have nonfunction class member.  This is an error, so set sym
          to NULL to force the creation of a fake member function symbol. */
       pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, locator->specific_symbol);
+      sym = NULL;
+      set_to_error_locator(*locator);
+    } else if (is_friend_decl && func_info->is_definition) {
+      /* A member function cannot be defined in a friend declaration. */
+      pos_sy_error(ec_bad_scope_for_definition,
                    &locator->source_position, locator->specific_symbol);
       sym = NULL;
       set_to_error_locator(*locator);
@@ -4404,19 +4423,6 @@ is not a template declaration scope.
                     ec_template_operator_new : ec_template_operator_delete,
                 &locator->source_position);
       set_to_error_locator(*locator);
-    }  /* if */
-  }  /* if */
-  if (curr_token == tok_lbrace ||
-      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
-    /* This is a defining declaration of the function template. */
-    func_info->is_definition = TRUE;
-    if (func_info->function_type_from_typedef) {
-      /* Just as it is an error when a normal function is defined for the
-         function type to come from a typedef, so too is that an error when
-         a function template is being defined. */
-      error(ec_function_type_must_come_from_declarator);
-      /* Copy the type entry, since the typedef type may not be shared. */
-      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr));
     }  /* if */
   }  /* if */
   if (sym != NULL) {

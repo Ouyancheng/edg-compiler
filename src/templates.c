@@ -2208,10 +2208,12 @@ Instantiate the body of the template function associated with tip.
      a reference, we should set the referenced flag anyway, so that
      the back-end will be sure to generate the function. */ 
   tip->instance_sym->variant.routine.ptr->source_corresp.referenced = TRUE;
-  if (tssp->befriending_classes != NULL) {
+  if (tssp->befriending_classes != NULL && !rout_sym->is_class_member) {
     /* If this template is a friend of one or more classes, check whether
        the template was defined in a friend declaration.  If so, update
-       the friend information accordingly. */
+       the friend information accordingly.  This is not done for functions
+       that are class members, because they cannot be defined in friend
+       declarations. */
     check_for_definition_in_friend_declaration(tssp, rout_ptr);
   }  /* if */
 done:;

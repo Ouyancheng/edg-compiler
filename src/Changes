@@ -1,5 +1,29 @@
 Version 2.36
 
+4/11/97   Internal error when a template that is member of the current class
+          is declared as a friend
+
+An internal error could result when a function template that is a member
+of a given class is defined within the class and is also declared as
+a friend within the class.  This has been fixed.
+
+  template <class Z> struct A {
+    template <class U> int f(U) {return 0;}
+    template <class T> template <class U> friend int A<T>::f(U);
+  };
+  A<short> a;
+  int i = a.f(37);
+
+4/11/97   A member function template may not be defined in a friend declaration
+
+The front end incorrectly accepted a friend declaration that is used
+to define a member function of a the class.  This has been fixed.
+
+  template <class Z> struct A {
+    template <class U> int f(U);
+    template <class T> template <class U> friend int A<T>::f(U) {}
+  };
+
 4/10/97   Types declared in parameter declarations in pcc mode
 
 Struct and enum tags introduced in parameter declarations are no longer
