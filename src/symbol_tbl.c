@@ -6638,6 +6638,27 @@ NULL.
 #endif /* if */
 }  /* end_of_scope_symbol_check */
 
+#if ORPHAN_PROCESSING_NEEDED
+
+static void add_scope_orphaned_il_lists(a_scope_ptr scope)
+/*
+If the indicated scope has local types or static variables, call
+add_orphaned_file_scope_il_list to add an orphan list in the file scope.
+Also use recursion to visit all block scopes attached to this scope and
+do the same processing.
+*/
+{
+  a_scope_ptr block_scope;
+
+  add_orphaned_file_scope_il_list(scope->types, scope->variables);
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    add_scope_orphaned_il_lists(block_scope);
+  }  /* for */
+}  /* add_scope_orphaned_il_lists */
+
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 void pop_scope(void)
 /*
@@ -6797,6 +6818,7 @@ End a name scope by popping an entry off the scope stack.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
   if (debug_level >= 3) {
+    /* Display source sequence lists for debug purposes. */
     if (il_scope != NULL && il_scope->source_sequence_list != NULL) {
       fprintf(f_debug, "source sequence list:\n");
       db_source_sequence_list(il_scope->source_sequence_list);
@@ -6835,28 +6857,23 @@ End a name scope by popping an entry off the scope stack.
       break;
     }  /* if */
   }  /* for */
-#if DO_IL_LOWERING
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
+#if DO_IL_LOWERING
     /* Do IL lowering (change the C++ IL into C IL). */
     lower_il_memory_region(old_memory_region_number);
-  }  /* if */
 #endif /* DO_IL_LOWERING */
 #if ORPHAN_PROCESSING_NEEDED
-  if (kind == (a_scope_kind)sck_function ||
-      kind == (a_scope_kind)sck_block) {
-    /* If a function or block scope has local types or static variables,
-       make a special entry to record those orphan lists on the il_header
-       orphaned_il_list so they can be found when processing the file
-       scope memory region. */
-    if (il_scope != NULL &&
-        (il_scope->types != NULL || il_scope->variables != NULL)) {
-      add_orphaned_file_scope_il_list(il_scope->types, il_scope->variables);
+    if (kind == (a_scope_kind)sck_function) {
+      /* If a function or block scope has local types or static variables,
+         make a special entry to record those orphan lists on the il_header
+         orphaned_il_list so they can be found when processing the file
+         scope memory region.  Note that processing for block scopes is done
+         at the end of the function scope to give IL lowering a chance to
+         add variables and types in block scopes. */
+      add_scope_orphaned_il_lists(il_scope);
     }  /* if */
-  }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  if (!old_region_still_needed) {
-    /* The old memory region is no longer needed. */
     /* Clear out the shareable constants table for the file scope or a
        function scope. */
     if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {

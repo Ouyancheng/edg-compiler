@@ -1,5 +1,11 @@
 Version 2.20
 
+10/15/93 Orphan lists for block scopes
+
+The generation of orphan lists for block scopes is now done at the end
+of the function scope to give IL lowering a chance to add local types
+and static variables in block scopes.
+
 10/14/93 IL CHANGE: assoc_handler field in a_scope
 
 The scope entry associated with a handler now contains a pointer to the
