@@ -1,5 +1,17 @@
 Version 3.2
 
+2/20/03  Abort in extract_constant_from_operand, "?" operator in C mode
+
+An abort in extract_constant_from_operand has been fixed.  The
+abort occurred in C mode on a "?" operator in a constant expression,
+where the first operand's value is not known at compile time.
+
+  void *f();
+  void*(*p)() = f ? f : f;
+  int main(void) {
+    return 0;
+  } 
+
 2/20/02  Abort in process_local_types on export cases
 
 An abort has been fixed in process_local_types (il_walk.c line 2377

@@ -6004,6 +6004,11 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
              is_error_operand(operand_3)) {
     /* Some error. */
     make_error_operand(result);
+  } else if (curr_expr_kind_is_const()) {
+    /* A constant expression where the value of the first operand is
+       not known at compile time.  Error. */
+    error_in_operand(ec_constant_value_not_known, operand_1);
+    make_error_operand(result);
   } else {
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
