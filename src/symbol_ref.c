@@ -908,9 +908,9 @@ projection symbol.
         if (!(kind & SRK_USE) || suppress_used_before_set_warnings ||
             sym_ptr->variant.variable.value_has_been_set) {
           /* No diagnostic. */
-        } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-                   !vp->source_corresp.is_local_to_function) {
-          /* A block-extern variable declaration -- no diagnostic. */
+        } else if (!vp->source_corresp.is_local_to_function) {
+          /* A block-extern variable or a namespace-scope variable with
+             internal linkage -- no diagnostic. */
         } else {
           /* Variable's value has not been set yet.  Issue a warning, if
              appropriate. */
@@ -927,10 +927,7 @@ projection symbol.
               suppress_warning = TRUE;
             }  /* if */
           }  /* if */
-          if (depth_scope_stack == depth_innermost_namespace_scope) {
-            /* An unset variable with internal linkage (e.g., one declared
-               extern inside an unnamed namespace). */
-          } else if (!suppress_warning) {
+          if (!suppress_warning) {
             /* To determine whether to suppress the warning, examine the scope
                stack for labels and uncompleted loops that might enable the
                program to set the variable in code that has not yet been seen

@@ -1,5 +1,16 @@
 Version 2.36
 
+4/14/97   Internal error while issuing variable-used-before-set warning
+
+An internal error is no longer issued on the following, in which a default
+argument references an undefined variable that is a member of an unnamed
+namespace:
+
+  namespace {
+    extern int i;
+  }
+  void f(int x = i);      // use of "i" no longer causes an internal error
+
 4/14/97   Microsoft compatibility: uninitialized const variable
 
 In Microsoft compatibility mode, when an uninitialized const variable is
