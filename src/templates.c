@@ -170,6 +170,13 @@ static unsigned long
 		num_partial_order_candidates_allocated;
 #endif /* DEBUG */
 
+#if CHECKING
+a_boolean	any_friend_state_changed;
+			/* TRUE if any template declarations had their friend
+			   status changed between the initial scan and the
+			   later prescan. */
+#endif /* CHECKING */
+
 /*
 Structure used to pass information about the current template declaration
 between the routines used to implement the processing of template
@@ -179,11 +186,6 @@ typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 typedef struct a_tmpl_decl_state {
   a_boolean	is_template_friend;
 			/* TRUE if this is a friend declaration. */
-  a_boolean	friend_state_changed;
-			/* TRUE if the declaration was originally considered
-			   to be a friend declaration by the initial prescan
-			   and was later changed to a nonfriend after doing
-			   the prescan to find the declarator. */
   a_boolean	is_member_decl;
 			/* TRUE if this declaration appeared in a class
 			   scope. */
@@ -281,7 +283,6 @@ Initialize a template declaration state block.
 */
 {
   tdsp->is_template_friend = FALSE;
-  tdsp->friend_state_changed = FALSE;
   tdsp->is_member_decl = FALSE;
   tdsp->is_specialization = FALSE;
   tdsp->is_full_specialization = FALSE;
@@ -318,11 +319,6 @@ Free the token caches that were used while processing a template declaration.
   }  /* if */
   /* Discard the token cache used to store the template parameter list. */
   discard_token_cache(&decl_state->param_list_cache);
-  /* If the friend state changed between the initial prescan and the later one,
-     an error should have been issued somewhere. */
-  check_assertion_str2(!decl_state->friend_state_changed || total_errors != 0,
-                       "wrapup_templ_decl_state:",
-                       "silent change in friend state");
 }  /* wrapup_templ_decl_state */
 
 
@@ -7897,13 +7893,15 @@ instantiation, then you don't know what X is.
   if ((is_friend != decl_state->is_template_friend) &&
       decl_state->is_member_decl) {
     /* The initial prescan found a tok_friend, but this prescan did not
-       find it amoung the decl-specifiers of the declaration.  This can
+       find it among the decl-specifiers of the declaration.  This can
        occur if "friend" appears later in some invalid position.  Update
        the flag to reflect the newly discovered state.  Note that we
        only do this if is_member_decl is TRUE (a declaration outside of
        a class should never be considered a friend). */
     decl_state->is_template_friend = is_friend;
-    decl_state->friend_state_changed = TRUE;
+#if CHECKING
+    any_friend_state_changed = TRUE;
+#endif /* CHECKING */   
   }  /* if */
   if (tp != NULL) tp = skip_typerefs(tp);
   /* The following is_class_struct_union_type test is needed because in
@@ -10007,6 +10005,11 @@ specific definition that made it unnecessary.
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+  /* If any friend state changed between the initial prescan and the later one,
+     an error should have been issued somewhere. */
+  check_assertion_str2(any_friend_state_changed || total_errors != 0,
+                       "instantiation_wrapup:",
+                       "silent change in friend state");
   db_exit();
 }  /* instantiation_wrapup */
 
@@ -10868,6 +10871,9 @@ Initializations for template.
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
 #endif /* DEBUG */
+#if CHECKING
+  any_friend_state_changed = FALSE;
+#endif /* CHECKING */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
   instantiation_info_file_name = NULL;
