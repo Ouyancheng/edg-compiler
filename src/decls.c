@@ -8200,8 +8200,8 @@ NULL.
     free_attribute_list(attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if USER_CONTROL_OF_STRUCT_PACKING
   if (decl_modifiers != NULL && decl_modifiers->alignment != 0) {
     if (decl_modifiers->alignment < type_ptr->alignment) {
       /* Microsoft compilers ignore __declspec(align(...)) constructs that
@@ -8213,12 +8213,12 @@ NULL.
                          &locator->source_position);
     }  /* if */
   }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
     apply_microsoft_attributes(p_ms_attributes, (char*)tp, iek_type,
                                MSAT_TYPEDEF);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
