@@ -514,17 +514,17 @@ etc.
 #if 0
       /* Option to output old-style directive? */
 #endif /* 0 */
-      (void)fputs("#line ", f_C_output);
+      (void)fprintf(f_C_output, "#line %lu", line_number);
+      curr_output_seq_number = seq;
       if (new_output_file != curr_output_file) {
         /* The file name is put out only if it changed. */
         curr_output_file = new_output_file;
 #if 0
         /* Need to escape special characters? */
 #endif /* 0 */
-        (void)fprintf(f_C_output, "\"%s\" ", curr_output_file->file_name);
+        (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
       }  /* if */
-      (void)fprintf(f_C_output, "%lu\n", line_number);
-      curr_output_seq_number = seq;
+      (void)fputc('\n', f_C_output);
       /* There must be a line following a #line directive, and the line's
          number is already set, so consider the line started already. */
       curr_output_column = 1;
@@ -2499,10 +2499,10 @@ Generate code for the indicated statement.
       write_str(";");
       break;
     case stmk_label:
-      /* Label statement: generate "name:". */
+      /* Label statement: generate "name:;". */
       /* Labels for "break" and "continue" are compiler-generated. */
       gen_name_allowing_unnamed(&statement->variant.label->source_corresp);
-      write_str(":");
+      write_str(":;");
       break;
     case stmk_return:
       /* "return" statement: generate "return;" or "return expr;". */
