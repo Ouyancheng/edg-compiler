@@ -1,5 +1,13 @@
 Version 2.15
 
+3/3/93  Allow const/volatile qualifier on new-type-name
+
+The syntax of ARM 5.3.3 does not permit a type qualifier on new-type-name,
+but that was probably an oversight (comment by Stroustrup at an X3J16
+meeting).  Now, instead of reporting an error, we allow the qualifier and
+(pending a change to the language definition) issue a warning in strict
+ANSI mode.
+
 3/3/93  Error on illegal function qualifier
 
 An error is now issued on all illegal function qualifiers -- e.g., when a
