@@ -3605,15 +3605,18 @@ initialized.  These are addressed in the course of the processing.
                                       : ilm_ctor_initializer_name,
                                     &gid_err);
           if (member_or_base_sym != NULL) {
+            /* Check if a template-dependent entity is being initialized: */
             if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
+              /* A mem-initializer for a field: */
               dependent_class_init = dependent_type_could_be_class(
                                  member_or_base_sym->variant.field.ptr->type);
-            } else if (is_type_template_param_symbol(member_or_base_sym)) {
-              /* This is presumably a mem-initializer for a dependent base. */
-              template_param_init = TRUE;
-              dependent_class_init = TRUE;
-            } else if (is_nonreal_instance_class_symbol(member_or_base_sym)) {
-              dependent_class_init = TRUE;
+            } else if (is_type_symbol(member_or_base_sym)) {
+              /* This is presumably a mem-initializer for a base. */
+              a_type_ptr  type = type_symbol_type(member_or_base_sym);
+              type = skip_typerefs(type);
+              dependent_class_init = dependent_type_could_be_class(type);
+              template_param_init =
+                               (type->kind == (a_type_kind)tk_template_param);
             }  /* if */
           }  /* if */
           if ((!class_name_injection_enabled || microsoft_mode) &&
@@ -3833,6 +3836,7 @@ initialized.  These are addressed in the course of the processing.
                            locator_for_curr_id.specific_symbol);
           }  /* if */
           init_type = type_symbol_type(member_or_base_sym);
+          init_type = skip_typerefs(init_type);
           if (template_param_init) {
             init_type = proxy_class_for_template_param(init_type);
           }  /* if */
@@ -3840,7 +3844,6 @@ initialized.  These are addressed in the course of the processing.
             bcp = NULL;
           } else {
             a_base_class_ptr  found_bcp = NULL;
-            init_type = skip_typerefs(init_type);
             /* Locate it in the base classes list for the current class.  Note
                that only direct and virtual base classes can be specified. */
             bcp = ctsp->base_classes;
