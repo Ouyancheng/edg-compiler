@@ -1382,8 +1382,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, an_asm_entry_ptr, iek_asm_entry);
         if (ptr->is_asm_func_body) {
-          walk_string_ptr(ptr->variant.asm_func_body.value, iek_string_text,
-                          ptr->variant.asm_func_body.length);
+          walk_string_ptr(ptr->variant.asm_func_body, iek_other_text, 0);
         } else {
           walk_ptr(ptr->variant.asm_string, a_constant_ptr, iek_constant);
         }  /* if */

@@ -5933,8 +5933,7 @@ to it.
   ap->next = NULL;
   if (is_asm_func_body) {
     ap->is_asm_func_body = TRUE;
-    ap->variant.asm_func_body.length = 0;
-    ap->variant.asm_func_body.value = NULL;
+    ap->variant.asm_func_body = NULL;
   } else {
     ap->is_asm_func_body = FALSE;
     ap->variant.asm_string = NULL;

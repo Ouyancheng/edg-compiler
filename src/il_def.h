@@ -3697,21 +3697,14 @@ typedef struct an_asm_entry {
 			   definition argument (an uninterpreted line of
 			   assembly language). */
     /* When is_asm_func_body == TRUE: */
-    struct {
-      a_targ_size_t
-		length;
-			/* Length of the string in bytes.  Includes a
-			   trailing NULL. */
-      char	*value;
-			/* The bytes of the string that represents the body
-			   of an asm function (zero or more uninterpreted
-			   lines of assembly language).  Note: this is a
-			   literal copy from the source program, with all
-			   whitespace, no translation of unprintable
-			   characters, etc.  It is NULL terminated, but it
-			   may have other NULL characters, so the length
-			   field should be used. */
-    } asm_func_body;
+    char	*asm_func_body;
+			/* Null-terminated string representing the body of
+			   an asm function (zero or more uninterpreted lines
+			   of assembly language).  Note: this is a literal
+			   copy from the source program, with all whitespace,
+			   no translation of unprintable characters, etc.,
+			   except that it does not include comments unless
+			   INCLUDE_ASM_FUNCTION_COMMENTS is TRUE. */
   } variant;
 } an_asm_entry;
 
