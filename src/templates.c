@@ -13319,13 +13319,12 @@ instantiation, then you don't know what X is.
 {
   a_type_ptr			tp;
   a_symbol_ptr			sym = NULL;
-  a_scope_stack_entry_ptr	ssep;
   a_boolean			is_friend;
 
   db_enter(4, "prescan_nonclass_template_declaration");
 
-  ssep = &scope_stack[depth_scope_stack];
-  check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
+  check_assertion(scope_stack[depth_scope_stack].kind ==
+                                       (a_scope_kind)sck_template_declaration);
   tp = prescan_and_find_declarator(&decl_state->decl_token_cache, &is_friend);
   /* Flush and remaining tokens from the reusable cache. */
   while (curr_token != tok_end_of_source) {
@@ -13380,7 +13379,7 @@ instantiation, then you don't know what X is.
   /* Save the symbol that points to the template whose member is being
      instantiated.  This will be NULL if this is not a member
      declaration. */
-  ssep->templ_member_class_sym = sym;
+  scope_stack[depth_scope_stack].templ_member_class_sym = sym;
   db_exit();
 }  /* prescan_nonclass_template_declaration */
 

@@ -1,5 +1,24 @@
 Version 2.46
 
+1/30/02  Spurious error when conversion template appears in a deeply nested
+         namespace
+
+A corrupted scope stack pointer could be used when processing the definition
+of a conversion operator that is a member of a class template when the
+enclosing class is deeply nested within namespaces.  This would usually
+result in a spurious "template argument list must match the parameter
+list" error on the definition.  This has been fixed.
+
+namespace N1 { namespace N2 { namespace N3 { namespace N4 { namespace N5 {
+namespace N6 { namespace N7 { namespace N8 { namespace N9 { namespace N10 {
+namespace N11 { namespace N12 { namespace N13 { namespace N14 { namespace N15 {
+template <class T> struct A {
+  operator int();
+};
+template <class T> A<T>::operator int(){}
+} } } } } } } } } } } } } } }
+
+
 1/29/02  Repeated friend class declarations (IL Change)
 
 The front end use to avoid duplicates in the representation of friend class
