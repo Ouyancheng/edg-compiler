@@ -3043,7 +3043,9 @@ It cannot be used for checking access (see have_access_to_symbol).
   if (fundamental_symbol_of(sym_ptr)->kind ==
                                        (a_symbol_kind)sk_overloaded_function) {
     /* Overloaded function.  Cannot tell what the access is; leave it
-       to be checked later. */
+       to be checked later.  This may not be necessary because overloaded
+       functions shouldn't get into the main portion of the access checking
+       code. */
     access = (an_access_specifier)as_public;
   } else if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
     /* Projection symbol. */
@@ -3635,7 +3637,8 @@ Verify that the indicated member symbol is not ambiguous and that we have
 access to it.  If the user did not supply an error description pointer,
 then issue the error, otherwise return the information to the caller so
 that the caller can issue an error later if appropriate.  In case of an
-ambiguity, the locator is set to an error locator.
+ambiguity, the locator is set to an error locator.  Note that no access
+checking is done on overloaded function symbols.
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
@@ -3648,7 +3651,9 @@ ambiguity, the locator is set to an error locator.
       sym->variant.projection.ambiguous) {
     pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
     set_to_error_locator(*locator);
-  } else if (!have_access_to_symbol(sym)) {
+  } else if (fundamental_symbol_of(sym)->kind !=
+	                            (a_symbol_kind)sk_overloaded_function &&
+             !have_access_to_symbol(sym)) {
     /* The symbol is not accessible. */
     if (aedp_ptr == NULL ) {
       issue_access_error(fundamental_symbol_of(sym),
@@ -3680,7 +3685,8 @@ a projection symbol pointing to that sk_overloaded_function symbol.
 {
   a_derivation_step_ptr derivation;
 
-  /* This routine looks like member_check_ambiguity_and_verify_access. */
+  /* This routine looks like
+     member_check_ambiguity_verify_access_and_return_error_descr. */
   if (overloaded_symbol->class_of_which_a_member == NULL) {
     /* Non-class-members cannot be ambiguous and are always accessible. */
   } else {
