@@ -1443,10 +1443,27 @@ Dump a single #pragma from the IL entry.
     set_output_position(&pp->position);
     indent = 0;
     disable_line_wrapping();
-    write_str("#pragma ");
-    check_assertion_str(pp->pragma_text != NULL,
-                        "dump_pragma: NULL pragma_text");
-    write_str(pp->pragma_text);
+    switch (pp->kind) {
+#if IDENT_DIRECTIVE_AND_PRAGMA
+      /* Check for #pragma ident (= #ident). */
+      case pk_ident:
+#if C_GEN_BE_GENERATES_ANSI_C
+        /* If generating ANSI C put out #pragma ident. */
+        write_str("#pragma ident ");
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
+        /* If generating K&R C put out #ident. */
+        write_str("#ident ");
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+        dump_constant(pp->variant.ident_string);
+        break;
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+      default:
+        check_assertion_str(pp->pragma_text != NULL,
+                            "dump_pragma: NULL pragma_text");
+        write_str("#pragma ");
+        write_str(pp->pragma_text);
+        break;
+    }  /* switch */
     enable_line_wrapping();
     end_output_line();
     indent = saved_indent;
