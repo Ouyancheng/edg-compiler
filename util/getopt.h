@@ -13,6 +13,9 @@ getopt.h -- command line option processing.
 
 */
 
+#ifndef GETOPT_H
+#define GETOPT_H 1
+
 /*
 Flag that is TRUE if the parameters of getopt are not declared as
 const.
@@ -157,6 +160,8 @@ end_of_routine:
   return(return_value);
 }  /* getopt */
 #endif /* else of __SYSV__ */
+
+#endif /* ifndef GETOPT_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -1,5 +1,12 @@
 Version 3.5
 
+7/9/04  Include guards added to getopt.h
+
+On some systems, the system header files include getopt.h.  This can
+result in getopt.h being included more than once when compiling the
+prelinker.  Include guard code has been added to getopt.h to permit it
+to be included more than once.
+
 5/17/04 eccp: EDG_BASE directory exported
 
 The EDG_BASE environment variable is now exported so that it can be used
