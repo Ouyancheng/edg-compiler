@@ -1,5 +1,25 @@
 Version 3.6
 
+3/14/05  C++-generating back end: Sun compatibility for member enumeration
+         constants used in default arguments in friend declarations
+
+The Sun C++ compiler has a bug such that class member enumeration constants
+used in default arguments in friend declarations must be referred to using
+qualified names.  (This is similar to a Microsoft issue described in the
+10/25/04 Changes entry, except that the Sun compiler requires qualification
+even for enumerations declared in the same class as the friend declaration.)
+The C++-generating back end will now qualify such name references when
+sun_is_generated_code_target is TRUE.  For example:
+
+  struct B {
+    enum E1 { e1 };
+  };
+  struct D: B {
+    enum E2 { e2 };
+    friend void f(E1 = B::e1);  // Was "e1", now "B::e1" for Sun target
+    friend void f(E2 = D::e2);  // Was "e2", now "D::e2" for Sun target
+  };
+
 3/14/05  Double mangling of class-as-suboject name for local class
 
 The mangled name generated for the class-as-subobject version of

@@ -2255,17 +2255,22 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
-      if (msvc_is_generated_code_target &&
-          msvc_target_version_number < 1300 &&
-          entry_kind == iek_constant &&
-          in_friend_declaration) {
-        /* MSVC version 6.0 had a bug such that the names of enumeration
-           constants declared in base classes were not visible in default
-           arguments in friend declarations.  Force qualification in this
-           case by preventing consideration of base classes when determining
-           whether the parent class of the enumeration is in the scope
-           stack. */
-        include_base_classes = FALSE;
+      if (entry_kind == iek_constant && in_friend_declaration) {
+        if (msvc_is_generated_code_target &&
+            msvc_target_version_number < 1300) {
+          /* MSVC version 6.0 had a bug such that the names of enumeration
+             constants declared in base classes were not visible in default
+             arguments in friend declarations.  Force qualification in this
+             case by preventing consideration of base classes when determining
+             whether the parent class of the enumeration is in the scope
+             stack. */
+          include_base_classes = FALSE;
+        } else if (sun_is_generated_code_target) {
+          /* Sun compilers have the same problem, except that it extends even
+             to enumerations declared in the same class as the friend
+             declaration. */
+          force_qualified_name = TRUE;
+        }  /* if */
       }  /* if */
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
