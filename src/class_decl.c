@@ -848,6 +848,7 @@ old_class under new_class.  If old_class is NULL it means we don't know
     }  /* if */
   }  /* for */
 #if CHECKING
+#if DEBUG
   if (debug_level > 0) {
     if (base_class != NULL) {
       fputs("cannot find base class", f_debug);
@@ -867,6 +868,7 @@ old_class under new_class.  If old_class is NULL it means we don't know
       db_base_class(bcp, FALSE);
     }  /* for */
   }  /* if */
+#endif /* DEBUG */
   internal_error("corresponding_base_class: base class not found");
 #else /* CHECKING */
   new_base_class = NULL;
@@ -875,7 +877,7 @@ done:
 #if CHECKING
   if (new_base_class != NULL && base_class != NULL &&
       new_base_class->is_virtual != base_class->is_virtual) {
-    /* Virtual and nonvirtual shouldn't base classes shouldn't match. */
+    /* Virtual and nonvirtual base classes shouldn't match. */
     internal_error("corresponding_base_class: virtual-nonvirtual mismatch");
   }  /* if */
 #endif /* CHECKING */
