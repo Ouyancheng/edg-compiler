@@ -1,5 +1,14 @@
 Version 2.15
 
+3/3/93  Lexical special characters moved
+
+The special characters END_OF_TOKEN_MARKER and ATTENTION_MARKER used
+by the lexical routines have been moved to 0x81/0x82.  These values are
+better for ISO 8859 and EUC, and happen to avoid a test failure in the
+Perennial C++ suite.  However, for full internationalization these
+special characters should be removed altogether, and we will probably
+do so at some later date.
+
 3/3/93  Uninitialized const or ref field of aggregate class object
 
 In C++ mode we now issue an error when a class object that is an
