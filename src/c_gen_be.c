@@ -2412,13 +2412,13 @@ Output the definition of the indicated struct or union type.
       }  /* if */
       if (annotate) {
         /* Display the offset in an annotation comment. */
-        unsigned long temp = field->bit_offset / targ_char_bit;
+        unsigned long temp = field->offset;
         write_space();
         start_comment();
         write_tok_str(" offset = ");
         write_unsigned_num(temp);
         write_tok_str((temp == 1) ? " byte" : " bytes");
-        temp = field->bit_offset % targ_char_bit;
+        temp = field->offset_bit_remainder;
         if (temp != 0) {
           write_tok_str(", ");
           write_unsigned_num(temp);

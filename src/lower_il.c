@@ -628,30 +628,30 @@ list of fields attached to struct_type.  field_name gives the field name
 offset for the field.  The field allocated is not a bit field.
 */
 {
-  a_field_ptr   prev_field, next_field;
-  a_field_ptr   field_ptr;
-  a_targ_size_t bit_offset;
+  a_field_ptr prev_field, next_field;
+  a_field_ptr field_ptr;
 
   /* Make the field. */
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
   field_ptr->source_corresp.class_of_which_a_member = struct_type;
   field_ptr->type = field_type;
-  field_ptr->bit_offset = bit_offset = field_offset*targ_char_bit;
+  field_ptr->offset = field_offset;
   /* Find the spot at which to insert the field. */
   for (prev_field = NULL,
                next_field = struct_type->variant.class_struct_union.field_list;
-       next_field != NULL && next_field->bit_offset <= bit_offset;
+       next_field != NULL && next_field->offset <= field_offset;
        prev_field = next_field, next_field = next_field->next) {
 #if CHECKING
     /* Check for fields with the same offset, but watch out for zero-length
        bit fields. */
-    if (next_field->bit_offset == bit_offset &&
+    if (next_field->offset == field_offset &&
+        next_field->offset_bit_remainder == 0 &&
         !field_is_zero_length_bit_field(next_field)) {
 #if DEBUG
       db_abbreviated_type(struct_type);
-      fprintf(f_debug, ", bit offset = %lu, new field = %s, old field = ",
-                       (unsigned long)bit_offset, field_name);
+      fprintf(f_debug, ", offset = %lu, new field = %s, old field = ",
+                       (unsigned long)field_offset, field_name);
       db_name(&next_field->source_corresp);
       fputc('\n', f_debug);
 #endif /* DEBUG */
@@ -787,11 +787,11 @@ wholly-generated structs, not for adding fields to existing structs.
 It cannot create bit fields.  field_name may not be NULL.
 */
 {
-  sizeof_t         name_length, alloc_length;
-  a_field_ptr      field_ptr;
-  a_targ_alignment alignment;
-  unsigned int     bit_offset;
-  a_targ_size_t    old_byte_offset;
+  sizeof_t                   name_length, alloc_length;
+  a_field_ptr                field_ptr;
+  a_targ_alignment           alignment;
+  an_unnormalized_bit_offset bit_offset;
+  a_targ_size_t              old_byte_offset;
 
   /* Copy the name into the file-scope IL memory region. */
   name_length = strlen(field_name);
@@ -835,7 +835,7 @@ size and alignment.  Works for both structs and unions.
 */
 {
   a_class_type_supplement_ptr ctsp;
-  unsigned int                bit_offset = 0;
+  an_unnormalized_bit_offset  bit_offset = 0;
 
   (void)do_alignment(byte_offset, &bit_offset, class_type->alignment);
   /* Put final size into the struct or union type. */
@@ -1561,8 +1561,7 @@ Return a pointer to the field at the indicated byte offset of the indicated
 class type.
 */
 {
-  a_field_ptr   field_ptr;
-  a_targ_size_t bit_offset = byte_offset * targ_char_bit;
+  a_field_ptr field_ptr;
 
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -1588,7 +1587,8 @@ class type.
 #endif /* CHECKING */
     /* Don't pick a zero-length bit field as the answer.  The field
        following it is probably what's wanted. */
-    if (field_ptr->bit_offset == bit_offset &&
+    if (field_ptr->offset == byte_offset &&
+        field_ptr->offset_bit_remainder == 0 &&
         !field_is_zero_length_bit_field(field_ptr)) break;
   }  /* for */
   return field_ptr;
@@ -1909,7 +1909,7 @@ The safe return value is FALSE.
     if (op == (an_expr_operator_kind)eok_field) {
       /* The address of a field reference can't be NULL in a legal program,
          but watch out for ((struct s *)0)->i. */
-      cannot_be = (operand->next->variant.field->bit_offset != 0 ||
+      cannot_be = (operand->next->variant.field->offset != 0 ||
                    cannot_be_null(operand));
     } else if (op == (an_expr_operator_kind)eok_base_class_cast ||
                op == (an_expr_operator_kind)eok_derived_class_cast) {
@@ -2357,7 +2357,7 @@ constant, and return information about it in *delta.
       a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
       a_class_type_supplement_ptr
                  ctsp = field_class->variant.class_struct_union.extra_info;
-      offset += (a_targ_ptrdiff_t)(field->bit_offset / targ_char_bit);
+      offset += (a_targ_ptrdiff_t)field->offset;
       if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
         break;
       }  /* if */
