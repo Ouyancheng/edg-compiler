@@ -1,5 +1,7 @@
 Version 3.0
 
+5/6/02   IL version number changed to 2.38
+
 5/3/02   Macro to determine whether long long is enabled
 
 The front end can now be configured to define a macro when long long is not
