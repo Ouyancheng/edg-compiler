@@ -1,5 +1,30 @@
 Version 2.25
 
+7/29/94  Template function matching bug found while compiling STL
+
+A bug has been fixed that caused errors when compiling STL.  The
+derived to base<T> conversion that is applied to certain function
+template arguments was not being applied when the actual argument
+was a nested class.
+
+  template <class T> struct B { };
+  template <class T> struct A {
+    class AA : public B<T> {};
+  };
+
+  template <class T> void g(B<T>);
+
+  template <class T> void f(T t)
+  {
+    g(t);  // Error on this line before fix
+  }
+
+  int main()
+  {
+    A<int>::AA aa;
+    f(aa);
+  }
+
 7/28/94  Repackaging of decls.c and class_decl.c
 
 Because decls.c and class_decl.c were getting too large, we have moved
