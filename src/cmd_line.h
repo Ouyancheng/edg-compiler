@@ -137,7 +137,7 @@ EXTERN a_boolean
 			   indicates that the definition should NOT be
 			   made. */
 EXTERN a_boolean
-		exceptions_disallowed /* = FALSE */;
+		exceptions_disabled /* = FALSE */;
 			/* TRUE if a C++ source program should be compiled
 			   without any support for exception handling.  If an
 			   exception construct is encountered (a try block, a

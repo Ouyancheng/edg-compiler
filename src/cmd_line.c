@@ -407,7 +407,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case 'x':
         /* Disable support for exceptions. */
-        exceptions_disallowed = TRUE;
+        exceptions_disabled = TRUE;
         break;
       case 'I':
         /* Include file directory, add to list. */
@@ -536,7 +536,7 @@ unknown_option:
       command_line_error(
       "instantiation mode (-t) can only be used when compiling C++");
     }  /* if */
-    if (exceptions_disallowed) {
+    if (exceptions_disabled) {
       command_line_error(
         "support for exceptions can be disabled (-x) only when compiling C++");
     }  /* if */
