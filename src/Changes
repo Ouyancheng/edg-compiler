@@ -1,20 +1,40 @@
 Version 2.23
 
+4/8/94   The lint ARGSUSED directive
+
+Two bugs have been fixed in our support of the ARGSUSED directive, which
+controls whether remarks are issued on unused function parameters.  First,
+The presence of the directive on a member function defined within the
+class definition has the expected effect:
+
+  class A {
+    /* ARGSUSED */
+    void f(int i) { }            // No diagnostic is issued on i
+  };
+
+Second, the lifetime of the directive is limited to that of the
+immediately following declaration and no longer extends to the next
+function definition:
+
+  /* ARGSUSED */
+  void g();
+  void f(int i) { }             // Diagnostic is now issued on i
+
 4/8/94   IL lowering name mangling of nontype template arguments
 
-The name mangling for nontype template arguments that are pointers
-to members for virtual functions has been changed to conform to the
-cfront convention.  Formerly, we encoded the "offset" part of the
-__mptr triplet in the last position of the encoding, e.g., "4" in
+The name mangling for nontype template arguments that are pointers to
+members for virtual functions has been changed to conform to the cfront
+convention.  Formerly, we encoded the "offset" part of the __mptr triplet
+in the last position of the encoding, e.g., "4" in
 
   LM0_L11_4
 
-The last position is now always simply "0", which is apparently (in
-the cfront encoding) a way of saying "there's no function" rather
-than a place where the offset should be indicated.  This change
-potentially introduces a binary incompatibility problem with
-object code produced via previous versions of the EDG front end,
-but that seems unlikely given how obscure this case is.
+The last position is now always simply "0", which is apparently (in the
+cfront encoding) a way of saying "there's no function" rather than a place
+where the offset should be indicated.  This change potentially introduces
+a binary incompatibility problem with object code produced via previous
+versions of the EDG front end, but that seems unlikely given how obscure
+this case is.
 
 4/6/94   Duplicate size and sign specifiers
 
