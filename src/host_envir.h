@@ -433,7 +433,7 @@ processing cannot be done reliably on template bodies.
 */
 #ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
 #if MAINTAIN_NEEDED_FLAGS
-#if BACKEND_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES FALSE   /* You can change this. */
 #else /* !BACK_END_IS_CP_GEN_BE */
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES TRUE    /* You can change this. */
