@@ -8852,7 +8852,7 @@ scanning type name in a type conversion operator.
      operator routines, but we don't know what kind of operator we are
      scanning until we call is_type_start, and the class needs to
      be reactivated before is_type_start is called. */
-  if (class_type != NULL && is_incomplete_type(class_type)) {
+  if (class_type != NULL && !is_incomplete_type(class_type)) {
     a_symbol_ptr	sym;
     sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
     /* In valid usage, the class type will always be either a complete
