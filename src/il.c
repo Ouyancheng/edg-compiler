@@ -118,8 +118,43 @@ static unsigned long
 #endif /* DEBUG */
 
 
-/* Forward declaration needed because of mutual recursion. */
+/*
+Data structure used to keep track of the rewriting of temporaries when
+copying expression trees (when an expression tree is copied, the temporaries
+must be rewritten so that those in the original expression do not conflict
+with those in the copy).
+*/
+typedef struct a_rewritten_temporary *a_rewritten_temporary_ptr;
+typedef struct a_rewritten_temporary {
+  a_rewritten_temporary_ptr
+		next;	/* Pointer to the next entry on the list of rewritten
+			   temporaries, or NULL if this is the last entry. */
+  a_variable_ptr
+		old_temp,
+		new_temp;
+			/* The old temporary and the new temporary it's
+			   changed into. */
+} a_rewritten_temporary;
+static a_rewritten_temporary_ptr
+		avail_rewritten_temporaries;
+			/* List of rewritten temporary entries that have
+			   been freed and are available for reuse. */
+static a_rewritten_temporary_ptr
+		rewritten_temporaries;
+			/* While copying an expression tree, this is the
+			   list of rewrites to be done. */
+static a_temp_alloc_routine_ptr
+		temp_alloc_routine_for_expr_copy;
+			/* While doing an expression copy, this points to
+			   the routine to be called to allocate a temporary.
+			   NULL implies "alloc_temporary_variable". */
+
+
+/* Forward declarations needed because of mutual recursion: */
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip);
+static an_expr_node_ptr internal_copy_expr_tree(an_expr_node_ptr expr);
+static an_expr_node_ptr internal_copy_list_of_expr_trees(
+                                                   an_expr_node_ptr expr_list);
 
 #if DEBUG
 /* Forward declaration needed because of mutual recursion. */
@@ -1766,6 +1801,9 @@ value.  Several fields are cleared or adjusted.
 static a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
 /*
 Make a copy of an unshared constant and return pointer to the copy.
+This is meant to be called only during the process of copying an expression
+tree (the top-level routines like copy_expr_tree set up some important
+global variables).
 */
 {
   a_constant_ptr new_constant, old_aggr_con, new_aggr_con;
@@ -3437,6 +3475,122 @@ the current scope.
 }  /* add_to_dynamic_inits_list */
 
 
+static void add_rewritten_temporary(a_variable_ptr old_temp,
+                                    a_variable_ptr new_temp)
+/*
+Allocate an entry to record the fact that during an expression copy
+the temporary variable old_temp should be replaced by the temporary variable
+new_temp.  Add the entry to the beginning of the rewritten_temporaries list.
+*/
+{
+  a_rewritten_temporary_ptr rtp;
+
+  if (avail_rewritten_temporaries != NULL) {
+    /* Reuse a previously-freed entry. */
+    rtp = avail_rewritten_temporaries;
+    avail_rewritten_temporaries = avail_rewritten_temporaries->next;
+  } else {
+    /* Allocate a new entry. */
+    rtp = (a_rewritten_temporary_ptr)alloc_fe(sizeof(a_rewritten_temporary));
+  }  /* if */
+  /* Initialize the entry and put in on the front of the list. */
+  rtp->old_temp = old_temp;
+  rtp->new_temp = new_temp;
+  rtp->next = rewritten_temporaries;
+  rewritten_temporaries = rtp;
+}  /* add_rewritten_temporary */
+
+
+static free_rewritten_temporaries(void)
+/*
+Free the entries on the rewritten_temporaries list by putting them on
+the avail_rewritten_temporaries list.
+*/
+{
+  a_rewritten_temporary_ptr rtp;
+
+  if (rewritten_temporaries != NULL) {
+    /* Find the last entry on the list. */
+    rtp = rewritten_temporaries;
+    while (rtp->next != NULL) rtp = rtp->next;
+    /* Put the list of entries on the front of the available list. */
+    rtp->next = avail_rewritten_temporaries;
+    avail_rewritten_temporaries = rewritten_temporaries;
+    rewritten_temporaries = NULL;
+  }  /* if */
+}  /* free_rewritten_temporaries */
+
+
+static a_boolean is_temporary_var(a_variable_ptr var)
+/*
+Return TRUE if the indicated variable is a temporary.
+*/
+{
+  a_boolean                   is_temporary;
+  a_type_ptr                  var_type;
+  a_class_type_supplement_ptr ctsp;
+
+  if (var->source_corresp.name != NULL) {
+    /* The variable has a name, so it's not a temporary. */
+    is_temporary = FALSE;
+  } else {
+    is_temporary = TRUE;
+    /* Check for anonymous union variables. */
+    if (C_dialect == C_dialect_cplusplus) {
+      var_type = var->type;
+      if (is_class_struct_union_type(var_type)) {
+        /* The variable has a class type. */
+        var_type = skip_typerefs(var_type);
+        ctsp = var_type->variant.class_struct_union.extra_info;
+        if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+          /* The variable is an anonymous union, so it's not a temporary. */
+          is_temporary = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_temporary;
+}  /* is_temporary_var */
+
+
+static a_variable_ptr rewrite_if_temporary(a_variable_ptr var)
+/*
+If old_temp points to a temporary variable, determine the new temporary
+variable with which it should be replaced, and return a pointer to that
+new variable.  Otherwise (e.g., if the variable is not a temporary), return
+the original variable.
+*/
+{
+  a_rewritten_temporary_ptr   rtp;
+  a_variable_ptr              new_var;
+
+  if (is_temporary_var(var)) {
+    /* The variable is a temporary and should be rewritten. */
+    /* See if the temporary already appears on the list of rewritten
+       temporaries.  If so, we've already assigned the corresponding new
+       temporary. */
+    for (rtp = rewritten_temporaries; rtp != NULL; rtp = rtp->next) {
+      if (rtp->old_temp == var) {
+        /* Found a match.  Use it. */
+        var = rtp->new_temp;
+        goto done;
+      }  /* if */
+    }  /* for */
+    /* This temporary has not been seen before.  Allocate a new temporary
+       and remember the correspondence.  Use a temporary allocation
+       routine provided by the caller, or alloc_temporary_variable by
+       default. */
+    new_var = ((temp_alloc_routine_for_expr_copy != NULL) ?
+                  temp_alloc_routine_for_expr_copy :
+                  alloc_temporary_variable)(var->type);
+    add_rewritten_temporary(var, new_var);
+    var = new_var;
+  }  /* if */
+done:
+  return var;
+}  /* rewrite_if_temporary */
+
+
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Make a copy of a dynamic initialization entry and return a pointer to the copy.
@@ -3449,15 +3603,20 @@ expression node.
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
+  /* Rewrite the variable if there is one and it's a temporary. */
+  if (dip->variable != NULL) {
+    new_dip->variable = rewrite_if_temporary(dip->variable);
+  }  /* if */
   switch (dip->kind) {
     case dik_none:
       break;
     case dik_expression:
-      new_dip->variant.expression = copy_expr_tree(dip->variant.expression);
+      new_dip->variant.expression =
+                              internal_copy_expr_tree(dip->variant.expression);
       break;
     case dik_constructor:
       new_dip->variant.constructor.args =
-                        copy_list_of_expr_trees(dip->variant.constructor.args);
+               internal_copy_list_of_expr_trees(dip->variant.constructor.args);
       break;
     case dik_constant:
       /* The constant pointed to is unshared and must be copied. */
@@ -4048,16 +4207,19 @@ Make a copy of an expression node and return a pointer to it.
 }  /* copy_node */
 
 
-an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list)
+static an_expr_node_ptr internal_copy_list_of_expr_trees(
+                                                    an_expr_node_ptr expr_list)
 /*
 Make a copy of a list of expression trees and return a pointer to it.
+This routine does the real work for copy_list_of_expr_trees and should not be
+called directly.
 */
 {
   an_expr_node_ptr expr, expr_copy, prev_expr_copy, expr_list_copy;
 
   expr_list_copy = prev_expr_copy = NULL;
   for (expr = expr_list; expr != NULL; expr = expr->next) {
-    expr_copy = copy_expr_tree(expr);
+    expr_copy = internal_copy_expr_tree(expr);
     if (expr_list_copy == NULL) {
       expr_list_copy = expr_copy;
     } else {
@@ -4066,12 +4228,14 @@ Make a copy of a list of expression trees and return a pointer to it.
     prev_expr_copy = expr_copy;
   }  /* for */
   return expr_list_copy;
-}  /* copy_list_of_expr_trees */
+}  /* internal_copy_list_of_expr_trees */
 
 
-an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
+static an_expr_node_ptr internal_copy_expr_tree(an_expr_node_ptr expr)
 /*
 Make a copy of an expression tree and return a pointer to it.
+This routine does the real work for copy_expr_tree and should not be
+called directly.
 */
 {
   an_expr_node_ptr expr_copy;
@@ -4080,14 +4244,61 @@ Make a copy of an expression tree and return a pointer to it.
   if (expr->kind == (an_expr_node_kind)enk_operation) {
     /* Copy the operands of the operation. */
     expr_copy->variant.operation.operands =
-                     copy_list_of_expr_trees(expr->variant.operation.operands);
+            internal_copy_list_of_expr_trees(expr->variant.operation.operands);
+  } else if (expr->kind == (an_expr_node_kind)enk_variable ||
+             expr->kind == (an_expr_node_kind)enk_variable_address) {
+    /* Rewrite references to temporary variables. */
+    expr_copy->variant.variable = rewrite_if_temporary(expr->variant.variable);
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init ||
              expr->kind == (an_expr_node_kind)enk_new_init) {
     /* Copy the subtree and dynamic init for a dynamic initialization. */
-    expr_copy->variant.init.expr = copy_expr_tree(expr->variant.init.expr);
+    expr_copy->variant.init.expr =
+                              internal_copy_expr_tree(expr->variant.init.expr);
     expr_copy->variant.init.dynamic_init =
                             copy_dynamic_init(expr->variant.init.dynamic_init);
   }  /* if */
+  return expr_copy;
+}  /* internal_copy_expr_tree */
+
+
+an_expr_node_ptr copy_list_of_expr_trees(
+                                   an_expr_node_ptr         expr_list,
+                                   a_temp_alloc_routine_ptr temp_alloc_routine)
+/*
+Make a copy of a list of expression trees and return a pointer to it.
+If temp_alloc_routine is non-NULL, it points to a routine to be used
+instead of the default (alloc_temporary_variable) to allocate copies of
+temporary variables needed in the copy.
+*/
+{
+  an_expr_node_ptr expr_list_copy;
+
+  /* Set some global variables that affect the copying. */
+  rewritten_temporaries = NULL;
+  temp_alloc_routine_for_expr_copy = temp_alloc_routine;
+  /* Do the copying. */
+  expr_list_copy = internal_copy_list_of_expr_trees(expr_list);
+  /* Clean up. */
+  free_rewritten_temporaries();
+  return expr_list_copy;
+}  /* copy_list_of_expr_trees */
+
+
+an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
+                                a_temp_alloc_routine_ptr temp_alloc_routine)
+/*
+Make a copy of an expression tree and return a pointer to it.
+*/
+{
+  an_expr_node_ptr expr_copy;
+
+  /* Set some global variables that affect the copying. */
+  rewritten_temporaries = NULL;
+  temp_alloc_routine_for_expr_copy = temp_alloc_routine;
+  /* Do the copying. */
+  expr_copy = internal_copy_expr_tree(expr);
+  /* Clean up. */
+  free_rewritten_temporaries();
   return expr_copy;
 }  /* copy_expr_tree */
 
@@ -4118,7 +4329,8 @@ expression.
       if (ptp->default_arg_expr == NULL) {
         arg_node = error_node();
       } else {
-        arg_node = copy_expr_tree(ptp->default_arg_expr);
+        arg_node = copy_expr_tree(ptp->default_arg_expr,
+                                  (a_temp_alloc_routine_ptr)NULL);
       }  /* if */
       if (first_node == NULL) {
         first_node = arg_node;
@@ -4700,6 +4912,7 @@ of the front end.
   num_il_entry_numbers_allocated         = 0;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #endif /* DEBUG */
+  avail_rewritten_temporaries = NULL;
 }  /* il_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
