@@ -4535,35 +4535,42 @@ precedence confusion and need_parens is TRUE.
             }  /* if */
           }  /* if */
           break;
+        case eok_rvalue:
+          /* Operand is an rvalue where an lvalue is expected. */
+          gen_expr(operand_1, need_parens);
+          processed = TRUE;
+          break;
+        case eok_lvalue:
+          /* Operand is an lvalue where an lvalue is expected. */
+          gen_lvalue_full(operand_1, need_parens);
+          processed = TRUE;
+          break;
         default:
           break;
       }  /* switch */
     }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  } else if (kind == (an_expr_node_kind)enk_constant) {
-    a_constant_ptr  constant = node->variant.constant;
-    if (constant->kind == (a_constant_repr_kind)ck_address) {
-      /* Using an address constant as the lvalue address. */
-      form_lvalue_address_constant(constant, /*need_parens=*/TRUE, &octl);
+  } else if (kind == (an_expr_node_kind)enk_constant &&
+             node->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+    /* Using a template parameter constant as an lvalue in a prototype
+       instantiation.  Optimize if the constant refers to the address
+       of a member (to avoid "*" and "&" operators). */
+    a_constant_ptr constant = node->variant.constant;
+    if (constant->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member &&
+        constant->variant.template_param.variant.is_address) {
+      gen_ampersand(type_pointed_to(constant->type));
+      gen_expr_with_parens(node);
       processed = TRUE;
-    } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-      if (constant->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_member) {
-        if (constant->variant.template_param.variant.is_address) {
-          gen_ampersand(type_pointed_to(constant->type));
-        }  /* if */
-        gen_expr_with_parens(node);
-        processed = TRUE;
-      }  /* if */
     }  /* if */
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else if (kind == (an_expr_node_kind)enk_constant &&
              node->variant.constant->kind == (a_constant_repr_kind)ck_address){
     /* Using an address constant as the lvalue address. */
     form_lvalue_address_constant(node->variant.constant, /*need_parens=*/TRUE,
                                  &octl);
     processed = TRUE;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
              node->variant.init.result_is_addr) {
     /* A temporary initialization with the address of the temporary used as
@@ -5228,11 +5235,20 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           /* Fall through. */
         case eok_lvalue:
-          opstr = "";
-          operand_1_is_lvalue = TRUE;
-          break;
+          /* Operand is an lvalue where an rvalue was expected. */
+          gen_lvalue_no_parens(operand_1);
+          goto done_with_operation;
         case eok_rvalue:
-          opstr = "";
+          /* Operand is an rvalue where an rvalue was expected. */
+          gen_expression(operand_1);
+          goto done_with_operation;
+        case eok_pm_dot_field:
+          /* Generic "->*" field selection. */
+          opstr = "->*";
+          break;
+        case eok_pm_arrow_field:
+          /* Generic ".*" field selection. */
+          opstr = ".*";
           break;
         case eok_static_cast:
           write_tok_str("static_cast<");
