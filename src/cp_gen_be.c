@@ -157,6 +157,9 @@ typedef struct a_name_context {
 			   if there are no more. */
   a_scope_ptr	assoc_scope;
 			/* The scope that defines the name context. */
+  an_access_specifier
+		access;	/* When putting out a class, the current default
+			   access for a member declaration. */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -2155,6 +2158,73 @@ is the one associated with the definition of the enum.
 }  /* gen_enum_definition */
 
 
+static void gen_access_specifier(an_access_specifier access)
+/*
+Write the string that corresponds to the indicated access specifier value.
+*/
+{
+  char *s;
+
+  switch (access) {
+    case as_public:     s = "public";    break;
+    case as_protected:  s = "protected"; break;
+    case as_private:    s = "private";   break;
+    default:            unexpected_condition();
+  }  /* switch */
+  write_tok_str(s);
+}  /* gen_access_specifier */
+
+
+static void gen_access_specifier_if_needed(a_source_correspondence *scp)
+/*
+A declaration or definition of the entity whose source correspondence
+information is given by scp is about to be put out.  If we are currently
+generating a class definition, and the entity is a member of the class,
+output an access directive (e.g., "public:") if necessary to set the
+current access mode in the class.  Otherwise, do nothing.
+*/
+{
+  an_access_specifier member_access = scp->access;
+
+  if (curr_name_context_is_a_class() &&
+      scp->class_of_which_a_member == curr_name_context_class()) {
+     /* We're inside a class, and the entity being output is a member of that
+        class. */
+    if (member_access != curr_name_context->access) {
+      /* The desired access is not the current access, so put out an access
+         specifier, e.g., "public:". */
+      gen_access_specifier(member_access);
+      write_tok_ch(':');
+      write_space();
+      curr_name_context->access = member_access;
+    }  /* if */
+  }  /* if */
+}  /* gen_access_specifier_if_needed */
+
+
+static void gen_member_constant_decl(void)
+/*
+Generate a declaration for a member constant (an extension).  The current
+source sequence entry is the one associated with the constant.
+*/
+{
+  a_constant_ptr constant =
+                      ss_entry_ptr(curr_source_sequence_entry, a_constant_ptr);
+
+  /* Advance past the source sequence entry for the constant. */
+  adv_curr_source_sequence_entry();
+  set_output_position(&constant->source_corresp.decl_position);
+  gen_access_specifier_if_needed(&constant->source_corresp);
+  /* Generate the constant type and name. */
+  gen_declaration_using_type(constant->type, &constant->source_corresp,
+                             (a_src_seq_secondary_decl_ptr)NULL);
+  write_tok_str(" = ");
+  /* Generate the constant value. */
+  gen_constant(constant);
+  write_tok_str("; ");
+}  /* gen_member_constant_decl */
+
+
 static void gen_field_decl(void)
 /*
 Generate the declaration for a field (a nonstatic data member).  The current
@@ -2166,6 +2236,7 @@ source sequence entry is the one associated with the field.
   /* Advance past the source sequence entry for the field. */
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
+  gen_access_specifier_if_needed(&field->source_corresp);
   /* Generate the field type and name. */
   gen_declaration_using_type(field->type,
                              has_name(field) ? &field->source_corresp : NULL,
@@ -2186,7 +2257,9 @@ a type specifier (no trailing ";").  The current source sequence entry
 is the one associated with the definition of the class.
 */
 {
-  a_name_context context;
+  a_name_context              context;
+  a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
 
   type->definition_put_out = TRUE;
   /* Advance past the source sequence entry for the class itself. */
@@ -2199,10 +2272,42 @@ is the one associated with the definition of the class.
   /* (Note that a name will be generated for an unnamed class.) */
   gen_type_name(type);
   /* Put out the class definition. */
+  if (il_header.source_language == sl_Cplusplus) {
+    /* Put out the base class list. */
+    a_base_class_ptr bcp = ctsp->base_classes;
+    if (bcp != NULL) {
+      write_tok_str(" : ");
+      for (; bcp != NULL; bcp = bcp->next) {
+        /* The list contains all base classes, but put out only the direct
+           base classes. */
+        if (bcp->direct) {
+          a_base_class_derivation_ptr bcdp = bcp->derivation;
+          /* If this is not the first base class, put a comma between the
+             base classes. */
+          if (bcp != ctsp->base_classes) write_tok_str(", ");
+          if (bcp->is_virtual) {
+            write_tok_str("virtual ");
+            /* Find the direct derivation for a virtual base class. */
+            for (; !bcdp->direct; bcdp = bcdp->next) {}
+          }  /* if */
+          /* Display the derivation access. */
+          gen_access_specifier(bcdp->access);
+          write_space();
+          gen_type_name(bcp->type);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
   write_tok_str(" { ");
   if (il_header.source_language == sl_Cplusplus) {
-    push_name_context(&context,
-                     type->variant.class_struct_union.extra_info->assoc_scope);
+    push_name_context(&context, ctsp->assoc_scope);
+    /* Keep track of the current access category, in order to emit a change
+       when necessary.  Start with the default based on the class/struct/
+       union keyword. */
+    curr_name_context->access = (an_access_specifier)as_public;
+    if (type->kind == (a_type_kind)tk_class) {
+      curr_name_context->access = (an_access_specifier)as_private;
+    }  /* if */
   }  /* if */
   /* Go through the source sequence list and generate the members of the
      class. */
@@ -2224,7 +2329,7 @@ is the one associated with the definition of the class.
         goto done;
       case iek_constant:
         /* C++ member constant. */
-        unimplemented();
+        gen_member_constant_decl();
         break;
       case iek_field:
         /* Generate the declaration for a field (nonstatic data member). */
@@ -2272,8 +2377,7 @@ is non-NULL and points to the secondary declaration entry.
      because in C++ there can be more than one definition of the typedef
      and this routine is called for each one. */
   adv_curr_source_sequence_entry();
-  /* Position the output file to the declaration position. */
-  set_decl_position(&type->source_corresp, sec_decl);
+  /* The caller has called set_decl_position already. */
   write_tok_str("typedef ");
   gen_declaration_using_type(type->variant.typeref.type,
                              &type->source_corresp, sec_decl);
@@ -2299,6 +2403,50 @@ Return TRUE if friend_type is a friend of the class type "type".
   }  /* for */
   return is_friend;
 }  /* is_on_friend_list_of */
+
+
+static void gen_class_friend_prefix_if_needed(a_type_ptr type)
+/*
+A declaration (not definition) of the indicated type is being put out.
+If the declaration is a friend class declaration, put out the "friend"
+prefix.  Called only in C++ mode.
+*/
+{
+  a_boolean friend_decl = FALSE;
+
+  if (curr_name_context_is_a_class()) {
+    /* This declaration is inside a class. */
+    a_type_ptr class_type = type->source_corresp.class_of_which_a_member;
+    if (curr_name_context_class() == class_type) {
+      /* This is a declaration of a nested class inside the class of
+         which it is a member.  It's probably just the declaration of
+         a nested type, but it might still be a friend declaration:
+           struct A {
+             struct B { int i; };
+             friend struct B;  // This line
+            };
+      */
+      if (is_on_friend_list_of(class_type, type)) {
+        /* Put out a vacuous declaration of the class, and then
+           start a friend declaration.  Using two declarations is
+           necessary because "friend class B;" as the first appearance
+           would put B outside of the class A, and we can't easily
+           tell if this is the first appearance of the class. */
+        gen_tag_reference(type);
+        write_tok_ch(';');
+        write_space();
+        friend_decl = TRUE;
+      }  /* if */
+    } else {
+      /* This is a declaration of a nested type outside of the class
+         of which it is a member but inside some other class, or a
+         declaration of a nonmember class inside some class.  This
+         must be a friend declaration. */
+      friend_decl = TRUE;
+    }  /* if */
+  }  /* if */
+  if (friend_decl) write_tok_str("friend ");
+}  /* gen_class_friend_prefix_if_needed */
 
 
 static void gen_type_decl(void)
@@ -2327,6 +2475,11 @@ a member type, nonmember type, or friend.
        it is encountered while traversing the IL tree. */
     skip_type_and_delay_definition(type, is_definition);
   } else {
+    /* Set the output position. */
+    set_decl_position(&type->source_corresp, sec_decl);
+    /* If generating a member of a class within the class, set the right access
+       mode for the member. */
+    gen_access_specifier_if_needed(&type->source_corresp);
     if (kind == (a_type_kind)tk_typeref) {
       /* A typedef definition. */
       gen_typedef_definition(type, sec_decl);
@@ -2335,40 +2488,9 @@ a member type, nonmember type, or friend.
          that is never defined, generate a reference to the type instead
          of a definition. */
       adv_curr_source_sequence_entry();
-      set_decl_position(&type->source_corresp, sec_decl);
-      /* Check for friend declarations. */
-      if (curr_name_context_is_a_class()) {
-        /* This declaration is inside a class in C++. */
-        a_type_ptr class_type = type->source_corresp.class_of_which_a_member;
-        a_boolean  friend_decl = FALSE;
-        if (curr_name_context_class() == class_type) {
-          /* This is a declaration of a nested class inside the class of
-             which it is a member.  It's probably just the declaration of
-             a nested type, but it might still be a friend declaration:
-               struct A {
-                 struct B { int i; };
-                 friend struct B;  // This line
-               };
-          */
-          if (is_on_friend_list_of(class_type, type)) {
-            /* Put out a vacuous declaration of the class, and then
-               start a friend declaration.  Using two declarations is
-               necessary because "friend class B;" as the first appearance
-               would put B outside of the class A, and we can't easily
-               tell if this is the first appearance of the class. */
-            gen_tag_reference(type);
-            write_tok_ch(';');
-            write_space();
-            friend_decl = TRUE;
-          }  /* if */
-        } else {
-          /* This is a declaration of a nested type outside of the class
-             of which it is a member but inside some other class, or a
-             declaration of a nonmember class inside some class.  This
-             must be a friend declaration. */
-          friend_decl = TRUE;
-        }  /* if */
-        if (friend_decl) write_tok_str("friend ");
+      if (il_header.source_language == sl_Cplusplus) {
+        /* Check for friend declarations. */
+        gen_class_friend_prefix_if_needed(type);
       }  /* if */
       gen_tag_reference(type);
     } else if (kind == (a_type_kind)tk_enum) {
@@ -3823,6 +3945,9 @@ sequence entry.
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&var->source_corresp, sec_decl);
+  /* If generating a member of a class within the class, set the right access
+     mode for the member. */
+  gen_access_specifier_if_needed(&var->source_corresp);
   /* Output the storage class. */
   storage_class = var->storage_class;
   if (var->source_corresp.class_of_which_a_member != NULL) {
@@ -3936,6 +4061,9 @@ declaration or definition.
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
+  /* If generating a member of a class within the class, set the right access
+     mode for the member. */
+  gen_access_specifier_if_needed(&rout->source_corresp);
   if (is_definition) {
     /* This is a definition of the routine.  Determine the scope for the
        routine. */
