@@ -8083,8 +8083,7 @@ specified template argument list was provided.
 a_type_ptr explicit_arg_list_identifies_specialization(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	templ_arg_list,
-				a_template_arg_ptr	*new_arg_list,
-				a_template_param_ptr	templ_param_list)
+				a_template_arg_ptr	*new_arg_list)
 /*
 This routine is used when a template is referenced using just the template
 name and an explicit argument list but without a desired destination routine
@@ -8092,14 +8091,18 @@ type, for example "f<int>".  This routine determines whether the argument list
 is sufficient to identify a unique specialization of template_sym.  If so,
 the type of the matching routine is returned, NULL otherwise.
 
-templ_arg_list is the explicitly specified argument list.  templ_param_list
-is the associated template parameter list.  If the template matches, a new
-argument list is returned in *new_arg_list.
+templ_arg_list is the explicitly specified argument list.  If the template
+matches, a new argument list is returned in *new_arg_list.
 */
 {
-  a_type_ptr	result_type;
+  a_type_ptr				result_type;
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_param_ptr			templ_param_list;
 
   *new_arg_list = NULL;
+  /* Get the parameter list of the template. */
+  tssp = template_supplement_for_symbol(template_sym);
+  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   result_type = substitute_template_arguments(template_sym, templ_arg_list,
                                               new_arg_list, templ_param_list);
   if (result_type != NULL) {
