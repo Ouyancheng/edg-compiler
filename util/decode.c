@@ -62,6 +62,10 @@ typedef struct a_decode_control_block {
 			/* If > 0, demangled id output is suppressed.  This
 			   might be because of an error or just as a way
 			   of avoiding output during some processing. */
+  char		*end_of_constant;
+			/* While scanning a constant, this can be set to the
+			   character after the end of the constant as an
+			   aid to disambiguation.  NULL otherwise. */
 } a_decode_control_block;
 
 
@@ -300,11 +304,13 @@ Return a pointer to the character position following the number.
     p = get_number(p, num, dctl);
     p = advance_past_underscore(p, dctl);
   } else if (isdigit((unsigned char)p[0]) && isdigit((unsigned char)p[1]) &&
+             (dctl->end_of_constant == NULL || p+2 < dctl->end_of_constant) &&
              p[2] == '_') {
     /* The cfront version -- a multi-digit length is followed by an
        underscore, e.g., "L10_1234567890".  This doesn't work well because
        something like "L11", intended to have a one-digit length, can
        be made ambiguous by following it by a "_" for some other reason.
+       (That's resolved in most cases by the check against end_of_constant.)
        So this form is not used in new cases where that can come up, e.g.,
        nontype template arguments for functions.  In any case, interpret
        "multi-digit" as "2-digit" and don't look further for the underscore. */
@@ -799,8 +805,14 @@ block that controls output of extra information on template parameters.
     /* Write the argument value. */
     if (nontype) {
       /* Nontype argument. */
+      char *saved_end_of_constant = dctl->end_of_constant;
       p++;  /* Advance past the "X". */
+      /* Note the end position of the constant.  This is used to decide
+         that certain lengths are implausible as a way to resolve
+         ambiguities. */
+      dctl->end_of_constant = arg_base + nchars;
       p = demangle_constant(p, dctl);
+      dctl->end_of_constant = saved_end_of_constant;
     } else {
       /* Type argument. */
       p = demangle_type(p, dctl);
@@ -2102,6 +2114,7 @@ is set to the size of buffer required to do the demangling.
   dctl->err_in_id = FALSE;
   dctl->output_overflow_err = FALSE;
   dctl->suppress_id_output = 0;
+  dctl->end_of_constant = NULL;
   /* Check for special cases. */
   if (start_of_id_is("__vtbl__", id)) {
     write_id_str("virtual function table for ", dctl);

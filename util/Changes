@@ -1,5 +1,15 @@
 Version 2.38
 
+1/11/98  Demangling of some ambiguous mangled names
+
+Some mangled names using an old form for literal lengths (the cfront
+form) that causes some ambiguities were not successfully demangled by
+edg_decode, and cfront's demangler manages to handle them.  Those cases
+are now demangled by edg_decode as well.  Examples:
+
+  f01__FPF15S__pt__7_XCiL15_v
+  f03__FM1CF15S__pt__7_XCiL15_v
+
 12/18/97 Prelinker gets internal error when file name contains a drive
          specification
 
