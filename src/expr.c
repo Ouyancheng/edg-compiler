@@ -6531,16 +6531,20 @@ this routine is called.
 }  /* cast_is_valid_in_current_expression_kind */
 
 
-static void check_user_defined_conversions_for_cast(a_type_ptr type_cast_to,
-                                                    an_operand *operand,
-                                                    a_boolean  *processed,
-                                                    a_boolean  *err)
+static void check_user_defined_conversions_for_cast(
+                                           a_type_ptr type_cast_to,
+                                           an_operand *operand,
+                                           a_boolean  *allow_rvalue_on_rewrite,
+                                           a_boolean  *processed,
+                                           a_boolean  *err)
 /*
 The expression indicated by *operand is being cast to the type type_cast_to.
 This is a static_cast or old-style cast.  If the cast can be done by
 a user-defined conversion, do it and return *processed TRUE.  If the
 cast could only be done by a user-defined conversion and there was some
-error with that, set *err TRUE as well.  This routine is called only in
+error with that, set *err TRUE as well.  If the cast (to a reference type)
+is expected to be rewritten later and a class rvalue should be allowed,
+*allow_rvalue_on_rewrite is returned TRUE.  This routine is called only in
 C++ mode.
 */
 {
@@ -6548,6 +6552,7 @@ C++ mode.
   a_conv_descr conversion, ctor_arg_conversion;
 
   *processed = FALSE;
+  *allow_rvalue_on_rewrite = FALSE;
   cast_to_reference = is_reference_type(type_cast_to);
   /* Don't check for user-defined conversions in constant expressions. */
   if (!curr_expr_kind_is_const()) {
@@ -6577,6 +6582,7 @@ C++ mode.
           /* The operand can be cast directly to the reference type,
              so don't look for a way to do the cast using a conversion
              function. */
+          *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;            
         } else if (conversion_from_class_possible(
                                            operand, eff_type_cast_to,
                                            (a_builtin_type_kind_set)BTK_NONE,
@@ -6651,22 +6657,34 @@ C++ mode.
 }  /* check_user_defined_conversions_for_cast */
 
 
-static void rewrite_cast_to_reference_as_pointer_cast(a_type_ptr *type_cast_to,
-                                                      an_operand *operand)
+static void rewrite_cast_to_reference_as_pointer_cast(
+                                                 a_type_ptr *type_cast_to,
+                                                 an_operand *operand,
+                                                 a_boolean  allow_class_rvalue)
 /*
 Rewrite a cast to a reference as the equivalent cast to a pointer type.
-From [expr.static.cast] (similar words are in [expr.reinterpret.cast]):
+From [expr.reinterpret.cast]:
 
-  An lvalue expression of type  T1 can be cast to the type reference to
-  T2 if an expression of type pointer to  T1 can be explicitly converted
-  to the type pointer to  T2 using a  static_cast.  That is, a reference
-  cast    static_cast<T&>x  has  the  same  effect  as  the  conversion
-  *static_cast<T*>&x with the built-in  & and  * operators.  The  result
-  is  an  lvalue.
+  An lvalue expression of type T1 can be cast to the type "reference  to
+  T2"  if  an  expression of type "pointer to T1" can be explicitly con-
+  verted to the type "pointer to T2" using a reinterpret_cast.  That is,
+  a  reference  cast  reinterpret_cast<T&>(x) has the same effect as the
+  conversion *reinterpret_cast<T*>(&x) with the built-in & and *  opera-
+  tors.   The  result is an lvalue that refers to the same object as the
+  source lvalue, but with a different type.  No temporary is created, no
+  copy  is made, and constructors (_class.ctor_) or conversion functions
+  (_class.conv_) are not called.67)
+
+[expr.static.cast] allows a similar conversion, but it's hidden in the words
+
+  An expression e can be explicitly  converted  to  a  type  T  using  a
+  static_cast  of the form static_cast<T>(e) if the declaration T t(e);"
+  is well-formed, for some invented temporary variable  t  (_dcl.init_).
 
 *operand is the expression being cast, an *type_cast_to is the reference type.
 On return, *type_cast_to has been changed to the corresponding pointer
-type.
+type.  allow_class_rvalue is TRUE if a class rvalue should be allowed
+(e.g., for a static_cast to a reference-to-const type).
 */
 {
   *type_cast_to = make_pointer_type(type_pointed_to(*type_cast_to));
@@ -6675,11 +6693,10 @@ type.
   } else if (is_a_function_designator(operand)) {
     conv_function_designator_to_ptr_to_function(operand,
                                                 /*allow_ctor=*/FALSE);
-  } else if (!strict_ansi_mode &&
+  } else if (allow_class_rvalue &&
              is_class_struct_union_type(operand->type)) {
-    /* As a transitional concession, this cast is allowed on an rvalue of
-       class type.  This is not allowed under the WP, but was arguably
-       okay under the ARM. */
+    /* Allow a cast of a class rvalue to a reference type, when appropriate
+       (e.g., for a static_cast to a reference-to-const type). */
     conv_class_operand_to_object_pointer(operand);
   } else {
     if (!is_error_operand(operand)) {
@@ -6875,6 +6892,7 @@ C-style casts and C++ functional-notation type conversions.
   a_type_ptr    source_type, orig_type_cast_to = type_cast_to;
   an_error_code warning_suggested;
   a_boolean     cast_to_void, cast_to_reference = FALSE, processed = FALSE;
+  a_boolean     allow_rvalue_on_rewrite = FALSE;
 
   if (err) {
     /* There was a previous error (e.g., the type to cast to is invalid
@@ -6887,6 +6905,7 @@ C-style casts and C++ functional-notation type conversions.
       /* See if we're casting to a reference type. */
       cast_to_reference = is_reference_type(type_cast_to);
       check_user_defined_conversions_for_cast(type_cast_to, operand,
+                                              &allow_rvalue_on_rewrite,
                                               &processed, &err);
     }  /* if */
     if (!processed) {
@@ -6922,7 +6941,8 @@ C-style casts and C++ functional-notation type conversions.
         /* Note that this is done after the check for user-defined
            conversions above, since if such a cast can be done by
            a conversion function, it should be. */
-        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, operand);
+        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, operand,
+                                                  allow_rvalue_on_rewrite);
       }  /* if */
       /* Check for different types of casts and do the cast. */
       if (!err) {
@@ -7242,6 +7262,7 @@ Syntax:
   a_source_position start_position, type_position, end_position;
   a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
   a_boolean         err = FALSE, processed = FALSE;
+  a_boolean         allow_rvalue_on_rewrite = FALSE;
   an_error_code     warning_suggested;
 
   db_enter(4, "scan_static_cast_operator");
@@ -7270,6 +7291,7 @@ Syntax:
     orig_type_cast_to = type_cast_to;
     /* Check for user-defined conversions and casts to reference type. */
     check_user_defined_conversions_for_cast(type_cast_to, result,
+                                            &allow_rvalue_on_rewrite,
                                             &processed, &err);
     if (!processed) {
       /* No user-defined conversion applies. */
@@ -7303,7 +7325,8 @@ Syntax:
         /* Note that this is done after the check for user-defined
            conversions above, since if such a cast can be done by
            a conversion function, it should be. */
-        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result);
+        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result,
+                                                  allow_rvalue_on_rewrite);
       }  /* if */
       /* Get the source type after the transformations. */
       source_type = result->type;
@@ -7442,7 +7465,8 @@ Syntax:
       /* Rewrite a cast to a reference type as a cast to a pointer type.
          Note that the original type_cast_to is preserved in
          orig_type_cast_to. */
-      rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result);
+      rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result,
+                                         /*allow_rvalue_on_rewrite=*/sun_mode);
     }  /* if */
     /* Get the source type after the transformations. */
     source_type = result->type;

@@ -1,5 +1,21 @@
 Version 2.44
 
+5/17/00  Cast of class rvalue to reference-to-const type accepted
+
+An rvalue of class type can now be cast to a reference-to-const type
+in strict mode.  This was formerly allowed only in default (non-strict)
+mode.
+
+  struct A {};
+  A f();
+  int main () {
+    static_cast<const A&>(f());  // Now accepted in strict mode
+  }
+
+Also, a reinterpret_cast that does such a cast is no longer
+accepted in default mode; it continues not to be accepted in strict
+mode; and it continues to be accepted in Sun compatibility mode.
+
 5/17/00  Overload resolution: "this parameter" of static member function
          doesn't count
 
