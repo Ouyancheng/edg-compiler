@@ -5030,8 +5030,8 @@ declaration.
 	!is_template_friend) {
       /* A non-defining declaration of a member function is not
 	 allowed. */
-      pos_sy_error(ec_bad_scope_for_redeclaration,
-                   &locator->source_position, sym);
+      pos_sy_error(ec_member_function_redecl_outside_class,
+		   &locator->source_position, sym);
     } /* if */
   } /* if */
   if (sym->kind == (a_symbol_kind)sk_member_function) {
