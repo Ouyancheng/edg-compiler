@@ -300,6 +300,9 @@ this to be traced as follows:
 Note that this may not work as expected for addresses determined after the IL
 has been read from a file, because the nodes were allocated at a different
 address before the IL was written out.
+
+Note that this variable is not re-initialized if the front end is
+called multiple times.
 */
 static void *trace_alloc_ptr = NULL;
 
