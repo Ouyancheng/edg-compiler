@@ -1440,6 +1440,7 @@ ec_redeclaration_adds_dll_interface;;"redeclaration cannot add dllexport/dllimpo
 ec_dll_interface_conflict_dllexport_assumed;;"dllexport/dllimport conflict with %nod; dllexport assumed"
 ec_dllimport_defined;;"cannot define dllimport entity"
 ec_dll_interface_requires_external_linkage;;"dllexport/dllimport requires external linkage"
+ec_class_and_member_have_dll_interface;;"a member of a class declared with dllexport/dllimport cannot itself be declared with such a specifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -6862,11 +6862,9 @@ is TRUE when this is called for a member function definition.
     if (decl_modifiers & DM_DLLFLAGS) {
       /* If there are dll modifiers on the class, they cannot appear on the
          member declaration, too. */
-      pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                     &decl_info->decl_start_pos,
-                     decl_modifier_names[(decl_modifiers & DM_DLLIMPORT ?
-                                           (int)dmt_dllimport :
-                                           (int)dmt_dllexport)]);
+      pos_diagnostic(es_discretionary_error,
+                     ec_class_and_member_have_dll_interface,
+                     &decl_info->decl_start_pos);
       decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
     }  /* if */
     if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
