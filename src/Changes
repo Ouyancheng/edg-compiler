@@ -2267,7 +2267,7 @@ The type formatting in error.c was corrected to display "const" or
 7/11/92  Reread source lines for diagnostics.
 
 Support was added to print source lines that are not in the current logical
-source line as part of diagnostics.  To facility easy recovery of previous
+source line as part of diagnostics.  To facilitate easy recovery of previous
 source lines, an index of file positions is built as the source file is
 originally read (read_logical_source_line() in lexical.c).
 
