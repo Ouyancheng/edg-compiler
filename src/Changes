@@ -1,5 +1,23 @@
 Version 2.32
 
+1/31/96   Internal error on scan for enk_temp_inits in array new
+
+An array new of a class whose default constructor has default arguments
+that cause creation of more than one destructible temporary, done within
+a ctor-initializer, caused an internal error.
+
+  struct AA {
+    AA(int);
+    ~AA();
+  };
+  struct A {
+    A(AA = 0, AA = 0);
+  };
+  struct B {
+    A *p;
+    B() : p(new A[10]) {}
+  };
+
 1/25/96   IL lowering: ill-formed cast in pointer to member comparison
 
 When the type of a pointer to data member is configured to be some

@@ -770,6 +770,19 @@ initialization.
                                                mark_all_unordered);
         break;
       case dik_nonconstant_aggregate:
+        /* These can come up for an array new. */
+        { a_constant_ptr aggr = dip->variant.constant, di_con;
+          a_constant_ptr first_con = aggr->variant.aggregate.first_constant;
+          check_assertion(first_con->kind ==
+                                        (a_constant_repr_kind)ck_init_repeat &&
+                          first_con->next == NULL);
+          di_con = first_con->variant.init_repeat.constant;
+          check_assertion(di_con->kind==(a_constant_repr_kind)ck_dynamic_init);
+          any_temp_inits = examine_dynamic_init_for_unordered_temp_inits(
+                                                  di_con->variant.dynamic_init,
+                                                  mark_all_unordered);
+        }
+        break;
       case dik_bitwise_copy:
         /* These are not expected under expressions. */
       default:
