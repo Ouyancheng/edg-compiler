@@ -2061,6 +2061,80 @@ done:;
 }  /* function_template_call_argument_deduction */
 
 
+static a_boolean candidate_function_is_visible(
+                                      a_symbol_ptr function_symbol,
+                                      a_boolean    is_template_id,
+                                      a_boolean    effects_copy_initialization,
+                                      a_boolean    from_arg_dep_lookup,
+                                      a_boolean    dependent_call)
+/*
+Return TRUE if the indicated candidate function (possibly a projection
+symbol, but not an overloaded function) is visible.  That is, return
+FALSE if it should be considered invisible for some reason.  For example,
+functions injected by friend declarations are generally invisible.
+is_template_id is TRUE if the function symbol has an associated
+explicit template argument list.  effects_copy_initialization is
+TRUE if this call is the user-defined conversion in a copy-initialization
+(constructors marked "explicit" are considered invisible).
+from_arg_dep_lookup is TRUE if the function was found by argument-dependent
+lookup.  dependent_call is TRUE if the call is a template-dependent
+call.
+*/
+{
+  a_boolean     visible = TRUE, function_template_case;
+  a_routine_ptr routine;
+
+  /* Ignore friend functions that aren't visible.  Note that this
+     test is done on the projection symbol, if any, and not on the
+     underlying fundamental symbol. */
+  if (function_symbol->is_invisible) {
+    visible = FALSE;
+    goto end_of_function;
+  }  /* if */
+  /* Remove projection, if any. */
+  function_symbol = fundamental_symbol_of(function_symbol);
+  function_template_case = (function_symbol->kind ==
+                                          (a_symbol_kind)sk_function_template);
+  if (do_dependent_name_processing && !from_arg_dep_lookup &&
+      depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+      !function_symbol->is_class_member &&
+      function_symbol->decl_seq > get_effective_decl_seq()) {
+    /* This symbol is not visible in this template instantiation (it
+       was declared after the template definition). */
+    visible = FALSE;
+    goto end_of_function;
+  }  /* if */
+  if (dependent_call && !function_template_case &&
+      function_symbol->variant.routine.ptr->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal) {
+    /* Functions with internal linkage are invisible in the template-
+       dependent name lookup. */
+    visible = FALSE;
+    goto end_of_function;
+  }  /* if */
+  if (!function_template_case) {
+    /* The symbol is not a function template (i.e., it's a normal function). */
+    routine = function_symbol->variant.routine.ptr;
+    if (is_template_id) {
+      /* An explicit list of template arguments (e.g., f<int>) rules out
+         non-templates. */
+      visible = FALSE;
+      goto end_of_function;
+    }  /* if */
+  } else {
+    /* The symbol is a function template. */
+    routine = function_symbol->variant.template_info->variant.function.routine;
+  }  /* if */
+  if (effects_copy_initialization && routine->is_explicit_constructor) {
+    /* Constructors marked "explicit" are to be ignored. */
+    visible = FALSE;
+    goto end_of_function;
+  }  /* if */
+end_of_function:
+  return visible;
+}  /* candidate_function_is_visible */
+
+
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
                  a_boolean                is_template_id,
@@ -2131,11 +2205,14 @@ template-dependent call.
 
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
-    /* Ignore friend functions that aren't visible.  Note that this
-       test is done on the projection symbol, if any, and not on the
-       underlying fundamental symbol. */
-    if (proj_function_symbol->is_invisible) goto reject_function;
-    /* Remove projection, if any. */
+    if (!candidate_function_is_visible(proj_function_symbol,
+                                       is_template_id,
+                                       effects_copy_initialization,
+                                       from_arg_dep_lookup,
+                                       dependent_call)) {
+      /* The function is not visible, so ignore it. */
+      goto reject_function;
+    }  /* if */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = (function_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
@@ -2149,31 +2226,11 @@ template-dependent call.
          and cause the overload resolution to be ambiguous. */
       goto accept_function;
     }  /* if */
-    if (do_dependent_name_processing && !from_arg_dep_lookup &&
-        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-        !function_symbol->is_class_member &&
-        function_symbol->decl_seq > get_effective_decl_seq()) {
-      /* This symbol is not visible in this template instantiation (it
-         was declared after the template definition). */
-      goto reject_function;
-    }  /* if */
-    if (dependent_call && !function_template_case &&
-        function_symbol->variant.routine.ptr->source_corresp.name_linkage ==
-                                           (a_name_linkage_kind)nlk_internal) {
-      /* Functions with internal linkage are invisible in the template-
-         dependent name lookup. */
-      goto reject_function;
-    }  /* if */
     if (!function_template_case) {
       /* The symbol is not a function template (i.e., it's a normal
          function). */
       routine = function_symbol->variant.routine.ptr;
       routine_type = routine->type;
-      if (is_template_id) {
-        /* An explicit list of template arguments (e.g., f<int>) rules out
-           non-templates. */
-        goto reject_function;
-      }  /* if */
     } else {
       /* The symbol is a function template. */
       routine=function_symbol->variant.template_info->variant.function.routine;
@@ -2190,10 +2247,6 @@ template-dependent call.
         /* Bail out if there is a mismatch. */
         if (routine_type == NULL) goto reject_function;
       }  /* if */
-    }  /* if */
-    if (effects_copy_initialization && routine->is_explicit_constructor) {
-      /* Constructors marked "explicit" are to be ignored. */
-      goto reject_function;
     }  /* if */
   } else {
     /* Surrogate function call case.  We have routine_type but not
@@ -3972,8 +4025,13 @@ and return NULL.  This routine is called only in C++ mode.
         /* If the function is a single non-overloaded function, overload
            resolution is not required. */
         function_symbol = fundamental_symbol_of(overloaded_function_symbol);
-        if (function_symbol->kind == (a_symbol_kind)sk_routine ||
-            function_symbol->kind == (a_symbol_kind)sk_member_function) {
+        if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
+             function_symbol->kind == (a_symbol_kind)sk_member_function) &&
+            candidate_function_is_visible(overloaded_function_symbol,
+                                          is_template_id,
+                                         /*effects_copy_initialization=*/FALSE,
+                                          /*from_arg_dep_lookup=*/FALSE,
+                                          dependent_call)) {
           *single_function = TRUE;
           function_symbol = overloaded_function_symbol;
           goto have_function;
@@ -4023,8 +4081,15 @@ and return NULL.  This routine is called only in C++ mode.
         /* If the function is a single non-overloaded function, overload
            resolution is not required. */
         function_symbol = fundamental_symbol_of(symbol_list->symbol);
-        if (function_symbol->kind == (a_symbol_kind)sk_routine ||
-            function_symbol->kind == (a_symbol_kind)sk_member_function) {
+        if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
+             function_symbol->kind == (a_symbol_kind)sk_member_function) &&
+            candidate_function_is_visible(symbol_list->symbol,
+                                          is_template_id,
+                                         /*effects_copy_initialization=*/FALSE,
+                                          /*from_arg_dep_lookup=*/
+                                               (symbol_list->symbol !=
+                                                normal_lookup_function_symbol),
+                                          dependent_call)) {
           /* This must be either the only entry on the list, or all other
              entries on the list must be the same symbol. */
           for (slep = symbol_list->next; slep != NULL; slep = slep->next) {
