@@ -1,5 +1,14 @@
 Version 3.1
 
+9/11/02  Microsoft compatibility: explicit instantiation of specialized class
+
+In Microsoft bugs mode, an explicit instantiation of a specialized class is
+accepted.
+
+  template <class T> struct A {};
+  template <> struct A<int> {};
+  template struct A<int>;
+
 9/11/02  GNU C compatibility: Extraneous long specifiers
 
 In GNU C mode (but not in GNU C++ mode) the front end now ignores extraneous

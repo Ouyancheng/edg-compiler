@@ -19223,7 +19223,11 @@ instantiation.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Something else -- issue an error. */
-      sym_error(ec_not_instantiatable_entity, sym);
+      if (microsoft_bugs && is_template_class_symbol(sym)) {
+        /* Microsoft allows explicit instantiation of a specialized class. */
+      } else {
+        sym_error(ec_not_instantiatable_entity, sym);
+      }  /* if */
     }  /* if */
     goto done;
   } else {
