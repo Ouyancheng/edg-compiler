@@ -553,7 +553,6 @@ qualification.
   return is_type_qual;
 }  /* is_immediate_type_qualifier */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean f_is_const_qualified_type(a_type_ptr tp,
                                     a_boolean  top_level)
@@ -647,6 +646,7 @@ should be used instead of calling this routine directly.
   return(is_qualified);
 }  /* f_is_qualified_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_abstract_class_type(a_type_ptr  tp)
 /*
