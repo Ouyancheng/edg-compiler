@@ -295,11 +295,15 @@ non-NULL, it points to the symbol that does the hiding.
         fund_hiding_sym != NULL &&
         fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
         fund_hiding_sym->variant.type.is_injected_class_name) {
-      /* In Microsoft compilers an injected class name is only visible
-         through qualified lookup.  Furthermore, Microsoft does not
-         accept (redundant) qualification with a class whose closing
-         brace has not yet been seen.  Setting the following flag
-         notifies consumers of this special "partial hiding" case. */
+      /* In Microsoft compilers before version 7.0 an injected class name is
+         only visible through qualified lookup.  Furthermore, they do not
+         accept (redundant) qualification with a class whose closing brace
+         has not yet been seen.  Setting the following flag notifies
+         consumers of this special "partial hiding" case.  (Note: this flag
+         is set even for microsoft_version >= 1300, where the problem does
+         not occur, to enable the C++-generating back end to generate
+         correct code for earlier compilers.  The flag will be ignored there
+         if msvc_target_version_number is >= 1300.) */
       hnp->partially_hidden_by_microsoft_injected_class_name = TRUE;
     }  /* if */
     check_assertion(in_file_scope(entity));
