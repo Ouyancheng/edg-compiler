@@ -11105,6 +11105,17 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
                                                                   result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (gcc_mode &&
+               (is_void_type(operand_2.type) ||
+                is_void_type(operand_3.type))) {
+      /* gcc allows mixed void/non-void operands.  The result type is void. */
+      result_type = void_type();
+      if (!is_void_type(operand_2.type)) {
+        cast_operand_to_void(&operand_2, result_type);
+      }  /* if */
+      if (!is_void_type(operand_3.type)) {
+        cast_operand_to_void(&operand_3, result_type);
+      }  /* if */
     } else {
       operand_2_is_pointer = is_pointer_type(operand_2.type);
       operand_3_is_pointer = is_pointer_type(operand_3.type);

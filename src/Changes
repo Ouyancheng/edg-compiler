@@ -1712,7 +1712,7 @@ specific registers.  [12/7/01] --preinclude_macros option (like the gcc
 are turned into ordinary fields. [1/22/02] Builtin varargs operations.
 [1/25/02] Old-style definitions with unpromoted parameter types can follow
 function prototypes with those same parameter types. [2/26/02] _Bool
-keyword.
+keyword.  [3/10/02] "?" operators with mixed void/non-void operands.
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 
