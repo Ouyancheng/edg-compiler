@@ -842,8 +842,8 @@ error code.
     case ec_this_used_incorrectly:
       m = "\"this\" may only be used inside a nonstatic member function";
       break;
-    case ec_value_not_known_at_compile_time:
-      m = "constant value is not known at compile time";
+    case ec_constant_value_not_known:
+      m = "constant value is not known";
       break;
     case ec_missing_type_specifier:
       m = "explicit type specifier is missing";
