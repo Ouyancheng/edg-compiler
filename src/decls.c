@@ -5373,6 +5373,7 @@ of local variables (and types, etc.) of functions and in blocks.
         } else {
           remark(ec_extra_semicolon);
         }  /* if */
+        cannot_bind_to_curr_construct();
       } else if (curr_token == tok_lbrace) {
         /* Special error recovery on encountering an open brace: it
            may be the start of a routine. */
@@ -5385,9 +5386,9 @@ of local variables (and types, etc.) of functions and in blocks.
         }  /* if */
       } else {
         syntax_error(ec_exp_declaration);
+        discard_curr_construct_pragmas();
       }  /* if */
       /* Give up on scanning a declaration (assume we're at the end of one). */
-      discard_curr_construct_pragmas();
       goto advance_past_final_token;
     }  /* if */
   }  /* if */
@@ -5511,7 +5512,7 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* if */
-    discard_curr_construct_pragmas();
+    cannot_bind_to_curr_construct();
   } else if (dangling_type_specifier ||
              (!decl_specifiers_omitted && !C_mode() &&
               identifier_is_template_id())) {
@@ -5540,7 +5541,7 @@ continue_with_declaration:
        Shows up in old pre-void-keyword code.  Ignored in pcc mode. */
     set_err_pos_to_curr_token();
     warning(ec_decl_of_void_ignored);
-    discard_curr_construct_pragmas();
+    cannot_bind_to_curr_construct();
     /* Advance past "void" to the semicolon. */
     (void)get_token();
     goto advance_past_final_token;

@@ -3702,7 +3702,7 @@ special function kind (e.g., constructor, destructor), if any.
                                 declarator_ssep);
 #endif /* if 0 */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    discard_curr_construct_pragmas();
+    cannot_bind_to_curr_construct();
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -6260,7 +6260,7 @@ Scan the body of a class definition, including the base classes list.
           pos_diagnostic(strict_ansi_mode ?
                            strict_ansi_discretionary_severity : es_warning,
                          ec_extra_semicolon, &pos_curr_token);
-          discard_curr_construct_pragmas();
+          cannot_bind_to_curr_construct();
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
           goto next_declaration;
@@ -6496,9 +6496,9 @@ Scan the body of a class definition, including the base classes list.
             /* Don't just skip on to the next declaration --
                decl_nonstatic_data_member needs to be called. */
           } else {
+            cannot_bind_to_curr_construct();
             /* Bypass the semicolon and skip to the next declaration. */
             (void)get_token();
-            discard_curr_construct_pragmas();
             goto next_declaration;
           }  /* if */
         }  /* if */

@@ -4601,8 +4601,9 @@ rescan_statement:
         } else {
           warning(ec_exp_statement);
         }  /* if */
-        /* Discard any pragmas that are bound to the current statement. */
-        discard_curr_construct_pragmas();
+        /* Issue a diagnostic on trying to bind a pragma to the current
+           statement. */
+        cannot_bind_to_curr_construct();
         break;
       }  /* if */
       /* FALLTHROUGH */
