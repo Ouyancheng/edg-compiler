@@ -22,6 +22,88 @@ templates.c -- Support for C++ templates.
 #include "symbol_tbl.h"
 #include "types.h"
 
+
+static a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
+                                          a_template_arg_ptr  list2)
+{
+  a_boolean           equiv = TRUE;
+  a_template_arg_ptr  arg1, arg2;
+
+#if CHECKING
+  if (list1 == NULL || list2 == NULL) {
+    internal_error("equiv_template_arg_lists: NULL list");
+  }  /* if */
+#endif /* CHECKING */
+  arg1 = list1;
+  arg2 = list2;
+  do {
+    if (arg1->is_type != arg2->is_type) {
+      equiv = FALSE;
+      break;
+    }  /* if */
+    if (arg1->is_type) {
+      if (!identical_types(arg1->variant.type, arg2->variant.type)) {
+        equiv = FALSE;
+        break;
+      }  /* if */
+    } else {
+      if (!eq_constants(arg1->variant.constant, arg2->variant.constant)) {
+        equiv = FALSE;
+        break;
+      }  /* if */
+    }  /* if */
+    arg1 = arg1->next;
+    arg2 = arg2->next;
+    if ((arg1 == NULL) != (arg2 == NULL)) {
+      equiv = FALSE;
+      break;
+    }  /* if */
+  } while (arg1 != NULL);
+  return equiv;
+}  /* equiv_template_arg_lists */
+
+
+a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
+                                 a_template_arg_ptr  new_list,
+                                 a_source_position   *source_pos)
+/*
+*/
+{
+  a_symbol_ptr        sym;
+  a_template_arg_ptr  old_list;
+  a_type_kind         type_kind;
+  a_type_ptr          class_type;
+
+  db_enter(4, "find_template_class");
+  sym = class_template_sym->variant.template.extra_info->
+                                        variant.class.instantiations;
+  for (; sym != NULL; sym = sym->next) {
+    old_list = sym->variant.type->
+                     variant.class_struct_union.extra_info->template_arg_list;
+    if (equiv_template_arg_lists(old_list, new_list)) {
+      /* We've found it. */
+      break;
+    }  /* if */
+  }  /* for */
+  if (sym == NULL) {
+    sym = make_template_class_symbol(class_template_sym, source_pos);
+    if (sym->kind == (a_symbol_kind)sk_union_tag) {
+      type_kind = (a_type_kind)tk_union;
+    } else {
+      type_kind = (a_type_kind)tk_class;
+    }  /* if */
+    sym->variant.class_struct_union.type = class_type = alloc_type(type_kind);
+    class_type->variant.class_struct_union.extra_info->
+                                            template_arg_list = new_list;
+    set_source_corresp(&(class_type->source_corresp), sym);
+    class_type->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
+  db_exit();
+  return sym;
+}  /* find_template_class */
+
+
 static a_symbol_ptr class_template_declaration(void)
 /*
 */

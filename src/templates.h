@@ -17,7 +17,14 @@ templates.h -- Declarations relating to templates.c (template support)
 #ifndef TEMPLATES_H
 #define TEMPLATES_H 1
 
+#include "il.h"
+#include "symbol_tbl.h"
+
 extern void template_declaration(void);
+
+extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
+                                        a_template_arg_ptr  template_arg_list,
+                                        a_source_position   *source_pos);
 
 #endif /* TEMPLATES_H */
 
