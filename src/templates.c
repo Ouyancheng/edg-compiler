@@ -3320,7 +3320,9 @@ type based on the template argument list and the template parameter list
        processing. */
     a_source_position    saved_pos_curr_token;
     a_source_position    saved_error_position;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     a_source_position	 locator_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     a_template_cache_ptr tcp;
 
     /* Push the template instantiation scope.  Note that the instance symbol
@@ -3353,7 +3355,9 @@ type based on the template argument list and the template parameter list
     parent_class = templ_sym->is_class_member ? templ_sym->parent.class_type
                                               : (a_type_ptr)NULL;
     if (parent_class != NULL) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
       locator_position = pos_curr_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rout_type = scan_member_declaration(parent_class);
 #if 0
       /* We should get the locator position returned. */
@@ -3374,7 +3378,9 @@ type based on the template argument list and the template parameter list
                                 &rout_type, &func_info, &storage_class,
                                 &decl_modifiers);
       done_with_func_info(func_info);
+#if MICROSOFT_EXTENSIONS_ALLOWED
       locator_position = locator.source_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
