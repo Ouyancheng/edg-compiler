@@ -4100,7 +4100,7 @@ done separately from set_needed_flags_at_end_of_file_scope, and after it
 is done, is that all the classes have to have been marked first.
 */
 {
-  a_type_ptr                   tp, class_type;
+  a_type_ptr                   tp, under_type;
   a_class_type_supplement_ptr  ctsp;
   a_namespace_ptr              nsp;
 
@@ -4114,11 +4114,13 @@ is done, is that all the classes have to have been marked first.
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* If a typeref type points to a class that is needed, has a name, and
          was originally unnamed, the typeref type is needed, too. */
-      if ((class_type = tp->variant.typeref.type,
-           is_immediate_class_type(class_type)) &&
-          class_type->variant.class_struct_union.originally_unnamed) {
+      /* Also keep placeholder typerefs if the referenced type is needed. */
+      under_type = tp->variant.typeref.type;
+      if ((is_immediate_class_type(under_type) &&
+           under_type->variant.class_struct_union.originally_unnamed) ||
+          !has_name(tp)) {
         mark_as_needed_like((char *)tp, (an_il_entry_kind)iek_type,
-                            &class_type->source_corresp,
+                            &under_type->source_corresp,
                             /*set_class_defn_needed=*/FALSE);
       }  /* if */
     } else if (is_immediate_class_type(tp)) {
