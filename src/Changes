@@ -1,5 +1,26 @@
 Version 2.42
 
+4/15/99  Unlowered pointer-to-member type remains in catch parameter
+
+In versions configured without IL file write/read, a catch parameter
+of type pointer to member (where the pointer to member was written in
+the parameter type, and not supplied by a typedef) remained a
+pointer-to-member after IL lowering in some cases.  Now fixed.
+
+  struct A {
+    int d;
+    void f() {}
+  };
+  void TestA() throw( void (A::*)(), int A::* ) {
+    {
+      int caught = 0;
+      try {
+      } catch( void (A::* p)() ) {  // Type remained a pointer-to-member
+        caught |= 1;
+      }
+    }
+  }
+
 4/14/99  Linkage specification with "inline"
 
 An inline specifier is now permitted on a function declared with a linkage

@@ -11573,6 +11573,7 @@ handled at the function level.)
 
   for (scope = scope_list; scope != NULL; scope = scope->next) {
     lower_scope(scope);
+    lower_scope_list(scope->scopes);
   }  /* for */
 }  /* lower_scope_list */
 
