@@ -285,6 +285,9 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_far, "far");
       enter_underscore_keywords((a_token_kind)tok_far, "__far");
     }  /* if */
+    if (C_dialect == C_dialect_cplusplus) {
+      enter_underscore_keywords((a_token_kind)tok_uuidof, "__uuidof");
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
