@@ -6392,19 +6392,23 @@ type entry or is a type tree containing such a type or a type containing
 a template parameter constant.
 */
 {
-  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
-                                               TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS);
+  a_boolean result = FALSE;
 
-  check_assertion_str(!C_mode(),
-                      "is_or_contains_template_param: not callable in C mode");
-  /* Setting these pointers to NULL indicates that any template param type
-     or constant will do. */
-  specific_template_param_type = NULL;
-  specific_template_param_constant = NULL;
-  deduced_contexts_only = FALSE;
-  return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
-          ttt_flags));
+  /* Template parameter types come up only in prototype instantiations. */
+  if (!C_mode() && is_template_dependent_context()) {
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_TEMPLATE_ARGS);
+
+    /* Setting these pointers to NULL indicates that any template param type
+       or constant will do. */
+    specific_template_param_type = NULL;
+    specific_template_param_constant = NULL;
+    deduced_contexts_only = FALSE;
+    result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
+                                ttt_flags);
+  }  /* if */
+  return result;
 }  /* is_or_contains_template_param */
 
 
@@ -6422,7 +6426,7 @@ parameter can be deduced.
                                                TTT_TEMPLATE_ARGS);
 
   check_assertion_str(!C_mode(),
-                      "is_or_contains_template_param: not callable in C mode");
+              "is_or_contains_deduced_template_param: not callable in C mode");
   /* Setting these pointers to NULL indicates that any template param type
      or constant will do. */
   specific_template_param_type = NULL;
