@@ -13095,40 +13095,46 @@ parsing the member of the class_type instantiation.
 {
   a_template_arg_ptr  arg = class_type->variant.class_struct_union.extra_info
                                       ->template_arg_list;
-  a_template_ptr      templ = class_type->variant.class_struct_union.extra_info
-                                        ->assoc_template;
-  a_template_symbol_supplement_ptr
-                      tssp = symbol_for_template(templ)->variant.template_info;
-  a_template_param_ptr
-                      param = tssp->cache.decl_info->parameters;
 
-  /* Traverse each parameter, but process only type parameters. */
-  while (param != NULL) {
-    check_assertion(arg != NULL);
-    if (arg->kind == (a_templ_arg_kind)tak_type) {
-      /* Create a type entry and an associate source sequence entry.  Note
-         that we do not create a symbol for this declaration: The new type
-         is only meant for the back end and should not be found while
-         parsing the remainder of the code. */
-      a_source_sequence_entry_ptr  ssep = add_empty_source_sequence_entry();
-      a_type_ptr                   type = alloc_type((a_type_kind)tk_typeref);
-      type->variant.typeref.type = arg->variant.type;
-      type->source_corresp.name = param->param_symbol->header->identifier;
-      /* Chosing public ensures we do not cause a POD instantiation to be
-         rendered as a non-POD specialization.  It also avoids access problems
-         for nested classes. */
-      type->source_corresp.access = (an_access_specifier)as_public;
-#if RECORD_SCOPE_DEPTH_IN_IL
-      type->source_corresp.scope_depth = depth_scope_stack;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-      type->source_corresp.source_sequence_entry = ssep;
-      set_class_membership(/*sym=*/NULL, &type->source_corresp, class_type);
-      ssep->entity.kind = (an_il_entry_kind)iek_type;
-      ssep->entity.ptr = (char*)type;
-    }  /* if */
-    arg = arg->next;
-    param = param->next;
-  }  /* while */
+  if (arg == NULL) {
+    /* class_type is not an instance of a class template, but rather a nested
+       class of such an instance.  Nothing needs to be done for such cases. */
+  } else {
+    a_template_ptr  templ = class_type->variant.class_struct_union.extra_info
+                                        ->assoc_template;
+    a_template_symbol_supplement_ptr
+                    tssp = symbol_for_template(templ)->variant.template_info;
+    a_template_param_ptr
+                    param = tssp->cache.decl_info->parameters;
+    /* Traverse each parameter, but process only type parameters. */
+    while (param != NULL) {
+      check_assertion(arg != NULL);
+      if (arg->kind == (a_templ_arg_kind)tak_type) {
+        /* Create a type entry and an associate source sequence entry.  Note
+           that we do not create a symbol for this declaration: The new type
+           is only meant for the back end and should not be found while
+           parsing the remainder of the code. */
+        a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
+        a_source_sequence_entry_ptr
+                    ssep = add_empty_source_sequence_entry();
+        type->variant.typeref.type = arg->variant.type;
+        type->source_corresp.name = param->param_symbol->header->identifier;
+        /* Chosing public ensures we do not cause a POD instantiation to be
+           rendered as a non-POD specialization.  It also avoids access
+           problems for nested classes. */
+        type->source_corresp.access = (an_access_specifier)as_public;
+  #if RECORD_SCOPE_DEPTH_IN_IL
+        type->source_corresp.scope_depth = depth_scope_stack;
+  #endif /* RECORD_SCOPE_DEPTH_IN_IL */
+        type->source_corresp.source_sequence_entry = ssep;
+        set_class_membership(/*sym=*/NULL, &type->source_corresp, class_type);
+        ssep->entity.kind = (a_byte_il_entry_kind)iek_type;
+        ssep->entity.ptr = (char*)type;
+      }  /* if */
+      arg = arg->next;
+      param = param->next;
+    }  /* while */
+  }  /* if */
 }  /* insert_template_argument_substitutions_as_typedefs */
 
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
