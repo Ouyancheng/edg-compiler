@@ -9558,7 +9558,8 @@ current scope.
       } else {
         check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
                         locator_for_curr_id.is_global_qualified_name ||
-                        nonstandard_using_decl_allowed);
+                        nonstandard_using_decl_allowed ||
+                        ignore_std_namespace);
         locator = locator_for_curr_id;
         clear_specific_symbol(locator);
         /* Look for a declaration of the same name in the current scope. */

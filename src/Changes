@@ -1,5 +1,18 @@
 Version 3.0
 
+4/10/02  Internal error on using-declaration with --ignore_std
+
+An internal error would occur on using-declaration that refers to a
+member of the std namespace when the --ignore_std option was specified.
+This has been fixed.
+
+  namespace std {
+    class A { };
+  }
+  namespace M {
+    using std::A;
+  }
+
 4/10/02  Loop in overload resolution on classes that convert to each other
 
 Faced with a case involving classes that can convert to each other
