@@ -1167,8 +1167,8 @@ See ARM 13.3, "Address of Overloaded Function".
            sym = sym->next) {
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
-          instance_sym = find_template_function(sym, dest_underlying_type,
-                                                source_pos);
+          instance_sym = matching_template_function(sym, dest_underlying_type,
+                                                    source_pos);
           if (instance_sym != NULL) {
             /* Template match. */
             match_sym = instance_sym;
@@ -5619,7 +5619,7 @@ template has the right number of parameters.
   an_arg_operand_ptr arg_operand;
   a_routine_type_supplement_ptr
                      rtsp;
-  a_type_ptr         param_type;
+  a_type_ptr         param_type, arg_type;
 
   db_enter(4, "function_template_matches_operand_list");
 #if CHECKING
@@ -5636,6 +5636,7 @@ template has the right number of parameters.
        ptp = ptp->next, arg_operand = arg_operand->next) {
     /* Try to match up the parameter type and the argument type. */
     param_type = ptp->type;
+    arg_type = arg_operand->operand.type;
     if (is_reference_type(param_type)) {
       /* For a reference type, the argument must be an lvalue or a function
          designator. */
@@ -5643,13 +5644,20 @@ template has the right number of parameters.
       if (is_an_rvalue(&arg_operand->operand)) goto done;
       /* Drop the reference type. */
       param_type = type_pointed_to(param_type);
+    } else {
+      /* Not a reference. */
+      /* Do the array-->pointer and function-->pointer transformations. */
+      if (is_array_type(arg_type)) {
+        arg_type = make_pointer_type(array_element_type(arg_type));
+      } else if (is_function_type(arg_type)) {
+        arg_type = make_pointer_type(arg_type);
+      }  /* if */
     }  /* if */
     /* As the matching is attempted, templ_arg_list is filled in with
        the bindings for the template arguments.  This is needed during the
        matching process to ensure that each argument is used consistently
        and also later in this routine to build the instantiation. */
-    if (!matches_template_type(arg_operand->operand.type, param_type,
-                               &templ_arg_list)) {
+    if (!matches_template_type(arg_type, param_type, &templ_arg_list)) {
       goto done;
     }  /* if */
   }  /* for */
@@ -5672,8 +5680,7 @@ template has the right number of parameters.
 #endif /* CHECKING */
   /* The function template matches the operand list.  Make an instantiation
      of the template. */
-  sym = make_template_function(templ_sym, /*rout_type=*/NULL, templ_arg_list,
-                               source_pos);
+  sym = find_template_function(templ_sym, &templ_arg_list, source_pos);
 done:
   if (sym == NULL && templ_arg_list != NULL) {
     /* Free the template argument list if we did not use it. */
