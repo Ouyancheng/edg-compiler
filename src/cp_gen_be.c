@@ -6657,7 +6657,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_ple:
           opstr = "<=";
           break;
-#if GCC_IS_GENERATED_CODE_TARGET
+#if GNU_EXTENSIONS_ALLOWED
         case eok_gnu_min:
         case eok_ignu_min:
         case eok_fgnu_min:
@@ -6670,7 +6670,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_pgnu_max:
           opstr = ">?";
           break;
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_remainder:
           opstr = "%";
           break;
