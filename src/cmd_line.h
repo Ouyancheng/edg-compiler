@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -303,6 +303,6 @@ extern a_boolean get_next_source_file(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
