@@ -1317,15 +1317,32 @@ when we choose to make sizeof_t something longer.
 
 #endif /* ifdef NEED_SIZE_T_ARG_ERROR */
 
+
+int smemcmp(char     *s1,
+            char     *s2,
+            sizeof_t length)
+/*
+Like the standard memcmp, but guaranteed to compare the characters
+sequentially and read no more characters than necessary.  Used when one
+does not know that both strings are at least as long as the indicated length.
+*/
+{
+  int cmp = 0;
+
+  for (; length > 0; length--) {
+    cmp = ((unsigned char)(*s1++) - (unsigned char)(*s2++));
+    if (cmp != 0) break;
+  }  /* for */
+  return cmp;
+}  /* smemcmp */
+
+
 #if __VMS__
 /* VMS doesn't have block copy routines, so define them. */
 
 int memcmp(register char *s1, register char *s2, register true_size_t length)
 {
-  /* Not quite the real function -- should return -1 or 1,
-     but it does what's needed in this front end. */
-  while (length--) if (*s1++ != *s2++) return (1);
-  return (0);
+  return smemcmp(s1, s2, (sizeof_t)length);
 }  /* memcmp */
 
 

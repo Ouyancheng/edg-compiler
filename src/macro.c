@@ -2362,21 +2362,6 @@ section, if there is one, or a new text section will be begun if necessary.
 { put_raw_text(str, length, &curr_text_section); }
 
 
-static int smemcmp(char     *s1,
-                   char     *s2,
-                   sizeof_t length)
-/*
-Like the standard memcmp, but guaranteed to compare the characters sequentially
-and read no more characters than necessary.  Used when one does not know
-that the two strings are at least as long as the indicated length.  Also
-returns just 0 or 1, not -1/0/+1.
-*/
-{
-  while (length--) if (*s1++ != *s2++) return 1;
-  return 0;
-}  /* smemcmp */
-
-
 void proc_define(void)
 /*
 Scan and process a #define directive.

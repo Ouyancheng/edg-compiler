@@ -674,6 +674,10 @@ extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 
 /* Set up signal handlers. */
 extern void set_signal_handlers(void);
+/* Custom version of memcmp. */
+extern int smemcmp(char     *s1,
+                   char     *s2,
+                   sizeof_t length);
 
 #endif /* ifndef HOST_ENVIR_H */
 
