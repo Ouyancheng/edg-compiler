@@ -12349,7 +12349,7 @@ returned instead of the unqualified function name.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                rp->source_corresp.name;
     a_constant_ptr         name_string;
-    a_targ_size_t          length = strlen(name_ptr)+1;
+    a_targ_size_t          length = ((a_targ_size_t)strlen(name_ptr))+1;
     a_memory_region_number region_to_switch_back_to;
     a_type_ptr             var_type;
     /* Create the string literal. */
