@@ -10902,8 +10902,8 @@ The overriding function must have a definition in the current compilation.
   }  /* for */
   overriding_function = routine->overriding_function_for_covariant_return_type;
   overridden_function = routine->overridden_function_for_covariant_return_type;
-  overriding_return_type = return_type_of(overriding_function->type);
-  overridden_return_type = return_type_of(overridden_function->type);
+  overriding_return_type = il_return_type_of(overriding_function->type);
+  overridden_return_type = il_return_type_of(overridden_function->type);
   /* The overriding function must have a definition in this compilation. */
   check_assertion(overriding_function->assoc_scope != NULL_region_number &&
                   !overriding_function->suppress_inline_body);
