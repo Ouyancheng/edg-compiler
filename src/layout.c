@@ -1781,10 +1781,11 @@ base class of the complete object).
     a_base_class_ptr  bcp = base_classes_of(subobject_type);
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->offset == 0 &&
-          (bcp->direct || !is_base_of_virtual_base(bcp))) {
+          !bcp->is_virtual && !is_base_of_virtual_base(bcp)) {
         /* Unlike field subobjects, only base class subobjects at offset
-           zero are considered for this kind of conflicts.  Bases of virtual
-           bases aren't considered either. */
+           zero are considered for this kind of conflicts.  Virtual bases and
+           bases of virtual bases aren't considered (since their offset
+           changes from type to type). */
         if ((!in_field && identical_types(bcp->type, eb_type)) ||
             gnu_conflict_found(bcp->type, eb_type, in_field)) {
           result = TRUE;
@@ -1881,11 +1882,13 @@ base if it has a subobject of the same type as the previous base.
       }  /* if */
       sub_ebcp = base_classes_of(ebcp->type);
       /* Only examine conflicts with bottom-most base classes. */
-      if (sub_ebcp == NULL &&
-          gnu_conflict_found(skip_typerefs(bcp->type),
-                             skip_typerefs(ebcp->type),
-                             /*in_field=*/FALSE)) {
-        result = TRUE;
+      if (sub_ebcp == NULL) {
+        if (gnu_conflict_found(skip_typerefs(bcp->type),
+                               skip_typerefs(ebcp->type),
+                               /*in_field=*/FALSE)) {
+          result = TRUE;
+          goto done;
+        }  /* if */
       } else {
         for (; sub_ebcp != NULL; sub_ebcp = sub_ebcp->next) {
           if (base_classes_of(sub_ebcp->type) == NULL &&
@@ -1893,12 +1896,13 @@ base if it has a subobject of the same type as the previous base.
                                  skip_typerefs(sub_ebcp->type),
                                  /*in_field=*/FALSE)) {
             result = TRUE;
-            break;
+            goto done;
           }  /* if */
         }  /* for */
       }  /* if */
     }  /* for */
   }  /* if */
+done:
   return result;
 }  /* gnu_base_conflict */
 
@@ -3854,14 +3858,12 @@ Reserve space at the end of the class object for virtual base classes.
 #if IA64_ABI
     if (emulate_gnu_abi_bugs) {
       /* Early GNU implementations for the IA-64 ABI force an alignment
-         boundary before allocating trailing virtual bases.  They also
-         avoid overlapping a virtual base with a trailing empty base. */
+         boundary before allocating trailing virtual bases. */
       if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&
           !lob->any_overflow) {
         error(struct_too_large_error());
         lob->any_overflow = TRUE;
       }  /* if */
-      adjust_size_for_empty_bases(lob);
     }  /* if */
     if (targ_reuse_tail_padding) {
       /* This is an IA-64 ABI configuration that allowed tail padding of base
@@ -4358,6 +4360,13 @@ for handling virtual bases and functions.
     /* Next allocate space for pointers to the virtual base class data
        sections. */
     set_virtual_base_class_pointer_offsets(&lob);
+#else /* IA64_ABI */
+    if (emulate_gnu_abi_bugs) {
+      /* After laying out fields, but before laying out virtual bases,
+         GNU compilers may force extra padding to avoid ending with
+         an empty base. */
+      adjust_size_for_empty_bases(&lob);
+    }  /* if */
 #endif /* !IA64_ABI */
     /* Finally, allocate space for the virtual base class data sections
        themselves. */
