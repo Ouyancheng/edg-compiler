@@ -3793,7 +3793,6 @@ type should not be used in the matching process.
 }  /* matching_template_function */
 
 
-static
 a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,
                                          a_type_ptr         curr_type,
 		  		         a_boolean	    is_decl_context)
