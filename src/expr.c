@@ -7980,6 +7980,29 @@ in *bound_function_selector.
 }  /* scan_cast_expression */
 
 
+static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
+/*
+Clear the expression stack, returning the old expression stack pointer
+to the caller in *saved_expr_stack, for later restoration by calling
+restore_expr_stack.  This is used at the start of processing of an
+expression that is not part of the surrounding context.
+*/
+{
+  *saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+}  /* save_expr_stack */
+
+
+static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
+/*
+Restore the expression stack to the state it had when save_expr_stack
+was called.
+*/
+{
+  expr_stack = saved_expr_stack;
+}  /* restore_expr_stack */
+
+
 static void scan_compound_literal(a_type_ptr        *p_literal_type,
                                   a_source_position *type_position,
                                   an_operand        *result)
@@ -8029,14 +8052,13 @@ to the compound literal.
   /* Save, clear, and later restore the expression stack, since the
      initializer is not part of any expression we may currently be
      inside of. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   if (is_static) switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the brace-enclosed initializer. */
   scan_compound_literal_initializer(&literal_type, is_static, &dip);
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
   if (err) {
     make_error_operand(result);
   } else if (is_static) {
@@ -12553,8 +12575,7 @@ in a template instantiation) just do the scan.
      is not part of any expression we may currently be inside of.  Note
      that push_scope cleared the object lifetime stack on pushing the
      prototype scope. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -12577,7 +12598,7 @@ in a template instantiation) just do the scan.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
 #if DEBUG
   if (debug_level >= 3) {
     db_expression(node);
@@ -12820,8 +12841,7 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   /* Save the current expr_stack for later restoration, and start over, because
      this pp expression is not part of any expression we happen to be inside
      of. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -12830,7 +12850,7 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -13452,8 +13472,7 @@ err_pos as the error position.
   /* Even though this is not an expression scan, make sure the expr_stack
      has something on it.  If there is already something on the stack,
      save it, clear the stack, and restore it later. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -13467,7 +13486,7 @@ err_pos as the error position.
   expr = make_node_from_operand(&operand);
   expr = wrap_up_full_expression(expr);
   pop_expr_stack();
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
   return expr;
 }  /* prep_rvalue_arg_expr */
 
@@ -13861,8 +13880,7 @@ to the expression created.  The variable var must have an associated symbol.
   /* Even though this is not an expression scan, make sure the expr_stack
      has something on it.  If there is already something on the stack,
      save it, clear the stack, and restore it later. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -13884,7 +13902,7 @@ to the expression created.  The variable var must have an associated symbol.
   }  /* if */
   expr = make_node_from_operand(&operand);
   pop_expr_stack();
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
   return expr;
 }  /* make_condition_value_expression */
 
@@ -13911,8 +13929,7 @@ this routine is called only when microsoft_mode is TRUE.
   /* Save the current expr_stack for later restoration, and start over, because
      this processing is not part of any expression we happen to be inside
      of. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
@@ -13953,7 +13970,7 @@ this routine is called only when microsoft_mode is TRUE.
     }  /* if */
   }  /* if */
   pop_expr_stack();
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -14016,8 +14033,7 @@ This routine is used only in C++ mode.
   /* Save the current expr_stack for later restoration, and start over, because
      this processing is not part of any expression we happen to be inside
      of. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
@@ -14029,7 +14045,7 @@ This routine is used only in C++ mode.
                                                  (a_boolean *)NULL,
                                                  class_bitwise_copy);
   pop_expr_stack();
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
   return cctor_sym;
 }  /* find_copy_constructor */
 
@@ -14048,14 +14064,13 @@ instantiation.  Go through it and do any necessary processing for that.
   /* Even though this is not an expression scan, make sure the expr_stack
      has something on it.  If there is already something on the stack,
      save it, clear the stack, and restore it later. */
-  saved_expr_stack = expr_stack;
-  expr_stack = NULL;
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+                  /*suppress_object_lifetime=*/TRUE);
   prep_generic_template_argument_list(template_arg_list);
   pop_expr_stack();
-  expr_stack = saved_expr_stack;
+  restore_expr_stack(saved_expr_stack);
 }  /* process_unattached_template_argument_list */
 
 
