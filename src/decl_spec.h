@@ -57,13 +57,15 @@ extern void scan_extended_decl_modifiers(
                             a_boolean                    *err);
 
 extern void scan_and_discard_extended_decl_modifiers(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
+#if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
 extern void update_extended_decl_info_for_class(
                             a_type_ptr                   class_type,
                             an_extended_decl_info_block  *extended_decl_info,
                             a_boolean                    class_definition,
                             a_source_position            *err_pos);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern char *scan_GUID_string(void);
