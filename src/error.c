@@ -1002,6 +1002,9 @@ error code.
     case ec_ambiguous_constructor:
       m = "more than one constructor matches this argument list";
       break;
+    case ec_bad_default_arg_type:
+      m = "default argument expression is incompatible with parameter";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

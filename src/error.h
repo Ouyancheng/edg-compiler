@@ -355,7 +355,8 @@ typedef enum /*an_error_code*/ {
   ec_default_arg_not_at_end,
   ec_default_arg_already_defined,
   ec_ambiguous_overloaded_function,
-  ec_ambiguous_constructor
+  ec_ambiguous_constructor,
+  ec_bad_default_arg_type
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
