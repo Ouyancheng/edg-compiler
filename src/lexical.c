@@ -4547,9 +4547,10 @@ tokens should be rescanned.
       if (locator_for_curr_id.is_semivisible_nested_class) {
         /* The symbol in the locator is a nested class that is not visible
            according to the ARM lookup rules but is returned in support of
-           the nested class anachronism (ARM 18.3.5). Issue a warning. */
-        sym_warning(ec_nested_class_anachronism,
-                    locator_for_curr_id.specific_symbol);
+           the nested class anachronism (ARM 18.3.5). Issue an anachronism
+           diagnostic. */
+        sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
+                       locator_for_curr_id.specific_symbol);
       }  /* if */
     }  /* if */
     for (;;) {
