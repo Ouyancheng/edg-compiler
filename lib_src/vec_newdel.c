@@ -362,7 +362,7 @@ of the delete operator.
 This routine needs to record the size of the array that was allocated so
 that the size is known when the array is deallocated.  One of two means
 of recording this information is used depending on the setting of the
-configuiraton flag USE_PREFIX_FOR_ARRAY_ALLOC_INFO.  If this flag is TRUE,
+configuraton flag USE_PREFIX_FOR_ARRAY_ALLOC_INFO.  If this flag is TRUE,
 a prefix structure is allocated as part of the array allocation, and this
 prefix is used to store the size.  The pointer returned to the caller points
 to the memory after the prefix block.
