@@ -2447,6 +2447,7 @@ scan_paren:
             move_destruction_to_curr_object_lifetime(olp->destructions);
             olp->destructions = NULL;
           }  /* if */
+          dip = cip->initializer;
           if (dip->kind == (a_dynamic_init_kind)dik_expression) {
             /* Link around the enk_object_lifetime expression -- it's not
                needed any longer. */
@@ -2468,6 +2469,7 @@ scan_paren:
       object_class_type = NULL;
       object_qualifiers = TQ_NONE;
       cssp = NULL;
+      dip = NULL;
       is_const_qualified = FALSE;
       if (user_defined) err_pos = pos_curr_token;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
