@@ -1,5 +1,16 @@
 Version 2.16
 
+4/19/93  Linkage on nested classes
+
+A bug has been fixed affecting how linkage was set on members of nested
+classes.  For example,
+
+  class A {
+    class B {
+      static int i;      // A::B::i is now marked as externally linked
+    };
+  };
+  
 4/19/93  parent_block pointer on continue labels
 
 The parent_block pointer on labels generated as the branch target
@@ -10,12 +21,12 @@ for "continue" statements has been corrected.
 Proper destructor calls are now generated on a goto backward to a label
 preceding some initializations in the same block.
 
-         struct A { ~A(); A(int); };
-         void m() {
-           label:
-             A x(1);
-             goto label;  // should destroy x
-         }
+  struct A { ~A(); A(int); };
+  void m() {
+    label:
+      A x(1);
+      goto label;  // should destroy x
+  }
 
 
 4/18/93  Optimization: extra temporaries/copy constructor calls avoided
