@@ -4326,13 +4326,16 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
 }  /* scan_typeid_operator */
 
 
-static an_expr_node_ptr scan_va_list_lvalue_expr(an_error_code err_code,
+static an_expr_node_ptr scan_va_list_lvalue_expr(a_boolean     value_used,
+                                                 an_error_code err_code,
                                                  a_boolean     *err)
 /*
 Scan an lvalue expression and return a pointer to it.  Check that the
 type of the expression is the builtin type va_list from <stdarg.h>.  If it
 isn't, or the expression isn't an lvalue, issue the error err_code, set
-*err to TRUE, and return NULL.
+*err to TRUE, and return NULL.  The value of the lvalue is used if
+value_used is TRUE.  The lvalue is assumed always to be set (since we don't
+know what the underlying implementation is).
 */
 {
   an_operand       operand;
@@ -4344,15 +4347,17 @@ isn't, or the expression isn't an lvalue, issue the error err_code, set
   /* The operand must be an lvalue of the builtin type va_list. */
   check_assertion(builtin_va_list_type != NULL);
   if (!is_an_lvalue(&operand) ||
-      builtin_va_list_type != operand.type) {
+      builtin_va_list_type != make_unqualified_type(operand.type)) {
     if (!is_error_operand(&operand)) {
       error_in_operand(err_code, &operand);
     }  /* if */
     *err = TRUE;
   }  /* if */
   if (!*err) {
+    modifying_lvalue(&operand, value_used);
     node = make_node_from_operand(&operand);
   } else {
+    operand_will_not_be_used_because_of_error(&operand);
     node = NULL;
   }  /* if */
   return node;
@@ -4393,7 +4398,8 @@ and last_param is the last parameter before the "..." of the function.
   add_matching_stop_token(tok_rparen);
   add_stop_token(tok_comma);
   /* Scan the first expression. */
-  node1 = scan_va_list_lvalue_expr(ec_bad_va_start, &err);
+  node1 = scan_va_list_lvalue_expr(/*value_used=*/FALSE,
+                                   ec_bad_va_start, &err);
   /* Check for and pass over the comma. */
   add_stop_token(tok_identifier);
   (void)required_token(tok_comma, ec_exp_comma);
@@ -4470,7 +4476,7 @@ and type is the type of the argument to be extracted.
   add_matching_stop_token(tok_rparen);
   add_stop_token(tok_comma);
   /* Scan the expression. */
-  node = scan_va_list_lvalue_expr(ec_bad_va_arg, &err);
+  node = scan_va_list_lvalue_expr(/*value_used=*/TRUE, ec_bad_va_arg, &err);
   /* Check for and pass over the comma. */
   add_stop_token(tok_identifier);
   (void)required_token(tok_comma, ec_exp_comma);
@@ -4535,7 +4541,7 @@ where va_list_var is a variable declared with the builtin type va_list.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
   /* Scan the expression. */
-  node = scan_va_list_lvalue_expr(ec_bad_va_end, &err);
+  node = scan_va_list_lvalue_expr(/*value_used=*/TRUE, ec_bad_va_end, &err);
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
