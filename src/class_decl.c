@@ -5620,7 +5620,7 @@ member declaration, respectively.
   }  /* if */
   if (class_state->is_local_class) {
     /* Static data members are not allowed in local classes. */
-    pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
+    pos_error(ec_static_data_member_not_allowed, &decl_info->decl_start_pos);
     /* Set the type for this invalid static member to error type. This will
        assure "proper" (or unobtrusive) behavior later, if a definition is
        encountered.  It also eliminates semi-spurious error messages if there
@@ -5628,12 +5628,15 @@ member declaration, respectively.
     member_type = error_type();
   } else if (is_union_type(class_type)) {
     /* Unions are not allowed to have static data members. */
-    pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
+    pos_error(ec_static_data_member_not_allowed, &decl_info->decl_start_pos);
   } else if (!any_cfront_mode() &&
              is_or_is_nested_within_unnamed_class(class_type)) {
     /* Static data members may not be declared in an unnamed class or a
-       class contained within an unnamed class (9.4.2 [class.static.data]). */
-    pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
+       class contained within an unnamed class (9.4.2 [class.static.data]).
+       However, permit this with a warning if anachronisms are enabled. */
+    pos_diagnostic(anachronism_error_severity,
+                   ec_static_data_member_not_allowed,
+                   &decl_info->decl_start_pos);
   }  /* if */
   if (decl_info->is_member_template) set_to_named_error_locator(*locator);
   /* Create the variable entry for the static data member. */

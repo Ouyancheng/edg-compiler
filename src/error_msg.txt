@@ -864,6 +864,7 @@ ec_cl_impl_extern_c_conv_option_only_in_cplusplus;;"option \"implicit_extern_c_t
 ec_cl_strict_ansi_incompatible_with_long_preserving;;"strict ANSI mode is incompatible with long preserving rules"
 ec_useless_type_qualifier_on_return_type;;"type qualifier on return type is meaningless"
 ec_type_qualifier_on_void_return_type;;"in a function definition a type qualifier on a \"void\" return type is not allowed"
+ec_static_data_member_not_allowed;;"static data member declaration is not allowed in this class"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
