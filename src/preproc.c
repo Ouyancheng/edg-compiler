@@ -1681,8 +1681,8 @@ in a valid location.  It is called compound_statement for block scope
 pragmas, and by stdc_pragma for pragmas that appear in the file scope.
 */
 {
-  a_stdc_pragma_kind	kind = stdc_pk_none;
-  a_stdc_pragma_value	value = stdc_pv_none;
+  a_stdc_pragma_kind	kind = (a_stdc_pragma_kind)stdc_pk_none;
+  a_stdc_pragma_value	value = (a_stdc_pragma_value)stdc_pv_none;
   a_boolean		err = FALSE;
   char			*str;
 
@@ -1690,14 +1690,14 @@ pragmas, and by stdc_pragma for pragmas that appear in the file scope.
   if (curr_token == tok_identifier) {
     str = locator_for_curr_id.symbol_header->identifier;
     if (strcmp(str, "FP_CONTRACT") == 0) {
-      kind = stdc_pk_fp_contract;
+      kind = (a_stdc_pragma_kind)stdc_pk_fp_contract;
     } else if (strcmp(str, "FENV_ACCESS") == 0) {
-      kind = stdc_pk_fenv_access;
+      kind = (a_stdc_pragma_kind)stdc_pk_fenv_access;
     } else if (strcmp(str, "CX_LIMITED_RANGE") == 0) {
-      kind = stdc_pk_cx_limited_range;
+      kind = (a_stdc_pragma_kind)stdc_pk_cx_limited_range;
     }  /* if */
   }  /* if */
-  if (kind == (a_stdc_pragma_kind)stdc_pk_none) {
+  if (kind == (a_stdc_pragma_kind)(a_stdc_pragma_kind)stdc_pk_none) {
     warning(ec_unrecognized_stdc_pragma);
     err = TRUE;
   }  /* if */
@@ -1707,14 +1707,14 @@ pragmas, and by stdc_pragma for pragmas that appear in the file scope.
     if (curr_token == tok_identifier) {
       str = locator_for_curr_id.symbol_header->identifier;
       if (strcmp(str, "ON") == 0) {
-        value = stdc_pv_on;
+        value = (a_stdc_pragma_value)stdc_pv_on;
       } else if (strcmp(str, "OFF") == 0) {
-        value = stdc_pv_off;
+        value = (a_stdc_pragma_value)stdc_pv_off;
       } else if (strcmp(str, "DEFAULT") == 0) {
-        value = stdc_pv_default;
+        value = (a_stdc_pragma_value)stdc_pv_default;
       }  /* if */
     }  /* if */
-    if (value == (a_stdc_pragma_value)stdc_pv_none) {
+    if (value == (a_stdc_pragma_value)(a_stdc_pragma_value)stdc_pv_none) {
       warning(ec_bad_stdc_pragma_arg);
       err = TRUE;
     }  /* if */

@@ -1127,7 +1127,7 @@ is the source position of the _Pragma token.
 }  /* scan_pragma_string */
 
 
-void scan_pragma_operator(void)
+static void scan_pragma_operator(void)
 /*
 Process a C99 _Pragma operator.  The current token is the _Pragma identifier
 token.  The form of a _Pragma invocation is:

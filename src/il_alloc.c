@@ -2364,7 +2364,7 @@ pointer to it.
     case pk_define_type_info:
       break;
     case pk_stdc:
-      pp->variant.stdc.kind = stdc_pk_none;
+      pp->variant.stdc.kind = (a_stdc_pragma_kind)stdc_pk_none;
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
