@@ -2570,9 +2570,6 @@ returned set to TRUE.
   }  /* if */
   if (!var_err) {
     vp_type = vp->type;
-    if (vp_type->kind == (a_type_kind)tk_template_param) {
-      vp_type = proxy_class_for_template_param(vp_type);
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (vp->decl_modifiers & DM_DLLIMPORT) {
       /* A variable declared __declspec(dllimport) cannot be initialized. */
@@ -2675,17 +2672,17 @@ returned set to TRUE.
        S is a class type name or an initialization of a scalar like int i(0).
        This form of initialization is allowed in C++ mode only.  Note that
        the opening parenthesis has already been scanned in the caller. */
-    if (cssp != NULL &&
-        (cssp->constructor != NULL ||
-         cssp->template_param_for_proxy_class != NULL)) {
-      /* It's a class type and there's a constructor. */
+    if ((cssp != NULL && cssp->constructor != NULL) ||
+        is_template_param_type(vp_type)) {
+      /* It's a class type and there's a constructor or we're dealing with a
+         dependent type that could be such a class. */
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
       a_source_position  pos;
 
       /* Use the source position of the first argument as the call position. */
       pos = pos_curr_token;
-      if (cssp->template_param_for_proxy_class != NULL) {
+      if (is_template_param_type(vp_type)) {
         scan_dependent_type_parenthesized_initializer(
                                   /*force_object_lifetime=*/FALSE, &init_dip);
       } else {
