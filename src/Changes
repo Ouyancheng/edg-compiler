@@ -1,5 +1,13 @@
 Version 2.15
 
+2/23/93  Reworking of expression kind in expression-processing routines
+
+The ubiquitous "expression_kind" parameter in the expression routines
+has been replaced by an expression_kind field in the expression stack
+and some macros to reference it.  Also, the ek_not_evaluated expression
+kind has been replaced by ek_sizeof and a separate "evaluated" flag
+is now maintained.
+
 2/23/93  Limit on recursive instantiation of inline functions
 
 The front end limits apparent "runaway" recursion in the instantiation
