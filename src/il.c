@@ -850,6 +850,11 @@ class_struct_union:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         fputs("typeref ", f_debug);
+        if (has_name(tp)) { 
+          fputs("\"", f_debug);
+          db_name(&tp->source_corresp);
+          fputs("\" ", f_debug);
+        }  /* if */
       }  /* if */
       db_abbreviated_type(tp->variant.typeref.type);
       break;
