@@ -2336,7 +2336,6 @@ issued a similar error).  Return FALSE if there is some error.
              allowed to have incompatible types when they appear in
              different namespaces. */
           severity = es_warning;
-          okay = FALSE;
           goto issue_diagnostic;
         }  /* if */
       }  /* if */
