@@ -902,7 +902,8 @@ skip_tag_scan:
     }  /* if */
     if (tag_sym != NULL) {
       if (!tag_sym->is_class_member) {
-        if (is_class_definition) {
+        if (is_class_definition && locator.is_qualified_name) {
+          /* This is a definition and a namespace-qualified name. */
           if (tag_sym->parent.namespace_ptr == NULL) {
             if (tag_sym->decl_scope != ssep->number) {
               /* Unless a class is a namespace member or nested in another
