@@ -193,7 +193,7 @@ itself recursively to process classes nested within this class.
 							assoc_scope->variables;
     while (var != NULL) {
       sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-      tip = sym->variant.variable.instance_ptr;
+      tip = sym->variant.static_data_member.instance_ptr;
 #if 0
       /* Are there error cases when tip can be NULL?  It is probably safer
          to skip setting the instantiation required flag rather than
@@ -546,8 +546,9 @@ and the class instantiation will detect the runaway case.
   a_variable_ptr		    var_ptr;
 
   db_enter(3, "define_template_static_data_member");
-  var_ptr = tip->instance_sym->variant.variable.ptr;
-  tssp = tip->template_sym->variant.variable.instance_ptr->template_info;
+  var_ptr = tip->instance_sym->variant.static_data_member.variable;
+  tssp = tip->template_sym->
+                 variant.static_data_member.instance_ptr->template_info;
   static_data_member_sym = tip->instance_sym;
 #if CHECKING
   if (!tip->template_sym->defined || tssp->parameters == NULL) {
@@ -1995,7 +1996,8 @@ Also, add the instance to the definitions list for the template.
   /* Find a static data member symbol belonging to the prototype instantiation
      and corresponding to static_data_member_sym. */
   tp = type_symbol_type(corresp_prototype_tag_sym);
-  member_type = static_data_member_sym->variant.variable.ptr->type;
+  member_type = static_data_member_sym->
+                        variant.static_data_member.variable->type;
   if (member_type->kind == (a_type_kind)tk_union &&
       is_unnamed_class_symbol(
                   (a_symbol_ptr)member_type->source_corresp.assoc_info)) {
@@ -2006,7 +2008,7 @@ Also, add the instance to the definitions list for the template.
     for (; vp != NULL; vp = vp->next) {
       sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
       if (sym != NULL) {
-        tp = sym->variant.variable.ptr->type;
+        tp = sym->variant.static_data_member.variable->type;
         if (tp->kind == (a_type_kind)tk_union &&
             is_unnamed_class_symbol(
                         (a_symbol_ptr)tp->source_corresp.assoc_info) &&
@@ -2035,7 +2037,7 @@ Also, add the instance to the definitions list for the template.
          sym = sym->next) {
       if (sym->decl_scope == corresp_prototype_decl_scope &&
           sym->kind == (a_symbol_kind)sk_static_data_member &&
-          sym->variant.variable.instance_ptr != NULL) {
+          sym->variant.static_data_member.instance_ptr != NULL) {
         break;
       }  /* if */
     }  /* for */
@@ -2049,7 +2051,7 @@ Also, add the instance to the definitions list for the template.
   /* sym is the template symbol with which static_data_member_sym is
      associated.  Create a static data member def entry and set the pointers
      to bind them all together. */
-  tip = static_data_member_sym->variant.variable.instance_ptr;
+  tip = static_data_member_sym->variant.static_data_member.instance_ptr;
   tip->template_sym = sym;
   /* Get the template arg list for the class and use it.  Note that if
      this is a nested class we have to climb the parent chain to find the
@@ -2062,12 +2064,12 @@ Also, add the instance to the definitions list for the template.
              tp->variant.class_struct_union.extra_info->template_arg_list;
   /* Link the new entry to the start of the definition list of the static
      data member template. */
-  tssp = sym->variant.variable.instance_ptr->template_info;
+  tssp = sym->variant.static_data_member.instance_ptr->template_info;
   tip->next = tssp->variant.static_data_member.definitions;
   tssp->variant.static_data_member.definitions = tip;
   /* Mark the variable entry as an instance of a static data member
      template. */
-  static_data_member_sym->variant.variable.ptr->
+  static_data_member_sym->variant.static_data_member.variable->
                                       is_template_static_data_member = TRUE;
 
   db_exit();
@@ -3155,7 +3157,8 @@ entry is pushed on the scope stack.
         pos_sy_error(ec_already_defined, &locator.source_position, sym);
         err = TRUE;
       } else if (!types_are_compatible(type,
-                 sym->variant.variable.ptr->type)) {
+                                       sym->variant.static_data_member.
+                                                          variable->type)) {
         /* The type of the static data member definition does not match
            the declaration in the class. */
         pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -3165,12 +3168,13 @@ entry is pushed on the scope stack.
         /* This is a template definition of a static data member of a
            class template. */
 #if CHECKING
-        if (sym->variant.variable.instance_ptr->template_sym != sym) {
+        if (sym->variant.static_data_member.instance_ptr->
+                                                  template_sym != sym) {
           internal_error("template_declaration: bad instance for static mem");
         }  /* if */
 #endif /* CHECKING */
         sym->defined = TRUE;
-        tssp = sym->variant.variable.instance_ptr->template_info;
+        tssp = sym->variant.static_data_member.instance_ptr->template_info;
         /* Update the param list ptr, which should be non-null when the
            symbol is defined. */
         tssp->parameters = template_param_list;
@@ -3966,7 +3970,7 @@ performed.
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
-      variable = instance_sym->variant.variable.ptr;
+      variable = instance_sym->variant.static_data_member.variable;
     } else {
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
@@ -4044,7 +4048,7 @@ is responsible for setting the appropriate flags.
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
-      variable = instance_sym->variant.variable.ptr;
+      variable = instance_sym->variant.static_data_member.variable;
     } else {
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;

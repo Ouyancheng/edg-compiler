@@ -4352,7 +4352,7 @@ the symbol and its linkage (which is always "none").
     pos_error(ec_storage_class_not_allowed, &locator->source_position);
   }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    var = sym->variant.variable.ptr;
+    var = sym->variant.static_data_member.variable;
     check_assertion(var->storage_class == (a_storage_class)sc_static);
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
@@ -4371,9 +4371,9 @@ the symbol and its linkage (which is always "none").
       var->source_corresp.referenced = TRUE;
       /* If this is a member of an instantiation of a class
          template, set the specific_def flag in the instance entry. */
-      if (sym->variant.variable.instance_ptr != NULL) {
-        sym->variant.variable.instance_ptr->specific_def = TRUE;
-        sym->variant.variable.ptr->specific_def = TRUE;
+      if (sym->variant.static_data_member.instance_ptr != NULL) {
+        sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
+        sym->variant.static_data_member.variable->specific_def = TRUE;
       }  /* if */
     }  /* if */
   } else {
@@ -4417,9 +4417,9 @@ the symbol and its linkage (which is always "none").
                        locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
-    sym->variant.variable.ptr = make_variable(error_type(),
-                                              (a_storage_class)sc_static,
-                                              /*at_file_scope=*/TRUE);
+    sym->variant.static_data_member.variable =
+               make_variable(error_type(), (a_storage_class)sc_static,
+                             /*at_file_scope=*/TRUE);
     /* Make the error symbol have a class_of_which_a_member field, since
        it is expected on sk_static_data_member fields downstream. */
     sym->class_of_which_a_member = tp;
@@ -8851,6 +8851,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
   a_boolean         is_definition, incomplete_type_error_reported;
   a_boolean         is_tentative_definition;
+  a_variable_ptr    var_ptr;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -9456,6 +9457,7 @@ continue_with_declaration:
       }  /* if */
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
+      var_ptr = NULL;
       if (local_is_old_style_param_decl) {
         symbol_ptr = param_id->symbol;
         copy_source_position(locator.source_position,
@@ -9470,7 +9472,8 @@ continue_with_declaration:
 				  local_type_ptr, &symbol_ptr, &linkage);
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
-        local_type_ptr = symbol_ptr->variant.variable.ptr->type;
+        local_type_ptr = symbol_ptr->variant.static_data_member.variable->type;
+        var_ptr = symbol_ptr->variant.static_data_member.variable;
       } else {
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             is_function ? &func_info : NULL, &symbol_ptr,
@@ -9482,6 +9485,7 @@ continue_with_declaration:
              subsequent "declared and not referenced" warnings. */
           symbol_ptr->referenced = TRUE;
         }  /* if */
+        var_ptr = symbol_ptr->variant.variable.ptr;
       }  /* if */
       /* Look for optional initializer. */
       remove_stop_token(tok_assign);
@@ -9550,36 +9554,29 @@ continue_with_declaration:
         initializer(symbol_ptr, &locator.source_position, linkage,
                     has_parenthesized_initializer, is_old_style_param_decl,
                     &incomplete_type_error_reported);
+        /* Fetch the type of the symbol again, since it might have been
+           changed if it was an incomplete array and was initialized. */
+        local_type_ptr = var_ptr->type;
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
             !is_old_style_param_decl) {
-          /* Fetch the type of the symbol again, since it might have been
-             changed if it was an incomplete array and was initialized. */
-          local_type_ptr = symbol_ptr->variant.variable.ptr->type;
           /* Set the storage class of a file-scope initialized variable to
              unspecified (meaning external) or static (meaning internal).
              See 3.7.2. */
           if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
-            if (symbol_ptr->variant.variable.ptr->storage_class ==
-                                              (a_storage_class)sc_extern) {
-              symbol_ptr->variant.variable.ptr->storage_class =
-                                              (a_storage_class)sc_unspecified;
+            if (var_ptr->storage_class == (a_storage_class)sc_extern) {
+              var_ptr->storage_class = (a_storage_class)sc_unspecified;
             }  /* if */
           }  /* if */
           /* All initialized variables are considered defined.  This flag
              may have already been set based on storage class and scope
              level. */
           symbol_ptr->defined = TRUE;
-        } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-          /* Fetch the type of the symbol again, since it might have been
-             changed if it was an incomplete array and was initialized. */
-          local_type_ptr = symbol_ptr->variant.variable.ptr->type;
         }  /* if */
       } else if (is_definition && !is_error_locator(locator) &&
-                 symbol_ptr->variant.variable.ptr->init_kind ==
-                                               (an_init_kind)initk_none) {
+                 var_ptr->init_kind == (an_init_kind)initk_none) {
         /* Uninitialized variable or static data member is being defined, but
-           no explicit initializer was provided.  Determine whether a default
-           initializer should be generated for this symbol, and if so do it. */
+           no explicit initializer was provided.  Do default initialization
+           if appropriate (e.g., if a default constructor exists). */
         if (def_initializer(symbol_ptr, &locator.source_position)) {
           /* Default initialization was successful. */
         } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
@@ -9599,7 +9596,7 @@ continue_with_declaration:
             pos_error(ec_incomplete_type_not_allowed,
                       &locator.source_position);
           }  /* if */
-          symbol_ptr->variant.variable.ptr->type = error_type();
+          var_ptr->type = error_type();
         }  /* if */
       }  /* if */
       remove_stop_token(tok_comma);

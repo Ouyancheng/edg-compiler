@@ -1086,19 +1086,38 @@ typedef struct a_symbol {
 			/* Pointer to an entry providing additional info about
 			   a C++ class. */
     } class_struct_union;
-    /* When kind == sk_variable or sk_static_data_member: */
+    /* When kind == sk_variable: */
     struct {
       a_variable_ptr
 		ptr;
 			/* Pointer to the variable entry. */
+      unsigned int
+		value_has_been_set:1;
+			/* TRUE if the variable was initialized (explicitly or
+			   implicitly), has been assigned to, or has had its
+			   address taken.  Also TRUE if it is of aggregate
+			   type and at least one of its fields or elements has
+			   been assigned to or has had its address taken.
+			   Also TRUE if its storage class is extern, since its
+			   value will be set where in the definition. */
+      unsigned int
+		used:1;
+			/* TRUE if the variable was directly used or had
+			   its address taken. */
+    } variable;
+    /* When kind == sk_static_data_member: */
+    struct {
+      a_variable_ptr
+		variable;
+			/* Pointer to the variable entry. */
       a_template_instance_ptr
                 instance_ptr;
-			/* For a sk_static_data_member symbol that represents
-			   a member of a (real or prototype) instantiation of
-			   a class template, a pointer to an entry providing
+			/* For a symbol that represents a static data member
+			   of a (real or prototype) instantiation of a class
+			   template, a pointer to an entry providing
 			   additional information about whether and how to
-                           define the static data member.  NULL otherwise. */
-    } variable;
+			   define the static data member.  NULL otherwise. */
+    } static_data_member;
     /* When kind == sk_field: */
     struct {
       a_field_ptr
@@ -2082,7 +2101,7 @@ which is_class_struct_union_type is TRUE.
     (sym)->variant.routine.instance_ptr->template_info :		\
   /* } else if */ (sym)->kind ==					\
 			 (a_symbol_kind)sk_static_data_member ? /* { */	\
-    (sym)->variant.variable.instance_ptr->template_info :		\
+    (sym)->variant.static_data_member.instance_ptr->template_info :	\
   /* } else { */							\
     NULL								\
   /* } */

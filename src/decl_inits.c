@@ -1099,13 +1099,16 @@ issuing an error on an incomplete type.
        initializer -- e.g., void f(int i = 1) -- are handled elsewhere.) */
     pos_error(ec_initializer_in_param, source_pos);
     err = TRUE;
-  } else if (symbol_ptr->kind != (a_symbol_kind)sk_variable &&
-             symbol_ptr->kind != (a_symbol_kind)sk_static_data_member) {
+  } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+    vp = symbol_ptr->variant.variable.ptr;
+  } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+    vp = symbol_ptr->variant.static_data_member.variable;
+  } else {
     /* Not a variable (for example, might be a typedef). */
     pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
     err = TRUE;
-  } else {
-    vp = symbol_ptr->variant.variable.ptr;
+  }  /* if */
+  if (!err) {
     vp_type = vp->type;
     if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
         symbol_ptr->decl_scope != FILE_SCOPE_NUMBER && 
@@ -1437,7 +1440,7 @@ the default constructor (if one exists) is called.
 */
 {
   a_boolean                      def_init_performed = FALSE;
-  a_variable_ptr                 var;
+  a_variable_ptr                 var = NULL;
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init                 local_di;
@@ -1448,10 +1451,14 @@ the default constructor (if one exists) is called.
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
      static data members. */
-  if (C_dialect == C_dialect_cplusplus &&
-      (sym->kind == (a_symbol_kind)sk_variable ||
-      sym->kind == (a_symbol_kind)sk_static_data_member)) {
-    var = sym->variant.variable.ptr;
+  if (C_dialect == C_dialect_cplusplus) {
+    if (sym->kind == (a_symbol_kind)sk_variable) {
+      var = sym->variant.variable.ptr;
+    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      var = sym->variant.static_data_member.variable;
+    }  /* if */
+  }  /* if */
+  if (var != NULL) {
     tp = var_type = skip_typerefs(var->type);
     if (is_array_type(tp)) {
       tp = skip_typerefs(underlying_array_element_type(tp));
@@ -2473,6 +2480,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
   db_enter(4, "check_for_missing_initializer");
   if (sym != NULL) {
     /* This must be a variable declaration. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_variable);
     vp = sym->variant.variable.ptr;
   } else {
     /* This must be a "new" expression. */

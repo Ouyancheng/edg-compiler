@@ -441,7 +441,7 @@ and indentation is the indentation desired.
   char				*str, buffer[1000];
   int				col = indentation;
   a_type_ptr			type = NULL, temp_type;
-  a_variable_ptr		var;
+  a_variable_ptr		var = NULL;
   a_routine_ptr                 rp;
   a_boolean                     suppress_newline = FALSE;
 
@@ -571,8 +571,11 @@ and indentation is the indentation desired.
     case sk_label:
       break;
     case sk_static_data_member:
+      var = sym->variant.static_data_member.variable;
+      goto do_variable;
     case sk_variable:
       var = sym->variant.variable.ptr;
+do_variable:
       if (var == NULL) {
         put_string("<null>");
       } else {
@@ -584,8 +587,11 @@ and indentation is the indentation desired.
         put_string(buffer);
         (void)str_name_linkage(buffer, &(var->source_corresp));
         put_string(buffer);
-        if (var->is_parameter) put_string("is param");
-        if (var->is_template_static_data_member) put_string("is instance");
+        if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+          if (var->is_template_static_data_member) put_string("is instance");
+        } else {
+          if (var->is_parameter) put_string("is param");
+        }  /* if */
         type = var->type;
       }  /* if */
       break;
@@ -835,11 +841,8 @@ and indentation is the indentation desired.
      output.  Don't output a newline if the last thing we did was
      a call to db_symbol. */
   if (!suppress_newline) (void)fputc('\n', f_debug);
-  if (sym->kind == (a_symbol_kind)sk_variable ||
-      sym->kind == (a_symbol_kind)sk_static_data_member) {
-    if (sym->variant.variable.ptr != NULL) {
-      db_initializer(sym->variant.variable.ptr, indentation);
-    }  /* if */
+  if (var != NULL) {
+    db_initializer(var, indentation);
   }  /* if */
 }  /* db_symbol */
 
@@ -1401,9 +1404,13 @@ state.
       }
       break;
     case sk_variable:
-    case sk_static_data_member:
       sym_ptr->variant.variable.ptr = NULL;
-      sym_ptr->variant.variable.instance_ptr = NULL;
+      sym_ptr->variant.variable.value_has_been_set = FALSE;
+      sym_ptr->variant.variable.used = FALSE;
+      break;
+    case sk_static_data_member:
+      sym_ptr->variant.static_data_member.variable = NULL;
+      sym_ptr->variant.static_data_member.instance_ptr = NULL;
       break;
     case sk_field:
       sym_ptr->variant.field.ptr = NULL;
@@ -1741,9 +1748,9 @@ be issued by the caller.
   } else if ((cfront_compatibility_mode || C_dialect == C_dialect_pcc) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&
              old_sym->variant.variable.ptr->is_parameter &&
-	     (!(new_sym->kind == (a_symbol_kind)sk_variable) ||
-             (new_sym->variant.variable.ptr == NULL ||
-              !(new_sym->variant.variable.ptr->is_parameter)))) {
+	     (new_sym->kind != (a_symbol_kind)sk_variable ||
+              (new_sym->variant.variable.ptr == NULL ||
+               !new_sym->variant.variable.ptr->is_parameter))) {
     /* The old symbol is a parameter and the new symbol not a
        parameter -- allowed in cfront and pcc modes.  Note that we
        test the variable pointer for being NULL before dereferencing it
@@ -3322,8 +3329,10 @@ allowed for that kind of symbol).
       entry_ptr = (a_constant_ptr)sym_ptr->variant.class_struct_union.type;
       break;
     case sk_variable:
-    case sk_static_data_member:
       entry_ptr = (a_constant_ptr)sym_ptr->variant.variable.ptr;
+      break;
+    case sk_static_data_member:
+      entry_ptr = (a_constant_ptr)sym_ptr->variant.static_data_member.variable;
       break;
     case sk_field:
       entry_ptr = (a_constant_ptr)sym_ptr->variant.field.ptr;
@@ -6503,7 +6512,7 @@ NULL.
       break;
 #if CHECKING
     case sk_static_data_member:
-      scp = &sym->variant.variable.ptr->source_corresp;
+      scp = &sym->variant.static_data_member.variable->source_corresp;
       break;
     case sk_constant:
       scp = &sym->variant.constant->source_corresp;

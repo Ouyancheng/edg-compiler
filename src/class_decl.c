@@ -3588,7 +3588,7 @@ table.
      current class. */
   var = make_variable(member_type, (a_storage_class)sc_static,
                       /*at_file_scope=*/FALSE);
-  sym->variant.variable.ptr = var;
+  sym->variant.static_data_member.variable = var;
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
   var->source_corresp.class_of_which_a_member = class_type;
@@ -3607,9 +3607,8 @@ table.
   if (corresp_prototype_tag_sym != NULL || is_nonreal_class) {
     /* A nonnull instance_ptr marks this static data member as a member of
        a (real or nonreal) instantiation of a class template. */
-    a_template_instance_ptr  tip;
-
-    sym->variant.variable.instance_ptr = tip = alloc_template_instance();
+    a_template_instance_ptr  tip = alloc_template_instance();
+    sym->variant.static_data_member.instance_ptr = tip;
     tip->instance_sym = sym;
     if (is_nonreal_class) {
       /* A member of a prototype instantiation. */
@@ -5220,7 +5219,7 @@ a pointer to it.
   /* Add a pointer to the correct IL entity. */
   switch (aa_kind) {
     case aak_variable:  aap->variant.variable =
-                                            sym->variant.variable.ptr;   break;
+                               sym->variant.static_data_member.variable; break;
     case aak_constant:  aap->variant.constant = sym->variant.constant;   break;
     case aak_type:      aap->variant.type = sym->variant.type;           break;
     case aak_routine:   aap->variant.routine = sym->variant.routine.ptr; break;

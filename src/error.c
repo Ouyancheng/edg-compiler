@@ -3085,7 +3085,7 @@ declaration position to eliminate redundant file names in a diagnostic.
          be expressed as a declaration. */
       goto symbol_name;
     case sk_static_data_member:
-      type = fund_sym->variant.variable.ptr->type;
+      type = fund_sym->variant.static_data_member.variable->type;
       entity_kind = "member ";
       is_declaration_like = TRUE;
       goto symbol_name;
