@@ -7460,7 +7460,7 @@ is set to point to the original statement in its new location.
 }  /* turn_statement_into_block */
 
 
-void turn_statement_into_block_transferring_pragma(
+static void turn_statement_into_block_transferring_pragma(
                                         a_statement_ptr        statement,
                                         an_insert_location_ptr insert_location,
                                         a_statement_ptr        *orig_statement,

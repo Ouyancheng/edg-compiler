@@ -1360,7 +1360,7 @@ header information about the memory regions such as the memory_region_table.
 }  /* read_memory_regions */
 
 
-void write_precompiled_header_file(void)
+static void write_precompiled_header_file(void)
 /*
 Create a precompiled header file for the compilation up to the
 current point.
