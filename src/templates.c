@@ -8439,12 +8439,27 @@ and create a function instantiation entry to bind the two symbols together.
                                variant.class_struct_union.extra_info->symbols;
            sym != NULL;
 	   sym = sym->next_in_scope) {
-	if (sym->kind == (a_symbol_kind)sk_member_function) {
-	  a_template_symbol_supplement_ptr	tssp;
-	  tssp = sym->variant.routine.instance_ptr->template_info;
-	  if (tssp->token_sequence_number == curr_token_sequence_number) {
-	    break;
-	  }  /* if */
+	if (sym->kind == (a_symbol_kind)sk_member_function ||
+            sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          a_boolean	is_list = FALSE;
+          a_symbol_ptr	list_sym = sym;
+          if (list_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            is_list = TRUE;
+            list_sym = list_sym->variant.overloaded_function.symbols;
+          }  /* if */
+          for (; list_sym != NULL;
+               list_sym = is_list ? list_sym->next : NULL) {
+            a_template_symbol_supplement_ptr	tssp;
+            tssp = list_sym->variant.routine.instance_ptr->template_info;
+            if (tssp->token_sequence_number == curr_token_sequence_number) {
+              break;
+            }  /* if */
+          }  /* for */
+          /* Exit the loop if we found a match. */
+          if (list_sym != NULL) {
+            sym = list_sym;
+            break;
+          }  /* if */
 	}  /* if */
       }  /* for */
     }  /* if */

@@ -1,5 +1,18 @@
 Version 3.1
 
+9/18/02  Internal error on overloaded unusable conversion operators
+
+An internal error would occur if a class template contained overloaded
+conversion operators that convert to a base class (and are therefore
+unusable).  This has been fixed.
+
+  class N {};
+  template <class T> class A: public N {
+    operator N() volatile;
+    operator N() volatile const;
+  };
+  A<int> ai;
+
 9/18/02  GNU C++: Spurious errors on accesses to partial specializations
 
 An early (unreleased) version of the GNU C++ compatibility changes contained 
