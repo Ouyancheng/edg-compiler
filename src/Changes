@@ -1,5 +1,13 @@
 Version 2.35
 
+1/31/97 Microsoft compatibility: storage class but no declarator
+
+An error is no longer issued in Microsoft compatibility mode when a
+storage class appears on a declaration with no declarator -- e.g.,
+
+  static int;                        // warning in Microsoft mode
+  static struct S { int i; };        // warning in Microsoft mode
+
 1/31/97 Missing diagnostic on partial specialization tag kind mismatch
 
 A diagnostic is now issued if the tag kind of a partial specialization does
