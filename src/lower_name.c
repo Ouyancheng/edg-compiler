@@ -2160,6 +2160,9 @@ names.  The string does not have the leading "__" used in some cases.
     case onk_subscript:         /* "[]" */
       name = "vc";
       break;
+    case onk_question:          /* "?" */
+      name = "qs";
+      break;
 #if CHECKING
     default:
       internal_error("mangled_operator_name: bad kind");
