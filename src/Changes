@@ -38,7 +38,7 @@ For the bad lookup to occur:
 
 1. A member in a base class must have the same name as an identifier
    at the global scope.  Any member kind is OK -- it can be a function,
-   static data member, or nonstatic data members.  Member type names don't
+   static data member, or nonstatic data member.  Member type names don't
    apply because a nested type will be promoted to the global scope by
    cfront which disallows a later declaration of a type with the same name
    at the global scope.
@@ -49,7 +49,7 @@ For the bad lookup to occur:
 
 3. No other member function definition -- even one for an unrelated class
    may appear between the destructor and the offending reference.
-   This has the affect that the bad lookup applies to only one class at
+   This has the effect that the bad lookup applies to only one class at
    any given point in time.
 
 2/22/93  Fixed bug in cfront transitional nested type handling
