@@ -6043,6 +6043,7 @@ or implicit) controlling the declaration.
     (void)get_token();
     if (!is_qualified_name_start()) {
       syntax_error(ec_exp_identifier);
+      discard_curr_construct_pragmas();
       goto done;
     }  /* if */
   } else {
@@ -6069,6 +6070,7 @@ or implicit) controlling the declaration.
                                    locator_for_curr_id.parent.class_type)) {
       /* This using declaration involves a template parameter.  Skip it, but
          bypass the identifier first. */
+      discard_curr_construct_pragmas();
       (void)get_token();
       goto done;
     } else if (declared_sym != NULL &&
