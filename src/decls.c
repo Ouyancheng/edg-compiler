@@ -4227,26 +4227,33 @@ cross-reference output describing this declaration.
     if (is_variably_modified_type(type_ptr)) {
       /* Since the type may have various run-time dependencies, put out a
          statement indicating where in the executable stream this declaration
-         appears. */
-      a_statement_ptr vla_stmt;
+         appears.  */
+      if (struct_stmt_stack == NULL) {
+        /* Some (unlikely) error situations can cause us to get here outside a
+           function scope: for such cases we cannot actually add a statement
+           (there is no active statement stack). */
+        check_assertion(total_errors > 0);
+      } else {
+        a_statement_ptr vla_stmt;
 
-      variable_ptr->has_variably_modified_type = TRUE;
-      vla_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
-                                           &locator->source_position);
-      vla_stmt->variant.vla.is_typedef_decl = FALSE;
-      vla_stmt->variant.vla.variant.variable = variable_ptr;
-      if (is_vla_type(type_ptr)) {
-        if (!is_variable_def) {
-          /* Must be an error. */
-          check_assertion(total_errors > 0);
-        } else {
-          /* Memory for this variable will also have to be allocated.  Mark
-             the variable as a variable length array that requires allocation
-             as well as deallocation upon exit from the current scope. */
-          variable_ptr->is_vla = TRUE;
-          /* Update the control-flow list used in statement processing to
-             diagnose illegal branches. */
-          update_init_statement_control_flow(vla_stmt);
+        variable_ptr->has_variably_modified_type = TRUE;
+        vla_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
+                                             &locator->source_position);
+        vla_stmt->variant.vla.is_typedef_decl = FALSE;
+        vla_stmt->variant.vla.variant.variable = variable_ptr;
+        if (is_vla_type(type_ptr)) {
+          if (!is_variable_def) {
+            /* Must be an error. */
+            check_assertion(total_errors > 0);
+          } else {
+            /* Memory for this variable will also have to be allocated.  Mark
+               the variable as a variable length array that requires allocation
+               as well as deallocation upon exit from the current scope. */
+            variable_ptr->is_vla = TRUE;
+            /* Update the control-flow list used in statement processing to
+               diagnose illegal branches. */
+            update_init_statement_control_flow(vla_stmt);
+          }  /* if */
         }  /* if */
       }  /* if */
     } /* if */
