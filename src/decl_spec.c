@@ -1775,11 +1775,14 @@ otherwise a diagnostic is issued.  The type is returned in *type_ptr.
 */
 {
   a_type_ptr	tp = NULL;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
   /* Skip over "typename". */
   check_assertion(curr_token == tok_typename);
-  /* The typename keyword may only be used within a template. */
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+  /* The typename keyword may only be used within a template, including the
+     template parameter list. */
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+      ssep->kind != (a_scope_kind)sck_template_declaration) {
     diagnostic(es_discretionary_error, ec_typename_not_in_template);
   }  /* if */
   (void)get_token();

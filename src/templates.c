@@ -4599,6 +4599,7 @@ to represent the template parameters.
     a_boolean	   def_arg_cache_used = FALSE;
     a_constant_ptr default_arg_constant;
     a_type_ptr	   default_arg_type;
+    a_token_kind   second_token;
 
     /* If we've unexpectedly reached the end of the template parameter list,
        issue an error. */
@@ -4615,15 +4616,21 @@ to represent the template parameters.
     /* Determine whether this is a "type-argument" (a parameter that
        represents a type) or a "arg-declaration" (a parameter that represents
        a constant). */
-    if (curr_token == tok_class && next_token() == tok_identifier) {
+    if ((curr_token == tok_class || curr_token == tok_typename) &&
+        next_two_tokens(tok_identifier, &second_token) == tok_identifier &&
+        second_token != tok_colon_colon) {
       /* A type-argument. Note that there is a possible ambiguity here:
          template <class T> vs. template <class T X>, where in the second
          case T is already declared.  One could argue that the second is an
          "arg-declaration" rather than a "type-argument", but the working
          paper (14.1 para 2) appears to resolve the ambiguity in favor of
-         always interpreting <class T ... as a type-argument.  Moreover, a
-         class object cannot be a constant. */
-      /* Bypass "class". */
+         always interpreting <class T ... as a type-argument.  Although
+         the WP is not clear about the extent to which the tokens that follow
+         "class T" are involved in the disambiguation.  A similar ambiguity
+         exists when "typename" is used.  If the name that follows "class"
+         or "typename" is a simple identifier (i.e., not a qualified name)
+         we assume it to be a type parameter. */
+      /* Bypass "class" or "typename". */
       (void)get_token();
       /* Enter a type symbol in the symbol table.  It is made (for now) to
          point to an error type, to make everything work smoothly during

@@ -5874,8 +5874,8 @@ done:
 }  /* next_token_with_seq_number */
 
 
-static a_token_kind next_two_tokens(a_token_kind	first_token_must_be,
-				    a_token_kind	*token_2)
+a_token_kind next_two_tokens(a_token_kind	first_token_must_be,
+                             a_token_kind	*token_2)
 
 /*
 Return the next two tokens after the current one while leaving the current

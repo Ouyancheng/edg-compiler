@@ -1347,6 +1347,12 @@ extern a_token_kind next_token_with_seq_number(a_token_sequence_number *seq);
 /* Macro that calls next_token_with_seq_number and provides a NULL argument. */
 #define next_token()							\
   (next_token_with_seq_number((a_token_sequence_number*)NULL))
+
+/* Look ahead at the next two tokens. */
+extern
+a_token_kind next_two_tokens(a_token_kind	first_token_must_be,
+                             a_token_kind	*token_2);
+
 /* Back up one token. */
 extern void unget_token(void);
 
