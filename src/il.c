@@ -8750,11 +8750,11 @@ dependent on it.  The routine entry itself is dealt with later.
             sssdp->friend_decl = rp->defined_in_friend_decl;
           }  /* if */
         }  /* if */
-        rp->defined_in_friend_decl = FALSE;
         rp->defined_outside_of_parent = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Reset the routine entry to undefined state. */
         rp->defined = FALSE;
+        rp->defined_in_friend_decl = FALSE;
         rp->assoc_scope = NULL_region_number;
         rp->type->variant.routine.extra_info->assoc_routine = NULL;
         il_header.region_scope_entry[n] = NULL;

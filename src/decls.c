@@ -4082,6 +4082,10 @@ skip_overloading:;
      entry. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
+  if (is_function_def && is_friend_decl) {
+    /* Mark this function as defined in a friend declaration. */
+    routine_ptr->defined_in_friend_decl = TRUE;
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
@@ -4096,9 +4100,8 @@ skip_overloading:;
                           "decl_routine: type and declared type don't match");
       routine_ptr->declared_type = type_ptr;
     }  /* if */
-    if (is_friend_decl) {
-      routine_ptr->defined_in_friend_decl = TRUE;
-    } else if (qualifier_namespace_ptr(*locator) != NULL) {
+    if (qualifier_namespace_ptr(*locator) != NULL) {
+      check_assertion(!is_friend_decl);
       routine_ptr->defined_outside_of_parent = TRUE;
     }  /* if */
   } else {

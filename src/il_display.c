@@ -1555,12 +1555,12 @@ Display the indicated routine.
   if (ptr->superseded_external) {
     disp_boolean("superseded_external", TRUE);
   }  /* if */
+  if (ptr->defined_in_friend_decl) {
+    disp_boolean("defined_in_friend_decl", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->defined_outside_of_parent) {
     disp_boolean("defined_outside_of_parent", TRUE);
-  }  /* if */
-  if (ptr->defined_in_friend_decl) {
-    disp_boolean("defined_in_friend_decl", TRUE);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE

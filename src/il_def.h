@@ -3996,6 +3996,11 @@ typedef struct a_routine {
 			   whose type is incompatible with that of another
 			   file-scope routine with the same name, where the
 			   latter is treated as the "official" routine. */
+  a_bit_field	defined_in_friend_decl:1;
+			/* TRUE when the routine definition appears in a
+			   friend declaration.  When this flag is set, a
+			   source sequence entry pointing to this routine
+			   will correspond to a friend declaration. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	defined_outside_of_parent:1;
 			/* TRUE for a routine that is defined in a scope other
@@ -4004,11 +4009,6 @@ typedef struct a_routine {
 			   definition or a namespace member defined outside
 			   the namespace definition.  It does not apply to a
 			   friend declaration that supplies a definition. */
-  a_bit_field	defined_in_friend_decl:1;
-			/* TRUE when the routine definition appears in a
-			   friend declaration.  When this flag is set, a
-			   source sequence entry pointing to this routine
-			   will correspond to a friend declaration. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
   a_bit_field	inlinable:1;
