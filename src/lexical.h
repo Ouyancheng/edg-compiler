@@ -1189,6 +1189,16 @@ EXTERN a_boolean
 			   block. */
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+EXTERN a_source_position
+		curr_construct_end_position;
+			/* Global variable used to return an end position
+			   from the scanning of some construct.  Should be
+			   retrieved and saved quickly, since it is set
+			   by many scanning routines. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+
 /*
 The stop token array: If a syntactic error occurs, flush_tokens
 will be called.  It will throw away tokens until it finds one for which
