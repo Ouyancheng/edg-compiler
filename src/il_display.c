@@ -3254,7 +3254,7 @@ Display the indicated source sequence secondary declaration entry.
                      (unsigned long)sssdp->decl_position.column);
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
-  disp_ptr("entity_type", sssdp->entity_type, iek_type);
+  disp_ptr("declared_type", sssdp->declared_type, iek_type);
   if (sssdp->autonomous_tag_decl) {
     disp_boolean("autonomous_tag_decl", TRUE);
   }  /* if */

@@ -7259,7 +7259,7 @@ NULL.
           ssep->entity.kind = (a_byte_il_entry_kind)iek_variable;
           ssep->entity.ptr = (char *)var_ptr;
           check_assertion(var_ptr->declared_type == NULL);
-          var_ptr->declared_type = sssdp->entity_type;
+          var_ptr->declared_type = sssdp->declared_type;
         }  /* if */
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

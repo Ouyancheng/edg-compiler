@@ -3114,7 +3114,7 @@ of the function, and again overloading is a possibility.
           check_throw_specification(func_info, rp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           set_rout_src_seq_entry_for_default_arg_decl(rp, func_info);
-          set_src_seq_secondary_decl_entity_type((char *)rp, function_type);
+          set_src_seq_secondary_decl_type((char *)rp, function_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       }  /* if */
@@ -3536,7 +3536,7 @@ special function kind (e.g., constructor, destructor), if any.
                                 declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!func_info->is_definition) {
-        set_src_seq_secondary_decl_entity_type((char *)rtn, member_type);
+        set_src_seq_secondary_decl_type((char *)rtn, member_type);
       } else {
         rtn->declared_type = member_type;
       }  /* if */
@@ -3869,7 +3869,7 @@ table.
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                             ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  set_src_seq_secondary_decl_entity_type((char *)var, member_type);
+  set_src_seq_secondary_decl_type((char *)var, member_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */

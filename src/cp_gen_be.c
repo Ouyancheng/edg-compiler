@@ -3139,7 +3139,7 @@ is non-NULL and points to the secondary declaration entry.
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
-    typedef_type = sec_decl->entity_type;
+    typedef_type = sec_decl->declared_type;
   } else {
     typedef_type = type;
   }  /* if */
@@ -5369,7 +5369,7 @@ sequence entry.
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
-    var_type = sec_decl->entity_type;
+    var_type = sec_decl->declared_type;
   } else {
     var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     is_definition = TRUE;
@@ -5602,7 +5602,7 @@ declaration or definition.
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
-    rout_type = sec_decl->entity_type;
+    rout_type = sec_decl->declared_type;
   } else {
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     is_definition = TRUE;

@@ -491,12 +491,14 @@ typedef struct a_src_seq_secondary_decl {
 			/* Entry identifying the kind of entity (type,
 			   function, static data member, etc.) for which this
 			   is the secondary declaration. */
-  a_type_ptr	entity_type;
+  a_type_ptr	declared_type;
 			/* The type of the entity, as specified in the
 			   declaration referred to by this entry; typically,
 			   it is the same as the type of the variable or
 			   routine to which this entry corresponds, but it
-			   needn't be. */
+			   needn't be.  It is appears on secondary declarations
+			   for typedefs, but NULL for secondary declarations
+			   of class, struct, union, and enum types. */
   a_byte_boolean
 		autonomous_tag_decl;
 			/* If entity refers to a type entry representing a

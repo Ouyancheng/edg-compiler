@@ -7101,7 +7101,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
           is_secondary_decl = TRUE;
-          declared_type = sssdp->entity_type;
+          declared_type = sssdp->declared_type;
         } else {
           scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
           pos = &scp->decl_position;
@@ -7302,7 +7302,7 @@ and return a pointer to it.
   sssdp->decl_position = null_source_position;
   sssdp->entity.kind   = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr    = NULL;
-  sssdp->entity_type   = NULL;
+  sssdp->declared_type = NULL;
   sssdp->autonomous_tag_decl = FALSE;
 
   return sssdp;

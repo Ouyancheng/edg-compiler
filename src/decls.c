@@ -3928,9 +3928,11 @@ declaration.
 }  /* set_rout_src_seq_entry_for_default_arg_decl */
 
 
-void set_src_seq_secondary_decl_entity_type(char        *il_entry_ptr,
-                                            a_type_ptr  type)
+void set_src_seq_secondary_decl_type(char        *il_entry_ptr,
+                                     a_type_ptr  type)
 /*
+Set the declared_type field to "type" in the recently created secondary
+source sequence entry created for the IL entry pointed to by il_entry_ptr.
 */
 {
   a_source_sequence_entry_ptr  ssep;
@@ -3942,10 +3944,10 @@ void set_src_seq_secondary_decl_entity_type(char        *il_entry_ptr,
     ssep = last_matching_source_sequence_entry(il_entry_ptr);
     if (ssep != NULL) {
       check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
-      ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->entity_type = type;
+      ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->declared_type = type;
     }  /* if */
   }  /* if */
-}  /* set_src_seq_secondary_decl_entity_type */
+}  /* set_src_seq_secondary_decl_type */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -4639,8 +4641,7 @@ skip_overloading:;
     } else {
       /* A function declaration but not a definition.  Set the type in the
          secondary declaration entry. */
-      set_src_seq_secondary_decl_entity_type((char *)routine_ptr,
-                                             declared_type);
+      set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type);
     }  /* if */
     if (!C_mode()) {
       /* Check for default arguments, which require special handling. */
@@ -4649,8 +4650,7 @@ skip_overloading:;
   } else {
     if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
       /* A function declaration but not a definition. */
-      set_src_seq_secondary_decl_entity_type((char *)variable_ptr,
-                                             declared_type);
+      set_src_seq_secondary_decl_type((char *)variable_ptr, declared_type);
     } else {
       /* The defining declaration of the variable.  Record the type. */
       check_assertion(variable_ptr->declared_type == NULL);
@@ -5300,8 +5300,7 @@ a pointer to it in *symbol_ptr.
                                     &locator->source_position,
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          set_src_seq_secondary_decl_entity_type((char *)sym->variant.type,
-                                                 type_ptr);
+          set_src_seq_secondary_decl_type((char *)sym->variant.type, type_ptr);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           goto return_point;
         } else {
