@@ -3604,25 +3604,36 @@ return a pointer to it in *symbol_ptr.
        Note that we do NOT want to do a skip_typerefs on the type; only if
        *type_ptr itself lacks an associated tag symbol with a name do we want
        to create a new symbol. */
-    if (!is_error_type(type_ptr) && !is_error_locator(*locator)) {
+    if (!is_error_type(type_ptr) && type_ptr->source_corresp.name == NULL &&
+        !is_error_locator(*locator)) {
       sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
       if (sym != NULL && is_unnamed_class_symbol(sym)) {
-        /* An unnamed tag symbol was created for the class and can be reused
-           now that we have a name to assign to it.  We need to unlink it from
-           the symbol table, give it the name, and relink it into the symbol
-           table. */
-        relink_unnamed_class_symbol(sym, locator);
-        /* Call set_source_corresp, but preserve the current IL referenced
-           setting, which set_source_corresp will clear. */
-        saved_referenced_flag = type_ptr->source_corresp.referenced;
-        set_source_corresp(&(type_ptr->source_corresp), sym);
-        type_ptr->source_corresp.referenced = saved_referenced_flag;
-        suppress_redecl_error = TRUE;
-        /* Note that we do not look for conflicts between the class's new
-           name and the names of its members.  This is an area where the
-           wording of the ARM (7.1.3) has been clarified and/or amended by
-           the X3J16 working paper, and so the restrictions specified in
-           ARM 9.2 do not apply. */
+        if (any_cfront_mode()) {
+          /* An unnamed tag symbol was created for the class and can be reused
+             now that we have a name to assign to it.  We need to unlink it
+             from the symbol table, give it the name, and relink it into the
+             symbol table. */
+          relink_unnamed_class_symbol(sym, locator);
+          /* Call set_source_corresp, but preserve the current IL referenced
+             setting, which set_source_corresp will clear. */
+          saved_referenced_flag = type_ptr->source_corresp.referenced;
+          set_source_corresp(&(type_ptr->source_corresp), sym);
+          type_ptr->source_corresp.referenced = saved_referenced_flag;
+          suppress_redecl_error = TRUE;
+          /* Note that we do not look for conflicts between the class's new
+             name and the names of its members.  This is an area where the
+             wording of the ARM (7.1.3) has been clarified and/or amended by
+             the X3J16 working paper, and so the restrictions specified in
+             ARM 9.2 do not apply. */
+        } else {
+          /* The typedef name is the name of the class "for linkage purposes".
+             That means the typedef name should be recorded in the source
+             correspondence field for the type.  However, we won't reenter
+             the symbol into the symbol table; this keeps the typedef name
+             from being used in an elaborated type specifier (7.1.3 para 5,
+             9.1 para 5). */
+          type_ptr->source_corresp.name = locator->symbol_header->identifier;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
