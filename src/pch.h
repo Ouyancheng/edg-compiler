@@ -142,6 +142,13 @@ Macro used to initialize one element of an array of a_pch_saved_variable.
   { (a_void_ptr)&var, sizeof(var), FALSE pch_saved_var_name(var) }
 
 /*
+Similar to pch_saved_var_array_elem, except used to save the address
+of an array.
+*/
+#define pch_array_saved_var_array_elem(var)                                   \
+  { (a_void_ptr)var, sizeof(var), FALSE pch_saved_var_name(var) }
+
+/*
 Similar to pch_saved_var_array_elem, except used when the variable
 contains the address of the data to be stored.
 */
@@ -184,6 +191,11 @@ EXTERN a_source_position
 			   directive.  This is used by the declaration
 			   processing routines to determine when they have
 			   reached the implied header stop point. */
+
+EXTERN a_boolean
+		header_stop_is_end_of_source;
+			/* TRUE if the header stop point is the end of
+			   the primary source file. */
 
 EXTERN a_boolean
 		header_stop_position_pending;

@@ -5603,7 +5603,7 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(can_instantiate_list),
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
       pch_saved_var_array_elem(any_instantiations_required),
-      pch_saved_var_array_elem(instance_lookup_table),
+      pch_array_saved_var_array_elem(instance_lookup_table),
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
       pch_saved_var_array_terminating_elem()
     };
