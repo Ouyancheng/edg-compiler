@@ -19,7 +19,7 @@ This version is for the Sun Solaris operating system.
 /* Configuration definitions determined by dettarg.c: */
 
 #ifdef SUNOS
-/* SPARC SunOS specific defines.
+/* SPARC SunOS specific defines. */
 #define TARG_LITTLE_ENDIAN FALSE
 #define TARG_JMP_BUF_NUM_ELEMENTS 9
 #else /* ifndef SUNOS */
