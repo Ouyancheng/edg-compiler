@@ -1,5 +1,22 @@
 Version 2.42
 
+7/12/99  Alignment pragma stack in templates
+
+Manipulations of the pragma stack for field packing inside class template
+definitions could occasionally lead to unwarranted error messages about
+the stack being empty.  For example:
+
+  #pragma pack (1)
+  template<class T> struct X {
+  #pragma pack (push)
+    int i;
+  #pragma pack (pop)
+            //  ^  "error: empty pack alignment stack" when instantiated
+  };
+  X<char> x;
+
+This is now fixed.
+
 7/9/99   Correctly restore token positions after instantiating templates
 
 Occasionally, the end position of an IL entry was set to the end position of a

@@ -11223,18 +11223,19 @@ next_declaration:
         /* All entries on the list have been freed, so clear the pointer. */
         class_state.override_registry = NULL;
       }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-      if (is_template_instantiation && !cssp->is_prototype_instantiation) {
-        /* Now that the class instantiation has been scanned, restore the
-           original pack alignment state. */
-        restore_pack_alignment_state(&saved_pack_alignment_state);
-      }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     }  /* if */
     /* Process pragmas associated with the closing brace before the current
        scope is popped and before add_end_of_construct_source_sequence_entry
        is called. */
     process_curr_token_pragmas();
+#if USER_CONTROL_OF_STRUCT_PACKING
+    if (is_template_instantiation && !cssp->is_prototype_instantiation) {
+      /* Now that the class instantiation has been scanned, restore the
+         original pack alignment state.  Note that this must occur after the
+         pragmas associated with the closing brace have been processed. */
+      restore_pack_alignment_state(&saved_pack_alignment_state);
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the class definition. */
     add_end_of_construct_source_sequence_entry((char *)class_type,
