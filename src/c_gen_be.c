@@ -2008,7 +2008,6 @@ Output the definition of the indicated struct or union type.
 */
 {
   a_field_ptr field;
-  a_boolean   any_non_zero_sized_field = FALSE;
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
     set_output_position(&type->source_corresp.decl_position);
@@ -2023,54 +2022,55 @@ Output the definition of the indicated struct or union type.
       set_output_position(&field->source_corresp.decl_position);
       if (!field->is_bit_field) {
         /* Not a bit field. */
-        /* Use an empty name for an unnamed field in K&R C, but use a
-           generated name for an anonymous union in C++. */
-        a_boolean dump_name = (has_name(field) ||
-                               il_header.source_language == sl_Cplusplus);
-        dump_declaration_using_type(field->type,
-                                    dump_name ? &field->source_corresp :
-                                                NO_NAME);
-        any_non_zero_sized_field = TRUE;
+        /* Note that a name will be generated for an anonymous union in C++. */
+        dump_declaration_using_type(field->type, &field->source_corresp);
+        write_tok_str(";");
       } else {
         /* Bit field. */
 #if !C_GEN_BE_GENERATES_ANSI_C
         if (type->kind == (a_type_kind)tk_union) {
           /* When generating K&R C, don't generate bit fields in unions
              because pcc doesn't allow them. */
-          a_type_ptr       eff_type = field->type;
-          a_type_ptr       under_type = skip_typerefs(eff_type);
-          a_targ_size_t    union_size = type->size;
-          a_targ_alignment union_alignment = type->alignment;
-          a_type           local_type;
-          /* If the underlying type is bigger than the size allocated for
-             the union, use a smaller integral type. */
-          if (under_type->size > union_size ||
-              under_type->alignment > union_alignment) {
-            /* Find the largest integral type with the right signedness that
-               will fit in the union. */
-            an_integer_kind  ikind, eff_ikind;
-            a_targ_size_t    int_size;
-            a_targ_alignment int_alignment;
-            for (ikind = (an_integer_kind)ik_unsigned_int;
-                 ; ikind--) {
-              get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
-              if (int_size <= union_size && int_alignment <= union_alignment &&
-                  int_kind_is_signed[(int)ikind]==field->bit_field_is_signed) {
-                /* This size is okay. */
-                eff_ikind = ikind;
-                break;
-              }  /* if */
-            }  /* for */
-            /* Make a local type (not allocated in the IL) that is the right
-               integer type.  We can't use integer_type in a "back end". */
-            local_type = *under_type;
-            eff_type = &local_type;
-            check_assertion(local_type.kind == (a_type_kind)tk_integer);
-            local_type.variant.integer.int_kind = eff_ikind;
+          /* Don't put out unnamed bit fields.  That's important to keep
+             the first initializable field first. */
+          if (has_name(field)) {
+            a_type_ptr       eff_type = field->type;
+            a_type_ptr       under_type = skip_typerefs(eff_type);
+            a_targ_size_t    union_size = type->size;
+            a_targ_alignment union_alignment = type->alignment;
+            a_type           local_type;
+            /* If the underlying type is bigger than the size allocated for
+               the union, use a smaller integral type. */
+            if (under_type->size > union_size ||
+                under_type->alignment > union_alignment) {
+              /* Find the largest integral type with the right signedness that
+                 will fit in the union. */
+              an_integer_kind  ikind, eff_ikind;
+              a_targ_size_t    int_size;
+              a_targ_alignment int_alignment;
+              for (ikind = (an_integer_kind)ik_unsigned_int;
+                   ; ikind--) {
+                get_integer_size_and_alignment(ikind, &int_size,
+                                               &int_alignment);
+                if (int_size <= union_size &&
+                    int_alignment <= union_alignment &&
+                    int_kind_is_signed[(int)ikind] ==
+                                                  field->bit_field_is_signed) {
+                  /* This size is okay. */
+                  eff_ikind = ikind;
+                  break;
+                }  /* if */
+              }  /* for */
+              /* Make a local type (not allocated in the IL) that is the right
+                 integer type.  We can't use integer_type in a "back end". */
+              local_type = *under_type;
+              eff_type = &local_type;
+              check_assertion(local_type.kind == (a_type_kind)tk_integer);
+              local_type.variant.integer.int_kind = eff_ikind;
+            }  /* if */
+            dump_declaration_using_type(eff_type, &field->source_corresp);
+            write_tok_str(";");
           }  /* if */
-          /* Note that names are generated for unnamed bit fields. */
-          dump_declaration_using_type(eff_type, &field->source_corresp);
-          any_non_zero_sized_field = TRUE;
         } else
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
         {
@@ -2090,10 +2090,9 @@ Output the definition of the indicated struct or union type.
           }  /* if */
           write_tok_str(": ");
           write_unsigned_num((unsigned long)field->bit_size);
-          if (field->bit_size != 0) any_non_zero_sized_field = TRUE;
+          write_tok_str(";");
         }
       }  /* if */
-      write_tok_str(";");
       if (annotate) {
         /* Display the offset in an annotation comment. */
         unsigned long temp = field->bit_offset / TARG_CHAR_BIT;
@@ -2113,9 +2112,11 @@ Output the definition of the indicated struct or union type.
         write_space();
       }  /* if */
     }  /* for */
-    if (!any_non_zero_sized_field) {
+    if (next_initializable_field(type->variant.class_struct_union.field_list)==
+                                                                        NULL) {
       /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
-         and for fieldless classes from C++ passed through IL lowering. */
+         (which is undefined behavior) and for fieldless classes from C++
+         passed through IL lowering. */
       write_tok_str("char __dummy;");
     }  /* if */
     indent -= 2;
@@ -3674,6 +3675,38 @@ out in this way to guarantee their alignment.
   }  /* if */
 }  /* dump_var_for_wide_string_constant */
 
+#if !C_GEN_BE_GENERATES_ANSI_C
+
+static a_boolean is_non_zeroable_type(a_type_ptr type)
+/*
+Return TRUE if the indicated type is a type that cannot be initialized with
+zero in K&R C, e.g., if it is a union type or if its first element
+(recursively, all the way down) is a union type.
+*/
+{
+  a_type_kind tkind;
+  a_boolean   is_non_zeroable = FALSE;
+
+  type = skip_typerefs(type);
+  tkind = type->kind;
+  if (tkind == (a_type_kind)tk_union) {
+    /* Unions cannot be initialized in K&R C. */
+    is_non_zeroable = TRUE;
+  } else if (tkind == (a_type_kind)tk_array) {
+    is_non_zeroable = is_non_zeroable_type(type->variant.array.element_type);
+  } else if (tkind == (a_type_kind)tk_struct) {
+    a_field_ptr field = next_initializable_field(
+                                  type->variant.class_struct_union.field_list);
+    /* structs with no initializable fields would have a generated dummy
+       field, so they are initializable. */
+    if (field != NULL) {
+      is_non_zeroable = is_non_zeroable_type(field->type);
+    }  /* if */
+  }  /* if */
+  return is_non_zeroable;
+}  /* is_non_zeroable_type */
+
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
 static void dump_initializer_part(a_variable_ptr        variable,
                                   a_type_ptr            type,
@@ -3688,10 +3721,8 @@ and gets the value indicated by "constant"; and outer_level_pos points
 to a list of of entries that describes the location of this initialization
 within the overall variable (it is the history of the recursive calls
 of this routine that got us to this point).
-*/
-/*
-If "*gen_assignments" is TRUE, assignment statements must be generated
-rather than constants for a initializer list (this flag will be set to
+If *gen_assignments is TRUE, assignment statements rather than constants
+must be generated for the initializer list (this flag will be set to
 TRUE upon encountering something that cannot be rendered as constants
 in an initializer).  The statements are written to f_C_output or a
 temporary file (see start_initializer_assignments).
@@ -3703,21 +3734,15 @@ temporary file (see start_initializer_assignments).
   a_boolean         need_close_brace = FALSE;
 
   type = skip_typerefs(type);
-  if (!*gen_assignments) {
-    if (constant->kind == (a_constant_repr_kind)ck_aggregate &&
-        constant->variant.aggregate.first_constant == NULL) {
-      /* Empty aggregate -- valid in C++, allowed in the "C" IL as an
-         extension that back ends shouldn't have problems with, but
-         not allowed in C, so go into assignment mode. */
-      *gen_assignments = TRUE;
 #if !C_GEN_BE_GENERATES_ANSI_C
-    } else if (type->kind == (a_type_kind)tk_union) {
+  if (!*gen_assignments) {
+    if (type->kind == (a_type_kind)tk_union) {
       /* When generating K&R C, initialization of a union must always be done
          via assignment statements. */
       *gen_assignments = TRUE;
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
     }  /* if */
   }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
   if (constant->kind != (a_constant_repr_kind)ck_aggregate) {
     /* Non-aggregate constant (includes string literals). */
     if (*gen_assignments) {
@@ -3768,13 +3793,19 @@ temporary file (see start_initializer_assignments).
         break;
       case tk_struct:
       case tk_union:
+        /* Find the first field in the struct or union, skipping those that
+           are ignored by initialization. */
         ipdp->curr_field = next_initializable_field(
                                   type->variant.class_struct_union.field_list);
-        /* Avoid problems with empty ck_aggregate constants. */
-        if (elem_con != NULL) {
-          check_assertion_str(ipdp->curr_field != NULL,
-                              "dump_initializer_part: bad field");
+        if (ipdp->curr_field != NULL) {
           elem_type = ipdp->curr_field->type;
+        } else {
+          /* The struct or union contains no initializable fields, e.g.,
+             "struct {int :0;}", but a dummy field will have been put out
+             to avoid that problem.  It will be initialized below. */
+          check_assertion_str(elem_con == NULL,
+                              "dump_initializer_part: constant, but no field");
+          elem_type = NULL;
         }  /* if */
         break;
       default:
@@ -3784,6 +3815,28 @@ temporary file (see start_initializer_assignments).
     if (!*gen_assignments) {
       initializer_open_brace();
       need_close_brace = TRUE;
+    }  /* if */
+    if (elem_con == NULL) {
+      /* This is an empty constants list, which can only come up in IL
+         generated by IL lowering from C++.  Since C does not allow
+         an empty set of braces ("{}"), initialize the first thing inside
+         the current aggregate with a zero.  In the case of an empty struct
+         or union, this will initialize the dummy field added to the
+         struct or union.  We don't need to do this if we're currently
+         generating assignments. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+      if (is_non_zeroable_type(type)) {
+        /* The first thing in the aggregate cannot be initialized (e.g.,
+           it's a union), so switch to assignment statements. */
+        *gen_assignments = TRUE;
+      }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+      if (!*gen_assignments) {
+        /* Do any first-time processing necessary. */
+        start_initializer_constants();
+        /* Initialize the first scalar of the aggregate to zero. */
+        write_tok_str("0");
+      }  /* if */
     }  /* if */
     /* Loop through the list of constants and process each one. */
     for (; elem_con != NULL; elem_con = elem_con->next) {
@@ -3870,9 +3923,9 @@ statements must be generated.
 Executable statements will also be generated when is_dynamic_init is FALSE
 for cases where K&R/pcc C cannot express a constant initialization (i.e.,
 union initializations and initializations of non-static aggregates).
-The parts preceding the troublesome case will have already been written
-out as data declarations.  The inexpressible case and any initializations
-following it will be rendered as executable code.
+The parts preceding the troublesome case will be written out as data
+declarations.  The inexpressible case and any initializations following
+it will be rendered as executable code.
 */
 {
   a_type_ptr type = skip_typerefs(variable->type);
@@ -3928,44 +3981,6 @@ Otherwise, return NULL.
   }  /* if */
   return init_con;
 }  /* constant_initializer */
-
-
-static a_boolean is_non_zeroable_aggregate_type(a_type_ptr type)
-/*
-Return TRUE if the indicated type is a type that cannot be initialized with
-"= {0}" in K&R C, e.g., if it is a union type or if its first element
-(recursively, all the way down) is a union type.
-*/
-{
-  a_type_kind tkind;
-  a_boolean   is_non_zeroable = FALSE;
-
-  type = skip_typerefs(type);
-  tkind = type->kind;
-  if (tkind == (a_type_kind)tk_array) {
-    is_non_zeroable = is_non_zeroable_aggregate_type(
-                                             type->variant.array.element_type);
-#if !C_GEN_BE_GENERATES_ANSI_C
-  } else if (tkind == (a_type_kind)tk_union) {
-    /* Unions cannot be initialized in K&R C. */
-    is_non_zeroable = TRUE;
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-  } else if (tkind == (a_type_kind)tk_struct
-#if C_GEN_BE_GENERATES_ANSI_C
-             || tkind == (a_type_kind)tk_union
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-                                            ) {
-    a_field_ptr field = next_initializable_field(
-                                  type->variant.class_struct_union.field_list);
-    if (field != NULL) {
-      is_non_zeroable = is_non_zeroable_aggregate_type(field->type);
-    } else {
-      /* structs with no fields cannot be initialized with a {0}. */
-      is_non_zeroable = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_non_zeroable;
-}  /* is_non_zeroable_aggregate_type */
 
 
 static void dump_variable_decl(a_variable_ptr variable,
@@ -4064,13 +4079,15 @@ parameters.
             tkind == (a_type_kind)tk_struct || 
             tkind == (a_type_kind)tk_union) {
           /* Aggregates. */
-          if (is_non_zeroable_aggregate_type(var_type)) {
-            /* Sorry, there's just no way to say this in K&R C.  For example,
-               there's no way to initialize a union so as to make it clear
-               that it is a definition.  Leave it as it is and hope it works
-               out. */
-          } else {
-            /* Normal aggregate. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          if (is_non_zeroable_type(var_type)) {
+            /* Sorry, there's just no way to say this in K&R C.  There's no
+               way to initialize a union so as to make it clear that it is a
+               definition.  Leave it as it is and hope it works out. */
+          } else
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          {
+            /* Zero an aggregate. */
             write_tok_str(" = {0}");
           }  /* if */
         } else {
