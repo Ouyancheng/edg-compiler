@@ -4985,7 +4985,7 @@ a pointer to it in *symbol_ptr.
             pos_diagnostic(strict_ansi_error_severity,
                            ec_duplicate_typedef, &locator->source_position);
           }  /* if */
-          mark_declared(sym, &locator->source_position);
+          f_mark_declared(sym, &locator->source_position, declarator_ssep);
           goto return_point;
         } else {
           /* C++ only.  Must be a tag symbol. */
