@@ -743,26 +743,30 @@ reference type if param_is_reference is TRUE.
 }  /* set_arg_summary_for_user_conversion */
 
 
-static void set_user_conversion_for_class_copy(an_operand   *arg_operand,
-                                               a_conv_descr *conversion,
-                                               a_type_ptr   param_type)
+static void set_user_conversion_for_class_copy(
+                                             an_operand           *arg_operand,
+                                             an_arg_match_summary *arg_match,
+                                             a_type_ptr           param_type)
 /*
 arg_operand (of class type) is being passed as an argument to a parameter
 of type param_type (also a class type, either the same one or a base type
-thereof).  Set *conversion to indicate the conversion that is required
-to do that (a bitwise copy or a copy constructor call).  Note that
-*conversion is already cleared and conversion->std.cast_base_class is
-already set, with a value of NULL indicating a same-class copy.
+thereof).  Set arg_match->conversion to indicate the conversion that is
+required to do that (a bitwise copy or a copy constructor call).  Note that
+arg_match->conversion is already cleared and
+arg_match->conversion.std.cast_base_class is already set, with a value
+of NULL indicating a same-class copy.  If the copy cannot be done (because
+of an incomplete class or a copy constructor with a nonconst reference for
+the input), set arg_match->match_level to aml_none.
 */
 {
-  if (conversion->std.cast_base_class == NULL &&
+  if (arg_match->conversion.std.cast_base_class == NULL &&
       symbol_supplement_for_class(param_type)->
                                         construction_by_bitwise_copy_allowed) {
     /* This is a bitwise same-class copy. */
     /* This could have been done by the call to conversion_to_class_possible;
        doing it here is a small speed optimization. */
     /* No need to clear the conversion here; that's been done already. */
-    conversion->class_identity_or_bitwise_copy = TRUE;
+    arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
   } else {
     /* This case must require a copy constructor or a derived-class
        bitwise copy. */
@@ -772,22 +776,27 @@ already set, with a value of NULL indicating a same-class copy.
                                      /*try_bitwise_copy=*/TRUE,
                                      /*is_explicit_cast=*/FALSE,
                                      /*is_reference_binding=*/FALSE,
-                                     conversion, (a_conv_descr *)NULL,
+                                     &arg_match->conversion,
+                                     (a_conv_descr *)NULL,
                                      &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
         ambiguous) {
       /* Conversion is okay. */
     } else {
       /* The conversion is not possible.  This can happen because the
-         parameter type is incomplete.  Allow the match and call it a bitwise
-         copy.  An error will be issued later if this call is selected, because
-         the parameter type is incomplete. */
-#if CHECKING
-      check_assertion_str(is_incomplete_type(param_type),
-                      "set_user_conversion_for_class_copy: conv not possible");
-#endif /* CHECKING */
-      /* No need to clear the conversion here; that's been done already. */
-      conversion->class_identity_or_bitwise_copy = TRUE;
+         parameter type is incomplete or the copy constructor has a
+         ref to nonconst as the input parameter. */
+      if (is_incomplete_type(param_type)) {
+         /* Parameter type is incomplete.  Allow the match and call it a
+            bitwise copy.  An error will be issued later if this call is
+            selected, because the parameter type is incomplete. */
+        /* No need to clear the conversion here; that's been done already. */
+        arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
+      } else {
+        /* Something else (e.g., the copy constructor has a ref to nonconst
+           as the input parameter).  The copy cannot be done. */
+        arg_match->match_level = aml_none;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_user_conversion_for_class_copy */
@@ -1051,8 +1060,7 @@ is TRUE.
         /* The argument and parameter are the same class type, so this
            qualifies as a class copy. */
         check_assertion(arg_operand != NULL);
-        set_user_conversion_for_class_copy(arg_operand,
-                                           &arg_summary->conversion,
+        set_user_conversion_for_class_copy(arg_operand, arg_summary,
                                            param_type);
       }  /* if */
       goto have_level;
@@ -1162,8 +1170,7 @@ is TRUE.
            that this case counts as a standard conversion even if a copy
            constructor is called. */
         check_assertion(arg_operand != NULL);
-        set_user_conversion_for_class_copy(arg_operand,
-                                           &arg_summary->conversion,
+        set_user_conversion_for_class_copy(arg_operand, arg_summary,
                                            param_type);
       }  /* if */
       goto have_level;
@@ -2050,7 +2057,7 @@ evaluated (but not checked to see if the match is good enough).
       if (class_copy_case && !param_is_reference && !pointer_case) {
         /* See if a copy constructor is needed for a class copy. */
         set_user_conversion_for_class_copy(&arg_operand->operand,
-                                           &arg_match->conversion,
+                                           arg_match,
                                            eff_param_type);
       }  /* if */
     }  /* if */
