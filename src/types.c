@@ -3104,7 +3104,6 @@ continue_outer_loop:;
 }  /* exception_spec_is_less_restrictive */
 
 
-static
 a_boolean qualification_conversion_possible(a_type_ptr source_type,
 					    a_type_ptr dest_type,
 					    a_boolean  *p_qualifiers_added,
