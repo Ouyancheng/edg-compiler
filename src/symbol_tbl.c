@@ -6714,7 +6714,7 @@ C and C++.
                  directives. */
               sym = active_sym;
               found_at_file_scope = ssep->kind == (a_scope_kind)sck_file;
-              break;
+              goto check_for_using_directives;
             }  /* if */
           }  /* for */
           if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
@@ -6804,6 +6804,7 @@ next_scope:
           ssep--;
         }  /* if */
       }  /* for */
+check_for_using_directives:
       /* If no symbol was found, or if the symbol found was from the file
          scope, look for symbols that are visible as a result of
          using directives. */
