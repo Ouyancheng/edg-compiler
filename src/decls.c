@@ -214,6 +214,30 @@ starts with a type-specifier (including a typedef name) or a type-qualifier.
 }  /* is_type_start */
 
 
+a_boolean is_overload_specifier(void)
+/*
+Return TRUE if the current token is an overload specifier (C++ anachronism).
+Note that "overload" is not a keyword and will not be recognized as a
+specifier if the name has been declared.  Called only in C++.
+*/
+{
+  char         *id_name;
+  a_boolean    is_overload = FALSE;
+
+  if (curr_token == tok_identifier) {
+    id_name = locator_for_curr_id.symbol_header->identifier;
+    if (*id_name == 'o' && strcmp(id_name, "overload") == 0) {
+      /* Identifier is "overload" -- check for definition. */
+      if (normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS) == NULL) {
+        /* The name is not in the symbol table.  Treat is as a keyword. */
+        is_overload = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return (is_overload);
+}  /* is_overload_specifier */
+
+
 a_boolean is_decl_start(void)
 /*
 Return TRUE if the current token looks like the start of a declaration,
@@ -252,101 +276,151 @@ examine what follows.  The technique is discussed in ARM 6.8.
   a_boolean             is_decl;
 
   is_decl = is_decl_start();
-  if (is_decl && C_dialect == C_dialect_cplusplus &&
-      next_token() == tok_lparen) {
+  if (C_dialect == C_dialect_cplusplus) {
+    if (!is_decl) {
+      /* Check for "overload" ananchronism. */
+      is_decl = is_overload_specifier();
+    } else if (next_token() == tok_lparen &&
+               ((curr_token == tok_identifier && curr_id_is_type_name()) ||
+                (curr_token == tok_void || curr_token == tok_char ||
+                 curr_token == tok_short || curr_token == tok_int ||
+                 curr_token == tok_long || curr_token == tok_float ||
+                 curr_token == tok_double || curr_token == tok_signed ||
+                 curr_token == tok_unsigned))) {
 #if CHECKING
-    /* If this is the start of a declaration and the next token is a
-       left paren, the current token must already have been determined
-       to be a type specifier or a type name.  Confirm this. */
-    if (curr_token == tok_identifier && curr_id_is_type_name()) {
-      /* Okay. */
-    } else if (curr_token == tok_void || curr_token == tok_char ||
-               curr_token == tok_short || curr_token == tok_int ||
-               curr_token == tok_long || curr_token == tok_float ||
-               curr_token == tok_double || curr_token == tok_signed ||
-               curr_token == tok_unsigned) {
-      /* Okay. */
-    } else {
-      internal_error("is_declaration_not_expression: unexpected token");
-    }  /* if */
+      if (curr_token == tok_identifier && !curr_id_is_type_name()) {
+        internal_error("is_declaration_not_expression: id is not type name");
+      }  /* if */
 #endif /* CHECKING */
-    /* Disambiguation is required. */
-    /* Save the current stop token state, and reinitialize it. */
-    copy_stop_tokens(stop_token_array, save_stop_token_array);
-    clear_stop_tokens();
-    add_stop_token(tok_rparen);
-    /* Cache the type name identifier. */
-    clear_token_cache(&token_cache);
-    cache_curr_token(&token_cache);
-    /* Advance to the left paren and cache it, too. */
-    (void)get_token();
-    cache_curr_token(&token_cache);
-    /* Cache all tokens up to the corresponding right paren.  (Note that
-       tok_rparen is the only thing in the stop token array.) */
-    (void)get_token();
-    cache_token_stream(&token_cache);
-    if (curr_token == tok_rparen) {
+      /* Disambiguation is required. */
+      /* Save the current stop token state, and reinitialize it. */
+      copy_stop_tokens(stop_token_array, save_stop_token_array);
+      clear_stop_tokens();
+      add_stop_token(tok_rparen);
+      /* Cache the type name identifier. */
+      clear_token_cache(&token_cache);
       cache_curr_token(&token_cache);
+      /* Advance to the left paren and cache it, too. */
       (void)get_token();
-      switch (curr_token) {
-        case tok_assign:
-        case tok_lparen:
-        case tok_const:
-        case tok_volatile:
-        case tok_lbracket:
-        case tok_comma:
-        case tok_semicolon:
-          /* It's a declaration. */
-          break;
-        case tok_period:
-        case tok_arrow:
-        case tok_plus_plus:
-        case tok_minus_minus:
-        case tok_ampersand:
-        case tok_star:
-        case tok_plus:
-        case tok_minus:
-        case tok_divide:
-        case tok_remainder:
-        case tok_shift_left:
-        case tok_shift_right:
-        case tok_lt:
-        case tok_gt:
-        case tok_le:
-        case tok_ge:
-        case tok_eq:
-        case tok_ne:
-        case tok_excl_or:
-        case tok_or:
-        case tok_and_and:
-        case tok_or_or:
-        case tok_quest_mark:
-        case tok_times_assign:
-        case tok_divide_assign:
-        case tok_remainder_assign:
-        case tok_plus_assign:
-        case tok_minus_assign:
-        case tok_shift_left_assign:
-        case tok_shift_right_assign:
-        case tok_and_assign:
-        case tok_excl_or_assign:
-        case tok_or_assign:
-        case tok_period_star:
-        case tok_arrow_star:
-          /* It's an expression. */
-          is_decl = FALSE;
-          break;
-        default:;
-          /* What's not obviously a declaration or an expression is
-             probably a syntax error.  Let the error be reported in
-             declaration processing. */
-      }  /* switch */
+      cache_curr_token(&token_cache);
+      /* Cache all tokens up to the corresponding right paren.  (Note that
+         tok_rparen is the only thing in the stop token array.) */
+      (void)get_token();
+      cache_token_stream(&token_cache);
+      if (curr_token == tok_rparen) {
+        cache_curr_token(&token_cache);
+        (void)get_token();
+        switch (curr_token) {
+          case tok_assign:
+          case tok_lparen:
+          case tok_const:
+          case tok_volatile:
+          case tok_lbracket:
+          case tok_comma:
+          case tok_semicolon:
+            /* It's a declaration. */
+            break;
+          case tok_period:
+          case tok_arrow:
+          case tok_plus_plus:
+          case tok_minus_minus:
+          case tok_ampersand:
+          case tok_star:
+          case tok_plus:
+          case tok_minus:
+          case tok_divide:
+          case tok_remainder:
+          case tok_shift_left:
+          case tok_shift_right:
+          case tok_lt:
+          case tok_gt:
+          case tok_le:
+          case tok_ge:
+          case tok_eq:
+          case tok_ne:
+          case tok_excl_or:
+          case tok_or:
+          case tok_and_and:
+          case tok_or_or:
+          case tok_quest_mark:
+          case tok_times_assign:
+          case tok_divide_assign:
+          case tok_remainder_assign:
+          case tok_plus_assign:
+          case tok_minus_assign:
+          case tok_shift_left_assign:
+          case tok_shift_right_assign:
+          case tok_and_assign:
+          case tok_excl_or_assign:
+          case tok_or_assign:
+          case tok_period_star:
+          case tok_arrow_star:
+            /* It's an expression. */
+            is_decl = FALSE;
+            break;
+          default:;
+            /* What's not obviously a declaration or an expression is
+               probably a syntax error.  Let the error be reported in
+               declaration processing. */
+        }  /* switch */
+      }  /* if */
+      rescan_cached_tokens(&token_cache);
+      copy_stop_tokens(save_stop_token_array, stop_token_array);
     }  /* if */
-    rescan_cached_tokens(&token_cache);
-    copy_stop_tokens(save_stop_token_array, stop_token_array);
   }  /* if */
   return is_decl;
 }  /* is_declaration_not_expression */
+
+
+a_boolean check_for_overload_anachronism(void)
+/*
+Check for the presence of the pseudo-keyword "overload" at the start of
+a declaration.  If it is found, pass over it and examine the tokens following.
+If a declaration is of the format "overload f;" (or "overload f, g, h;")
+just check for syntax errors and discard the entire declaration; in such
+cases return TRUE.  Otherwise, return FALSE -- declaration processing will
+continue as though "overload" had not been seen.
+*/
+{
+  a_boolean     discard_declaration = FALSE;
+  a_token_kind  next_tok;
+
+  if (is_overload_specifier()) {
+    /* Issue a diagnostic indicating that "overload" is ignored. */
+    warning(ec_overload_ignored);
+    /* Bypass "overload" */
+    get_token();
+    if (curr_token == tok_identifier) {
+      next_tok = next_token();
+      if (next_tok == tok_semicolon || next_tok == tok_comma) {
+        /* We have a single function name or a comma separated list of
+           function names.  (We do not support a mixed list of function
+           names and function declarations.) Throw away the identifier
+           and advance to the ";" or ",". */
+        (void)get_token();
+        if (curr_token == tok_comma) {
+          /* It is a list of names.  Loop through them just to flag syntax
+             errors. */
+          add_stop_token(tok_semicolon);
+          /* Advance past the comma */
+          (void)get_token();
+          do {
+            (void)required_token(tok_identifier, ec_exp_identifier);
+          } while (loop_token(tok_comma));
+          remove_stop_token(tok_semicolon);
+        }  /* if */
+        /* Check for final semicolon. */
+        (void)required_token(tok_semicolon, ec_exp_semicolon);
+        /* Tell the caller to do no more processing. */
+        discard_declaration = TRUE;
+      } else {
+        /* Treat this as a function declaration.  Having bypassed the overload
+           "keyword" we return to the caller. */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return discard_declaration;
+}  /* check_for_overload_anachronism */
 
 
 /*
@@ -4656,6 +4730,12 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
+        if (C_dialect == C_dialect_cplusplus && is_overload_specifier()) {
+          /* Special case -- the "overload" pseudo keyword.  We ignore it and
+             advance to the next token. */
+          warning(ec_overload_ignored);
+          break;
+        }  /* if */
         /* The appearance of an identifier may mean that the specifiers
            are complete (the identifier is a declarator) or it may be another
            specifier.  First we look for conditions that will cause us to
@@ -6165,6 +6245,10 @@ of local variables (and types, etc.) of functions and in blocks.
     (void)get_token();
   }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Check for and discard declarations of the form "overload f;". */
+    if (check_for_overload_anachronism()) goto return_point;
+  }  /* if */
   /* Set the flags for calling decl_specifiers. */
   decl_start = is_decl_start();
   dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
