@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -8276,8 +8276,6 @@ Display and return the amount of space used for various expression tables.
 void expr_one_time_init(void)
 /*
 Do one-time initialization of variables related to expression processing.
-(Variables that need to be reinitialized with each new translation unit
-are handled in expr_init.)
 */
 {
   /* Save variables from exprutil.h, exprutil.c, and overload.h that are
@@ -8303,33 +8301,42 @@ are handled in expr_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(imaginary_unit);
 }  /* expr_one_time_init */
+
+
+void expr_trans_unit_init(void)
+/* 
+Initialize things related to expression scanning that must be
+re-initialized for each translation unit.
+*/
+{
+  expr_stack = NULL;
+  curr_expr_ref_entries = NULL;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  imaginary_unit = NULL;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+}  /* expr_trans_unit_init */
 
 
 void expr_init(void)
 /* 
-Initialize things related to expression scanning.
+Initialize things related to expression scanning that must be initialized
+for each compilation.
 */
 {
-  /* Variables in exprutil.h: */
-  expr_stack = NULL;
-  curr_expr_ref_entries = NULL;
-#if DEBUG
-  num_arg_match_summaries_allocated = 0;
-#endif /* DEBUG */
-  
-  /* Static variables in exprutil.c: */
   avail_ref_entries = NULL;
   avail_arg_operands = NULL;
   avail_dynamic_init_dtor_fixups = NULL;
 #if DEBUG
+  num_arg_match_summaries_allocated      = 0;
   num_arg_operands_allocated             = 0;
   num_ref_entries_allocated              = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  imaginary_unit = NULL;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  expr_trans_unit_init();
 
   /* Do initialization for overload.c: */
   overload_init();
@@ -8342,6 +8349,6 @@ Initialize things related to expression scanning.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

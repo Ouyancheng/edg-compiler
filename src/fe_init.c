@@ -1021,6 +1021,7 @@ calls symbol_tbl_trans_unit_init.
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
   templates_trans_unit_init();
+  expr_trans_unit_init();
 }  /* fe_translation_unit_init */
 
 
