@@ -1454,6 +1454,28 @@ done:;
 }  /* write_unsigned_num */
 
 
+static void begin_pp_directive(char *str)
+/*
+Begin output of a preprocessing directive.  str is the beginning of the
+directive.  end_pp_directive must be called to end the directive.
+*/
+{
+  end_output_line_if_begun();
+  disable_line_wrapping();
+  write_str(str);
+}  /* begin_pp_directive */
+
+
+static void end_pp_directive(void)
+/*
+End the writing of a preprocessing directive.
+*/
+{
+  enable_line_wrapping();
+  end_output_line();
+}  /* end_pp_directive */
+
+
 static void gen_temp_name(char *ptr)
 /*
 Write a temporary name generated from the given IL pointer.
@@ -2955,13 +2977,10 @@ is the one associated with the definition of the class.
     } else {
       /* Put out a #pragma pack directive to indicate the special alignment
          requirements for this struct. */
-      end_output_line_if_begun();
-      disable_line_wrapping();
-      write_str("#pragma pack(");
+      begin_pp_directive("#pragma pack(");
       write_unsigned_num((unsigned long)pack_alignment);
       write_str(")");
-      enable_line_wrapping();
-      end_output_line();
+      end_pp_directive();
     }  /* if */
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -3071,11 +3090,8 @@ is the one associated with the definition of the class.
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (pack_alignment > 0) {
     /* Restore the packing alignment to a default state. */
-    end_output_line_if_begun();
-    disable_line_wrapping();
-    write_str("#pragma pack()");
-    enable_line_wrapping();
-    end_output_line();
+    begin_pp_directive("#pragma pack()");
+    end_pp_directive();
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* gen_class_definition */
@@ -3266,19 +3282,18 @@ this one is such a continuation.
         adv_curr_source_sequence_entry();
         write_tok_str("friend ");
         gen_type_name(type);
-      } else if (type->source_corresp.decl_position.seq == 0 &&
-                 type->source_corresp.name != NULL &&
-                 strcmp(type->source_corresp.name, "va_list") == 0) {
+      } else if (type->is_builtin_va_list &&
+                 type->source_corresp.decl_position.seq == 0) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>.
-           Don't put it out -- put out an #include of the header instead. */
+           Don't put it out -- put out an #include of the header instead.
+           The test for a sequence number of zero distinguishes this va_list
+           from one that came from other headers (e.g., <stdio.h>) but was
+           adopted as the built-in one.  See declare_builtin_va_list_type. */
         type->typedef_definition_has_been_put_out = TRUE;
         suppress_closing_punct = TRUE;
         adv_curr_source_sequence_entry();
-        end_output_line_if_begun();
-        disable_line_wrapping();
-        write_str("#include <stdarg.h>");
-        enable_line_wrapping();
-        end_output_line();
+        begin_pp_directive("#include <stdarg.h>");
+        end_pp_directive();
       } else {
         /* A typedef definition. */
         gen_typedef_definition(type, sec_decl, suppress_specifiers,
@@ -3314,6 +3329,19 @@ this one is such a continuation.
       write_end_of_declaration_punctuation(*another_decl_in_comma_list);
     }  /* if */
   }  /* if */
+#ifdef GUARD_MACRO_FOR_VA_LIST
+  if (type->is_builtin_va_list &&
+      type->source_corresp.decl_position.seq != 0 &&
+      is_definition) {
+    /* This is declaration of a type named "va_list" which has been adopted
+       as the built-in va_list for <stdarg.h>.  Define the guard macro used
+       by the headers to prevent redefinition of va_list when <stdarg.h>
+       is included. */
+    begin_pp_directive("#define ");
+    write_str(GUARD_MACRO_FOR_VA_LIST);
+    end_pp_directive();
+  }  /* if */
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
 }  /* gen_type_decl */
 
 
@@ -5168,9 +5196,8 @@ is the one associated with the pragma.
   adv_curr_source_sequence_entry();
   /* Ignore this entry if told to do so. */
   if (!pp->ignore_in_back_end) {
-    end_output_line_if_begun();
+    begin_pp_directive("");
     set_output_position(&pp->position);
-    disable_line_wrapping();
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */
     if (pp->kind == (a_pragma_kind)pk_ident) {
@@ -5189,8 +5216,7 @@ is the one associated with the pragma.
 #if IDENT_DIRECTIVE_AND_PRAGMA
     }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-    enable_line_wrapping();
-    end_output_line();
+    end_pp_directive();
   }  /* if */
 }  /* gen_pragma */
 
@@ -6950,13 +6976,11 @@ Generate a declaration for the indicated macro.  The output is a #define
 or #undef.
 */
 {
-  end_output_line_if_begun();
+  begin_pp_directive("");
   set_output_position(&mp->source_corresp.decl_position);
-  disable_line_wrapping();
   /* Write the macro string. */
   write_str(mp->text);
-  enable_line_wrapping();
-  end_output_line();
+  end_pp_directive();
 }  /* gen_macro */
 
 #endif /* RECORD_MACROS_IN_IL */
