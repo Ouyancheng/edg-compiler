@@ -1726,6 +1726,7 @@ enum an_opname_kind_tag {
   onk_minus_minus,       /* "--" */     onk_comma,             /* "," */
   onk_arrow_star,        /* "->*" */    onk_arrow,             /* "->" */
   onk_function_call,     /* "()" */     onk_subscript,         /* "[]" */
+  onk_question,          /* "?" -- only used in front end. */
   onk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
