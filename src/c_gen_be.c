@@ -8788,6 +8788,7 @@ need to be done only once even if multiple C files are generated.
 The IL is already available when this routine is called.
 */
 {
+  f_primary = NULL;
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Make a string based on the module name that is used to qualify
      static names to make them unique. */
@@ -8839,6 +8840,11 @@ The IL is already available when this routine is called.
   curr_default_fp_contract = (a_stdc_pragma_value)stdc_pv_default;
   curr_default_fenv_access = (a_stdc_pragma_value)stdc_pv_default;
   curr_default_cx_limited_range = (a_stdc_pragma_value)stdc_pv_default;
+#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
+  curr_default_fx_full_precision = stdc_pv_default;
+  curr_default_fx_fract_overflow = stdc_pv_default;
+  curr_default_fx_accum_overflow = stdc_pv_default;
+#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
 #if UPC_EXTENSIONS_ALLOWED
   curr_default_upc_access_method = il_header.default_upc_strict_access ?
                                      (a_upc_access_method)upc_access_strict :

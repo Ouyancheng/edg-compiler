@@ -71,7 +71,7 @@ static an_alias_fixup_ptr
 
 #if DEBUG
 static unsigned long
-	num_alias_fixups_allocated = 0;
+	num_alias_fixups_allocated;
 #endif /* DEBUG */
 
 
@@ -222,7 +222,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
 
 #if DEBUG
 static unsigned long
-	pragma_extname_string_space = 0;
+	pragma_extname_string_space;
 #endif /* DEBUG */
 
 void redefine_extname_pragma(a_pending_pragma_ptr  ppp)
@@ -292,7 +292,7 @@ static an_attribute_ptr avail_attributes;
 
 #if DEBUG
 static unsigned long
-	num_attributes_allocated = 0;
+	num_attributes_allocated;
 #endif /* DEBUG */
 
 
@@ -2200,6 +2200,13 @@ Do one-time initialization of variables related to the processing of
 attributes.
 */
 {
+#if DEBUG
+  num_alias_fixups_allocated = 0;
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  pragma_extname_string_space = 0;
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#endif /* DEBUG */
+  num_attributes_allocated = 0;
 #if CHECKING
   /* Check that the table of mode names is correctly initialized. */
   if (type_mode_kind_names[(int)tmk_last] == NULL ||
