@@ -1128,7 +1128,7 @@ memory or with an IL file.
   db_exit();
 }  /* check_for_done_with_memory_region */
 
-#if MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 
 void check_for_done_with_all_function_memory_regions(void)
 /*
@@ -1166,7 +1166,7 @@ is kept around in case definition_needed might be set later.
   db_exit();
 }  /* check_for_done_with_all_function_memory_regions */
 
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG
 #if !STANDALONE_UTILITY_PROGRAM
