@@ -110,6 +110,18 @@ static unsigned long
 		num_alignment_bytes_allocated;
 			/* Number of bytes wasted in alignment cracks.
 			   Reset for each input file. */
+
+#if USE_MMAP_FOR_MEMORY_REGIONS
+static unsigned long
+		num_mapped_bytes_allocated;
+			/* Number of bytes of memory that are mapped to
+			   files. */
+
+static unsigned long
+		num_mapped_bytes_from_pch;
+			/* Number of bytes of memory that have been mapped
+			   from a precompiled header file. */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* DEBUG */
 
 
@@ -272,6 +284,12 @@ to cause the memory allocation history table to overflow.
     }  /* if */
     size_allocated += HOST_ALLOCATION_INCREMENT;
     add_mem_alloc_history_entry(ptr, HOST_ALLOCATION_INCREMENT);
+#if DEBUG
+    /* Track total allocation. */
+    /* Can't do this conditionally on db_active since db_active is not yet
+       set when command line processing is done. */
+    adjust_record_of_total_allocation((long)HOST_ALLOCATION_INCREMENT);
+#endif /* DEBUG */
   }  /* while */
 }  /* preallocate_pch_memory */
 
@@ -288,6 +306,9 @@ preallocated memory that has not been used.
   for (n = mem_alloc_history_entries_used;
        n < num_of_mem_alloc_history_entries; ++n) {
     (void)free(mem_alloc_history[n].addr);
+#if DEBUG
+    adjust_record_of_total_allocation((long)(-mem_alloc_history[n].size));
+#endif /* DEBUG */
   }  /* for */
   /* Set the number of entries in existence to the number used so far.
      This will cause any new memory blocks to malloc new memory instead
@@ -308,6 +329,53 @@ static sizeof_t	mmap_size_allocated;
 
 static FILE*	f_mmap_file;
 			/* The file descriptor for the mmap file. */
+
+void record_mapped_mem_block(a_void_ptr	addr,
+			     sizeof_t	size)
+/*
+Create a memory allocation history entry for a block of memory
+mapped to a file.  This is used when regions from a PCH input
+file are mapped into the address space of subsequent compilation.
+*/
+{
+  /* Record this allocation in the memory allocation history array. */
+  add_mem_alloc_history_entry(addr, size);
+  /* The number of entries actually used is always the same as the
+     number of entries that exist in mmap mode. */
+  mem_alloc_history_entries_used = num_of_mem_alloc_history_entries;
+#if DEBUG
+  /* Record the total amount of allocated memory that was allocated via
+     memory mapped files. */
+  num_mapped_bytes_allocated += size;
+  num_mapped_bytes_from_pch += size;
+  adjust_record_of_total_allocation((long)size);
+#endif /* DEBUG */
+}  /* record_mapped_mem_block */
+
+
+void free_mapped_mem_blocks(void)
+/*
+Unmap the memory blocks that have been mapped.
+*/
+{
+  a_mem_alloc_history_number	n;
+
+  for (n = 0; n < num_of_mem_alloc_history_entries; ++n) {
+    sizeof_t	size = mem_alloc_history[n].size;
+    unmap_memory(mem_alloc_history[n].addr, size);
+#if DEBUG
+    /* Record the total amount of allocated memory that was allocated via
+       memory mapped files. */
+    num_mapped_bytes_allocated -= size;
+    adjust_record_of_total_allocation((long)-size);
+#endif /* DEBUG */
+  }  /* for */
+  num_of_mem_alloc_history_entries = 0;
+  mem_alloc_history_entries_used = 0;
+  /* Reset the number of bytes allocated in the memory mapped file so that
+     any new allocations will start over from the beginning of the file. */
+  mmap_size_allocated = 0;
+}  /* free_mapped_mem_blocks */
 
 
 a_void_ptr alloc_new_mem_block(sizeof_t size)
@@ -341,6 +409,10 @@ PCH was created.
      number of entries that exist in mmap mode. */
   mem_alloc_history_entries_used = num_of_mem_alloc_history_entries;
 #if DEBUG
+  /* Record the total amount of allocated memory that was allocated via
+     memory mapped files. */
+  num_mapped_bytes_allocated += size;
+  adjust_record_of_total_allocation((long)size);
   if (debug_level >= 5) {
     fprintf(f_debug, "Allocated %lu bytes of mapped memory at %p\n",
             (unsigned long)size, addr);
@@ -367,20 +439,25 @@ precompiled headers is suppressed.
   static a_boolean	additional_allocation_needed = FALSE;
   a_boolean		not_enough_memory;
 
-  not_enough_memory = mem_alloc_history_entries_used ==
-                                          num_of_mem_alloc_history_entries;
-  if (!additional_allocation_needed &&
-      (not_enough_memory || size != HOST_ALLOCATION_INCREMENT)) {
-    a_mem_alloc_history_number	n;
-    /* We have either exhausted the preallocated memory, or a block size
-       has been requested that we can't satisfy. */
-    additional_allocation_needed = TRUE;
-    suppress_creation_of_pch();
-    /* Free any unused preallocated blocks. */
-    for (n = mem_alloc_history_entries_used;
-         n < num_of_mem_alloc_history_entries; ++n) {
-      (void)free(mem_alloc_history[n].addr);
-    }  /* for */
+  if (!additional_allocation_needed) {
+    if (mem_alloc_history_entries_used == num_of_mem_alloc_history_entries) {
+      /* All of the preallocated memory has been used. */
+      exhausted_preallocated_memory = TRUE;
+      additional_allocation_needed = TRUE;
+    } else if (size != HOST_ALLOCATION_INCREMENT) {
+      /* A memory block is required that is larger than any of the ones that
+         have been preallocated. */
+      large_mem_block_needed = TRUE;
+      large_mem_block_error_pos = error_position;
+      additional_allocation_needed = TRUE;
+    }  /* if */
+    if (additional_allocation_needed) {
+      /* A condition occurred which makes it impossible to create a
+         precompiled header file. */
+      suppress_creation_of_pch();
+      /* Free any unused preallocated blocks. */
+      free_unused_pch_memory();
+    }  /* if */
   }  /* if */
   if (additional_allocation_needed) {
     /* On this call, or a previous call, we needed to use memory other
@@ -391,6 +468,7 @@ precompiled headers is suppressed.
     /* Get the next entry from the preallocated list. */
     addr = mem_alloc_history[mem_alloc_history_entries_used++].addr;
   }  /* if */
+  total_mem_blocks_allocated++;
   return addr;
 }  /* alloc_new_mem_block */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
@@ -934,12 +1012,24 @@ usage counts in other files.
   a_memory_region_number region_number;
   a_mem_block_header_ptr hdr;
   unsigned long          total_used, total_unallocated = 0;
+  unsigned long		 total_in_freed_blocks = 0;
 
   fprintf(f_debug, "\nAllocated space in all categories:\n");
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total of above", "", "",
                    total_accounted_for);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Skipped for alignment", "", "",
                    num_alignment_bytes_allocated);
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "File mapped memory", "", "",
+                   num_mapped_bytes_allocated);
+  fprintf(f_debug, "%25s %8s %8s %8lu (included in previous line)\n",
+          "Mapped from PCH", "", "", num_mapped_bytes_from_pch);
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  if (precompiled_header_processing_required) {
+    fprintf(f_debug, "%25s %8s %8s %8lu\n",
+            "Preallocated PCH memory", "", "", pch_mem_size);
+  }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   total_accounted_for += num_alignment_bytes_allocated;
   /* total_mem_used only counts space allocated in memory regions, so
      it does not include what's in total_general_mem_allocated. */
@@ -956,12 +1046,40 @@ usage counts in other files.
       total_unallocated += hdr->after_end_of_block - hdr->next_avail_in_block;
     }  /* for */
   }  /* for */
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in mem blocks", "", "",
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in used mem blocks", "", "",
                    total_unallocated);
+  /* Size the memory blocks on the available list. */
+  for (hdr = reusable_blocks_list; hdr != NULL; hdr = hdr->next) {
+    total_in_freed_blocks += hdr->after_end_of_block -
+                                                      hdr->next_avail_in_block;
+  }  /* for */
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in freed mem blocks", "", "",
+                   total_in_freed_blocks);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Max mem alloc", "", "",
                    max_mem_allocated);
 }  /* show_mem_manage_space_used */
 #endif /* DEBUG */
+
+
+void mem_manage_one_time_init(void)
+/*
+Do one-time initialization of variables related to the mem_manage routines.
+(Variables that need to be reinitialized with each new translation unit
+are handled in mem_manage_init.)
+*/
+{
+  /* Save variables from mem_manage.h and mem_manage.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+#if DEBUG
+      pch_saved_var_array_elem(total_mem_used),
+#endif /* DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* mem_manage_one_time_init */
 
 
 void mem_manage_init(void)
@@ -992,6 +1110,10 @@ of the front end.
   mmap_size_allocated = 0;
   f_mmap_file = NULL;
   okay_to_free_mem_blocks = FALSE;
+#if DEBUG
+  num_mapped_bytes_allocated = 0;
+  num_mapped_bytes_from_pch = 0;
+#endif /* DEBUG */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   /* Initialize the memory region for general front end storage. */
   init_memory_region(NULL_region_number, (sizeof_t)0);

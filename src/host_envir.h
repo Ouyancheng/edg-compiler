@@ -730,7 +730,7 @@ may be overridden by a command line option.
 #if __MSDOS__
 #define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024)
 #else /* !__MSDOS__ */
-#define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024 * 8)
+#define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024 * 4)
 #endif /* __MSDOS__ */
 #endif /* ifndef DEFAULT_PREALLOCATED_PCH_MEM_SIZE */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
@@ -1112,6 +1112,9 @@ a_void_ptr map_input_file_to_region(FILE		*file,
                                     sizeof_t		offset,
 				    sizeof_t		size,
 				    a_void_ptr		address);
+
+extern void unmap_memory(a_void_ptr	addr,
+			 sizeof_t	size);
 
 extern sizeof_t seek_to_page_alignment(FILE *file);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */

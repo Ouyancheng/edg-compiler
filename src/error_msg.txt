@@ -683,9 +683,11 @@ ec_using_pch;;"\"%s\": using precompiled header file \"%s\""
 ec_creating_pch;;"\"%s\": creating precompiled header file \"%s\""
 ec_memory_mismatch;;"memory usage conflict with precompiled header file %sq"
 ec_cl_invalid_pch_size;;"invalid PCH memory size "
-ec_cl_pch_must_be_first;;"PCH options must occur first in the command line"
+ec_cl_pch_must_be_first;;"PCH options must appear first in the command line"
 ec_out_of_memory_during_pch_allocation;;"insufficient memory for PCH memory allocation"
 ec_cl_pch_incompatible_with_multiple_inputs;;"precompiled header files may not be used when compiling several input files"
+ec_not_enough_preallocated_memory;;"insufficient preallocated memory for generation of precompiled header file (%s bytes required)"
+ec_program_entity_too_large_for_pch;;"very large entity in program prevents generation of precompiled header file"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

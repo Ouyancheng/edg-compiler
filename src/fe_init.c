@@ -414,6 +414,7 @@ unit, in case multiple source files are allowed.
   il_one_time_init();
   lexical_one_time_init();
   macro_one_time_init();
+  mem_manage_one_time_init();
   pragma_one_time_init();
   statements_one_time_init();
   symbol_tbl_one_time_init();

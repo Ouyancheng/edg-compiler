@@ -696,7 +696,9 @@ Process the arguments on the command line that invoked the compiler.
   a_boolean			bad_name;
   char				*instantiation_mode_string = NULL;
   a_directory_name_entry_ptr	include_path_boundary = NULL;
+#if !USE_MMAP_FOR_MEMORY_REGIONS
   a_boolean			non_pch_option_used = FALSE;
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -731,7 +733,6 @@ Process the arguments on the command line that invoked the compiler.
   while ((odp = get_option(argc, argv)) != NULL) {
     an_option_kind	kind = odp->kind;
     a_boolean		opt_value = odp->value;
-    a_boolean		is_pch_option;
     /* Record information about this option for precompiled header
        processing. */
     if (odp->pch_event_kind != pchek_none) {
@@ -739,33 +740,36 @@ Process the arguments on the command line that invoked the compiler.
                                  optarg);
     }  /* if */
 #if !USE_MMAP_FOR_MEMORY_REGIONS
-    /* See if this is a PCH option. */
-    switch (kind) {
-      case optk_create_pch:
-      case optk_use_pch:
-      case optk_pch:
-      case optk_pch_messages:
-      case optk_pch_mem:
-        is_pch_option = TRUE;
-        break;
-      default:
-        is_pch_option = FALSE;
-        break;
-    }  /* switch */
-    /* When using preallocated memory for PCH processing, the PCH options
-       must be first on the command line. */
-    if (non_pch_option_used && is_pch_option) {
-      /* The PCH options must precede all other options. */
-      command_line_error(ec_cl_pch_must_be_first);
-    }  /* if */
-    if (!non_pch_option_used && !is_pch_option) {
-      /* When we have processed all of the PCH options, do the preallocation
-         of the PCH memory. */
-      if (precompiled_header_processing_required) {
-        preallocate_pch_memory();
+    {
+      a_boolean		is_pch_option;
+      /* See if this is a PCH option. */
+      switch (kind) {
+        case optk_create_pch:
+        case optk_use_pch:
+        case optk_pch:
+        case optk_pch_messages:
+        case optk_pch_mem:
+          is_pch_option = TRUE;
+          break;
+        default:
+          is_pch_option = FALSE;
+         break;
+      }  /* switch */
+      /* When using preallocated memory for PCH processing, the PCH options
+         must be first on the command line. */
+      if (non_pch_option_used && is_pch_option) {
+        /* The PCH options must precede all other options. */
+        command_line_error(ec_cl_pch_must_be_first);
       }  /* if */
-      non_pch_option_used = TRUE;
-    }  /* if */
+      if (!non_pch_option_used && !is_pch_option) {
+        /* When we have processed all of the PCH options, do the preallocation
+           of the PCH memory. */
+        if (precompiled_header_processing_required) {
+          preallocate_pch_memory();
+        }  /* if */
+        non_pch_option_used = TRUE;
+      }  /* if */
+    }
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
     switch (kind) {
       case optk_strict_ansi_error:

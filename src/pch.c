@@ -106,6 +106,15 @@ static a_seq_number
 			/* Saved value of curr_seq_number, used to fix up
 			   the source file sequence number information. */
 
+static a_mem_alloc_history_ptr
+		new_alloc_history;
+			/* The memory allocation history information
+			   read from the precompiled header file. */
+
+a_mem_alloc_history_number
+		new_alloc_history_entries = 0;
+			/* Number of entries in new_alloc_history. */
+
 /*
 Macro to write a value to the PCH output file.
 */
@@ -865,6 +874,31 @@ variable lists.
 }  /* read_saved_variables */
 
 
+#if USE_MMAP_FOR_MEMORY_REGIONS
+a_boolean address_can_be_mapped(a_void_ptr	addr,
+		                sizeof_t	size)
+/*
+Check whether the specified address can be used for a memory
+mapping operation.  It does this by trying to map a piece of the
+IL file to a particular address.  If it succeeds, the mapping is
+undone so that the address is available for establishing the real mapping.
+*/
+{
+  a_void_ptr	new_addr;
+  a_boolean	successful;
+
+  /* The purpose of this call is simply to establish some kind of
+     mapping at the desired address.  The mapping will never be
+     used, so it doesn't matter whether or not there is anything at
+     that location in the file. */
+  new_addr = map_input_file_to_region(f_pch_input, 0, size, addr);
+  successful = new_addr != NULL;
+  if (successful) unmap_memory(addr, size);
+  return successful;
+}  /* address_can_be_mapped */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+
+
 static void write_mem_alloc_history(void)
 /*
 Write the memory allocation history information to the PCH output
@@ -894,10 +928,8 @@ restore the memory regions.
 {
   a_boolean			successful = TRUE;
   a_mem_alloc_history_number	new_size;
-  a_mem_alloc_history_number	new_num_entries;
-  a_mem_alloc_history_ptr	new_alloc_hist;
   a_mem_alloc_history_number	n;
-  sizeof_t			bytes_in_new_alloc_hist;
+  sizeof_t			bytes_in_new_alloc_history;
 
   db_enter(4, "read_mem_alloc_history");
   check_file_section_id(pfs_mem_alloc_info);
@@ -905,18 +937,19 @@ restore the memory regions.
      a separate area so that it can be compared with the existing
      information. */
   pch_read_value(new_size);
-  pch_read_value(new_num_entries);
-  bytes_in_new_alloc_hist = new_num_entries * sizeof(a_mem_alloc_history);
-  new_alloc_hist = (a_mem_alloc_history_ptr)alloc_general
-                             (bytes_in_new_alloc_hist);
-  fread_with_check(new_alloc_hist,
-                   bytes_in_new_alloc_hist,
+  pch_read_value(new_alloc_history_entries);
+  bytes_in_new_alloc_history = new_alloc_history_entries *
+                                                 sizeof(a_mem_alloc_history);
+  new_alloc_history = (a_mem_alloc_history_ptr)alloc_general
+                             (bytes_in_new_alloc_history);
+  fread_with_check(new_alloc_history,
+                   bytes_in_new_alloc_history,
                    f_pch_input);
   /* Make sure the entries for the current compilation match the initial
      entries read from the file. */
   for (n = 0; n < mem_alloc_history_entries_used; ++n) {
     if (!equivalent_mem_alloc_history(mem_alloc_history[n],
-                                     new_alloc_hist[n])) {
+                                      new_alloc_history[n])) {
       successful = FALSE;
       break;
     }  /* if */
@@ -925,21 +958,30 @@ restore the memory regions.
     /* The memory allocations that have been done so far are compatible
        with those done in the original compilation.  Perform the
        remaining allocations needed to read in the memory regions. */
-    for (; n < new_num_entries; ++n) {
-      (void)alloc_new_mem_block(new_alloc_hist[n].size);
-      if (!equivalent_mem_alloc_history(mem_alloc_history[n],
-                                       new_alloc_hist[n])) {
+    for (; n < new_alloc_history_entries; ++n) {
+#if USE_MMAP_FOR_MEMORY_REGIONS
+      /* Don't actually allocate the memory, just make sure the address
+         space is available for mapping. */
+      if (!address_can_be_mapped(new_alloc_history[n].addr,
+                                 new_alloc_history[n].size)) {
         successful = FALSE;
         break;
       }  /* if */
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+      /* Allocate the needed block. */
+      (void)alloc_new_mem_block(new_alloc_history[n].size);
+      if (!equivalent_mem_alloc_history(mem_alloc_history[n],
+                                        new_alloc_history[n])) {
+        successful = FALSE;
+        break;
+      }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     }  /* for */
 #if 0
     /* How should this memory be freed if a failure occurred during
        allocation? */
 #endif /* 0 */
   }  /* if */
-  /* Free the new allocation history information. */
-  free_general((a_void_ptr)new_alloc_hist, bytes_in_new_alloc_hist);
   if (!successful) {
     mismatch_reason = ec_memory_mismatch;
 #if DEBUG
@@ -1022,15 +1064,21 @@ the PCH file.
 {
   int		i;
 
-  for (i = 0; i < num_of_mem_alloc_history_entries; ++i) {
-    a_mem_alloc_history_ptr	mahp = &mem_alloc_history[i];
+  /* The memory regions that have already been allocated should be
+     unmapped so that the address space is available to be remapped. */
+  free_mapped_mem_blocks();
+  for (i = 0; i < new_alloc_history_entries; ++i) {
+    a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     sizeof_t			offset;
     offset = seek_to_page_alignment(f_pch_input);
     if (map_input_file_to_region(f_pch_input, offset,
                                  mahp->size, mahp->addr) == NULL) {
-      unexpected_condition_str2("read_memory_used_for_memory_regions:",
-                                "map failed");
+      /* We were unable to get the desired mapped memory.  This is
+         something we can't recover from. */
+      catastrophe(ec_unable_to_get_mapped_memory);
     }  /* if */
+    /* Create a memory allocation history entry for this block. */
+    record_mapped_mem_block(mahp->addr, mahp->size);
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Mapped bytes from %p for %0lu bytes from PCH\n",
@@ -1265,6 +1313,22 @@ write out the precompiled header file.
     /* Some condition was encountered that makes creation of a precompiled
        header impossible. */
     db_cannot_generate_reason("cannot_create_pch_file is set");
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+    if (exhausted_preallocated_memory) {
+      char	size_string[20];
+      sizeof_t	size_needed;
+      /* Compute the amount of preallocated memory needed in K (1024) byte
+         units. */
+      size_needed = HOST_ALLOCATION_INCREMENT * total_mem_blocks_allocated;
+      size_needed = (size_needed / 1024) + 1;
+      /* Convert the size needed to a string. */
+      (void)sprintf(size_string, "%0dK", size_needed);
+      str_warning(ec_not_enough_preallocated_memory, size_string);
+    } else if (large_mem_block_needed) {
+      pos_warning(ec_program_entity_too_large_for_pch,
+                     &large_mem_block_error_pos);
+    }  /* if */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* Don't save the header files if we are not currently at file scope. */
     db_cannot_generate_reason("not at file scope");
@@ -1783,6 +1847,7 @@ may be used.
   a_memory_region_number	n;
   a_pch_event_ptr		last_event_from_pch;
 
+  db_enter(2, "restore_precompiled_header_information");
   if (open_pch_input_file()) {
     /* Make sure the the PCH can still be used.  Also make sure that
        the memory configuration needed by the PCH is compatible with
@@ -1809,6 +1874,11 @@ may be used.
     using_a_pch_file = TRUE;
     read_saved_variables();
     read_memory_regions();
+    if (new_alloc_history != NULL) {
+      /* Free the new allocation history information. */
+      free_general((a_void_ptr)new_alloc_history,
+                   new_alloc_history_entries * sizeof(a_mem_alloc_history));
+    }  /* if */
     /* Save the sequence number as of this point. */
     saved_curr_seq_number = curr_seq_number;
     /* Update the IL header to reflect the information in the PCH file. */
@@ -1826,6 +1896,7 @@ may be used.
        will try to use the old source file as the parent. */
     il_header.primary_source_file = NULL;
   }  /* if */
+  db_exit();
 }  /* restore_precompiled_header_information */
 
 

@@ -1777,7 +1777,10 @@ UNIX Version.
 */
 #include <sys/types.h>
 #include <dirent.h>
+#ifndef __AIX__
+/* This file should not be included on IBM AIX. */
 #include <sys/dirent.h>
+#endif
 
 char *get_file_name_from_curr_dir(a_boolean first)
 /*
@@ -1847,6 +1850,13 @@ buffer.
 extern int getpagesize(void);
 #endif /* __BSD__ */
 
+#if defined(__hpux) || defined(__AIX__)
+/* HP and IBM require that unistd.h be included, and use _SC_PAGE_SIZE
+   in place of _SC_PAGESIZE. */ 
+#include <unistd.h>
+#define _SC_PAGESIZE _SC_PAGE_SIZE
+#endif /* defined(__hpux) || defined(__AIX__) */
+
 static int	page_size = 0;
 			/* The size of a host page.  Memory mapped blocks must
 			   be requested in increments of this size. */
@@ -1894,7 +1904,7 @@ should be added.  incremental_size must be a multiple of the host
 page size.
 */
 {
-  int			fd = file->_file;
+  int			fd = fileno(file);
   caddr_t		addr = NULL;
   sizeof_t		size;
 #if USE_FIXED_ADDRESS_FOR_MMAP
@@ -1948,7 +1958,7 @@ the data will be local.  This is used to map a section of a PCH
 file to a memory region.
 */
 {
-  int		fd = file->_file;
+  int		fd = fileno(file);
   a_void_ptr	result_addr;
 
   result_addr = (a_void_ptr)mmap(address, size,
@@ -1956,7 +1966,7 @@ file to a memory region.
                             fd, (off_t)offset);
   /* mmap returns (cresult_addr_t)-1 if the operation fails. */
 #if DEBUG
-  if (result_addr == (caddr_t)-1) {
+  if (debug_level >= 1 && result_addr == (caddr_t)-1) {
     fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
             address, (unsigned long)size, (unsigned long)offset);
   }  /* if */
@@ -1964,6 +1974,18 @@ file to a memory region.
   if (result_addr == (caddr_t)-1) result_addr = NULL;
   return result_addr;
 }  /* map_input_file_to_region */
+
+
+void unmap_memory(a_void_ptr	addr,
+	          sizeof_t	size)
+/*
+Unmap a block of previously mapped memory.
+*/
+{
+  if (munmap(addr, size) != 0) {
+    unexpected_condition_str("unmap_memory: munmap failed\n");
+  }  /* if */
+}  /* unmap_memory */
 
 
 sizeof_t seek_to_page_alignment(FILE *file)

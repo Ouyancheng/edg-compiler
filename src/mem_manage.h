@@ -123,6 +123,9 @@ execution of the front end.
 */
 #define alloc_fe(size) alloc_in_region(NULL_region_number, size)
 
+extern void record_mapped_mem_block(a_void_ptr	addr,
+				    sizeof_t	size);
+
 /* Allocate a block of memory to be used for memory region storage. */
 extern a_void_ptr alloc_new_mem_block(sizeof_t size);
 /* Create a new memory region. */
@@ -153,6 +156,8 @@ extern void trim_memory_region(a_memory_region_number region_number);
 /* Display the amount of memory used, for debug purposes. */
 extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 #endif /* DEBUG */
+/* One-time initialization of  memory management routines. */
+extern void mem_manage_one_time_init(void);
 /* Initialize memory management. */
 extern void mem_manage_init(void);
 
@@ -161,6 +166,7 @@ extern void preallocate_pch_memory(void);
 extern void free_unused_pch_memory(void);
 #else /* USE_MMAP_FOR_MEMORY_REGIONS */
 #define free_unused_pch_memory() /* Nothing */
+extern void free_mapped_mem_blocks(void);
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
@@ -192,6 +198,12 @@ EXTERN a_mem_alloc_history_number
 			/* Number of array elements in the memory allocation
 			   history array. */
 
+EXTERN a_mem_alloc_history_number
+		mem_alloc_history_entries_used /* = 0*/;
+			/* The number of entries in the mem_alloc_history
+			   array for which the associated memory is
+			   actually in use by the compilation. */
+
 #if USE_MMAP_FOR_MEMORY_REGIONS
 EXTERN a_mem_alloc_history_ptr
 		mem_alloc_history /* = NULL*/;
@@ -209,11 +221,29 @@ EXTERN a_mem_alloc_history
 			   to store the preallocated memory blocks used
 			   for PCH processing. */
 
+EXTERN a_boolean
+		exhausted_preallocated_memory /* = FALSE*/;
+			/* TRUE if all of the preallocated PCH memory has
+			   been used, making creation of a PCH impossible. */
+
+EXTERN a_boolean
+		large_mem_block_needed /* = FALSE*/;
+			/* TRUE if a PCH file cannot be created because
+			   a memory block that is larger than those
+			   preallocated is needed. */
+
+EXTERN a_source_position
+		large_mem_block_error_pos;
+			/* Error position when a large entity was
+			   allocated that prevented generation of a
+			   precompiled header file. */
+
 EXTERN a_mem_alloc_history_number
-		mem_alloc_history_entries_used /* = 0*/;
-			/* The number of entries in the mem_alloc_history
-			   array for which the associated memory is
-			   actually in use by the compilation. */
+		total_mem_blocks_allocated /* = 0 */;
+			/* Total number of memory blocks allocated.  This
+			   may be larger than the number of memory history
+			   entries when the preallocated memory has been
+			   exhausted. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*

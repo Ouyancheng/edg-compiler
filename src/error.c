@@ -3016,8 +3016,6 @@ Report the indicated warning at the indicated position.
   pos_st_warning(error_code, error_pos, (char *)NULL);
 }  /* pos_warning */
 
-#if 0
-/* This routine is not currently used by the compiler. */
 
 void str_warning(an_error_code error_code,
                char          *error_string)
@@ -3029,7 +3027,6 @@ position indicated by error_position.
   pos_st_warning(error_code, &error_position, error_string);
 }  /* str_warning */
 
-#endif /* 0 */
 
 void warning(an_error_code error_code)
 /*
