@@ -2906,6 +2906,7 @@ See also 3.6.4.2.
   set_unreachable(curr_reachability);
   /* Scan the dependent statement. */
   dependent_statement();
+  sssep = &struct_stmt_stack[depth_stmt_stack];
   if (sssep->curr_switch_clause != NULL) {
     /* We ended the switch statement inside a switch clause. */
     if (curr_reachability.reachable) {

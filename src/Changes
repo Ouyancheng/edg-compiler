@@ -1,5 +1,13 @@
 Version 2.40
 
+10/15/98  Problems if statement stack is resized during switch statement
+
+The code that processes switch statements (switch_statement in
+statements.c) kept a pointer to the current entry in the statement
+stack over a call to a statement scan routine.  If the statement
+stack was reallocated during that call to increase its size, the
+pointer was obsolete and using it caused various kinds of problems.
+
 10/13/98  Avoiding &array+n in generated C code
 
 The il_to_str routines have been changed to avoid generating &array+n,
