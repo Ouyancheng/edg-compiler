@@ -155,15 +155,20 @@ is done according to the output control block octl.
   an_il_entry_kind        kind;
   a_source_correspondence *scp;
 
-  /* See if the symbol has an associated IL entry and if that entry has
-     a source correspondence field. */
+  /* See whether the symbol has an associated IL entry and whether the IL
+     entry has a source correspondence field -- but use it only if its
+     class-of-which-a-member matches that of the symbol (they can differ
+     for symbols promoted from anonymous unions, in which case preference
+     is given to the symbol). */
   entry = il_entry_for_symbol(sym, &kind);
   if (entry != NULL &&
-      (scp = source_corresp_for_il_entry(entry, kind)) != NULL) {
+      (scp = source_corresp_for_il_entry(entry, kind)) != NULL &&
+      scp->class_of_which_a_member == sym->class_of_which_a_member) {
     /* Use the IL entry to generate the name. */
     form_name(scp, kind, octl);
   } else {
-    /* No IL entry; use the symbol name directly. */
+    /* No source correspondence entry, or else it has a different class
+       parent; use the symbol name directly. */
     if (il_header.source_language == sl_Cplusplus) {
       a_type_ptr class_type = sym->class_of_which_a_member;
       /* Put out the class qualifier on a class member. */
@@ -494,7 +499,13 @@ and indentation is the indentation desired.
         if (C_dialect == C_dialect_cplusplus) {
           put_access(fp->source_corresp.access);
         }  /* if */
-        (void)sprintf(buffer, "offset = %lu", (unsigned long)fp->offset);
+        (void)sprintf(buffer, "offset");
+        if (sym->variant.field.anonymous_parent_object != NULL) {
+          (void)sprintf(&buffer[strlen(buffer)],
+                        " (relative to anon parent object)");
+        }  /* if */
+        (void)sprintf(&buffer[strlen(buffer)], " = %lu",
+                      (unsigned long)fp->offset);
         if (fp->is_bit_field) {
           (void)sprintf(&buffer[strlen(buffer)], "+%d",
                         (int)fp->offset_bit_remainder);
@@ -503,6 +514,9 @@ and indentation is the indentation desired.
                         fp->bit_size == 1 ? "" : "s");
         }  /* if */
         put_string(buffer);
+        if (fp->is_anonymous_parent_object) {
+          put_string("is anon parent object");
+        }  /* if */
         type = sym->variant.field.ptr->type;
       }  /* if */
       break;
@@ -535,6 +549,9 @@ do_variable:
             if (var->param_value_has_been_changed) put_string("changed");
             if (var->param_used_more_than_once) put_string("multiply used");
           }  /* if */
+        }  /* if */
+        if (var->is_anonymous_parent_object) {
+          put_string("is anon parent object");
         }  /* if */
         type = var->type;
       }  /* if */
