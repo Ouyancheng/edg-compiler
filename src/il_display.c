@@ -54,6 +54,13 @@ program as the front end is produced.
 
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
+/* Undefine the preprocessor macro skip_typerefs() if previously 
+   defined.
+*/
+#ifdef skip_typerefs
+#undef skip_typerefs
+#endif
+
 static a_boolean
 		displaying_file_scope_il;
 			/* TRUE if displaying the file-scope memory region,
@@ -106,6 +113,7 @@ that ordinarily this routine should not be called directly; use the macro
 #define is_pointer_type(tp) \
 	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
 
+
 static void disp_string(char    *string_ptr,
                         sizeof_t string_length)
 /*
@@ -116,7 +124,7 @@ Print the string at string_ptr, whose length is string_length.
   char     ch;
 
   if (string_ptr == NULL) {
-    printf("NULL");
+    (void)printf("NULL");
   } else {
     /* Strings can have unprintable characters, so print them carefully. */
     putchar('"');
@@ -126,7 +134,7 @@ Print the string at string_ptr, whose length is string_length.
         if (ch == '"' || ch == '\\') putchar('\\');
         putchar(ch);
       } else {
-        printf("\\%03o", (unsigned int)ch);
+        (void)printf("\\%03o", (unsigned int)ch);
       }  /* if */
     }  /* for */
     putchar('"');
@@ -140,7 +148,7 @@ Display the NULL-terminated string at string_ptr.
 */
 {
   if (string_ptr == NULL) {
-    printf("NULL");
+    (void)printf("NULL");
   } else {
     disp_string(string_ptr, strlen(string_ptr));
   }  /* if */
@@ -166,7 +174,7 @@ Print the name of an integer type.
     case ik_unsigned_long:  s = "unsigned long";    break;
     default:                s = "**BAD INT KIND**";
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_int_kind_name */
 
 
@@ -183,7 +191,7 @@ Print the name of a float type.
     case fk_long_double: s = "long double";       break;
     default:             s = "**BAD FLOAT KIND**";
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_float_kind_name */
 
 #ifdef CFE
@@ -200,8 +208,8 @@ Print a type qualifier.
     if (type->variant.typeref.is_const) is_const = TRUE;
     if (type->variant.typeref.is_volatile) is_volatile = TRUE;
   }  /* for */
-  if (is_const) printf("const ");
-  if (is_volatile) printf("volatile ");
+  if (is_const) (void)printf("const ");
+  if (is_volatile) (void)printf("volatile ");
 }  /* disp_type_qualifier */
 
 #endif /* ifdef CFE */
@@ -214,22 +222,22 @@ Print the indicated dimension bound information entry.
 {
   switch (biptr->kind) {
     case bk_error:
-      printf("<err>");
+      (void)printf("<err>");
       break;
     case bk_constant:
-      printf("%ld", biptr->variant.constant_bound);
+      (void)printf("%ld", biptr->variant.constant_bound);
       break;
     case bk_adjustable:
-      printf("<adj>");
+      (void)printf("<adj>");
       break;
     case bk_assumed:
-      printf("*");
+      (void)printf("*");
       break;
     case bk_unknown_adjustable:
-      printf("<unk adj>");
+      (void)printf("<unk adj>");
       break;
     default:
-      printf("**BAD BOUND KIND**");
+      (void)printf("**BAD BOUND KIND**");
   }  /* switch */
 }  /* disp_bound */
 
@@ -244,27 +252,27 @@ Print out the type specifier.
 
   switch (type->kind) {
     case tk_error:
-      printf("<error type>");
+      (void)printf("<error type>");
       break;
     case tk_unknown:
-      printf("<unknown type>");
+      (void)printf("<unknown type>");
       break;
     case tk_void:
-      printf("void");
+      (void)printf("void");
       break;
     case tk_integer:
 #ifdef CFE
       if (type->variant.integer.enum_type) {
-        printf("enum");
+        (void)printf("enum");
         goto do_tag_name;
       }  /* if */
       if (type->variant.integer.explicitly_signed) {
-        printf("signed ");
+        (void)printf("signed ");
       }  /* if */
 #endif /* ifdef CFE */
 #ifdef FFE
       if (type->variant.integer.logical_type) {
-        printf("logical ");
+        (void)printf("logical ");
       }  /* if */
 #endif /* ifdef FFE */
       disp_int_kind_name(type->variant.integer.int_kind);
@@ -273,14 +281,17 @@ Print out the type specifier.
       disp_float_kind_name(type->variant.float_kind);
       break;
 #ifdef CFE
+    case tk_class:
+      (void)printf("class");
+      goto do_tag_name;
     case tk_struct:
-      printf("struct");
+     (void) printf("struct");
       goto do_tag_name;
     case tk_union:
-      printf("union");
+      (void)printf("union");
 do_tag_name:
       if (type->source_corresp.name != NULL) {
-        printf(" %s", type->source_corresp.name);
+        (void)printf(" %s", type->source_corresp.name);
       }  /* if */
       break;
     case tk_typeref:
@@ -290,7 +301,7 @@ do_tag_name:
       do {
         if (type->source_corresp.name != NULL) {
           /* Named typeref (i.e., a typedef).  Print the name. */
-          printf("%s", type->source_corresp.name);
+          (void)printf("%s", type->source_corresp.name);
           goto typeref_done;
         }  /* if */
         type = type->variant.typeref.type;
@@ -302,50 +313,50 @@ typeref_done:
 #ifdef FFE
     case tk_fcharacter:
       if (type->variant.fcharacter.star_star) {
-        printf("character*(*)");
+        (void)printf("character*(*)");
       } else {
-        printf("character*%lu", type->variant.fcharacter.length);
+        (void)printf("character*%lu", type->variant.fcharacter.length);
       }  /* if */
       break;
     case tk_hollerith:
-      printf("hollerith*%lu", type->variant.hollerith_length);
+      (void)printf("hollerith*%lu", type->variant.hollerith_length);
       break;
     case tk_farray:
       disp_type_specifier(type->variant.farray.element_type);
-      printf(" array(");
+      (void)printf(" array(");
       for (i = 0; i < type->variant.farray.number_of_dimensions; i++) {
         a_bound_info_entry_ptr bound_info = type->variant.farray.bound_info;
-        if (i > 0) printf(", ");
+        if (i > 0) (void)printf(", ");
         disp_bound(&bound_info[i]);
-        printf(":");
+        (void)printf(":");
         disp_bound(&bound_info[i+type->variant.farray.number_of_dimensions]);
       }  /* for */
-      printf(")");
+      (void)printf(")");
       break;
     case tk_complex:
       disp_float_kind_name(type->variant.float_kind);
-      printf(" complex");
+      (void)printf(" complex");
       break;
     case tk_stmt_label:
-      printf("stmt label");
+      (void)printf("stmt label");
       break;
     case tk_format:
-      printf("format");
+      (void)printf("format");
       break;
     case tk_association:
-      printf("association of size %lu", type->size);
+      (void)printf("association of size %lu", type->size);
       break;
     case tk_unspec_routine:
-      printf("unspecified routine");
+      (void)printf("unspecified routine");
       break;
     case tk_blockdata:
-      printf("blockdata");
+      (void)printf("blockdata");
       break;
 #endif /* ifdef FFE */
       /* Note that certain type kinds are handled by disp_type_first_part
          and disp_type_second_part and shouldn't get here. */
     default:
-      printf("**BAD TYPE SPECIFIER KIND**");
+      (void)printf("**BAD TYPE SPECIFIER KIND**");
   }  /* switch */
 }  /* disp_type_specifier */
 
@@ -365,8 +376,15 @@ Print the first of possibly two parts of a type reference.
     /* Recursive call to print out any lower indirections. */
     disp_type_first_part(local_type, /*need_parens=*/TRUE);
     /* Print out the star for this indirection. */
-    putchar('*');
 #ifdef CFE
+    if (skip_typerefs(type)->variant.pointer.is_reference) {
+      /* This is a C++ reference type */
+      putchar('&');
+    } else {
+#endif /* ifdef CFE */
+      putchar('*');
+#ifdef CFE
+    }  /* if */
     disp_type_qualifier(type);
 #endif /* ifdef CFE */
     if (need_parens) putchar('(');
@@ -374,6 +392,18 @@ Print the first of possibly two parts of a type reference.
   } else if (type->kind == (a_type_kind)tk_array) {
     disp_type_first_part(type->variant.array.element_type,
                          /*need_parens=*/TRUE);
+    if (need_parens) putchar('(');
+  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
+    /* C*++ pointer to member type */
+
+    a_type_ptr tptr = type->variant.ptr_to_member.class_of_which_a_member;
+
+    disp_type_first_part(type->variant.ptr_to_member.type,
+                         /*needs_parens=*/TRUE);
+    if (tptr != NULL && tptr->source_corresp.name != NULL) {
+      (void)printf("%s", tptr->source_corresp.name);
+    }  /* if */
+    (void)printf("::*");
     if (need_parens) putchar('(');
 #endif /* ifdef CFE */
   } else if (type->kind == (a_type_kind)tk_routine) {
@@ -411,16 +441,22 @@ dimension information.
   } else if (type->kind == (a_type_kind)tk_array) {
     if (need_parens) putchar(')');
     if (type->variant.array.number_of_elements == 0) {
-      printf("[]");
+      (void)printf("[]");
     } else {
-      printf("[%lu]", (unsigned long)type->variant.array.number_of_elements);
+      (void)printf("[%lu]",
+                   (unsigned long)type->variant.array.number_of_elements);
     }  /* if */
     disp_type_second_part(type->variant.array.element_type,
                           /*need_parens=*/TRUE);
+  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
+    /* C*++ pointer to member type */
+    if (need_parens) putchar(')');
+    disp_type_second_part(type->variant.ptr_to_member.type,
+                          /*needs_parens=*/TRUE);
 #endif /* ifdef CFE */
   } else if (type->kind == (a_type_kind)tk_routine) {
     if (need_parens) putchar(')');
-    printf("()");
+    (void)printf("()");
     disp_type_second_part(type->variant.routine.return_type,
                           /*need_parens=*/TRUE);
   }  /* if */
@@ -474,7 +510,7 @@ Print a short version of the constant at *cp.
         && cp->kind != (a_constant_repr_kind)ck_init_repeat
 #endif /* ifdef FFE */
                                                            ) {
-      printf("**BAD CONSTANT TYPE**");
+      (void)printf("**BAD CONSTANT TYPE**");
     }  /* if */
   } else {
     if (cp->implicit_cast ||
@@ -485,34 +521,35 @@ Print a short version of the constant at *cp.
         cp->kind == (a_constant_repr_kind)ck_float) {
       /* Print the type for integers, floats, and complex, or if there
          is an implicit cast. */
-      printf("(");
+      (void)printf("(");
       summarize_type(con_type);
-      printf(")");
+      (void)printf(")");
     }  /* if */
     con_type = skip_typerefs(con_type);
   }  /* if */
   switch (cp->kind) {
     case ck_error:
-      printf("<error constant>");
+      (void)printf("<error constant>");
       break;
     case ck_integer:
       /* Print unsigned types as unsigned, signed as signed. */
       if (con_type->kind == (a_type_kind)tk_integer &&
           is_signed_int_kind(con_type->variant.integer.int_kind)) {
-        printf("%ld", cp->variant.integer_value);
+        (void)printf("%ld", cp->variant.integer_value);
       } else {
-        printf("%lu", cp->variant.integer_value);
+        (void)printf("%lu", cp->variant.integer_value);
       }  /* if */
       break;
     case ck_float:
       fkind = con_type->variant.float_kind;
-      printf("%s", fp_to_string(fkind, &cp->variant.float_value));
+      (void)printf("%s", fp_to_string(fkind, &cp->variant.float_value));
       break;
 #ifdef FFE
     case ck_complex:
       fkind = con_type->variant.float_kind;
-      printf("(%s, %s)",fp_to_string(fkind, &cp->variant.complex_value->real),
-                        fp_to_string(fkind, &cp->variant.complex_value->imag));
+      (void)printf("(%s, %s)",
+                   fp_to_string(fkind, &cp->variant.complex_value->real),
+                   fp_to_string(fkind, &cp->variant.complex_value->imag));
       break;
 #endif /* ifdef FFE */
     case ck_string:
@@ -520,42 +557,57 @@ Print a short version of the constant at *cp.
       break;
 #ifdef CFE
     case ck_address:
-      printf("addr of ");
+      (void)printf("addr of ");
       switch (cp->variant.address.kind) {
         case abk_routine:
-          printf("routine");
+          (void)printf("routine");
           scp = &cp->variant.address.variant.routine->source_corresp;
           goto entity_name;
         case abk_variable:
-          printf("variable");
+          (void)printf("variable");
           scp = &cp->variant.address.variant.variable->source_corresp;
 entity_name:
-          if (scp->name != NULL) printf(" \"%s\"", scp->name);
+          if (scp->name != NULL) (void)printf(" %s", scp->name);
           break;
         case abk_constant:
           summarize_constant(cp->variant.address.variant.constant);
           break;
         default:
-          printf("**BAD ADDRESS CONSTANT KIND**");
+          (void)printf("**BAD ADDRESS CONSTANT KIND**");
       }  /* switch */
       if (cp->variant.address.offset != 0) {
-        printf(" + byte offset %ld", cp->variant.address.offset);
+        (void)printf(" + byte offset %ld", cp->variant.address.offset);
       }  /* if */
+      break;
+    case ck_ptr_to_member:
+      (void)printf("&");
+      scp = &cp->variant.ptr_to_member.class_of_which_a_member->source_corresp;
+      if (scp->name != NULL) (void)printf("%s::", scp->name);
+      if (cp->variant.ptr_to_member.is_function_ptr) {
+        scp = &cp->variant.ptr_to_member.variant.routine->source_corresp;
+        if (scp->name != NULL) (void)printf("%s", scp->name);
+      } else {
+        scp = &cp->variant.ptr_to_member.variant.field->source_corresp;
+        if (scp->name != NULL) (void)printf("%s", scp->name);
+      }  /* if */
+      break;
+    case ck_dynamic_init:
+       (void)printf("dynamic initialization");
       break;
 #endif /* ifdef CFE */
     case ck_aggregate:
-      printf("aggregate");
+      (void)printf("aggregate");
+      break;
+    case ck_init_repeat:
+      (void)printf("init repeat");
       break;
 #ifdef FFE
     case ck_init_position:
-      printf("init position");
-      break;
-    case ck_init_repeat:
-      printf("init repeat");
+      (void)printf("init position");
       break;
 #endif /* ifdef FFE */
     default:
-      printf("**BAD CONSTANT KIND**");
+      (void)printf("**BAD CONSTANT KIND**");
   }  /* switch */
 }  /* summarize_constant */
 
@@ -572,14 +624,14 @@ kind entry_kind.
 
   /* Print the pointer value. */
   if (entry_ptr == NULL) {
-    printf("NULL");
+    (void)printf("NULL");
   } else {
     is_file_scope_entry = in_file_scope(entry_ptr);
     if (displaying_file_scope_il && !is_file_scope_entry) {
       /* Reference from file scope to non-file scope pointer. */
-      printf("**NON FILE SCOPE PTR** (%lx)", (unsigned long)entry_ptr);
+      (void)printf("**NON FILE SCOPE PTR** (%lx)", (unsigned long)entry_ptr);
     } else {
-      printf(is_file_scope_entry ? "file-scope" : "func-scope");
+      (void)printf(is_file_scope_entry ? "file-scope" : "func-scope");
       /* Print the entry kind. */
       switch (entry_kind) {
         case iek_source_file:   s = "source-file";             break;
@@ -623,9 +675,26 @@ kind entry_kind.
         case iek_entry_description:
 				s = "entry-description";       break;
 #endif /* ifdef FFE */
+#ifdef CFE
+        case iek_dynamic_init:  s = "dynamic-init";            break;
+        case iek_access_adjustment:
+                                s = "access-adjustment";       break;
+        case iek_overriding_virtual_function:
+			        s = "overriding-virtual-function";
+                                                               break;
+        case iek_derivation_step:
+                                s = "derivation-step";         break;
+        case iek_base_class:    s = "base-class";              break;
+        case iek_class_list_entry:
+                                s = "class-list-entry";        break;
+        case iek_class_type_supplement:
+			        s = "class-type-supplement";   break;
+        case iek_constructor_init:
+                                s = "constructor-init";        break;
+#endif /* ifdef CFE */
         default:                s = "**BAD ENTRY KIND**";      break;
       }  /* switch */
-      printf(" %s", s);
+      (void)printf(" %s", s);
 #if ALTERNATE_IL_FILE_FORMAT && STANDALONE_UTILITY_PROGRAM
       /* Use entry_number.  After entries are read in, they
          are allocated in an array of entries, so one can determine the
@@ -642,11 +711,11 @@ kind entry_kind.
         entry_number = 1 + (entry_ptr -
                             entry_array_base_array_ptr[(int)entry_kind]) /
                                               sizeof_il_entry[(int)entry_kind];
-        printf("#%ld", (unsigned long)entry_number);
+        (void)printf("#%ld", (unsigned long)entry_number);
       }
 #else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_UTILITY_PROGRAM) */
       /* Use pointer address. */
-      printf("@%lx", (unsigned long)entry_ptr);
+      (void)printf("@%lx", (unsigned long)entry_ptr);
 #endif /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_UTILITY_PROGRAM) */
     }  /* if */
   }  /* if */
@@ -662,18 +731,18 @@ no name.
   int name_len;
 
   if (name != NULL) {
-    printf("%s:", name);
+    (void)printf("%s:", name);
     /* Get the text following indented the same amount regardless of the
        length of the name. */
 #define Label_indent 25
     name_len = strlen(name) + 1;  /* 1 for the ":". */
     if (name_len >= Label_indent) {
       /* Name is already too long.  Start a new line and indent. */
-      printf("\n");
+      (void)printf("\n");
       name_len = 0;
     }  /* if */
     /* Print spaces to get the following data in column Label_indent+1. */
-    printf("%*c", Label_indent - name_len, ' ');
+    (void)printf("%*c", Label_indent - name_len, ' ');
   }  /* if */
 #undef Label_indent
 }  /* disp_name */
@@ -686,7 +755,7 @@ Display an long value along with a name.
 */
 {
   disp_name(name);
-  printf("%ld\n", value);
+  (void)printf("%ld\n", value);
 }  /* disp_long */
 
 
@@ -697,7 +766,7 @@ Display an unsigned long value along with a name.
 */
 {
   disp_name(name);
-  printf("%lu\n", value);
+  (void)printf("%lu\n", value);
 }  /* disp_unsigned_long */
 
 
@@ -709,9 +778,9 @@ Display a boolean value along with a name.
 {
   disp_name(name);
   if (value) {
-    printf("TRUE\n");
+    (void)printf("TRUE\n");
   } else {
-    printf("FALSE\n");
+    (void)printf("FALSE\n");
   }  /* if */
 }  /* disp_boolean */
 
@@ -753,37 +822,41 @@ be written.
     if (name != NULL) {
       /* Entry has a name.  If this is a tag, put "tag" in front of the
          name.  If a label, put "label". */
-      printf(": ");
+      (void)printf(": ");
       if (entry_kind == iek_label) {
-        printf("label ");
+        (void)printf("label ");
 #ifdef CFE
       } else if (entry_kind == iek_type) {
         a_type_ptr type_ptr = (a_type_ptr)entry_ptr;
         a_type_kind tkind = type_ptr->kind;
-        if (tkind == (a_type_kind)tk_struct ||
-            tkind == (a_type_kind)tk_union ||
-            (tkind == (a_type_kind)tk_integer &&
-             type_ptr->variant.integer.enum_type)) {
-          printf("tag ");
+        if (tkind == (a_type_kind)tk_struct ) {
+          (void)printf("struct ");
+        } else if (tkind == (a_type_kind)tk_union) {
+          (void)printf("union ");
+        } else if (tkind == (a_type_kind)tk_integer &&
+                   type_ptr->variant.integer.enum_type) {
+          (void)printf("enum ");
+        } else if (tkind == (a_type_kind)tk_class) {
+          (void)printf("class ");
         }  /* if */
 #endif /* ifdef CFE */
       }  /* if */
-      printf("\"%s\"", name);
+      (void)printf("%s", name);
     } else {
       /* Entry is unnamed.  Give short description for some entries. */
       if (entry_kind == iek_constant) {
-        printf(": ");
+        (void)printf(": ");
         summarize_constant((a_constant_ptr)entry_ptr);
       } else if (entry_kind == iek_type) {
-        printf(": ");
+        (void)printf(": ");
         summarize_type((a_type_ptr)entry_ptr);
       } else if (entry_kind == iek_source_file) {
-        printf(": ");
+        (void)printf(": ");
         disp_null_term_string(((a_source_file_ptr)entry_ptr)->file_name);
       }  /* if */
     }  /* if */
   }  /* if */
-  printf("\n");
+  (void)printf("\n");
 }  /* disp_ptr */
 
 
@@ -802,7 +875,7 @@ be written.
   disp_name(ptr_name);
   disp_ptr_value(entry_ptr, entry_kind);
   if (entry_ptr != NULL) {
-    printf(": ");
+    (void)printf(": ");
     if (entry_kind == iek_string_text) {
       disp_string(entry_ptr, entry_length);
     } else {
@@ -810,24 +883,78 @@ be written.
       disp_null_term_string(entry_ptr);
     }  /* if */
   }  /* if */
-  printf("\n");
+  (void)printf("\n");
 }  /* disp_string_ptr */
 
+#ifdef CFE
+
+static void disp_access(char                *name,
+                        an_access_specifier access)
+/*
+Display the indicated access specifier with a name.
+*/
+{
+  char * s;
+
+  disp_name(name);
+  switch (access) {
+    case as_public:         s = "as_public\n";         break;
+    case as_protected:      s = "as_protected\n";      break;
+    case as_private:        s = "as_private\n";        break;
+    case as_inaccessible:   s = "as_inaccessible\n";   break;
+    default:                s = "**BAD ACCESS SPECIFIER**\n";
+  }  /* switch */  
+  (void)printf(s);
+}  /* disp_access */
+
+#endif /* ifdef CFE */
 
 static void disp_source_corresp(a_source_correspondence *scp)
 /*
 Display the indicated source correspondence entry.
 */
 {
-  printf("source_corresp:\n");
-  disp_string_ptr("  name", scp->name, iek_id_name, (sizeof_t)0);
-  disp_unsigned_long("  decl_position.seq",
-                     (unsigned long)scp->decl_position.seq);
-  disp_unsigned_long("  decl_position.column",
-                     (unsigned long)scp->decl_position.column);
+  (void)printf("source_corresp:\n");
+  if (scp->name != NULL) {
+    disp_string_ptr("  name", scp->name, iek_id_name, (sizeof_t)0);
+  }  /* if */
+  if (scp->decl_position.seq != 0 ||
+      scp->decl_position.column != 0 ) {
+    disp_unsigned_long("  decl_position.seq",
+                       (unsigned long)scp->decl_position.seq);
+    disp_unsigned_long("  decl_position.column",
+                       (unsigned long)scp->decl_position.column);
+  }  /* if */
+#ifdef CFE
+  if (scp->class_of_which_a_member != NULL) {
+    disp_ptr("  class_of_which_a_member", (char *)scp->class_of_which_a_member,
+             iek_type);
+    disp_access("  access", (an_access_specifier)scp->access);
+  }  /* if */
+#endif /* ifdef CFE */
   disp_boolean("  referenced", scp->referenced);
   disp_unsigned_long("  il_walk_flag", (unsigned long)scp->il_walk_flag);
-  disp_unsigned_long("  scope_depth", (unsigned long)scp->scope_depth);
+  if (scp->name != NULL) {
+  disp_name("  name_linkage");
+    switch ((a_name_linkage_kind)scp->name_linkage) {
+      case nlk_none:
+        (void)printf("nlk_none\n");
+        break;
+#ifdef CFE
+      case nlk_internal:
+        (void)printf("nlk_internal\n");
+        break;
+      case nlk_cplusplus_external:
+        (void)printf("nlk_cplusplus_external\n");
+        break;
+#endif /* ifdef CFE */
+      case nlk_external:
+        (void)printf("nlk_external\n");
+        break;
+      default:
+        (void)printf("**BAD NAME LINKAGE KIND**\n");
+    }  /* switch */
+  }  /* if */
 }  /* disp_source_corresp */
 
 
@@ -863,10 +990,10 @@ Display the indicated constant entry.
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
-      printf("ck_error\n");
+      (void)printf("ck_error\n");
       break;
     case ck_integer:
-      printf("ck_integer\n");
+      (void)printf("ck_integer\n");
       /* Print unsigned types as unsigned, signed as signed. */
       if (ptr->type->kind == (a_type_kind)tk_integer &&
           is_signed_int_kind(ptr->type->variant.integer.int_kind)) {
@@ -877,19 +1004,19 @@ Display the indicated constant entry.
       }  /* if */
       break;
     case ck_string:
-      printf("ck_string\n");
+      (void)printf("ck_string\n");
       disp_unsigned_long("length", ptr->variant.string.length);
       disp_string_ptr("value", ptr->variant.string.value, iek_string_text,
                       ptr->variant.string.length);
       break;
     case ck_float:
-      printf("ck_float\n");
+      (void)printf("ck_float\n");
       disp_name("float_value");
       fkind = skip_typerefs(ptr->type)->variant.float_kind;
-      printf("%s\n", fp_to_string(fkind, &ptr->variant.float_value));
+      (void)printf("%s\n", fp_to_string(fkind, &ptr->variant.float_value));
       break;
     case ck_aggregate:
-      printf("ck_aggregate\n");
+      (void)printf("ck_aggregate\n");
       disp_ptr("first_constant", (char *)ptr->variant.aggregate.first_constant,
                iek_constant);
       disp_ptr("last_constant", (char *)ptr->variant.aggregate.last_constant,
@@ -897,50 +1024,70 @@ Display the indicated constant entry.
       break;
 #ifdef CFE
     case ck_address:
-      printf("ck_address\n");
+      (void)printf("ck_address\n");
       disp_name("kind");
       switch (ptr->variant.address.kind) {
         case abk_routine:
-          printf("abk_routine\n");
+          (void)printf("abk_routine\n");
           disp_ptr("routine", (char *)ptr->variant.address.variant.routine,
                    iek_routine);
           break;
         case abk_variable:
-          printf("abk_variable\n");
+          (void)printf("abk_variable\n");
           disp_ptr("variable", (char *)ptr->variant.address.variant.variable,
                    iek_variable);
           break;
         case abk_constant:
-          printf("abk_constant\n");
+          (void)printf("abk_constant\n");
           disp_ptr("constant", (char *)ptr->variant.address.variant.constant,
                    iek_constant);
           break;
         default:
-          printf("**BAD ADDRESS CONSTANT KIND**\n");
+          (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */
       disp_long("offset", ptr->variant.address.offset);
       break;
+    case ck_ptr_to_member:
+      (void)printf("ck_ptr_to_member\n");
+      disp_ptr("class_of_which_a_member",
+               (char *)ptr->variant.ptr_to_member.class_of_which_a_member,
+               iek_type);
+      disp_boolean("is_function_ptr",
+                   ptr->variant.ptr_to_member.is_function_ptr);
+      if (ptr->variant.ptr_to_member.is_function_ptr) {
+        disp_ptr("routine", (char *)ptr->variant.ptr_to_member.variant.routine,
+                 iek_routine);
+      } else {
+        disp_ptr("field", (char *)ptr->variant.ptr_to_member.variant.field,
+                 iek_field);
+      }  /* if */
+      break;
+    case ck_dynamic_init:
+      (void)printf("ck_dynamic_init\n");
+      disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init,
+               iek_dynamic_init);
+      break;
 #endif /* ifdef CFE */
+    case ck_init_repeat:
+      (void)printf("ck_init_repeat\n");
+      disp_ptr("constant", (char *)ptr->variant.init_repeat.constant,
+               iek_constant);
+      disp_unsigned_long("count", ptr->variant.init_repeat.count);
+      break;
 #ifdef FFE
     case ck_complex:
-      printf("ck_complex\n");
+      (void)printf("ck_complex\n");
       disp_name("complex_value");
       fkind = ptr->type->variant.float_kind;
-      printf("(%s, %s)\n",
+      (void)printf("(%s, %s)\n",
                        fp_to_string(fkind, &ptr->variant.complex_value->real),
                        fp_to_string(fkind, &ptr->variant.complex_value->imag));
       break;
     case ck_init_position:
-      printf("ck_init_position\n");
+      (void)printf("ck_init_position\n");
       disp_long("offset", ptr->variant.init_position.offset);
       disp_unsigned_long("segment_size",
                          ptr->variant.init_position.segment_size);
-      break;
-    case ck_init_repeat:
-      printf("ck_init_repeat\n");
-      disp_ptr("constant", (char *)ptr->variant.init_repeat.constant,
-               iek_constant);
-      disp_unsigned_long("count", ptr->variant.init_repeat.count);
       break;
 #endif /* ifdef FFE */
     default:
@@ -974,7 +1121,7 @@ Print the name of an arg pragma kind.
     case apk_scanf:  s = "apk_scanf";               break;
     default:         s = "**BAD ARG PRAGMA KIND**";
   }  /* switch */
-  printf(s);
+ (void) printf(s);
 }  /* disp_arg_pragma_kind_name */
 
 #endif /* ifdef CFE */
@@ -986,6 +1133,14 @@ Display a_routine_type_supplement.
 {
   disp_ptr("param_type_list", (char *)ptr->param_type_list, iek_param_type);
   disp_ptr("assoc_routine", (char *)ptr->assoc_routine, iek_routine);
+#ifdef CFE
+  if (ptr->implicit_this_param_type != NULL) {
+    disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
+             iek_type);
+  }  /* if */
+  disp_boolean("caller_provides_place_to_put_return_value",
+               ptr->caller_provides_place_to_put_return_value);
+#endif /*ifdef CFE */
   disp_boolean("has_ellipsis", ptr->has_ellipsis);
 #ifdef CFE
   disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
@@ -995,7 +1150,7 @@ Display a_routine_type_supplement.
   disp_name("arg_pragma");
   disp_arg_pragma_kind_name(ptr->arg_pragma);
 #endif /* ifdef CFE */
-  printf("\n");
+ (void) printf("\n");
 }  /* disp_routine_type_supplement */
 
 #ifdef FFE
@@ -1008,25 +1163,25 @@ Display the indicated dimension bound information entry.
   disp_name("  bound kind");
   switch (ptr->kind) {
     case bk_error:
-      printf("bk_error\n");
+      (void)printf("bk_error\n");
       break;
     case bk_constant:
-      printf("bk_constant\n");
+      (void)printf("bk_constant\n");
       disp_long("  constant_bound", ptr->variant.constant_bound);
       break;
     case bk_adjustable:
-      printf("bk_adjustable\n");
+      (void)printf("bk_adjustable\n");
       disp_ptr("  adjustable_bound", (char *)ptr->variant.adjustable_bound,
                iek_expr_node);
       break;
     case bk_assumed:
-      printf("bk_assumed\n");
+      (void)printf("bk_assumed\n");
       break;
     case bk_unknown_adjustable:
-      printf("bk_unknown_adjustable\n");
+      (void)printf("bk_unknown_adjustable\n");
       break;
     default:
-      printf("**BAD BOUND KIND**\n");
+      (void)printf("**BAD BOUND KIND**\n");
   }  /* switch */
 }  /* disp_bound_info_entry */
 
@@ -1044,7 +1199,7 @@ Display the indicated based type list.
     disp_ptr("based_types", (char *)ptr, iek_based_type_list_member);
   } else {
     disp_name("based_types");
-    printf("\n");
+    (void)printf("\n");
     for (; ptr != NULL; ptr = ptr->next) {
       switch (ptr->kind) {
 #ifdef CFE
@@ -1076,19 +1231,19 @@ Display the indicated type entry.
   disp_name("kind");
   switch (ptr->kind) {
     case tk_error:
-      printf("tk_error\n");
+      (void)printf("tk_error\n");
       break;
     case tk_unknown:
-      printf("tk_unknown\n");
+      (void)printf("tk_unknown\n");
       break;
     case tk_void:
-      printf("tk_void\n");
+      (void)printf("tk_void\n");
       break;
     case tk_integer:
-      printf("tk_integer\n");
+      (void)printf("tk_integer\n");
       disp_name("int_kind");
       disp_int_kind_name(ptr->variant.integer.int_kind);
-      printf("\n");
+      (void)printf("\n");
 #ifdef FFE
       disp_boolean("logical_type", ptr->variant.integer.logical_type);
 #endif /* ifdef FFE */
@@ -1096,106 +1251,129 @@ Display the indicated type entry.
       disp_boolean("explicitly_signed",
                    ptr->variant.integer.explicitly_signed);
       disp_boolean("enum_type", ptr->variant.integer.enum_type);
-      disp_ptr("enum_constant_list",
-               (char *)ptr->variant.integer.enum_constant_list, iek_constant);
+      if (ptr->variant.integer.enum_constant_list != NULL) {
+        disp_ptr("enum_constant_list",
+                 (char *)ptr->variant.integer.enum_constant_list,
+                 iek_constant);
+      }  /* if */
 #endif /* ifdef CFE */
       break;
     case tk_float:
-      printf("tk_float\n");
+      (void)printf("tk_float\n");
 #ifdef FFE
       goto do_float_complex;
     case tk_complex:
-      printf("tk_complex\n");
+      (void)printf("tk_complex\n");
 do_float_complex:
 #endif /* ifdef FFE */
       disp_name("float_kind");
       disp_float_kind_name(ptr->variant.float_kind);
-      printf("\n");
+      (void)printf("\n");
       break;
     case tk_pointer:
-      printf("tk_pointer\n");
+      (void)printf("tk_pointer\n");
       disp_ptr("type_pointed_to", (char *)ptr->variant.pointer.type, iek_type);
 #ifdef CFE
       disp_boolean("is_reference", ptr->variant.pointer.is_reference);
 #endif /* ifdef CFE */
       break;
     case tk_routine:
-      printf("tk_routine\n");
+      (void)printf("tk_routine\n");
       disp_ptr("return_type", (char *)ptr->variant.routine.return_type,
                iek_type);
       disp_routine_type_supplement(ptr->variant.routine.extra_info);
       break;
 #ifdef CFE
     case tk_array:
-      printf("tk_array\n");
+      (void)printf("tk_array\n");
       disp_ptr("element_type", (char *)ptr->variant.array.element_type,
                iek_type);
       disp_unsigned_long("number_of_elements",
                          (unsigned long)ptr->variant.array.number_of_elements);
       break;
+    case tk_class:
+      (void)printf("tk_class\n");
+      goto do_struct_union;
     case tk_struct:
-      printf("tk_struct\n");
+      (void)printf("tk_struct\n");
       goto do_struct_union;
     case tk_union:
-      printf("tk_union\n");
+      (void)printf("tk_union\n");
 do_struct_union:
       disp_ptr("field_list",
                (char *)ptr->variant.class_struct_union.field_list, iek_field);
+      if (ptr->variant.class_struct_union.extra_info != NULL) {
+        disp_ptr("extra_info",
+                 (char *)ptr->variant.class_struct_union.extra_info,
+                 iek_class_type_supplement);
+      }  /* if */
       disp_boolean("any_const_member",
                    ptr->variant.class_struct_union.any_const_member);
+      disp_boolean("any_virtual_base_classes",
+                   ptr->variant.class_struct_union.any_virtual_base_classes);
+      disp_boolean("abstract", ptr->variant.class_struct_union.abstract);
       break;
     case tk_typeref:
-      printf("tk_typeref\n");
+      (void)printf("tk_typeref\n");
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
                iek_type);
       disp_boolean("is_const", ptr->variant.typeref.is_const);
       disp_boolean("is_volatile", ptr->variant.typeref.is_volatile);
+      disp_boolean("is_function_scope",
+                   ptr->variant.typeref.is_function_scope_tag);
+      break;
+    case tk_ptr_to_member:
+      (void)printf("tk_ptr_to_member\n");
+      disp_ptr("class_of_which_a_member",
+               (char *)ptr->variant.ptr_to_member.class_of_which_a_member,
+               iek_type);
+      disp_ptr("type", (char *)ptr->variant.ptr_to_member.type, iek_type);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case tk_fcharacter:
-      printf("tk_fcharacter\n");
+      (void)printf("tk_fcharacter\n");
       disp_unsigned_long("length", ptr->variant.fcharacter.length);
       disp_boolean("star_star", ptr->variant.fcharacter.star_star);
       break;
     case tk_hollerith:
-      printf("tk_hollerith\n");
+      (void)printf("tk_hollerith\n");
       disp_unsigned_long("hollerith_length", ptr->variant.hollerith_length);
       break;
     case tk_farray:
-      printf("tk_farray\n");
+      (void)printf("tk_farray\n");
       disp_ptr("element_type", (char *)ptr->variant.farray.element_type,
                iek_type);
       disp_unsigned_long("number_of_dimensions",
                       (unsigned long)ptr->variant.farray.number_of_dimensions);
       { int i;
         for (i = 1; i <= ptr->variant.farray.number_of_dimensions; i++) {
-          printf("dimension %d lower bound:\n", i);
+          (void)printf("dimension %d lower bound:\n", i);
           disp_bound_info_entry(&ptr->variant.farray.bound_info[i-1]);
-          printf("dimension %d upper bound:\n", i);
+          (void)printf("dimension %d upper bound:\n", i);
           disp_bound_info_entry(&ptr->variant.farray.bound_info[i-1+
                                     ptr->variant.farray.number_of_dimensions]);
         }  /* for */
       }
       break;
     case tk_stmt_label:
-      printf("tk_stmt_label\n");
+      (void)printf("tk_stmt_label\n");
       break;
     case tk_format:
-      printf("tk_format\n");
+      (void)printf("tk_format\n");
       break;
     case tk_association:
-      printf("tk_association\n");
+      (void)printf("tk_association\n");
       break;
     case tk_unspec_routine:
-      printf("tk_unspec_routine\n");
+      (void)printf("tk_unspec_routine\n");
       break;
     case tk_blockdata:
-      printf("tk_blockdata\n");
+      (void)printf("tk_blockdata\n");
       break;
 #endif /* ifdef FFE */
     default:
-      printf("**BAD TYPE KIND**\n");
+      (void)printf("**BAD TYPE KIND**\n");
   }  /* switch */
 }  /* disp_type */
 
@@ -1227,7 +1405,7 @@ Display the name for the indicated storage class.
 #endif /* ifdef FFE */
     default:              s = "**BAD STORAGE CLASS**"; break;
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_storage_class_name */
 
 
@@ -1239,14 +1417,33 @@ Display the indicated variable.
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_variable);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_ptr("initializer", (char *)ptr->initializer, iek_constant);
+  disp_ptr("assoc_param_type", (char *)ptr->assoc_param_type,
+           iek_param_type);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
-  printf("\n");
+  (void)printf("\n");
   disp_boolean("address_taken", ptr->address_taken);
   disp_boolean("is_parameter", ptr->is_parameter);
 #ifdef FFE
   disp_boolean("by_address", ptr->by_address);
+#endif /*ifdef FFE */
+  disp_name("init_kind");
+  switch (ptr->init_kind) {
+    case initk_none:
+      (void)printf ("initk_none\n");
+      break;
+    case initk_static:
+      (void)printf("initk_static\n");
+      disp_ptr("constant", (char *)ptr->initializer.constant, iek_constant);
+      break;
+    case initk_dynamic:
+      (void)printf("initk_dynamic\n");
+      disp_ptr("dynamic", (char *)ptr->initializer.dynamic, iek_dynamic_init);
+      break;
+    default:
+      (void)printf("**BAD INITIALIZATION KIND**\n");
+  }  /* switch */
+#ifdef FFE
   if (ptr->storage_class == (a_storage_class)sc_associated ||
       ptr->storage_class == (a_storage_class)sc_pointer_based) {
     disp_ptr("base_var", (char *)ptr->base_var, iek_variable);
@@ -1332,10 +1529,112 @@ Print the name of an arg pragma kind.
     case ifc_ibclr:  s = "ifc_ibclr";  break;
     default:         s = "**BAD INTRINSIC FUNCTION CODE**";
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_intrinsic_function_code_name */
 
 #endif /* ifdef FFE */
+#ifdef CFE
+
+static void disp_special_function_kind_name(a_special_function_kind kind)
+/*
+Print the name of a special function kind.
+*/
+{
+  char * s;
+
+  switch (kind) {
+    case sfk_none:            s = "sfk_none";          break;
+    case sfk_constructor:     s = "sfk_constructor";   break;
+    case sfk_destructor:      s = "sfk_destructor";    break;
+    case sfk_conversion:      s = "sfk_conversion";    break;
+    case sfk_operator:        s = "sfk_operator";      break;
+    default:                  s = "**BAD SPECIAL FUNCTION KIND**";
+  }  /* switch */
+  (void)printf(s);
+}  /* disp_special_function_kind_name */
+
+
+static void disp_opname_kind_name(an_opname_kind kind)
+/*
+Print the name of the C++ operator kind.
+*/
+{
+  char *s;
+
+  switch (kind) {
+    case onk_none:                s = "onk_none";                  break;
+    case onk_new:                 s = "onk_new";                   break;
+    case onk_delete:              s = "onk_delete";                break;
+    case onk_plus:                s = "onk_plus";                  break;
+    case onk_minus:               s = "onk_minus";                 break;
+    case onk_star:                s = "onk_star";                  break;
+    case onk_divide:              s = "onk_divide";                break;
+    case onk_remainder:           s = "onk_remainder";             break;
+    case onk_excl_or:             s = "onk_excl_or";               break;
+    case onk_ampersand:           s = "onk_ampersand";             break;
+    case onk_or:                  s = "onk_or";                    break;
+    case onk_compl:               s = "onk_compl";                 break;
+    case onk_not:                 s = "onk_not";                   break;
+    case onk_assign:              s = "onk_assign";                break;
+    case onk_lt:                  s = "onk_lt";                    break;
+    case onk_gt:                  s = "onk_gt";                    break;
+    case onk_plus_assign:         s = "onk_plus_assign";           break;
+    case onk_minus_assign:        s = "onk_minus_assign";          break;
+    case onk_times_assign:        s = "onk_times_assign";          break;
+    case onk_divide_assign:       s = "onk_divide_assign";         break;
+    case onk_remainder_assign:    s = "onk_remainder_assign";      break;
+    case onk_excl_or_assign:      s = "onk_excl_or_assign";        break;
+    case onk_and_assign:          s = "onk_and_assign";            break;
+    case onk_or_assign:           s = "onk_or_assign";             break;
+    case onk_shift_left:          s = "onk_shift_left";            break;
+    case onk_shift_right:         s = "onk_shift_right";           break;
+    case onk_shift_right_assign:  s = "onk_shift_right_assign";    break;
+    case onk_shift_left_assign:   s = "onk_shift_left_assign";     break;
+    case onk_eq:                  s = "onk_eq";                    break;
+    case onk_ne:                  s = "onk_ne";                    break;
+    case onk_le:                  s = "onk_le";                    break;
+    case onk_ge:                  s = "onk_ge";                    break;
+    case onk_and_and:             s = "onk_and_and";               break;
+    case onk_or_or:               s = "onk_or_or";                 break;
+    case onk_plus_plus:           s = "onk_plus_plus";             break;
+    case onk_minus_minus:         s = "onk_minus_minus";           break;
+    case onk_comma:               s = "onk_comma";                 break;
+    case onk_arrow_star:          s = "onk_arrow_star";            break;
+    case onk_arrow:               s = "onk_arrow";                 break;
+    case onk_function_call:       s = "onk_function_call";         break;
+    case onk_subscript:           s = "onk_subscript";             break;
+    default:                      s = "**BAD OPERATOR NAME KIND**";
+  }  /* switch */
+  (void)printf(s);
+}  /* disp_opname_kind_name */
+
+
+static void disp_class_list(char                   *name,
+                            a_class_list_entry_ptr ptr)
+/*
+Display the indicated class list and name.
+*/
+{
+  char *type_string;
+
+  if (ptr == NULL) {
+    disp_ptr(name, (char *)ptr, iek_class_list_entry);
+  } else {
+    disp_name(name);
+    (void)printf("\n");
+    for (; ptr != NULL; ptr = ptr->next) {
+      switch (ptr->class_type->kind) {
+        case tk_class:     type_string = "  tk_class";     break;
+        case tk_struct:    type_string = "  tk_struct";    break;
+        case tk_union:     type_string = "  tk_union";     break;
+        default:           type_string = "  **UNEXPECTED TYPE**";
+      }  /* switch */
+      disp_ptr(type_string, (char *)ptr->class_type, iek_type);
+    }  /* for */
+  }  /* if */
+}  /* disp_class_list */
+
+#endif /* ifdef CFE */
 
 static void disp_routine(a_routine_ptr ptr)
 /*
@@ -1348,14 +1647,33 @@ Display the indicated routine.
   disp_unsigned_long("assoc_scope", (unsigned long)ptr->assoc_scope);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
-  printf("\n");
+  (void)printf("\n");
+#ifdef CFE
+  if (ptr->special_kind != sfk_none) {
+    disp_name("special_kind");
+    disp_special_function_kind_name(ptr->special_kind);
+    (void)printf("\n");
+    disp_name("opname_kind");
+    disp_opname_kind_name(ptr->opname_kind);
+    (void)printf("\n");
+  }  /* if */
+  disp_boolean("is_virtual", ptr->is_virtual);
+  disp_boolean("pure_virtual", ptr->pure_virtual);
+  disp_boolean("is_inline", ptr->is_inline);
+  disp_boolean("compiler_generated", ptr->compiler_generated);
+  disp_class_list("befriending_classes", ptr->befriending_classes);
+  if (ptr->is_virtual) {
+    disp_unsigned_long("virtual_function_number",
+                       (unsigned long)ptr->virtual_function_number);
+  }  /* if */
+#endif /* ifdef CFE */
 #ifdef FFE
   disp_boolean("is_fortran_entry", ptr->is_fortran_entry);
   disp_ptr("local_routine_scope", (char *)ptr->local_routine_scope, iek_scope);
   if (ptr->storage_class == (a_storage_class)sc_intrinsic) {
     disp_name("intrinsic_function_code");
     disp_intrinsic_function_code_name(ptr->intrinsic_func_code);
-    printf("\n");
+    (void)printf("\n");
   }  /* if */
 #endif /* ifdef FFE */
 }  /* disp_routine */
@@ -1373,26 +1691,26 @@ Display the indicated label.
   disp_name("kind");
   switch (ptr->kind) {
     case lk_unknown:
-      printf("lk_unknown\n");
+      (void)printf("lk_unknown\n");
       break;
     case lk_executable:
-      printf("lk_executable\n");
-      disp_ptr("exec_stmt", (char *)ptr->variant.exec_stmt, iek_statement);
-      break;
+      (void)printf("lk_executable\n");
+      goto do_exec_stmt;
     case lk_specification:
-      printf("lk_specification\n");
+      (void)printf("lk_specification\n");
       break;
     case lk_format:
-      printf("lk_format\n");
+      (void)printf("lk_format\n");
       disp_ptr("format_constant", (char *)ptr->variant.format_constant,
                iek_constant);
       break;
     case lk_else_or_elseif:
-      printf("lk_else_or_elseif\n");
+      (void)printf("lk_else_or_elseif\n");
+do_exec_stmt:
       disp_ptr("exec_stmt", (char *)ptr->variant.exec_stmt, iek_statement);
       break;
     default:
-      printf("**BAD LABEL KIND**\n");
+      (void)printf("**BAD LABEL KIND**\n");
   }  /* switch */
 #else /* !defined(FFE) */
   disp_ptr("exec_stmt", (char *)ptr->variant.exec_stmt, iek_statement);
@@ -1414,8 +1732,15 @@ Display the name of an expression operator.
     case eok_not:               s = "eok_not";                    break;
     case eok_cast:              s = "eok_cast";                   break;
 #ifdef CFE
-    case eok_complement:        s = "eok_complement";             break;
+    case eok_base_class_cast:   s = "eok_base_class_cast";        break;
+    case eok_derived_class_cast:
+                                s = "eok_derived_class_cast";     break;
+    case eok_pm_base_class_cast:
+                                s = "eok_pm_base_class_cast";     break;
+    case eok_pm_derived_class_cast:
+                                s = "eok_pm_derived_class_cast";  break;
     case eok_lvalue_cast:       s = "eok_lvalue_cast";            break;
+    case eok_complement:        s = "eok_complement";             break;
     case eok_ipost_incr:        s = "eok_ipost_incr";             break;
     case eok_ipost_decr:        s = "eok_ipost_decr";             break;
     case eok_ipre_incr:         s = "eok_ipre_incr";              break;
@@ -1458,6 +1783,9 @@ Display the name of an expression operator.
     case eok_fge:               s = "eok_fge";                    break;
     case eok_fle:               s = "eok_fle";                    break;
     case eok_fassign:           s = "eok_fassign";                break;
+    case eok_padd:              s = "eok_padd";                   break;
+    case eok_psubtract:         s = "eok_psubtract";              break;
+    case eok_passign:           s = "eok_passign";                break;
 #ifdef FFE
     case eok_xadd:              s = "eok_xadd";                   break;
     case eok_xsubtract:         s = "eok_xsubtract";              break;
@@ -1483,9 +1811,7 @@ Display the name of an expression operator.
 #endif /* ifdef FFE */
 #ifdef CFE
     case eok_remainder:         s = "eok_remainder";              break;
-    case eok_padd:              s = "eok_padd";                   break;
     case eok_padd_subsc:        s = "eok_padd_subsc";             break;
-    case eok_psubtract:         s = "eok_psubtract";              break;
     case eok_pdiff:             s = "eok_pdiff";                  break;
     case eok_peq:               s = "eok_peq";                    break;
     case eok_pne:               s = "eok_pne";                    break;
@@ -1493,9 +1819,11 @@ Display the name of an expression operator.
     case eok_plt:               s = "eok_plt";                    break;
     case eok_pge:               s = "eok_pge";                    break;
     case eok_ple:               s = "eok_ple";                    break;
-    case eok_passign:           s = "eok_passign";                break;
+    case eok_pmeq:              s = "eok_pmeq";                   break;
+    case eok_pmne:              s = "eok_pmne";                   break;
     case eok_sassign:           s = "eok_sassign";                break;
     case eok_bassign:           s = "eok_bassign";                break;
+    case eok_pmassign:          s = "eok_pmassign";               break;
     case eok_iadd_assign:       s = "eok_iadd_assign";            break;
     case eok_isubtract_assign:  s = "eok_isubtract_assign";       break;
     case eok_imultiply_assign:  s = "eok_imultiply_assign";       break;
@@ -1518,12 +1846,15 @@ Display the name of an expression operator.
     case eok_bit_field:         s = "eok_bit_field";              break;
     case eok_value_bit_field:   s = "eok_value_bit_field";        break;
     case eok_extract_bit_field: s = "eok_extract_bit_field";      break;
+    case eok_pm_field:          s = "eok_pm_field";               break;
     case eok_shiftl:            s = "eok_shiftl";                 break;
     case eok_shiftr:            s = "eok_shiftr";                 break;
     case eok_and:               s = "eok_and";                    break;
     case eok_or:                s = "eok_or";                     break;
     case eok_xor:               s = "eok_xor";                    break;
     case eok_comma:             s = "eok_comma";                  break;
+    case eok_virtual_function_ptr:
+                                s = "eok_virtual_function_ptr";   break;
 #endif /* ifdef CFE */
     case eok_land:              s = "eok_land";                   break;
     case eok_lor:               s = "eok_lor";                    break;
@@ -1539,6 +1870,10 @@ Display the name of an expression operator.
     case eok_value_substring:   s = "eok_value_substring";        break;
 #endif /* ifdef FFE */
     case eok_call:              s = "eok_call";                   break;
+#ifdef CFE
+    case eok_virtual_call:      s = "eok_virtual_call";           break;
+    case eok_pm_call:           s = "eok_pm_call";                break;
+#endif /* ifdef CFE */
 #ifdef FFE
     case eok_fsubscript:        s = "eok_fsubscript";             break;
     case eok_value_fsubscript:  s = "eok_value_fsubscript";       break;
@@ -1546,7 +1881,7 @@ Display the name of an expression operator.
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_expr_operator_name */
 
 
@@ -1563,52 +1898,58 @@ Display the indicated expression node.
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
-      printf("enk_error\n");
+      (void)printf("enk_error\n");
       break;
     case enk_operation:
-      printf("enk_operation\n");
+      (void)printf("enk_operation\n");
       disp_name("kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
-      printf("\n");
+      (void)printf("\n");
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;
     case enk_constant:
-      printf("enk_constant\n");
+      (void)printf("enk_constant\n");
       disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
       break;
     case enk_variable:
-      printf("enk_variable\n");
+      (void)printf("enk_variable\n");
       goto do_variable;
     case enk_variable_address:
-      printf("enk_variable_address\n");
+      (void)printf("enk_variable_address\n");
 #ifdef FFE
       goto do_variable;
     case enk_char_variable_length:
-      printf("enk_char_variable_length\n");
+      (void)printf("enk_char_variable_length\n");
 #endif /* ifdef FFE */
 do_variable:
       disp_ptr("variable", (char *)ptr->variant.variable, iek_variable);
       break;
     case enk_routine_address:
-      printf("enk_routine_address\n");
+      (void)printf("enk_routine_address\n");
       disp_ptr("routine", (char *)ptr->variant.routine, iek_routine);
       break;
 #ifdef CFE
     case enk_field:
-      printf("enk_field\n");
+      (void)printf("enk_field\n");
       disp_ptr("field", (char *)ptr->variant.field, iek_field);
+      break;
+    case enk_temp_init:
+      (void)printf("enk_temp_init\n");
+      disp_ptr("dynamic_init", (char *)ptr->variant.temp_init.dynamic_init,
+               iek_dynamic_init);
+      disp_ptr("expr", (char *)ptr->variant.temp_init.expr, iek_expr_node);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case enk_stmt_label_value:
-      printf("enk_stmt_label_value\n");
+      (void)printf("enk_stmt_label_value\n");
       disp_ptr("stmt_label_value", (char *)ptr->variant.stmt_label_value,
                iek_label);
       break;
 #endif /* ifdef FFE */
     default:
-      printf("**BAD EXPR NODE KIND**\n");
+      (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */
 }  /* disp_expr_node */
 
@@ -1634,6 +1975,8 @@ Display the indicated block.
   disp_unsigned_long("final_seq_number", (unsigned long)ptr->final_seq_number);
 #ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
+  disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
+  disp_boolean("end_of_block_reachable", ptr->end_of_block_reachable);
 #endif /* ifdef CFE */
 }  /* disp_block */
 
@@ -1648,15 +1991,15 @@ Display the indicated statement.
   disp_name("kind");
   switch (ptr->kind) {
     case stmk_expr:
-      printf("stmk_expr\n");
+      (void)printf("stmk_expr\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_return:
-      printf("stmk_return\n");
+      (void)printf("stmk_return\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_if:
-      printf("stmk_if\n");
+      (void)printf("stmk_if\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("then_statement", (char *)ptr->variant.if_stmt.then_statement,
                iek_statement);
@@ -1664,11 +2007,11 @@ Display the indicated statement.
                iek_statement);
       break;
     case stmk_while:
-      printf("stmk_while\n");
+      (void)printf("stmk_while\n");
 #ifdef CFE
       goto do_loop;
     case stmk_end_test_while:
-      printf("stmk_end_test_while\n");
+      (void)printf("stmk_end_test_while\n");
 do_loop:
 #endif /* CFE */
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
@@ -1676,22 +2019,22 @@ do_loop:
                iek_statement);
       break;
     case stmk_goto:
-      printf("stmk_goto\n");
+      (void)printf("stmk_goto\n");
       goto do_label;
     case stmk_label:
-      printf("stmk_label\n");
+      (void)printf("stmk_label\n");
 do_label:
       disp_ptr("label", (char *)ptr->variant.label, iek_label);
       break;
     case stmk_block:
-      printf("stmk_block\n");
+      (void)printf("stmk_block\n");
       disp_ptr("statements", (char *)ptr->variant.block.statements,
                iek_statement);
       disp_block(ptr->variant.block.extra_info);
       break;
 #ifdef CFE
     case stmk_switch:
-      printf("stmk_switch\n");
+      (void)printf("stmk_switch\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("clause_list", (char *)ptr->variant.switch_stmt.clause_list,
                iek_switch_clause);
@@ -1699,31 +2042,31 @@ do_label:
                (char *)ptr->variant.switch_stmt.body_statement, iek_statement);
       break;
     case stmk_init:
-      printf("stmk_init\n");
+      (void)printf("stmk_init\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
-      disp_ptr("init_variable", (char *)ptr->variant.init_variable,
-               iek_variable);
+      disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init,
+               iek_dynamic_init);
       break;
     case stmk_asm:
       /* stmk_asm is only used in versions with ASM_STATEMENT_ALLOWED set
          TRUE. */
-      printf("stmk_asm\n");
+      (void)printf("stmk_asm\n");
       disp_ptr("asm_string", (char *)ptr->variant.asm_string, iek_constant);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case stmk_fentry:
-      printf("stmk_fentry\n");
+      (void)printf("stmk_fentry\n");
       disp_ptr("assoc_routine", (char *)ptr->variant.fentry.assoc_routine,
                iek_routine);
       disp_ptr("prologue", (char *)ptr->variant.fentry.prologue,
                iek_statement);
       break;
     case stmk_ido:
-      printf("stmk_ido\n");
+      (void)printf("stmk_ido\n");
       goto do_ido_fdo;
     case stmk_fdo:
-      printf("stmk_fdo\n");
+      (void)printf("stmk_fdo\n");
 do_ido_fdo:
       disp_ptr("loop_statement", (char *)ptr->variant.do_stmt.loop_statement,
                iek_statement);
@@ -1735,45 +2078,45 @@ do_ido_fdo:
       }
       break;
     case stmk_iarith_if:
-      printf("stmk_iarith_if\n");
+      (void)printf("stmk_iarith_if\n");
       goto do_label_list;
     case stmk_farith_if:
-      printf("stmk_farith_if\n");
+      (void)printf("stmk_farith_if\n");
       goto do_label_list;
     case stmk_computed_goto:
-      printf("stmk_computed_goto\n");
+      (void)printf("stmk_computed_goto\n");
       goto do_label_list;
     case stmk_assigned_goto:
-      printf("stmk_assigned_goto\n");
+      (void)printf("stmk_assigned_goto\n");
 do_label_list:
       disp_ptr("label_list", (char *)ptr->variant.label_list,
                iek_label_list_entry);
       break;
     case stmk_alt_return:
-      printf("stmk_alt_return\n");
+      (void)printf("stmk_alt_return\n");
       break;
     case stmk_stop:
-      printf("stmk_stop\n");
+      (void)printf("stmk_stop\n");
       goto do_stop_pause;
     case stmk_pause:
-      printf("stmk_pause\n");
+      (void)printf("stmk_pause\n");
 do_stop_pause:
       disp_ptr("stop_pause_string", (char *)ptr->variant.stop_pause_string,
                iek_constant);
       break;
     case stmk_set_array_shape:
-      printf("stmk_set_array_shape\n");
+      (void)printf("stmk_set_array_shape\n");
       disp_ptr("array_variable", (char *)ptr->variant.array_variable,
                iek_variable);
       break;
     case stmk_input_output:
-      printf("stmk_input_output\n");
+      (void)printf("stmk_input_output\n");
       disp_ptr("input_output", (char *)ptr->variant.input_output,
                iek_input_output_description);
       break;
 #endif /* ifdef FFE */
     default:
-      printf("**BAD STATEMENT KIND**\n");
+      (void)printf("**BAD STATEMENT KIND**\n");
   }  /* switch */
 }  /* disp_statement */
 
@@ -1784,12 +2127,57 @@ Display the indicated scope.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_scope);
-  disp_ptr("assoc_routine", (char *)ptr->assoc_routine, iek_routine);
-  disp_ptr("parameters", (char *)ptr->parameters, iek_variable);
+  disp_name("kind");
+  switch (ptr->kind) {
+    case sck_file:
+      (void)printf("sck_file\n");
+      break;
+#ifdef CIL
+    case sck_block:
+      (void)printf("sck_block\n");
+      break;
+    case sck_func_prototype:
+      (void)printf("sck_func_prototype\n");
+      goto do_assoc_type;
+    case sck_class_struct_union:
+      (void)printf("sck_class_struct_union\n");
+do_assoc_type:
+      disp_ptr("assoc_type", (char *)ptr->variant.assoc_type, iek_type);
+      break;
+#endif /* ifdef CIL */
+#ifdef FIL
+    case sck_stmt_function:
+      (void)printf("sck_stmt_function\n");
+      break;
+#endif /* ifdef FIL */
+    case sck_function:
+      disp_ptr("routine.ptr", (char *)ptr->variant.routine.ptr, iek_routine);
+      disp_ptr("parameters", (char *)ptr->variant.routine.parameters,
+               iek_variable);
+#ifdef CIL
+      disp_ptr("constructor_inits",
+               (char *)ptr->variant.routine.constructor_inits,
+               iek_constructor_init);
+      if (ptr->variant.routine.this_param_variable != NULL) {
+        disp_ptr("this_param_variable",
+                 (char *)ptr->variant.routine.this_param_variable,
+                 iek_variable);
+      }  /* if */
+      if (ptr->variant.routine.return_value_pointer_variable  != NULL) {
+        disp_ptr("return_value_pointer_variable",
+                 (char *)ptr->variant.routine.return_value_pointer_variable,
+                 iek_variable);
+      }  /* if */
+#endif /* ifdef CIL */
 #ifdef FFE
-  disp_ptr("function_result_var", (char *)ptr->function_result_var,
-           iek_variable);
+      disp_ptr("function_result_var",
+               (char *)ptr->variant.routine.function_result_var,
+               iek_variable);
 #endif /* ifdef FFE */
+      break;
+    default:
+      (void)printf("**BAD SCOPE KIND**\n");
+  }  /* switch */
   disp_ptr("assoc_block", (char *)ptr->assoc_block, iek_statement);
   disp_ptr("constants", (char *)ptr->constants, iek_constant);
   disp_ptr("types", (char *)ptr->types, iek_type);
@@ -1798,6 +2186,7 @@ Display the indicated scope.
   disp_ptr("routines", (char *)ptr->routines, iek_routine);
 #ifdef CFE
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
+  disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
 #endif /* ifdef CFE */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
@@ -1848,7 +2237,7 @@ Print the name of an I/O specifier keyword.
     case iosk_nextrec:     s = "iosk_nextrec";                  break;
     default:               s = "**BAD IO SPECIFIER KEYWORD**";
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_io_specifier_keyword_name */
 
 
@@ -1860,23 +2249,23 @@ Display the indicated I/O statement specifier.
   disp_ptr("next", (char *)ptr->next, iek_io_specifier);
   disp_name("keyword");
   disp_io_specifier_keyword_name(ptr->keyword);
-  printf("\n");
+  (void)printf("\n");
   disp_name("transfer");
   switch (ptr->transfer) {
     case iost_label:
-      printf("iost_label\n");
+      (void)printf("iost_label\n");
       disp_ptr("label", (char *)ptr->variant.label, iek_label);
       break;
     case iost_expr_in:
-      printf("iost_expr_in\n");
+      (void)printf("iost_expr_in\n");
       goto do_expr;
     case iost_var_out:
-      printf("iost_var_out\n");
+      (void)printf("iost_var_out\n");
 do_expr:
       disp_ptr("expr", (char *)ptr->variant.expr, iek_expr_node);
       break;
     default:
-      printf("**BAD IO SPECIFIER TRANSFER**\n");
+      (void)printf("**BAD IO SPECIFIER TRANSFER**\n");
   }  /* switch */
 } /* disp_io_specifier */
 
@@ -1890,19 +2279,19 @@ Display the indicated I/O statement list item.
   disp_name("kind");
   switch (ptr->kind) {
     case iol_expr:
-      printf("iol_expr\n");
+      (void)printf("iol_expr\n");
       disp_ptr("expr", (char *)ptr->variant.expr, iek_expr_node);
       break;
     case iol_variable:
-      printf("iol_variable\n");
+      (void)printf("iol_variable\n");
       disp_ptr("variable", (char *)ptr->variant.expr, iek_expr_node);
       break;
     case iol_array:
-      printf("iol_array\n");
+      (void)printf("iol_array\n");
       disp_ptr("array_var", (char *)ptr->variant.array_var, iek_variable);
       break;
     case iol_implied_do:
-      printf("iol_implied_do\n");
+      (void)printf("iol_implied_do\n");
       disp_ptr("variable", (char *)ptr->variant.implied_do.variable,
                iek_variable);
       disp_ptr("initial_value", (char *)ptr->variant.implied_do.initial_value,
@@ -1914,7 +2303,7 @@ Display the indicated I/O statement list item.
       disp_ptr("list", (char *)ptr->variant.implied_do.list, iek_io_list_item);
       break;
     default:
-      printf("**BAD IO LIST ITEM KIND**\n");
+      (void)printf("**BAD IO LIST ITEM KIND**\n");
   }  /* switch */
 } /* disp_io_list_item */
 
@@ -1939,7 +2328,7 @@ Print the name of an arg pragma kind.
     case ios_decode:    s = "ios_decode";                break;
     default:            s = "**BAD IO STATEMENT KIND**";
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_io_statement_kind_name */
 
 
@@ -1971,27 +2360,27 @@ Display the indicated I/O statement description.
 {
   disp_name("kind");
   disp_io_statement_kind_name(ptr->kind);
-  printf("\n");
+  (void)printf("\n");
   disp_name("unit_kind");
   switch (ptr->unit_kind) {
     case iou_none:
-      printf("iou_none\n");
+      (void)printf("iou_none\n");
       break;
     case iou_error:
-      printf("<error>\n");
+      (void)printf("<error>\n");
       break;
     case iou_external:
-      printf("iou_external\n");
+      (void)printf("iou_external\n");
       disp_ptr("unit_expr", (char *)ptr->unit_expr, iek_expr_node);
       break;
     case iou_default:
-      printf("iou_default\n");
+      (void)printf("iou_default\n");
       break;
     case iou_internal:
-      printf("iou_internal\n");
+      (void)printf("iou_internal\n");
       break;
     default:
-      printf("**BAD IO UNIT KIND**\n");
+      (void)printf("**BAD IO UNIT KIND**\n");
   }  /* switch */
   if (ptr->kind == (an_io_statement_kind)ios_encode ||
       ptr->kind == (an_io_statement_kind)ios_decode) {
@@ -2001,36 +2390,36 @@ Display the indicated I/O statement description.
   disp_name("format_kind");
   switch (ptr->format_kind) {
     case iof_none:
-      printf("iof_none\n");
+      (void)printf("iof_none\n");
       break;
     case iof_error:
-      printf("<error>\n");
+      (void)printf("<error>\n");
       break;
     case iof_format_label:
-      printf("iof_format_label\n");
+      (void)printf("iof_format_label\n");
       disp_ptr("label", (char *)ptr->format.label, iek_label);
       break;
     case iof_assigned_var:
-      printf("iof_assigned_var\n");
+      (void)printf("iof_assigned_var\n");
       goto do_expr;
     case iof_char_expr:
-      printf("iof_char_expr\n");
+      (void)printf("iof_char_expr\n");
 do_expr:
       disp_ptr("expr", (char *)ptr->format.expr, iek_expr_node);
       break;
     case iof_list_directed:
-      printf("iof_list_directed\n");
+      (void)printf("iof_list_directed\n");
       break;
     case iof_namelist_directed:
-      printf("iof_namelist_directed\n");
+      (void)printf("iof_namelist_directed\n");
       disp_ptr("namelist_group", (char *)ptr->format.namelist_group,
                iek_namelist_group);
       break;
     case iof_unformatted:
-      printf("iof_unformatted\n");
+      (void)printf("iof_unformatted\n");
       break;
     default:
-      printf("**BAD IO FORMAT KIND**\n");
+      (void)printf("**BAD IO FORMAT KIND**\n");
   }  /* switch */
   disp_ptr("specifier_list", (char *)ptr->specifier_list, iek_io_specifier);
   disp_ptr("item_list", (char *)ptr->item_list, iek_io_list_item);
@@ -2061,6 +2450,209 @@ Display the indicated description of an ENTRY.
 
 #endif /* ifdef FFE */
 
+#ifdef CFE
+static void disp_dynamic_init(a_dynamic_init_ptr ptr)
+/*
+Display the indicated dynamic_init structure.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_dynamic_init);
+  if (ptr->variable != NULL) {
+    disp_ptr("variable", (char *)ptr->variable, iek_variable);
+  }  /* if */
+  if (ptr->destructor != NULL) {
+    disp_ptr("destructor", (char *)ptr->destructor, iek_routine);
+  }  /* if */
+  disp_name("kind");
+  switch (ptr->kind) {
+    case dik_none:
+      (void)printf("dik_none\n");
+      break;
+    case dik_constant:
+      (void)printf("dik_constant\n");
+      disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
+      break;
+    case dik_expression:
+      (void)printf("dik_expression\n");
+      disp_ptr("expression", (char *)ptr->variant.expression, iek_expr_node);
+      break;
+    case dik_constructor:
+      (void)printf("dik_constructor\n");
+      disp_ptr("routine", (char *)ptr->variant.constructor.routine,
+               iek_routine);
+      disp_ptr("args", (char *)ptr->variant.constructor.args, iek_expr_node);
+      disp_boolean("is_copy_constructor_for_subobject",
+                   ptr->variant.constructor.is_copy_constructor_for_subobject);
+      break;
+    case dik_nonconstant_aggregate:
+      (void)printf("dik_nonconstant_aggregate\n");
+      disp_ptr("aggr_const", (char *)ptr->variant.aggregate.aggr_const,
+               iek_constant);
+      disp_ptr("dynamic_init_list",
+               (char *)ptr->variant.aggregate.dynamic_init_list,
+               iek_dynamic_init);
+      break;
+    case dik_member_copy:
+      (void)printf("dik_member_copy\n");
+      break;
+    case dik_base_class_copy:
+      (void)printf("dik_base_class_copy\n");
+      break;
+    default:
+      (void)printf("**BAD DYNAMIC INIT KIND**\n");
+  }  /* switch */
+}  /* disp_dynamic_init */
+
+
+static void disp_access_adjustment(an_access_adjustment_ptr ptr)
+/*
+Display the indicated access_adjustment entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_access_adjustment);
+  disp_access("access", ptr->access);
+  disp_name("kind");
+  switch (ptr->kind) {
+    case aak_field:
+      (void)printf("aak_field\n");
+      disp_ptr("field", (char *)ptr->variant.field, iek_field);
+      break;
+    case aak_variable:
+      (void)printf("aak_variable\n");
+      disp_ptr("variable", (char *)ptr->variant.variable, iek_variable);
+      break;
+    case aak_routine:
+      (void)printf("aak_routine\n");
+      disp_ptr("routine", (char *)ptr->variant.routine, iek_routine);
+      break;
+    case aak_type:
+      (void)printf("aak_type\n");
+      disp_ptr("type", (char *)ptr->variant.type, iek_type);
+      break;
+    case aak_constant:
+      (void)printf("aak_constant\n");
+      disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
+      break;
+    default:
+      (void)printf("**BAD ACCESS ADJUSTMENT KIND**\n");
+  }  /* switch */  
+}  /* disp_access_adjustment */
+
+
+static void disp_overriding_virtual_function (
+		an_overriding_virtual_function_ptr ptr)
+/*
+Display the indicated overriding virtual function entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_overriding_virtual_function);
+  disp_ptr("overriding_function", (char *)ptr->overriding_function,
+           iek_routine);
+  disp_ptr("primary_function", (char *)ptr->primary_function, iek_routine);
+  disp_ptr("base_class", (char *)ptr->base_class, iek_base_class);
+}  /* disp_overriding_virtual_function */
+
+
+static void disp_derivation_step_list(a_derivation_step_ptr ptr)
+/*
+Display the indicated derivation step list.
+*/
+{
+  if (ptr == NULL) {
+    disp_ptr("derivation", (char *)ptr, iek_derivation_step);
+  } else {
+    disp_name("derivation");
+    (void)printf("\n");
+    for (; ptr != NULL; ptr = ptr->next) {
+      disp_ptr("  base_class", (char *)ptr->base_class, iek_base_class);
+    }  /* for */
+  }  /* if */
+}  /* disp_derivation_step_list */
+
+
+static void disp_base_class(a_base_class_ptr ptr)
+/*
+Display the indicated base class entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_base_class);
+  disp_ptr("type", (char *)ptr->type, iek_type);
+  disp_boolean("direct", ptr->direct);
+  disp_boolean("is_virtual", ptr->is_virtual);
+  disp_boolean("ambiguous", ptr->ambiguous);
+  disp_boolean("any_virtual_steps_in_derivation",
+               ptr->any_virtual_steps_in_derivation);
+  disp_access("access", ptr->access);
+  disp_unsigned_long("offset", (unsigned long)ptr->offset);
+  disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
+  disp_derivation_step_list(ptr->derivation);
+  disp_ptr("overriding_virtual_functions",
+           (char *)ptr->overriding_virtual_functions,
+           iek_overriding_virtual_function );
+#if DO_IL_LOWERING
+  disp_ptr("virtual_function_table_var",
+           (char *)ptr->virtual_function_table_var, iek_variable);
+#endif /* DO_IL_LOWERING */
+}  /* disp_base_class */
+
+
+static void disp_class_type_supplement(a_class_type_supplement_ptr ptr)
+/*
+Display the indicated class type supplement entry.
+*/
+{
+  disp_ptr("base_class", (char *)ptr->base_classes, iek_base_class);
+  disp_unsigned_long("size_without_virtual_base_classes",
+                     (unsigned long)ptr->size_without_virtual_base_classes);
+  disp_unsigned_long("alignment_without_virtual_base_classes",
+                   (unsigned long)ptr->alignment_without_virtual_base_classes);
+  disp_unsigned_long("virtual_function_count",
+                     (unsigned long)ptr->virtual_function_count);
+  disp_unsigned_long("virtual_function_info_offset",
+                     (unsigned long)ptr->virtual_function_info_offset);
+  if (ptr->access_adjustments != NULL) {
+    disp_ptr("access_adjustments", (char *)ptr->access_adjustments,
+             iek_access_adjustment);
+  }  /* if */
+  disp_class_list("befriending_classes", ptr->befriending_classes);
+  disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
+#if DO_IL_LOWERING
+  disp_ptr("virtual_function_table_var",
+           (char * )ptr->virtual_function_table_var, iek_variable);
+  disp_ptr("type_as_subobject", (char *)ptr->type_as_subobject, iek_type);
+#endif /* DO_IL_LOWERING */
+}  /* disp_class_type_supplement */
+
+
+static void disp_constructor_init(a_constructor_init_ptr ptr)
+/*
+display the indicated constructor init entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_constructor_init);
+  disp_name("kind");
+  switch (ptr->kind) {
+    case cik_virtual_base_class:
+      (void)printf("cik_virtual_base_class\n");
+      goto do_base_class;
+    case cik_direct_base_class:
+      (void)printf("cik_direct_base_class\n");
+do_base_class:
+      disp_ptr("base_class", (char *)ptr->variant.base_class,
+               iek_base_class);
+      break;
+    case cik_field:
+      (void)printf("cik_field\n");
+      disp_ptr("field", (char *)ptr->variant.field, iek_field);
+      break;
+    default:
+      (void)printf("**BAD CONSTRUCTOR INIT KIND**\n");
+  }  /* switch */
+  disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
+}  /* disp_constructor_init */
+
+#endif /* CFE */
+
 static void disp_entry(char             *entry_ptr,
                        an_il_entry_kind entry_kind)
 /*
@@ -2078,11 +2670,15 @@ This routine is called during IL walking.
     case iek_bound_info_entry:
     case iek_do_loop:
 #endif /* ifdef FFE */
+#ifdef CFE
+    case iek_class_list_entry:
+    case iek_derivation_step:
+#endif /* ifdef CFE */
       break;
     default:
-      printf("\n");
+      (void)printf("\n");
       disp_ptr_value(entry_ptr, entry_kind);
-      printf("\n");
+      (void)printf("\n");
       switch (entry_kind) {
         case iek_source_file:
           disp_source_file((a_source_file_ptr)entry_ptr);
@@ -2149,8 +2745,29 @@ This routine is called during IL walking.
           disp_entry_description((an_entry_description_ptr)entry_ptr);
           break;
 #endif /* ifdef FFE */
+#ifdef CFE
+        case iek_dynamic_init:
+          disp_dynamic_init((a_dynamic_init_ptr)entry_ptr);
+          break;
+        case iek_access_adjustment:
+          disp_access_adjustment((an_access_adjustment_ptr)entry_ptr);
+          break;
+        case iek_overriding_virtual_function:
+          disp_overriding_virtual_function(
+                      (an_overriding_virtual_function_ptr)entry_ptr);
+          break;
+        case iek_base_class:
+          disp_base_class((a_base_class_ptr)entry_ptr);
+          break;
+        case iek_class_type_supplement:
+          disp_class_type_supplement((a_class_type_supplement_ptr)entry_ptr);
+          break;
+        case iek_constructor_init:
+          disp_constructor_init((a_constructor_init_ptr)entry_ptr);
+          break;
+#endif /* ifdef CFE */
         default:
-          printf("**BAD ENTRY KIND**\n");
+          (void)printf("**BAD ENTRY KIND**\n");
       }  /* switch */
   }  /* switch */
 }  /* disp_entry */
@@ -2164,11 +2781,12 @@ Display the name for the indicated source language name.
   char *s;
 
   switch (source_language) {
+    case sl_Cplusplus:    s = "sl_Cplusplus";            break;
     case sl_C:            s = "sl_C";                    break;
     case sl_Fortran:      s = "sl_Fortran";              break;
     default:              s = "**BAD SOURCE LANGUAGE**"; break;
   }  /* switch */
-  printf(s);
+  (void)printf(s);
 }  /* disp_source_language_name */
 
 
@@ -2177,10 +2795,11 @@ void disp_file_scope_il(void)
 Display the IL for the file scope in human-readable form.
 */
 {
-  printf("\n\nIntermediate language for memory region 1 (file scope):\n");
+  (void)printf(
+            "\n\nIntermediate language for memory region 1 (file scope):\n");
 
   displaying_file_scope_il = TRUE;
-  printf("\nil_header:\n");
+  (void)printf("\nil_header:\n");
   disp_ptr("primary_source_file", (char *)il_header.primary_source_file,
            iek_source_file);
   disp_ptr("primary_scope", (char *)il_header.primary_scope, iek_scope);
@@ -2201,7 +2820,7 @@ Display the IL for the file scope in human-readable form.
   /* region_scope_entry is not displayed. */
   disp_name("source language");
   disp_source_language_name(il_header.source_language);
-  printf("\n");
+  (void)printf("\n");
 
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL);
@@ -2221,15 +2840,17 @@ form.
   /* Extract the associated function name. */
   sp = il_header.region_scope_entry[region_number];
   if (sp != NULL) {
-    rp = sp->assoc_routine;
-    if (rp != NULL) {
-      fname = rp->source_corresp.name;
-      /* NULL pointer is used for blank COMMON and unnamed main programs. */
-      if (fname == NULL) fname = "<unnamed>";
+    if (sp->kind == sck_function) {
+      rp = sp->variant.routine.ptr;
+      if (rp != NULL) {
+        fname = rp->source_corresp.name;
+        /* NULL pointer is used for blank COMMON and unnamed main programs. */
+        if (fname == NULL) fname = "<unnamed>";
+      }  /* if */
     }  /* if */
   }  /* if */
   if (fname == NULL) fname = "**NAME UNKNOWN**";
-  printf(
+  (void)printf(
         "\n\nIntermediate language for memory region %ld (function \"%s\"):\n",
         (long)region_number, fname);
   displaying_file_scope_il = FALSE;
@@ -2287,7 +2908,8 @@ where file.cil specifies the IL file.  Output is to stdout.
   /* Read the file-scope IL. */
   il_read(f_il_input);
   primary_source_file_name = il_header.primary_source_file->file_name;
-  printf("Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
+  (void)printf(
+          "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
           file_name, primary_source_file_name);
   /* Display it. */
   disp_file_scope_il();
