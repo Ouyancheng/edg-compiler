@@ -4754,7 +4754,7 @@ have_level:;
 void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,
-                               a_boolean            operator_function_case,
+                               a_boolean            conversion_function_case,
                                a_routine_ptr        rout,
                                a_type_ptr           routine_type,
                                an_arg_match_summary *this_match_summary)
@@ -4769,7 +4769,7 @@ routine entry; otherwise, rout is NULL.  rout must be non-NULL when
 calling a constructor or destructor, so that those can be treated as a
 special case: constructors and destructors can be called for const- and
 volatile-qualified objects even though they themselves are not (and
-cannot be) const- or volatile-qualified.  If operator_function_case
+cannot be) const- or volatile-qualified.  If conversion_function_case
 is TRUE, the underlying type of the selector is assumed to be the proper
 class or a derived class thereof (except for error cases).
 */
@@ -4803,7 +4803,7 @@ class or a derived class thereof (except for error cases).
       if (selector_is_object_pointer) {
         selector_type = type_pointed_to(selector_type);
       }  /* if */
-      /* For operator and conversion functions projected into a derived class,
+      /* For conversion functions projected into a derived class,
          the base class cast has not been done yet (and cannot be, since we
          are just investigating whether or not the function is appropriate).
          However, the cast to the base class is not supposed to be counted
@@ -4815,7 +4815,7 @@ class or a derived class thereof (except for error cases).
          The underlying class of the selector must already be the base
          class or a derived class, or the function would not have been
          found. */
-      if (operator_function_case) {
+      if (conversion_function_case) {
         selector_type = make_identically_qualified_type(this_param_class_type,
                                                         selector_type);
       }  /* if */
@@ -4864,7 +4864,6 @@ static void try_overloaded_function_match(
                  an_operand               *bound_function_selector,
                  a_boolean                selector_is_object_pointer,
                  a_boolean                try_user_conversions,
-                 a_boolean                overloaded_operator_case,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -4875,14 +4874,12 @@ overloaded_function_symbol may be an overloaded function, a simple
 function, or a projection symbol for one of those.  bound_function_selector
 is an object pointer if selector_is_object_pointer is TRUE, an object
 otherwise.  User-defined conversions are tried on argument matches only
-if try_user_conversions is TRUE.  overloaded_operator_case is TRUE if
-the case being dealt with is a use of an overloaded operator.  Any viable
-functions are added to the candidate_functions list along with information
-on the level of argument matches.  Note that, for constructor calls,
-bound_function_selector can be NULL when have_selector is TRUE.  If a
-match would have been found except for the absence of a selector, set
-*matched_except_for_missing_selector TRUE; that allows a different error
-message.
+if try_user_conversions is TRUE.  Any viable functions are added to the
+candidate_functions list along with information on the level of argument
+matches.  Note that, for constructor calls, bound_function_selector can be
+NULL when have_selector is TRUE.  If a match would have been found except
+for the absence of a selector, set *matched_except_for_missing_selector
+TRUE; that allows a different error message.
 */
 {
   a_boolean                overloaded_function_case;
@@ -5014,7 +5011,7 @@ message.
              type. */
           selector_match_with_this_param(bound_function_selector,
                                          selector_is_object_pointer,
-                                         overloaded_operator_case,
+                                         /*conversion_function_case=*/FALSE,
                                          function_symbol->variant.routine,
                                          routine_type, this_match);
           /* Set the "next" pointer again, because it is cleared by
@@ -5918,7 +5915,6 @@ C++ mode.
                                 bound_function_selector,
                                 /*selector_is_object_pointer=*/TRUE,
                                 /*try_user_conversions=*/TRUE,
-                                /*overloaded_operator_case=*/FALSE,
                                 &candidate_functions,
                                 &matched_except_for_missing_selector);
   /* The candidate_functions list now contains all the viable functions.
@@ -6138,7 +6134,7 @@ function entry.  This routine is only used in C++ mode.
           match is. */
       selector_match_with_this_param(source_operand,
                                      /*selector_is_object_pointer=*/FALSE,
-                                     /*operator_function_case=*/TRUE,
+                                     /*conversion_function_case=*/TRUE,
                                      base_conversion_symbol->variant.routine,
                                      conv_routine_type,
                                      &this_match);
@@ -6995,7 +6991,6 @@ functions could still apply).
                                           operand_1,
                                           /*selector_is_object_pointer=*/FALSE,
                                           /*try_user_conversions=*/TRUE,
-                                          /*overloaded_operator_case=*/TRUE,
                                           &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */
@@ -7011,7 +7006,6 @@ functions could still apply).
                                           (an_operand *)NULL,
                                           /*selector_is_object_pointer=*/TRUE,
                                           /*try_user_conversions=*/TRUE,
-                                          /*overloaded_operator_case=*/TRUE,
                                           &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */
@@ -7241,7 +7235,6 @@ free that list.  This routine is only used in C++.
                                   (an_operand *)NULL, /* constructor */
                                   /*selector_is_object_pointer=*/FALSE,
                                   /*try_user_conversions=*/FALSE,
-                                  /*overloaded_operator_case=*/FALSE,
                                   &candidate_functions,
                                   &matched_except_for_missing_selector);
   }  /* if */
