@@ -2146,6 +2146,8 @@ the length of the type qualifier added.
 
 
 /* Forward declarations for recursive calls. */
+static void form_constant(a_constant_ptr     cp,
+                          a_msg_segment_ptr  seg_ptr);
 static void form_class_qualifier(a_type_ptr        type,
                                  a_msg_segment_ptr seg_ptr);
 static void form_type_name(a_type_ptr        type,
@@ -2153,6 +2155,82 @@ static void form_type_name(a_type_ptr        type,
 static void form_type(a_type_ptr        type,
                       a_boolean         need_parens,
                       a_msg_segment_ptr seg_ptr);
+
+
+static void form_template_param_constant_expr(an_expr_node_ptr   node,
+                                              a_msg_segment_ptr  seg_ptr)
+/*
+Add a string representing a template param constant expression to a string
+being formed.
+*/
+{
+  an_expr_node_ptr         op1, op2;
+  an_expr_operator_kind    op_kind;
+  char                     *s;
+  a_source_correspondence  *scp;
+
+  check_assertion(node != NULL);
+  switch (node->kind) {
+    case enk_operation:
+      op1 = node->variant.operation.operands;
+      op2 = op1->next;
+      op_kind = node->variant.operation.kind;
+      switch (op_kind) {
+        case eok_iadd:
+        case eok_fadd:
+        case eok_padd:         s = "+";  break;
+        case eok_inegate:
+        case eok_fnegate:
+        case eok_isubtract:
+        case eok_fsubtract:
+        case eok_psubtract:    s = "-";  break;
+        case eok_imultiply:
+        case eok_fmultiply:    s = "*";  break;
+        case eok_idivide:
+        case eok_fdivide:      s = "/";  break;
+        default:               s = NULL;
+      }  /* switch */
+      if (s == NULL ||
+          op1->kind == (an_expr_node_kind)enk_operation ||
+          (op2 != NULL && op2->kind == (an_expr_node_kind)enk_operation)) {
+        /* Only display a limited set of operators and only simple unary or
+           binary expressions (op-leaf or leaf-op-leaf). */
+        add_string_to_segment("<expression>", seg_ptr);
+      } else if (op2 == NULL) {
+        /* Unary operation. */
+        check_assertion(op_kind == (an_expr_operator_kind)eok_inegate);
+        add_string_to_segment("-", seg_ptr);
+        form_template_param_constant_expr(op1, seg_ptr);
+      } else {
+        /* Binary operation. */
+        check_assertion(op2->next != NULL);
+        form_template_param_constant_expr(op1, seg_ptr);
+        add_string_to_segment(s, seg_ptr);
+        form_template_param_constant_expr(op2, seg_ptr);
+      }  /* if */
+      break;
+    case enk_constant:
+      form_constant(node->variant.constant, seg_ptr);
+      break;
+    case enk_variable_address:
+      scp = &node->variant.variable->source_corresp;
+      goto display_var_or_routine_address;
+    case enk_routine_address:
+      scp = &node->variant.routine->source_corresp;
+display_var_or_routine_address:
+      add_string_to_segment("&", seg_ptr);
+      form_class_qualifier(scp->class_of_which_a_member, seg_ptr);
+      add_string_to_segment(scp->name, seg_ptr);
+      break;
+    case enk_error:
+      add_string_to_segment("<error>", seg_ptr);
+      break;
+#if CHECKING
+    default:
+      internal_error("form_template_param_constant_expr: bad expr kind");
+#endif /* CHECKING */
+  }  /* switch */
+}  /* form_template_param_constant_expr */
 
 
 static void form_constant(a_constant_ptr     cp,
@@ -2255,6 +2333,7 @@ Add a string representing a constant value to a string being formed.
         } else {
           scp = &cp->variant.address.variant.variable->source_corresp;
         }  /* if */
+        form_class_qualifier(scp->class_of_which_a_member, seg_ptr);
         add_string_to_segment(scp->name, seg_ptr);
       }  /* if */
       break;
@@ -2279,7 +2358,27 @@ Add a string representing a constant value to a string being formed.
       }  /* if */
       break;
     case ck_template_param:
-      add_string_to_segment(cp->source_corresp.name, seg_ptr);
+      switch (cp->variant.template_param.kind) {
+        case tpck_member:
+          check_assertion(cp->source_corresp.class_of_which_a_member != NULL);
+          form_class_qualifier(cp->source_corresp.class_of_which_a_member,
+                               seg_ptr);
+          /* Fall through to display the rest of the qualified name. */
+        case tpck_param:
+          add_string_to_segment(cp->source_corresp.name, seg_ptr);
+          break;
+        case tpck_expression:
+          form_template_param_constant_expr(cp->variant.template_param.
+                                                                variant.expr,
+                                            seg_ptr);
+          break;
+#if CHECKING
+        default:
+          internal_error("form_constant: bad template param constant kind");
+#else /* CHECKING */
+          add_string_to_segment("<unknown constant>", seg_ptr);
+#endif /* CHECKING */
+      }  /* switch */
       break;
     case ck_error:
       add_string_to_segment("<error constant>", seg_ptr);
