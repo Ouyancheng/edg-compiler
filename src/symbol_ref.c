@@ -182,7 +182,6 @@ this case and add it to the list for the current scope.
   a_scope_stack_entry_ptr  ssep;
   char                     *entity;
   an_il_entry_kind         kind;
-  a_boolean                create_hidden_name_entry = FALSE;
   a_symbol_ptr             sym;
   a_template_instance_ptr  tip;
 
@@ -534,6 +533,10 @@ secondary status.
           /* Change the parameter values accordingly. */
           kind = iek_src_seq_secondary_decl;
           il_entry_ptr = (char *)sssdp;
+          if (scope_stack[depth_scope_stack].kind ==
+                                       (a_scope_kind)sck_func_prototype) {
+            sssdp->declared_in_func_prototype = TRUE;
+          }  /* if */
         }  /* if */
         f_update_source_sequence_list(il_entry_ptr, kind, old_ssep);
       }  /* if */
