@@ -133,7 +133,6 @@ to __vla_dealloc, but to keep the latter as efficient as possible the two
 use separate code.
 */
 {
-  a_byte     *empty_normal_block = NULL;
   ptrdiff_t  alloc_idx = curr_vla_pool->last_allocation;
 
   /* Pop the stack until we find the VLA allocation corresponding to the
@@ -142,12 +141,12 @@ use separate code.
     a_vla_allocation_ptr  allocation = &curr_vla_pool->allocations[alloc_idx];
     if ((char*)&alloc_idx > (char*)ptr) {
       /* The call stack grows with increasing addresses. */
-      if ((char*)allocation->vla_var < (char*)ptr) {
+      if ((char*)allocation->vla_var < (char*)&alloc_idx) {
         break;
       }  /* if */
     } else {
       /* The call stack grows with decreasing addresses. */
-      if ((char*)allocation->vla_var > (char*)ptr) {
+      if ((char*)allocation->vla_var > (char*)&alloc_idx) {
         break;
       }  /* if */
     }  /* if */
@@ -166,15 +165,15 @@ use separate code.
            Either free this block, or keep it as a spare.  (The spare avoids
            pathological situations where a small VLA in a loop causes a large
            number of malloc/free calls.) */
-        if (empty_normal_block != NULL) {
-          if (curr_vla_pool->spare_block == NULL) {
-            curr_vla_pool->spare_block = empty_normal_block;
-          } else {
-            free((void*)empty_normal_block);
-          }  /* if */
-          curr_vla_pool->normal_block = allocation->block;
+        if (curr_vla_pool->spare_block == NULL) {
+          curr_vla_pool->spare_block = allocation->block;
+        } else {
+          free((void*)allocation->block);
         }  /* if */
-        empty_normal_block = allocation->block;
+        curr_vla_pool->normal_block = NULL;
+        curr_vla_pool->normal_offset = NORMAL_BLOCK_SIZE;
+      } else {
+        curr_vla_pool->normal_offset = offset;
       }  /* if */
       curr_vla_pool->normal_offset = offset;
     }  /* if */
@@ -213,12 +212,14 @@ point to that storage.
     if (last_idx >= 0) {
       if ((char*)&last_idx > (char*)ptr) {
         /* The call stack grows with increasing addresses. */
-        if ((char*)curr_vla_pool->allocations[last_idx].vla_var > (char*)ptr) {
+        if ((char*)curr_vla_pool->allocations[last_idx].vla_var >
+                                                          (char*)&alloc_idx) {
           free_dead_allocations(ptr);
         }  /* if */
       } else {
         /* The call stack grows with decreasing addresses. */
-        if ((char*)curr_vla_pool->allocations[last_idx].vla_var < (char*)ptr) {
+        if ((char*)curr_vla_pool->allocations[last_idx].vla_var <
+                                                          (char*)&alloc_idx) {
           free_dead_allocations(ptr);
         }  /* if */
       }  /* if */
@@ -271,13 +272,13 @@ EXTERN_C void __vla_dealloc(void  *ptr)
 ptr points to a pointer variable.  Deallocate the storage pointed to by *ptr.
 */
 {
-  a_byte     *empty_normal_block = NULL;
   ptrdiff_t  alloc_idx = curr_vla_pool->last_allocation;
 
   /* Pop the stack until we find the VLA allocation corresponding to the
      given pointer. */
   for (; ; --alloc_idx) {
     a_vla_allocation_ptr  allocation = &curr_vla_pool->allocations[alloc_idx];
+
     check_assertion(alloc_idx >= 0);
     if (allocation->block == NULL) {
       /* A special block: Delete it right away. */
@@ -294,17 +295,16 @@ ptr points to a pointer variable.  Deallocate the storage pointed to by *ptr.
            Either free this block, or keep it as a spare.  (The spare avoids
            pathological situations where a small VLA in a loop causes a large
            number of malloc/free calls.) */
-        if (empty_normal_block != NULL) {
-          if (curr_vla_pool->spare_block == NULL) {
-            curr_vla_pool->spare_block = empty_normal_block;
-          } else {
-            free((void*)empty_normal_block);
-          }  /* if */
-          curr_vla_pool->normal_block = allocation->block;
+        if (curr_vla_pool->spare_block == NULL) {
+          curr_vla_pool->spare_block = allocation->block;
+        } else {
+          free((void*)allocation->block);
         }  /* if */
-        empty_normal_block = allocation->block;
+        curr_vla_pool->normal_block = NULL;
+        curr_vla_pool->normal_offset = NORMAL_BLOCK_SIZE;
+      } else {
+        curr_vla_pool->normal_offset = offset;
       }  /* if */
-      curr_vla_pool->normal_offset = offset;
       if (allocation->vla_var == ptr) {
         break;
       }  /* if */
