@@ -1583,9 +1583,8 @@ Syntax:
       if (member_function_symbol->kind == (a_symbol_kind)sk_projection) {
         a_base_class_ptr bcp = member_function_symbol->variant.projection.
                                             extra_info->fundamental_base_class;
-        a_boolean        is_arrow_operator = TRUE;
         base_class_cast_operand(bound_function_selector, bcp,
-                                &is_arrow_operator,
+                                (a_boolean *)NULL,
                                 /*check_cast_access=*/FALSE,
                                 /*implicit_in_naming=*/TRUE);
       }  /* if */
@@ -4900,6 +4899,7 @@ C-style casts and C++ functional-notation type conversions.
                                            operand, eff_type_cast_to,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/TRUE,
+                                           /*is_reference_binding=*/TRUE,
                                            &conversion, &ambiguous,
                                            (a_candidate_function_ptr *)NULL)) {
               /* A user-defined conversion can be done. */
@@ -4914,8 +4914,9 @@ C-style casts and C++ functional-notation type conversions.
               (void)user_defined_conversion_possible(
                                               operand, eff_type_cast_to,
                                               /*is_initialization=*/TRUE,
-                                              /*need_lvalue_result=*/TRUE,
                                               /*is_explicit_cast=*/TRUE,
+                                              /*need_lvalue_result=*/TRUE,
+                                              /*is_reference_binding=*/TRUE,
                                               &conversion,
                                               (a_conv_descr *)NULL,
                                               &failed);
@@ -4930,8 +4931,9 @@ C-style casts and C++ functional-notation type conversions.
               !is_template_param_type(type_cast_to)) {
             if (user_defined_conversion_possible(operand, type_cast_to,
                                                  /*is_initialization=*/TRUE,
-                                                 /*need_lvalue_result=*/FALSE,
                                                  /*is_explicit_cast=*/TRUE,
+                                                 /*need_lvalue_result=*/FALSE,
+                                                /*is_reference_binding=*/FALSE,
                                                  &conversion,
                                                  &ctor_arg_conversion,
                                                  &failed)) {
@@ -6623,12 +6625,10 @@ Convert operand (an lvalue that came from a reference) to the type
 of the base class indicated by bcp.  It remains an lvalue.
 */
 {
-  a_boolean is_arrow_operator = TRUE;
-
   /* Convert to a pointer to the object. */
   take_address_of_lvalue(operand);
   /* Cast the pointer to a pointer to the new type. */
-  base_class_cast_operand(operand, bcp, &is_arrow_operator,
+  base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
                           /*check_cast_access=*/TRUE,
                           /*implicit_in_naming=*/FALSE);
   /* Make an address (an lvalue) for the base class object. */

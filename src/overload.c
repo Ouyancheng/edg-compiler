@@ -39,6 +39,8 @@ static a_boolean conversion_to_class_possible(
                                  a_boolean                is_initialization,
                                  a_boolean                try_bitwise_copy,
                                  a_boolean                is_explicit_cast,
+                                 a_boolean                need_lvalue_result,
+                                 a_boolean                is_reference_binding,
                                  a_conv_descr             *conversion,
                                  a_conv_descr             *ctor_arg_conversion,
                                  a_boolean                *ambiguous,
@@ -761,6 +763,8 @@ already set, with a value of NULL indicating a same-class copy.
                                      /*is_initialization=*/TRUE,
                                      /*try_bitwise_copy=*/TRUE,
                                      /*is_explicit_cast=*/FALSE,
+                                     /*need_lvalue_result=*/FALSE,
+                                     /*is_reference_binding=*/FALSE,
                                      conversion, (a_conv_descr *)NULL,
                                      &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
@@ -861,7 +865,7 @@ is TRUE.
 {
   an_operand        *orig_arg_operand;
   a_boolean         param_is_reference;
-  a_boolean         ref_to_nonconst_bound_to_rvalue = FALSE;
+  a_boolean         source_can_be_rvalue = TRUE;
   a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
   a_std_conv_descr  std_conversion;
@@ -949,17 +953,11 @@ is TRUE.
     param_type = type_pointed_to(param_type);
     param_type_qualifiers = get_type_qualifiers(param_type);
     arg_type_qualifiers   = get_type_qualifiers(arg_type);
-    if ((param_type_qualifiers & TQ_CONST) == 0 &&
-        arg_operand != NULL &&
-        is_an_rvalue(arg_operand)) {
-      /* The standard doesn't allow binding a reference to non-const to an
-         rvalue.  In the ARM, the binding was allowed in overload resolution
-         and then caused an error later if chosen. */
-      /* Note that, as of Feb. 1995, the WP does not require the test for
-         non-volatile here.  It's not clear whether that's an oversight or
-         not. */
-      ref_to_nonconst_bound_to_rvalue = TRUE;
-    }  /* if */
+    /* The reference can bind to an rvalue if it is a reference to const. */
+    /* Note that, as of Feb. 1995, the WP does not require the test for
+       const volatile here.  It's not clear whether that's an oversight or
+       not. */
+    source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
     /* Check the type qualifiers to see if they can be reconciled by
        trivial conversions. */
     if (param_type_qualifiers == arg_type_qualifiers) {
@@ -1179,6 +1177,9 @@ is TRUE.
                                       /*is_initialization=*/TRUE,
                                       /*try_bitwise_copy=*/FALSE,
                                       /*is_explicit_cast=*/FALSE,
+                                      /*need_lvalue_result=*/
+                                                         !source_can_be_rvalue,
+                                      param_is_reference,
                                       &conversion, (a_conv_descr *)NULL,
                                       &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
@@ -1187,16 +1188,14 @@ is TRUE.
          will convert the argument type to the parameter class type. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
-      /* The user-defined conversion processing deals with reference binding
-         issues itself, so clear the local flags related to them. */
-      ref_type_qualifiers_added = FALSE;
-      ref_to_nonconst_bound_to_rvalue = FALSE;
       goto have_level;
     } else if (arg_is_class_type &&
                (conversion_from_class_possible(orig_arg_operand, param_type,
                                                (a_builtin_type_kind_set)
                                                                       BTK_NONE,
-                                               /*need_lvalue_result=*/FALSE,
+                                               /*need_lvalue_result=*/
+                                                         !source_can_be_rvalue,
+                                               param_is_reference,
                                                &conversion,
                                                &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
@@ -1206,10 +1205,6 @@ is TRUE.
          can be converted to the parameter type via a standard conversion. */
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
-      /* The user-defined conversion processing deals with reference binding
-         issues itself, so clear the local flags related to them. */
-      ref_type_qualifiers_added = FALSE;
-      ref_to_nonconst_bound_to_rvalue = FALSE;
       goto have_level;
     }  /* if */
   }  /* if */
@@ -1217,17 +1212,23 @@ is TRUE.
   /* No match is possible. */
   arg_summary->match_level = aml_none;
 have_level:;
-  if (ref_type_qualifiers_added) {
-    /* Some type qualifiers were added under a reference.  This can serve as
-       a tie-breaker later. */
-    arg_summary->conversion.std.type_qualifiers_added = TRUE;
-  }  /* if */
-  if (ref_to_nonconst_bound_to_rvalue && !any_cfront_mode() &&
-      !allow_anachronisms) {
-    /* You can't bind a reference to non-const to an rvalue.  This was a
-       post-ARM change (in the ARM, the binding would be okay in overload
-       resolution and would get an error later if chosen). */
-    arg_summary->match_level = aml_none;
+  /* Do some special processing for simple matches.  User-defined conversions
+     do their own processing for these issues. */
+  if (arg_summary->match_level != aml_none &&
+      (int)arg_summary->match_level < (int)aml_user_conversion) {
+    if (ref_type_qualifiers_added) {
+      /* Some type qualifiers were added under a reference.  This can serve as
+         a tie-breaker later. */
+      arg_summary->conversion.std.type_qualifiers_added = TRUE;
+    }  /* if */
+    if (!source_can_be_rvalue &&
+        arg_operand != NULL && is_an_rvalue(arg_operand) &&
+        !any_cfront_mode() && !allow_anachronisms) {
+      /* You can't bind a reference to non-const to an rvalue.  This was a
+         post-ARM change (in the ARM, the binding would be okay in overload
+         resolution and would get an error later if chosen). */
+      arg_summary->match_level = aml_none;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -3167,7 +3168,7 @@ C++ mode.
 {
   a_variable_ptr   this_var;
   a_type_ptr       member_class, this_class;
-  a_boolean        is_arrow_operator = TRUE, okay;
+  a_boolean        okay;
   a_base_class_ptr bcp;
 
   /* This routine is similar to cast_pointer_for_field_selection. */
@@ -3217,7 +3218,7 @@ C++ mode.
       result->position = *member_pos;
       if (bcp != NULL) {
         /* Cast the pointer to the base class of the member. */
-        base_class_cast_operand(result, bcp, &is_arrow_operator,
+        base_class_cast_operand(result, bcp, (a_boolean *)NULL,
                                 check_cast_access,
                                 /*implicit_in_naming=*/FALSE);
       }  /* if */
@@ -3229,7 +3230,7 @@ C++ mode.
          access to the symbol. */
       if (member_sym->kind == (a_symbol_kind)sk_projection) {
         bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
-        base_class_cast_operand(result, bcp, &is_arrow_operator,
+        base_class_cast_operand(result, bcp, (a_boolean *)NULL,
                                 /*check_cast_access=*/FALSE,
                                 /*implicit_in_naming=*/TRUE);
       }  /* if */
@@ -3583,13 +3584,16 @@ static void try_conversion_function_match(
                                 a_type_ptr               dest_type,
                                 a_builtin_type_kind_set  builtin_types_allowed,
                                 a_boolean                need_lvalue_result,
+                                a_boolean                is_reference_binding,
                                 a_candidate_function_ptr *candidate_functions)
 /*
 See if a class operand source_operand can be converted by a conversion function
 to either
 
 (a) dest_type, if dest_type is non-NULL (a standard conversion can be
-    done after the conversion function, if necessary), and an lvalue
+    done after the conversion function, if necessary; the result will
+    be bound to a reference if is_reference_binding is TRUE, which allows
+    in addition some derived --> base conversions), and an lvalue
     of that type if need_lvalue_result is TRUE, or
 (b) a built-in type in the set given by builtin_types_allowed, if
     dest_type is NULL.
@@ -3610,6 +3614,7 @@ is only used in C++ mode.
   a_boolean                 compatible;
   a_boolean                 result_is_an_lvalue;
   a_candidate_function_ptr  candidate;
+  a_base_class_ptr          bcp;
 
   db_enter(4, "try_conversion_function_match");
   /* This routine is similar to try_overloaded_function_match. */
@@ -3675,6 +3680,19 @@ is only used in C++ mode.
            via a standard conversion to the type we want. */
         compatible = TRUE;
         result_is_an_lvalue = FALSE;
+      } else if (is_reference_binding &&
+                 is_class_struct_union_type(dest_type) &&
+                 is_class_struct_union_type(return_type) &&
+                 (bcp = find_base_class_of(return_type, dest_type)) != NULL &&
+                 !any_qualifier_missing(dest_type, return_type)) {
+        /* The result of the conversion function will be bound to a reference,
+           so a derived --> base conversion can be done within the
+           reference binding. */
+        compatible = TRUE;
+        std_conversion.nontrivial_conversion = TRUE;
+        std_conversion.cast_base_class = bcp;
+        std_conversion.type_qualifiers_added =
+                                 any_qualifier_missing(return_type, dest_type);
       }  /* if */
     } else {
       /* We're looking for a built-in type described in general terms. */
@@ -4056,6 +4074,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
                                            (a_type_ptr)NULL,
                                      builtin_type_set_for_type_code(type_code),
                                            /*need_lvalue_result=*/FALSE,
+                                           /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
@@ -4107,6 +4126,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
         if (conversion_from_class_possible(&arg_operand->operand, pointer_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/FALSE,
+                                           /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
@@ -4453,7 +4473,6 @@ gives the type of the routine being called.
 */
 {
   a_type_ptr       this_param_type, this_class_type, operand_class_type;
-  a_boolean        is_arrow_operator = TRUE;
   a_base_class_ptr bcp;
 
   conv_class_operand_to_object_pointer(operand);
@@ -4468,7 +4487,7 @@ gives the type of the routine being called.
          cast, because the cast is really necessary only because the function
          is inherited from a base class.  This is not clear from the ARM,
          but cfront and Borland do it this way. */
-      base_class_cast_operand(operand, bcp, &is_arrow_operator,
+      base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
                               /*check_cast_access=*/FALSE,
                               /*implicit_in_naming=*/FALSE);
     }  /* if */
@@ -4875,6 +4894,8 @@ static a_boolean conversion_to_class_possible(
                                  a_boolean                is_initialization,
                                  a_boolean                try_bitwise_copy,
                                  a_boolean                is_explicit_cast,
+                                 a_boolean                need_lvalue_result,
+                                 a_boolean                is_reference_binding,
                                  a_conv_descr             *conversion,
                                  a_conv_descr             *ctor_arg_conversion,
                                  a_boolean                *ambiguous,
@@ -4887,15 +4908,19 @@ If is_initialization is TRUE, this conversion is for an initialization;
 otherwise, it's for an assignment.  The result is always an rvalue.
 Bitwise copies are considered if try_bitwise_copy is TRUE.
 If is_explicit_cast is TRUE, this conversion is an explicit cast;
-allow user-defined conversions on constructor arguments.  If
-ctor_arg_conversion is non-NULL, return a description of the conversion
-to be done on the constructor argument in *ctor_arg_conversion.  If
-more than one function matches, set *ambiguous to TRUE and return
-FALSE.  If ambiguity_list is non-NULL in that case, it is set to point
-to a list describing the set of ambiguous functions; the caller must
-free that list.  *ambiguity_list is set to NULL to indicate a case
-that is undecidable because of an error.  This routine is only used in
-C++ mode.
+allow user-defined conversions on constructor arguments.
+If need_lvalue_result is TRUE, the result must be an lvalue; this is
+quite unusual, and means only conversion functions should be
+considered.  is_reference_binding is TRUE if the returned value would
+be bound to a reference (some special derived --> base conversions
+are allowed in that case).  If ctor_arg_conversion is non-NULL,
+return a description of the conversion to be done on the constructor
+argument in *ctor_arg_conversion.  If more than one function matches,
+set *ambiguous to TRUE and return FALSE.  If ambiguity_list is
+non-NULL in that case, it is set to point to a list describing the
+set of ambiguous functions; the caller must free that list.
+*ambiguity_list is set to NULL to indicate a case that is undecidable
+because of an error.  This routine is only used in C++ mode.
 */
 {
   a_boolean                     okay, bitwise_copy_okay;
@@ -4947,7 +4972,7 @@ C++ mode.
     arg_operand_list = alloc_arg_operand();
     copy_operand(source_operand, &arg_operand_list->operand);
     constructor_symbol = cssp->constructor;
-    if (constructor_symbol != NULL) {
+    if (constructor_symbol != NULL && !need_lvalue_result) {
       /* The class has constructors. */
       /* Try all the constructors with that argument list. */
       try_overloaded_function_match(constructor_symbol,
@@ -4967,7 +4992,7 @@ C++ mode.
          See if there is a conversion function that does the job. */
       try_conversion_function_match(source_operand, dest_type,
                                     (a_builtin_type_kind_set)BTK_NONE,
-                                    /*need_lvalue_result=*/FALSE,
+                                    need_lvalue_result, is_reference_binding,
                                     &candidate_functions);
     }  /* if */
     /* If no functions are viable, check for the possibility of a bitwise
@@ -5062,6 +5087,7 @@ a_boolean conversion_from_class_possible(
                                a_type_ptr               dest_type,
                                a_builtin_type_kind_set  builtin_types_allowed,
                                a_boolean                need_lvalue_result,
+                               a_boolean                is_reference_binding,
                                a_conv_descr             *conversion,
                                a_boolean                *ambiguous,
                                a_candidate_function_ptr *ambiguity_list)
@@ -5070,7 +5096,9 @@ If the class operand source_operand can be converted by a conversion function
 to either
 
 (a) dest_type, if dest_type is non-NULL (a standard conversion can be
-    done after the conversion function, if necessary), and an lvalue
+    done after the conversion function, if necessary; the result will
+    be bound to a reference if is_reference_binding is TRUE, which allows
+    in addition some derived --> base conversions), and an lvalue
     of that type if need_lvalue_result is TRUE, or
 (b) a built-in type in the set given by builtin_types_allowed, if
     dest_type is NULL.
@@ -5098,7 +5126,7 @@ conversion_to_class_possible).  This routine is only used in C++ mode.
   /* Find any viable conversion functions. */
   try_conversion_function_match(source_operand, dest_type,
                                 builtin_types_allowed, need_lvalue_result,
-                                &candidate_functions);
+                                is_reference_binding, &candidate_functions);
   /* Of the viable functions, select the best. */
   select_best_candidate_functions(&candidate_functions,
                                   &source_operand->position,
@@ -5174,6 +5202,7 @@ set *processed to TRUE if the conversion is ambiguous.
     if (conversion_from_class_possible(operand, (a_type_ptr)NULL,
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
+                                       /*is_reference_binding=*/FALSE,
                                        &conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* The conversion is possible -- do it. */
@@ -5202,8 +5231,9 @@ set *processed to TRUE if the conversion is ambiguous.
 a_boolean user_defined_conversion_possible(an_operand   *source_operand,
                                            a_type_ptr   dest_type,
                                            a_boolean    is_initialization,
-                                           a_boolean    need_lvalue_result,
                                            a_boolean    is_explicit_cast,
+                                           a_boolean    need_lvalue_result,
+                                           a_boolean    is_reference_binding,
                                            a_conv_descr *conversion,
                                            a_conv_descr *ctor_arg_conversion,
                                            a_boolean    *failed)
@@ -5217,17 +5247,19 @@ a user-defined conversion is the only hope of converting the source
 operand to the destination type (i.e., one or the other has a class
 type), and no conversion was found, issue an error, change
 source_operand to an error operand, set *failed to TRUE, and return
-FALSE.  need_lvalue_result is TRUE if the result is required to be
-an lvalue; otherwise, the result can be an lvalue or an rvalue.
-If is_explicit_cast is TRUE, the conversion is an explicit cast;
-allow user-defined conversions on constructor arguments.  If
-ctor_arg_conversion is non-NULL, return a description of the conversion
-to be done on the constructor argument in *ctor_arg_conversion.
-Note that this routine should only be called when the conversion must
-be done, not when we're just wondering if it can be done, because it
-issues errors.  See 12.3 in the ARM.  This routine is only called in
-C++ mode.  The destination type must not be a reference type (the
-caller should have rewritten that case).
+FALSE.  If is_explicit_cast is TRUE, the conversion is an explicit
+cast; allow user-defined conversions on constructor arguments.
+need_lvalue_result is TRUE if the result is required to be an lvalue;
+otherwise, the result can be an lvalue or an rvalue.
+is_reference_binding is TRUE if the returned value would be bound to
+a reference (some special derived --> base conversions are allowed in
+that case).  If ctor_arg_conversion is non-NULL, return a description
+of the conversion to be done on the constructor argument in
+*ctor_arg_conversion.  Note that this routine should only be called
+when the conversion must be done, not when we're just wondering if it
+can be done, because it issues errors.  See 12.3 in the ARM.  This
+routine is only called in C++ mode.  The destination type must not be
+a reference type (the caller should have rewritten that case).
 */
 {
   a_boolean                okay = FALSE, ambiguous;
@@ -5243,15 +5275,14 @@ caller should have rewritten that case).
   }  /* if */
 #endif /* CHECKING */
   source_type = source_operand->type;
-  if (!need_lvalue_result && is_class_struct_union_type(dest_type)) {
+  if (is_class_struct_union_type(dest_type)) {
     /* The destination type is a class. */
-    /* Note that the need_lvalue_result case does not come here, because
-       the only way to get an lvalue result is through a conversion
-       function. */
     if (conversion_to_class_possible(source_operand, dest_type,
                                      is_initialization,
                                      /*try_bitwise_copy=*/TRUE,
                                      is_explicit_cast,
+                                     need_lvalue_result,
+                                     is_reference_binding,
                                      conversion, ctor_arg_conversion,
                                      &ambiguous, &ambiguity_list)) {
       /* A user-defined conversion (constructor or conversion function) or
@@ -5284,6 +5315,7 @@ caller should have rewritten that case).
     if (conversion_from_class_possible(source_operand, dest_type,
                                        (a_builtin_type_kind_set)BTK_NONE,
                                        need_lvalue_result,
+                                       is_reference_binding,
                                        conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* There is a conversion function that converts from the source class
@@ -5335,6 +5367,8 @@ static a_boolean conversion_possible(an_operand        *source_operand,
                                      a_type_ptr        orig_dest_type,
                                      a_boolean         is_initialization,
                                      a_boolean         try_user_conversions,
+                                     a_boolean         need_lvalue_result,
+                                     a_boolean         is_reference_binding,
                                      an_error_code     incompatible_err,
                                      a_source_position *err_pos,
                                      a_conv_descr      *conversion)
@@ -5345,14 +5379,16 @@ TRUE) or assignment (is_initialization == FALSE).  If so, set
 *conversion to describe the conversion, and return TRUE.  If not, issue
 the error incompatible_err at the position err_pos, change the operand
 to an error operand, and return FALSE.  Try user-defined conversions
-only if try_user_conversions is TRUE.  See 3.3.16.1 in the ANSI C
-standard and 12.3 in the ARM.  Note that this routine should only be
-called when the conversion must be done, not when we're just wondering
-if it can be done, because it does operand transformations on
-source_operand and issues errors.  The destination type must not be a
-reference type (the caller should have rewritten that case).
-orig_dest_type is the original destination type (not rewritten) for use
-in error messages.
+only if try_user_conversions is TRUE.  The result of the conversion
+must be an lvalue if need_lvalue_result is TRUE.  is_reference_binding
+is TRUE if the result of the conversion will be bound to a reference.
+See 3.3.16.1 in the ANSI C standard and 12.3 in the ARM.  Note that
+this routine should only be called when the conversion must be done,
+not when we're just wondering if it can be done, because it does
+operand transformations on source_operand and issues errors.  The
+destination type must not be a reference type (the caller should have
+rewritten that case).  orig_dest_type is the original destination
+type (not rewritten) for use in error messages.
 */
 {
   a_boolean          okay = FALSE, failed = FALSE, ambiguous;
@@ -5370,8 +5406,9 @@ in error messages.
   if (C_dialect == C_dialect_cplusplus && try_user_conversions &&
       user_defined_conversion_possible(source_operand, dest_type,
                                        is_initialization,
-                                       /*need_lvalue_result=*/FALSE,
                                        /*is_explicit_cast=*/FALSE,
+                                       need_lvalue_result,
+                                       is_reference_binding,
                                        conversion, (a_conv_descr *)NULL,
                                        &failed)) {
     /* A user-defined conversion can be done. */
@@ -5472,7 +5509,6 @@ where the class type is already correct and nothing should be done to it.
 */
 {
   a_type_ptr       source_type;
-  a_boolean        is_arrow_operator = TRUE;
   a_base_class_ptr bcp;
 
   source_type = skip_typerefs(source_operand->type);
@@ -5491,7 +5527,7 @@ where the class type is already correct and nothing should be done to it.
       internal_error("prep_class_bitwise_copy_operand: base class not found");
     }  /* if */
 #endif /* CHECKING */
-    base_class_cast_operand(source_operand, bcp, &is_arrow_operator,
+    base_class_cast_operand(source_operand, bcp, (a_boolean *)NULL,
                             /*check_cast_access=*/TRUE,
                             /*implicit_in_naming=*/FALSE);
     /* Make an address (an lvalue) for the base class object. */
@@ -5687,17 +5723,37 @@ be a constructor call.
                        (a_boolean)conversion_routine->is_virtual,
                        /*virtual_suppressed=*/FALSE,
                        &orig_operand.position, operand);
-    if (!conversion->result_is_an_lvalue || 
-        conversion->std.nontrivial_conversion) {
-      /* The caller will not accept an lvalue, or a standard conversion
-         must be done, so convert an lvalue to an rvalue.  The operand
-         could only be an lvalue if the conversion function returns a
-         reference. */
-      conv_lvalue_to_rvalue(operand);
-    }  /* if */
-    /* Do any necessary standard or trivial conversion. */
-    if (dest_type != NULL && is_an_rvalue(operand)) {
-      cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
+    if (conversion->std.cast_base_class != NULL &&
+        is_class_struct_union_type(dest_type)) {
+      /* In some cases, the result of a conversion function is a class
+         object of a derived type, and is being bound to a reference to
+         a base type.  Handle that separately. */
+      check_assertion(is_class_struct_union_type(operand->type));
+      /* Convert to a pointer to the object. */
+      conv_class_operand_to_object_pointer(operand);
+      /* Cast the pointer to the proper base class. */
+      base_class_cast_operand(operand, conversion->std.cast_base_class,
+                              (a_boolean *)NULL, /*check_cast_access=*/TRUE,
+                              /*implicit_in_naming=*/FALSE);
+      /* Make an address (an lvalue) for the base class object. */
+      conv_object_pointer_to_lvalue(operand);
+      if (!conversion->result_is_an_lvalue) {
+        conv_lvalue_to_rvalue(operand);
+      }  /* if */
+    } else {
+      /* Not the derived --> base special case. */
+      if (!conversion->result_is_an_lvalue || 
+          conversion->std.nontrivial_conversion) {
+        /* The caller will not accept an lvalue, or a standard conversion
+           must be done, so convert an lvalue to an rvalue.  The operand
+           could only be an lvalue if the conversion function returns a
+           reference. */
+        conv_lvalue_to_rvalue(operand);
+      }  /* if */
+      /* Do any necessary standard or trivial conversion. */
+      if (dest_type != NULL && is_an_rvalue(operand)) {
+        cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
+      }  /* if */
     }  /* if */
   } else {
 #if CHECKING
@@ -5752,6 +5808,8 @@ static a_boolean conversion_usable_or_possible(
                                     a_type_ptr        orig_dest_type,
                                     a_boolean         is_initialization,
                                     a_boolean         try_user_conversions,
+                                    a_boolean         need_lvalue_result,
+                                    a_boolean         is_reference_binding,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos,
                                     a_conv_descr      **p_conversion,
@@ -5763,8 +5821,10 @@ is non-NULL, the feasibility of the conversion has previously been determined.
 Otherwise, set *p_conversion to point to *local_conversion (probably a
 local variable in the caller), and call conversion_possible to fill in
 the conversion information.  Try user-defined conversions only if
-try_user_conversions is TRUE.  orig_dest_type is the destination type
-before any rewriting, for use in error messages.
+try_user_conversions is TRUE.  The result of the conversion must be
+an lvalue if need_lvalue_result is TRUE.  is_reference_binding is TRUE if
+the result of the conversion will be bound to a reference.  orig_dest_type
+is the destination type before any rewriting, for use in error messages.
 */
 {
   a_boolean possible;
@@ -5778,6 +5838,7 @@ before any rewriting, for use in error messages.
     *p_conversion = local_conversion;
     possible = conversion_possible(source_operand, dest_type, orig_dest_type,
                                    is_initialization, try_user_conversions,
+                                   need_lvalue_result, is_reference_binding,
                                    incompatible_err, err_pos,
                                    *p_conversion);
   }  /* if */
@@ -5813,6 +5874,8 @@ conversions only if try_user_conversions is TRUE.
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, dest_type,
                                     is_initialization, try_user_conversions,
+                                    /*need_lvalue_result=*/FALSE,
+                                    /*is_reference_binding=*/FALSE,
                                     incompatible_err, err_pos,
                                     &conversion,
                                     &local_conversion)) {
@@ -6153,6 +6216,8 @@ the "=" semantics.
   if (conversion_possible(source_operand, dest_type, dest_type,
                           /*is_initialization=*/TRUE,
                           /*try_user_conversions=*/TRUE,
+                          /*need_lvalue_result=*/FALSE,
+                          /*is_reference_binding=*/FALSE,
                           err_code,
                           &source_operand->position,
                           &conversion)) {
@@ -6248,6 +6313,8 @@ static void convert_operand_into_temp(an_operand    *source_operand,
                                       a_type_ptr    dest_type,
                                       a_type_ptr    orig_dest_type,
                                       a_boolean     try_user_conversions,
+                                      a_boolean     need_lvalue_result,
+                                      a_boolean     is_reference_binding,
                                       a_conv_descr  *conversion,
                                       an_error_code incompatible_err,
                                       a_boolean     *err,
@@ -6260,12 +6327,17 @@ convert source_operand to an error operand, and return *err TRUE.
 If a temporary is created or source_operand is already a temporary,
 return *temporary_used TRUE.  orig_dest_type is the destination type
 before any rewriting, for use in error messages.  Try user-defined
-conversions only if try_user_conversions is TRUE.  If conversion
-is non-NULL, the conversion is already known to be possible, and
-*conversion describes it.  This routine is used to convert the
-initial value in a reference initialization to a temporary that
-the reference will point to.  dest_type must not be a reference type.
-Only used in C++.
+conversions only if try_user_conversions is TRUE.  need_lvalue_result
+is TRUE if we really want to find a conversion function that will
+produce an lvalue result of the right kind (if that's not possible,
+a temporary is generated in the usual way, but the caller will
+probably issue an error unless anachronisms are allowed).
+is_reference_binding is TRUE if the temporary will be bound to a
+reference.  If conversion is non-NULL, the conversion is already
+known to be possible, and *conversion describes it.  This routine is
+used to convert the initial value in a reference initialization to a
+temporary that the reference will point to.  dest_type must not be a
+reference type.  Only used in C++.
 */
 {
   a_conv_descr  local_conversion;
@@ -6285,6 +6357,8 @@ Only used in C++.
   if (conversion_usable_or_possible(source_operand, dest_type, orig_dest_type,
                                     /*is_initialization=*/TRUE,
                                     try_user_conversions,
+                                    need_lvalue_result,
+                                    is_reference_binding,
                                     incompatible_err,
                                     &source_operand->position,
                                     &conversion,
@@ -6648,6 +6722,8 @@ initializer has previously been found to be acceptable, and
            type qualifiers. */
         convert_operand_into_temp(source_operand, base_dest_type, dest_type,
                                   try_user_conversions,
+                                  !binding_to_rvalue_allowed,
+                                  /*is_reference_binding=*/TRUE,
                                   conversion, incompatible_err, &err,
                                   &temporary_used);
         if (err) {
@@ -6755,6 +6831,8 @@ to be acceptable, and *conversion describes it.
                                       formal_param->type,
                                       /*is_initialization=*/TRUE,
                                       /*try_user_conversions=*/TRUE,
+                                      /*need_lvalue_result=*/FALSE,
+                                      /*is_reference_binding=*/FALSE,
                                       err_code, &source_operand->position,
                                       &conversion,
                                       &local_conversion)) {
