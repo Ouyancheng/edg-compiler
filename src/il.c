@@ -3772,7 +3772,7 @@ source-correspondence pointed to by scp is to be added to (or is already on)
 a list pointed to by an IL scope entry.  Return a pointer to that IL scope
 entry, along with the associated pointers-block.  When scope_level is
 NO_SCOPE_DEPTH, the scope is either the file scope or the scope associated
-with the namespace of which the entry is a member.
+with the class or namespace of which the entry is a member.
 */
 {
   a_scope_stack_entry_ptr  ssep;
@@ -5638,34 +5638,34 @@ the routines in order of appearance of their definitions (bodies).
 }  /* remove_from_routines_list */
 
 
-void add_to_routines_list(a_routine_ptr rout_ptr,
-                          a_boolean     at_file_or_namespace_scope)
+void add_to_routines_list(a_routine_ptr  rout_ptr,
+                          a_scope_depth  scope_level)
 /*
-Add the given routine to the routines list for the current scope, or for
-the innermost namespace or file scope if at_file_or_namespace_scope is TRUE.
+Add the given routine to the routines list for the scope corresponding to
+scope_level.  When scope_level is NO_SCOPE_DEPTH, the scope is computed
+rather than determined directly.
 */
 {
-  a_scope_stack_entry_ptr     ssep;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
-  /* Get pointer to current or file scope entry. */
-  if (at_file_or_namespace_scope) {
-    ssep = &scope_stack[depth_innermost_namespace_scope];
-  } else {
-    ssep = &scope_stack[decl_scope_level];
-  }  /* if */
-  /* Create the IL scope if necessary (for block scopes). */
-  sp = ensure_il_scope_exists(ssep);
+  sp = get_scope_for_list(scope_level, &rout_ptr->source_corresp,
+                          &pointers_block);
   check_assertion_str(sp != NULL, "add_to_routines_list: NULL IL scope");
-  pointers_block = assoc_pointers_block_of(ssep);
+  /* Add the routine to the list of routines for this scope. */
   if (sp->routines == NULL) {
     sp->routines = rout_ptr;
-  } else {
+  } else if (pointers_block != NULL) {
     pointers_block->last_routine->next = rout_ptr;
+  } else {
+    /* The scope stack entry is no longer on the stack, so just look for
+       the end of the routines list and add the new routine. */
+    a_routine_ptr rp = sp->routines;
+    while (rp->next != NULL) rp = rp->next;
+    rp->next = rout_ptr;
   }  /* if */
-  pointers_block->last_routine = rout_ptr;
   rout_ptr->next = NULL;
+  if (pointers_block != NULL) pointers_block->last_routine = rout_ptr;
 }  /* add_to_routines_list */
 
 
