@@ -291,7 +291,7 @@ EXTERN_C int __c99_complex_long_double_ne(_Complex_long_double z1,
 Compute z1!=z2 in lowered representation (extended precision).
 */
 {
-  return z1._Vals[0] != z2._Vals[0] || z1._Vals[1] == z2._Vals[1];
+  return z1._Vals[0] != z2._Vals[0] || z1._Vals[1] != z2._Vals[1];
 }  /* __c99_complex_long_double_ne */
 
 
