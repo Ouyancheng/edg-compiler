@@ -185,6 +185,7 @@ are required in the overall program, not necessarily in the current
 compilation.
 */
 {
+  class_type = skip_typerefs(class_type);
   if (class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
     a_base_class_ptr bcp;
