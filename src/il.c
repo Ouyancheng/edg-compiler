@@ -5676,7 +5676,6 @@ to it.
   lp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   lp->variant.exec_stmt = NULL;
-  lp->parent_block = NULL;
 #ifdef FIL
   lp->kind = (a_label_kind)lk_executable;
   lp->used_in_assign = FALSE;
@@ -6786,13 +6785,9 @@ fields to default values.
       num_blocks_allocated++;
 #endif /* DEBUG */
       clear_stmt_source_position(bp->final_position);
-      bp->assoc_scope      = NULL;
-      bp->lifetime         = NULL;
-      bp->parent_block     = NULL;
+      bp->assoc_scope            = NULL;
+      bp->lifetime               = NULL;
       bp->end_of_block_reachable = TRUE;
-#if CHECKING
-      bp->avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
       break;
     case stmk_init:
       sp->variant.dynamic_init = NULL;
@@ -6838,8 +6833,7 @@ to it.  The statement kind is set as indicated.
   num_statements_allocated++;
 #endif /* DEBUG */
   clear_stmt_source_position(sp->position);
-  sp->next                = NULL;
-  sp->dependent_statement = FALSE;
+  sp->next                  = NULL;
   sp->has_associated_pragma = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_entry = NULL;

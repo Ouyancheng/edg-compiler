@@ -3699,15 +3699,6 @@ typedef struct a_label {
                            definition is found. */
 #endif /* ifdef FIL */
   } variant;
-#ifdef CIL
-  a_statement_ptr
-		parent_block;
-			/* Pointer to the statement for the innermost block
-			   (with or without an associated scope) that
-			   contains this label.  Note that blocks fabricated
-			   by the front end are not "real" and are therefore
-			   not pointed to as parents. */
-#endif /* ifdef CIL */
 } a_label;
 
 /*
@@ -4384,18 +4375,10 @@ typedef struct a_block {
 			   assoc_scope is NULL but nevertheless there is
 			   an object lifetime region associated with this
 			   block (e.g., for cfront dependent statements). */
-  a_statement_ptr
-		parent_block;
-			/* Pointer to the statement for the innermost block
-			   (with or without an associated scope) that
-			   contains this block.  Note that blocks fabricated
-			   by the front end are not "real" and have this
-			   pointer NULL.  They are also not pointed to as
-			   parents. */
-  unsigned int	end_of_block_reachable:1;
+  a_byte_boolean
+		end_of_block_reachable;
 			/* TRUE if the end of the block is reachable.  The
 			   safe setting is TRUE. */
-  bitfield_to_avoid_codecenter_warnings();
 #endif /* ifdef CIL */
 } a_block;
 
@@ -4751,20 +4734,12 @@ typedef struct a_statement {
   a_statement_kind
                 kind;
                         /* The kind of statement. */
-  unsigned int	dependent_statement:1;
-			/* TRUE if this statement is the dependent statement
-			   of another (e.g., "f();" in "if (i) f();") and it
-			   does not have its own associated scope.  This can
-			   happen only in cfront compatibility mode, and is
-			   of interest because destructor calls for objects
-			   created within a dependent statement must be placed
-			   at the end of the dependent statement. */
-  unsigned int	has_associated_pragma:1;
+  a_byte_boolean
+		has_associated_pragma;
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this statement.  The pragma entry,
 			   which will contain a pointer to this statement, is
 			   found by calling find_assoc_pragma. */
-  bitfield_to_avoid_codecenter_warnings();
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable
