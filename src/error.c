@@ -833,8 +833,8 @@ error code.
     case ec_type_definition_not_allowed:
       m = "type definition is not allowed";
       break;
-    case ec_bad_type_name_redefinition:
-      m = "invalid redefinition of type name";
+    case ec_bad_type_name_redeclaration:
+      m = "invalid redeclaration of type name";
       break;
     case ec_missing_initializer_on_const:
       m = "internally-linked const variable requires an initializer";

@@ -302,7 +302,7 @@ typedef enum /*an_error_code*/ {
   ec_exp_comma,
   ec_type_identifier_not_allowed,
   ec_type_definition_not_allowed,
-  ec_bad_type_name_redefinition,
+  ec_bad_type_name_redeclaration,
   ec_missing_initializer_on_const,
   ec_this_used_incorrectly,
   ec_constant_value_not_known,
