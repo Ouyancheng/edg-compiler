@@ -13,7 +13,7 @@ used to resolve an ambiguity.  For example:
     A::i;          // Invalid access declaration: "i" is ambiguous
   };
 
-Also, errors are issue more consistently if an access declaration refers,
+Also, errors are issued more consistently if an access declaration refers,
 albeit with a qualified name, to a member hidden by another declaration.
 For example:
 
