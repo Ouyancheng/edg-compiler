@@ -603,6 +603,10 @@ the file scope, do not process it (but record an orphan in the latter case).
             remap_ptr(ptr->variant.object_lifetime.ptr, an_object_lifetime_ptr,
                       iek_object_lifetime);
             break;
+          case enk_typeid:
+            walk_ptr(ptr->variant.typeid_info.type, a_type_ptr, iek_type);
+            walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
+                     iek_expr_node);
           case enk_address_of_ellipsis:
             /* No pointers. */
             break;
