@@ -5171,6 +5171,11 @@ class/struct/union is actually defined.
             if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
                 !is_enum_type(member_type)) {
               (void)decl_friend_class(class_type, member_type);
+            } else if (is_class_struct_union_type(member_type) &&
+                       member_storage_class == (a_storage_class)sc_unspecified
+                       && !local_defines_something && !virtual_specified) {
+              pos_warning(ec_bad_friend_decl, &decl_start_pos);
+              (void)decl_friend_class(class_type, member_type);
             } else {
               pos_error(ec_bad_friend_decl, &decl_start_pos);
             }  /* if */
