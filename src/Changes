@@ -36,7 +36,7 @@ is TRUE, to avoid these parser bugs.  For example,
   }
 
 If statement #1 is generated as "throw (X(s))", MSVC 6.0 reports a syntax
-error; generating #2 as "return ((int)(Foo((Bar(hello)))));" causes a syntax
+error; generating #2 as "return ((int)(Y((X(hello)))));" causes a syntax
 error in MSVC 7.1.  Using C-style casts in both cases ("((X)(s))" and
 "((int)((Y)(((X)(s)))))", respectively) avoids the syntax errors.
 
