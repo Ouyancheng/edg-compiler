@@ -235,6 +235,13 @@ Extract the class type from a nonstatic member function type.
 
 #endif /* ifndef TYPES_H */
 
+/*
+Extract a pointer to a base classes list for a class type.  This macro
+may be called only for class, struct, and union types and only in C++ mode.
+*/
+#define base_classes_of(tp) \
+  ((tp)->variant.class_struct_union.extra_info->base_classes)
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
