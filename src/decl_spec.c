@@ -3353,9 +3353,10 @@ a block of source position information when the context is a declaration.
   check_assertion(curr_token == tok_typename);
   /* The typename keyword may only be used within a template, including the
      template parameter list. */
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-    diagnostic(es_discretionary_error, ec_typename_not_in_template);
+  if (!is_template_context()) {
+    diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                : es_warning,
+               ec_typename_not_in_template);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {

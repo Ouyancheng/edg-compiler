@@ -2252,6 +2252,13 @@ bound with the function in *bound_function_selector.
          identifier coalescing routine that the name is known to
          be a template. */
       gid_flags |= GID_FOLLOWS_TEMPLATE;
+      if (!is_template_context()) {
+        /* The template keyword, when used for syntactic disambiguation,
+           may only appear within a template. */
+        diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                    : es_warning,
+                   ec_template_not_in_template);
+      }  /* if */
       (void)get_token();
     }  /* if */
     /* In C++, explicit calls of destructors are allowed for simple types

@@ -10703,6 +10703,13 @@ selection operator, in which case it points to the type of the left operand.
         (void)get_token();
         if (curr_token == tok_template) {
           is_template = TRUE;
+          if (!is_template_context()) {
+            /* The template keyword, when used for syntactic disambiguation,
+               may only appear within a template. */
+            diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                        : es_warning,
+                       ec_template_not_in_template);
+          }  /* if */
           (void)get_token();
         }  /* if */
         /* If the current token begins an operator name, then coalesce

@@ -1,5 +1,19 @@
 Version 2.46
 
+11/5/01  Diagnostic on invalid use of "template" keyword
+
+The "template" keyword when used for syntactic disambiguation can only be
+used within templates (i.e., where it is possible to form a dependent
+name reference that requires such disambiguation).  We now issue a
+diagnostic for invalid use.  The diagnostic is usually a warning but may
+be an error in strict mode.
+
+11/5/01  Certain invalid usage of "typename" changed to a warning
+
+Use of the "typename" keyword other than in a template context now
+results in a warning (in default mode) instead of an error.  An error
+may still be issued in strict mode.
+
 11/2/01  Microsoft compatibility: friend class template abort
 
 In Microsoft mode, an abort could occur when processing a template

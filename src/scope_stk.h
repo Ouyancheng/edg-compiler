@@ -795,6 +795,14 @@ is_template_dependent_context, but excludes nonreal instantiations.
    scope_stack[depth_scope_stack].in_prototype_instantiation)
 
 /*
+TRUE if we are in a template declaration scope or any kind of instantiation
+scope.
+*/
+#define is_template_context()						\
+  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||		\
+   depth_template_declaration_scope != NO_SCOPE_DEPTH)
+
+/*
 TRUE if we are in the instantiation of a template in a translation unit
 loaded for the purpose of instantiating exported templates.  Note that
 this will be FALSE for an instantiation performed during the initial scan
