@@ -945,18 +945,11 @@ reference type if param_is_reference is TRUE.
     param_type = type_pointed_to(param_type);
     check_assertion(arg_summary->conversion.routine != NULL);
     /* Get the return type of the conversion routine. */
-    conversion_type = arg_summary->conversion.routine->type;
-    conversion_type = f_skip_typerefs(conversion_type);
-    conversion_type = conversion_type->variant.routine.return_type;
-    conversion_type = f_skip_typerefs(conversion_type);
-    if (is_reference_type(conversion_type)) {
-      /* The function returns a reference type.  Drop that. */
-      conversion_type = f_skip_typerefs(conversion_type);
-      if (!arg_summary->conversion.result_is_an_lvalue) {
-        /* The lvalue gets converted to an rvalue, so the type qualifiers
-           are dropped. */
-        conversion_type = f_skip_typerefs(conversion_type);
-      }  /* if */
+    conversion_type = return_type_of(arg_summary->conversion.routine->type);
+    if (!arg_summary->conversion.result_is_an_lvalue) {
+      /* The lvalue gets converted to an rvalue, so the type qualifiers
+         are dropped. */
+      conversion_type = rvalue_type(conversion_type);
     }  /* if */
     if (any_qualifier_missing(conversion_type, param_type)) {
       /* Some type qualifiers are being added.  Remember that for use as a
@@ -2450,17 +2443,7 @@ evaluated (but not checked to see if the match is good enough).
   if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
     /* For a conversion function (a member template), also do deduction on
        the return type. */
-    a_type_ptr return_type = routine_type->variant.routine.return_type;
-    /* Drop type qualifiers for the normal case, when the return value
-       is an rvalue. */
-    return_type = skip_typerefs(return_type);
-    /* If the conversion function returns a reference type, drop the 
-       reference. */
-    if (is_reference_type(return_type)) {
-      return_type = type_pointed_to(return_type);
-      /* In this case, the return value is an lvalue, and type qualifiers
-         are not dropped. */
-    }  /* if */
+    a_type_ptr return_type = return_type_of(routine_type);
     if (!matches_template_type(cfp->dest_type, return_type, &templ_arg_list,
                                tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
@@ -4133,19 +4116,9 @@ is only used in C++ mode.
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;
     clear_std_conv_descr(&std_conversion);
-    return_type = conv_routine_type->variant.routine.return_type;
-    /* Drop type qualifiers for the normal case, when the return value
-       is an rvalue. */
-    return_type = skip_typerefs(return_type);
-    result_is_an_lvalue = FALSE;
-    /* If the conversion function returns a reference type, drop the 
-       reference. */
-    if (is_reference_type(return_type)) {
-      return_type = type_pointed_to(return_type);
-      result_is_an_lvalue = TRUE;
-      /* In this case, the return value is an lvalue, and type qualifiers
-         are not dropped.  But see the comment below. */
-    }  /* if */
+    return_type = return_type_of(conv_routine_type);
+    result_is_an_lvalue = is_reference_type(conv_routine_type->
+                                                  variant.routine.return_type);
     if (dest_type != NULL) {
       /* We're looking for a specific type. */
       if (types_are_compatible_ignoring_qualifiers(dest_type, return_type)) {
@@ -4289,11 +4262,8 @@ is only used in C++ mode.
          in function_template_matches_operand_list.  However, we do
          check that the conversion function returns a reference if an
          lvalue is required. */
-      return_type = conv_routine_type->variant.routine.return_type;
-      result_is_an_lvalue = FALSE;
-      if (is_reference_type(return_type)) {
-        result_is_an_lvalue = TRUE;
-      }  /* if */
+      result_is_an_lvalue = is_reference_type(conv_routine_type->
+                                                  variant.routine.return_type);
       if (need_lvalue_result && !result_is_an_lvalue) {
         /* We need an lvalue result but the conversion function does
            not return one. */
@@ -4367,13 +4337,7 @@ type appears on the list of conversion functions.
     conversion_symbol = slep->symbol;
     reduce_projection_symbol_to_fundamental_symbol(conversion_symbol);
     conv_routine_type = routine_symbol_type(conversion_symbol);
-    return_type = conv_routine_type->variant.routine.return_type;
-    if (is_reference_type(return_type)) {
-      /* Drop a reference type; a conversion function that returns "const int&"
-         can be used like one that returns "const int". */
-      return_type = type_pointed_to(return_type);
-    }  /* if */
-    return_type = skip_typerefs(return_type);
+    return_type = return_type_of(conv_routine_type);
     if (identical_types(dest_type, return_type)) {
       /* Found the required function. */
       goto end_of_search;
@@ -5024,13 +4988,7 @@ in some way, e.g., two pointers that must have the same type.
         conversion_symbol = slep->symbol;
         base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
         conv_routine_type = routine_symbol_type(base_conversion_symbol);
-        return_type = conv_routine_type->variant.routine.return_type;
-        if (is_reference_type(return_type)) {
-          /* Drop a reference type; a conversion function that returns
-             "const int&" can be used like one that returns "const int". */
-          return_type = type_pointed_to(return_type);
-        }  /* if */
-        return_type = skip_typerefs(return_type);
+        return_type = return_type_of(conv_routine_type);
         if (type_matches_type_code(return_type, *type_pattern_position)) {
           /* We've found a conversion function to an appropriate type.  Make
              sure it's not a type we've already checked while examining a
