@@ -57,6 +57,66 @@ typedef int an_id_lookup_options_set;
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 
+typedef struct a_symbol_locator {
+  /* Data structure used to store information about an identifier token.
+     Can be used to look up the identifier or enter it into the symbol
+     table. */
+  /* If you change this structure, be sure to also change clear_locator,
+     which follows immediately. */
+  a_symbol_header_ptr
+		symbol_header;
+			/* The symbol header for the list of symbols with the
+			   identifier.  When this is NULL, this locator is
+			   for an error symbol. */
+  a_source_position
+		source_position;
+			/* The source position to be used when this symbol
+			   is entered. */
+  unsigned int	is_qualified_name:1;
+			/* TRUE if the "identifier" is a C++ qualified-name
+			   (e.g., "A::x").  specific_symbol points to the
+			   proper symbol. */
+  unsigned int	ambiguity_and_access_control_check_needed:1;
+			/* TRUE if the ambiguity and access control check
+			   for specific_symbol has not yet been done. */
+  a_symbol_ptr	specific_symbol;
+			/* If is_qualified_name is TRUE, this points to the
+			   specific symbol for the qualified name.  Otherwise,
+			   if this pointer is non-NULL, it is the result of
+			   the most recent unconstrained lookup of this
+			   identifier (e.g., by normal_id_lookup). */
+} a_symbol_locator;
+
+/*
+Clear a symbol locator.
+*/
+#define clear_locator(locator, position)                              \
+{ (locator)->symbol_header = NULL;                                    \
+  (locator)->source_position = *position;                             \
+  (locator)->is_qualified_name = FALSE;                               \
+  (locator)->ambiguity_and_access_control_check_needed = FALSE;       \
+  (locator)->specific_symbol = NULL;                                  \
+}  /* clear_locator */
+
+/* Return TRUE if two locators indicate the same symbol. */
+#define are_locators_for_same_symbol(loc1, loc2)                      \
+  ((loc1).symbol_header   == (loc2).symbol_header &&                  \
+   (loc1).specific_symbol == (loc2).specific_symbol)
+
+/* Set a symbol locator to a dummy value indicating an error. */
+#define set_to_error_locator(loc) clear_locator(&loc, &error_position)
+
+/* Test a locator to see if it is an error locator. */
+#define is_error_locator(loc) ((loc).symbol_header == NULL)
+
+/* Retrieve a pointer to the symbol list from a locator. */
+#define symbol_list_from_locator(loc) ((loc).symbol_header->symbol)
+
+/* Retrieve a pointer to the inactive symbol list from a locator. */
+#define inactive_symbol_list_from_locator(loc)                        \
+  ((loc).symbol_header->inactive_symbols)
+
+
 #ifndef LEXICAL_H
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
@@ -484,67 +544,6 @@ typedef struct a_symbol_header {
 			   but can be reached with some sort of qualification,
 			   i.e., members of structs/unions/classes. */
 } a_symbol_header;
-
-typedef struct a_symbol_locator {
-  /* Data structure used to store information about an identifier token.
-     Can be used to look up the identifier or enter it into the symbol
-     table. */
-  /* If you change this structure, be sure to also change:
-       (a) clear_locator, which follows immediately.
-       (b) cache_curr_token and get_token_from_cached_token_rescan_list,
-           in lexical.c.
-  */
-  a_symbol_header_ptr
-		symbol_header;
-			/* The symbol header for the list of symbols with the
-			   identifier.  When this is NULL, this locator is
-			   for an error symbol. */
-  a_source_position
-		source_position;
-			/* The source position to be used when this symbol
-			   is entered. */
-  unsigned int	is_qualified_name:1;
-			/* TRUE if the "identifier" is a C++ qualified-name
-			   (e.g., "A::x").  specific_symbol points to the
-			   proper symbol. */
-  unsigned int	ambiguity_and_access_control_check_needed:1;
-			/* TRUE if the ambiguity and access control check
-			   for specific_symbol has not yet been done. */
-  a_symbol_ptr	specific_symbol;
-			/* If is_qualified_name is TRUE, this points to the
-			   specific symbol for the qualified name.  Otherwise,
-			   if this pointer is non-NULL, it is the result of
-			   the most recent lookup of this identifier (e.g.,
-			   by normal_id_lookup). */
-} a_symbol_locator;
-
-/*
-Clear a symbol locator.
-*/
-#define clear_locator(locator, position)                              \
-{ (locator)->symbol_header = NULL;                                    \
-  (locator)->source_position = *position;                             \
-  (locator)->is_qualified_name = FALSE;                               \
-  (locator)->ambiguity_and_access_control_check_needed = FALSE;       \
-  (locator)->specific_symbol = NULL;                                  \
-}  /* clear_locator */
-
-/* Return TRUE if two locators indicate the same symbol. */
-#define are_locators_for_same_symbol(loc1, loc2)                      \
-  ((loc1).symbol_header == (loc2).symbol_header)
-
-/* Set a symbol locator to a dummy value indicating an error. */
-#define set_to_error_locator(loc) clear_locator(&loc, &error_position)
-
-/* Test a locator to see if it is an error locator. */
-#define is_error_locator(loc) ((loc).symbol_header == NULL)
-
-/* Retrieve a pointer to the symbol list from a locator. */
-#define symbol_list_from_locator(loc) ((loc).symbol_header->symbol)
-
-/* Retrieve a pointer to the inactive symbol list from a locator. */
-#define inactive_symbol_list_from_locator(loc)                        \
-  ((loc).symbol_header->inactive_symbols)
 
 
 #define SYMBOL_TABLE_SIZE 599
