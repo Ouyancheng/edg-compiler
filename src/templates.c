@@ -2690,13 +2690,26 @@ user later during real instantiations.
   }  /* for */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il &&
-      def_arg_list != NULL &&
-      tssp->variant.function.func_info.declared_type != NULL) {
+      def_arg_list != NULL) {
     /* The IL representation for the default arguments should be added to
-       the declared type too. */
-    copy_routine_type_default_args(
-                              tssp->variant.function.routine->type,
-                              tssp->variant.function.func_info.declared_type);
+       the declared type too.  The declared type might be in a secondary
+       source sequence entry; otherwise, we fix up the one in the template
+       symbol supplement. */
+    a_source_sequence_entry_ptr  ssep =
+                              last_matching_source_sequence_entry(
+                                      (char *)tssp->variant.function.routine);
+    a_type_ptr  declared_type;
+    if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      a_src_seq_secondary_decl_ptr  sssdp =
+                               (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+      declared_type = sssdp->declared_type;
+    } else {
+      declared_type = tssp->variant.function.func_info.declared_type;
+    }  /* if */
+    if (declared_type != NULL) {
+      copy_routine_type_default_args(
+                         tssp->variant.function.routine->type, declared_type);
+    }  /* if */
   }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
