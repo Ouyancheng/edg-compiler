@@ -1536,6 +1536,26 @@ added to the scope symbols list and is not linked into the symbol table.
 }  /* make_projection_symbol */
 
 
+a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator)
+/*
+Create but do not yet enter an sk_parameter symbol.  This routine is called
+for old style parameter declaration.
+*/
+{
+  a_symbol_ptr  sym;
+
+  sym = alloc_symbol((a_symbol_kind)sk_parameter, locator->symbol_header,
+                     &locator->source_position);
+  mark_declared(sym, &locator->source_position,
+                /*save_as_decl_position=*/FALSE);
+  /* Set the locator to point to the symbol entered. */
+  locator->specific_symbol = sym;
+  locator->is_qualified_name = FALSE;
+
+  return sym;
+}  /* make_parameter_symbol */
+
+
 a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                        a_source_position  *pos)
 /*
