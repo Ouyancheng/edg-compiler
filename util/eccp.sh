@@ -547,6 +547,8 @@ do
          --no_namespaces | \
          --using_std | \
          --no_using_std | \
+         --typename | \
+         --no_typename | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
