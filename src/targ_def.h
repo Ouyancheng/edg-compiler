@@ -2231,10 +2231,9 @@ this behavior on Intel x86-based platforms.
 
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*
-The default field alignments for built-in types.  For some GNU compilers
-compilers, this is different from the intrinsic alignment of the type.
-By default however, we define these equal to the corresponding intrinsic
-alignments.
+The default field alignments for built-in types.  This is different from the
+intrinsic alignment of the type for some GNU compilers.  By default however,
+we define these equal to the corresponding intrinsic alignments.
 */
 #ifndef TARG_SHORT_FIELD_ALIGNMENT
 #define TARG_SHORT_FIELD_ALIGNMENT TARG_ALIGNOF_SHORT
