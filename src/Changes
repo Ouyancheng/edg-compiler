@@ -1,5 +1,14 @@
 Version 3.3
 
+6/13/03  C99 STDC floating-point pragmas recorded for local block scopes
+
+The C99 STDC pragmas had been incorrectly labeled as "global"
+instead of local, which means that when they appeared in
+local blocks in functions they were recorded in the IL in a
+way that didn't easily allow one to recover the associated
+block.  Now, they are recorded on the local block's pragmas
+list.
+
 6/12/03  Errors on offset overflow in tables built by IL lowering
 
 IL lowering checks that offsets within classes and indexes within

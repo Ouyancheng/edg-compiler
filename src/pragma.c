@@ -1605,7 +1605,7 @@ Initialize the pragma description table.
 		((a_pragma_kind)pk_stdc,
                  stdc_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
-                 /*global=*/TRUE,
+                 /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
