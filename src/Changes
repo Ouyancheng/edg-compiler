@@ -1,5 +1,13 @@
 Version 2.45
 
+9/21/00  IL memory corruption when
+         NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
+
+When nonclass instantiations are included in the source sequence list,
+different instantiations of a same template could corrupt each other's IL
+memory.  This could lead to all kinds of strange behavior such as internal
+errors or (perhaps) invalid results.  This has been fixed.
+
 9/21/00  Incorrect line numbers following multi-line #line directive
 
 The line number used in diagnostics and in the __LINE__ macro was incorrect
