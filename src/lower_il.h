@@ -800,7 +800,7 @@ extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
 extern an_expr_node_ptr make_lvalue_reusable_copy_full(
                                              an_expr_node_ptr expr,
                                              a_boolean        vars_can_change,
-                                             an_expr_node_ptr *temp_init_node);
+                                             a_boolean        *temp_init_used);
 
 extern an_expr_node_ptr make_lvalue_reusable_copy(
                                              an_expr_node_ptr expr,

@@ -1625,10 +1625,11 @@ static void lower_c99_fixed_point_incr_decr(an_expr_node_ptr expr)
 Lower the indicated fixed-point increment or decrement operation.
 */
 {
-  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_operator_kind op = expr->variant.operation.kind, assign_op;
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
-  a_boolean             is_incr, is_post_op;
-  an_expr_node_ptr      op1_for_operation, temp_init_node = NULL, op_node;
+  an_expr_node_ptr      op1_for_operation, op1_for_assign, op_node, op2_node;
+  a_variable_ptr        temp_var = NULL;
+  a_boolean             is_incr, is_post_op, temp_init_used;
   a_type_ptr            result_type = rvalue_type(type_pointed_to(op1->type));
 
   switch (op) {
@@ -1652,18 +1653,41 @@ Lower the indicated fixed-point increment or decrement operation.
       unexpected_condition_str(
                               "lower_c99_fixed_point_incr_decr: bad operator");
   }  /* if */
-  /* Start by making
-       x = x + 1    or    x = x - 1
-     If x is not simple, we have instead
-       *t = *t + 1  or    *t = *t - 1
-     with "t = &x" saved in temp_init_node for later insertion.
-  */
-  /* Make a copy of op1 to be used as the left operand of the underlying
+  if (is_post_op && expr->result_is_not_used) {
+    /* We don't need the more complicated post-incr/decr code if the
+       result is not used. */
+    is_post_op = FALSE;
+  }  /* if */
+  /* The normal rewrite of
+       ++x
+     is
+       x = x + 1
+     Make a copy of op1 to be used as the left operand of the underlying
      add/subtract.  op1 itself will be used as the left operand of the
      assignment. */ 
   op1_for_operation = make_lvalue_reusable_copy_full(op1,
                                                      /*vars_can_change=*/FALSE,
-                                                     &temp_init_node);
+                                                     &temp_init_used);
+  op1_for_assign = op1;
+  assign_op = lowered_assignment_operator(result_type);
+  if (temp_init_used || is_post_op) {
+    /* op1 is complex and was assigned to a temporary.  Make sure that
+       the temporary is initialized before it is used by doing the
+       overall rewrite of
+         ++x;
+       as
+         (temp = *(t = &x)), *t = temp + 1)
+       We also use the temporary if the operation is a post-increment
+       or -decrement, because we want to save and return the original value. */
+    temp_var = make_local_temporary(result_type);
+    op1_for_assign = op1_for_operation;
+    op1_for_operation = var_lvalue_expr(temp_var);
+    /* Make the (temp = *(t = &x)) assignment, to be inserted later. */
+    op2_node = make_var_assignment_expr(temp_var,
+                                        assign_op,
+                                        add_indirection_to_node(op1));
+  }  /* if */
+  /* Make the +1 or -1 operation. */
   op1_for_operation = add_indirection_to_node(op1_for_operation);
   op1_for_operation->next = node_for_integer_constant((long)1,
                                                       (an_integer_kind)ik_int);
@@ -1671,35 +1695,21 @@ Lower the indicated fixed-point increment or decrement operation.
                  (an_expr_operator_kind)eok_fxsubtract;
   op_node = make_operator_node(op, result_type, op1_for_operation);
   lower_c99_operator(op_node);
-  /* Assign the result to op1. */
-  op_node = make_assignment_expr(op1,
-                                 lowered_assignment_operator(result_type),
-                                 op_node);
-  /* Here, op_node is "x = x +/- 1".  For a pre-increment, that's
-     all we need. */
-  if (is_post_op && !expr->result_is_not_used) {
-    /* A post-increment or post-decrement.
-         x++
-       becomes
-         (temp = x, x = x + 1, temp)
-       If x is not simple, we have instead
-         (t = &x, temp = *t, *t = *t + 1, temp)
-    */
-    a_variable_ptr   temp = make_lowered_temporary(result_type);
-    an_expr_node_ptr temp_assign;
-    temp_assign = make_var_assignment_expr(temp,
-                                           (an_expr_operator_kind)eok_last,
-                                           make_reusable_copy(
-                                                   op1_for_operation,
-                                                   /*vars_can_change=*/FALSE));
-    op_node = make_comma_node(temp_assign, op_node);
-    op_node = make_comma_node(op_node, var_rvalue_expr(temp));
+  /* Assign the result to op1 (or the temporary). */
+  op_node = make_assignment_expr(op1_for_assign, assign_op, op_node);
+  if (temp_var != NULL) {
+    /* Combine the assignment to the temporary and the assignment that
+       does the add or subtract and stores it back in the original
+       operand. */
+    op_node = make_comma_node(op2_node, op_node);
   }  /* if */
-  if (temp_init_node != NULL) {
-    /* Add a comma expression to initialize the temporary used.  This
-       ensures that the temporary is initialized before it is used in
-       either operand. */
-    op_node = make_comma_node(temp_init_node, op_node);
+  /* Here, op_node is "x = x +- 1" or a fancier but equivalent expression
+     if a temporary was used.  For a pre-operation, that's all we need. */
+  if (is_post_op) {
+    /* A post-increment or post-decrement.  Add a comma expression to
+       return the value of the temporary, which is the original value
+       of the operand. */
+    op_node = make_comma_node(op_node, var_rvalue_expr(temp_var));
   }  /* if */
   overwrite_node(expr, op_node);
 }  /* lower_c99_fixed_point_incr_decr */
