@@ -1158,10 +1158,8 @@ static void enter_microsoft_predeclared_functions(void)
 Enter the predeclared functions for Microsoft mode.
 */
 {
-  a_symbol_ptr                  sym;
-
   if (microsoft_version >= 1300) {
-    sym = enter_builtin_function("__debugbreak",
+    (void)enter_builtin_function("__debugbreak",
                                  void_type(),
                                  (a_type_ptr)NULL,
                                  (a_type_ptr)NULL,
