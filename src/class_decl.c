@@ -7871,8 +7871,6 @@ or implicit) controlling the declaration.
     /* The identifier should be a qualified name, with the qualifier a base
        class of the current class. */
     declared_sym = locator_for_curr_id.specific_symbol;
-    check_assertion_str(declared_sym != NULL,
-                        "member_using_decl: NULL symbol pointer");
     if (!locator_for_curr_id.is_class_member) {
       error(ec_class_qualified_name_required);
       err = TRUE;
@@ -7885,6 +7883,10 @@ or implicit) controlling the declaration.
       discard_curr_construct_pragmas();
       (void)get_token();
       goto done;
+#if CHECKING
+    } else if (declared_sym == NULL) {
+      internal_error("member_using_decl: NULL symbol ptr");
+#endif /* CHECKING */
     } else if (is_constructor_symbol(declared_sym) ||
                is_destructor_symbol(declared_sym)) {
       /* A using-declaration may not specify a constructor or destructor. */
