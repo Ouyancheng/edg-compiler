@@ -8174,6 +8174,9 @@ instantiation is available.
 }  /* gen_template_from_prototype_instantiation */
 
 
+#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/  /* tp is not used in some configurations. */
+#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 static a_boolean template_should_be_generated_from_prototype_instantiation(
                                                            a_template_ptr  tp)
 /*
