@@ -83,6 +83,15 @@ derived object could be caught by a catch of a base pointer, or a throw
 of a derived pointer could be caught by a catch of a base object.  This
 has been fixed.
 
+3/10/99  Internal error on invalid using declaration inside class template
+
+An internal error has been eliminated on the following invalid code:
+
+  template <class T> struct A {
+    int x;
+    using A::x;                          // internal error eliminated
+  };
+
 3/9/99   Microsoft compatibility: loop in Microsoft mode in version 2.41
 
 A Microsoft compatibility bug fix in 2.40 introduced a new bug that
