@@ -306,6 +306,10 @@ extern
 void set_nested_template_class_symbol_info(a_symbol_ptr  sym,
                                            a_type_kind	 type_kind);
 
+extern
+void update_nested_template_class_symbol_info(a_symbol_ptr       sym,
+                                              a_type_kind	 type_kind);
+
 extern void update_instantiation_required_flag(
                                         a_template_instance_ptr tip,
                                         a_boolean               value,

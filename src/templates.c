@@ -7780,6 +7780,31 @@ any classes that declared the nested class as a template friend.
 }  /* set_nested_template_class_symbol_info */
 
 
+void update_nested_template_class_symbol_info(a_symbol_ptr       sym,
+                                              a_type_kind	 type_kind)
+/*
+This routine is like set_nested_template_class_symbol_info, but is called
+in the case where a nested class in a class template is declared and then
+later defined.  This routine updates the type kind information of the
+template.  sym is the symbol of the nested class being defined.  type_kind
+is the type kind associated with this declaration.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  ssep = &scope_stack[depth_innermost_instantiation_scope];
+  if (sym->is_class_member) {
+    if (ssep->in_prototype_instantiation) {
+      /* Set the pointer that points back to the original class template
+         symbol. */
+      a_template_symbol_supplement_ptr	tssp;
+      tssp = template_supplement_for_symbol(sym);
+      tssp->variant.class_template.type_kind = type_kind;
+    }  /* if */
+  }  /* if */
+}  /* update_nested_template_class_symbol_info */
+
+
 static
 void record_specialization(a_tmpl_decl_state_ptr		decl_state,
                            a_symbol_ptr				template_sym,

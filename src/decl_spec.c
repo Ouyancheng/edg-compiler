@@ -2130,6 +2130,15 @@ the template.
          that the symbol is henceforth visible for lookup. */
       tag_sym->is_invisible = FALSE;
     }  /* if */
+    if (is_class_definition) {
+      /* Allow for alternating between class and struct, but stay with the
+         one associated with the definition.  The difference only affects
+         default member access. */
+      class_type->kind = type_kind;
+      /* If this is a nested class of a class template, update the type kind
+         associated with the template. */
+      update_nested_template_class_symbol_info(tag_sym, type_kind);
+    }  /* if */
     /* Record cross-reference information. */
     if (is_class_definition || is_predeclared_type_decl ||
         (curr_token == tok_semicolon &&
@@ -2144,10 +2153,6 @@ the template.
         if (!is_template_class_instantiation) {
           srk_flags |= SRK_DEFINITION;
         }  /* if */
-        /* Allow for alternating between class and struct, but stay with the
-           one associated with the definition.  The difference only affects
-           default member access. */
-        class_type->kind = type_kind;
       } else {
         /* A declaration of the form "class A;", when A has already been
            declared, is treated as a redeclaration (not a reference). */

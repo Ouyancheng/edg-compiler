@@ -1,5 +1,22 @@
 Version 2.43
 
+12/6/99  Access of nested class in class template when redeclared
+
+A spurious access error was issued when a nested class of a class template
+was declared with the "class" keyword but defined later with the "struct"
+keyword.  This has been fixed.
+
+  template<class T> struct A {
+    class B;
+    struct B {
+      void f(){};
+    };
+  };
+  int main(){
+    A<int>::B ab;
+    ab.f();
+  }
+
 12/6/99  Declaration matching problem with member template and member function
          with the same signature
 
