@@ -8449,7 +8449,7 @@ delayed scan of cached tokens of member functions defined in a class definition
 and for the instantiation of template functions.
 */
 {
-  a_type_ptr                     class_type, rout_type, tp;
+  a_type_ptr                     class_type, rout_type;
   a_routine_type_supplement_ptr  rtsp;
   a_scope_number                 scope_number;
   a_param_id_ptr                 param_id;
@@ -8511,6 +8511,10 @@ and for the instantiation of template functions.
     /* Correctly declared function type. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->param_id_list != NULL) {
+      /* Step through the segment of file-scope source sequence entries
+         generated when the parameter list of the function was scanned.
+         Do necessary fixups for parameter entries, and build function-scope
+         proxies where necessary. */
       ssep = func_info->prototype_scope_ss_entry_start;
       for (; ssep != NULL; ssep = next_ssep) {
         if (ssep == func_info->prototype_scope_ss_entry_end) {
@@ -8520,6 +8524,11 @@ and for the instantiation of template functions.
         }  /* if */
         switch (ss_entry_kind(ssep)) {
           case iek_none:
+            /* An empty entry should be for a parameter (the entry could
+               not be filled in when the parameter identifier appeared, because
+               the variable entry does not get built at that time).  Find
+               the corresponding parameter (the lists are not necessarily in
+               the same order). */
             param_id = func_info->param_id_list;
             for (; param_id != NULL; param_id = param_id->next) {
               if (param_id->source_sequence_entry == ssep) break;
@@ -8529,6 +8538,8 @@ and for the instantiation of template functions.
               internal_error("scan_function_body: no param-id for ss entry");
             }  /* if */
 #endif /* CHECKING */
+            /* Take the entry off the file-scope list and add one (also
+               empty so far) to the function-scope list. */
             remove_from_source_sequence_list(
                               &ssep, func_info->class_in_which_defined_inline);
             param_id->source_sequence_entry =
@@ -8536,11 +8547,13 @@ and for the instantiation of template functions.
                                                   /*proxy_allowed=*/FALSE);
             break;
           case iek_type:
-            tp = ss_entry_ptr(ssep, a_type_ptr);
-            if (is_immediate_class_type(tp) || is_immediate_enum_type(tp)) {
-              make_proxy_ptr_source_sequence_entry(ssep);
-              break;
-            }  /* if */
+            /* For types, make proxy entries on the function scope list. */
+            { a_type_ptr tp = ss_entry_ptr(ssep, a_type_ptr);
+              if (is_immediate_class_type(tp) || is_immediate_enum_type(tp)) {
+                make_proxy_ptr_source_sequence_entry(ssep);
+              }  /* if */
+            }
+            break;
           default:;
             /* No action. */
         }  /* switch */
