@@ -4522,9 +4522,8 @@ return_with_line:
   if (has_invalid_char) {
     /* Put out an error if the line contains any invalid characters.  Only the
        position of the first one is identified. */
-    diagnostic_at_line_pos(gcc_mode ? es_warning : es_error,
-                           ec_invalid_char,
-                           curr_source_line + offset_to_invalid_char);
+    error_at_line_pos(ec_invalid_char,
+                      curr_source_line + offset_to_invalid_char);
   }  /* if */
   /* Set the input character position to the start of the line. */
   if (!extend_current_line) {

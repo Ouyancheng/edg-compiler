@@ -156,13 +156,6 @@ types.
   typedef unsigned Int UInt; /* Accept in GNU C and pcc modes; error in
                                 other modes. */
 
-3/26/02  GNU C mode: Warning only on null character in source line
-
-In GNU C mode, the front end now issues only a warning (rather than
-an error) on a null character in a source line.  The null character is
-replaced by a blank, which does not match what gcc does (gcc ignores
-it).
-
 3/25/02  Template destructor not defined with ABI < 2.38
 
 In a copy of the front end configured with ABI_COMPATIBILITY_VERSION < 238,
