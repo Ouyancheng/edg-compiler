@@ -214,7 +214,7 @@ static void form_namespace_qualifier(
 Output a namespace qualifier (e.g., "N::") that identifies the indicated
 namespace.  Do the output in the way described by octl.  Note that the
 output_name routine in the control block (if there is one) will not be used
-to output any part of the the name.  Called only for C++.
+to output any part of the name.  Called only for C++.
 */
 {
   a_source_correspondence  *scp = &nsp->source_corresp;
