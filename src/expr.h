@@ -178,13 +178,7 @@ Macro that is TRUE if the node is a routine address node.
 	((node)->kind == (an_expr_node_kind)enk_routine_address)
 
 /*
-Macro that is TRUE if the node is a field node.
-*/
-#define is_field_node(node)						\
-	((node)->kind == (an_expr_node_kind)enk_field)
-
-/*
-Macro that is TRUE if the node is a error node.
+Macro that is TRUE if the node is an error node.
 */
 #define is_error_node(node)						\
 	((node)->kind == (an_expr_node_kind)enk_error)
