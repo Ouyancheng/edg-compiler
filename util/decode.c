@@ -1699,7 +1699,7 @@ Return a pointer to the character position following what was demangled.
         curr_param_num++;
       }  /* if */
       /* Stop after the last parameter. */
-      if (*p == '\0' || *p == 'e' || *p == '_') break;
+      if (*p == '\0' || *p == 'e' || *p == '_' || *p == 'F') break;
       write_id_str(", ", dctl);
     }  /* for */
   }  /* if */
@@ -1948,8 +1948,18 @@ If nchars > 0, take no more than that many characters.
   a_boolean     member_function = TRUE;
   a_template_param_block
                 temp_par_info;
+  a_boolean     is_externalized_static = FALSE;
 
   clear_template_param_block(&temp_par_info);
+  if ((nchars == 0 || nchars > 7) && start_of_id_is("__STF__", ptr)) {
+    /* Static function made external by addition of prefix "__STF__" and
+       suffix of module id. */
+    is_externalized_static = TRUE;
+    /* Advance past __STF__. */
+    ptr += 7;
+    if (nchars > 0) nchars -= 7;
+    p = ptr;
+  }  /* if */
   /* Scan through the name (the first part of the mangled name) without
      generating output, to see what's beyond it.  Special processing is
      necessary for names of constructors, conversion routines, etc. */
@@ -2114,6 +2124,10 @@ end_of_routine:
      to the end of the local entity name, and needs to be set to after the
      function-local indication at the end of the whole name. */
   if (function_local_end_ptr != NULL) end_ptr = function_local_end_ptr;
+  if (is_externalized_static) {
+    /* Advance over the module id part of the name. */
+    while (get_char(end_ptr, ptr, nchars) != '\0') end_ptr++;
+  }  /* if */
   return end_ptr;
 }  /* full_demangle_identifier */
 
@@ -2143,23 +2157,6 @@ the part in the middle, which is the original name.
   while (*ptr != '\0') ptr++;
   return ptr;
 }  /* demangle_static_variable_name */
-
-
-static char *demangle_static_function_name(char                       *ptr,
-                                           a_decode_control_block_ptr dctl)
-/*
-Demangle the name of a static function promoted to being external by
-addition of a prefix "__STF__" and a suffix of a module id.  Just put out
-the part in the middle, which is the original mangled name.
-*/
-{
-  ptr += 7;  /* Move to after "__STF__". */
-  /* Demangle the function name. */
-  ptr = demangle_identifier(ptr, dctl);
-  /* Advance over the module id part of the name. */
-  while (*ptr != '\0') ptr++;
-  return ptr;
-}  /* demangle_static_function_name */
 
 
 static char *demangle_local_name(char                       *ptr,
@@ -2402,10 +2399,6 @@ length returned the second time will be correct).
     /* Static variable made external by addition of prefix "__STV__" and
        suffix of module id. */
     end_ptr = demangle_static_variable_name(id, dctl);
-  } else if (start_of_id_is("__STF__", id)) {
-    /* Static function made external by addition of prefix "__STF__" and
-       suffix of module id. */
-    end_ptr = demangle_static_function_name(id, dctl);
   } else if (start_of_id_is("__", id) && isdigit((unsigned char)id[2])) {
     /* Local variable mangled by the C-generating back end: __nn_mm_name,
        where "nn" and "mm" are decimal integers. */

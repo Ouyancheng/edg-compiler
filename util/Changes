@@ -1,4 +1,12 @@
-Version 3.0, May 7, 2002
+Version 3.0, May 8, 2002
+
+5/8/02   Demangling of names with nested externalized function names
+
+Names of variables promoted out of externalized static functions
+are now demangled correctly.  An example of a name that formerly
+was not demangled is
+
+x__L4____STF__sft3__tm__9_1Z2AA2AA__FZ1ZRCZ2__tm__2_sZRCZ3__tm__2_sZ_RC1Z__test_7_c_e9076052
 
 4/17/02  Demangling of nested unnamed namespaces
 
