@@ -4373,6 +4373,10 @@ be used (e.g., eok_add, not eok_iadd).
       default:;
         /* Other operators are unchanged. */
     }  /* switch */
+    /* Make sure lvalues are converted to rvalues (for proxy member
+       constants in prototype instantiations). */
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+    do_operand_transformations(operand_2, TOPT_NO_OPTIONS);
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand_1);
@@ -4491,6 +4495,9 @@ be used (e.g., eok_negate, not eok_inegate).
     if (op == (an_expr_operator_kind)eok_negate) {
       op = (an_expr_operator_kind)eok_inegate;
     }  /* if */
+    /* Make sure lvalues are converted to rvalues (for proxy member
+       constants in prototype instantiations). */
+    do_operand_transformations(operand, TOPT_NO_OPTIONS);
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand);
@@ -4554,6 +4561,11 @@ it happens in prototype instantiations.
                         is_constant_operand(operand_2) &&
                         is_constant_operand(operand_3),
                         "template_question_operation: non-const operand");
+    /* Make sure lvalues are converted to rvalues (for proxy member
+       constants in prototype instantiations). */
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+    do_operand_transformations(operand_2, TOPT_NO_OPTIONS);
+    do_operand_transformations(operand_3, TOPT_NO_OPTIONS);
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand_1);
