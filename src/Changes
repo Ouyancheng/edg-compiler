@@ -1,5 +1,11 @@
 Version 2.43
 
+10/29/99 Internal error when not using INSTANTIATION_BY_IMPLICIT_INCLUSION
+
+In Microsoft mode, an internal error could occur when the end of the
+primary source file is reached when using a version without
+INSTANTIATION_BY_IMPLICIT_INCLUSION.  Now fixed.
+
 10/29/99 Using-declarations for tag names and non-tag names
 
 The front end used to ignore tag names referred to by using-declarations if
