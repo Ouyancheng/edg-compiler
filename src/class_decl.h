@@ -32,8 +32,6 @@ typedef struct a_delayed_scan_fixup *a_delayed_scan_fixup_ptr;
 
 extern a_boolean simplify_curr_class_qualified_name(void);
 
-extern void prescan_default_arg_expr(a_param_type_ptr  ptp);
-
 extern a_boolean do_alignment(a_targ_size_t    *byte_offset,
                               int              *bit_offset,
                               a_targ_alignment alignment);
