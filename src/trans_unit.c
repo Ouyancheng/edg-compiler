@@ -343,7 +343,7 @@ pointed to by the translation unit entry.
        to the copy in the variables block. */
     if (vrp->field_offset != 0) {
       a_void_ptr	*field;
-      field = (a_void_ptr)((char *)tup + vrp->field_offset);
+      field = (a_void_ptr*)((char *)tup + vrp->field_offset);
       *field = (a_void_ptr)dest;
     }  /* if */
   }  /* for */
@@ -385,7 +385,7 @@ pointed to by the translation unit entry.
        to the global variable. */
     if (vrp->field_offset != 0) {
       a_void_ptr	*field;
-      field = (a_void_ptr)((char *)tup + vrp->field_offset);
+      field = (a_void_ptr*)((char *)tup + vrp->field_offset);
       *field = (a_void_ptr)dest;
     }  /* if */
   }  /* for */
@@ -571,7 +571,7 @@ a pointer to the entry created.
       a_void_ptr	dest;
       a_void_ptr	*field;
       dest = vrp->ptr;
-      field = (a_void_ptr)((char *)tup + vrp->field_offset);
+      field = (a_void_ptr*)((char *)tup + vrp->field_offset);
       *field = (a_void_ptr)dest;
     }  /* if */
   }  /* for */
