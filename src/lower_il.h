@@ -527,6 +527,8 @@ extern void turn_branch_into_block(a_statement_ptr        statement,
                                    an_insert_location_ptr insert_location,
                                    a_statement_ptr        *orig_statement);
 
+extern a_context_ptr context_for_lifetime(an_object_lifetime_ptr lifetime);
+
 extern void gen_cleanup_actions(an_object_lifetime_ptr outer_lifetime,
                                 an_insert_location_ptr insert_location);
 

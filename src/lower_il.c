@@ -6544,10 +6544,10 @@ to the original statement in its new location.
 }  /* turn_branch_into_block */
 
 
-static a_context_ptr context_for_try(an_object_lifetime_ptr lifetime)
+a_context_ptr context_for_lifetime(an_object_lifetime_ptr lifetime)
 /*
-lifetime is the object lifetime associated with a "try" block.  Find and
-return a pointer to the context associated with the "try".
+Find and return a pointer to the context associated with the given object
+lifetime.
 */
 {
   a_context_ptr context;
@@ -6556,7 +6556,7 @@ return a pointer to the context associated with the "try".
        !context->new_lifetime || context->lifetime != lifetime;
        context = context->parent) {}
   return context;
-}  /* context_for_try */
+}  /* context_for_lifetime */
 
 
 static a_boolean gen_cleanup_actions_or_check_if_needed(
@@ -6612,7 +6612,7 @@ code.
         /* Exit from a "try" block. */
         any_cleanup_needed = TRUE;
         if (check_only) goto done;
-        cleanup_on_exit_from_try_block(context_for_try(lifetime),
+        cleanup_on_exit_from_try_block(context_for_lifetime(lifetime),
                                        insert_location);
       } else if ((an_il_entry_kind)lifetime->entity.kind == iek_scope &&
                  (scope = (a_scope_ptr)lifetime->entity.ptr,
