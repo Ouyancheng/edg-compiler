@@ -817,6 +817,7 @@ skip_tag_scan:
             /* Push a namespace reactivation scope. */
             push_namespace_reactivation_scope(tag_sym->parent.namespace_ptr);
             namespace_deactivation_required = TRUE;
+            effective_decl_level = depth_scope_stack;
           }  /* if */
         }  /* if */
       } else {
