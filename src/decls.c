@@ -7059,7 +7059,8 @@ processing of function definition.
   a_param_type_ptr    ptp;
   a_param_id_ptr      param_id;
   int                 saved_container_pos, saved_depth_stmt_stack;
-  int                 saved_code_reachable;
+  a_reachability_summary
+                      saved_curr_reachability;
 
   db_enter(3, "inline_function_definition");
   rout_type = skip_typerefs(rout_ptr->type);
@@ -7184,7 +7185,7 @@ processing of function definition.
      defined within a function definition.  An indefinite nesting depth is
      supported */
   new_struct_stmt_stack(&saved_container_pos, &saved_depth_stmt_stack,
-                        &saved_code_reachable);
+                        &saved_curr_reachability);
   /* Scan the compound statement defining the function.  The closing "}"
      is not swallowed by compound_statement, so that the pop_scope call
      can be done to get any errors out right on the "}". */
@@ -7192,7 +7193,7 @@ processing of function definition.
                                           /*explicit_return_type=*/TRUE);
   /* Restore the original structured statement stack. */
   restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
-                            saved_code_reachable);
+                            &saved_curr_reachability);
   /* Pop the function scope. */
   pop_scope();
   /* The lint "argsused" and "varargs" flags are only applicable until
