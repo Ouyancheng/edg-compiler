@@ -1085,7 +1085,7 @@ unreachable code).
          with the current function or block scope. */
       lsvip = alloc_local_static_variable_init((an_init_kind)initk_dynamic);
       lsvip->initializer.dynamic = dip;
-      add_to_local_static_variable_inits_list(lsvip);
+      add_to_local_static_variable_inits_list(lsvip, (a_scope_ptr)NULL);
       /* Mark the variable as having cross-scope initialization. */
       vp->init_kind = (an_init_kind)initk_function_local;
     } else {
@@ -1465,7 +1465,7 @@ returned set to TRUE.
            current function or block scope. */
         lsvip = alloc_local_static_variable_init((an_init_kind)initk_static);
         lsvip->initializer.constant = init_con;
-        add_to_local_static_variable_inits_list(lsvip);
+        add_to_local_static_variable_inits_list(lsvip, (a_scope_ptr)NULL);
         /* Mark the variable as having cross-scope initialization. */
         vp->init_kind = (an_init_kind)initk_function_local;
       } else {

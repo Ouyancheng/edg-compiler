@@ -320,7 +320,8 @@ extern void get_variable_initializer(a_variable_ptr     variable,
                                      an_initializer_ptr *initializer);
 
 extern void add_to_local_static_variable_inits_list(
-                                   a_local_static_variable_init_ptr  lsvip);
+                                   a_local_static_variable_init_ptr  lsvip,
+                                   a_scope_ptr                       scope);
 
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 

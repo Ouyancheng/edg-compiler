@@ -5028,26 +5028,21 @@ kind, clear it to default values, and return a pointer to it.
 
 
 void add_to_local_static_variable_inits_list(
-                                   a_local_static_variable_init_ptr  lsvip)
+                                   a_local_static_variable_init_ptr  lsvip,
+                                   a_scope_ptr                       scope)
 /*
-Add the indicated local static variable init entry to the end of the list
-for the current function or block scope.
+Add the indicated local static variable init entry to the list for the
+indicated scope.  If scope is NULL, add the entry to the current scope.
 */
 {
-  a_scope_ptr              sp;
-  a_scope_stack_entry_ptr  ssep;
-
-  ssep = &scope_stack[decl_scope_level];
-  check_assertion(ssep->kind == (a_scope_kind)sck_function ||
-                  ssep->kind == (a_scope_kind)sck_block);
-  sp = ssep->il_scope;
-  check_assertion(sp != NULL);
-  if (sp->local_static_variable_inits == NULL) {
-    sp->local_static_variable_inits = lsvip;
-  } else {
-    ssep->last_local_static_variable_init->next = lsvip;
+  if (scope == NULL) {
+    scope = scope_stack[decl_scope_level].il_scope;
+    check_assertion(scope != NULL);
   }  /* if */
-  ssep->last_local_static_variable_init = lsvip;
+  check_assertion(scope->kind == (a_scope_kind)sck_function ||
+                  scope->kind == (a_scope_kind)sck_block);
+  lsvip->next = scope->local_static_variable_inits;
+  scope->local_static_variable_inits = lsvip;
 }  /* add_to_local_static_variable_inits_list */
 
 
