@@ -359,58 +359,62 @@ information, such as its address and translation unit.
   a_trans_unit_corresp_ptr	tucp;
   a_boolean			has_defn = FALSE, show_defn_state = FALSE;
 
-  fprintf(f_debug, "%s", il_entry_kind_names[(int)kind]);
-  if (kind == iek_type) {
-    fprintf(f_debug, " ");
-    db_abbreviated_type((a_type_ptr)entry);
-  } else if (source_corresp_for_il_entry(entry, kind) != NULL) {
-    fprintf(f_debug, " %s",
-                     db_name_str((a_source_correspondence *)entry, kind));
-  }  /* if */
-  fprintf(f_debug, "\n");
-  fprintf(f_debug, "address = %p", entry);
-  fprintf(f_debug, ", in %s trans unit", in_secondary_trans_unit(entry) ?
-                                             "secondary" : "primary");
-  fprintf(f_debug, ", in %s scope", in_file_scope(entry) ?
-                                             "file" : "function");
-  if (kind == iek_type) {
-    a_type_ptr type = (a_type_ptr)entry;
-    if (is_immediate_class_type(type)) {
-      show_defn_state = TRUE;
-      has_defn = class_type_has_body(type);
-    } else if (is_immediate_enum_type(type)) {
-      show_defn_state = TRUE;
-      has_defn = !is_incomplete_type(type);
-    }  /* if */
-  } else if (kind == iek_routine) {
-    a_routine_ptr rout = (a_routine_ptr)entry;
-    show_defn_state = TRUE;
-    has_defn = (rout->assoc_scope != NULL_region_number);
-  } else if (kind == iek_variable) {
-    a_variable_ptr var = (a_variable_ptr)entry;
-    show_defn_state = TRUE;
-    has_defn = (var->storage_class == (a_storage_class)sc_unspecified);
-  }  /* if */
-  if (show_defn_state) {
-    fprintf(f_debug, ", %s definition", has_defn ? "has" : "no");
-  }  /* if */
-  fprintf(f_debug, "\n");
-  scp = source_corresp_for_il_entry(entry, kind);
-  tucp = scp == NULL ? NULL : scp->trans_unit_corresp;
-  if (tucp != NULL) {
-    /* Display the correspondence information. */
-    fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n", tucp,
-            tucp->canonical, tucp->primary);
-  }  /* if */
-  if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
-    copy_addr = trans_unit_copy_address_of(entry);
-    fprintf(f_debug, "copy address = %p", copy_addr);
-    /* Check for a second level copy address. */
-    if (copy_addr != NULL && in_secondary_trans_unit(copy_addr)) {
-      copy_addr = trans_unit_copy_address_of(copy_addr);
-      fprintf(f_debug, ", %p", copy_addr);
+  if (entry == NULL) {
+    fprintf(f_debug, "<null pointer>\n");
+  } else {
+    fprintf(f_debug, "%s", il_entry_kind_names[(int)kind]);
+    if (kind == iek_type) {
+      fprintf(f_debug, " ");
+      db_abbreviated_type((a_type_ptr)entry);
+    } else if (source_corresp_for_il_entry(entry, kind) != NULL) {
+      fprintf(f_debug, " %s",
+                       db_name_str((a_source_correspondence *)entry, kind));
     }  /* if */
     fprintf(f_debug, "\n");
+    fprintf(f_debug, "address = %p", entry);
+    fprintf(f_debug, ", in %s trans unit", in_secondary_trans_unit(entry) ?
+                                               "secondary" : "primary");
+    fprintf(f_debug, ", in %s scope", in_file_scope(entry) ?
+                                               "file" : "function");
+    if (kind == iek_type) {
+      a_type_ptr type = (a_type_ptr)entry;
+      if (is_immediate_class_type(type)) {
+        show_defn_state = TRUE;
+        has_defn = class_type_has_body(type);
+      } else if (is_immediate_enum_type(type)) {
+        show_defn_state = TRUE;
+        has_defn = !is_incomplete_type(type);
+      }  /* if */
+    } else if (kind == iek_routine) {
+      a_routine_ptr rout = (a_routine_ptr)entry;
+      show_defn_state = TRUE;
+      has_defn = (rout->assoc_scope != NULL_region_number);
+    } else if (kind == iek_variable) {
+      a_variable_ptr var = (a_variable_ptr)entry;
+      show_defn_state = TRUE;
+      has_defn = (var->storage_class == (a_storage_class)sc_unspecified);
+    }  /* if */
+    if (show_defn_state) {
+      fprintf(f_debug, ", %s definition", has_defn ? "has" : "no");
+    }  /* if */
+    fprintf(f_debug, "\n");
+    scp = source_corresp_for_il_entry(entry, kind);
+    tucp = scp == NULL ? NULL : scp->trans_unit_corresp;
+    if (tucp != NULL) {
+      /* Display the correspondence information. */
+      fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n", tucp,
+              tucp->canonical, tucp->primary);
+    }  /* if */
+    if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
+      copy_addr = trans_unit_copy_address_of(entry);
+      fprintf(f_debug, "copy address = %p", copy_addr);
+      /* Check for a second level copy address. */
+      if (copy_addr != NULL && in_secondary_trans_unit(copy_addr)) {
+        copy_addr = trans_unit_copy_address_of(copy_addr);
+        fprintf(f_debug, ", %p", copy_addr);
+      }  /* if */
+      fprintf(f_debug, "\n");
+    }  /* if */
   }  /* if */
 }  /* db_entity_info */
 
