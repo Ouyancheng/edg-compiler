@@ -3626,7 +3626,7 @@ function_lparen:
     /* This is a top-level call to declarator. */
     if (locator != NULL &&
         (locator->is_operator_name || locator->is_conversion_name) &&
-        !is_function_type(complete_type) && !is_error_type(complete_type)) {
+        !is_function_type(complete_type)) {
       /* A declaration of an operator must have a function type. */
       pos_error(ec_function_type_required, &locator->source_position);
       set_to_error_locator(*locator);
