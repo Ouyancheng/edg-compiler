@@ -3454,8 +3454,8 @@ on the types themselves are ignored.  See [expr.static.cast].
 Note that this routine does not check the implicit conversions, which
 are also allowed as static_casts: it also doesn't handle casts to reference
 types, it doesn't reject conversions that cast away constness, and
-it doesn't handle user-defined conversions.  This routine is called only in
-C++ mode.
+it doesn't handle user-defined conversions.  This routine is called in
+C mode as well as C++ mode.
 */
 {
   a_boolean        okay = FALSE, suppress_extensions = FALSE;
@@ -3482,14 +3482,18 @@ C++ mode.
   check_assertion_str(!is_reference_ptr(dest_type),
                     "static_cast_conversion_possible: dest_type is reference");
 
-  if (impl_conversion_possible(dest_type,
-                               /*source_is_constant=*/FALSE,
-                               (a_constant *)NULL,
-                               source_type,
-                               suppress_extensions,
-                               ec_bad_cast, /* Arbitrary. */
-                               &impl_std_conv)) {
-    /* The reverse of any standard conversion is allowed. */
+  if (is_void(dest_type)) {
+    /* Anything --> (possibly qualified) void is allowed. */
+    okay = TRUE;
+  } else if (!C_mode() &&
+             impl_conversion_possible(dest_type,
+                                      /*source_is_constant=*/FALSE,
+                                      (a_constant *)NULL,
+                                      source_type,
+                                      suppress_extensions,
+                                      ec_bad_cast, /* Arbitrary. */
+                                      &impl_std_conv)) {
+    /* The reverse of any standard conversion is allowed in C++. */
     okay = TRUE;
   }  /* if */
 #if DEBUG
@@ -3681,13 +3685,12 @@ conversions (constructors and conversion functions).
   if (impl_okay && impl_std_conv.warning_suggested == ec_no_error) {
     /* There is an implicit conversion, and it's not questionable. */
     okay = TRUE;
-  } else if (is_incomplete(dest_type)) {
+  } else if (is_incomplete(dest_type) && !is_void_type(dest_type)) {
     /* This catches incomplete enums for completeness.  The caller probably
        ruled out incomplete types anyway. */
     /* okay = FALSE; -- already set. */
-  } else if (!C_mode() &&
-             static_cast_conversion_possible(source_type, dest_type)) {
-    /* The conversion can be done as a static_cast in C++. */
+  } else if (static_cast_conversion_possible(source_type, dest_type)) {
+    /* The conversion can be done as a static_cast. */
     okay = TRUE;
   } else if (C_mode() && is_integral(source_type) && is_enum(dest_type)) {
     /* In C, integral --> enum can be done as an implicit conversion
