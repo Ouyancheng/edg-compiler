@@ -5834,6 +5834,27 @@ only in C++ mode.
         /* We don't need to do anything here.  The locator will be reset
            by tildize_locator. */
       }  /* if */
+    } else if (any_cfront_mode()) {
+      /* Cfront allows a destructor name to refer to a file scope typedef
+         to a particular class. */
+      a_symbol_ptr sym;
+      sym = file_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
+      if (sym != NULL &&
+          sym->kind == (a_symbol_kind)sk_type && is_class_symbol(sym) &&
+          sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+        a_symbol_ptr		type_sym;
+        a_type_ptr		tp;
+        a_source_position	saved_position;
+        saved_position = locator_for_curr_id.source_position;
+        tp = skip_typerefs(sym->variant.type);
+        /* Get the symbol pointer associated with the type pointed to. */
+        type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+        make_locator_for_symbol(type_sym, &locator_for_curr_id);
+        locator_for_curr_id.source_position = saved_position;
+      } else {
+        /* We don't need to do anything here.  The locator will be reset
+           by tildize_locator. */
+      }  /* if */
     }  /* if */
     /* Convert the locator to a locator for the destructor. */
     tildize_locator(&locator_for_curr_id);
