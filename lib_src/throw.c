@@ -714,6 +714,28 @@ entry is returned in etsp_found.
 }  /* check_exception_type_specifications */
 
 
+static void destroy_thrown_object(a_throw_stack_entry_ptr	tsep)
+/*
+Call the destructor for the copy of the object created by the runtime and
+indicate that the throw stack entry may be discarded when it reaches the
+top of the throw stack.
+*/
+{
+  a_boolean	is_rethrow = tsep->is_rethrow;
+  void*		object_address = tsep->object_address;
+
+  tsep->discard_entry = TRUE;
+  /* Call the destructor for the object if needed. */
+  if (!is_rethrow && tsep->object_copy_complete && !is_pointer(tsep->flags)) {
+    a_destructor_ptr	dtor_ptr;
+    dtor_ptr = (a_destructor_ptr)tsep->type_info->destructor;
+    if (dtor_ptr != NULL) {
+      (dtor_ptr)(object_address, 2);
+    }  /* if */
+  }  /* if */
+}  /* destroy_thrown_object */
+
+
 EXTERN_C int __throw(void)
 /*
 Process a throw.  This routine looks through the stack entries for
@@ -848,12 +870,12 @@ a try block with a catch that matches the type of the object thrown.
         /* A catch clause associated with this try block is currently
 	   being processed.  Because this try block is being bypassed the
            throw entry is no longer needed.  It cannot be discarded yet
-           because the thrown objects are allocated using a stack.  Set
-           a flag that this entry should be discarded when it reaches the
-	   top of the stack. */
+           because the thrown objects are allocated using a stack.  Call
+           the destructor for the object and set a flag that this entry
+           should be discarded when it reaches the top of the stack. */
         a_throw_stack_entry_ptr	tsep;
         tsep = (a_throw_stack_entry_ptr)ehsep->variant.try_block.catch_info;
-        tsep->discard_entry = TRUE;
+        destroy_thrown_object(tsep);
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Do nothing. */
@@ -976,7 +998,7 @@ Push an entry onto the throw stack and initialize its fields.
     if (tsep->next->nearest_enclosing_try_block == ehsep) {
       /* There is a previous throw and it does point to the same nearest
          enclosing try block. */
-      tsep->next->discard_entry = TRUE;
+      destroy_thrown_object(tsep);
     }  /* if */
   }  /* if */
 }  /* push_throw_stack */
@@ -1047,28 +1069,17 @@ the completion of a catch clause.
 */
 {
   check_assertion(curr_throw_stack_entry != NULL);
-  curr_throw_stack_entry->discard_entry = TRUE;
+  destroy_thrown_object(curr_throw_stack_entry);
   /* Free any entries with the discard_entry flag set.  This always frees
      the top entry but may also free additional entries associated with
      pending catches that were later skipped over by a throw. */
   while (curr_throw_stack_entry != NULL &&
          curr_throw_stack_entry->discard_entry) {
     a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
-    a_boolean			is_rethrow;
-    void*			object_address;
+    a_boolean			is_rethrow = tsep->is_rethrow;
+    void*			object_address = tsep->object_address;
     /* Unlink this entry from the throw stack. */
     curr_throw_stack_entry = tsep->next;
-    is_rethrow = tsep->is_rethrow;
-    object_address = tsep->object_address;
-    /* Call the destructor for the object if needed. */
-    if (!is_rethrow && tsep->object_copy_complete &&
-        !is_pointer(tsep->flags)) {
-      a_destructor_ptr	dtor_ptr;
-      dtor_ptr = (a_destructor_ptr)tsep->type_info->destructor;
-      if (dtor_ptr != NULL) {
-        (dtor_ptr)(object_address, 2);
-      }  /* if */
-    }  /* if */
     /* Free the space used for the throw stack entry.  Note that the stack
        entry and the object must be freed in the reverse of the order
        in which they were allocated since this is a stack. */

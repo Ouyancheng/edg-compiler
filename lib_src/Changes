@@ -1,5 +1,10 @@
 Version 2.31
 
+1/5/96   Order of destruction of temporaries used by the EH mechanism
+
+Temporary copies of thrown objects are now destroyed in the sequence
+specified by the Working Paper.
+
 12/28/95 Added placement array new and delete and nothrow new routines
 
 The placement version of array new and delete have been added, as
