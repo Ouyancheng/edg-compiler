@@ -1860,7 +1860,12 @@ return NULL.
           tp = sssdp->declared_type;
           break;
         } else if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-          tp = skip_typerefs((a_type_ptr)sssdp->entity.ptr);
+          tp = (a_type_ptr)sssdp->entity.ptr;
+          if (tp->kind == (a_type_kind)tk_typeref) {
+            /* For a typedef, drop the typedef itself to get to the declared
+               type of the typedef. */
+            tp = tp->variant.typeref.type;
+          }  /* if */
           break;
         }  /* if */
         /* FALLTHROUGH */
