@@ -564,7 +564,7 @@ memory.
   /* Track the amount of space used for pp token strings. */
   cached_pp_token_string_space += length+1;
 #endif /* DEBUG */
-  new_end = new_start + length;
+  new_end = new_start + length - 1;
   strncpy(new_start, start_of_curr_token, size_t_arg(length));
   /* Add the terminator to the new string. */
   new_start[length] = '\0';
@@ -6282,6 +6282,10 @@ return_from_token_scan:
       /* Print token string if valid. */
       fprintf(f_debug, ", \"%.*s\"", (int)len_of_curr_token,
                                      start_of_curr_token);
+      if (debug_level >= 5) {
+        /* Print the length of the token. */
+        fprintf(f_debug, " (%0d bytes)", (int)len_of_curr_token);
+      }  /* if */
     }  /* if */
     if (curr_token_is_inert_macro) {
       fprintf(f_debug, " (inert)");

@@ -1,5 +1,12 @@
 Version 2.36
 
+5/23/97   End of token set incorrectly when fetching pp-tokens from cache
+
+The end-of-token pointer was incorrectly set to the null-terminator of
+the copy of the token string instead of the actual last character of
+the token.  This also caused the token length to be one character too
+large when the token was fetched from the cache.  This has been fixed.
+
 5/22/97   Array rvalues in C++ are converted to pointer to first element
 
 In C++, unlike in C, an array rvalue is converted to a pointer to its
