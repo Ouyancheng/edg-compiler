@@ -926,12 +926,8 @@ specified by kind.
   int			offset;
   an_fp_value_part	*fp_ptr;
   an_fp_value_part	val;
-  an_fp_value_part	fp_temp[sizeof(an_internal_float_value) /
-                                sizeof(an_fp_value_part)];
+  an_fp_value_part	fp_temp[4];
 
-  /* This routine must be modified on a system for which this assertion is
-     not true. */
-  check_assertion(sizeof(a_host_fp_value) == sizeof(fp_temp));
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, store this value as a double. */
   if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
@@ -974,7 +970,7 @@ specified by kind.
     *fp_ptr = val;
     /* The code above constructs the value in fp_temp.  Copy this to the
        destination value. */
-    memcpy((char*)float_value, (char*)&fp_temp, sizeof(val) * 2);
+    memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 2);
   } else {
     check_assertion(kind == (a_float_kind)fk_long_double);
     if (targ_ldbl_mant_dig == 64) {
@@ -990,7 +986,7 @@ specified by kind.
       *fp_ptr = val;
       /* The code above constructs the value in fp_temp.  Copy this to the
          destination value. */
-      memcpy((char*)float_value, (char*)&fp_temp, sizeof(val) * 3);
+      memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 3);
     } else if (targ_ldbl_mant_dig == 113) {
       /* Update the pointer to refer to the last 32-bit word of the value. */
       if (host_little_endian) fp_ptr += 3;
@@ -1007,7 +1003,7 @@ specified by kind.
       *fp_ptr = val;
       /* The code above constructs the value in fp_temp.  Copy this to the
          destination value. */
-      memcpy((char*)float_value, (char*)&fp_temp, sizeof(val) * 4);
+      memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 4);
     } else {
       unexpected_condition_str("store_hex_fp_value: bad long double size");
     }  /* if */
