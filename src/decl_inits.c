@@ -505,10 +505,10 @@ also create an stmk_init statement at the current point in the code.
   /* Set the referenced flag for the variable, because there is a
      reference now -- the dynamic initialization. */
   vp->source_corresp.referenced = TRUE;
+  new_dip->variable = vp;
   if (ssep->kind == (a_scope_kind)sck_file) {
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement. */
-    new_dip->variable = vp;
   } else {
     /* Build the initialization statement. */
     init_stmt = add_statement((a_statement_kind)stmk_init);
@@ -655,6 +655,13 @@ The syntax is:
   put_init_in_variable = !err;
   if (vp_type == NULL) vp_type = error_type();
   initialization_is_dynamic = FALSE;
+  if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+    /* The initializer of a static data member is scanned with the original
+       class reactivated. */
+    (void)push_scope((a_scope_kind)sck_class_reactivation,
+                     symbol_ptr->decl_scope,
+                     symbol_ptr->class_of_which_a_member, (a_routine_ptr)NULL);
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(vp_type)) {
     cssp = ((a_symbol_ptr)vp_type->source_corresp.assoc_info)->
                                  variant.class_struct_union.extra_info;
@@ -802,6 +809,11 @@ The syntax is:
         }  /* if */
         initialization_is_dynamic = TRUE;
       }  /* if */
+    }  /* if */
+    if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+      /* The initializer of a static data member was scanned with the original
+         class reactivated.  Restore the scope to what it was before. */
+      pop_scope();
     }  /* if */
     if (paren_flag) {
       remove_stop_token(tok_rparen);
