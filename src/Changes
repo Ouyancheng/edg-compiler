@@ -1,5 +1,13 @@
 Version 2.36
 
+4/28/97   is_local_to_function flag may be set incorrectly on instantiations
+          of templates defined in namespaces
+
+Under certain circumstances the is_local_to_function flag associated with
+instances of class or function templates may be set incorrectly.  This
+can result problems such as spurious "template argument may not reference
+a local type" errors.  This has been fixed.
+
 4/28/97   Microsoft compatibility: support for "inheritance kinds" to allow
           different pointer-to-member representations
 
