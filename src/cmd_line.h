@@ -621,7 +621,7 @@ EXTERN a_boolean
                                           = DEFAULT_COMPOUND_LITERALS_ALLOWED
 #endif /* VAR_INITIALIZERS */
                                                                              ;
-			/* TRUE if C9X compound literals, which look like a
+			/* TRUE if C99 compound literals, which look like a
 			   cast including a brace-enclosed initializer, e.g.,
 			   (int []){1, 2, 3}, should be accepted. */
 

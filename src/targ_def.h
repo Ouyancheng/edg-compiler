@@ -2114,7 +2114,7 @@ initial value of the global variable compound_literals_allowed.
 #endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
 
 /*
-This switch controls whether support for compound literals (a C9X feature)
+This switch controls whether support for compound literals (a C99 feature)
 can be enabled.  Having this TRUE means the back end is prepared to
 accept compound literals, which are represented as enk_temp_init nodes.
 The C-generating and C++-generating back ends can handle compound literals
@@ -2348,7 +2348,7 @@ whole process.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-This switch controls whether designated initializers (a C9X feature)
+This switch controls whether designated initializers (a C99 feature)
 are lowered to standard C.  Well, almost standard C: a designated
 initializer allows initialization of a member other than the first in
 a union.  For that case, a ck_designator constant is left in the IL tree

@@ -2774,7 +2774,7 @@ of an assignment).  It's also used for a normal "*" for indirection.
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
              node->variant.init.result_is_addr) {
-    /* C9X compound literals. */
+    /* C99 compound literals. */
     dump_compound_literal(node, /*suppress_address_of=*/TRUE);
     processed = TRUE;
   }  /* if */
@@ -3874,7 +3874,7 @@ done_with_operation:
       write_tok_str("&...");
       break;
     case enk_temp_init:
-      /* Used for C9X compound literals. */
+      /* Used for C99 compound literals. */
       dump_compound_literal(expr, /*suppress_address_of=*/FALSE);
       break;
 #if !DO_FULL_PORTABLE_EH_LOWERING
@@ -5013,7 +5013,7 @@ it will be rendered as executable code.
 static void dump_compound_literal(an_expr_node_ptr expr,
                                   a_boolean        suppress_address_of)
 /*
-Generate code for a compound literal (a C9X feature), which is represented
+Generate code for a compound literal (a C99 feature), which is represented
 as an enk_temp_init expression.  If the expression indicates the address of
 the compound literal, precede it by "&" unless suppress_address_of is TRUE.
 */

@@ -8280,7 +8280,7 @@ static void scan_compound_literal(a_type_ptr        *p_literal_type,
                                   a_source_position *type_position,
                                   an_operand        *result)
 /*
-Scan a compound literal.  See 6.5.2.5 in the C9X standard.  A compound
+Scan a compound literal.  See 6.5.2.5 in the C99 standard.  A compound
 literal looks like a cast in which the source expression is a brace-
 enclosed initializer, e.g.,
 
@@ -8373,7 +8373,7 @@ Syntax:
 or
 	( expression )
 
-Also scans C9X compound literals:
+Also scans C99 compound literals:
 
         ( type-name ) { expression, expression, ... }
 */
@@ -8418,7 +8418,7 @@ Also scans C9X compound literals:
 
     if (compound_literals_allowed &&
         curr_token == tok_lbrace) {
-      /* A compound literal, e.g., (int []){1, 2, 3}.  See 6.5.2.5 in C9X. */
+      /* A compound literal, e.g., (int []){1, 2, 3}.  See 6.5.2.5 in C99. */
       scan_compound_literal(&type_cast_to, &type_position, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;

@@ -1943,7 +1943,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 
 static void gen_compound_literal(a_constant_ptr literal_con)
 /*
-Generate code for a compound literal (a C9X feature).  literal_con is
+Generate code for a compound literal (a C99 feature).  literal_con is
 the literal value.
 */
 {
