@@ -262,7 +262,8 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       unexpected_condition_str("node_has_side_effects: bad node kind");
   }  /* switch */
 
-  if (!C_mode() && is_template_param_type(node->type)) {
+  if (!has_side_effects && !C_mode() &&
+      is_or_contains_template_param(node->type)) {
     /* A node with a template parameter type is considered to have
        side effects.  This is because it's possible that when the type
        is actually known an overloaded operator function would be chosen,
