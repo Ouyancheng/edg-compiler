@@ -2418,9 +2418,9 @@ C and C++.
              it will add a projection symbol to one of the nonreal bases
              if the name is not found.  In other words, this call is used
              to create the nonreal member. */
-          sym = class_qualified_id_lookup(locator,
-                                          lookup_state.class_with_nonreal_base,
-                                          options);
+          sym = class_qualified_id_lookup(
+                                 locator, lookup_state.class_with_nonreal_base,
+                                 options | IDL_DO_NOT_CREATE_PROJ_SYM);
         }  /* if */
       }  /* if */
       if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&

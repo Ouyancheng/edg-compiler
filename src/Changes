@@ -1,5 +1,24 @@
 Version 2.43
 
+12/2/99  Sun compatibility: undeclared template allowed in friend declaration
+
+The library header files that come with the Sun 5.0 compiler include code
+like the following:
+
+  template <class T> struct iterator { };
+  template <class T> struct reverse_iterator : public iterator<T> {
+    friend void f<>(T&);
+    void f(T&, T&) const;
+  };
+  template <class T> void f(T&);
+  reverse_iterator<int> i;
+
+This code is invalid because at the point at which "friend void f<>" is
+encountered, f has not yet been declared as a template.  The Sun compiler
+does accept this code, however.  In Sun compatibility mode, we now accept
+references to undeclared function templates when the code appears in the
+definition of a class template.
+
 12/2/99  Improved error on unexpected end of default argument expression
 
 The front end gave a confusing message when the default argument of a
