@@ -2001,9 +2001,6 @@ and are handled elsewhere.
        process the instantiations when encountering the a_template entry that
        is recorded in the template symbol supplement. */
   } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-    a_type_ptr    class_type = tssp
-                              ->variant.class_template.prototype_instantiation
-                              ->variant.class_struct_union.type;
     a_symbol_ptr  inst = tssp->variant.class_template.instantiations,
                   proto_inst;
     for (; inst != NULL; inst = next_instance_sym(inst)) {
@@ -2017,6 +2014,9 @@ and are handled elsewhere.
     /* For instantiations from template template parameters proto_inst will
        be NULL. */
     if (proto_inst != NULL) {
+      a_type_ptr    class_type = tssp
+                              ->variant.class_template.prototype_instantiation
+                              ->variant.class_struct_union.type;
       record_trans_unit_corresp(class_type,
                                 proto_inst->variant.class_struct_union.type);
       establish_trans_unit_correspondences_for_class(class_type);
