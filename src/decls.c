@@ -3665,8 +3665,10 @@ skip_overloading:;
   /* Set the source correspondence, but leave it pointing at an outer-scope
      symbol if there is one. */
   if (source_corresp_ptr->assoc_info == NULL) {
+    /* There is no symbol pointed to from the variable or routine, so
+       update it with the current symbol. */
     set_source_corresp(source_corresp_ptr, sym);
-  } else if (!redeclaration) {
+  } else if (!redeclaration && !template_function_specific_decl) {
     /* Record a reference to the outer-scope symbol of the same name,
        but do not set the IL entity referenced flag. */
     mark_symbol_referenced(srk_reference, 
