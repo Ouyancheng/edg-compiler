@@ -1922,6 +1922,7 @@ is in fact valid.
           !same_exception_spec(routine->type, corresp_routine->type)) ||
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
+         routine->compiler_generated != corresp_routine->compiler_generated ||
          /* In C mode (C99 & GNU C), the inline flag does not need to match.
             In C++ mode, we only require a match if the function is defined. */
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
