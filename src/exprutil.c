@@ -2923,11 +2923,11 @@ up to the caller to do the cast if desired.
 #endif /* CHECKING */
   orig_ikind = ikind = promoted_type->variant.integer.int_kind;
 #if LONG_LONG_ALLOWED
-  if (microsoft_mode &&
+  if ((microsoft_mode || gnu_mode) &&
       (ikind == (an_integer_kind)ik_long_long ||
        ikind == (an_integer_kind)ik_unsigned_long_long)) {
-    /* MSVC++ promotes long long and unsigned long long bit fields to
-       those types. */
+    /* MSVC++ and gcc/g++ promote long long and unsigned long long bit
+       fields to those types. */
   } else
 #endif /* LONG_LONG_ALLOWED */
   /* Do not insert code here. */
