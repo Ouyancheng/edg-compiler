@@ -2898,7 +2898,7 @@ Returns TRUE if there is an error in the specifiers.
         break;
 #if RESTRICT_ALLOWED
       case tok_restrict:
-        /* volatile type qualifier. */
+        /* restrict type qualifier. */
         if (*qualifiers & TQ_RESTRICT) {
           /* Issue a diagnostic if restrict appears more than once. */
           es = (C_dialect == C_dialect_cplusplus) ? es_warning : es_error;
