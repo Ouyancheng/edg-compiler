@@ -5244,9 +5244,11 @@ the value) of the temporary if result_is_addr is TRUE.
      point of view) part of this scope.  That's important, because it has to
      be destroyed at the right point.  (Note, however, that when a temp is
      created for a default argument in the context of a function prototype
-     scope, no IL scope will be created; that's okay, since the expression
-     will be copied in a context that will have an IL scope.) */
-  if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+     scope, or a template declaration scope, no IL scope will be created;
+     that's okay, since the expression will be copied in a context that
+     will have an IL scope.) */
+  if (ssep->kind != (a_scope_kind)sck_func_prototype &&
+      ssep->kind != (a_scope_kind)sck_template_declaration) {
     (void)ensure_il_scope_exists(ssep);
   }  /* if */
   temp_init_node->variant.init.dynamic_init = dip;
