@@ -889,6 +889,7 @@ Put out a scope kind name (for debugging).
     case sck_file:                   s = "file";                     break;
     case sck_namespace:              s = "namespace";                break;
     case sck_namespace_extension:    s = "namespace extension";      break;
+    case sck_namespace_reactivation: s = "namespace reactivation";   break;
     case sck_func_prototype:         s = "function prototype";       break;
     case sck_block:                  s = "block";                    break;
     case sck_class_struct_union:     s = "class/struct/union";       break;
@@ -938,6 +939,7 @@ Dump the entire scope stack (for debugging).
         break;
       case sck_namespace:
       case sck_namespace_extension:
+      case sck_namespace_reactivation:
         if (ssep->il_scope == NULL) {
           fprintf(f_debug, "null IL scope");
         } else {
@@ -1592,7 +1594,9 @@ with ssep, looking for namespace scopes.
   depth = ssep - &scope_stack[0];
   for (;;) {
     if (ssep->kind == (a_scope_kind)sck_file ||
-        ssep->kind == (a_scope_kind)sck_namespace) {
+        ssep->kind == (a_scope_kind)sck_namespace ||
+        ssep->kind == (a_scope_kind)sck_namespace_extension ||
+        ssep->kind == (a_scope_kind)sck_namespace_reactivation) {
       /* This is a namespace scope (the file scope is treated as a
          namespace scope).  See if it encloses the namespace from
          the using directive. */
@@ -7581,8 +7585,22 @@ C and C++.
          class reactivation). */
       for (first_scope = TRUE;; first_scope = FALSE) {
         a_scope_kind	kind = ssep->kind;
+        if (kind == (a_scope_kind)sck_namespace_extension ||
+            kind == (a_scope_kind)sck_namespace_reactivation) {
+          /* If a namespace extension or reactivation scope is pushed while the
+             original namespace is still on the scope stack, the symbols will
+             be on the active list and not on the inactive lists.  For
+             purposes of name lookup, set the scope kind to sck_namespace if
+             the symbols are still on the active list. */
+          a_scope_pointers_block_ptr	spbp;
+          spbp = assoc_pointers_block_of(ssep);
+          if (!spbp->add_symbols_to_inactive_list) {
+            kind = (a_scope_kind)sck_namespace;
+          }  /* if */
+        }  /* if */
         if (kind == (a_scope_kind)sck_class_reactivation ||
             kind == (a_scope_kind)sck_namespace_extension ||
+            kind == (a_scope_kind)sck_namespace_reactivation ||
 	    kind == (a_scope_kind)sck_template_instantiation) {
           if (cfront_2_1_mode &&
               kind == (a_scope_kind)sck_class_reactivation &&
@@ -7636,7 +7654,8 @@ C and C++.
           }  /* if */
           /* If this is a namespace scope, also look for any symbols that
              are visible because of using directives. */
-          if (kind == (a_scope_kind)sck_namespace_extension &&
+          if ((kind == (a_scope_kind)sck_namespace_extension ||
+               kind == (a_scope_kind)sck_namespace_reactivation) &&
               ssep->using_directives_apply) {
             sym = do_using_directive_lookup(ssep, sym, locator, options);
           }  /* if */
@@ -8847,7 +8866,8 @@ affect the current declarative level.  In C, the current declarative
 level is the same as depth_scope_stack except when struct/union field
 scopes are active; when they are, it indicates the first non-struct-or-union
 scope.  In C++, struct/union/class scopes are real scopes; however,
-class reactivations and template instantiations are not real scopes.
+class and namespace reactivations and template instantiations are not
+real scopes.
 */
 #define is_scope_kind_that_affects_declarative_level(kind)		\
    ((C_dialect != C_dialect_cplusplus) ?				\
@@ -8855,6 +8875,7 @@ class reactivations and template instantiations are not real scopes.
         ((kind) != (a_scope_kind)sck_class_struct_union) :		\
         /* C++ -- class reactivations are not real scopes. */		\
         ((kind) != (a_scope_kind)sck_class_reactivation &&		\
+         (kind) != (a_scope_kind)sck_namespace_reactivation &&		\
          (kind) != (a_scope_kind)sck_template_instantiation))
 
 
@@ -8910,6 +8931,7 @@ specific version of the template.
        (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_func_prototype)) ||
       kind == (a_scope_kind)sck_namespace_extension ||
+      kind == (a_scope_kind)sck_namespace_reactivation ||
       kind == (a_scope_kind)sck_class_reactivation ||
       kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
@@ -8955,6 +8977,7 @@ specific version of the template.
       break;
     case sck_namespace:
     case sck_namespace_extension:
+    case sck_namespace_reactivation:
       if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
         /* In a legal program we should already be in the file-scope memory
            region -- there must have been an error. */
@@ -9109,6 +9132,7 @@ specific version of the template.
     if (kind == (a_scope_kind)sck_class_reactivation ||
         kind == (a_scope_kind)sck_template_instantiation ||
         kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_namespace_reactivation ||
         (kind == (a_scope_kind)sck_class_struct_union &&
          base_classes_of(assoc_type) != NULL)) {
       ssep->inactive_symbols_may_be_visible = TRUE;
@@ -9304,7 +9328,8 @@ specific version of the template.
         depth_template_declaration_scope = NO_SCOPE_DEPTH;
     }  /* if */
     if (kind == (a_scope_kind)sck_namespace ||
-        kind == (a_scope_kind)sck_namespace_extension) {
+        kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_namespace_reactivation) {
       /* Set the scope-pointers-block pointer to refer to the namespace
          symbol supplement. */
       a_symbol_ptr  sym =
@@ -9439,7 +9464,8 @@ entry (for "extension-namespace-definitions").
                       ((assoc_namespace->variant.assoc_scope == NULL) ==
                                        (kind == (a_scope_kind)sck_namespace)),
                       "push_namespace_scope: bad assoc_namespace ptr");
-  if (kind == (a_scope_kind)sck_namespace_extension) {
+  if (kind == (a_scope_kind)sck_namespace_extension ||
+      kind == (a_scope_kind)sck_namespace_reactivation) {
     scope_number_to_reuse = assoc_namespace->variant.assoc_scope->number;
   }  /* if */
   scope = push_scope_full(kind, scope_number_to_reuse, (a_type_ptr)NULL,
@@ -9473,7 +9499,7 @@ scopes.
      scope before pushing the instantiation scope. */
   if (!template_sym->is_class_member &&
        template_sym->parent.namespace_ptr != NULL) {
-    push_namespace_reactivation_scope(template_sym->parent.namespace_ptr);
+    push_namespace_extension_scope(template_sym->parent.namespace_ptr);
   }  /* if */
   scope = push_scope_full((a_scope_kind)sck_template_instantiation,
                           scope_number_to_reuse, assoc_type, assoc_routine,
@@ -9500,7 +9526,7 @@ Interface to pop_scope that is used for template instantiation scopes.
      scope before pushing the instantiation scope. */
   if (!template_sym->is_class_member &&
        template_sym->parent.namespace_ptr != NULL) {
-    pop_namespace_reactivation_scope();
+    pop_namespace_extension_scope();
   }  /* if */
 }  /* pop_template_instantiation_scope */
 
@@ -10213,8 +10239,10 @@ unit.
   a_symbol_ptr			sym;
 
   db_enter(3, "wrapup_scope");
-  if (kind == (a_scope_kind)sck_namespace_extension) {
-    /* Symbol processing is not done for namespace extension scopes. */
+  if (kind == (a_scope_kind)sck_namespace_extension ||
+      kind == (a_scope_kind)sck_namespace_reactivation) {
+    /* Symbol processing is not done for namespace extension and
+       reactivation scopes. */
   } else {
     a_boolean                is_prototype_instantiation = FALSE;
     a_routine_ptr            curr_routine = NULL;
@@ -10349,6 +10377,7 @@ End a name scope by popping an entry off the scope stack.
         db_name(&ssep->assoc_type->source_corresp);
         (void)fputc('"', f_debug);
       } else if ((kind == (a_scope_kind)sck_namespace ||
+                  kind == (a_scope_kind)sck_namespace_reactivation ||
                   kind == (a_scope_kind)sck_namespace_extension) &&
                  ssep->il_scope != NULL &&
                  ssep->il_scope->variant.assoc_namespace != NULL) {
@@ -10740,11 +10769,85 @@ End a name scope by popping an entry off the scope stack.
 }  /* pop_scope */
 
 
+void push_namespace_extension_scope(a_namespace_ptr nsp)
+/*
+Push one or more scopes that will be used to extend the indicated namespace.
+This is used, for example, when scanning functions defined in the namespace.
+A namespace extension scope is pushed in contexts where members can be
+added to a namespace either directly or as a result of a name injection.
+This routine is called only in C++.
+*/
+{
+  a_namespace_ptr		parent_nsp;
+  a_namespace_ptr		curr_nsp = NULL;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  /* If the current scope is a namespace (or namespace extension) scope,
+     see if it matches the one that we are pushing.  If so, don't actually
+     push the scope, just increment the count of the number of excess
+     pushes done on this scope. */
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    curr_nsp = ssep->il_scope->variant.assoc_namespace;
+  }  /* if */
+  if (curr_nsp == nsp) {
+    /* The scope is already on the stack. */
+    ssep->num_of_extra_times_pushed++;
+  } else {
+    /* The entry isn't on the stack.  Push any parent namespaces, then push
+       the specified namespace. */
+    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    if (parent_nsp != NULL) {
+      /* A namespace nested in another namespace.  Push the parent
+         namespace. */
+      push_namespace_extension_scope(parent_nsp);
+    }  /* if */
+    /* Push an entry for the scope. */
+    (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+  }  /* if */
+}  /* push_namespace_extension_scope */
+
+
+void pop_namespace_extension_scope(void)
+/*
+Pop one or more scopes pushed by push_namespace_extension_scope.
+This routine is called only in C++.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_namespace_ptr		parent_nsp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension ||
+                       ssep->kind == (a_scope_kind)sck_namespace,
+                       "pop_namespace_extension_scope:",
+                       "entry not namespace extension");
+  if (ssep->num_of_extra_times_pushed > 0) {
+    /* This namespace had already been pushed when the call to
+       push_namespace_extension_scope was done.  So, we don't want to
+       actually pop the scope at this point.  Just decrement the count
+       of excess pushes. */
+    ssep->num_of_extra_times_pushed--;
+  } else {
+    /* Pop the reactivation scope. */
+    parent_nsp = ssep->il_scope->variant.assoc_namespace->
+                                           source_corresp.parent.namespace_ptr;
+    pop_scope();
+    if (parent_nsp != NULL) {
+      /* A nested namespace.  Pop the enclosing namespaces too. */
+      pop_namespace_extension_scope();
+    }  /* if */
+  }  /* if */
+}  /* pop_namespace_extension_scope */
+
+
+
 void push_namespace_reactivation_scope(a_namespace_ptr nsp)
 /*
 Push one or more scopes that will reactivate the indicated namespace.
-This is used, for example, when scanning functions defined in the
-namespace.  This routine is called only in C++.
+This is used in contexts where the names from a namespace need to be
+visible, but new members cannot be added to the namespace.
+This routine is called only in C++.
 */
 {
   a_namespace_ptr		parent_nsp;
@@ -10772,7 +10875,7 @@ namespace.  This routine is called only in C++.
       push_namespace_reactivation_scope(parent_nsp);
     }  /* if */
     /* Push an entry for the scope. */
-    (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+    (void)push_namespace_scope((a_scope_kind)sck_namespace_reactivation, nsp);
   }  /* if */
 }  /* push_namespace_reactivation_scope */
 
@@ -10788,9 +10891,10 @@ This routine is called only in C++.
 
   ssep = &scope_stack[depth_scope_stack];
   check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension ||
-                       ssep->kind == (a_scope_kind)sck_namespace,
+                       ssep->kind == (a_scope_kind)sck_namespace ||
+                       ssep->kind == (a_scope_kind)sck_namespace_reactivation,
                        "pop_namespace_reactiveation_scope:",
-                       "entry not namespace extension");
+                       "entry not reactivation extension");
   if (ssep->num_of_extra_times_pushed > 0) {
     /* This namespace had already been pushed when the call to
        push_namespace_reactivation_scope was done.  So, we don't want to

@@ -2857,6 +2857,8 @@ extern void pop_template_instantiation_scope(void);
 
 /* End a name scope. */
 extern void pop_scope(void);
+extern void push_namespace_extension_scope(a_namespace_ptr nsp);
+extern void pop_namespace_extension_scope(void);
 extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);
 extern void pop_namespace_reactivation_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);

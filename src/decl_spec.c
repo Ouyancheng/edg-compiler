@@ -605,7 +605,7 @@ to indicate whether the class/struct/union is actually defined.
   a_source_position       tag_position;
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
-  a_boolean               namespace_deactivation_required = FALSE;
+  a_boolean               namespace_extension_pushed = FALSE;
   a_decl_modifier         decl_modifiers = DM_NONE;
 
   db_enter(3, "class_specifier");
@@ -836,9 +836,9 @@ skip_tag_scan:
             } else if (ssep->il_scope->kind != (a_scope_kind)sck_namespace ||
                        tag_sym->parent.namespace_ptr !=
                                    ssep->il_scope->variant.assoc_namespace) {
-              /* Push a namespace reactivation scope. */
-              push_namespace_reactivation_scope(tag_sym->parent.namespace_ptr);
-              namespace_deactivation_required = TRUE;
+              /* Push a namespace extension scope. */
+              push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
+              namespace_extension_pushed = TRUE;
               effective_decl_level = depth_scope_stack;
             }  /* if */
           }  /* if */
@@ -1037,8 +1037,8 @@ skip_tag_scan:
     } else {
       err = TRUE;
     }  /* if */
-    /* If necessary, pop the namespace reactivation scope. */
-    if (namespace_deactivation_required) pop_namespace_reactivation_scope();
+    /* If necessary, pop the namespace extension scope. */
+    if (namespace_extension_pushed) pop_namespace_extension_scope();
   }  /* if */
   if (err) {
     *type_ptr = error_type();

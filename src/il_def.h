@@ -5927,13 +5927,23 @@ enum a_scope_kind_tag {
 			   kind sck_namespace_extension.)  */
   sck_namespace_extension,
 			/* In C++, a scope representing either an "extension-
-			   namespace-definition" or else a reactivation of
-			   a namespace scope (in effect, an implicit extension
-			   in many cases, because the name-injection rules
-			   for friend and block-extern declarations.  Only
-			   used in the front end.  (When a scope stack entry
+			   namespace-definition" or an implicit extension
+			   of the namespace when processing the definitions
+			   of namespace members in enclosing scopes (because
+		           the of the name-injection rules for friend and
+			   block-extern declarations).  Only used in the
+		           front end.  (When a scope stack entry
 			   has this kind, the IL scope entry it points to will
 			   be of kind sck_namespace.) */
+
+  sck_namespace_reactivation,
+			/* In C++, reactivation of a namespace scope, making
+			   the namespace members visible without qualification.
+			   This is used, for example, when processing the
+			   the declarations of friend functions from a
+			   namespace. Only used in the front end.   (When a
+			   scope stack entry has this kind, the IL scope entry
+			   it points to will be of kind sck_namespace.) */
   sck_class_struct_union,
 			/* In C, pseudo-scope for fields of a struct or
 			   union (and only used in the front end); in C++,

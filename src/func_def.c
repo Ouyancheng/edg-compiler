@@ -570,8 +570,8 @@ and for the instantiation of template functions.
         if ((ssep->kind != (a_scope_kind)sck_namespace &&
              ssep->kind != (a_scope_kind)sck_namespace_extension) ||
             nsp != ssep->il_scope->variant.assoc_namespace) {
-          /* Push a namespace reactivation scope. */
-          push_namespace_reactivation_scope(nsp);
+          /* Push a namespace extension scope. */
+          push_namespace_extension_scope(nsp);
         } else {
           /* Set the pointer to NULL to indicate there's no stack entry to
              pop. */
@@ -789,7 +789,7 @@ and for the instantiation of template functions.
       pop_class_reactivation_scope();
     }  /* if */
   } else if (nsp != NULL) {
-    pop_namespace_reactivation_scope();
+    pop_namespace_extension_scope();
   }  /* if */  
   /* Check for the closing "}", not done in compound_statement.  Note that
      required_token is not called; if compound_statement returned on
