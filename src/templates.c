@@ -7157,6 +7157,10 @@ that follows.
        of the remaining processing is done in class_specifier. */
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
     check_assertion(sym != NULL);
+    if (storage_class != (a_storage_class)sc_unspecified) {
+      /* Storage class is not allowed. */
+      pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+    }  /* if */
     if (!is_template_instance_class_symbol(sym)) {
       /* Not a template instance. */
       sym_error(ec_entity_cannot_be_specialized, sym);
