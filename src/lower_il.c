@@ -9554,7 +9554,7 @@ code to indicate the cleanup state (inserting it at insert_location), and
 reset *something_pending to FALSE.
 */
 {
-  if (something_pending) {
+  if (*something_pending) {
     curr_context->curr_cleanup_state = pending_cleanup_state;
     insert_code_to_indicate_cleanup_state(pending_cleanup_state,
                                           insert_location,
@@ -9609,10 +9609,14 @@ code.
              destructors).  They apply for exception cleanup but not on
              exit via branch.  Ditto for partial aggregate cleanup,
              if an exception is thrown before the initialization is
-             completed.  The cleanup state does need to be updated, however. */
-          pending_cleanup_state = dip->destructible_entity_descr->
+             completed. */
+          if (exceptions_enabled) {
+            /* When exceptions are enabled, the cleanup state does need to
+               be updated. */
+            pending_cleanup_state = dip->destructible_entity_descr->
                                 cleanup_state_to_set_when_starting_destruction;
-          state_set_pending = TRUE;
+            state_set_pending = TRUE;
+          }  /* if */
         } else if (dip->is_guard_var_for_local_static_var_init ||
                    dip->is_freeing_of_storage_on_exception) {
           /* Remove the cleanup entry that requests clearing the guard
