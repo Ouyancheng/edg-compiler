@@ -1234,6 +1234,12 @@ Process the arguments on the command line that invoked the compiler.
     if (any_cfront_mode()) {
       command_line_error(ec_cl_strict_ansi_incompatible_with_cfront);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Strict ANSI mode is incompatible with Microsoft mode. */
+    if (microsoft_mode) {
+      command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Strict ANSI mode is incompatible with allowing anachronisms.  Don't
        give an error if allow anachronisms is the default -- quietly
        set the flag to not allow anachronisms. */
