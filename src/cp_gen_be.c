@@ -5710,7 +5710,7 @@ Generate code for the indicated statement.
         break;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      write_tok_str("asm(");
+      write_tok_str(microsoft_mode ? "__asm(" : "asm(");
       gen_constant(statement->variant.asm_entry->asm_string,
                    /*need_parens=*/FALSE);
       write_tok_ch(')');
@@ -6684,7 +6684,7 @@ one associated with the asm.
   /* Position the output file to the declaration position. */
   set_decl_position(&asm_entry->source_corresp,
                     (a_src_seq_secondary_decl_ptr)NULL);
-  write_tok_str("asm(");
+  write_tok_str(microsoft_mode ? "__asm(" : "asm(");
   gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
   write_tok_ch(')');
   write_tok_ch(';');

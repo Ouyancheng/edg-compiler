@@ -1,5 +1,10 @@
 Version 2.37
 
+7/10/97   Microsoft mode: asm --> __asm, long long --> __int64
+
+In Microsoft mode, asm statements are now always put out using the __asm
+keyword, and __int64 is always put out instead of "long long".
+
 7/10/97   C++-generating back end: pointer-to-member casts for MSVC++ 4.2
 
 MSVC++ 4.2 doesn't like pointer-to-member casts that change both the

@@ -381,8 +381,13 @@ with "**BAD" for a bad integer kind.
     case ik_long:               p = "long";               break;
     case ik_unsigned_long:      p = "unsigned long";      break;
 #if LONG_LONG_ALLOWED
-    case ik_long_long:          p = "long long";          break;
-    case ik_unsigned_long_long: p = "unsigned long long"; break;
+    case ik_long_long:          p = microsoft_mode ?
+                                      "__int64" :
+                                      "long long";        break;
+    case ik_unsigned_long_long: p = microsoft_mode ?
+                                      "unsigned __int64" :
+                                      "unsigned long long";
+                                                          break;
 #endif /* LONG_LONG_ALLOWED */
     default:                    p = "**BAD-INT-KIND**";
   }  /* switch */

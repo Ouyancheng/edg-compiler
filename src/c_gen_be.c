@@ -4827,7 +4827,7 @@ Generate C for an asm statement or declaration.
   /* Dump any pragmas associated with the entry. */
   dump_decl_associated_pragmas(&aep->source_corresp);
   set_output_position(&aep->source_corresp.decl_position);
-  write_tok_str("asm(");
+  write_tok_str(microsoft_mode ? "__asm(" : "asm(");
   dump_constant(aep->asm_string);
   write_tok_str(");");
 }  /* dump_asm_entry */
