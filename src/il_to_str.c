@@ -4093,7 +4093,11 @@ to determine if a leading space is still needed).  Do the output in the way
 described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      || gcc_is_generated_code_target
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                     ) {
     /* First emit the attributes that when appearing on a typedef would be
        recorded in the typedef entry itself (as opposed to the underlying
        type). */
@@ -4185,7 +4189,11 @@ Output the GNU type mode in the way described by octl.  If need_leading_space
 is TRUE, precede the attribute with a leading space.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      || gcc_is_generated_code_target
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                     ) {
     if (need_leading_space) {
       octl->output_str(" ");
     }  /* if */
@@ -4209,7 +4217,11 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      || gcc_is_generated_code_target
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                     ) {
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (var->alignment != 0) {
       /* Output the alignment attribute. */
@@ -4287,7 +4299,11 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      || gcc_is_generated_code_target
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                     ) {
     if (field->source_corresp.is_deprecated && !octl->c_generating_back_end) {
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might
@@ -4318,7 +4334,11 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      || gcc_is_generated_code_target
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                     ) {
     if (rout->is_initialization_routine) {
       form_simple_attribute("__constructor__", &need_leading_space, octl);
     }  /* if */
@@ -4395,7 +4415,11 @@ need_leading_space is TRUE, return TRUE (this allows the caller to
 determine if a leading space is still needed).
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      || gcc_is_generated_code_target
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                     ) {
     if (label->has_gnu_unused_attribute) {
       form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
@@ -4403,6 +4427,7 @@ determine if a leading space is still needed).
   return need_leading_space;
 }  /* form_label_attributes */
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
 void form_asm_name(char                                   *asm_name,
                    an_il_to_str_output_control_block_ptr  octl)
@@ -4439,6 +4464,8 @@ Output an asm register name for a variable in the way described by octl.
     octl->output_str(")");
   }  /* if */
 }  /* form_var_reg_name */
+
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

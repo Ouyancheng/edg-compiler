@@ -340,12 +340,14 @@ extern a_boolean form_label_attributes(
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 extern void form_asm_name(char                                   *asm_name,
                           an_il_to_str_output_control_block_ptr  octl);
 
 extern void form_var_reg_name(a_named_register                       reg,
                               an_il_to_str_output_control_block_ptr  octl);
 
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef IL_TO_STR_H */
