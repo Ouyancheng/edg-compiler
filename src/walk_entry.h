@@ -1099,7 +1099,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                                 ptr->variant.ctor_dtor.alternate_entry_points);
         }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         remap_ptr(ptr->overridden_function, a_routine_ptr, iek_routine);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* No processing of befriending_classes for the "needed" sweep. */
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
