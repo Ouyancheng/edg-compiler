@@ -1311,7 +1311,7 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 
-extern a_symbol_ptr get_template_class_symbol(a_symbol_ptr  template_symbol);
+extern a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol);
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);

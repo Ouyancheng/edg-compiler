@@ -5308,7 +5308,7 @@ Allocate a new template parameter list entry and return a pointer to it.
 
 
 
-a_symbol_ptr get_template_class_symbol(a_symbol_ptr  template_symbol)
+a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol)
 /*
 The current identifier is a class template name.  It must be followed
 by a template argument list.  Scan the argument list and call
@@ -5322,7 +5322,7 @@ an instance of the class template.
   a_template_arg_ptr     last_arg = NULL;
   a_symbol_ptr           new_sym = NULL;
 
-  db_enter(3, "get_template_class_symbol");
+  db_enter(3, "get_template_class");
 
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
@@ -5359,7 +5359,7 @@ an instance of the class template.
     } else {  /* else executed when !is_type_param */
 #if CHECKING
       if (sym->kind != sk_constant) {
-        internal_error("get_template_class_symbol: constant expected");
+        internal_error("get_template_class: constant expected");
       }  /* if */
 #endif /* CHECKING */
       constant = alloc_constant((a_constant_repr_kind)ck_error);
@@ -5397,6 +5397,11 @@ an instance of the class template.
     new_sym = find_template_class(template_symbol, arg_list, &start_pos);
   }  /* if */
 
+  /* The current identifier should now be an identifier whose symbol points
+     to the template class that we have just looked up. */
+  curr_token = tok_identifier;
+  make_locator_for_symbol(new_sym, &locator_for_curr_id);
+
 #if DEBUG
   if (debug_level >= 4) {
     db_symbol(new_sym, "Returning: ", 2);
@@ -5407,7 +5412,7 @@ error_exit:
   remove_stop_token(tok_gt);
   db_exit();
   return new_sym;
-}  /* get_template_class_symbol */
+}  /* get_template_class */
 
 
 a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)

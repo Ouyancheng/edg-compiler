@@ -4768,7 +4768,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
        get a pointer to the symbol for the specific instance of the template
        class. */
     if (symbol != NULL && symbol->kind == (a_symbol_kind)sk_class_template) {
-      symbol = get_template_class_symbol(symbol);
+      symbol = get_template_class(symbol);
     }  /* if */
   }  /* if */
   return symbol;
