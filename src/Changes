@@ -1,5 +1,24 @@
 Version 2.15
 
+2/23/93  Improved error recovery when scanning template arguments
+
+Error recovery has been improved when too many template arguments are
+supplied.
+
+template <class T> class A {
+	void f();
+};
+void A<int, 1>::f(){}
+
+2/23/93  Incorrect error message given for incomplete type
+
+Cases such as this were giving an incorrect error message.  Instead
+of saying "incomplete type not allowed" the message "B is not a class
+name" was issued.  This has been corrected.
+
+	class X;
+	int X::B::* pmi;
+
 2/23/93  Constant-valued variables in "?" and "," operators
 
 The values of constant-values variables are now substituted for the

@@ -4899,11 +4899,18 @@ a routine to lookup the appropriate instance (or generate one if needed).
       any_errors = TRUE;
     }  /* if */
   } else if (curr_token == tok_comma) {
+    unsigned char save_comma_stop_token_count;
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_symbol);
+    /* Remove comma from the stop tokens set so that we can flush to the
+       end of the argument list. */
+    save_comma_stop_token_count = stop_token_array[(int)tok_comma];
+    stop_token_array[(int)tok_comma] = 0;
     flush_tokens();
     any_errors = TRUE;
+    /* Restore comma as a stop token (if it was one). */
+    stop_token_array[(int)tok_comma] = save_comma_stop_token_count;
   }  /* if */
   /* We should now be at the closing angle bracket.  Note that we don't
      scan the token after the closing angle because we update the current
@@ -5390,19 +5397,32 @@ This routine may only be called in C++ mode.
                must be at file scope. */
             check_for_uninstantiated_template_class(class_type);
           }  /* if */
-          class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
-                                                   class_type,
-                                                   IDL_MUST_BE_CLASS);
-          /* If the class lookup fails, and a vacuous destructor is
-	     allowed, do another lookup without the requirement that
-	     a class be found. */
-          if (class_symbol == NULL && might_be_vacuous_dtor) {
+          /* Make sure that the class type is a complete type. */
+          if (is_incomplete_type(class_type) &&
+              class_type->variant.class_struct_union.
+                                         extra_info->assoc_scope == NULL) {
+            /* If the type is incomplete we also check whether the type is
+	       currently being defined -- it is considered complete if it
+	       is being defined.  We determine this by checking the
+	       assoc_scope field of the class type supplement. */
+            pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
+	    err = TRUE;
+	    class_symbol = NULL;
+          } else {
             class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
                                                      class_type,
-                                                     IDL_NO_OPTIONS);
-            is_vacuous_dtor = TRUE;
-            if (class_symbol != NULL && !is_type_symbol(class_symbol)) {
-              class_symbol = NULL;
+                                                     IDL_MUST_BE_CLASS);
+            /* If the class lookup fails, and a vacuous destructor is
+	       allowed, do another lookup without the requirement that
+               a class be found. */
+            if (class_symbol == NULL && might_be_vacuous_dtor) {
+              class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
+                                                       class_type,
+                                                       IDL_NO_OPTIONS);
+              is_vacuous_dtor = TRUE;
+              if (class_symbol != NULL && !is_type_symbol(class_symbol)) {
+                class_symbol = NULL;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
