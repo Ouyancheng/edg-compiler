@@ -993,24 +993,28 @@ typedef long double a_host_fp_value;
 typedef double a_host_fp_value;
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
-#ifndef TARG_HAS_IEEE_FLOATING_POINT
 /*
 TRUE if the target supports IEEE floating point, i.e., it has NaNs
 and Infinities.  Note that unless float_pt.c is rewritten this also
 implies that the host supports IEEE floating point, because the
 default float_pt.c support uses the host floating point.
 */
-/* Include <math.h> to see if the C99 NAN macro is defined. */
-#include <math.h>
-#if defined(NAN) || defined(sparc) || defined(__linux__) || EDG_WIN32
-/* Systems with NAN defined support IEEE floating point. */
+#ifndef TARG_HAS_IEEE_FLOATING_POINT
+#if defined(sparc) || defined(__linux__) || EDG_WIN32
 /* SPARC supports IEEE floating point. */
 /* Linux (X86, Alpha, PowerPC, SPARC) supports IEEE floating point. */
 /* Windows X86 supports IEEE floating point. */
 #define TARG_HAS_IEEE_FLOATING_POINT TRUE
-#else /* defined(NAN) */
+#else /* defined(sparc) || ... */
+/* Include <math.h> to see if the C99 NAN macro is defined. */
+#include <math.h>
+#ifdef NAN
+/* Systems with NAN defined support IEEE floating point. */
+#define TARG_HAS_IEEE_FLOATING_POINT TRUE
+#else /* !defined(NAN) */
 #define TARG_HAS_IEEE_FLOATING_POINT FALSE
-#endif /* if defined(NAN) ... */
+#endif /* ifdef NAN */
+#endif /* defined(sparc) || ... */
 #endif /* ifndef TARG_HAS_IEEE_FLOATING_POINT */
 
 /*
