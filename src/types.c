@@ -4055,22 +4055,31 @@ See conversion_possible.
 }  /* impl_conversion_possible */
 
 
-static a_boolean inverse_impl_conversion_possible(a_type_ptr source_type,
-                                                  a_type_ptr dest_type)
+static a_boolean inverse_impl_conversion_possible(
+                                      a_type_ptr           source_type,
+                                      a_type_ptr           dest_type,
+                                      a_boolean            suppress_extensions,
+                                      a_std_conv_descr_ptr std_conv)
 /*
 Return TRUE if the conversion source_type --> dest_type can be done as
 a static_cast because the inverse dest_type --> source_type can be done as
 an implicit conversion.  This is used for checking the part of static_cast
 that allows the inverse of any standard conversion.  typerefs are already
-removed from the types.
+removed from the types.  suppress_extensions is TRUE if conversions that
+are extensions should not be allowed (what constitutes an extension depends
+on C_dialect, of course).  If the conversion is possible, *std_conv is
+filled out to describe the conversion.  In particular, if the conversion
+is suspect and should be flagged with a warning, the warning_suggested
+field is set to an appropriate error code; normally, it is set to
+ec_no_error.
 */
 {
   a_boolean        okay = FALSE, baseward_cast, related_class_case = FALSE;
-  a_std_conv_descr impl_std_conv;
   a_base_class_ptr bcp;
   a_type_ptr       source_type_pointed_to, dest_type_pointed_to;
   a_boolean        qualifiers_added;
 
+  clear_std_conv_descr(std_conv);
   if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp) &&
       !baseward_cast) {
     /* A pointer to a base class can be cast to a pointer to a derived
@@ -4112,9 +4121,9 @@ removed from the types.
                                       /*source_is_constant=*/FALSE,
                                       (a_constant *)NULL,
                                       source_type,
-                                      /*suppress_extensions=*/TRUE,
+                                      suppress_extensions,
                                       ec_bad_cast,
-                                      &impl_std_conv)) {
+                                      std_conv)) {
     /* The inverse implicit conversion can be done. */
     okay = TRUE;
     /* If the conversion is a pointer or pointer to member conversion, make
@@ -4152,8 +4161,9 @@ user-defined conversions.  This routine is called in C mode as well as
 C++ mode.  See [expr.static.cast].
 */
 {
-  a_boolean        okay = FALSE, impl_okay, suppress_extensions = FALSE;
-  a_std_conv_descr impl_std_conv;
+  a_boolean        okay = FALSE, suppress_extensions = FALSE;
+  a_boolean        impl_okay = FALSE, inv_impl_okay = FALSE;
+  a_std_conv_descr impl_std_conv, inv_impl_std_conv;
 
   db_enter(5, "static_cast_conversion_possible");
 #if DEBUG
@@ -4195,7 +4205,11 @@ C++ mode.  See [expr.static.cast].
     /* There is an implicit conversion, and it's not questionable. */
     okay = TRUE;
   } else if (!C_mode() &&
-             inverse_impl_conversion_possible(source_type, dest_type)) {
+             (inv_impl_okay =
+                 inverse_impl_conversion_possible(source_type, dest_type,
+                                                  suppress_extensions,
+                                                  &inv_impl_std_conv)) &&
+             inv_impl_std_conv.warning_suggested == ec_no_error) {
     /* The inverse of any standard conversion is allowed in C++. */
     okay = TRUE;
   } else if (C_mode() &&
@@ -4204,14 +4218,18 @@ C++ mode.  See [expr.static.cast].
        but we check for it again here to avoid the warning. */
     okay = TRUE;
   }  /* if */
-  if (!okay && impl_okay) {
-    /* There is a questionable implicit conversion, and no explicit conversion
-       that covers this case.  The conversion is allowed, but it's
-       questionable.  It's likely that there are no questionable implicit
-       conversions that aren't allowed as explicit conversions, but this code
-       is here in case one is added. */
-    okay = TRUE;
-    *warning_suggested = impl_std_conv.warning_suggested;
+  if (!okay) {
+    if (impl_okay) {
+      /* There is a questionable implicit conversion that covers this case.
+         Allow it, with a warning. */
+      okay = TRUE;
+      *warning_suggested = impl_std_conv.warning_suggested;
+    } else if (inv_impl_okay) {
+      /* There is a questionable inverse conversion that covers this
+         case.  Allow it, with a warning. */
+      okay = TRUE;
+      *warning_suggested = inv_impl_std_conv.warning_suggested;
+    }  /* if */
   }  /* if */
 
 #if DEBUG

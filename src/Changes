@@ -1,5 +1,15 @@
 Version 2.39
 
+3/18/98   static_cast of void * to pointer to function, as extension
+
+The front end allows implicit conversion of a pointer to function to
+a void * as an extension (this was allowed by the ARM, but is not allowed
+by the standard).  The inverse of any implicit conversion should be
+allowed as a static_cast, so conversion of void * to pointer to
+function is now allowed as a static_cast, as an extension, with a warning.
+This is desirable, in part, because the Microsoft and Sun compilers
+allow it.
+
 3/18/98   Generated overloaded bitwise operator=
 
 When the user declares an operator=, but not one that can serve as the
