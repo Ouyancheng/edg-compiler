@@ -7134,6 +7134,7 @@ an asm "declaration" is actually treated as an executable statement.
 {
   a_constant        asm_string;
   an_asm_entry_ptr  ap = NULL;
+  a_source_position asm_pos;
 
   db_enter(3, "asm_declaration");
 
@@ -7149,6 +7150,7 @@ an asm "declaration" is actually treated as an executable statement.
     /* "asm" is not part of ANSI C, though it is defined (vaguely) for C++. */
     warning(ec_nonstd_asm_declaration);
   }  /* if */
+  copy_source_position(pos_curr_token, asm_pos);
   /* Skip past the "asm". */
   (void)get_token();
   /* Check for and skip the opening parenthesis. */
@@ -7171,6 +7173,7 @@ an asm "declaration" is actually treated as an executable statement.
   if (asm_decl_allowed) {
     ap = alloc_asm_entry();
     ap->asm_string = alloc_unshared_constant(&asm_string);
+    copy_source_position(asm_pos, ap->source_corresp.decl_position);
     /* Add the asm entry to the list for the current scope. */
     add_to_asm_entries_list(ap);
   }  /* if */
