@@ -6318,6 +6318,10 @@ Make a copy of an expression tree and return a pointer to it.
       if (ndsp->dynamic_init != NULL) {
         copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init);
       }  /* if */
+      if (ndsp->freeing_of_storage_on_exception != NULL) {
+        copy_ndsp->freeing_of_storage_on_exception =
+                      copy_dynamic_init(ndsp->freeing_of_storage_on_exception);
+      }  /* if */
       break;
     case enk_throw:
       /* Copy the dynamic init for a throw. */
