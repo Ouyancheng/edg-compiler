@@ -8835,14 +8835,6 @@ continue_with_declaration:
           dpsp->specifiers_range = decl_pos_block.specifiers_range;
           dpsp->declarator_range = decl_pos_block.declarator_range;
         }  /* if */
-#if DEBUG
-        if (is_static_data_member) {
-          if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
-            fprintf(f_debug, "decl-pos info for static data member def\n");
-            db_decl_pos_info(symbol_ptr);
-          }  /* if */
-        }  /* if */
-#endif /* DEBUG */
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       incomplete_type_error_reported = FALSE;
@@ -8937,6 +8929,16 @@ continue_with_declaration:
            be treated as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if DEBUG
+      if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
+        if (is_variable_def && is_static_data_member) {
+          fprintf(f_debug, "decl-pos info for static data member def\n");
+          db_decl_pos_info(symbol_ptr);
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       copy_source_position(locator.source_position, error_position);
       if (var_ptr != NULL && !is_error_locator(locator) &&
           is_incomplete_type(local_type_ptr)) {
