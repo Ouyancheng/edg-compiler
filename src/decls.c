@@ -5204,8 +5204,8 @@ to indicate whether an enumeration is actually defined.
 #endif /* CHECKING */
             /* Check the value to see if it is out of range.  (3.5.2.2,
                constraints) */
-            if (cmplit_integer_constant(&constant, TARG_INT_MAX) > 0 ||
-                cmplit_integer_constant(&constant, TARG_INT_MIN) < 0) {
+            if (!in_range_for_integer_kind(&constant, &constant,
+                                           (an_integer_kind)ik_int)) {
               error(ec_enum_value_out_of_int_range);
               err = TRUE;
             }  /* if */
@@ -5222,7 +5222,8 @@ to indicate whether an enumeration is actually defined.
             /* Use a value one larger than the previous value. */
             /* Check the value to see if it is out of range.  (3.5.2.2,
                constraints) */
-            if (eqlit_integer_constant(&constant, (long)TARG_INT_MAX)) {
+            if (is_max_value_for_integer_kind(&constant, 
+                                              (an_integer_kind)ik_int)) {
               error(ec_enum_value_out_of_int_range);
               err = TRUE;
             } else {
@@ -5304,31 +5305,26 @@ to indicate whether an enumeration is actually defined.
        values must fall in the "int" range. */	
     if (C_dialect != C_dialect_pcc && enum_types_can_be_smaller_than_int) {
       if (!min_max_set ||
-          (cmplit_integer_constant(&min_value, (long)targ_min_char) >= 0 &&
-           cmplit_integer_constant(&max_value, (long)targ_max_char) <= 0)) {
+          in_range_for_integer_kind(&min_value, &max_value,
+                                    plain_char_int_kind)) {
         /* "Plain" char. */
         enum_type->variant.integer.int_kind = plain_char_int_kind;
-      } else if (cmplit_integer_constant(&min_value,
-                                         (long)TARG_SCHAR_MIN) >= 0 &&
-                 cmplit_integer_constant(&max_value,
-                                         (long)TARG_SCHAR_MAX) <= 0) {
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                           (an_integer_kind)ik_signed_char)) {
         /* Signed char. */
         enum_type->variant.integer.int_kind = (an_integer_kind)ik_signed_char;
-      } else if (cmplit_integer_constant(&min_value, 0L) >= 0 &&
-                 cmplit_integer_constant(&max_value,
-                                         (long)TARG_UCHAR_MAX) <= 0) {
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                          (an_integer_kind)ik_unsigned_char)) {
         /* Unsigned char. */
         enum_type->variant.integer.int_kind =
                                              (an_integer_kind)ik_unsigned_char;
-      } else if (cmplit_integer_constant(&min_value,
-                                         (long)TARG_SHRT_MIN) >= 0 &&
-                 cmplit_integer_constant(&max_value,
-                                         (long)TARG_SHRT_MAX) <= 0) {
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                           (an_integer_kind)ik_short)) {
         /* Short. */
         enum_type->variant.integer.int_kind = (an_integer_kind)ik_short;
-      } else if (cmplit_integer_constant(&min_value, 0L) >= 0 &&
-                 cmplit_integer_constant(&max_value,
-                                         (long)TARG_USHRT_MAX) <= 0) {
+#if TARG_SIZEOF_SHORT < TARG_SIZEOF_INT
+      } else if (in_range_for_integer_kind(&min_value, &max_value,
+                                         (an_integer_kind)ik_unsigned_short)) {
         /* Unsigned short.  Note that we can only get here if
            sizeof(short) < sizeof(int) on the target, for otherwise the
            previous test (for "short") is testing the same range as "int"
@@ -5338,6 +5334,7 @@ to indicate whether an enumeration is actually defined.
            promote it to "unsigned int" rather than "int". */
         enum_type->variant.integer.int_kind =
                                             (an_integer_kind)ik_unsigned_short;
+#endif /* TARG_SIZEOF_SHORT < TARG_SIZEOF_INT */
       } else {
         /* Representation type should be int, which is already set. */
       }  /* if */
