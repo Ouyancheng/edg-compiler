@@ -3281,7 +3281,7 @@ The subtree of the node has not yet been lowered.
                    alloc_cleanup_action(cak_new_allocation,
                                         /*applies_on_block_exit=*/FALSE,
                                         /*applies_on_exception_cleanup=*/TRUE);
-        set_var_init_pos_descr(temp_var,
+        set_var_indirect_init_pos_descr(temp_var,
                            &new_allocation_cap->variant.object.init_pos_descr);
         /* Add information on the delete routine. */
         new_allocation_cap->variant.object.delete_routine =

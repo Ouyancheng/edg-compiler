@@ -1,5 +1,11 @@
 Version 2.21
 
+12/15/93  Allocation-cleanup for exception handling
+
+When a "new" allocation is done outside of a constructor, the address
+recorded to allow a "delete" of the storage if an exception is thrown
+was missing one level of indirection.
+
 12/15/93  Sharing of virtual function table instances
 
 In a case like the following, base classes can now share a single
