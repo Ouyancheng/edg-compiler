@@ -7323,6 +7323,12 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         db_name(&((a_field_ptr)aap->entity.ptr)->source_corresp);
       }  /* if */
       fputc('"', f_debug);
+    } else if (kind == (an_il_entry_kind)iek_using_directive) {
+      a_using_directive_ptr  udp;
+      udp = (a_using_directive_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu): \"", udp->position.seq);
+      db_name(&udp->assoc_namespace->source_corresp);
+      fputc('"', f_debug);
     } else {
       a_source_position             *pos;
       a_source_correspondence       *scp;
