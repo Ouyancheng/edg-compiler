@@ -151,6 +151,14 @@ static a_boolean conversion_from_class_possible(
                                a_boolean                *ambiguous,
                                a_candidate_function_ptr *ambiguity_list);
 
+static void prep_conversion_operand(an_operand         *source_operand,
+                                    a_type_ptr         dest_type,
+                                    a_user_conv_descr  *user_conversion,
+                                    a_boolean          is_initialization,
+                                    an_expression_kind expression_kind,
+                                    an_error_code      incompatible_err,
+                                    a_source_position  *err_pos);
+
 
 static an_xref_entry_ptr alloc_xref_entry(a_symbol_reference_kind kind,
                                           an_expression_kind   expression_kind,
@@ -7811,6 +7819,35 @@ end_of_check:;
 }  /* try_conversions_for_builtin_operator */
 
 
+static void prep_for_known_possible_conversion(
+                                           an_operand         *operand,
+                                           a_user_conv_descr  *user_conversion,
+                                           an_expression_kind expression_kind)
+/*
+We have a case where a conversion has previously been determined to be
+possible, and information about the user-defined part of the conversion has
+been saved in user_conversion.  Now we have decided to actually do the
+conversion, and we have gotten to a point that uses conversion_possible
+to determine (again) whether or not the conversion can be done and how.
+Since we already know that, we can skip the call of conversion_possible.
+However, conversion_possible does some things (like conversion from
+lvalue to rvalue) that need to be done anyway.  This routine is called
+instead of conversion_possible and does those things.
+*/
+{
+  /* Convert array --> pointer and function --> pointer. */
+  do_operand_transformations(operand,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                             TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
+                             expression_kind);
+  if (!user_conversion->result_is_an_lvalue) {
+    /* Except when a user-defined conversion returns a reference and
+       we want an lvalue, force the operand to an rvalue. */
+    conv_lvalue_to_rvalue(operand, expression_kind);
+  }  /* if */
+}  /* prep_for_known_possible_conversion */
+
+
 static void adjust_operand_for_built_in_operator(
                                    an_operand               *operand,
                                    a_candidate_function_ptr candidate_function,
@@ -7825,7 +7862,8 @@ expression_kind indicates the current expression kind.
 */
 {
   char       type_code;
-  a_type_ptr dest_type;
+  a_boolean  processed;
+  a_type_ptr pointer_type;
 
   if (!is_class_struct_union_type(operand->type)) {
     /* Non-class operands need not be adjusted here; the built-in operator
@@ -7837,16 +7875,39 @@ expression_kind indicates the current expression kind.
     if (type_code != CORRESP_POINTER_TYPE_CODE) {
       /* Non-pointer case.  The conversion function result type is the
          right type. */
-      dest_type = NULL;
+      if (user_conv_usable(&arg_match->user_conversion)) {
+        /* The user conversion is usable.  Do it. */
+        prep_for_known_possible_conversion(operand,
+                                           &arg_match->user_conversion,
+                                           expression_kind);
+        user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
+                             &arg_match->user_conversion, expression_kind);
+      } else {
+        /* The user conversion is not usable, e.g., because the conversion
+           is ambiguous.  Redo the analysis of the conversion to get
+           a detailed error message. */
+        try_to_convert_class_operand_to_builtin_type(operand,
+                                     builtin_type_set_for_type_code(type_code),
+                                     expression_kind,
+                                     &processed);
+#if CHECKING
+        if (!processed) {
+          internal_error(
+                    "adjust_operand_for_built_in_operator: conversion failed");
+        }  /* if */
+#endif /* CHECKING */
+      }  /* if */
     } else {
       /* Pointer cases.  Convert to the pointer type indicated in
          candidate_function. */      
-      dest_type = candidate_function->pointer_type;
-      check_assertion(dest_type != NULL);
+      pointer_type = candidate_function->pointer_type;
+      check_assertion(pointer_type != NULL);
+      prep_conversion_operand(operand, pointer_type,
+                              &arg_match->user_conversion,
+                              /*is_initialization=*/TRUE,  /* arbitrary */
+                              expression_kind, ec_no_error,
+                              &operand->position);
     }  /* if */
-    /* Convert the class operand to the right type. */
-    user_convert_operand(operand, dest_type, &arg_match->user_conversion,
-                         expression_kind);
   }  /* if */
 }  /* adjust_operand_for_built_in_operator */
 
@@ -8754,10 +8815,14 @@ no additional conversion is needed after the conversion function is called.
 
   orig_operand = *operand;
   conversion_routine = user_conversion->routine;
+#if CHECKING
   if (user_conversion->ambiguous) {
-    /* The conversion was ambiguous. */
-    conv_to_error_operand(operand);
-  } else if (user_conversion->class_identity_or_bitwise_copy) {
+    /* The conversion was ambiguous.  That should have been figured out
+       again and shouldn't get here. */
+    internal_error("user_convert_operand: ambiguous conversion");
+  }  /* if */
+#endif /* CHECKING */
+  if (user_conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     prep_class_bitwise_copy_operand(operand, dest_type, expression_kind);
   } else if (conversion_routine->special_kind ==
@@ -8816,6 +8881,13 @@ conversion if it involves a user-defined conversion.  Otherwise, it's
 just a cast.
 */
 {
+#if CHECKING
+  if (user_conversion->ambiguous) {
+    /* The conversion was ambiguous.  That should have been figured out
+       again and shouldn't get here. */
+    internal_error("convert_operand: ambiguous conversion");
+  }  /* if */
+#endif /* CHECKING */
   if (!is_null_user_conv_descr(user_conversion)) {
     /* Call a user-defined conversion routine. */
     user_convert_operand(source_operand, dest_type, user_conversion,
@@ -8826,35 +8898,6 @@ just a cast.
                  /*is_implicit_cast=*/TRUE);
   }  /* if */
 }  /* convert_operand */
-
-
-static void prep_for_known_possible_conversion(
-                                           an_operand         *operand,
-                                           a_user_conv_descr  *user_conversion,
-                                           an_expression_kind expression_kind)
-/*
-We have a case where a conversion has previously been determined to be
-possible, and information about the user-defined part of the conversion has
-been saved in user_conversion.  Now we have decided to actually do the
-conversion, and we have gotten to a point that uses conversion_possible
-to determine (again) whether or not the conversion can be done and how.
-Since we already know that, we can skip the call of conversion_possible.
-However, conversion_possible does some things (like conversion from
-lvalue to rvalue) that need to be done anyway.  This routine is called
-instead of conversion_possible and does those things.
-*/
-{
-  /* Convert array --> pointer and function --> pointer. */
-  do_operand_transformations(operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                             TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
-                             expression_kind);
-  if (!user_conversion->result_is_an_lvalue) {
-    /* Except when a user-defined conversion returns a reference and
-       we want an lvalue, force the operand to an rvalue. */
-    conv_lvalue_to_rvalue(operand, expression_kind);
-  }  /* if */
-}  /* prep_for_known_possible_conversion */
 
 
 static void prep_conversion_operand(an_operand         *source_operand,
@@ -8880,7 +8923,7 @@ any required conversion.
 
   /* See if the conversion is possible.  If user_conversion is non-NULL,
      we already know that the conversion is possible and how to do it. */
-  if (user_conversion != NULL) {
+  if (user_conv_usable(user_conversion)) {
     possible = TRUE;
     prep_for_known_possible_conversion(source_operand, user_conversion,
                                        expression_kind);
@@ -9113,7 +9156,7 @@ part of it, if any.
   orig_operand = *source_operand;
   /* See if the conversion is possible.  If user_conversion is non-NULL,
      we already know that the conversion is possible and how to do it. */
-  if (user_conversion != NULL) {
+  if (user_conv_usable(user_conversion)) {
     possible = TRUE;
     prep_for_known_possible_conversion(source_operand, user_conversion,
                                        expression_kind);
