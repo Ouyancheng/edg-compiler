@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2113,7 +2113,8 @@ One-time initialization for preproc.c and preproc.h variables.
 
 void preproc_trans_unit_init(void)
 /*
-
+Initialization of things related to preprocessing that must be repeated for
+every translation unit.
 */
 {
   /* Most of these variables control lexical functions, but they are defined
@@ -2154,6 +2155,6 @@ established by init_predefined_macros.)
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
