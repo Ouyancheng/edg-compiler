@@ -316,10 +316,12 @@ be written.
 #ifdef FFE
       case iek_namelist_group:
 #endif /* ifdef FFE */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
       case iek_template_parameter:
         /* Entry has a source correspondence field. */
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
         break;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       case iek_type:
 #ifdef CFE
         if (((a_type_ptr)entry_ptr)->source_corresp.name != NULL) {
@@ -3057,6 +3059,8 @@ Display the indicated hidden-name entry.
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
 static void disp_template_parameter(a_template_parameter_ptr  ptr)
 /*
 Display the indicated template parameter.
@@ -3117,6 +3121,7 @@ Display the indicated template declaration information.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_template_decl */
 
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void disp_template(a_template_ptr  ptr)
 /*
@@ -4301,12 +4306,14 @@ This routine is called during IL walking.
           disp_hidden_name((a_hidden_name_ptr)entry_ptr);
           break;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
         case iek_template_parameter:
           disp_template_parameter((a_template_parameter_ptr)entry_ptr);
           break;
         case iek_template_decl:
           disp_template_decl((a_template_decl_ptr)entry_ptr);
           break;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         case iek_template:
           disp_template((a_template_ptr)entry_ptr);
           break;

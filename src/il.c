@@ -2800,7 +2800,9 @@ not.
 #if RECORD_MACROS_IN_IL
     case iek_macro:
 #endif /* RECORD_MACROS_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
     case iek_template_parameter:
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       scp = &((a_constant_ptr)entity_ptr)->source_corresp;
       break;
     default:

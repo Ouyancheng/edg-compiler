@@ -1521,6 +1521,7 @@ do_set_proper_definition_needed_flag:
       break;
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
     case iek_template_parameter:
       {
         a_template_parameter_ptr ptr = (a_template_parameter_ptr)entry_ptr;
@@ -1559,6 +1560,7 @@ do_set_proper_definition_needed_flag:
                   iek_template_parameter);
       }
       break;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case iek_template:
       {
         a_template_ptr ptr = (a_template_ptr)entry_ptr;
@@ -2673,10 +2675,12 @@ of each kind.
                                         iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   walk_orphan_entry_list_for_entry_kind(a_template_parameter_ptr,
                                         iek_template_parameter);
   walk_orphan_entry_list_for_entry_kind(a_template_decl_ptr,
                                         iek_template_decl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl
      and iek_src_seq_end_of_construct, since such entries will

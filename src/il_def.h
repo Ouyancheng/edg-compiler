@@ -454,7 +454,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_template_decl,	/* a_template_decl */
   iek_template_parameter,
 			/* a_template_parameter */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
