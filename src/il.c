@@ -6052,10 +6052,13 @@ Allocate a copy of an expression node and return a pointer to it.
     expr_copy->variant.new_delete = copy_new_delete;
   } else if (kind == (an_expr_node_kind)enk_throw) {
     /* Copy the throw supplement. */
-    if (copy_throw_info != NULL) {
+    if (expr->variant.throw_info != NULL) {
       *copy_throw_info = *expr->variant.throw_info;
-      expr_copy->variant.throw_info = copy_throw_info;
+    } else {
+      /* Rethrow; discard the throw supplement on the copy. */
+      copy_throw_info = NULL;
     }  /* if */
+    expr_copy->variant.throw_info = copy_throw_info;
   } else if (kind == (an_expr_node_kind)enk_condition) {
     /* Copy the condition supplement. */
     *copy_condition = *expr->variant.condition;
