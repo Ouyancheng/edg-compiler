@@ -3274,50 +3274,55 @@ the current class (class_type).
   a_class_list_entry_ptr      clep;
   a_class_type_supplement_ptr ctsp;
 
-  if (any_cfront_mode()) {
-    /* In cfront mode it is sometimes permitted to use a typedef name in the
-       elaborated type specifier of a friend class declaration as long as it
-       refers to a class. */
-    friend_class_type = skip_typerefs(friend_class_type);
-  }  /* if */
-  check_assertion(is_immediate_class_type(friend_class_type));
-  if (class_type == friend_class_type) {
-    /* Diagnostic on excessive narcissism. */
-    warning(ec_self_friendship);
+  if ((symbol_supplement_for_class(class_type))->is_nonreal_class) {
+    /* friend declarations are not processed during prototype instantiation
+       -- they're meaningless until a real instantiation is done. */
   } else {
-    ctsp = friend_class_type->variant.class_struct_union.extra_info;
-    /* Issue a remark if this is a duplicate friend declaration. */
-    for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
-      if (clep->class_type == class_type) {
-        remark(ec_duplicate_friend_decl);
-        break;
-      }  /* if */
-    }  /* for */
-    if (clep == NULL) {
-      /* No duplication was detected. */
-      clep = alloc_list_entry_for_class();
-      clep->class_type = class_type;
-      clep->next = ctsp->befriending_classes;
-      ctsp->befriending_classes = clep;
-      /* Now add the friend_class_type to the friends list for the current
-         class. */
-      ctsp = class_type->variant.class_struct_union.extra_info;
-      clep = alloc_list_entry_for_class();
-      clep->class_type = friend_class_type;
-      clep->next = ctsp->friend_classes;
-      ctsp->friend_classes = clep;
+    if (any_cfront_mode()) {
+      /* In cfront mode it is sometimes permitted to use a typedef name in
+         the elaborated type specifier of a friend class declaration as long
+         as it refers to a class. */
+      friend_class_type = skip_typerefs(friend_class_type);
     }  /* if */
-  }  /* if */
+    check_assertion(is_immediate_class_type(friend_class_type));
+    if (class_type == friend_class_type) {
+      /* Diagnostic on excessive narcissism. */
+      warning(ec_self_friendship);
+    } else {
+      ctsp = friend_class_type->variant.class_struct_union.extra_info;
+      /* Issue a remark if this is a duplicate friend declaration. */
+      for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
+        if (clep->class_type == class_type) {
+          remark(ec_duplicate_friend_decl);
+          break;
+        }  /* if */
+      }  /* for */
+      if (clep == NULL) {
+        /* No duplication was detected. */
+        clep = alloc_list_entry_for_class();
+        clep->class_type = class_type;
+        clep->next = ctsp->befriending_classes;
+        ctsp->befriending_classes = clep;
+        /* Now add the friend_class_type to the friends list for the current
+           class. */
+        ctsp = class_type->variant.class_struct_union.extra_info;
+        clep = alloc_list_entry_for_class();
+        clep->class_type = friend_class_type;
+        clep->next = ctsp->friend_classes;
+        ctsp->friend_classes = clep;
+      }  /* if */
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  {
-  a_source_sequence_entry_ptr   ssep;
+    {
+    a_source_sequence_entry_ptr   ssep;
 
-  ssep = last_matching_source_sequence_entry((char *)friend_class_type);
-  if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-    ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->friend_decl = TRUE;
-  }  /* if */
-  }
+    ssep = last_matching_source_sequence_entry((char *)friend_class_type);
+    if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->friend_decl = TRUE;
+    }  /* if */
+    }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
 }  /* decl_friend_class */
 
 
@@ -4891,26 +4896,28 @@ TRUE if a const object can be copied.
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      qualifiers_accepted = TQ_NONE;
-      if (is_assignment_operator_for_copy(sym, &is_ref_arg,
-                                          &qualifiers_accepted,
-                                          &is_base_class_match)) {
-        /* Found an assignment operator that can serve to make a copy of the
-           current class. */
-        found_assignment_operator_for_copy = TRUE;
-        /* If it takes the object to be copied by value, a const object
-           may be copied; if it takes it by reference, a const qualifier must
-           be present on the parameter declaration. */
-        if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
-          /* An copy assignment operator has been located, and it accepts a
-             const object. */
-          *const_okay = TRUE;
-          break;
-        } else {
-          /* This one does not accept a const object, so set *const_okay
-             to FALSE.  However, another in the overload list might accept
-             const, so keep looping. */
-          *const_okay = FALSE;
+      if (sym->kind == (a_symbol_kind)sk_member_function) {
+        qualifiers_accepted = TQ_NONE;
+        if (is_assignment_operator_for_copy(sym, &is_ref_arg,
+                                            &qualifiers_accepted,
+                                            &is_base_class_match)) {
+          /* Found an assignment operator that can serve to make a copy of
+             the current class. */
+          found_assignment_operator_for_copy = TRUE;
+          /* If it takes the object to be copied by value, a const object
+             may be copied; if it takes it by reference, a const qualifier
+             must be present on the parameter declaration. */
+          if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
+            /* An copy assignment operator has been located, and it accepts
+               a const object. */
+            *const_okay = TRUE;
+            break;
+          } else {
+            /* This one does not accept a const object, so set *const_okay
+               to FALSE.  However, another in the overload list might accept
+               const, so keep looping. */
+            *const_okay = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -7160,6 +7167,257 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
 }  /* find_corresp_prototype_tag_sym */
 
 
+static void check_nonreal_nested_class(a_symbol_ptr                  tag_sym,
+                                       a_template_symbol_supplement_ptr tssp)
+/*
+This is a prototype instantiation of a nested class specified by tag_sym.
+If the nested class is defined inside a template definition, set fields of
+*tssp, its template-symbol-supplement, based on the template-symbol-supplement
+of its parent class.
+*/
+{
+  a_scope_stack_entry_ptr           instantiation_ssep;
+  a_template_symbol_supplement_ptr  parent_tssp;
+
+  instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
+  /* If this is a prototype instantiation, allocate a template symbol
+     supplement if one has not already been created.  This is only done at
+     this point for nested classes defined within the template. Note that a
+     nested class defined outside of the template may itself have classes
+     defined within its body. */
+  if (tag_sym->variant.class_struct_union.type !=
+                                      instantiation_ssep->assoc_type) {
+    parent_tssp = symbol_supplement_for_class(tag_sym->parent.class_type)->
+                                                               template_info;
+    tssp->variant.class_template.prototype_instantiation = tag_sym;
+    /* A member class of a template class whose body is supplied in the class
+       shares the template declaration information with the enclosing class. */
+    set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
+                            parent_tssp->cache.decl_info);
+    tssp->variant.class_template.name_linkage =
+                             parent_tssp->variant.class_template.name_linkage;
+    /* The cache segment information is used later to remove nested class
+       definitions from the token cache of the enclosing class. */
+    tssp->cache_segment = alloc_template_cache_segment(tag_sym, tssp);
+    tssp->cache_segment->first_token_number = curr_token_sequence_number;
+    if (is_unnamed_tag_symbol(tag_sym)) {
+      /* The definition of this nested class cannot be moved outside of the
+         enclosing class because it has no name.  Record this information in
+         the template symbol supplement. */
+      tssp->variant.class_template.not_standalone_nested_class = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_for_nonreal_nested_class */
+
+
+static a_boolean scan_access_specification(an_access_specifier  *access)
+/*
+Check for an access specifier in the source.  If one is found, return TRUE
+and update *access accordingly.
+*/
+{
+  a_boolean  found = FALSE;
+
+  /* The check is implemented as a loop because successive access
+     specifications are permitted. */
+  while (curr_token == tok_public || curr_token == tok_private ||
+         curr_token == tok_protected) {
+    found = TRUE;
+    switch (curr_token) {
+      case tok_public:
+        *access = (an_access_specifier)as_public;
+        break;
+      case tok_protected:
+        *access = (an_access_specifier)as_protected;
+        break;
+      case tok_private:
+        *access = (an_access_specifier)as_private;
+        break;
+      default:;  /* Avoid gcc warnings. */
+    }  /* switch */
+    scope_stack[decl_scope_level].current_access = *access;
+    /* Advance to the colon, which is required. */
+    (void)get_token();
+    if (curr_token == tok_colon) {
+      /* Advance past it. */
+      (void)get_token();
+    } else {
+      /* Calling is_member_decl_start involves calling curr_type_symbol,
+         which suppresses access and ambiguity errors when looking up what
+         may be a qualified name.  This is correct in this case since we do
+         not want to do the access check until after excluding the possibility
+         of an access adjustment declaration. */
+      if (curr_token == tok_identifier || is_member_decl_start()) {
+        error(ec_exp_colon);
+      } else {
+        syntax_error(ec_exp_colon);
+      }  /* if */
+    }  /* if */
+    /* Any next-construct-pragmas that appear after the access specifier
+       should be added to those that appear before.  This means the access
+       specifier is ignored as a "construct" -- the binding skips over it. */
+    (void)select_curr_construct_pragmas(/*add_to_list=*/TRUE);
+  }  /* while */
+  return found;
+}  /* scan_access_specification */
+
+
+static void check_missing_declarator_in_member_declaration(
+                               a_type_ptr         class_type,
+                               a_type_ptr         member_type,
+                               a_storage_class    storage_class,
+                               a_decl_flag_set    dso_flags,
+                               a_source_position  *decl_start_pos,
+                               a_boolean          *is_anonymous_union,
+                               a_boolean          *is_nonstd_anonymous_union)
+/*
+This routine is called while a member declaration is being scanned when a
+semicolon is encountered immediately after the declaration-specifiers.  In
+other words, there is no declarator in the member declaration.  Issue an error
+if appropriate.  class_type is the class whose definition is being scanned.
+member_type, storage_class, and dso_flags specify information returned from
+decl_specifiers.  decl_start_pos points to the source position at which the
+member declaration begins.  *is_anonymous_union is returned TRUE if this
+member is an anonymous union declaration; *is_nonstandard_anonymous_union is
+returned TRUE if this is a microsoft-style anonymous union.
+*/
+{
+  /* Check first whether this is an anonymous union declaration. */
+  if (storage_class == (a_storage_class)sc_unspecified &&
+      !is_incomplete_type(member_type) &&
+      is_anonymous_union_decl(member_type, dso_flags,
+                              is_nonstd_anonymous_union,
+                              &pos_curr_token)) {
+    /* A C++ anonymous union -- "union { int i, j; };" */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+    /* It might also be an anonymous-union-like construct in C or C++, namely
+       an unnamed class/struct/union type, possibly represented by a typedef
+       name, whose subfields are to be visible as though they were fields of
+       the current class. */
+    if (*is_nonstd_anonymous_union &&
+        member_type->kind == (a_type_kind)tk_typeref) {
+      a_symbol_ptr  sym;
+
+      /* This is a case in which a struct is incorporated into another by
+         means of a typeref reference -- e.g.,
+           typedef struct { int i,j } S;
+           struct X {
+             S;   // has the effect of making i and j members of X
+           };
+         It's only possible in C mode. */
+      check_assertion(C_mode() && has_name(member_type));
+      sym = (a_symbol_ptr)(member_type)->source_corresp.assoc_info;
+      if (sym != NULL) {
+        record_symbol_declaration(SRK_DECLARATION, sym,
+                                  decl_start_pos,
+                                  (a_source_sequence_entry_ptr)NULL);
+      }  /* if */
+    }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+    *is_anonymous_union = TRUE;
+    /* Set the IL referenced flag for the anonymous union type. */
+#if 0
+    /* It would probably be better to set it when an anonymous union member
+       is actually referenced. */
+#endif /* if 0 */
+    member_type->source_corresp.referenced = TRUE;
+  } else if (!C_mode()) {
+    /* C++ mode. */
+    if (dso_flags & DSO_MUTABLE) {
+      /* "mutable" is only allowed on nonstatic data member decls. */
+      pos_error(ec_mutable_not_allowed, decl_start_pos);
+    }  /* if */
+    if (dso_flags & DSO_FRIEND) {
+      if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
+          !is_enum_type(member_type)) {
+        /* This is a friend class declaration, of the form:
+                   friend class A;
+           which is the only form the ARM (see 11.4) allows. */
+        decl_friend_class(class_type, member_type);
+      } else if (!is_error_type(member_type)) {
+        /* Invalid friend declaration. */
+        pos_error(ec_bad_friend_decl, decl_start_pos);
+      }  /* if */
+    } else if (dso_flags & DSO_DECLARES_SOMETHING) {
+      /* This is a free standing declaration of a class, struct, union, or
+         enum type entry.  It will already have been recorded on the types
+         list for the current class.  No need to complain about a missing
+         identifier.  Just check for some errors. */
+      if (storage_class != (a_storage_class)sc_unspecified) {
+        if (storage_class == (a_storage_class)sc_typedef) {
+          /* A case like "typedef struct S { int i; };" */
+          pos_diagnostic(strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning,
+                         ec_missing_typedef_name, &pos_curr_token);
+        } else {
+          pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
+                         ec_storage_class_not_allowed,
+                         decl_start_pos);
+        }  /* if */
+      }  /* if */
+      if (dso_flags & DSO_INLINE) {
+        pos_error(ec_inline_not_allowed, decl_start_pos);
+      }  /* if */
+      if (dso_flags & DSO_EXPLICIT) {
+        pos_error(ec_explicit_not_allowed, decl_start_pos);
+      }  /* if */
+      if (is_qualified_type(member_type)) {
+        pos_error(ec_useless_type_qualifiers, decl_start_pos);
+      }  /* if */
+    } else if (storage_class == (a_storage_class)sc_typedef) {
+      /* A case like "typedef int;" or "typedef struct { int i; };" */
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                        es_warning,
+                     ec_missing_typedef_name, &pos_curr_token);
+    } else if (dso_flags & DSO_DEFINES_SOMETHING) {
+      /* A declaration with no declarator that defines a type but doesn't
+         declare a name (since DSO_DECLARES_SOMETHING flag is FALSE) -- e.g.,
+         "struct { int i; };" or "enum {};". */
+      /* Does the Working Paper rule out such useless constructs?  The first
+         sentence of Chapter 7 says, "A declaration introduces one or more
+         names into a program", and if DSO_DECLARES_SOMETHING is not set no
+         name was introduced.  On the other hand, 9.2 para 6 allows the
+         omission of declarators with enum and class specifiers.  However,
+         we take this to include only enum and class specifiers that at
+         least declare *something*. */
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                        es_warning,
+                     ec_useless_decl, decl_start_pos);
+    } else {
+      /* A case like "int;" is explicitly disallowed by language in ARM 9.2. */
+      pos_error(ec_useless_decl, decl_start_pos);
+    }  /* if */
+  } else {
+    /* C mode. */
+    if (C_dialect == C_dialect_pcc) {
+      /* Silently ignore the unnamed field.  Note that no trace of it appears
+         in the IL. */
+    } else if (dso_flags & DSO_DEFINES_SOMETHING) {
+      /* A struct or enum declaration, but no identifier.  Issue a warning
+         (or error in -A mode). */
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                        es_warning,
+                     ec_exp_identifier, &pos_curr_token);
+    } else {
+      /* Issue a warning (or error in -A mode) on the useless declaration. */
+      pos_diagnostic(strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_useless_decl, decl_start_pos);
+    }  /* if */
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_DEFINES_SOMETHING)) ||
+      (*is_anonymous_union && member_type->kind != (a_type_kind)tk_typeref)) {
+    /* This is a free-standing declaration of a class, struct, union, or
+       enum. */
+    set_autonomous_tag_decl_flag(member_type,
+                                 (dso_flags & DSO_DECLARES_SOMETHING) != 0);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* check_missing_declarator_in_member_declaration */
+
+
+
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,
@@ -7216,13 +7474,6 @@ completed (C++ only).
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
   class_tssp = cssp->template_info;
-  if (cssp->is_prototype_instantiation) {
-    /* This is a prototype instantiation, so the resulting class is "nonreal"
-       (i.e., based on template arguments that include the dummy types and
-       constants of template parameters rather than real types and constants).
-       Note that for nested classes the flag is set later. */
-    is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
-  }  /* if */
   /* A copy constructor need not be generated if construction by bitwise
      copy is equivalent.  When a class is being defined, set the flag to
      TRUE initially, and change it if a base class or member is declared
@@ -7236,73 +7487,50 @@ completed (C++ only).
   /* Determine the alignment adjustment required for packing. */
   set_max_member_alignment_for_class(class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (tag_sym->is_class_member &&
-      (curr_token == tok_lbrace || curr_token == tok_colon)) {
-    /* This is a definition of a nested class.  See if the enclosing class
-       is a prototype and/or nonreal class.  If so, copy the information
-       to the current class. */
-    a_class_symbol_supplement_ptr  parent_cssp;
-    a_scope_stack_entry_ptr	   instantiation_ssep;
-    instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
-    parent_cssp = symbol_supplement_for_class(tag_sym->parent.class_type);
-    /* If this is a prototype instantiation, allocate a template symbol
-       supplement if one has not already been created.  This is only done
-       at this point for nested classes defined within the template.
-       Note that a nested class defined outside of the template may
-       itself have classes defined within its body. */
-    if (cssp->is_prototype_instantiation &&
-        class_type != instantiation_ssep->assoc_type) {
-      a_template_symbol_supplement_ptr	tssp = cssp->template_info;
-      a_template_symbol_supplement_ptr	parent_tssp;
-      parent_tssp = parent_cssp->template_info;
-      class_tssp = tssp;
-      tssp->variant.class_template.prototype_instantiation = tag_sym;
-      /* A member class of a template class whose body is
-         supplied in the class shares the template declaration
-	 information with the enclosing class. */
-      set_template_cache_info(&tssp->cache,
-                              (a_token_cache_ptr)NULL,
-                              parent_tssp->cache.decl_info);
-      tssp->variant.class_template.name_linkage =
-                             parent_tssp->variant.class_template.name_linkage;
-      /* The cache segment information is used later to remove nested class
-         definitions from the token cache of the enclosing class. */
-      tssp->cache_segment = alloc_template_cache_segment(tag_sym, tssp);
-      tssp->cache_segment->first_token_number = curr_token_sequence_number;
-      if (is_unnamed_tag_symbol(tag_sym)) {
-        /* The definition of this nested class cannot be moved outside of
-           the enclosing class because it has no name.  Record this
-           information in the template symbol supplement. */
-        tssp->variant.class_template.not_standalone_nested_class = TRUE;
+  if (C_dialect == C_dialect_cplusplus) {
+    if (cssp->is_prototype_instantiation) {
+      /* This is a prototype instantiation, so the resulting class is
+         "nonreal" (i.e., based on template arguments that include the dummy
+         types and constants of template parameters rather than real types and
+         constants). Note that for nested classes the flag is set later. */
+      is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
+      if (tag_sym->is_class_member &&
+          (curr_token == tok_lbrace || curr_token == tok_colon)) {
+        /* This is a definition of a nested class.  See if the enclosing class
+           is a prototype and/or nonreal class.  If so, copy the information
+           to the current class. */
+        check_nonreal_nested_class(tag_sym, class_tssp);
       }  /* if */
     }  /* if */
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
     /* Find the prototype instantiation symbol associated with this
        real instantiation. */
     corresp_prototype_tag_sym = corresp_prototype_for_class_symbol(tag_sym);
-  }  /* if */
-  if (delayed_nested_class_def) {
-    /* This is a definition of a C++ nested class that appears outside the
-       scope of the parent class definition itself.  Reactivate the
-       lexical context.  Note that this is done before  the base specifiers
-       are scanned so that symbols from the enclosing class are visible. */
-    push_class_reactivation_scope(tag_sym->parent.class_type);
-  }  /* if */
-  if (curr_token == tok_colon && C_dialect == C_dialect_cplusplus) {
-    /* Scan the list of base specifiers. */
-    add_stop_token(tok_lbrace);
-    scan_base_specifier_list(class_type);
-    remove_stop_token(tok_lbrace);
-    /* A class with base classes is not an "aggregate" (ARM 8.4.1). */
-    class_aggregate_ruled_out = TRUE;
-    /* If there is a base specifier list and this is a class or struct
-       declaration, it has to be definition, which means the next token
-       should be a brace. */
-    if (curr_token != tok_lbrace &&
-        class_type->kind != (a_type_kind)tk_union) {
-      syntax_error(ec_missing_class_definition);
-      err = TRUE;
+    if (delayed_nested_class_def) {
+      /* This is a definition of a C++ nested class that appears outside the
+         scope of the parent class definition itself.  Reactivate the
+         lexical context.  Note that this is done before  the base specifiers
+         are scanned so that symbols from the enclosing class are visible. */
+      push_class_reactivation_scope(tag_sym->parent.class_type);
+    }  /* if */
+    if (curr_token == tok_colon) {
+      /* Scan the list of base specifiers. */
+      add_stop_token(tok_lbrace);
+      scan_base_specifier_list(class_type);
+      remove_stop_token(tok_lbrace);
+      /* A class with base classes is not an "aggregate" (ARM 8.4.1). */
+      class_aggregate_ruled_out = TRUE;
+      /* If there is a base specifier list and this is a class or struct
+         declaration, it has to be definition, which means the next token
+         should be a brace. */
+      if (curr_token != tok_lbrace &&
+          class_type->kind != (a_type_kind)tk_union) {
+        syntax_error(ec_missing_class_definition);
+        err = TRUE;
+      }  /* if */
+      if (delayed_nested_class_def && curr_token != tok_lbrace) {
+        /* Restore the scope stack to its original state. */
+        pop_class_reactivation_scope();
+      }  /* if */
     }  /* if */
   }  /* if */
   if (curr_token == tok_lbrace) {
@@ -7368,6 +7596,7 @@ completed (C++ only).
         a_boolean            is_anonymous_union, is_nonstd_anonymous_union;
         a_boolean            mutable_specified, explicit_specified;
 
+        add_stop_token(tok_semicolon);
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
            processing. */
@@ -7375,58 +7604,21 @@ completed (C++ only).
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
-             the value of access accordingly.  The check is implemented as a
-             loop because successive access specifications are permitted. */
-          while (curr_token == tok_public || curr_token == tok_private ||
-                 curr_token == tok_protected) {
-            switch (curr_token) {
-              case tok_public:
-                access = (an_access_specifier)as_public;
-                break;
-              case tok_protected:
-                access = (an_access_specifier)as_protected;
-                break;
-              case tok_private:
-                access = (an_access_specifier)as_private;
-                break;
-              default:;  /* Avoid gcc warnings. */
-            }  /* switch */
-            scope_stack[decl_scope_level].current_access = access;
-            /* Advance to the colon, which is required. */
-            (void)get_token();
-            if (curr_token == tok_colon) {
-              /* Advance past it. */
-              (void)get_token();
-            } else {
-              /* Calling is_member_decl_start involves calling
-                 curr_type_symbol, which suppresses access and ambiguity
-                 errors when looking up what may be a qualified name.  This
-                 is correct in this case since we do not want to do the
-                 access check until after excluding the possibility of an
-                 access adjustment declaration. */
-              if (curr_token == tok_identifier ||
-                  is_member_decl_start()) {
-                error(ec_exp_colon);
-              } else {
-                syntax_error(ec_exp_colon);
-              }  /* if */
+             the value of access accordingly. */
+          if (scan_access_specification(&access)) {
+            /* An access specifier was found.  This next check catches cases
+               like "...public: }". */
+            if (curr_token == tok_rbrace) {
+              /* Issue diagnostics on pragmas that are trying to bind to a
+                 nonexistent declaration. */
+              cannot_bind_to_curr_construct();
+              /* Exit the loop. */
+              remove_stop_token(tok_semicolon);
+              break;
             }  /* if */
-            /* Any next-construct-pragmas that appear after the access
-               specifier should be added to those that appear before.  This
-               means the access specifier is ignored as a "construct" -- the
-               binding skips over it. */
-            (void)select_curr_construct_pragmas(/*add_to_list=*/TRUE);
-          }  /* while */
-          /* This next check catches cases like "...public: }". */
-          if (curr_token == tok_rbrace) {
-            /* Issue diagnostics on pragmas that are trying to bind to a
-               nonexistent declaration. */
-            cannot_bind_to_curr_construct();
-            break;
           }  /* if */
         }  /* if */
         /* Scan a member declaration. */
-        add_stop_token(tok_semicolon);
         if (curr_token == tok_semicolon && 
             (C_dialect == C_dialect_cplusplus ||
              !(is_first_field && next_token() == tok_rbrace))) {
@@ -7441,11 +7633,16 @@ completed (C++ only).
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
           goto next_declaration;
-        } else if (curr_token == tok_asm) {
+        }  /* if */
+        /* Check for an (illegal) asm declaration. */
+        if (curr_token == tok_asm) {
           /* An asm declaration is not allowed in a class definition, but
              scan it anyway (after issuing the error). */
           (void)asm_declaration(/*asm_decl_allowed=*/FALSE,
                                 /*is_asm_statement=*/FALSE);
+          /* The semicolon will have been consumed by the subroutine.
+             Continue looping through the members. */
+          goto next_declaration;
         }  /* if */
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
@@ -7483,8 +7680,6 @@ completed (C++ only).
           }  /* if */
         }  /* if */
         copy_source_position(pos_curr_token, decl_start_pos);
-        member_type = NULL;
-        member_storage_class = (a_storage_class)sc_unspecified;
         is_anonymous_union = FALSE;
         is_nonstd_anonymous_union = FALSE;
         /* First scan the declaration specifiers.  In C++ the specifiers may
@@ -7543,150 +7738,13 @@ completed (C++ only).
         }  /* if */
         if (curr_token == tok_semicolon) {
           /* There's no declarator following the declaration specifier.  This
-             is okay sometimes.  When it is, skip over declarator processing
-             to the next declaration. */
-          /* Check first whether this is an anonymous union declaration. */
-          if (member_storage_class == (a_storage_class)sc_unspecified &&
-              !is_incomplete_type(member_type) &&
-              is_anonymous_union_decl(member_type, dso_flags,
-                                      &is_nonstd_anonymous_union,
-                                      &pos_curr_token)) {
-            /* A C++ anonymous union -- "union { int i, j; };" */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-            /* It might also be an anonymous-union-like construct in C or
-               C++, namely an unnamed class/struct/union type, possibly
-               represented by a typedef name, whose subfields are to be
-               visible as though they were fields of the current class. */
-            if (is_nonstd_anonymous_union &&
-                member_type->kind == (a_type_kind)tk_typeref) {
-              /* This is a case in which a struct is incorporated into
-                 another by means of a typeref reference -- e.g.,
-                   typedef struct { int i,j } S;
-                   struct X {
-                     S;   // has the effect of making i and j members of X
-                   };
-                 It's only possible in C mode. */
-              a_symbol_ptr  sym = (a_symbol_ptr)(member_type)->
-                                             source_corresp.assoc_info;
-              check_assertion(C_mode() && has_name(member_type));
-              if (sym != NULL) {
-                record_symbol_declaration(SRK_DECLARATION, sym,
-                                          &decl_start_pos,
-                                          (a_source_sequence_entry_ptr)NULL);
-              }  /* if */
-            }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-            is_anonymous_union = TRUE;
-            /* Set the IL referenced flag for the anonymous union type. */
-#if 0
-            /* It would probably be better to set it when an anonymous union
-               member is actually referenced. */
-#endif /* if 0 */
-            member_type->source_corresp.referenced = TRUE;
-          } else if (!C_mode()) {
-            /* C++ mode. */
-            if (mutable_specified) {
-              /* "mutable" is only allowed on nonstatic data member decls. */
-              pos_error(ec_mutable_not_allowed, &decl_start_pos);
-            }  /* if */
-            if (friend_specified) {
-              if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
-                  !is_enum_type(member_type)) {
-                /* This is a friend class declaration, of the form:
-                           friend class A;
-                   which is the only form the ARM (see 11.4) allows. */
-                if (is_nonreal_instantiation) {
-                  /* The friend declaration is not processed during prototype
-                     instantiation -- it's meaningless until a real
-                     instantiation is done. */
-                } else {
-                  decl_friend_class(class_type, member_type);
-                }  /* if */
-              } else if (!is_error_type(member_type)) {
-                /* Invalid friend declaration. */
-                pos_error(ec_bad_friend_decl, &decl_start_pos);
-              }  /* if */
-            } else if (local_declares_something) {
-              /* This is a free standing declaration of a class, struct,
-                 union, or enum type entry.  It will already have been
-                 recorded on the types list for the current class.  No need
-                 to complain about a missing identifier.  Just bypass the
-                 semicolon, after checking for some errors. */
-              if (member_storage_class != (a_storage_class)sc_unspecified) {
-                if (member_storage_class == (a_storage_class)sc_typedef) {
-                  /* A case like "typedef struct S { int i; };" */
-                  pos_diagnostic(strict_ansi_mode ?
-                                   strict_ansi_error_severity : es_warning,
-                                 ec_missing_typedef_name, &pos_curr_token);
-                } else {
-                  pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
-                                 ec_storage_class_not_allowed,
-                                 &decl_start_pos);
-                }  /* if */
-              }  /* if */
-              if (inline_specified) {
-                pos_error(ec_inline_not_allowed, &decl_start_pos);
-              }  /* if */
-              if (explicit_specified) {
-                pos_error(ec_explicit_not_allowed, &decl_start_pos);
-              }  /* if */
-              if (is_qualified_type(member_type)) {
-                pos_error(ec_useless_type_qualifiers, &decl_start_pos);
-              }  /* if */
-            } else if (member_storage_class == (a_storage_class)sc_typedef) {
-              /* A case like "typedef int;" or "typedef struct { int i; };" */
-              pos_diagnostic(strict_ansi_mode ?
-                               strict_ansi_error_severity : es_warning,
-                             ec_missing_typedef_name, &pos_curr_token);
-            } else if (local_defines_something) {
-              /* A declaration with no declarator that defines a type but
-                 does not declare a name (since local_declares_something
-                 if FALSE) -- e.g., "struct { int i; };" or "enum {};".  */
-              /* Does the ARM rule out such useless constructs?  The
-                 introduction to Chapter 7 says, "A declaration introduces
-                 one or more names into a program", since when
-                 declares_something is FALSE no name was introduced.  On
-                 the other hand, 9.2 para 4 allows the omission of
-                 declarators with enum and class specifiers.  However, we
-                 take this to include only enum and class specifiers that
-                 at least declare *something*. */
-              pos_diagnostic(strict_ansi_mode ?
-                               strict_ansi_error_severity : es_warning,
-                             ec_useless_decl, &decl_start_pos);
-            } else {
-              /* A case like "int;" is explicitly disallowed by language in
-                 ARM 9.2. */
-              pos_error(ec_useless_decl, &decl_start_pos);
-            }  /* if */
-          } else {
-            /* C mode. */
-            if (C_dialect == C_dialect_pcc) {
-              /* Silently ignore the unnamed field.  Note that no trace of
-                 it appears in the IL. */
-            } else if (local_defines_something) {
-              /* A struct or enum declaration, but no identifier.  Issue a
-                 warning (or error in -A mode). */
-              pos_diagnostic(strict_ansi_mode ?
-                               strict_ansi_error_severity : es_warning,
-                             ec_exp_identifier, &pos_curr_token);
-            } else {
-              /* Issue a warning (or error in -A mode) on the useless
-                 declaration. */
-              pos_diagnostic(strict_ansi_mode ?
-                               strict_ansi_error_severity : es_warning,
-                             ec_useless_decl, &decl_start_pos);
-            }  /* if */
-          }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (local_declares_something || local_defines_something ||
-              (is_anonymous_union &&
-               member_type->kind != (a_type_kind)tk_typeref)) {
-            /* This is a free-standing declaration of a class, struct,
-               union, or enum. */
-            set_autonomous_tag_decl_flag(member_type,
-                                         local_defines_something);
-          }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+             is okay sometimes, but sometimes a diagnostic should be issued.
+             Unless this is an anonymous union declarations, skip to the next
+             declaration. */
+          check_missing_declarator_in_member_declaration(
+                               class_type, member_type, member_storage_class,
+                               dso_flags, &decl_start_pos, &is_anonymous_union,
+                               &is_nonstd_anonymous_union);
           if (is_anonymous_union) {
             /* Don't just skip on to the next declaration --
                decl_nonstatic_data_member needs to be called. */
@@ -7766,7 +7824,7 @@ completed (C++ only).
               if (curr_routine_fixup != NULL) {
                 /* We must be in a declarator list and this must be at least
                    the second item in the list. */
-                /* This should not be cached function body. */
+                /* This should not be a cached function body. */
                 check_assertion(curr_routine_fixup->
                                 function_body_token_cache.first_token == NULL);
                 if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
