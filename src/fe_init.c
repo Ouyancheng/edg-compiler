@@ -171,29 +171,45 @@ token is the lexical token that corresponds to both.  Enter both keywords.
 static void enter_gnu_keyword(a_token_kind token,
                               char         *keyword)
 /*
-The GNU compiler accepts many keyword in three forms: as is, with a
-double-underscore prefix (e.g., __attribute), and with both a
-double-underscore prefix and a double-underscore suffix (e.g.,
-__attribute__).  The string given has no underscores.  Enter all three
-variants.
+The Gnu compiler accepts some keywords in two forms and some in
+three.  For example, typeof can be specified as "typeof", "__typeof",
+or "__typeof__", but others like __alignof__ can be specified only
+as "__alignof" or "__alignof__" (i.e., no plain form is allowed).
+
+If "keyword" does not begin with an underscore, enter all three forms
+of the name.  If it does begin with an underscore, enter the form
+provided (which is presumed to be the __name form) and also the
+name with two underscores appended.
 */
 {
   char     buffer[50];
   sizeof_t length;
 
-  /* Enter the keyword, without any underscores. */
+  /* Enter the keyword as provided. */
   enter_keyword(token, keyword);
-  /* We need room for five extra characters: four for the underscores
-     and one for the trailing NULL. */
-  length = (sizeof_t)strlen(keyword);
-  check_assertion((length + 5) < sizeof(buffer));
-  /* Register the variant with two leading underscores. */
-  buffer[0] = buffer[1] = '_';
-  strcpy(buffer + 2, keyword);
-  enter_keyword(token, buffer);
-  /* And with two trailing underscores. */
-  buffer[length + 2] = buffer[length + 3] = '_';
-  buffer[length + 4] = '\0';
+  if (keyword[0] != '_') {
+    /* A plain name was provided -- add the leading underscores. */
+    /* We need room for five extra characters: four for the underscores
+       and one for the trailing NULL. */
+    length = (sizeof_t)strlen(keyword);
+    check_assertion((length + 5) < sizeof(buffer));
+    /* Register the variant with two leading underscores. */
+    buffer[0] = buffer[1] = '_';
+    strcpy(buffer + 2, keyword);
+    enter_keyword(token, buffer);
+    /* And with two trailing underscores. */
+    buffer[length + 2] = buffer[length + 3] = '_';
+    buffer[length + 4] = '\0';
+  } else {
+    /* A __name was provided. */
+    /* We need room for three extra characters: two for the underscores
+       and one for the trailing NULL. */
+    length = (sizeof_t)strlen(keyword);
+    check_assertion((length + 3) < sizeof(buffer));
+    strcpy(buffer, keyword);
+    buffer[length] = buffer[length + 1] = '_';
+    buffer[length + 2] = '\0';
+  }  /* if */
   enter_keyword(token, buffer);
 }  /* enter_gnu_keyword */
 
@@ -355,8 +371,13 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     /* Enable alternative token spellings. */
-    enter_keyword((a_token_kind)tok_asm, "__asm__");
+    enter_gnu_keyword((a_token_kind)tok_asm, "__asm");
+    enter_gnu_keyword((a_token_kind)tok_const, "__const");
+    enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
+    enter_gnu_keyword((a_token_kind)tok_signed, "__signed");
+    enter_gnu_keyword((a_token_kind)tok_volatile, "__volatile");
     enter_keyword((a_token_kind)tok_volatile, "__volatile__");
+    enter_keyword((a_token_kind)tok_alignof, "__alignof");
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_enabled()) {
@@ -374,7 +395,7 @@ Install the keywords in the symbol table.
 #if GNU_EXTENSIONS_ALLOWED
   if (gcc_mode) {
     /* Enter "attribute" keyword.  */
-    enter_gnu_keyword((a_token_kind)tok_attribute, "attribute");
+    enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
     /* Enter "inline" keyword.  */
     enter_gnu_keyword((a_token_kind)tok_inline, "inline");
   }  /* if */
