@@ -127,7 +127,13 @@ abstract or real declarator.
 			/* If this bit was set a nonstandard member-function
 			   typedef declaration was seen; these are recognized
 			   in cfront-compatibility mode only. */
-#define DO_LAST DO_CFRONT_MEMBER_FUNCTION_TYPEDEF
+#define DO_CLASS_SCOPE_DEACTIVATION_REQUIRED 0x8
+			/* If this bit was set a class scope was reactivated
+			   to handle a class member declaration.  This flag,
+			   used only when declarator is called recursively,
+			   lets the caller know that the scope needs to be
+			   popped. */
+#define DO_LAST DO_CLASS_SCOPE_DEACTIVATION_REQUIRED
 			/* Last bit in the bit vector that is in use. */
 
 extern void declarator(a_decl_flag_set   input_flags,
