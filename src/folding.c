@@ -1864,7 +1864,7 @@ static void do_fnegate(a_constant        *constant,
 		       an_error_code     *err_code,
 		       an_error_severity *err_severity)
 /*
-Do the negate operation on all types of floats.
+Do the negate operation on all types of float and imaginary values.
 */
 {
   a_type_ptr   constant_type = skip_typerefs(constant->type);
@@ -1874,7 +1874,8 @@ Do the negate operation on all types of floats.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(result, (a_constant_repr_kind)ck_float);
+  /* Use original constant kind in case it is ck_imaginary. */
+  set_constant_kind(result, constant->kind);
 
   fp_negate(float_kind, &constant->variant.float_value,
             &result->variant.float_value, &err);
