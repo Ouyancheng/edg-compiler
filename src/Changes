@@ -1,5 +1,17 @@
 Version 3.3
 
+6/19/03  C++-generating back end: default-initialized members of arrays
+
+The C++-generating back end formerly put out initializations for
+some default-initialized members of aggregate arrays of classes
+when a constructor must be called.  Now, the implied initializations
+of such trailing members are suppressed.
+
+  struct A {
+    A();
+  };
+  const A arr[2] = {A()};
+
 6/18/03  Microsoft compatibility: __alignof
 
 The front end now recognizes the Microsoft __alignof operator.
