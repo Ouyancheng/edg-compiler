@@ -26,6 +26,8 @@ extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  template_arg_list,
                                         a_source_position   *source_pos);
 
+extern a_boolean try_template_class_instantiation(a_type_ptr  type);
+
 #endif /* TEMPLATES_H */
 
 /******************************************************************************
