@@ -1025,12 +1025,12 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
        (sym)->variant.overloaded_function.symbols, sfk_destructor)))
 
 /* Return TRUE if a symbol is a copy constructor symbol. */
-#define is_copy_constructor_symbol(sym, ptr_to_is_const_flag)         \
+#define is_copy_constructor_symbol(sym, p_const_okay, p_volatile_okay)\
   ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
    is_special_kind_function_symbol((sym), sfk_constructor) &&         \
    is_copy_constructor((sym)->variant.routine,                        \
                        (sym)->class_of_which_a_member,                \
-                       ptr_to_is_const_flag))
+                       p_const_okay, p_volatile_okay))
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */
