@@ -4178,6 +4178,12 @@ without it.
       /* No match is possible.  Don't bother calling types_are_compatible. */
       continue;
     }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_function_template &&
+        templ_param_list == NULL) {
+      /* The symbol we are checking is a template, but no template parameter
+         list was supplied by the caller.  This is not a match. */
+      continue;
+    }  /* if */
     if (templ_param_list != NULL &&
         sym->kind == (a_symbol_kind)sk_function_template) {
       /* If a template parameter list is present and the candidate symbol
