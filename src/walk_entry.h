@@ -134,8 +134,8 @@ void WALK_ENTRY_ROUTINE_NAME(char             *entry_ptr,
                              an_il_entry_kind entry_kind)
 /*
 Process the entry at entry_ptr (which is of kind indicated by entry_kind)
-by remapping its pointers, and, if DO_SUBTREE_WALKING is TRUE, walking its
-subtree and calling the entry_process_func.  When DO_SUBTREE_WALKING is
+by remapping its pointers, and, if DO_SUBTREE_WALK is TRUE, walking its
+subtree and calling the entry_process_func.  When DO_SUBTREE_WALK is
 TRUE, if the entry has already been seen, or if the pointer crosses into
 the file scope, do not process it (but record an orphan in the latter case).
 */
