@@ -2741,7 +2741,7 @@ it is a typedef.
       ((is_class_type_kind(kind) || is_enum_type(unqual_type)) &&
        (!has_name(unqual_type) ||
         /* Include cases where the tag has a name only for linkage purposes. */
-        (kind != (a_type_kind)tk_enum &&
+        (is_class_type_kind(kind) &&
          unqual_type->variant.class_struct_union.originally_unnamed)))) {
     a_source_sequence_entry_ptr ssep;
     /* Skip macros and pragmas. */
