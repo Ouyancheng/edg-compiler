@@ -313,6 +313,109 @@ but only with modifications to IL lowering and support in the back end.
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 /*
+For each floating point data type, specify the number of bits used to
+represent the mantissa, and the minimum and maximum exponent values.
+
+In each case, use a previously defined TARG_ value if one is specified.
+If none is specified, use the one defined (if any) by the float.h header.
+Otherwise, supply a reasonable default value.
+*/
+#ifndef TARG_FLT_MANT_DIG
+#ifdef FLT_MANT_DIG
+#define TARG_FLT_MANT_DIG FLT_MANT_DIG
+#else /* ifndef FLT_MANT_DIG */
+#define TARG_FLT_MANT_DIG 24
+#endif /* ifdef FLT_MANT_DIG */
+#endif /* ifndef TARG_FLT_MANT_DIG */
+
+#ifndef TARG_FLT_MIN_EXP
+#ifdef FLT_MIN_EXP
+#define TARG_FLT_MIN_EXP FLT_MIN_EXP
+#else /* ifndef FLT_MIN_EXP */
+#define TARG_FLT_MIN_EXP (-125)
+#endif /* ifdef FLT_MIN_EXP */
+#endif /* ifndef TARG_FLT_MIN_EXP */
+
+#ifndef TARG_FLT_MAX_EXP
+#ifdef FLT_MAX_EXP
+#define TARG_FLT_MAX_EXP FLT_MAX_EXP
+#else /* ifndef FLT_MAX_EXP */
+#define TARG_FLT_MAX_EXP (128)
+#endif /* ifdef FLT_MAX_EXP */
+#endif /* ifndef TARG_FLT_MAX_EXP */
+
+#ifndef TARG_DBL_MANT_DIG
+#ifdef DBL_MANT_DIG
+#define TARG_DBL_MANT_DIG DBL_MANT_DIG
+#else /* ifndef DBL_MANT_DIG */
+#define TARG_DBL_MANT_DIG 53
+#endif /* ifdef DBL_MANT_DIG */
+#endif /* ifndef TARG_DBL_MANT_DIG */
+
+#ifndef TARG_DBL_MIN_EXP
+#ifdef DBL_MIN_EXP
+#define TARG_DBL_MIN_EXP DBL_MIN_EXP
+#else /* ifndef DBL_MIN_EXP */
+#define TARG_DBL_MIN_EXP (-1021)
+#endif /* ifdef DBL_MIN_EXP */
+#endif /* ifndef TARG_DBL_MIN_EXP */
+
+#ifndef TARG_DBL_MAX_EXP
+#ifdef DBL_MAX_EXP
+#define TARG_DBL_MAX_EXP DBL_MAX_EXP
+#else /* ifndef DBL_MAX_EXP */
+#define TARG_DBL_MAX_EXP (1024)
+#endif /* ifdef DBL_MAX_EXP */
+#endif /* ifndef TARG_DBL_MAX_EXP */
+
+#ifndef TARG_LDBL_MANT_DIG
+#ifdef LDBL_MANT_DIG
+#define TARG_LDBL_MANT_DIG LDBL_MANT_DIG
+#else /* ifndef LDBL_MANT_DIG */
+#define TARG_LDBL_MANT_DIG 64
+#endif /* ifdef LDBL_MANT_DIG */
+#endif /* ifndef TARG_LDBL_MANT_DIG */
+
+#ifndef TARG_LDBL_MIN_EXP
+#ifdef LDBL_MIN_EXP
+#define TARG_LDBL_MIN_EXP LDBL_MIN_EXP
+#else /* ifndef LDBL_MIN_EXP */
+#define TARG_LDBL_MIN_EXP (-16381)
+#endif /* ifdef LDBL_MIN_EXP */
+#endif /* ifndef TARG_LDBL_MIN_EXP */
+
+#ifndef TARG_LDBL_MAX_EXP
+#ifdef LDBL_MAX_EXP
+#define TARG_LDBL_MAX_EXP LDBL_MAX_EXP
+#else /* ifndef LDBL_MAX_EXP */
+#define TARG_LDBL_MAX_EXP (16384)
+#endif /* ifdef LDBL_MAX_EXP */
+#endif /* ifndef TARG_LDBL_MAX_EXP */
+
+/*
+Maximum floating-point values.  If a TARG_ macro has been defined, we use that.
+Otherwise, if the corresponding standard C macros are defined, we use those.
+Otherwise, we leave these undefined.
+*/
+#ifndef TARG_FLT_MAX
+#ifdef FLT_MAX
+#define TARG_FLT_MAX FLT_MAX
+#endif /* ifdef FLT_MAX */
+#endif /* ifndef TARG_FLT_MAX */
+
+#ifndef TARG_DBL_MAX
+#ifdef DBL_MAX
+#define TARG_DBL_MAX DBL_MAX
+#endif /* ifdef DBL_MAX */
+#endif /* ifndef TARG_DBL_MAX */
+
+#ifndef TARG_LDBL_MAX
+#ifdef LDBL_MAX
+#define TARG_LDBL_MAX LDBL_MAX
+#endif /* ifdef LDBL_MAX */
+#endif /* ifndef TARG_LDBL_MAX */
+
+/*
 Target byte order.  Little-endian means the least-significant part of a
 multi-byte integer is at the lowest memory address.
 */
@@ -1360,11 +1463,25 @@ Float types:
 			/* Default value, used to initialize global variable
 			   targ_alignof_double. */
 #endif /* !defined(TARG_ALIGNOF_DOUBLE) */
+
 #ifndef TARG_SIZEOF_LONG_DOUBLE
+/* Determine the size of long double based on the number of mantissa digits.
+   This is used to initialize global variable targ_sizeof_long_double. */
+#if TARG_LDBL_MANT_DIG == 64
+#define TARG_SIZEOF_LONG_DOUBLE 12
+#else /* !(TARG_LDBL_MANT_DIG == 64) */
+#if TARG_LDBL_MANT_DIG == 113
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#else /* !(TARG_LDBL_MANT_DIG == 113) */
+#if TARG_LDBL_MANT_DIG == 53
 #define TARG_SIZEOF_LONG_DOUBLE 8
-			/* Default value, used to initialize global variable
-			   targ_sizeof_long_double. */
+#else /* !(TARG_LDBL_MANT_DIG == 53) */
+ #error Cannot determine default long double size based on TARG_LDBL_MANT_DIG
+#endif /* TARG_LDBL_MANT_DIG == 53 */
+#endif /* TARG_LDBL_MANT_DIG == 113 */
+#endif /* TARG_LDBL_MANT_DIG == 64 */
 #endif /* !defined(TARG_SIZEOF_LONG_DOUBLE) */
+
 #ifndef TARG_ALIGNOF_LONG_DOUBLE
 #define TARG_ALIGNOF_LONG_DOUBLE 8
 			/* Default value, used to initialize global variable
@@ -1443,109 +1560,6 @@ type to be used.
 #endif /* ifndef TYPE_FOR_AN_FP_VALUE_PART */
 
 typedef	TYPE_FOR_AN_FP_VALUE_PART an_fp_value_part;
-
-/*
-For each floating point data type, specify the number of bits used to
-represent the mantissa, and the minimum and maximum exponent values.
-
-In each case, use a previously defined TARG_ value if one is specified.
-If none is specified, use the one defined (if any) by the float.h header.
-Otherwise, supply a reasonable default value.
-*/
-#ifndef TARG_FLT_MANT_DIG
-#ifdef FLT_MANT_DIG
-#define TARG_FLT_MANT_DIG FLT_MANT_DIG
-#else /* ifndef FLT_MANT_DIG */
-#define TARG_FLT_MANT_DIG 24
-#endif /* ifdef FLT_MANT_DIG */
-#endif /* ifndef TARG_FLT_MANT_DIG */
-
-#ifndef TARG_FLT_MIN_EXP
-#ifdef FLT_MIN_EXP
-#define TARG_FLT_MIN_EXP FLT_MIN_EXP
-#else /* ifndef FLT_MIN_EXP */
-#define TARG_FLT_MIN_EXP (-125)
-#endif /* ifdef FLT_MIN_EXP */
-#endif /* ifndef TARG_FLT_MIN_EXP */
-
-#ifndef TARG_FLT_MAX_EXP
-#ifdef FLT_MAX_EXP
-#define TARG_FLT_MAX_EXP FLT_MAX_EXP
-#else /* ifndef FLT_MAX_EXP */
-#define TARG_FLT_MAX_EXP (128)
-#endif /* ifdef FLT_MAX_EXP */
-#endif /* ifndef TARG_FLT_MAX_EXP */
-
-#ifndef TARG_DBL_MANT_DIG
-#ifdef DBL_MANT_DIG
-#define TARG_DBL_MANT_DIG DBL_MANT_DIG
-#else /* ifndef DBL_MANT_DIG */
-#define TARG_DBL_MANT_DIG 53
-#endif /* ifdef DBL_MANT_DIG */
-#endif /* ifndef TARG_DBL_MANT_DIG */
-
-#ifndef TARG_DBL_MIN_EXP
-#ifdef DBL_MIN_EXP
-#define TARG_DBL_MIN_EXP DBL_MIN_EXP
-#else /* ifndef DBL_MIN_EXP */
-#define TARG_DBL_MIN_EXP (-1021)
-#endif /* ifdef DBL_MIN_EXP */
-#endif /* ifndef TARG_DBL_MIN_EXP */
-
-#ifndef TARG_DBL_MAX_EXP
-#ifdef DBL_MAX_EXP
-#define TARG_DBL_MAX_EXP DBL_MAX_EXP
-#else /* ifndef DBL_MAX_EXP */
-#define TARG_DBL_MAX_EXP (1024)
-#endif /* ifdef DBL_MAX_EXP */
-#endif /* ifndef TARG_DBL_MAX_EXP */
-
-#ifndef TARG_LDBL_MANT_DIG
-#ifdef LDBL_MANT_DIG
-#define TARG_LDBL_MANT_DIG LDBL_MANT_DIG
-#else /* ifndef LDBL_MANT_DIG */
-#define TARG_LDBL_MANT_DIG 64
-#endif /* ifdef LDBL_MANT_DIG */
-#endif /* ifndef TARG_LDBL_MANT_DIG */
-
-#ifndef TARG_LDBL_MIN_EXP
-#ifdef LDBL_MIN_EXP
-#define TARG_LDBL_MIN_EXP LDBL_MIN_EXP
-#else /* ifndef LDBL_MIN_EXP */
-#define TARG_LDBL_MIN_EXP (-16381)
-#endif /* ifdef LDBL_MIN_EXP */
-#endif /* ifndef TARG_LDBL_MIN_EXP */
-
-#ifndef TARG_LDBL_MAX_EXP
-#ifdef LDBL_MAX_EXP
-#define TARG_LDBL_MAX_EXP LDBL_MAX_EXP
-#else /* ifndef LDBL_MAX_EXP */
-#define TARG_LDBL_MAX_EXP (16384)
-#endif /* ifdef LDBL_MAX_EXP */
-#endif /* ifndef TARG_LDBL_MAX_EXP */
-
-/*
-Maximum floating-point values.  If a TARG_ macro has been defined, we use that.
-Otherwise, if the corresponding standard C macros are defined, we use those.
-Otherwise, we leave these undefined.
-*/
-#ifndef TARG_FLT_MAX
-#ifdef FLT_MAX
-#define TARG_FLT_MAX FLT_MAX
-#endif /* ifdef FLT_MAX */
-#endif /* ifndef TARG_FLT_MAX */
-
-#ifndef TARG_DBL_MAX
-#ifdef DBL_MAX
-#define TARG_DBL_MAX DBL_MAX
-#endif /* ifdef DBL_MAX */
-#endif /* ifndef TARG_DBL_MAX */
-
-#ifndef TARG_LDBL_MAX
-#ifdef LDBL_MAX
-#define TARG_LDBL_MAX LDBL_MAX
-#endif /* ifdef LDBL_MAX */
-#endif /* ifndef TARG_LDBL_MAX */
 
 #if FIXED_POINT_ALLOWED
 

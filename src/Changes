@@ -1,5 +1,15 @@
 Version 3.6
 
+1/19/05  Internal error when building front end with an empty defines.h file
+
+Version 3.5 introduced an assertion check to verify that the values of
+TARG_LDBL_MANT_DIG and TARG_SIZEOF_LONG_DOUBLE are consistent with one
+another.  If TARG_SIZEOF_LONG_DOUBLE is not defined in the defines.h
+file, a default value is supplied.  This default value was not set
+based on the setting of TARG_LDBL_MANT_DIG, resulting in an internal
+error on some systems.  The default value of TARG_SIZEOF_LONG_DOUBLE is
+now determined based on the value of TARG_LDBL_MANT_DIG.
+
 1/17/05  Spurious C mode compatibility error across translation units
 
 When simultaneously processing multiple translation units in C mode, the front
