@@ -2516,9 +2516,16 @@ new extent.  This is used to accelerate the layout process.
 */
 {
   a_type_ptr     bctp = skip_typerefs(bcp->type);
-  a_targ_size_t  next_byte = bcp->offset
-                             + bctp->variant.class_struct_union.extra_info
-                                   ->size_without_virtual_base_classes;
+  a_targ_size_t  next_byte;
+
+  if (bctp->variant.class_struct_union.any_virtual_base_classes) {
+    next_byte = bcp->offset + bctp->variant.class_struct_union.extra_info
+                                  ->size_without_virtual_base_classes;
+  } else {
+    /* This includes empty base classes (whose size without virtual base
+       classes is zero). */
+    next_byte = bcp->offset + bctp->size;
+  }  /* if */
   if (next_byte > lob->curr_base_extent+1) {
     lob->curr_base_extent = next_byte-1;
   }  /* if */
@@ -3713,6 +3720,7 @@ Reserve space at the end of the class object for virtual base classes.
            virtual bases.  The alignment boundary is forced after this tail
            padding. */
         lob->byte_offset = lob->curr_base_extent + 1;
+        ctsp->alignment_without_virtual_base_classes = lob->alignment;
       }  /* if */
       if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&
           !lob->any_overflow) {
