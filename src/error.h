@@ -525,7 +525,8 @@ typedef enum /*an_error_code*/ {
   ec_vacuous_destructor_name_mismatch,
   ec_bad_storage_class_on_template_decl,
   ec_no_access_to_type_cfront_mode,
-  ec_return_type_not_allowed
+  ec_return_type_not_allowed,
+  ec_invalid_instantiation_pragma_argument
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
