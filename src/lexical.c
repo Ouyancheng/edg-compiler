@@ -2185,6 +2185,17 @@ Push the indicated file onto the input stack.
     curr_ise->base_pp_if_stack_depth = base_pp_if_stack_depth =
                                                           pp_if_stack_depth;
   }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    a_directory_name_entry_ptr	dnep = incl_search_path;
+    fprintf(f_debug, "Include search path after pushing %s:\n",
+            full_file_name);
+    while (dnep != NULL) {
+      fprintf(f_debug, "  %s\n", dnep->dir_name);
+      dnep = dnep->next;
+    }  /* while */
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* push_input_stack */
 
@@ -2195,6 +2206,7 @@ Pop the input stack, and correctly prepare for input from the file
 at the next level down.
 */
 {
+  a_boolean	is_end_of_primary_source_file = FALSE;
   db_enter(2, "pop_input_stack");
   /* Remember the final sequence number in the file, for sequence number
      mapping purposes. */
@@ -2217,6 +2229,8 @@ at the next level down.
     if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {
       record_end_of_source_file(il_header.primary_source_file,
                                 seq_number_last_read);
+    } else {
+      is_end_of_primary_source_file = TRUE;
     }  /* if */
   }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
@@ -2245,6 +2259,18 @@ at the next level down.
   if (--depth_input_stack < 0) {
     curr_ise = NULL;
     curr_input_stream = NULL;
+    if (!is_end_of_primary_source_file) {
+#if STACK_REFERENCED_INCLUDE_DIRECTORIES
+      /* When the include list contains a stack of directory names of
+         active include files, we need to remove the entries added for
+         implicitly included files.  Don't do this for the primary source
+         file.  We want that entry to stay on the list for use by
+         subsequent implicit includes. */
+      check_assertion(incl_search_path != NULL &&
+                      incl_search_path->next != NULL);
+      pop_primary_include_search_dir(incl_search_path->next->dir_name);
+#endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
+    }  /* if */
   } else {
     an_input_stack_entry_ptr  prev_ise = curr_ise;
     curr_ise = &input_stack[depth_input_stack];
@@ -2341,6 +2367,16 @@ at the next level down.
     }  /* if */
 #endif  /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    a_directory_name_entry_ptr	dnep = incl_search_path;
+    fprintf(f_debug, "Include search path after popping:\n");
+    while (dnep != NULL) {
+      fprintf(f_debug, "  %s\n", dnep->dir_name);
+      dnep = dnep->next;
+    }  /* while */
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* pop_input_stack */
 

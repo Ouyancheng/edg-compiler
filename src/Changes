@@ -1,5 +1,19 @@
 Version 2.24
 
+6/23/94 Include directory list when using STACK_REFERENCED_INCLUDE_DIRECTORIES
+
+When using stacked include directories, the directory associated with the
+primary source file appeared on the list twice.  Also, the directories
+associated with implicitly included files were not being removed from
+the list.  These problems have been corrected.
+
+6/23/94 Instantiation file suffix list and multiple compilations
+
+The include file suffix list was allocated in front end memory when
+it should have been allocated in general memory.  This could
+cause compilation failures and/or aborts when compiling
+multiple files in a single front-end invocation.
+
 6/22/94 IL CHANGE: break_label and continue_label flags in a_label
 
 break_label and continue_label flags have been added to a_label to identify

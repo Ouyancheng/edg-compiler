@@ -971,9 +971,13 @@ Process the arguments on the command line that invoked the compiler.
   /* If the name is "-", use stdin for input. */
   if (strcmp(optarg, "-") == 0) optarg = FILE_NAME_FOR_STDIN;
   primary_source_file_name = optarg;
+#if !STACK_REFERENCED_INCLUDE_DIRECTORIES
   /* Add the directory of the source file to the front of the include file
      search path.  gs_directory_of returns the directory part of the
-     name allocated in general (not IL) storage. */
+     name allocated in general (not IL) storage.  This is not done when
+     the include directories of the input files are stacked because the
+     entry associated with the primary source file will be created when
+     the primary source file is pushed onto the input stack. */
   {
     /* If you change this, see the similar code in get_next_source_file. */
 #ifdef USING_PURIFY
@@ -987,6 +991,7 @@ Process the arguments on the command line that invoked the compiler.
     dir_name = gs_directory_of(primary_source_file_name);
     add_to_front_of_include_search_path(dir_name);
   }
+#endif /* !STACK_REFERENCED_INCLUDE_DIRECTORIES */
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* Multiple source files can be compiled.  Save the count and argv
      position of remaining files, if any. */
