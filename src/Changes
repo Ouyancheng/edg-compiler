@@ -1,5 +1,25 @@
 Version 2.37
 
+9/18/97   Microsoft compatibility: type qualifiers on function parameters
+          affect virtual function overriding
+
+In Microsoft bugs mode, the type qualifiers on the function declarations
+(even though they are otherwise removed from the function signature) can
+affect whether a derived class function is considered to override a base
+class virtual function.  For instance:
+
+  struct B {
+    virtual void f(const int);
+  };
+  struct D : public B {
+    void f(int);            // In Microsoft bugs mode D::f does not
+  };                        //   override virtual function B::f
+
+IL CHANGE: The qualifiers field in a_param_type, which records the
+top-level type qualifiers that are removed when global variable
+remove_qualifiers_from_param_types is TRUE, is now set in all cases (i.e.,
+no longer just for parameters of functions that have definitions).
+
 9/18/97   Microsoft compatibility: c_plusplus macro not defined
 
 In Microsoft C++ mode, the macro c_plusplus is no longer defined.
