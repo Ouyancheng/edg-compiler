@@ -1,5 +1,11 @@
 Version 2.35
 
+2/21/97  "void * const" return type for operator new
+
+An error is now issued if an operator new or new[] function is declared
+with a return type of "void * const".  This fixes an internal error in IL
+lowering.
+
 2/21/97  Error recovery problem: binding reference to error type
 
 On the following case, an error recovery problem caused an abort.

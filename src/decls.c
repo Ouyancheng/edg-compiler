@@ -628,7 +628,7 @@ new fields are set properly.
       if (!is_error_type(tp)) {
         if (is_new_operator(opname)) {
           /* operator new or operator new[]: return type must be "void *". */
-          if (!is_void_star_type(tp)) {
+          if (!is_void_star_type(tp) || is_qualified_type(tp)) {
             pos_error(ec_bad_return_type_for_op_new,
                       &locator->source_position);
             err = TRUE;
