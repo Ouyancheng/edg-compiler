@@ -7078,6 +7078,7 @@ been completed (C++ only).
               /* "mutable" is only allowed on nonstatic data member decls. */
               pos_error(ec_mutable_not_allowed, &decl_start_pos);
             }  /* if */
+            function_def_present = (curr_token == tok_lbrace);
             if (!type_explicitly_specified) {
               /* No type specifier. */
               if (is_constructor || is_destructor ||
@@ -7088,12 +7089,24 @@ been completed (C++ only).
                 /* Type specifier is missing.  The type defaults to int,
                    but issue a diagnostic. */
                 if (first_declarator_diagnostics) {
-                  pos_remark(ec_missing_type_specifier, &decl_start_pos);
+                  if (local_no_decl_specifiers && !function_def_present &&
+                      !any_cfront_mode()) {
+                    /* WP 9.4 [class.mem] says decl-specifiers may only be
+                       omitted in declarations when the function is a
+                       constructor, destructor, and conversion function:
+                       issue a diagnostic. */
+                    pos_diagnostic(es_discretionary_error,
+                                   ec_missing_decl_specifiers,
+                                   &decl_start_pos);
+                  } else {
+                    /* If no error is put out, at least issue a remark on
+                       the implicit return type "int". */
+                    pos_remark(ec_missing_type_specifier, &decl_start_pos);
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }  /* if */
             spec_kind = (a_special_function_kind)sfk_none;
-            function_def_present = (curr_token == tok_lbrace);
             if (local_type == member_type) {
               /* When scanning the declarator does not change the type,
                  we know this member is a function based on the specifier

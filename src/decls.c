@@ -7070,7 +7070,7 @@ continue_with_declaration:
              name at the start of a declaration, so enter an error symbol
              instead of the name given.  In pcc mode the declaration is taken
              as a declaration of an int variable.  (In C++ the decl specifiers
-             may be omitted on function declarations and definitions.) */
+             may be omitted on function definitions.) */
           if (C_dialect == C_dialect_pcc) {
             pos_warning(ec_missing_decl_specifiers, &declarator_pos);
           } else {
@@ -7085,7 +7085,16 @@ continue_with_declaration:
               if (C_dialect != C_dialect_cplusplus ||
                   (!is_constructor_or_destructor &&
                    !locator.is_conversion_name)) {
-                pos_remark(ec_missing_type_specifier, &declarator_pos);
+                if (C_dialect == C_dialect_cplusplus && !any_cfront_mode() &&
+                    decl_specifiers_omitted) {
+                  /* In C++, except in cfront mode, a function declaration
+                     (but not a definition) must have decl-specifiers (WP 7
+                     [dcl.dcl]), except for certain member functions. */
+                  pos_diagnostic(es_discretionary_error,
+                                 ec_missing_decl_specifiers, &declarator_pos);
+                } else {
+                  pos_remark(ec_missing_type_specifier, &declarator_pos);
+                }  /* if */
               }  /* if */
             }  /* if */
           } else {
