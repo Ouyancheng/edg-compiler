@@ -1,5 +1,12 @@
 Version 2.11
 
+10/17/92 cfront 2.1 compatible nested class name mangling 
+
+When running in cfront compatibility mode, the names of nested classes 
+are now mangled the same way that cfront 2.1 does it.  That is, in
+some cases the nested form ("Q2_1A1B") is not used.  See the flag
+CFRONT_2_1_OBJECT_CODE_COMPATIBILITY.
+
 10/17/92 Fix of bug in folding of "%" operator
 
 The folding of smallest-integer % -1 on a two's complement machine

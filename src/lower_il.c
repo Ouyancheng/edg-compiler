@@ -2722,6 +2722,12 @@ initial parts of the qualified names.
   */
   mangled_name_length = 0;
   parent_class = type->source_corresp.class_of_which_a_member;
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  /* If this a nested type name promoted into the file scope in
+     cfront 2.1 mode, do not use the nested form. */
+  if (type->use_cfront_transitional_nested_type_name_mangling) {
+  } else
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   if (parent_class != NULL) {
     /* Nested class.  Do the containing class names. */
     name_length = mangled_type_name(parent_class, nesting_level+1, store_at);
@@ -3379,7 +3385,12 @@ other name mangling that might use the name is done.
   char     *mangled_name;
 
   error_position = class_type->source_corresp.decl_position;
-  if (class_type->source_corresp.class_of_which_a_member != NULL) {
+  if (class_type->source_corresp.class_of_which_a_member != NULL
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+      /* If this a cfront 2.1 nested type, leave it in the unnested form. */
+      && !class_type->use_cfront_transitional_nested_type_name_mangling
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+                                                                ) {
     /* Nested class names must be mangled (because they exist in a scope
        that does not exist in the generated C code).  The mangled form
        is something like
