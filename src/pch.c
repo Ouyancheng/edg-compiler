@@ -1616,11 +1616,13 @@ directory.  Return TRUE if an applicable PCH was found.
     }  /* if */
     (void)fclose(f_pch_input);
   }  /* for */
-  /* Save a copy of the precompiled header file name to be used. */
-  pch_input_file_name = (char *)alloc_general
+  if (result) {
+    /* Save a copy of the precompiled header file name to be used. */
+    pch_input_file_name = (char *)alloc_general
                                      ((sizeof_t)strlen(file_name_buffer) + 1);
-  pos_of_last_event_from_pch = best_result_so_far;
-  (void)strcpy(pch_input_file_name, file_name_buffer);
+    pos_of_last_event_from_pch = best_result_so_far;
+    (void)strcpy(pch_input_file_name, file_name_buffer);
+  }  /* if */
   db_exit();
   return result;
 }  /* find_applicable_pch */
