@@ -268,14 +268,16 @@ extern a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout);
 /* Macro to determine whether a routine is to be treated as a static inline
    function.  This includes "extern inline" functions that are lowered to
    static functions. */
+/* In IA-64 mode, the lowered functions are still external and they
+   go out in COMDAT sections. */
 /* Note that these macros work only in C++ mode. */
-#if LOWER_EXTERN_INLINE
+#if LOWER_EXTERN_INLINE && !IA64_ABI
 /* When lowering "extern inline" all inline functions are treated as static.
    Those that really are static stay static (actually, they may get
    externalized if there are exported templates, then lowered to static
    again), and extern inline functions get lowered to static. */
 #define treat_as_static_inline(rout) (rout_is_inline(rout))
-#else /* !LOWER_EXTERN_INLINE */
+#else /* !(LOWER_EXTERN_INLINE && !IA64_ABI) */
 /* When not lowering "extern inline" only those declared static are treated
    as static. */
 #define treat_as_static_inline(rout)					\

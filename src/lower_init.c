@@ -10774,11 +10774,13 @@ The overriding function must have a definition in the current compilation.
   }  /* if */
 #endif /* IA64_ABI */
   pop_generated_routine_context(scope, region_number, &grcontext);
-#if INSTANTIATE_EXTERN_INLINE && MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS
+  /* Mark the routine as needed.  External routines other than extern inline
+     were marked as needed in pop_generated_routine_context. */
   if (treat_as_extern_inline(routine)) {
     mark_as_needed((char *)routine, iek_routine);
   }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS && INSTANTIATE_EXTERN_INLINE */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* add_body_for_covariant_return_type_entry_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
