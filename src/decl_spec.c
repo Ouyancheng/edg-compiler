@@ -1702,7 +1702,8 @@ the template.
               *declares_something = FALSE;
             } else {
               if (tag_sym->decl_scope != ssep->number &&
-                  (tag_sym->parent.namespace_ptr == NULL ||
+                  ((!tag_sym->is_class_member &&
+                    tag_sym->parent.namespace_ptr == NULL) ||
                    !namespace_is_enclosed_by_curr_scope(tag_sym))) {
                 pos_sy_error(ec_bad_scope_for_specialization,
                              &tag_position, tag_sym);
@@ -1760,7 +1761,8 @@ the template.
              compiler no longer considers a declaration such as
              "class A<int>;" to declare an incomplete specialization. */
           if (tag_sym->decl_scope != ssep->number &&
-              (tag_sym->parent.namespace_ptr == NULL ||
+              ((!tag_sym->is_class_member &&
+                tag_sym->parent.namespace_ptr == NULL) ||
                !namespace_is_enclosed_by_curr_scope(tag_sym))) {
             /* Explicit specializations of class templates must appear in the
                file or namespace scope in which the template was originally
