@@ -71,6 +71,10 @@ typedef struct an_aggregate_init_info {
   a_boolean	any_uninitialized_const_or_ref_member;
 			/* Set to TRUE if any member of the aggregate that
 			   is uninitialized has const or reference type. */
+  a_boolean	comma_seen;
+			/* Set to TRUE when a comma was skipped while looking
+			   ahead to find that there are no more initializers
+			   for the current aggregate. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		init_end_position;
@@ -92,6 +96,7 @@ Initialize an entry of type an_aggregrate_init_info.
   init_info->static_lifetime = static_lifetime;
   init_info->any_uninitialized_member = FALSE;
   init_info->any_uninitialized_const_or_ref_member = FALSE;
+  init_info->comma_seen = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1980,8 +1985,12 @@ this function points to a tree that includes a dynamic-init entry.
           any_more_initializers = FALSE;
         } else {
           /* Skip a comma separating initializers.  This might be an extra
-             comma at the end of the list. */
-          any_more_initializers = loop_token(tok_comma);
+             comma at the end of the list.  The comma might already have been
+             skipped while looking ahead for a designator: in that case,
+             init_info->comma_seen should be set. */
+          any_more_initializers = init_info->comma_seen ||
+                                  loop_token(tok_comma);
+          init_info->comma_seen = FALSE;
           /* Always end the loop upon encountering a right brace.  This might
              be the right brace matching the opening brace for this list
              (in the case that there was one), or a brace closing some
@@ -1998,7 +2007,12 @@ this function points to a tree that includes a dynamic-init entry.
             /* A designator ends a non-brace-enclosed list of initializers,
                but if it is brace-enclosed then an upcoming designator means
                more initializers are following. */
-            any_more_initializers = brace_flag;
+            if (!brace_flag) {
+              /* The comma really indicated that the are more initializers at
+                 a previous level.  Record it has been seen. */
+              init_info->comma_seen = TRUE;
+              any_more_initializers = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Keep looping while there are more initializers. */
