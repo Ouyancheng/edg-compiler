@@ -1,5 +1,15 @@
 Version 2.12
 
+11/9/92 Fixed bug in handling nonstandard friend declarations
+
+Nonstandard friend declarations of previously declared unions were not
+handled in the same manner as structs and unions.  The following
+(supported as an extension for compatibility with cfront) is now handled
+properly:
+
+  union U { /* ... */ };
+  class X { friend U; /* ... */ };
+
 11/9/92 pcc mode comment fix
 
 A fix was made in skip_white_space in lexical.c to avoid an internal
