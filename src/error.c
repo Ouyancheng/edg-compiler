@@ -1219,6 +1219,9 @@ error code.
     case ec_virtual_function_in_union:
       m = "virtual member function not allowed in a union";
       break;
+    case ec_static_member_in_union:
+      m = "static data member not allowed in a union";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
