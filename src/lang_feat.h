@@ -749,7 +749,8 @@ is enabled.
 */
 #define gnu_mode (gcc_mode || gpp_mode)
 
-EXTERN long	gnu_version
+EXTERN unsigned long
+		gnu_version
 #if VAR_INITIALIZERS
                                = DEFAULT_GNU_VERSION
 #endif /* VAR_INITIALIZERS */
@@ -804,7 +805,8 @@ EXTERN a_boolean
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-EXTERN long	microsoft_version
+EXTERN unsigned long
+		microsoft_version
 #if VAR_INITIALIZERS
                                = DEFAULT_MICROSOFT_VERSION
 #endif /* VAR_INITIALIZERS */

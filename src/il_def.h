@@ -10966,7 +10966,8 @@ typedef struct an_il_header {
 		microsoft_mode;
 			/* TRUE if Microsoft extensions are accepted;
 			   corresponds to global variable microsoft_mode. */
-  long		microsoft_version;
+  unsigned long
+		microsoft_version;
 			/* When microsoft_mode is TRUE, the version of the
 			   Microsoft compiler with which compatibility is
 			   desired; corresponds to the global variable
@@ -10989,7 +10990,8 @@ typedef struct an_il_header {
 		gpp_mode;
 			/* TRUE if the source program was compiled in
 			   GNU C++ mode. */
-  long		gnu_version;
+  unsigned long
+		gnu_version;
 			/* When gcc_mode or gpp_mode is TRUE, the version of
 			   the GNU compiler with which compatibility is
 			   desired; corresponds to the global variable
