@@ -49,11 +49,11 @@ This is now fixed.
 In GNU C mode (but not in GNU C++ mode) the front end now ignores top-level
 const and volatile qualifiers when processing a typeof operator whose
 argument is an expression.  However, if the expression is a simple variable
- the qualifiers are not ignored. For example:
+the qualifiers are not ignored. For example:
 
   void f(int const *p) {
     int const x;
-    __typeof__(int const) v1;  // Argument is a type; not an expression:
+    __typeof__(int const) v1;  // Argument is a type, not an expression:
                                // v1 has type int const.
     __typeof__(*p) v2;         // Argument is a nontrivial expression:
                                // v2 has type int.
