@@ -3014,6 +3014,20 @@ and "routine" is the routine to which the entity is local.
 
 #endif /* !IA64_ABI */
 #if IA64_ABI
+  
+static void add_discriminator(a_discriminator          discriminator,
+                              a_mangling_control_block *mctl)
+/*
+Add the encoding for a discriminator (used to distinguish like-named
+local entities in the IA-64 ABI) to the mangled name.
+*/
+{
+  if (discriminator > 0) {
+    add_to_mangled_name('_', mctl);
+    add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
+  }  /* if */
+}  /* add_discriminator */
+
 
 static void add_discriminator_if_necessary(a_source_correspondence  *scp,
                                            a_mangling_control_block *mctl)
@@ -3049,10 +3063,7 @@ IA-64 ABI to distinguish function-local entities with the same name.
     } else if (sym->kind == (a_symbol_kind)sk_type) {
       discriminator = sym->variant.type.discriminator;
     }  /* if */
-    if (discriminator > 0) {
-      add_to_mangled_name('_', mctl);
-      add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
-    }  /* if */
+    add_discriminator(discriminator, mctl);
   }  /* if */
 }  /* add_discriminator_if_necessary */
 
@@ -6259,6 +6270,8 @@ be embedded in other mangled names.
 */
 {
   a_mangling_control_block mctl;
+  a_boolean                is_string = FALSE;
+  unsigned long            sequence_number;
 
   check_assertion(kind == iek_variable ||
                   kind == iek_constant ||
@@ -6274,10 +6287,23 @@ be embedded in other mangled names.
       if (name != NULL) {
         scp->name = name;
       }  /* if */
+    } else if (scp->name == NULL) {
+      /* This should be a variable created to represent a string literal
+         (see rewrite_address_of_string_as_address_of_variable). */
+      an_init_kind       init_kind;
+      an_initializer_ptr initializer;
+      a_constant_ptr     string_con;
+      is_string = TRUE;
+      get_variable_initializer(var, scope, &init_kind, &initializer);
+      check_assertion(init_kind == (an_init_kind)initk_static);
+      string_con = initializer->constant;
+      check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
+      sequence_number = string_con->variant.string.sequence_number;
+      check_assertion(sequence_number != 0);
     }  /* if */
   }  /* if */
   /* Leave the name alone if the entity is unnamed. */
-  if (scp->name != NULL) {
+  if (scp->name != NULL || is_string) {
     start_mangling(&mctl);
     /* Name mangling is needed. */
 #if !IA64_ABI
@@ -6285,22 +6311,30 @@ be embedded in other mangled names.
       /* The encoding is the original name, followed by "__Lnn", where "nn"
          is the scope number within the function, followed by two underscores,
          followed by the mangled name of the routine. */
-      /* Develop a scope number for the scope in which the entity appears.
-         This number must be relative to the function rather than to the
-         whole compilation so that if a given function (e.g., an extern inline
-         function) is compiled in more than one compilation unit the scope
-         number -- and therefore the mangled name -- will be the same in each
-         compilation. */
-      a_scope_ptr rout_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-      a_boolean   found = FALSE;
-      scope_number = search_scope_list(scope, rout_scope, &found);
-      check_assertion_str(found,
-                          "mangle_promoted_entity_name: scope not found");
       if (kind == iek_type) {
         add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
       }  /* if */
-      add_str_to_mangled_name(scp->name, &mctl);
+      if (!is_string) {
+        /* Develop a scope number for the scope in which the entity appears.
+           This number must be relative to the function rather than to the
+           whole compilation so that if a given function (e.g., an extern
+           inline function) is compiled in more than one compilation unit
+           the scope number -- and therefore the mangled name -- will be
+           the same in each compilation. */
+        a_scope_ptr rout_scope =
+                            il_header.region_scope_entry[routine->assoc_scope];
+        a_boolean   found = FALSE;
+        scope_number = search_scope_list(scope, rout_scope, &found);
+        check_assertion_str(found,
+                            "mangle_promoted_entity_name: scope not found");
+        add_str_to_mangled_name(scp->name, &mctl);
+      } else {
+        /* String literal -- add "__string", and the sequence number is
+           used for the scope number (strings are numbered across the entire
+           function). */
+        add_str_to_mangled_name("__string", &mctl);
+        scope_number = sequence_number;
+      }  /* if */
       add_local_name_suffix(scope_number, routine, &mctl);
     }
 #else /* IA64_ABI */
@@ -6313,8 +6347,16 @@ be embedded in other mangled names.
                               /*is_variable=*/FALSE, &mctl);
     }  /* if */
     add_prefix_for_local_entity(routine, &mctl);
-    mangled_name_with_length(scp->name, &mctl);
-    add_discriminator_if_necessary(scp, &mctl);
+    if (!is_string) {
+      mangled_name_with_length(scp->name, &mctl);
+      add_discriminator_if_necessary(scp, &mctl);
+    } else {
+      /* String literal.  The name is "s" and the discriminator encodes the
+         sequence number.  Note that sequence numbers start with one and
+         discriminator values start with zero. */
+      add_to_mangled_name('s', &mctl);
+      add_discriminator((a_discriminator)(sequence_number-1), &mctl);
+    }  /* if */
 #endif /* !IA64_ABI */
     (void)end_mangling(scp, final, &mctl);
   }  /* if */

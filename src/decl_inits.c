@@ -3175,19 +3175,15 @@ returned set to TRUE.
          variable. */
       check_assertion(in_file_scope(vp));
       check_assertion(!in_file_scope(init_con));
-      if (init_con->kind == (a_constant_repr_kind)ck_aggregate
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-          || init_con->expr != NULL
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-                                   ) {
+      if (init_con->kind == (a_constant_repr_kind)ck_aggregate ||
+          has_non_file_scope_ref(init_con)) {
         /* Aggregate-constant initialization.  Since the aggregate constant
            is in the local memory region, the variable can't have a pointer
            to it.  Instead, create a local-static-variable-init entry to point
            to the initializer -- it is added to a list associated with the
            current function or block scope.  A similar problem exists when
-           we record the expression forming the constant: the expression is
-           allocated in the local memory region and should not have a pointer
-           to it from file scope memory. */
+           the constant points to something in the function scope memory
+           region. */
         local_static_var_init =
               make_local_static_variable_init(vp, (a_scope_ptr)NULL,
                                               (an_init_kind)initk_static,

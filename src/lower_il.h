@@ -878,6 +878,9 @@ extern void prelower_class_type(a_type_ptr class_type);
 
 extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 
+extern void rewrite_address_of_string_as_address_of_variable(
+                                                      a_constant_ptr addr_con);
+
 extern void lower_constant(a_constant_ptr constant);
 
 extern a_type_ptr type_of_cctor_param_after_adding_indirection(

@@ -659,6 +659,13 @@ typedef int an_expr_copy_options_set;
 			/* TRUE if when constants are copied they may be
 			   shared.  FALSE means such constants must be
 			   unshared. */
+#define CE_REPLACE_STRINGS_BY_VARIABLES 0x40
+			/* TRUE if string literals with sequence_number != 0
+			   should be replaced by variables as they are
+			   copied.  More precisely, address constants that
+			   point to ck_string constants with sequence_number
+			   != 0 are rewritten as the addresses of the
+			   generated variables. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
@@ -675,6 +682,8 @@ extern a_boolean expr_tree_contains_template_param_constant(
 
 extern a_boolean nontype_templ_arg_constant_references_non_external_entity(
                                                       a_constant_ptr constant);
+
+extern a_boolean has_non_file_scope_ref(a_constant *cp);
 
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 

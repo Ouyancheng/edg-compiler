@@ -1085,11 +1085,10 @@ typedef struct a_source_correspondence {
 			   be cast to the proper pointer type for use. */
 #if DO_IL_LOWERING
 			/* When IL lowering is done, this is used in
-			   ck_ptr_to_member constants changed to ck_aggregate
-			   constants to point to an associated variable that
-			   is initialized with the ck_aggregate value.
-			   assoc_var_assigned is set to TRUE when the
-			   pointer is set. */
+			   some constants to point to a variable that should
+			   be used in place of the constant, e.g., for
+			   pointer to member constants.  assoc_var_assigned
+			   is set to TRUE when the pointer is set. */
 #endif /* DO_IL_LOWERING */
   char          *name;
 			/* Pointer to null-terminated name, or NULL if
@@ -1961,9 +1960,10 @@ typedef struct a_constant {
 			/* If TRUE, an associated variable has been assigned
 			   by IL lowering, and source_corresp.assoc_info
 			   points to it.  Used for pointer-to-member
-			   constants.  Also used in the C-generating back
-			   end, for wide string literal constants that are
-			   rewritten to refer to a variable. */
+			   and string literal constants.  Also used in the
+			   C-generating back end, for wide string literal
+			   constants that are rewritten to refer to a
+			   variable. */
 #endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   a_bit_field	null_pointer_constant_ruled_out:1;
 			/* If TRUE, this constant has been subjected to casts

@@ -4879,7 +4879,7 @@ C99 mode for the same reason.
   a_boolean          constructor_array_init = FALSE;
   a_variable_ptr     local_static_guard_var;
   a_boolean          do_simple_constant_init_opt = FALSE;
-  a_boolean          local_static_promoted_out_of_extern_inline = FALSE;
+  a_boolean          local_static_that_requires_dynamic_init = FALSE;
   a_dynamic_init_ptr latest_initialization_on_entry;
 
   saved_code_pos = code_pos_for_lowering;
@@ -4918,8 +4918,12 @@ C99 mode for the same reason.
     /* See if this is a local static variable promoted out of an extern inline
        function (or template instantiated wherever used). */
     if (variable->promoted_local_static &&
-        variable->storage_class == (a_storage_class)sc_unspecified) {
-      local_static_promoted_out_of_extern_inline = TRUE;
+        variable->storage_class == (a_storage_class)sc_unspecified
+#if IA64_ABI
+        && variable->comdat_group == NULL
+#endif /* IA64_ABI */
+                                         ) {
+      local_static_that_requires_dynamic_init = TRUE;
       /* Don't allow this case to be turned into a simple constant
          initialization, because we want the variable to be a tentative
          definition (and therefore it must be uninitialized). */
@@ -5317,7 +5321,7 @@ do_assignment:;
              code and replaced with placeholder constants. */
           simple_constant_init = TRUE;
           simple_constant = dip->variant.constant;
-          if (local_static_promoted_out_of_extern_inline) {
+          if (local_static_that_requires_dynamic_init) {
             /* A static variable of an extern inline function initialized
                to a constant.  The constant is the constant part of the
                nonconstant aggregate.  Insert an assignment to set the variable
@@ -5479,7 +5483,7 @@ do_assignment:;
          So we change the initialization kind to initialization to zero. */
       if ((static_var_init && !variable->source_corresp.is_local_to_function &&
            force_variable_definition_via_zeroing && !C_mode() &&
-           !local_static_promoted_out_of_extern_inline) ||
+           !local_static_that_requires_dynamic_init) ||
           variable->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
 #if IA64_ABI

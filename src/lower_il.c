@@ -378,6 +378,12 @@ static void adjust_bool_operation_types(an_expr_node_ptr expr,
 static void lower_pm_comparison(an_expr_node_ptr expr,
                                 a_boolean        operand1_lowered);
 static void do_scope_namespace_member_promotion(a_scope_ptr scope);
+static void promote_static_variable_out_of_function(
+                                               a_variable_ptr variable,
+                                               a_scope_ptr    scope,
+                                               a_scope_ptr    scope_with_block,
+                                               a_routine_ptr  routine);
+
 
 static void clear_insert_location(an_insert_location      *insert_location,
                                   an_insert_location_kind kind)
@@ -3630,6 +3636,79 @@ pointers to data members are properly initialized to -1 for NULL.
 
 #endif /* IA64_ABI */
 
+void rewrite_address_of_string_as_address_of_variable(a_constant_ptr addr_con)
+/*
+addr_con is an address constant for the address of a string literal,
+and the string constant has sequence_number != 0.  Create a static
+variable initialized with the string, and change addr_con to be the
+address of that variable.  This is used for string literals that
+must have the same address across translation units (e.g., those
+in extern inline functions).
+*/
+{
+  a_constant_ptr string_con;
+  a_variable_ptr assoc_var;
+
+  check_assertion(addr_con->kind == (a_constant_repr_kind)ck_address &&
+                  addr_con->variant.address.kind ==
+                                           (an_address_base_kind)abk_constant);
+  string_con = addr_con->variant.address.variant.constant;
+  check_assertion(string_con->kind == (a_constant_repr_kind)ck_string &&
+                  string_con->variant.string.sequence_number != 0);
+  /* See if the variable has been allocated already.  If so, a pointer to
+     the variable will have been stored in the assoc_info field. */
+  if (string_con->assoc_var_assigned) {
+    assoc_var = (a_variable_ptr)string_con->source_corresp.assoc_info;
+  } else {
+    /* The variable must be allocated.  We make a local static variable
+       and then promote it to get it processed like other local static
+       variables. */
+    a_routine_ptr routine;
+    check_assertion(innermost_function_scope != NULL);
+    routine = innermost_function_scope->variant.routine.ptr;
+    assoc_var = make_lowered_variable((char *)NULL,
+                                      /*already_il_name=*/TRUE,
+                                      string_con->type,
+                                      (a_storage_class)sc_static);
+    check_assertion(!in_file_scope(string_con));
+    /* Use a local static variable init entry to point to the constant
+       in the function scope memory region. */
+    { a_memory_region_number region_to_switch_back_to = curr_il_region_number;
+      switch_il_region(routine->assoc_scope);
+      (void)make_local_static_variable_init(assoc_var, 
+                                            innermost_function_scope,
+                                            (an_init_kind)initk_static,
+                                            string_con,
+                                            (a_dynamic_init_ptr)NULL);
+      
+      switch_back_to_original_region(region_to_switch_back_to);
+    }
+    /* Promote the variable out of the function, and make it external
+       if that's appropriate. */
+    promote_static_variable_out_of_function(assoc_var,
+                                            innermost_function_scope,
+                                            innermost_function_scope,
+                                            routine);
+    /* Save the pointer in the assoc_info field so the variable can be
+       reused. */
+    string_con->source_corresp.assoc_info = (char *)assoc_var;
+    string_con->assoc_var_assigned = TRUE;
+  }  /* if */
+  {
+    /* Rewrite the address constant as the address of the variable. */
+    a_constant orig_con;
+    orig_con = *addr_con;
+    set_variable_address_constant(assoc_var, addr_con,
+                                  /*set_address_taken_flag=*/TRUE);
+    if (orig_con.implicit_cast) {
+      /* The original constant was cast to a different type, e.g.,
+         because its type decayed to a pointer. */
+      implicit_cast(addr_con, orig_con.type);
+    }  /* if */
+  }
+}  /* rewrite_address_of_string_as_address_of_variable */
+
+
 void lower_constant(a_constant_ptr constant)
 /*
 Do IL lowering of the indicated constant and everything under it.
@@ -3664,10 +3743,18 @@ Do IL lowering of the indicated constant and everything under it.
           case abk_constant:
             addressed_con = constant->variant.address.variant.constant;
             lower_os_constant(addressed_con);
-            if (check_for_troublesome_ptr_to_member_constant(addressed_con,
-                                                             /*const_okay=*/
-                                                                         FALSE,
-                                                             &temp_var)) {
+            if (addressed_con->kind == (a_constant_repr_kind)ck_string) {
+              /* Address of a string literal. */
+              if (addressed_con->variant.string.sequence_number != 0) {
+                /* This string must be the same across multiple translation
+                   units (e.g., a string in an extern inline function).
+                   Create a variable for it. */
+                rewrite_address_of_string_as_address_of_variable(constant);
+              }  /* if */
+            } else if (check_for_troublesome_ptr_to_member_constant(
+                                                          addressed_con,
+                                                          /*const_okay=*/FALSE,
+                                                          &temp_var)) {
               /* This constant node is using the address of a pointer-to-
                  member-function constant, which has or will become a
                  struct represented by a ck_aggregate constant.  Since a
@@ -14342,6 +14429,134 @@ is instantiated in every translation unit that uses it.
 }  /* routine_might_exist_in_multiple_copies */
 
 
+static void promote_static_variable_out_of_function(
+                                               a_variable_ptr variable,
+                                               a_scope_ptr    scope,
+                                               a_scope_ptr    scope_with_block,
+                                               a_routine_ptr  routine)
+/*
+Promote the indicated local static variable out of indicated routine.
+scope is the scope of the variable (though the variable has already
+been removed from the scope variables list) and scope_with_block
+is the innermost scope that has an associated block -- scopes for
+"for" init blocks do not have one.
+*/
+{
+#if DEBUG
+  if (debug_level >= 4) {
+    (void)fprintf(f_debug, "Promoting local variable out of routine ");
+    db_name(&routine->source_corresp);
+    (void)fprintf(f_debug, ": ");
+    db_variable(variable);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  /* Mangle the name if necessary (e.g., if it is part of a template
+     function). */
+  mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
+                              /*final=*/FALSE, routine, scope);
+  variable->source_corresp.is_local_to_function = FALSE;
+  if (has_name(variable) &&
+      routine_might_exist_in_multiple_copies(routine)) {
+    /* A routine whose body might exist in multiple copies, such as
+       an extern inline routine.  Make the promoted variable externally
+       visible.  This uses the relaxed ref/def model for externals. */
+    variable->storage_class = (a_storage_class)sc_unspecified;
+    variable->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
+#if IA64_ABI
+    put_variable_into_comdat_group(variable);
+#endif /* IA64_ABI */
+  }  /* if */
+  add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
+  variable->promoted_local_static = TRUE;
+  /* If the variable has an associated local-static-variable-init
+     entry, transfer the initialization to the variable itself. */
+  if (variable->init_kind == (an_init_kind)initk_function_local) {
+    a_local_static_variable_init_ptr lsvip, prev_lsvip;
+
+    /* Find the local static initialization entry. */
+    for (prev_lsvip = NULL, lsvip = scope->local_static_variable_inits;
+         ;
+         prev_lsvip = lsvip, lsvip = lsvip->next) {
+      check_assertion_str2(lsvip != NULL,
+                           "promote_static_variable_out_of_function:",
+                           "local static init not found");
+      if (lsvip->variable == variable) break;
+    }  /* for */
+    /* Remove the local static initialization entry from the scope list,
+       and save it on the promoted_local_static_variable_inits list so it
+       can still be found (see lower_dynamic_init for one use). */
+    if (prev_lsvip == NULL) {
+      scope->local_static_variable_inits = lsvip->next;
+    } else {
+      prev_lsvip->next = lsvip->next;
+    }  /* if */
+    lsvip->next = promoted_local_static_variable_inits;
+    promoted_local_static_variable_inits = lsvip;
+    variable->promoted_local_static_init = TRUE;
+    /* Transfer the initialization information to the variable itself. */
+    variable->init_kind = lsvip->init_kind;
+    switch (lsvip->init_kind) {
+      case initk_none:
+      case initk_zero:
+        break;
+      case initk_static:
+        /* For a static initial value, copy the constant to file scope.
+           This might be expensive space-wise, since this might be
+           an aggregate, but there are no good alternatives. */
+        { a_memory_region_number region_to_switch_back_to = NULL_region_number;
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          /* Make sure the copy is created with flags indicating it
+             has not been lowered yet. */
+          initial_value_for_il_lowering_flag =
+                                           !initial_value_for_il_lowering_flag;
+          variable->initializer.constant =
+                           copy_constant_full(lsvip->initializer.constant,
+                                              (a_constant_ptr)NULL,
+                                              CE_REPLACE_STRINGS_BY_VARIABLES);
+          initial_value_for_il_lowering_flag =
+                                           !initial_value_for_il_lowering_flag;
+          switch_back_to_original_region(region_to_switch_back_to);
+        }
+        if (variable->storage_class == (a_storage_class)sc_unspecified
+#if IA64_ABI
+            && variable->comdat_group == NULL
+#endif /* IA64_ABI */
+                                             ) {
+          /* A static variable of an extern inline function initialized
+             to a constant.  Rewrite the initialization as executable code
+             because we want the variable to be a tentative definition
+             (and therefore it cannot be statically initialized). */
+          lower_constant_init_of_static_in_extern_inline(variable,
+                                                         scope_with_block);
+        }  /* if */
+        break;
+      case initk_dynamic:
+        /* This dynamic initialization will be rewritten when the
+           stmk_init is processed, so leave it alone for now.  The code
+           there will copy the remaining constant if necessary. */
+        variable->initializer.dynamic = lsvip->initializer.dynamic;
+        break;
+      default:
+        unexpected_condition_str(
+          "promote_static_variable_out_of_function: bad static var init_kind");
+    }  /* switch */
+  } else if (variable->init_kind == (an_init_kind)initk_static &&
+             variable->storage_class == (a_storage_class)sc_unspecified
+#if IA64_ABI
+             && variable->comdat_group == NULL
+#endif /* IA64_ABI */
+                                              ) {
+    /* A static variable of an extern inline function initialized
+       to a constant.  Rewrite the initialization as executable code
+       because we want the variable to be a tentative definition
+       (and therefore it cannot be statically initialized). */
+    lower_constant_init_of_static_in_extern_inline(variable,
+                                                   scope_with_block);
+  }  /* if */
+}  /* promote_static_variable_out_of_function */
+
+
 static void promote_static_variables_out_of_function(
                                                 a_scope_ptr   scope,
                                                 a_scope_ptr   scope_with_block,
@@ -14360,112 +14575,11 @@ block -- scopes for "for" init blocks do not have one.
     while (scope->variables != NULL) {
       /* Promote a local static variable to file scope. */
       variable = scope->variables;
-#if DEBUG
-      if (debug_level >= 4) {
-        (void)fprintf(f_debug, "Promoting local variable out of routine ");
-        db_name(&routine->source_corresp);
-        (void)fprintf(f_debug, ": ");
-        db_variable(variable);
-        (void)fprintf(f_debug, "\n");
-      }  /* if */
-#endif /* DEBUG */
       /* Remove the variable from the scope list. */
       scope->variables = variable->next;
-      /* Mangle the name if necessary (e.g., if it is part of a template
-         function). */
-      mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
-                                  /*final=*/FALSE, routine, scope);
-      variable->source_corresp.is_local_to_function = FALSE;
-      if (has_name(variable) &&
-          routine_might_exist_in_multiple_copies(routine)) {
-        /* A routine whose body might exist in multiple copies, such as
-           an extern inline routine.  Make the promoted variable externally
-           visible.  This uses the relaxed ref/def model for externals. */
-        variable->storage_class = (a_storage_class)sc_unspecified;
-        variable->source_corresp.name_linkage =
-                                             (a_name_linkage_kind)nlk_external;
-#if IA64_ABI
-        put_variable_into_comdat_group(variable);
-#endif /* IA64_ABI */
-      }  /* if */
-      add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
-      variable->promoted_local_static = TRUE;
-      /* If the variable has an associated local-static-variable-init
-         entry, transfer the initialization to the variable itself. */
-      if (variable->init_kind == (an_init_kind)initk_function_local) {
-        a_local_static_variable_init_ptr lsvip, prev_lsvip;
-
-        /* Find the local static initialization entry. */
-        for (prev_lsvip = NULL, lsvip = scope->local_static_variable_inits;
-             ;
-             prev_lsvip = lsvip, lsvip = lsvip->next) {
-          check_assertion_str2(lsvip != NULL,
-                               "promote_static_variables_out_of_function:",
-                               "local static init not found");
-          if (lsvip->variable == variable) break;
-        }  /* for */
-        /* Remove the local static initialization entry from the scope list,
-           and save it on the promoted_local_static_variable_inits list so it
-           can still be found (see lower_dynamic_init for one use). */
-        if (prev_lsvip == NULL) {
-          scope->local_static_variable_inits = lsvip->next;
-        } else {
-          prev_lsvip->next = lsvip->next;
-        }  /* if */
-        lsvip->next = promoted_local_static_variable_inits;
-        promoted_local_static_variable_inits = lsvip;
-        variable->promoted_local_static_init = TRUE;
-        /* Transfer the initialization information to the variable itself. */
-        variable->init_kind = lsvip->init_kind;
-        switch (lsvip->init_kind) {
-          case initk_none:
-          case initk_zero:
-            break;
-          case initk_static:
-            /* For a static initial value, copy the constant to file scope.
-               This might be expensive space-wise, since this might be
-               an aggregate, but there are no good alternatives. */
-            { a_memory_region_number region_to_switch_back_to =
-                                                            NULL_region_number;
-              switch_to_file_scope_region(&region_to_switch_back_to);
-              /* Make sure the copy is created with flags indicating it
-                 has not been lowered yet. */
-              initial_value_for_il_lowering_flag =
-                                           !initial_value_for_il_lowering_flag;
-              variable->initializer.constant =
-                           copy_unshared_constant(lsvip->initializer.constant);
-              initial_value_for_il_lowering_flag =
-                                           !initial_value_for_il_lowering_flag;
-              switch_back_to_original_region(region_to_switch_back_to);
-            }
-            if (variable->storage_class == (a_storage_class)sc_unspecified) {
-              /* A static variable of an extern inline function initialized
-                 to a constant.  Rewrite the initialization as executable code
-                 because we want the variable to be a tentative definition
-                 (and therefore it cannot be statically initialized). */
-              lower_constant_init_of_static_in_extern_inline(variable,
-                                                             scope_with_block);
-            }  /* if */
-            break;
-          case initk_dynamic:
-            /* This dynamic initialization will be rewritten when the
-               stmk_init is processed, so leave it alone for now.  The code
-               there will copy the remaining constant if necessary. */
-            variable->initializer.dynamic = lsvip->initializer.dynamic;
-            break;
-          default:
-            unexpected_condition_str(
-         "promote_static_variables_out_of_function: bad static var init_kind");
-        }  /* switch */
-      } else if (variable->init_kind == (an_init_kind)initk_static &&
-                 variable->storage_class == (a_storage_class)sc_unspecified) {
-        /* A static variable of an extern inline function initialized
-           to a constant.  Rewrite the initialization as executable code
-           because we want the variable to be a tentative definition
-           (and therefore it cannot be statically initialized). */
-        lower_constant_init_of_static_in_extern_inline(variable,
-                                                       scope_with_block);
-      }  /* if */
+      promote_static_variable_out_of_function(variable,
+                                              scope, scope_with_block,
+                                              routine);
     }  /* while */
     /* Clear the scope stack pointer to the last static variable now that
        the whole list has been cleared. */

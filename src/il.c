@@ -3772,10 +3772,22 @@ for the usual case.
            in the function scope memory region. */
         /* This also comes up in inlining, when we make a copy of a constant
            from one function scope memory region to another. */
-        new_constant->variant.address.variant.constant =
+#if DO_IL_LOWERING
+        if ((options & CE_REPLACE_STRINGS_BY_VARIABLES) &&
+            old_constant_pointed_to->kind == (a_constant_repr_kind)ck_string &&
+            old_constant_pointed_to->variant.string.sequence_number != 0) {
+          /* Rewrite a string literal with sequence_number != 0 as a
+             static variable. */
+          rewrite_address_of_string_as_address_of_variable(new_constant);
+        } else
+#endif /* DO_IL_LOWERING */
+        /* Do not insert code here. */
+        {
+          new_constant->variant.address.variant.constant =
                                     copy_constant_full(old_constant_pointed_to,
                                                        (a_constant *)NULL,
                                                        options);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (new_constant->kind == (a_constant_repr_kind)ck_template_param) {
@@ -4643,7 +4655,7 @@ argument because it references a non-external entity, e.g., a local variable.
 }  /* nontype_templ_arg_constant_references_non_external_entity */
 
 
-static a_boolean has_non_file_scope_ref(a_constant *cp)
+a_boolean has_non_file_scope_ref(a_constant *cp)
 /*
 Return TRUE if the constant pointed to by cp includes a reference to something
 that's not in the file scope.  If it does, the constant cannot be allocated
@@ -4672,6 +4684,15 @@ region).
       break;
     case ck_string:
       /* String texts are always in the file scope. */
+#if DO_IL_LOWERING
+      /* However, string literals with assigned sequence numbers are
+         specific to a function and must be allocated in the function
+         scope memory region (we need to rewrite them in the context of
+         the function). */
+      if (cp->variant.string.sequence_number != 0) {
+        has_nfs_ref = TRUE;
+      }  /* if */
+#endif /* DO_IL_LOWERING */
       break;
     case ck_address:
       switch (cp->variant.address.kind) {
