@@ -749,6 +749,7 @@ qualifiers like __cdecl.
     /* Put out any Microsoft qualifiers under the pointer type. */
     qualifiers_under_pointer = get_type_qualifiers(type->variant.pointer.type);
     if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
+      octl->output_str(" ");
       form_microsoft_qualifier(qualifiers_under_pointer, octl);
     }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
@@ -778,6 +779,7 @@ qualifiers like __cdecl.
     qualifiers_under_pointer =
                          get_type_qualifiers(type->variant.ptr_to_member.type);
     if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
+      octl->output_str(" ");
       form_microsoft_qualifier(qualifiers_under_pointer, octl);
     }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
