@@ -1,5 +1,24 @@
 Version 3.5
 
+9/7/04  Microsoft compatibility: For-init scope
+
+MSVC++ 7.0 and earlier always use a nonstandard for-init scope.  I.e.,
+variables declared in a for-init construct are visible after the end of
+the "for" statement.  MSVC++ 7.1 has made this behavior dependent on
+whether the type of a variable has a nontrivial destructor: If it does,
+the standard scoping rules apply; otherwise, the nonstandard rules of
+previous MSVC++ versions apply.  For example:
+
+  struct S { S(); ~S(); };
+  void f() {
+    for (S *p, s; false;) {}
+    // In Microsoft mode with microsoft_version == 1310, p is visible
+    // here, but s (which has a destructor) is not.
+  }
+
+The front end has been updated to match the behavior of the MSVC++ 7.1
+compiler when microsoft_version >= 1310.
+
 9/7/04  Microsoft compatibility: Spurious correspondence error on in-class
         specializations
 

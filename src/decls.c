@@ -1487,6 +1487,24 @@ the same as depth_scope_stack).
         break;
       }  /* if */
     }  /* while */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && microsoft_version >= 1310 &&
+             !use_nonstandard_for_init_scope &&
+             scope_stack[depth].is_for_init_block) {
+    /* MSVC++ 7.1 will use standard scoping for for-init variables that need
+       a destructor call, but old-style scoping for other variables. */
+    a_boolean   standard_scope = FALSE;
+    a_type_ptr  type = skip_typerefs(idlbp->type);
+    if (is_immediate_class_type(type)) {
+      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+      if (cssp != NULL && cssp->destructor != NULL) {
+        standard_scope = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!standard_scope) {
+      --depth;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   idlbp->effective_decl_level = depth;
   db_exit();

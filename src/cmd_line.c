@@ -1557,8 +1557,11 @@ by a command line option.
       allow_copy_assignment_op_with_base_class_param = FALSE;
     }  /* if */
     if (!option_kind_used[(int)optk_old_for_init]) {
-      /* As of MSVC++ 6.0, this feature is still not implemented. */
-      use_nonstandard_for_init_scope = TRUE;
+      /* MSVC++ 7.0 and earlier always use the old for-init scoping rule.
+         MSVC++ 7.1 uses the new rule for for-init variables with nontrivial
+         destructors and the old rule for other variables.  We emulate the
+         MSVC++ 7.1 behavior using the standard scope stack setup. */
+      use_nonstandard_for_init_scope = (microsoft_version < 1310);
     }  /* if */
     ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
     if (!option_kind_used[(int)optk_enum_overloading]) {
