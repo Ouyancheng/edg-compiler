@@ -2808,6 +2808,11 @@ quote_process:
     /* If the token scanned is an identifier, see if it is a macro name. */
     if (curr_token == tok_identifier) {
       *param_num = id_matches_macro_param_name(param_list);
+      if (*param_num == 0) {
+        /* This is not a macro parameter.  Hence if it is spelled __VA_ARGS__
+           and variadic macros are recognized, this is an error. */
+        check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+      }  /* if */
     } else if (pcc_preprocessing_mode &&
                end_of_cpp_string == NULL &&
                (curr_token == tok_char_constant ||

@@ -1,5 +1,13 @@
 Version 2.46
 
+1/10/01  Use if __VA_ARGS__diagnosed in nonvariadic macros
+
+The front end used to accept the use (as a normal identifier) of __VA_ARGS__
+in nonvariadic macros.  This is now reported as an error in modes that
+recognize variadic macros.
+
+  #define M(P) __VA_ARGS__  /* Now an error in C99 mode */
+
 1/10/01  Error issued on invalid STDC pragma in strict mode
 
 In strict C99 mode, an error (instead of a warning) is issued on an
