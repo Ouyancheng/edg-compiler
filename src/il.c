@@ -8468,23 +8468,52 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 
 #endif /* RECORD_MACROS_IN_IL */
 #if MAINTAIN_NEEDED_FLAGS
-
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-static a_boolean eliminate_unneeded_scope_orphaned_list_headers(
-                                                       a_scope_ptr    scope,
-                                                       a_routine_ptr  rp)
+
+static a_boolean any_scope_orphaned_lists(a_scope_ptr  scope)
 /*
+Return TRUE if one or more scope orphaned lists will have been produced
+for this (sck_function or sck_block) scope or for any (sck_block) scope it
+points to.
 */
 {
-  a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
-  a_scope_ptr                       sp;
-  a_boolean                         done = FALSE;
+  a_boolean    found = FALSE;
+  a_scope_ptr  sp;
 
-  if (scope->types || scope->variables
+  /* If the current scope has any type, variable, source-sequence-sublist
+     entries, they will also be pointed to from a scope-orphaned-list
+     header. */
+  if (scope->types != NULL || scope->variables != NULL
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       || scope->src_seq_sublist_list != NULL
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                                             ) {
+    found = TRUE;
+  } else {
+    /* Nothing in the current scope.  Check scopes nesting within it. */
+    for (sp = scope->scopes; sp != NULL; sp = sp->next) {
+      if (any_scope_orphaned_lists(sp)) {
+        found = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return found;
+}  /* any_scope_orphaned_lists */
+
+static void eliminate_unneeded_scope_orphaned_list_headers(a_routine_ptr rp,
+                                                           a_scope_ptr   scope)
+/*
+The routine entry indicated by rp was defined in the current translation
+unit, but its body is not needed and is about to be removed from the IL.
+Check for the existence of one or more scope-orphaned-lists that refer to
+this routine and remove them from their list.  scope is a pointer to the IL
+for the function body that is being eliminated.
+*/
+{
+  a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
+
+  if (any_scope_orphaned_lists(scope)) {
     prev_solhp = NULL;
     for (solhp = il_header.scope_orphaned_list_headers;
          solhp != NULL;
@@ -8499,21 +8528,17 @@ static a_boolean eliminate_unneeded_scope_orphaned_list_headers(
         solhp->next = NULL;
       }  /* if */
     }  /* for */
-    done = TRUE;
-  } else {
-    for (sp = scope->scopes; sp != NULL; sp = sp->next) {
-      if (eliminate_unneeded_scope_orphaned_list_headers(sp, rp)) {
-        done = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
   }  /* if */
-  return done;
 }  /* eliminate_unneeded_scope_orphaned_list_headers */
+
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 void eliminate_bodies_of_unneeded_functions(void)
 /*
+Go through all the memory regions looking for those associated with
+routines that are not needed.  Eliminate the body -- the IL scope and entry
+and everything dependent on it.  The routine entry itself is dealt with
+later.
 */
 {
   a_memory_region_number  n;
@@ -8536,12 +8561,15 @@ void eliminate_bodies_of_unneeded_functions(void)
       check_assertion(sp->kind == (a_scope_kind)sck_function);
       rp = sp->variant.routine.ptr;
       if (!rp->source_corresp.needed) {
-        rp->defined = FALSE;
-        rp->assoc_scope = NULL_region_number;
-        rp->type->variant.routine.extra_info->assoc_routine = NULL;
+        /* An unneeded routine definition. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         ssep = rp->source_corresp.source_sequence_entry;
         if (ssep != NULL) {
+          /* Turn the associated source sequence entry into a secondary-decl
+             source sequence entry.  This is done even though the entry
+             may be thrown away later, since it is easier to do it at this
+             point than later, when we decide whether the routine entry itself
+             will be kept. */
           check_assertion(ssep->entity.ptr == (char *)rp);
           sssdp = alloc_src_seq_secondary_decl();
           sssdp->entity = ssep->entity;
@@ -8554,8 +8582,14 @@ void eliminate_bodies_of_unneeded_functions(void)
         rp->defined_in_friend_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-        (void)eliminate_unneeded_scope_orphaned_list_headers(sp, rp);
+        /* Remove any scope-orphaned-list entries created for this routine. */
+        (void)eliminate_unneeded_scope_orphaned_list_headers(rp, sp);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+        /* Reset the routine entry to undefined state. */
+        rp->defined = FALSE;
+        rp->assoc_scope = NULL_region_number;
+        rp->type->variant.routine.extra_info->assoc_routine = NULL;
+        /* Free the memory region. */
         free_memory_region(n);
       }  /* if */
     }  /* if */
@@ -8565,6 +8599,11 @@ void eliminate_bodies_of_unneeded_functions(void)
 
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
+Remove selected IL entries from the IL tree.  scope is the file scope or
+a namespace scope; this processing is not done for function or block scopes.
+Removal is based on how the keep_in_il flag is set for variables, routines,
+and types.  Hidden-name entries and source sequence entries are also
+eliminated, if appropriate.
 */
 {
   a_namespace_ptr  nsp;
@@ -8573,23 +8612,29 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
   a_routine_ptr    rp, prev_rp, next_rp;
 
   db_enter(4, "eliminate_unneeded_il_entries");
+  /* In C++ process the entities on lists belonging to namespaces defined
+     within the current scope. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
       /* Nested namespace scope. */
       eliminate_unneeded_il_entries(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
+  /* Go through the list of variables that were declared in the current
+     scope, removing any for which the keep_in_il flag is FALSE. */
   prev_vp = NULL;
   for (vp = scope->variables; vp != NULL; vp = next_vp) {
     next_vp = vp->next;
-    if (!il_entry_prefix_of(vp).keep_in_il) {
 #if DEBUG
-      if (debug_level >= 4) {
-        fputs("Removing variable ", f_debug);
-        db_name(&vp->source_corresp);
-        fputc('\n', f_debug);
-      }  /* if */
+    if (debug_level >= 4) {
+      fprintf(f_debug, "%semoving variable ",
+              il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
+      db_name(&vp->source_corresp);
+      fputc('\n', f_debug);
+    }  /* if */
 #endif /* DEBUG */
+    if (!il_entry_prefix_of(vp).keep_in_il) {
+      /* Remove it from the variables list by linking around it. */
       if (prev_vp == NULL) {
         scope->variables = vp->next;
       } else {
@@ -8598,26 +8643,21 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       vp->next = NULL;
     } else {
       prev_vp = vp;
-#if DEBUG
-      if (debug_level >= 4) {
-        fputs("Not removing variable ", f_debug);
-        db_name(&vp->source_corresp);
-        fputc('\n', f_debug);
-      }  /* if */
-#endif /* DEBUG */
     }  /* if */
   }  /* for */  
   prev_rp = NULL;
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
-    if (!il_entry_prefix_of(rp).keep_in_il) {
 #if DEBUG
-      if (debug_level >= 4) {
-        fputs("Removing routine ", f_debug);
-        db_name(&rp->source_corresp);
-        fputc('\n', f_debug);
-      }  /* if */
+    if (debug_level >= 4) {
+      fprintf(f_debug, "%semoving routine ",
+              il_entry_prefix_of(rp).keep_in_il ? "Not r" : "R");
+      db_name(&rp->source_corresp);
+      fputc('\n', f_debug);
+    }  /* if */
 #endif /* DEBUG */
+    if (!il_entry_prefix_of(rp).keep_in_il) {
+      /* Remove it from the routines list by linking around it. */
       if (prev_rp == NULL) {
         scope->routines = rp->next;
       } else {
@@ -8626,26 +8666,21 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       rp->next = NULL;
     } else {
       prev_rp = rp;
-#if DEBUG
-      if (debug_level >= 4) {
-        fputs("Not removing routine ", f_debug);
-        db_name(&rp->source_corresp);
-        fputc('\n', f_debug);
-      }  /* if */
-#endif /* DEBUG */
     }  /* if */
   }  /* for */  
   prev_tp = NULL;
   for (tp = scope->types; tp != NULL; tp = next_tp) {
     next_tp = tp->next;
-    if (!il_entry_prefix_of(tp).keep_in_il) {
 #if DEBUG
-      if (debug_level >= 4) {
-        fputs("Removing ", f_debug);
-        db_abbreviated_type(tp);
-        fputc('\n', f_debug);
-      }  /* if */
+    if (debug_level >= 4) {
+      fprintf(f_debug, "%semoving ",
+              il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
+      db_abbreviated_type(tp);
+      fputc('\n', f_debug);
+    }  /* if */
 #endif /* DEBUG */
+    if (!il_entry_prefix_of(tp).keep_in_il) {
+      /* Remove it from the types list by linking around it. */
       if (prev_tp == NULL) {
         scope->types = tp->next;
       } else {
@@ -8653,6 +8688,10 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       }  /* if */
       tp->next = NULL;
       if (is_immediate_class_type(tp)) {
+        /* This is a class type that has been removed from the IL (because
+           it's not really needed anywhere), but just in case there's a
+           reference to it somewhere that causes it to be written, clear its
+           pointers so they can't be walked. */
         tp->variant.class_struct_union.field_list = NULL;
         tp->variant.class_struct_union.extra_info = NULL;
       }  /* if */
@@ -8660,6 +8699,8 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       prev_tp = tp;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR | DELETE_CAN_BE_FOLDED_INTO_DTOR
       if (is_immediate_class_type(tp)) {
+        /* If this class points to an operator new or delete routine that
+           is not actually needed, clear the pointers. */
         a_class_type_supplement_ptr  ctsp;
         ctsp = tp->variant.class_struct_union.extra_info;
         if (ctsp != NULL) {
@@ -8678,34 +8719,30 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
         }  /* if */
       }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR | DELETE_CAN_BE_FOLDED_INTO_DTOR */
-#if DEBUG
-      if (debug_level >= 4) {
-        fputs("Not removing ", f_debug);
-        db_abbreviated_type(tp);
-        fputc('\n', f_debug);
-      }  /* if */
-#endif /* DEBUG */
     }  /* if */
   }  /* for */
 #if RECORD_HIDDEN_NAMES_IN_IL
+  /* Hidden name table entries need not be kept in the IL if they refer
+     to entities that do not need to be kept. */
   {
   a_hidden_name_ptr        hnp, prev_hnp = NULL, next_hnp;
 
   for (hnp = scope->hidden_names; hnp != NULL; hnp = next_hnp) {
     next_hnp = hnp->next;
-    if (!il_entry_prefix_of(hnp->entity.ptr).keep_in_il) {
 #if DEBUG
-      if (debug_level >= 4) {
-        fputs("Removing hidden name entry for ", f_debug);
-        if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-          db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
-        } else {
-          db_name(source_corresp_for_il_entry(hnp->entity.ptr,
-                                        (an_il_entry_kind)hnp->entity.kind));
-        }  /* if */
-        fputc('\n', f_debug);
+    if (debug_level >= 4) {
+      fprintf(f_debug, "%semoving hidden name entry for ",
+              il_entry_prefix_of(hnp->entity.ptr).keep_in_il ? "Not r" : "R");
+      if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
+      } else {
+        db_name(source_corresp_for_il_entry(hnp->entity.ptr,
+                                      (an_il_entry_kind)hnp->entity.kind));
       }  /* if */
+      fputc('\n', f_debug);
+    }  /* if */
 #endif /* DEBUG */
+    if (!il_entry_prefix_of(hnp->entity.ptr).keep_in_il) {
       if (prev_hnp == NULL) {
         scope->hidden_names = next_hnp;
       } else {
@@ -8714,18 +8751,6 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       hnp->next = NULL;
     } else {
       prev_hnp = hnp;
-#if DEBUG
-      if (debug_level >= 4) {
-        fputs("Not removing hidden name entry for ", f_debug);
-        if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-          db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
-        } else {
-          db_name(source_corresp_for_il_entry(hnp->entity.ptr,
-                                        (an_il_entry_kind)hnp->entity.kind));
-        }  /* if */
-        fputc('\n', f_debug);
-      }  /* if */
-#endif /* DEBUG */
     }  /* if */
   }  /* for */
   }
@@ -8734,13 +8759,20 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
   if (scope->kind == (a_scope_kind)sck_file) {
     /* Remove unneeded source-sequence entries. */
     a_source_sequence_entry_ptr   ssep, next_ssep;
+    a_src_seq_secondary_decl_ptr  sssdp;
 
     for (ssep = scope->source_sequence_list; ssep != NULL; ssep = next_ssep) {
       next_ssep = ssep->next;
+      /* The processing whereby the keep_in_il flag is set guarantees that
+         the keep_in_il setting of the source sequence entry and that of the
+         IL entry to which it corresponds will be the same. */
       if (!il_entry_prefix_of(ssep).keep_in_il) {
         a_byte_il_entry_kind  kind = ssep->entity.kind;
+        check_assertion(!il_entry_prefix_of(ssep->entity.ptr).keep_in_il);
         if (kind == (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-          kind = ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->entity.kind;
+          sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+          kind = sssdp->entity.kind;
+          check_assertion(!il_entry_prefix_of(sssdp->entity.ptr).keep_in_il);
         }  /* if */
         if (kind == (a_byte_il_entry_kind)iek_variable ||
             kind == (a_byte_il_entry_kind)iek_routine ||
