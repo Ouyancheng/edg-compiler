@@ -2677,6 +2677,8 @@ is allocated, it is allocated in the file scope.
                                            (param1->default_arg_expr != NULL) ?
                                                      param1->default_arg_expr :
                                                      param2->default_arg_expr;
+                comp_param->has_default_arg =
+                                          comp_param->default_arg_expr != NULL;
                 /* Add the parameter type entry to the end of the list. */
                 if (comp_param_list == NULL) {
                   comp_param_list = comp_param;
