@@ -1,5 +1,12 @@
 Version 3.4
 
+4/14/04  Microsoft compatibility: _unaligned not a keyword
+
+When a keyword begins with "__" (e.g., __cdecl), the Microsoft compiler
+usually accepts it with a single underscore too.  The _unaligned
+keyword is an exception.  We no longer accept _unaligned as a keyword
+in Microsoft mode.
+
 4/14/04  Emulation of g++ -fno-rtti mode
 
 The front end in the IA-64 ABI mode can now emulate what g++
