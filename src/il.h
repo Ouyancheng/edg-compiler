@@ -640,8 +640,7 @@ extern void f_update_source_sequence_list(char                    *entity_ptr,
                                           a_source_sequence_entry *old_ssep);
 
 #define update_source_sequence_list(entity_ptr, kind, pos, old_ssep)     \
-{ if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&           \
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {              \
+{ if (!source_sequence_entries_disallowed) {                             \
     f_update_source_sequence_list((entity_ptr), (kind), (pos),           \
                                   (old_ssep));                           \
   }  /* if */                                                            \
@@ -656,17 +655,6 @@ extern void add_end_of_construct_source_sequence_entry(
                                                 char                   *ptr,
                                                 a_byte_il_entry_kind   kind);
 
-/* Add a source sequence entry to mark the end of a block.  The current
-   token should be tok_rbrace. */
-#define add_end_of_block_source_sequence_entry(block_stmt)              \
-  add_end_of_construct_source_sequence_entry(                           \
-               (char *)block_stmt, (a_byte_il_entry_kind)iek_statement);
-/* Add a source sequence entry to mark the end of a class or enum definition
-   (at the rbrace) or the end of a function prototype (at the rparen). */
-#define add_end_of_type_source_sequence_entry(type)                     \
-  add_end_of_construct_source_sequence_entry(                           \
-                        (char *)type, (a_byte_il_entry_kind)iek_type);
-                   
 extern void remove_from_source_sequence_list(
                                       a_source_sequence_entry_ptr ssep_ptr,
                                       a_src_seq_sublist_ptr       *sublist);
