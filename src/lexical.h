@@ -182,7 +182,7 @@ typedef int an_identifier_options_set;
 #define GID_DISALLOW_OPERATOR_NAME    0x10
 			/* Causes an error to be issued if the identifier
 			   is an operator name of the form "operator =" or
-			   "operator int"). */
+			   "operator int". */
 #define GID_SUPPRESS_ACCESS_ERRORS    0x20
 			/* Causes access errors detected while scanning
 			   the class qualifier portion of the name to be
@@ -199,16 +199,19 @@ typedef int an_identifier_options_set;
 			   Is used to mask the error flags so that errors
 			   are only reported once. */
 
-/* Lookup modes supported by coalesce_and_lookup_generalized_identifier. */
+/* Lookup modes supported by coalesce_and_lookup_generalized_identifier.
+   If this list is changed the corresponding array of ID lookup options
+   in lexical.c must also be changed.  */
 typedef enum /* an_identifier_lookup_mode */ {
   ilm_normal,		/* Find any symbol. */
   ilm_class,		/* Find only class names. */
   ilm_tag,		/* Find only tag names. */
   ilm_tentative_type,	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
 			   to do the lookup. */
-  ilm_ctor_initializer_name
+  ilm_ctor_initializer_name,
 			/* Used to look up identifiers in the initializer
 			   list of a constructor declaration. */
+  ilm_last
 } an_identifier_lookup_mode;
 
 
@@ -1076,10 +1079,11 @@ extern a_boolean is_generalized_identifier_start
                      (an_identifier_options_set options);
 extern a_boolean coalesce_and_lookup_qualified_name
                      (an_identifier_options_set        options,
+		      an_identifier_lookup_mode	       ilm,
                       a_boolean			       *err);
 extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                         (an_identifier_options_set        options,
-                         an_identifier_lookup_mode        mode,
+                         an_identifier_lookup_mode        ilm,
                          a_boolean                        *err);
 
 /* Return TRUE if the current token might be the start of a C++ qualified

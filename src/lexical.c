@@ -214,6 +214,19 @@ once per compilation unit.
 static a_boolean
 		dollar_in_id_diagnostic_issued;
 
+/*
+Array of identifier lookup options indexed by identifier lookup mode.  Used
+to translate the lookup mode into a set of identifier lookup options.
+*/
+static an_id_lookup_options_set idl_options_for_lookup_mode[ilm_last + 1] = {
+  /* ilm_normal */		IDL_NO_OPTIONS,
+  /* ilm_class */		IDL_MUST_BE_CLASS,
+  /* ilm_tag */			IDL_MUST_BE_TAG,
+  /* ilm_tentative_type */	IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME,
+  /* ilm_ctor_initializer_name */ IDL_SKIP_CURR_FUNCTION_SCOPE,
+  /* ilm_last */		IDL_NO_OPTIONS
+};
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -5350,9 +5363,10 @@ exit:
 
 a_boolean coalesce_and_lookup_qualified_name
               (an_identifier_options_set        options,
+	       an_identifier_lookup_mode	ilm,
                a_boolean			*err)
 /*
-Coalesces a generalized identifier (see coalase_generalized_identifier).
+Coalesces a generalized identifier (see coalasce_generalized_identifier).
 If the identifier was qualified (e.g., A::x or ::x) the identifier
 is looked up.  Returns TRUE if identifier is a qualified name.
 */
@@ -5383,6 +5397,7 @@ is looked up.  Returns TRUE if identifier is a qualified name.
         curr_token == tok_identifier &&
         locator_for_curr_id.is_qualified_name) {
       /* The current identifier is a qualified name. */
+      an_error_code	error_code;
       a_source_position	identifier_pos;
       identifier_pos = locator_for_curr_id.source_position;
       class_type = locator_for_curr_id.qualifier_class_type;
@@ -5396,14 +5411,21 @@ is looked up.  Returns TRUE if identifier is a qualified name.
         /* Don't try to lookup the identifier if an error occurred earlier. */
         okay = FALSE;
       } else {
+        an_id_lookup_options_set	idl_options;
+        /* Translate the general identifier options into ID lookup options. */
+	idl_options = idl_options_for_lookup_mode[ilm];
         /* No errors were diagnosed. */
         if (locator_for_curr_id.is_file_scope_qualified_name) {
           /* Look up the id in the file scope. */
           if (file_scope_id_lookup(&locator_for_curr_id,
-                                   IDL_NO_OPTIONS) != NULL) {
+                                   idl_options) != NULL) {
           } else {
             /* The identifier could not be found in the file scope. */
-            pos_st_error(ec_name_not_found_in_file_scope, &identifier_pos,
+            /* Issue an alternate version of the error if we are looking
+	       for a tag symbol. */
+	    error_code = ilm == ilm_tag ? ec_name_not_tag_in_file_scope :
+					  ec_name_not_found_in_file_scope;
+            pos_st_error(error_code, &identifier_pos,
                          locator_for_curr_id.symbol_header->identifier);
             okay = FALSE;
           }  /* if */
@@ -5429,12 +5451,16 @@ is looked up.  Returns TRUE if identifier is a qualified name.
 #endif /* CHECKING */
             /* Look up the id in the class scope. */
             if (class_qualified_id_lookup(&locator_for_curr_id, class_type,
-					  IDL_NO_OPTIONS) != NULL) {
+					  idl_options) != NULL) {
               /* Ambiguity and access control checking is not done because
                  we don't know yet what kind of reference this is. */
             } else {
               /* The identifier could not be found in the class scope. */
-              pos_stsy_error(ec_not_a_member, &identifier_pos,
+              /* Issue an alternate version of the error if we are looking
+		 for a tag symbol. */
+	      error_code = ilm == ilm_tag ? ec_not_a_tag_member :
+					    ec_not_a_member;
+              pos_stsy_error(error_code, &identifier_pos,
                              locator_for_curr_id.symbol_header->identifier,
                              (a_symbol_ptr)class_type->
                                                 source_corresp.assoc_info);
@@ -5453,6 +5479,7 @@ is looked up.  Returns TRUE if identifier is a qualified name.
        a base class of the current class even if "b" is not a member of "A". */
     make_specific_symbol_error_locator(&locator_for_curr_id);
     locator_for_curr_id.qualifier_class_type = class_type;
+    *err = TRUE;
   }  /* if */
   /* Issue access errors if needed. */
   if (locator_for_curr_id.access_errors != NULL) {
@@ -5484,7 +5511,7 @@ exit:
 
 a_symbol_ptr coalesce_and_lookup_generalized_identifier
                  (an_identifier_options_set        options,
-                  an_identifier_lookup_mode        mode,
+                  an_identifier_lookup_mode        ilm,
                   a_boolean                        *err)
 /*
 The current token is the start of a name, qualified or not.
@@ -5501,7 +5528,8 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
 
   /* Mask the error flags out of the options flags to prevent the errors
      from being diagnosed more than once. */
-  if (coalesce_and_lookup_qualified_name(options & ~GID_ERROR_FLAGS,  err)) {
+  if (coalesce_and_lookup_qualified_name(options & ~GID_ERROR_FLAGS,
+                                         ilm, err)) {
     /* The identifier is a qualified name. */
     symbol = locator_for_curr_id.specific_symbol;
 #if CHECKING
@@ -5520,27 +5548,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
 #endif /* CHECKING */
     /* Normal identifier -- look it up. */
     /* Translate the general identifier options into ID lookup options. */
-    switch (mode) {
-      case ilm_class:
-        idl_options = IDL_MUST_BE_CLASS;
-        break;
-      case ilm_tag:
-        idl_options = IDL_MUST_BE_TAG;
-        break;
-      case ilm_tentative_type:
-        idl_options = IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME;
-        break;
-      case ilm_normal:
-        idl_options = IDL_NO_OPTIONS;
-        break;
-      case ilm_ctor_initializer_name:
-        idl_options = IDL_SKIP_CURR_FUNCTION_SCOPE;
-        break;
-#if CHECKING
-      default:
-        internal_error("coalesce_and_lookup_generalized...:bad lookup mode");
-#endif /* CHECKING */
-    }  /* switch */
+    idl_options = idl_options_for_lookup_mode[ilm];
     symbol = normal_id_lookup(&locator_for_curr_id, idl_options);
     /* If this is the symbol of a class template then this must be a reference
        to a instance of the class template.  Scan the argument list and
