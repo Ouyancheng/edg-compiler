@@ -1901,7 +1901,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);
          ARM 4.6 (pointer conversions: qualifiers cannot be dropped
          implicitly), 5.17 (assignment), 8.4 (initializers). */
-      if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
+      if (any_qualifier_missing(dest_type_pointed_to,
+                                source_type_pointed_to)) {
         if (cfront_compatibility_mode && 
             is_void(unqual_dest_type_pointed_to) &&
             is_void(unqual_source_type_pointed_to)) {
@@ -2086,7 +2087,8 @@ pointers to members).
          It might have additional qualifiers.  This is not mentioned in
          the ARM, but it makes sense by analogy with pointer types
          (ARM 4.6, 5.17, 8.4). */
-      if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
+      if (any_qualifier_missing(dest_type_pointed_to,
+                                source_type_pointed_to)) {
         okay = FALSE;
       }  /* if */
     }  /* if */

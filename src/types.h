@@ -203,7 +203,7 @@ Return TRUE if type_1 does not have some top-level type qualifier that
 type_2 has.  Note that this macro does not check that the underlying
 types are compatible.
 */
-#define fewer_qualifiers(type_1, type_2)                              \
+#define any_qualifier_missing(type_1, type_2)                         \
   ((is_const_qualified_type(type_2) && !is_const_qualified_type(type_1)) || \
    (is_volatile_qualified_type(type_2) &&                             \
                                     !is_volatile_qualified_type(type_1)))
