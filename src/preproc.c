@@ -1697,7 +1697,7 @@ Process a predefined C99 STDC pragma.  These pragmas have the following form:
   #pragma STDC CX_LIMITED_RANGE [ ON | OFF | DEFAULT ]
 
 This routine is called to process the pragmas when they are known to appear
-in a valid location.  It is called compound_statement for block scope
+in a valid location.  It is called from compound_statement for block scope
 pragmas, and by stdc_pragma for pragmas that appear in the file scope.
 */
 {
