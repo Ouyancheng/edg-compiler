@@ -115,6 +115,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_constructor_init, /* a_constructor_init */
   iek_asm_entry,        /* an_asm_entry */
   iek_template_arg,     /* a_template_arg */
+  iek_new_delete_supplement,
+			/* a_new_delete_supplement */
 #endif /* ifdef CIL */
   iek_orphaned_il_list, /* an_orphaned_il_list */
   iek_last		/* Marks the end of the list. */
@@ -393,7 +395,6 @@ extern an_expr_node_ptr func_call_expr(
                                 an_expr_node_ptr  function_node,
                                 a_type_ptr        function_type,
                                 a_boolean         is_virtual,
-                                a_boolean         new_or_delete_call_for_array,
                                 a_source_position *err_pos);
 
 extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
