@@ -3974,11 +3974,11 @@ class, struct, or union.
     if (!set_field_size_and_offset(field, &local_byte_offset,
                                    &local_bit_offset, &lob->alignment)) {
       /* FALSE was returned, which means an overflow error was encountered in
-	 computing the new size of the struct -- i.e., this field will not
-	 fit.  Remember it, so that only one such error is put out. */
+         computing the new size of the struct -- i.e., this field will not
+         fit.  Remember it, so that only one such error is put out. */
       if (!lob->any_overflow) {
-        error(ec_struct_too_large);
-	lob->any_overflow = TRUE;
+        error(C_mode() ? ec_struct_too_large : ec_class_too_large);
+        lob->any_overflow = TRUE;
       }  /* if */
     } else {
       /* Offset values were modified.  Save highest offset for unions, last
