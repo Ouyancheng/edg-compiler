@@ -1961,7 +1961,8 @@ bound with the function in *bound_function_selector.
         if (member_sym == NULL && err_in_operand_1 == ec_no_error) {
           /* The identifier is not a member of the operand_1 class, struct,
              or union. */
-          error(ec_not_a_member);
+          str_error(ec_not_a_member,
+                    locator_for_curr_id.symbol_header->identifier);
           err = TRUE;
         }  /* if */
       }  /* if */

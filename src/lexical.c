@@ -4397,6 +4397,7 @@ only in C++ mode.
                           &start_position);
     }  /* if */
     curr_token = tok_identifier;
+    pos_curr_token = error_position = start_position;
   }  /* if */
   /* Always return TRUE, as a convenience to macro get_opname. */
   return TRUE;
@@ -4627,7 +4628,8 @@ the error on the final identifier not being found on lookup.
               if (!okay) {
                 /* The identifier could not be found in the scope. */
                 if (!(options & IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR)) {
-                  error(err_code);
+                  str_error(err_code,
+                            locator_for_curr_id.symbol_header->identifier);
                 }  /* if */
               }  /* if */
             }  /* if */

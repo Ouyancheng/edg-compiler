@@ -596,9 +596,9 @@ error code.
       break;
     case ec_not_a_member:
       if (C_dialect == C_dialect_cplusplus) {
-        m = "no such member in this class";
+        m = "class has no member %sq";
       } else {
-        m = "no such field in this struct or union";
+        m = "struct or union has no field %sq";
       }  /* if */
       break;
     case ec_expr_not_a_modifiable_lvalue:
@@ -638,7 +638,7 @@ error code.
       m = "this variable has already been initialized";
       break;
     case ec_bad_file_scope_storage_class:
-      m = "a file-scope declaration may not have this storage class";
+      m = "a global-scope declaration may not have this storage class";
       break;
     case ec_typedef_cannot_be_param_name:
       if (C_dialect == C_dialect_cplusplus) {
@@ -1047,7 +1047,7 @@ error code.
       m = "unary \"::\" is not allowed on a name in a declarator";
       break;
     case ec_name_not_found_in_file_scope:
-      m = "no such name declared in the file scope";
+      m = "the global scope has no %sq";
       break;
     case ec_qualified_name_not_allowed:
       m = "qualified name is not allowed";
