@@ -1706,13 +1706,12 @@ NULL, a pointer to step is returned.
 }  /* copy_and_extend_path */
 
 
-static void set_pointer_base_class(a_base_class_ptr       base_class,
-                                   a_derivation_step_ptr  path)
+static void set_pointer_base_class(a_base_class_ptr  base_class)
 /*
-Set the pointer_base_class field of a virtual base class.  It will be the
-nonvirtual base class in its derivation path that is furthest along the
-derivation path without having any virtual base classes of its own.  For
-instance, given this derivation:
+Base class is a virtual base class for which the pointer_base_class field has
+not yet been set.  Set it to point to the nonvirtual base class in its
+derivation path that is furthest along the derivation path without having any
+virtual base classes of its own.  For instance, given this derivation:
     ==>D==>C==>V1==>B==>A==>V2
 (where base classes V1 and V2 are virtual and the others are nonvirtual)
 the pointer_base_class for both V1 and V2 is C.
@@ -1721,57 +1720,40 @@ the pointer_base_class for both V1 and V2 is C.
   a_derivation_step_ptr  dsp;
   a_base_class_ptr       bcp;
 
-#if 0
-  if (path->base_class->is_virtual) {
-    /* The root of the path is virtual.  See if the virtual base class itself
-       has a nonvirtual root. */
-    if (!path->base_class->direct) {
-      set_pointer_base_class(base_class, path->base_class->derivation);
-    }  /* if */
-  } else {
-    /* Traverse the path till the end is reached or until a virtual base is
-       next.  In either case, the base class at that point is probably the
-       one we want. */
-    for (dsp = path;; dsp = dsp->next) {
-      if (dsp->next == NULL || dsp->next->base_class->is_virtual) {
-        /* dsp->base_class is the one we want if it itself contains a pointer
-           to the data section for the virtual base class in question.  But
-           if its pointer is embedded in some other base class, we don't want
-           it after all.  In such a case we'll encounter that base class
-           later in processing and use it then. */
-        bcp = corresponding_base_class(base_class, dsp->base_class->type,
-                                       (a_base_class_ptr)NULL);
-        if (bcp->pointer_base_class == NULL) {
-          base_class->pointer_base_class = dsp->base_class;
-        }  /* if */
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* if 0 */
   /* Find the segment of the derivation path that is headed by a direct base
-     class. */
-  path = base_class->derivation;
-  while (!path->base_class->direct) {
-    check_assertion(path->base_class->is_virtual);
-    path = path->base_class->derivation;
+     class.  In the example above, the path for V2 is ==>V1==>B==>A==>V2,
+     but V1 is not a direct base class; therefore, we look at V1's path,
+     namely, ==>D==>C==>V1, and find that D is a direct base class. */
+  dsp = base_class->derivation;
+  while (!dsp->base_class->direct) {
+    /* The head of the path is an indirect virtual base class.  Look at the
+       head of its path. */
+    check_assertion(dsp->base_class->is_virtual);
+    dsp = dsp->base_class->derivation;
   }  /* while */
-  dsp = path;
+  /* If the head of the derivation is non-virtual, we may have a candidate for
+     a pointer base class. */
   if (!dsp->base_class->is_virtual) {
     check_assertion(dsp->next != NULL);
+    /* Look for the second-to-last base class in this path segment.  (The
+       last path entry should be either base_class itself or a virtual base
+       class derived from base_class). */
     while (dsp->next->next != NULL) dsp = dsp->next;
     bcp = corresponding_base_class(base_class, dsp->base_class->type,
                                    (a_base_class_ptr)NULL);
-    if (bcp->pointer_base_class == NULL) {
+    if (bcp->pointer_base_class != NULL) {
+      /* Its pointer is embedded in some other base class, so we don't want
+         it after all.  In such a case we'll encounter that base class
+         later in processing and use it then. */
+    } else {
       base_class->pointer_base_class = dsp->base_class;
     }  /* if */
   }  /* if */
 }  /* set_pointer_base_class */
 
-
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-static a_boolean set_data_section_base_class(a_base_class_ptr       base_class,
-                                             a_derivation_step_ptr  path)
+
+static void set_data_section_base_class(a_base_class_ptr  base_class)
 /*
 In cfront-compatibility mode the data section for a virtual base class
 may be embedded in the data section of some other base class.  When this
@@ -1925,35 +1907,22 @@ treated as though it were not embedded in an intermediate complete
 subobject (e.g., C).
 */
 {
-#if 0
-  a_derivation_step_ptr  dsp = path;
-#endif /* if 0 */
   a_derivation_step_ptr  dsp = base_class->derivation;
   a_base_class_ptr       bcp;
-  a_boolean              updated = FALSE;
 
   db_enter(4, "set_data_section_base_class");
-  if (base_class->data_section_base_class != NULL) {
-    /* The data section for base_class is already embedded in the data
-       section of another class. */
-  } else {
-    /* If the first entry on the derivation path is a complete subobject,
-       it may have virtual functions embedded within it. */
-    if (dsp->base_class->complete_subobject) {
+  /* If the first entry on the derivation path is a complete subobject,
+     it may have virtual base classes embedded within it. */
+  if (dsp->base_class->complete_subobject) {
+    if (dsp->base_class->is_virtual &&
+        dsp->base_class->data_section_base_class == NULL) {
+      /* If dsp refers to a virtual base class which is not itself embedded,
+         then don't (yet) mark the current base class as embedded in it. */
+    } else {
       /* Traverse the path. */
       for (;; dsp = dsp->next) {
-        if (dsp->base_class->is_virtual &&
-            dsp->base_class->data_section_base_class == NULL) {
-          /* There is a virtual base class on the path, and it is not embedded.
-             If it ends up having its own data section, the data section
-             for base_class will be embedded in it. */
-          break;
-#if 0
-        } else if (dsp->next == NULL ||
-                  !dsp->next->base_class->complete_subobject) {
-#endif /* if 0 */
-        } else if (dsp->next->base_class == base_class ||
-                  !dsp->next->base_class->complete_subobject) {
+        if (dsp->next->base_class == base_class ||
+            !dsp->next->base_class->complete_subobject) {
           /* dsp represents an intermediate base class.  If the next entry
              on the path is NULL (i.e., if dsp is the last entry before the
              base_class) or is an incomplete subobject (meaning it cannot
@@ -1963,7 +1932,6 @@ subobject (e.g., C).
                                          (a_base_class_ptr)NULL);
           if (bcp->data_section_base_class == NULL) {
             base_class->data_section_base_class = dsp->base_class;
-            updated = TRUE;
           }  /* if */
           break;
         }  /* if */
@@ -1971,67 +1939,28 @@ subobject (e.g., C).
     }  /* if */
   }  /* if */
   db_exit();
-  return updated;
 }  /* set_data_section_base_class */
 
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
-void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
-                                         a_type_ptr       class_type)
+a_boolean is_surrogate_direct_base_class(a_base_class_ptr  bcp)
 /*
-base_class is a virtual base class whose data section is being allocated;
-base_class will be represented as a "complete subobject" of class_type, which
-means space will be reserved for all its own virtual base classes. Therefore,
-if it has any virtual base classes with data sections that have not already
-been associated with some other base class, record the "official" location
-of the latter as its position within base_class.  This is a recursive
-algorithm.
+bcp is a direct virtual base class.  Return TRUE if it has been marked
+direct because there is an entry on its list of duplicate entries that
+is actually the direct base class.
 */
 {
-  a_base_class_ptr  bcp, embedded_base_class;
+  a_boolean  found = FALSE;
 
-  db_enter(4, "fixup_embedded_virtual_base_classes");
-  if (base_class->type->variant.class_struct_union.any_virtual_base_classes) {
-    /* base_class has one or more virtual base classes of its own. */
-    for (bcp = base_classes_of(base_class->type);
-         bcp != NULL;
-         bcp = bcp->next) {
-      if (bcp->is_virtual) {
-        /* bcp is one of the virtual base class of base_class.  Find the
-           base class entry that corresponds to it in the base classes list
-           for class_type. */
-        embedded_base_class = corresponding_base_class(bcp, class_type,
-                                                       (a_base_class_ptr)NULL);
-        if (embedded_base_class->data_section_base_class != NULL) {
-          /* The data section for this virtual base class has already been
-             assigned a location. */
-        } else {
-          /* Proceed to specify how it should be embedded. */
-          if (bcp->data_section_base_class == NULL) {
-            /* In the context of base_class, it was not embedded (for instance,
-               it may have been a direct virtual base class or a virtual
-               base class that was inherited through a direct base class
-               represented as an "incomplete subobject").  Therefore it will
-               be embedded in the data section reserved for base_class in
-               the layout of class_type. */
-            embedded_base_class->data_section_base_class = base_class;
-          } else {
-            /* In the context of base class it was embedded (for instance,
-               it may have been inherited through another virtual base class
-               or through a "complete subobject" base class).  Use the same
-               location in the layout of class_type. */
-            embedded_base_class->data_section_base_class =
-                  corresponding_base_class(bcp->data_section_base_class,
-                                           class_type, (a_base_class_ptr)NULL);
-          }  /* if */
-          /* Apply the algorithm recursively. */
-          fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
-        }  /* if */
-      }  /* for */
-    }  /* for */
+  check_assertion(bcp->direct && bcp->is_virtual);
+  for (bcp = bcp->duplicate_entries; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      found = TRUE;
+      break;
+    }  /* if */
   }  /* for */
-  db_exit();
-}  /* fixup_embedded_virtual_base_classes */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  return found;
+}  /* is_surrogate_direct_base_class */
 
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
@@ -2061,8 +1990,8 @@ duplicate paths.  The copy will be a base class of new_class.
   if (base_class_to_copy->is_virtual) {
     /* The base class to be copied is a virtual base class.  See if a
        virtual base class referring to the same class type is already on
-       the base classes list for the new class.  If so, we don't want to
-       add it or its own base classes to the list again. */
+       the base classes list for the new class.  If so, mark it and the new
+       base class entries as duplicates. */
     for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
         bcp->is_duplicate = is_duplicate = TRUE;
@@ -2090,20 +2019,6 @@ duplicate paths.  The copy will be a base class of new_class.
   if (base_class_to_copy->is_virtual) {
     new_bcp->is_virtual = TRUE;
     if (is_duplicate) new_bcp->is_duplicate = TRUE;
-#if 0
-    set_pointer_base_class(new_bcp, path);
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-    /* The data section of an indirect virtual base class is in the
-       complete subobject to which it belongs. */
-    (void)set_data_section_base_class(new_bcp, path);
-    /* According to cfront all virtual base classes are complete subobjects. */
-    new_bcp->complete_subobject = TRUE;
-  } else {
-    if (base_class_to_copy->complete_subobject) {
-      new_bcp->complete_subobject = TRUE;
-    }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* if 0 */
   }  /* if */
   new_bcp->any_virtual_steps_in_derivation =
                          base_class_to_copy->any_virtual_steps_in_derivation;
@@ -2116,11 +2031,11 @@ duplicate paths.  The copy will be a base class of new_class.
     new_bcp->derivation = copy_and_extend_path(path, step, new_bcp);
   }  /* if */
   if (new_bcp->is_virtual) {
-    set_pointer_base_class(new_bcp, path);
+    set_pointer_base_class(new_bcp);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* The data section of an indirect virtual base class is in the
        complete subobject to which it belongs. */
-    (void)set_data_section_base_class(new_bcp, path);
+    set_data_section_base_class(new_bcp);
     /* According to cfront all virtual base classes are complete subobjects. */
     new_bcp->complete_subobject = TRUE;
   } else {
@@ -2129,21 +2044,24 @@ duplicate paths.  The copy will be a base class of new_class.
     }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
-  if (!new_bcp->is_virtual) {
-    /* Check for ambiguity. */
-    for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == new_bcp->type) {
+  /* Check for ambiguity. */
+  for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
+    if (bcp->type == new_bcp->type) {
+      if (bcp->is_virtual && new_bcp->is_virtual) {
+        /* Okay. */
+      } else {
         /* Ambiguous base class. */
         bcp->ambiguous = TRUE;
         new_bcp->ambiguous = TRUE;
       }  /* if */
-    }  /* for */
-  }  /* if */
+    }  /* if */
+  }  /* for */
   if (!is_duplicate) {
     /* Add the base classes of the current indirect base class
        to the base classes list of the most-derived-class. */
     for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct) {
+      if (bcp->direct &&
+          (!bcp->is_virtual || !is_surrogate_direct_base_class(bcp))) {
         add_indirect_base_class(bcp, new_bcp, p_end_of_add_list, new_class);
       }  /* if */
     }  /* for */
@@ -2238,6 +2156,7 @@ Return the preferred base class to the called.
 {
   a_derivation_step_ptr  step;
   an_access_specifier    access, temp_access;
+  a_boolean              is_direct = FALSE;
   a_base_class_ptr       bcp, prev, insert_after, next_bcp;
   a_base_class_ptr       first_duplicate = NULL;
   a_base_class_ptr       pointer_base_class = NULL;
@@ -2264,6 +2183,7 @@ Return the preferred base class to the called.
       if (pointer_base_class == NULL) {
         pointer_base_class = bcp->pointer_base_class;
       }  /* if */
+      if (bcp->direct) is_direct = TRUE;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* Do the same with the data-section-base-class and the setting for the
          complete-subobject flag in cfront mode. */
@@ -2318,6 +2238,7 @@ Return the preferred base class to the called.
   base_class->data_section_base_class = data_section_base_class;
   base_class->complete_subobject = complete_subobject;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  base_class->direct = is_direct;
   if (base_class != first_duplicate) {
     /* Remove base_class from its current position and place it before
        first_duplicate. */
@@ -2669,7 +2590,8 @@ or struct definition.  The syntax is
         for (bcp = base_classes_of(new_direct_bcp->type);
              bcp != NULL;
              bcp = bcp->next) {
-          if (bcp->direct) {
+          if (bcp->direct &&
+              (!bcp->is_virtual || !is_surrogate_direct_base_class(bcp))) {
             /* Add the direct base class and all *its* base classes to the
                base class list for the derived class. */
             add_indirect_base_class(bcp, new_direct_bcp,
