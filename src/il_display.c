@@ -2705,10 +2705,6 @@ Display the indicated local_static_variable_init entry.
     default:
       (void)printf("**BAD INITIALIZATION KIND**\n");
   }  /* switch */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
 }  /* disp_local_static_variable_init */
 
 
