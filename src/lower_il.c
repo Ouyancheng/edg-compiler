@@ -61,7 +61,12 @@ static a_type_ptr
 			   the file-scope types list).  If NULL, promotions
 			   should be moved to the end of the file-scope
 			   list. */
-
+static unsigned long
+		num_of_pending_class_typeinfo_vars;
+			/* Count of typeinfo variables generated for classes
+			   that have not been revisited to determine whether
+			   they need definitions.  Used to cut short the
+			   final pass that finds and defines the variables. */
 
 #if DEBUG
 /*
@@ -692,7 +697,7 @@ Make a type that is used as a generic function pointer in virtual function
 tables and pointers to member functions if it has not been made already,
 and return a pointer to it.  The type looks like
 
-  typedef int (*__vptp)();
+  typedef void (*__vptp)();
 
 except that it doesn't actually have a name.
 */
@@ -700,11 +705,10 @@ except that it doesn't actually have a name.
   a_type_ptr function_type;
 
   if (vptp_type == NULL) {
-    /* Make function-of-no-parameters-returning-int. */
+    /* Make function-of-no-parameters-returning-void. */
     function_type = alloc_type((a_type_kind)tk_routine);
-    function_type->variant.routine.return_type =
-                                         integer_type((an_integer_kind)ik_int);
-    /* Make pointer to function-returning-int. */
+    function_type->variant.routine.return_type = void_type();
+    /* Make pointer to function-returning-void. */
     vptp_type = make_pointer_type(function_type);
   }  /* if */
   return vptp_type;
@@ -790,6 +794,52 @@ compatibility we do too.)
   }  /* if */
   return mptr_type;
 }  /* make_mptr_type */
+
+/*
+Pointer to the typeinfo struct type (used to represent runtime type
+information).  NULL until created.
+*/
+static a_type_ptr
+		typeinfo_type;
+
+
+static a_type_ptr make_typeinfo_type(void)
+/*
+Make the typeinfo struct type (used to represent runtime type information)
+if it is not made already, and return a pointer to it.  Its definition is
+
+  struct typeinfo {
+    char     *id;   // Id object pointer
+    __vptp   dtor;  // Destructor
+    typeinfo **bc;  // Pointer to base class array
+  };
+
+*/
+{
+  a_targ_size_t byte_offset;
+  a_field_ptr   last_field;
+
+  if (typeinfo_type == NULL) {
+    /* Make the struct type. */
+    typeinfo_type = alloc_type((a_type_kind)tk_struct);
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: char *id */
+    make_lowered_field("id",
+                     make_pointer_type(integer_type((an_integer_kind)ik_char)),
+                       &byte_offset, typeinfo_type, &last_field);
+    /* field: __vptp dtor */
+    make_lowered_field("dtor", make_vptp_type(),
+                       &byte_offset, typeinfo_type, &last_field);
+    /* field: typeinfo **bc */
+    make_lowered_field("bc",
+                       make_pointer_type(make_pointer_type(typeinfo_type)),
+                       &byte_offset, typeinfo_type, &last_field);
+    finish_class_type(typeinfo_type, &byte_offset);
+    add_to_front_of_file_scope_types_list(typeinfo_type);
+  }  /* if */
+  return typeinfo_type;
+}  /* make_typeinfo_type */
 
 
 static a_type_ptr underlying_pm_type(a_type_ptr type)
@@ -987,13 +1037,15 @@ a_variable_ptr make_lowered_variable(char            *var_name,
 Make a file-scope variable whose name is var_name, whose type is var_type,
 and whose storage class is var_storage_class.  Return a pointer to it.
 already_il_name is TRUE if the name has already been allocated in the IL;
-if not, it has to be allocated and copied.
+if not, it has to be allocated and copied.  var_name may be NULL if
+already_il_name is TRUE.
 */
 {
   a_variable_ptr var;
   sizeof_t       alloc_length;
 
-  /* Allocate the variable. */
+  /* Allocate the variable.  Note that the subroutine allocates the variable
+     in the file scope if the storage class is static. */
   var = alloc_variable(var_storage_class);
   if (!already_il_name) {
     /* Copy the name to the IL region. */
@@ -2202,9 +2254,7 @@ Do IL lowering of a pointer-to-member constant.
     func_con = alloc_constant((a_constant_repr_kind)ck_address);
     if (routine != NULL) {
       /* For a non-virtual function, a pointer to the routine. */
-      func_con->variant.address.kind = (an_address_base_kind)abk_routine;
-      func_con->variant.address.variant.routine = routine;
-      func_con->type = make_pointer_type(routine->type);
+      set_routine_address_constant(routine, func_con);
     } else {
       /* For a virtual function, the offset of the virtual function table
          pointer in the class of the routine.  Also handles the NULL case. */
@@ -2336,11 +2386,7 @@ Do IL lowering of the indicated constant and everything under it.
                  ck_aggregate constant is not allowed here, use the address
                  of a temporary variable initialized with the ck_aggregate
                  constant. */
-              constant->variant.address.kind =
-                                            (an_address_base_kind)abk_variable;
-              constant->variant.address.variant.variable = temp_var;
-              /* Note that the type will already have been adjusted to the
-                 proper pointer-to-struct type. */
+              set_variable_address_constant(temp_var, constant);
             }  /* if */
             break;
 #if CHECKING
@@ -2722,9 +2768,7 @@ virtual function table.
                                           void_type());
     }  /* if */
     /* Put the pointer to the function into the table. */
-    func_con->variant.address.kind = (an_address_base_kind)abk_routine;
-    func_con->variant.address.variant.routine = func_to_call;
-    func_con->type = make_pointer_type(func_to_call->type);
+    set_routine_address_constant(func_to_call, func_con);
     implicit_cast(func_con, vptp_type);
     /* Mark the routine as referenced. */
     func_to_call->source_corresp.referenced = TRUE;
@@ -2746,6 +2790,8 @@ virtual function table.
      tables, only in pointers to member functions. */
   i_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_integer_constant(i_con, (long)0, TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+  /* Put together the aggregate constant. */
+  entry_aggr->type = mptr_type;
   entry_aggr->variant.aggregate.first_constant = delta_con;
   delta_con->next = i_con;
   i_con->next = func_con;
@@ -2989,6 +3035,7 @@ virtual function table.
     /* Start the initialization by creating a ck_aggregate constant and
        making it the initial value of the variable. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr_con->type = vtbl_var->type;
     vtbl_var->init_kind = (an_init_kind)initk_static;
     vtbl_var->initializer.constant = aggr_con;
     /* Put out the initialization for the [0] entry (skipped). */
@@ -3574,6 +3621,7 @@ Do IL lowering on the indicated class/struct/union type.
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
     if (ctsp->assoc_scope != NULL) {
+      /* There is a definition for the class. */
       /* Lower the base classes. */
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         lower_type(bcp->type);
@@ -3583,7 +3631,7 @@ Do IL lowering on the indicated class/struct/union type.
       /* Promote members into the file scope. */
       promote_class_members(class_type);
     }  /* if */
-    /* Lower the template arg list, if any. */
+    /* Lower the template argument list, if any. */
     lower_template_arg_list(ctsp->template_arg_list);
     /* Lower the type-as-subobject. */
     lower_type(ctsp->type_as_subobject);
@@ -3630,6 +3678,84 @@ Do IL lowering of the indicated list of types and everything under it.
 }  /* lower_type_list */
 
 
+static void make_typeinfo_var(a_type_ptr type)
+/*
+Make a typeinfo variable for the indicated type.  The variable points to
+runtime type information.
+*/
+{
+  a_variable_ptr  typeinfo_var;
+  char            *mangled_name;
+  sizeof_t        mangled_name_length, alloc_length;
+  a_storage_class storage_class;
+
+  /* No need to create the variable if it exists already. */
+  if (type->typeinfo_var == NULL) {
+    /* Determine the length of the mangled name. */
+    mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
+    /* Allocate space for the mangled name, including the final null. */
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_lowered_name_string(alloc_length);
+    /* Build the mangled name. */
+    (void)mangled_typeinfo_name(type, mangled_name);
+    mangled_name[mangled_name_length] = '\0';
+    if (is_immediate_class_type(type)) {
+      /* typeinfo variables for classes are sometimes external, sometimes
+         static, but we don't know which yet.  Start with external, and
+         change later if necessary. */
+      storage_class = (a_storage_class)sc_extern;
+      /* Keep a count of the number of class typeinfo variables so that the
+         final pass to add definitions for these can be stopped when all
+         of them have been found. */
+      num_of_pending_class_typeinfo_vars++;
+    } else {
+      /* typeinfo variables for non-classes are always external tentative
+         definitions (initialized to NULL/zero by default). */
+      storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+    typeinfo_var = make_lowered_variable(mangled_name,
+                                         /*already_il_name=*/TRUE,
+                                         make_typeinfo_type(),
+                                         storage_class);
+    typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
+    /* Remember the variable in the type. */
+    type->typeinfo_var = typeinfo_var;
+  }  /* if */
+}  /* make_typeinfo_var */
+
+
+static void type_is_used_in_exception(a_type_ptr type)
+/*
+The indicated type is used in an exception context.  Put out any necessary
+information on it.
+*/
+{
+  if (is_ptr_or_ref_type(type)) {
+    /* For a pointer or reference to a class, remove the pointer or reference
+       level of the type. */
+    a_type_ptr base_type = type_pointed_to(type);
+    if (is_class_struct_union_type(base_type)) type = base_type;
+  }  /* if */
+  /* Typedefs and qualifiers should be ignored. */
+  type = f_skip_typerefs(type);
+  /* We need a typeinfo variable for the underlying type.  Make it if it
+     does not exist already. */
+  if (type->typeinfo_var == NULL) {
+    make_typeinfo_var(type);
+    /* If the type is a class, we also need typeinfo variables for its
+       base classes. */
+    if (is_immediate_class_type(type)) {
+      a_base_class_ptr bcp;
+      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        make_typeinfo_var(bcp->type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* type_is_used_in_exception */
+
+
 static void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
@@ -3648,6 +3774,11 @@ Do IL lowering of the indicated type and everything under it.
     for (btlmp = type->based_types; btlmp != NULL; btlmp = btlmp->next) {
       lower_type(btlmp->based_type);
     }  /* for */
+    if (type->used_in_exception) {
+      /* If the type was used in an exception context, generate typeinfo
+         information for it. */
+      type_is_used_in_exception(type);
+    }  /* if */
     switch (type->kind) {
       case tk_void:
       case tk_float:
@@ -5686,6 +5817,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_new_delete:
       lower_new_delete(expr);
       break;
+    case enk_throw:
+#if 0
+#else
+      overwrite_node(expr, expr->variant.throw_object);
+#endif
+      break;
 #if CHECKING
     default:
       internal_error("lower_expr: bad kind");
@@ -6816,6 +6953,266 @@ next_kind:;
 }  /* lower_orphaned_entries */
 
 
+static a_variable_ptr make_id_object_var(a_type_ptr type)
+/*
+Make an id object variable for the given type, and return a pointer to it.
+The id object variable is pointed to from the definition of the typeinfo for
+the type.  When static typeinfo objects are put out in multiple files,
+they will point to the same (external) id object, so one can tell that they
+all denote the same type.  type must be an externally-linked class type.
+*/
+{
+  a_variable_ptr  id_object_var;
+  char            *mangled_name;
+  sizeof_t        mangled_name_length, alloc_length;
+
+  /* Determine the length of the mangled name. */
+  mangled_name_length = mangled_id_object_name(type, (char *)NULL);
+  /* Allocate space for the mangled name, including the final null. */
+  alloc_length = mangled_name_length + 1;
+  mangled_name = alloc_lowered_name_string(alloc_length);
+  /* Build the mangled name. */
+  (void)mangled_id_object_name(type, mangled_name);
+  mangled_name[mangled_name_length] = '\0';
+  /* Make the variable. */
+  id_object_var = make_lowered_variable(mangled_name,
+                                        /*already_il_name=*/TRUE,
+                                        integer_type((an_integer_kind)ik_char),
+                                        (a_storage_class)sc_unspecified);
+  id_object_var->source_corresp.name_has_been_mangled = TRUE;
+  return id_object_var;
+}  /* make_id_object_var */
+
+
+static a_variable_ptr make_base_class_array_var(a_type_ptr type)
+/*
+type is a class type that has base classes.  Make a variable initialized
+with an array of typeinfo pointers for the base classes of the type.
+This is used as part of the typeinfo information.
+*/
+{
+  a_base_class_ptr bcp;
+  unsigned long    base_class_count;
+  a_type_ptr       array_type;
+  a_constant_ptr   aggr_con, con;
+  a_variable_ptr   typeinfo_var, bc_var;
+
+  /* The current region is already the file scope memory region when
+     this routine is called. */
+  /* The initial value is an aggregate constant pointing to a list of
+     constants that are pointers to typeinfo variables. */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  base_class_count = 0;
+  for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    /* Include information only on direct base classes. */
+    if (bcp->direct) {
+      base_class_count++;
+      /* Make an address constant for a pointer to the base class typeinfo
+         variable. */
+      con = alloc_constant((a_constant_repr_kind)ck_address);
+      typeinfo_var = bcp->type->typeinfo_var;
+      check_assertion_str(typeinfo_var != NULL,
+                          "make_base_class_array_var: NULL typeinfo var");
+      set_variable_address_constant(typeinfo_var, con);
+      /* Add the constant to the aggregate list. */
+      if (aggr_con->variant.aggregate.first_constant == NULL) {
+        aggr_con->variant.aggregate.first_constant = con;
+      } else {
+        aggr_con->variant.aggregate.last_constant->next = con;
+      }  /* if */
+      aggr_con->variant.aggregate.last_constant = con;
+    }  /* if */
+  }  /* for */
+  check_assertion_str(base_class_count != 0,
+                      "make_base_class_array_var: no base classes");
+  /* Add a zero entry to indicate the end of the list. */
+  con = alloc_constant((a_constant_repr_kind)ck_address);
+  make_zero_of_proper_type(make_pointer_type(typeinfo_type), con);
+  aggr_con->variant.aggregate.last_constant->next = con;
+  aggr_con->variant.aggregate.last_constant = con;
+  /* Make a type that is an array of pointers to typeinfo entries.
+     Leave room for the zero entry at the end. */
+  array_type = alloc_type((a_type_kind)tk_array);
+  array_type->variant.array.variant.number_of_elements = base_class_count+1;
+  array_type->variant.array.element_type = make_pointer_type(typeinfo_type);
+  set_type_size(array_type);
+  aggr_con->type = array_type;
+  /* Make the variable.  It is unnamed and static. */
+  bc_var = make_lowered_variable((char *)NULL, /*already_il_name=*/TRUE,
+                                 array_type, (a_storage_class)sc_static);
+  /* Attach the aggregate constant as the initial value of the variable. */
+  bc_var->init_kind = initk_static;
+  bc_var->initializer.constant = aggr_con;
+  return bc_var;
+}  /* make_base_class_array_var */
+
+
+static void define_typeinfo_var(a_type_ptr type,
+                                a_boolean  force_static)
+/*
+Generate a definition for the typeinfo variable (used to provide runtime
+type information) associated with type "type".  "type" must be a class type
+(because the typeinfo variables for nonclass types are never defined --
+tentative definition establishes the proper NULL values).  If force_static
+is TRUE, change the typeinfo variable to static.
+*/
+{
+  a_variable_ptr typeinfo_var = type->typeinfo_var;
+  a_constant_ptr aggr_con, id_con, dtor_con, bc_con;
+  a_field_ptr    curr_field;
+  a_type_ptr     curr_field_type;
+  a_symbol_ptr   dtor_sym;
+  a_memory_region_number
+                 region_to_switch_back_to;
+
+  check_assertion(is_immediate_class_type(type));
+  /* Switch to the file scope memory region so that initial values will
+     be allocated there. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Set the linkage on the typeinfo variable. */
+  if (force_static) {
+    /* When forced to by the flag force_static, change the storage class to
+       static and the linkage to internal. */
+    typeinfo_var->storage_class = (a_storage_class)sc_static;
+    typeinfo_var->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_internal;
+  } else {
+    /* For an externally-linked class, change the variable to an external
+       definition. */
+    typeinfo_var->storage_class = (a_storage_class)sc_unspecified;
+    /* The variable can be referenced from another compilation unit.
+       This is probably already set. */
+    typeinfo_var->source_corresp.referenced = TRUE;
+  }  /* if */
+  /* The initial value of the typeinfo variable is an aggregate containing
+     values as follows:
+       1)  Id object: pointer to id object variable, or NULL if the class
+           is internally linked.
+       2)  Destructor: pointer to destructor, or NULL.
+       3)  Base class array pointer: pointer to array containing pointers
+           to typeinfo structures for base classes, or NULL if there are
+           no base classes.
+  */
+  /* Id object pointer. */
+  id_con = alloc_constant((a_constant_repr_kind)ck_address);
+  curr_field = typeinfo_type->variant.class_struct_union.field_list;
+  curr_field_type = curr_field->type;
+  /* Note that we test for nlk_external and not nlk_cplusplus_external here
+     because the linkage has already been rewritten. */
+  if (type->source_corresp.name_linkage != (a_name_linkage_kind)nlk_external) {
+    /* Internally linked class; id object pointer is NULL. */
+    make_zero_of_proper_type(curr_field_type, id_con);
+  } else {
+    /* Externally linked class; make id object variable. */
+    set_variable_address_constant(make_id_object_var(type), id_con);
+  }  /* if */
+  /* Destructor pointer. */
+  curr_field = curr_field->next;
+  curr_field_type = curr_field->type;
+  dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
+  /* See if the class has a destructor. */
+  dtor_sym = symbol_supplement_for_class(type)->destructor;
+  if (dtor_sym == NULL) {
+    /* The class has no destructor; use a NULL pointer. */
+    make_zero_of_proper_type(curr_field_type, dtor_con);
+  } else {
+    /* The class has a destructor.  Make a pointer to the routine. */
+    a_routine_ptr dtor_routine = dtor_sym->variant.routine.ptr;
+    set_routine_address_constant(dtor_routine, dtor_con);
+  }  /* if */
+  /* Base class array pointer. */
+  curr_field = curr_field->next;
+  curr_field_type = curr_field->type;
+  bc_con = alloc_constant((a_constant_repr_kind)ck_address);
+  if (type->variant.class_struct_union.extra_info->base_classes == NULL) {
+    /* The class has no base classes; use a NULL pointer. */
+    make_zero_of_proper_type(curr_field_type, bc_con);
+  } else {
+    /* The class has base classes; make a variable whose initial value is
+       an array of pointers to the typeinfo information for the base classes,
+       and use its address here. */
+    a_variable_ptr bc_var = make_base_class_array_var(type);
+    set_variable_address_constant(bc_var, bc_con);
+  }  /* if */
+  /* Make the aggregate constant and attach it to the variable as its initial
+     value. */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->type = typeinfo_type;
+  aggr_con->variant.aggregate.first_constant = id_con;
+  aggr_con->variant.aggregate.last_constant = bc_con;
+  id_con->next = dtor_con;
+  dtor_con->next = bc_con;
+  typeinfo_var->init_kind = initk_static;
+  typeinfo_var->initializer.constant = aggr_con;
+  /* Return to the memory region that was current when this routine was
+     entered. */
+  switch_back_to_original_region(region_to_switch_back_to);
+}  /* define_typeinfo_var */
+
+
+static void define_scope_class_typeinfo_vars(a_scope_ptr scope)
+/*
+Visit all the class types of the indicated scope and look for typeinfo
+variables (generated earlier).  For each typeinfo variable, generate
+the appropriate definition if one is needed.  This must be done late
+in the lowering process, so that all necessary typeinfo variables can
+be generated first.
+*/
+{
+  a_type_ptr  type;
+  a_scope_ptr class_scope, block_scope;
+  a_boolean   definition_needed, force_static;
+
+  /* Visit all types to find all class types. */
+  /* Note that when processing a function or block scope we will be crossing
+     into the file scope here, but these class types are truly local types
+     and are not used in the file scope, so it's okay to define their
+     typeinfo variables now. */
+  /* Once all of the typeinfo variables have been found, quit. */
+  for (type = scope->types;
+       type != NULL && num_of_pending_class_typeinfo_vars != 0;
+       type = type->next) {
+    if (is_immediate_class_type(type)) {
+      /* Found a class type. */
+      /* If the type has an associated typeinfo variable, define it now. */
+      if (type->typeinfo_var != NULL) {
+        /* If the class has a virtual function table, the typeinfo variable
+           is defined if and only if the virtual function table is defined. */
+        a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
+                                                    virtual_function_table_var;
+        if (vtbl_var != NULL) {
+          definition_needed =
+                           (vtbl_var->init_kind == (an_init_kind)initk_static);
+          /* The typeinfo variable is static if the virtual function table
+             is static. */
+          force_static =
+                       (vtbl_var->storage_class == (a_storage_class)sc_static);
+        } else {
+          /* The class has no virtual function table (i.e., it's not
+             polymorphic), so its typeinfo variable must be defined and must
+             be static. */
+          definition_needed = force_static = TRUE;
+        }  /* if */
+        if (definition_needed) define_typeinfo_var(type, force_static);
+        num_of_pending_class_typeinfo_vars--;
+      }  /* if */
+      /* If the class has a definition, visit its members. */
+      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) define_scope_class_typeinfo_vars(class_scope);
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  /* Once all of the typeinfo variables have been found, quit. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL && num_of_pending_class_typeinfo_vars != 0;
+       block_scope = block_scope->next) {
+    define_scope_class_typeinfo_vars(block_scope);
+  }  /* for */
+}  /* define_scope_class_typeinfo_vars */
+
+
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
 Rewrite the intermediate language in memory region region_number from
@@ -6866,11 +7263,12 @@ C++ to C, so that a C back end can handle it without change.
       }  /* if */
     }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-    /* Do name mangling.  This must be done early so that original type
+    /* Do name mangling.  This must be done early when original type
        information is available (for example, references are still
        references and not yet pointers). */
     do_memory_region_name_mangling(scope);
-    /* Create definitions for virtual function tables. */
+    /* Create definitions for virtual function tables.  This must be done
+       early when virtual function information is still available. */
     define_scope_virtual_function_tables(scope);
     /* Lower the scope and its subscopes in the same memory region. */
     lower_scope(scope);
@@ -6880,11 +7278,14 @@ C++ to C, so that a C back end can handle it without change.
          are not linked into the file scope memory region IL tree, so they have
          to be found through a separate list. */
       lower_orphaned_entries();
-    } else {
-      /* Pop the file-scope context that was put around the function scope
-         context. */
-      pop_context();
     }  /* if */
+    /* Add definitions for any typeinfo variables generated for classes.
+       This must be done late so that all types marked with used_in_exception
+       have been encountered already. */
+    define_scope_class_typeinfo_vars(scope);
+    /* Pop the file-scope context that was put around the function scope
+       context. */
+    if (!lowering_file_scope) pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
   }  /* if */
   db_exit();
@@ -6938,7 +7339,9 @@ of the front end.
   pure_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
+  typeinfo_type = NULL;
   type_promotion_insert_location = NULL;
+  num_of_pending_class_typeinfo_vars = 0;
 #if DEBUG
   allocated_name_string_length            = 0;
   num_required_destructor_calls_allocated = 0;
