@@ -1991,7 +1991,6 @@ to the constructor-init entry.
 */
 {
   a_constant_ptr next_con;
-  a_boolean      keep_dynamic_init;
   a_type_ptr     desired_type;
 
   if (dtor_case) {
@@ -2005,12 +2004,7 @@ to the constructor-init entry.
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        ctor_init, /*is_full_expr=*/TRUE,
-                       insert_location, &keep_dynamic_init);
-#if CHECKING
-    if (keep_dynamic_init) {
-      internal_error("lower_ck_dynamic_init: keep_dynamic_init unexpected");
-    }  /* if */
-#endif /* CHECKING */
+                       insert_location, (a_boolean *)NULL);
   }  /* if */
   /* Overwrite the constant with a harmless constant of the right kind.
      It's just a place-holder that gets overwritten by the dynamic
@@ -2696,7 +2690,9 @@ no code will be generated.)  The code will be inserted at *insert_location.
 code.
 
 On return, *keep_dynamic_init is TRUE if the dynamic init entry is to
-be kept, FALSE if it should be deleted.
+be kept, FALSE if it should be deleted.  If the caller passes in
+keep_dynamic_init == NULL, no value is returned; the value determined
+in this routine must be FALSE in that case.
 */
 {
   an_expr_node_ptr   entity_node, source_node;
@@ -2717,9 +2713,8 @@ be kept, FALSE if it should be deleted.
                      lifetime, init_expr_lifetime;
   a_context          context, static_context;
   a_context_ptr      eff_context = curr_context;
-  a_boolean          expr_is_lvalue;
+  a_boolean          expr_is_lvalue, local_keep_dynamic_init = FALSE;
 
-  *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
   variable = dip->variable;
@@ -3068,7 +3063,7 @@ do_assignment:;
       } else {
         /* Initialization of an automatic variable to a constant.  Can be done
            by keeping the dynamic init entry. */
-        *keep_dynamic_init = TRUE;
+        local_keep_dynamic_init = TRUE;
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
         dip->variant.constant = simple_constant;
       }  /* if */
@@ -3098,7 +3093,7 @@ do_assignment:;
   /* If the dynamic initialization was for a local static, pop the context
      pushed for it. */
   if (pushed_static_context) pop_context();
-  if (!*keep_dynamic_init) {
+  if (!local_keep_dynamic_init) {
     /* Clear the initialization part of the dynamic init now that it has
        been rewritten.  This is important because the dynamic init may
        stay in the IL tree attached to an object lifetime destructions
@@ -3108,6 +3103,12 @@ do_assignment:;
   }  /* if */
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
+  if (keep_dynamic_init != NULL) {
+    *keep_dynamic_init = local_keep_dynamic_init;
+  } else {
+    check_assertion_str(!local_keep_dynamic_init,
+   "lower_dynamic_init: keep_dynamic_init param NULL and want to return TRUE");
+  }  /* if */
 }  /* lower_dynamic_init */
 
 
@@ -3449,7 +3450,6 @@ The subtree of the node has not yet been lowered.
   a_constant                  null_constant;
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
-  a_boolean                   keep_dynamic_init;
   a_dynamic_init_ptr          dyn_init_to_free_storage;
   
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
@@ -3572,8 +3572,7 @@ The subtree of the node has not yet been lowered.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                         &insert_location, &keep_dynamic_init);
-      check_assertion(!keep_dynamic_init);
+                         &insert_location, (a_boolean *)NULL);
 #if GENERATE_EH_TABLES
       if (dyn_init_to_free_storage != NULL) {
         /* While the initialization was being done, if an exception was
@@ -3781,7 +3780,7 @@ Do IL lowering of an enk_temp_init expression node.
   a_dynamic_init_ptr dip;
   a_type_ptr         temp_type;
   an_init_pos_descr  ipd;
-  a_boolean          keep_dynamic_init, result_is_addr, result_is_not_used;
+  a_boolean          result_is_addr, result_is_not_used;
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
 
@@ -3822,8 +3821,7 @@ Do IL lowering of an enk_temp_init expression node.
   lower_dynamic_init(dip, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                     &insert_location, &keep_dynamic_init);
-  check_assertion(!keep_dynamic_init);
+                     &insert_location, (a_boolean *)NULL);
   /* Optimization -- if the initialization is done by a constructor,
      and the enk_temp_init returns the address of the temporary,
      use the pointer returned from the constructor as the value of
@@ -4154,7 +4152,6 @@ created are inserted at *insert_location, and *insert_location is updated.
   a_dynamic_init_ptr   dip;
   an_init_pos_descr    ipd;
   an_init_pos_modifier ipm;
-  a_boolean            keep_dynamic_init;
 
   dip = ctor_init->initializer;
   if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
@@ -4210,12 +4207,7 @@ created are inserted at *insert_location, and *insert_location is updated.
   lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
                      /*is_full_expr=*/TRUE,
-                     insert_location, &keep_dynamic_init);
-#if CHECKING
-  if (keep_dynamic_init) {
-    internal_error("lower_ctor_init: keep_dynamic_init unexpected");
-  }  /* if */
-#endif /* CHECKING */
+                     insert_location, (a_boolean *)NULL);
 }  /* lower_ctor_init */
 
 
@@ -5209,7 +5201,6 @@ Do lowering on the file-scope dynamic initializations list.
 {
   a_dynamic_init_ptr dip, dip_next;
   an_insert_location insert_location;
-  a_boolean          keep_dynamic_init;
   a_scope_ptr        file_scope = il_header.primary_scope, scope;
   an_init_pos_descr  ipd;
   a_generated_routine_context
@@ -5256,13 +5247,7 @@ Do lowering on the file-scope dynamic initializations list.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                         eff_insert_location, &keep_dynamic_init);
-#if CHECKING
-      if (keep_dynamic_init) {
-        internal_error(
-               "lower_file_scope_dynamic_inits: keep_dynamic_init unexpected");
-      }  /* if */
-#endif /* CHECKING */
+                         eff_insert_location, (a_boolean *)NULL);
     }  /* for */
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */

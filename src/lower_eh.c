@@ -2926,7 +2926,6 @@ for the scope of the handler.
 */
 {
   an_init_pos_descr  ipd;
-  a_boolean          keep_dynamic_init;
   an_insert_location insert_location;
 
   if (handler->parameter != NULL) {
@@ -2937,8 +2936,7 @@ for the scope of the handler.
     lower_dynamic_init(handler->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
-                       &insert_location, &keep_dynamic_init);
-    check_assertion(keep_dynamic_init == FALSE);
+                       &insert_location, (a_boolean *)NULL);
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
   }  /* if */
@@ -3477,7 +3475,6 @@ Lower an enk_throw expression node.
   a_dynamic_init_ptr dip;
   an_init_pos_descr  ipd;
   an_insert_location insert_location;
-  a_boolean          keep_dynamic_init;
   a_throw_supplement_ptr
                      tsp = expr->variant.throw_info;
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -3600,8 +3597,7 @@ Lower an enk_throw expression node.
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, /*is_full_expr=*/FALSE,
-                       &insert_location, &keep_dynamic_init);
-    check_assertion(!keep_dynamic_init);
+                       &insert_location, (a_boolean *)NULL);
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* Put the lowered node pointer into the throw supplement. */
     tsp->expr = insert_location.variant.expr;
