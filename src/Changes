@@ -1,5 +1,22 @@
 Version 3.1
 
+8/13/02  -0.0 versus 0.0 in constant sharing, fp_same_representation
+
+The use of fp_compare in the search for a shareable constant
+was incorrect, because it must return equality for 0.0 <?> -0.0,
+and those really aren't the same constants.  In the front end
+as delivered this did not matter, because fp_hash always
+returned a different bucket number for 0.0 and -0.0, so they
+were never compared.  However, when our customers replace the
+floating-point routines, they could too easily fall into the
+situation where this mattered, especially if they did not zero
+the full floating-point value on initialization.  To fix this
+problem, we have added a new routine fp_same_representation,
+which compares two floating-point values and returns true if
+they have the same representation, i.e., it returns false for
+a comparison of 0.0 and -0.0.  This routine is now called
+from the constant-sharing code.
+
 8/10/02  Configuration option for signedness of one-bit bit fields
 
 Heretofore, bit fields with length one and having a base type that

@@ -1013,6 +1013,10 @@ The number is known to be syntactically correct, but may not be representable
 The precision of the value is indicated by kind (float, double, long double);
 full precision will be kept, but the value is checked to see that it will
 fit in the indicated type.
+
+Note that if the default versions of fp_same_representation and
+fp_hash are used, this routine should zero the entire float_value
+before setting it if there are unused bits.
 */
 {
   long				exponent = 0;
@@ -1171,6 +1175,10 @@ is indicated by kind (float, double, long double); full precision will
 be kept, but the value is checked to see that it will fit in the indicated
 type.  The string need not have a decimal point or exponent (it can
 look like an integer).  It may have a leading "-" sign.
+
+Note that if the default versions of fp_same_representation and
+fp_hash are used, this routine should zero the entire float_value
+before setting it if there are unused bits.
 */
 {
   /* This is a simplistic version, which should probably be replaced by
@@ -1566,6 +1574,25 @@ values:
   }  /* if */
   return cmp;
 }  /* fp_compare */
+
+
+/*ARGSUSED*/  /* kind is not used. */
+a_boolean fp_same_representation(a_float_kind            kind,
+                                 an_internal_float_value *value_1,
+                                 an_internal_float_value *value_2)
+/*
+Compare two floating-point values.  Return TRUE if they have the same
+representation.  This differs from fp_compare, other than the
+FALSE/TRUE versus -1/0/+1 return, for example, by the fact that -0.0
+and 0.0 might not compare equal.
+*/
+{
+  /* Note that the whole float was zeroed in initialization, so any gaps
+     have predictable values. */
+  a_boolean same = (memcmp((char *)value_1, (char *)value_2,
+                           size_t_arg(data_size_of_host_fp_value)) == 0);
+  return same;
+}  /* fp_same_representation */
 
 
 unsigned int fp_hash(an_internal_float_value *value)

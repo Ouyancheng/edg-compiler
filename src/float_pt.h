@@ -128,6 +128,10 @@ extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_2,
                       a_boolean               *unordered);
 
+a_boolean fp_same_representation(a_float_kind            kind,
+                                 an_internal_float_value *value_1,
+                                 an_internal_float_value *value_2);
+
 extern unsigned int fp_hash(an_internal_float_value *value);
 
 extern void float_pt_init(void);

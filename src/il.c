@@ -4231,7 +4231,7 @@ are compared; otherwise, a "const int 5" and an "int 5" are treated as
 nonidentical.
 */
 {
-  a_boolean  eq = FALSE, unordered;
+  a_boolean  eq = FALSE;
   a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
   a_boolean  same_types;
 
@@ -4301,24 +4301,21 @@ nonidentical.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         cp1_type = skip_typerefs(cp1_type);
         if (is_floating_type(cp1_type)) {
-          eq = (fp_compare(cp1_type->variant.float_kind,
-                           &cp1->variant.float_value,
-                           &cp2->variant.float_value,
-                           &unordered) == 0 && !unordered);
+          eq = fp_same_representation(cp1_type->variant.float_kind,
+                                      &cp1->variant.float_value,
+                                      &cp2->variant.float_value);
         }  /* if */
         break;
 #if C99_IL_EXTENSIONS_SUPPORTED
       case ck_complex:
         cp1_type = skip_typerefs(cp1_type);
         if (is_floating_type(cp1_type)) {
-          eq = (fp_compare(cp1_type->variant.float_kind,
-                           &cp1->variant.complex_value->real,
-                           &cp2->variant.complex_value->real,
-                           &unordered) == 0 && !unordered &&
-                fp_compare(cp1_type->variant.float_kind,
-                           &cp1->variant.complex_value->imag,
-                           &cp2->variant.complex_value->imag,
-                           &unordered) == 0 && !unordered);
+          eq = (fp_same_representation(cp1_type->variant.float_kind,
+                                       &cp1->variant.complex_value->real,
+                                       &cp2->variant.complex_value->real) &&
+                fp_same_representation(cp1_type->variant.float_kind,
+                                       &cp1->variant.complex_value->imag,
+                                       &cp2->variant.complex_value->imag));
         }  /* if */
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
