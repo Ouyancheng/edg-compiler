@@ -29,6 +29,7 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "pragma.h"
 #include "preproc.h"
+#include "class_decl.h"
 
 
 /* Forward declaration. */
@@ -187,11 +188,15 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
                                             &suppress);
       break;
     case enk_typeid:
-      /* A typeid applied to an expression that is a pointer to a
-         polymorphic class type can throw an exception if the pointer is
-         NULL. */
       if (node->variant.typeid_info.expr != NULL) {
-        a_type_ptr typeid_type = node->variant.typeid_info.type;
+        a_type_ptr typeid_type;
+        has_side_effects = node_has_side_effects(
+                                            node->variant.typeid_info.expr,
+                                            &suppress);
+        /* A typeid applied to an expression that is a pointer to a
+           polymorphic class type can throw an exception if the pointer is
+           NULL. */
+        typeid_type = node->variant.typeid_info.type;
         if (is_pointer_type(typeid_type) &&
             is_polymorphic_class_type(type_pointed_to(typeid_type))) {
           has_side_effects = TRUE;
@@ -3648,6 +3653,89 @@ be inappropriate, because the feature is probably used to implement
 
   db_exit();
 }  /* scan_alignof_operator */
+
+
+static void scan_typeid_operator(an_operand *result)
+/*
+Scan the C++ typeid operator.
+
+Syntax:
+	typeid ( expression )
+	typeid ( type-id )
+
+This is the C++ syntax.  C++ type-id is the same as C type-name.
+*/
+{
+  a_source_position start_position;
+  an_operand        operand;
+  an_expr_node_ptr  expr = NULL, typeid_node;
+  a_type_ptr        typeid_type;
+
+  db_enter(4, "scan_typeid_operator");
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* Typeid not possible for preprocessing expressions. */
+    internal_error("scan_typeid_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* typeid is valid only after the type_info type has been declared in a
+     header file. */
+  if (type_of_type_info == NULL) {
+    error(ec_typeid_needs_typeinfo);
+  }  /* if */
+  /* Save the position of the typeid keyword. */
+  start_position = pos_curr_token;
+  /* Advance past typeid. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  /* Disambiguate to choose between the type case and the expression case. */
+  if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
+                       /*real_declarator_allowed=*/FALSE,
+                       /*single_type_required=*/TRUE)) {
+    /* Scan a type name. */
+    type_name(&typeid_type);
+    /* Instantiate the type if it is a template class. */
+    check_for_uninstantiated_template_class(typeid_type);
+    /* The type must be complete or void. */
+    if (is_incomplete_type(typeid_type) && !is_void_type(typeid_type)) {
+      error(ec_incomplete_type_not_allowed);
+    }  /* if */
+  } else {
+    /* Scan an expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    /* Convert array --> pointer, etc.  This also checks for incomplete in
+       the lvalue --> rvalue conversion. */
+    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+    expr = make_node_from_operand(&operand);
+    typeid_type = operand.type;
+  }  /* if */
+  /* Type qualifiers on the type are ignored [expr.typeid]. */
+  typeid_type = skip_typerefs(typeid_type);
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (type_of_type_info == NULL) {
+    /* type_info is not defined, so the result is an error operand. */
+    make_error_operand(result);
+  } else {
+    /* Create a typeid expression node. */
+    typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
+    typeid_node->variant.typeid_info.expr = expr;
+    typeid_node->variant.typeid_info.type = typeid_type;
+    /* The result is a reference to type_info, which means a pointer to
+       type_info as an lvalue address. */
+    typeid_node->type = make_pointer_type(type_of_type_info);
+    make_expression_operand(typeid_node, type_of_type_info, result);
+    result->state = (an_operand_state)os_lvalue;
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+
+  db_exit();
+}  /* scan_typeid_operator */
 
 
 static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
@@ -8362,6 +8450,11 @@ see expr.h).
     case tok_alignof:
       /* __ALIGNOF__ operation. */
       scan_alignof_operator(&local_result);
+      break;
+
+    case tok_typeid:
+      /* typeid operation. */
+      scan_typeid_operator(&local_result);
       break;
 
     case tok_intaddr:
