@@ -2291,7 +2291,8 @@ body.  Only called in C++ mode.
                         rp->storage_class != (a_storage_class)sc_extern)) {
               /* A referenced but undefined member function that is either
                  extern-inline or has internal linkage. */
-              pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+              pos_sy_diagnostic(microsoft_mode ? es_warning : es_error,
+                                ec_never_defined, &sym->decl_position, sym);
             } else if (is_inline_virtual) {
               /* A non-local inline virtual function that is undefined and
                  unreferenced. */

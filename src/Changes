@@ -1,5 +1,18 @@
 Version 2.36
 
+4/30/96   Microsoft compatibility: diagnostic on inline member function
+          that is referenced but undefined
+
+In Microsoft compatibility mode an error is no longer issued when an inline
+member function of a nonlocal class is referenced but not defined:
+
+  class A {
+    inline int f();           // Only a warning in Microsoft mode
+  } a;
+  main() {
+    return a.f();
+  }
+
 4/29/97   Microsoft compatibility: template argument list following
           constructor name
 
