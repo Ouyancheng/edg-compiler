@@ -353,6 +353,14 @@ this processing is suppressed (because IL lowering will remove the
 ellipsis on function definitions), so if you want to use this feature
 you'll have to change MAKE_ALL_FUNCTIONS_UNPROTOTYPED to FALSE.
 
+(11/29/97:) If a global-scope type named va_list exists when <stdarg.h>
+is included, it will be used as the built-in va_list.  This helps
+when headers like stdio.h declare va_list (it's nonstandard, but
+it's common).  Also, if a type named __edg_va_list has been defined,
+its type is used as the built-in va_list.  If the macro
+GUARD_MACRO_FOR_VA_LIST is defined (as a quoted string), the named
+macro is defined when va_list is defined.
+
 10/30/97  Spurious error on qualified operator names with explicit
           template arguments
 
