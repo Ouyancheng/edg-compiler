@@ -15385,16 +15385,19 @@ by "sym".
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     a_variable_ptr	variable;
     variable = sym->variant.static_data_member.variable;
+    variable = (a_variable_ptr)canonical_il_entry_of(variable);
     name = get_mangled_static_data_member_name(variable);
   } else if (is_function_symbol(sym)) {
     a_routine_ptr	routine;
     routine = sym->variant.routine.ptr;
+    routine = (a_routine_ptr)canonical_il_entry_of(routine);
     name = get_mangled_function_name(routine);
   } else if (sym->kind == (a_symbol_kind)sk_function_template) {
     a_routine_ptr			routine;
     a_template_symbol_supplement_ptr	tssp;
     tssp = sym->variant.template_info;
     routine = tssp->variant.function.routine;
+    routine = (a_routine_ptr)canonical_il_entry_of(routine);
     name = get_mangled_function_name(routine);
   } else {
     unexpected_condition_str("get_mangled_name_for_symbol: bad kind");
