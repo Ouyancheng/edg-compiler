@@ -873,7 +873,7 @@ consistent with that of the previous declaration.
          one). */
       an_error_severity  severity = es_error;
       /* Unless we are in strict mode, issue a warning instead of an error
-         if this is a redeclaration of a what may be a library new or delete
+         if this is a redeclaration of what may be a library new or delete
          routine: the relaxation is to ease the upgrading of old code. */
       if (is_redecl && !rp->source_corresp.is_class_member &&
           (is_new_operator(rp->opname_kind) ||
