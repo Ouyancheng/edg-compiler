@@ -1846,7 +1846,7 @@ scope is that of a class definition.
         error(ec_param_id_list_needs_function_def);
       } else if (C_dialect == C_dialect_cplusplus) {
         /* This type of parameter list is an anachronism in C++. */
-        warning(ec_old_style_parameter_list);
+        diagnostic(anachronism_error_severity, ec_old_style_parameter_list);
       }  /* if */
       do {
         add_stop_token(tok_comma);

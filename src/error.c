@@ -1131,7 +1131,7 @@ error code.
       m = "%no is ambiguous";
       break;
     case ec_old_style_parameter_list:
-      m = "old-style parameter list";
+      m = "old-style parameter list (anachronism)";
       break;
     case ec_declaration_after_statements:
       m = "declaration may not appear after executable statement in block";
