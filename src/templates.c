@@ -2576,7 +2576,7 @@ included in the search.
         /* We've found a match.  Remove the found symbol from its current
            position in the instantiation list and add it to the front. */
         if (prev_sym != NULL) {
-          prev_sym->next = sym->next;
+          next_instance_sym(prev_sym) = next_instance_sym(sym);
           next_instance_sym(sym) = tssp->variant.class_template.instantiations;
           tssp->variant.class_template.instantiations = sym;
         }  /* if */
