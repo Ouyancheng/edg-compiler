@@ -593,24 +593,6 @@ typedef struct a_class_symbol_supplement {
 
 /* Unique sequence number identifying a declaration in a given scope. */
 typedef unsigned long a_decl_sequence_number;
-
-
-/*
-Data structure used to save decl-sequence and source-sequence information
-during declarator processing.
-*/
-typedef struct a_decl_seq_info *a_decl_seq_info_ptr;
-typedef struct a_decl_seq_info {
-  a_decl_sequence_number
-		decl_seq;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-		source_sequence_entry;
-			/* Last in the linked list of source sequence entries
-			   that are pointed to by il_scope; NULL if none. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-} a_decl_seq_info;
-
   
 /*
 Data structure used to pass information about function declarations back
@@ -654,10 +636,12 @@ typedef struct a_param_id {
 		implicitly_declared;
 			/* TRUE for an old-style parameter that for which
 			   an explicit declaration is omitted. */
-  a_decl_seq_info
-		decl_seq_info;
-			/* Decl-sequence and source-sequence information
-			   saved during declarator processing. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Source-sequence information saved during declarator
+			   processing. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_param_id;
 
 
@@ -706,10 +690,30 @@ typedef struct a_func_info_block {
 			   an error will be issued on a function definition
 			   and param_id_list and prototype_scope_symbols will
 			   be NULL. */
-  a_decl_seq_info
-		decl_seq_info;
-			/* Decl-sequence and source-sequence information
-			   saved during declarator processing. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		declarator_ssep;
+			/* Source sequence entry for the function
+			   declarator. */
+  a_source_sequence_entry_ptr
+		prototype_scope_ss_entry_start;
+			/* Pointer to a file-scope source sequence entry that
+			   immediately precedes the first entry generated for
+			   declarations in the function prototype scope; NULL
+			   indicates that the first function prototype entry
+			   is also the first on the filescope list.  (Also NULL
+			   if param_id_list is NULL.) */
+  a_source_sequence_entry_ptr
+		prototype_scope_ss_entry_end;
+			/* Pointer to a file-scope source sequence entry that
+			   is the last entry generated for declarations in the
+                           function prototype scope; NULL if there no entries
+                           and prototype_scope_ss_entry_end is also NULL. */
+  a_type_ptr	class_in_which_defined_inline;
+			/* Pointer to a class type in which this function
+			   is inline-defined.  NULL if not defined inline
+			   within a class defintion. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_func_info_block;
 
 
@@ -1587,6 +1591,20 @@ typedef struct a_scope_stack_entry {
 		last_source_sequence_entry;
 			/* Last in the linked list of source sequence entries
 			   that are pointed to by il_scope; NULL if none. */
+  a_source_sequence_entry_ptr
+		source_sequence_avail_list;
+			/* List of freed source sequence entries that are
+			   available for reuse; NULL if none. */
+  a_scope_depth depth_innermost_ss_list_scope;
+			/* Depth of the innermost scope on the scope stack
+			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
+			   depth_innermost_function_scope, or, in C++ only,
+			   the depth of the innermost class scope). */
+  a_scope_depth depth_innermost_file_scope_region_ss_list_scope;
+			/* Depth of the innermost scope on the scope stack
+			   with a source sequence list for entities in the
+			   file scope memory region (either DEPTH_OF_FILE_SCOPE
+			   or, in C++ only, the depth of a class scope). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_depth depth_innermost_instantiation_scope;
                         /* Depth of the nearest enclosing instantiation scope
@@ -1674,6 +1692,21 @@ EXTERN a_scope_depth
 			/* If there are template instantiation scopes on the
                            scope stack, this is the depth of the innermost
                            one.  Otherwise, NO_SCOPE_DEPTH. */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+EXTERN a_scope_depth
+		depth_innermost_ss_list_scope;
+			/* Depth of the innermost scope on the scope stack
+			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
+			   depth_innermost_function_scope, or, in C++ only,
+			   the depth of the innermost class scope). */
+EXTERN a_scope_depth
+		depth_innermost_file_scope_region_ss_list_scope;
+			/* Depth of the innermost scope on the scope stack
+			   with a source sequence list for entities in the
+			   file scope memory region (either DEPTH_OF_FILE_SCOPE
+			   or, in C++ only, the depth of a class scope). */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 EXTERN a_boolean
 		inside_local_class;
@@ -2062,16 +2095,22 @@ extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
 /* Record use information (for cross-reference, etc.). */
-extern void mark_defined(a_symbol_ptr         sym_ptr,
-                         a_source_position    *source_position,
-                         a_decl_seq_info_ptr  decl_seq_info);
-extern void mark_declared(a_symbol_ptr         sym_ptr,
-                          a_source_position    *source_position,
-                          a_decl_seq_info_ptr  decl_seq_info);
+extern void f_mark_defined(a_symbol_ptr                 sym_ptr,
+                           a_source_position            *source_position,
+                           a_source_sequence_entry_ptr  ssep);
+extern void f_mark_declared(a_symbol_ptr                 sym_ptr,
+                            a_source_position            *source_position,
+                            a_source_sequence_entry_ptr  ssep);
 extern void reference_to_symbol(a_symbol_reference_kind  kind,
                                 a_symbol_ptr             sym_ptr,
                                 a_source_position        *source_position,
                                 a_boolean                update_il_entry);
+
+#define mark_defined(sym, pos)                                          \
+  f_mark_defined((sym), (pos), (a_source_sequence_entry_ptr)NULL)
+
+#define mark_declared(sym, pos)                                         \
+  f_mark_defined((sym), (pos), (a_source_sequence_entry_ptr)NULL)
 
 #define mark_referenced(sym, err_pos)                                   \
   reference_to_symbol(SRK_REFERENCE, (sym), (err_pos),                  \
@@ -2093,12 +2132,13 @@ extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);
 
-extern void add_to_param_id_list(a_symbol_locator      *locator,
-                                 a_type_ptr            type_ptr,
-                                 a_source_position     *type_pos,
-                                 a_storage_class       storage_class,
-                                 a_func_info_block_ptr func_info,
-                                 a_param_id_ptr        *last_param_id);
+extern void add_to_param_id_list(a_symbol_locator            *locator,
+                                 a_type_ptr                  type_ptr,
+                                 a_source_position           *type_pos,
+                                 a_storage_class             storage_class,
+                                 a_func_info_block_ptr       func_info,
+                                 a_source_sequence_entry_ptr param_ssep,
+                                 a_param_id_ptr              *last_param_id);
 extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);
 
@@ -2262,6 +2302,7 @@ extern void db_symbol(a_symbol_ptr	sym,
                       char		*string,
                       int		indentation);
 
+extern int db_scope_kind(a_scope_kind sck);
 extern void db_scope_stack(void);
 #endif /* DEBUG */
 
