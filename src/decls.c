@@ -4037,9 +4037,9 @@ If an error occurs, the given locator may be changed to an error locator.
     if (get_underlying_upc_block_size(type_ptr) == UPC_BLOCK_SIZE_INDEFINITE &&
         is_underlying_threads_dimensioned_array_type(type_ptr)) {
       /* A threads-dimensioned array cannot have an indefinite block size. */
-        pos_error(ec_threads_dimension_requires_definite_block_size,
-                  &locator->source_position);
-        set_to_error_locator(*locator);
+      pos_error(ec_threads_dimension_requires_definite_block_size,
+                &locator->source_position);
+      set_to_error_locator(*locator);
     }  /* if */
   }  /* if */
 }  /* check_upc_variable_decl */
